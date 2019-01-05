@@ -2177,20 +2177,12 @@ input, select, textarea {
 
 /* Header */
 
-/*
-	#header:before {
-		color: #fff;
-	}
-
-	#header:after {
-		color: #fff;
-	}
-*/
 	#header {
 		position: relative;
 
 		/* background-image for header anchor */
 		background-image: url("../../images/test1.jpg");
+
 		background-size: cover;
 		background-position: center center;
 		background-attachment: fixed;
@@ -2198,9 +2190,11 @@ input, select, textarea {
 		color: #fff;
 		
 		text-align: center;
-		padding: 7.5em 0 2em 0;
-		cursor: default;
 
+		padding: 7.5em 0 2em 0;
+		
+		cursor: default;
+		
 		transition-delay: 0.75s;
 	}
 
@@ -2208,7 +2202,7 @@ input, select, textarea {
 			content: '';
 			display: inline-block;
 			vertical-align: middle;
-			height: 100%;
+			height: 100vh;
 		}
 
 		#header .inner {
@@ -2264,9 +2258,15 @@ input, select, textarea {
 			margin: 1em 0 0 0;
 		}
 
+	.homepage-margin-bottom {
+		margin-bottom: 20vh;
+	}	
+
 	body.homepage #header {
 		height: 100vh;
+		/*
 		min-height: 40em;
+		*/
 	}
 
 		body.homepage #header h1 {
@@ -2283,8 +2283,9 @@ input, select, textarea {
 			position: absolute;
 			left: 0;
 			top: 0;
+
 			width: 100%;
-			height: 100%;
+			height: 100vh;
 			opacity: 0;
 
 			-moz-transition: opacity 2.5s ease-in-out;
@@ -2301,47 +2302,6 @@ input, select, textarea {
 	body.homepage.is-preload #header:after {
 		opacity: 1;
 	}
-
-	/* General Page */
-
-/*
-	body.general-page #header {
-		height: 100vh;
-		min-height: 40em;
-	}
-
-		body.general-page #header h1 {
-			font-size: 4em;
-		}
-
-		body.general-page #header:after {
-			content: '';
-
-			background: #1C0920;
-
-			display: block;
-			position: absolute;
-			left: 0;
-			top: 0;
-			width: 100%;
-			height: 40%;
-			opacity: 0;
-
-			-moz-transition: opacity 2.5s ease-in-out;
-			-webkit-transition: opacity 2.5s ease-in-out;
-			-ms-transition: opacity 2.5s ease-in-out;
-			transition: opacity 2.5s ease-in-out;
-			-moz-transition-delay: 0.5s;
-			-webkit-transition-delay: 0.5s;
-			-ms-transition-delay: 0.5s;
-
-			transition-delay: 1s;
-		}
-
-	body.general-page.is-preload #header:after {
-		opacity: 1;
-	}
-*/
 
 /* Nav */
 
@@ -2830,6 +2790,10 @@ input, select, textarea {
 				line-height: 1.5em;
 			}
 
+			h1 {
+				margin-top: 10vh;
+			}
+
 			h2 {
 				font-size: 1.75em;
 			}
@@ -2868,6 +2832,8 @@ input, select, textarea {
 			header > p {
 				font-size: 1.25em;
 			}
+
+			/*anchorr4*/
 
 		/* Image */
 
@@ -2943,6 +2909,7 @@ input, select, textarea {
 				line-height: 3em;
 				width: 100%;
 			}
+
 
 		/* Nav */
 
@@ -3156,7 +3123,9 @@ input, select, textarea {
 			body.homepage #header {
 				min-height: 0;
 				padding: 5.5em 0 5em 0;
-				height: auto;
+
+				/*fixes mobile */
+				height: 100vh;
 			}
 
 				body.homepage #header:before {
