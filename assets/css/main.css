@@ -2178,6 +2178,7 @@ input, select, textarea {
 /* Header */
 
 	#header {
+		/* update marker */
 		position: relative;
 
 		/* background-image for header anchor */
