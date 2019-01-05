@@ -2178,12 +2178,11 @@ input, select, textarea {
 /* Header */
 
 	#header {
-		/* update marker */
-		position: relative;
 
 		/* background-image for header anchor */
 		background-image: url("../../images/test1.jpg");
 
+		position: relative;
 		background-size: cover;
 		background-position: center center;
 		background-attachment: fixed;
@@ -3292,12 +3291,16 @@ input, select, textarea {
 }
 
 #fixed {
-	background: url(https://images.pexels.com/photos/1287367/pexels-photo-1287367.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940) no-repeat center center fixed;
+	background: url(https://images.pexels.com/photos/1287367/pexels-photo-1287367.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940);
+
 	display: table;
 	height: 100%;
-	position: relative;
 	width: 100%;
+
+	position: relative;
 	background-size: cover;
+	background-position: center center;
+	background-attachment: fixed;
 }
 
 .collapse:not(.show) {
