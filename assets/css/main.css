@@ -1813,6 +1813,12 @@ input, select, textarea {
 			margin: 0 auto 4em auto;
 		}
 
+		.image.featured-25 {
+			display: block;
+			width: 25%;
+			margin: 0 auto 4em auto;
+		}		
+
 		.image.left {
 			float: left;
 			margin: 0 2em 2em 0;
@@ -1828,6 +1834,9 @@ input, select, textarea {
 				width: auto;
 			}
 
+	.image.featured-25-contactme {
+		margin: 0 auto 2em auto;
+	}
 /* List */
 
 	ul {
@@ -2538,6 +2547,13 @@ input, select, textarea {
 					color: rgba(212, 212, 212, 0.85);
 				}
 
+/* Special HR */
+
+		.contact-me-hr {
+			width: 50%;
+			display: none;
+		}
+
 /* Carousel */
 
 	.carousel {
@@ -2809,6 +2825,12 @@ input, select, textarea {
 			hr {
 				top: 3em;
 				margin-bottom: 6em;
+			}
+
+		/* Special hr */
+			.contact-me-hr {
+				width: 50%;
+				display: table;
 			}
 
 		/* Section/Article */
