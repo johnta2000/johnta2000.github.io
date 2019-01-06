@@ -2771,6 +2771,10 @@ input, select, textarea {
 
 	}
 
+	#fixed {
+		background: url(https://images.pexels.com/photos/1287367/pexels-photo-1287367.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940) no-repeat center center fixed;
+	}
+
 /* Mobile */
 
 	#navPanel, #titleBar {
@@ -2831,6 +2835,10 @@ input, select, textarea {
 
 			header > p {
 				font-size: 1.25em;
+			}
+
+			#fixed {
+				background-attachment: initial;
 			}
 
 			/*anchorr4*/
@@ -3288,10 +3296,6 @@ input, select, textarea {
 
 .align-text-top {
   vertical-align: text-top !important;
-}
-
-#fixed {
-	background: url(https://images.pexels.com/photos/1287367/pexels-photo-1287367.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940) no-repeat center center fixed;
 }
 
 .collapse:not(.show) {
