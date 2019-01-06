@@ -2180,7 +2180,7 @@ input, select, textarea {
 	#header {
 
 		/* background-image for header anchor */
-		background-image: url("../../images/test1.jpg");
+		background-image: url("../../images/homepage-background.jpg");
 
 		position: relative;
 		background-size: cover;
