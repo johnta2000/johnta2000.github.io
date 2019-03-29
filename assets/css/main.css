@@ -2103,6 +2103,20 @@ input, select, textarea {
 				border-top: solid 2px #e5e5e5;
 			}
 
+		.button-fixed {
+	  background-color: #3B4990; /* Green */
+	  border: none;
+	  color: white;
+	  padding: 10px 20px;
+	  text-align: center;
+	  text-decoration: none;
+	  display: inline-block;
+	  font-size: 16px;
+	  z-index: 10000000;
+	  position: fixed;
+	  bottom: 0px;
+	  right: 0px; 
+	}
 /* Button */
 
 	input[type="button"],
@@ -3407,18 +3421,3 @@ input, select, textarea {
 	}
 
 /* vote material */
-
-.button-fixed {
-  background-color: #3B4990; /* Green */
-  border: none;
-  color: white;
-  padding: 10px 20px;
-  text-align: center;
-  text-decoration: none;
-  display: inline-block;
-  font-size: 16px;
-  z-index: 10000000;
-  position: fixed;
-  bottom: 0px;
-  right: 0px; 
-}
