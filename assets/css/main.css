@@ -2224,8 +2224,6 @@ input, select, textarea {
 	#header {
 
 		/* background-image for header anchor */
-		/*background-image: url("../../images/john.png");*/
-
 		background-image: url("../../images/homepage-background.jpg");
 
 		position: relative;
@@ -2591,9 +2589,6 @@ input, select, textarea {
 			display: none;
 		}
 
-/* Fade in and out elements */
-
-
 /* Carousel */
 
 	.carousel {
@@ -2780,12 +2775,6 @@ input, select, textarea {
 			#footer {
 				padding-left: 2em;
 				padding-right: 2em;
-			}
-
-			#bread {
-				display: block;
-				width: 50%;
-				margin: 0 auto 4em auto;
 			}
 
 	}
@@ -3178,14 +3167,6 @@ input, select, textarea {
 				padding: 3em 1em 3em 1em;
 			}
 
-		/* bread */
-
-			#bread {
-				display: block;
-				width: 100%;
-				margin: 0 auto 4em auto;
-			}
-
 		/* Header */
 
 			#header {
@@ -3389,41 +3370,3 @@ input, select, textarea {
 .inner header:before {
 	opacity: 1;
 }
-
-	#fader {
-		z-index: 999999;
-		animation-duration: 300ms;
-		animation-timing-function: ease-in-out;
-	}
-
-	@keyframes fade-out {
-	    from { opacity: 1 }
-	      to { opacity: 0 }
-	}	
-
-	#fader.fade-out {
-   	 opacity: 0;
-    	animation-name: fade-out;
-	}
-
-/* vote material */
-
-.button-fixed {
-  background-color: #3B4990; /* Green */
-  border: none;
-  color: white;
-  padding: 10px 20px;
-  text-align: center;
-  text-decoration: none;
-  display: inline-block;
-  font-size: 16px;
-  z-index: 10000000;
-  position: fixed;
-  bottom: 0px;
-  right: 0px; 
-}
-
-		.button-fixed:hover {
-			color: #fff;
-			background: #6D9BF1;
-		}
