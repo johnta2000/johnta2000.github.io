@@ -3422,3 +3422,8 @@ input, select, textarea {
   bottom: 0px;
   right: 0px; 
 }
+
+		.button-fixed:hover {
+			color: #fff;
+			background: #6D9BF1;
+		}
