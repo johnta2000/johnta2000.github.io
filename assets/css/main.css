@@ -2636,7 +2636,7 @@ input, select, textarea {
 			}
 
 			.carousel .forward:hover:before, .carousel .backward:hover:before {
-				background-color: rgba(239, 131, 118, 0.75);
+				background-color: #6D9BF1;
 			}
 
 		.carousel .forward {
@@ -2679,8 +2679,10 @@ input, select, textarea {
 			width: 18em;
 			background: #fff;
 			text-align: center;
-			padding: 0 1em 3em 1em;
-			margin: 0 2em 0 0;
+
+			/* Carousel padding */
+			padding: 1em 1em 3em 1em;
+			margin: 0em 2em 0 0;
 			white-space: normal;
 			opacity: 1.0;
 			-moz-transition: opacity 0.75s ease-in-out;
@@ -2690,7 +2692,7 @@ input, select, textarea {
 		}
 
 			.carousel article.loading {
-				opacity: 0;
+				opacity: 1.0;
 			}
 
 			.carousel article .image {
@@ -2815,7 +2817,7 @@ input, select, textarea {
 
 				.carousel article {
 					width: 18em;
-					margin: 0 1em 0 0;
+					margin: 0em 1em 0 0;
 				}
 
 		/* Image */
@@ -3253,7 +3255,7 @@ input, select, textarea {
 				.carousel article {
 					width: 14em;
 					padding-bottom: 2em;
-					margin: 0 0.5em 0 0;
+					margin: 0em 0.5em 0 0;
 				}
 
 					.carousel article .image {
@@ -3370,3 +3372,12 @@ input, select, textarea {
 .inner header:before {
 	opacity: 1;
 }
+
+#no-padding {
+	padding-left: 0;
+	padding-right: 0;
+}
+
+#smallbottom {
+	padding-bottom: 2.5em;
+2.5
