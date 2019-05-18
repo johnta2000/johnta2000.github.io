@@ -3211,6 +3211,9 @@ input, select, textarea {
 					font-size: 2.5em;
 				}
 
+			#custom-margin {
+				margin-bottom: 1em;
+			}	
 		/* Nav */
 
 			#nav {
@@ -3380,4 +3383,4 @@ input, select, textarea {
 
 #smallbottom {
 	padding-bottom: 2.5em;
-2.5
+}
