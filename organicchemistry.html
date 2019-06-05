@@ -10,7 +10,8 @@
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
 		<link rel="stylesheet" href="assets/css/main.css" />
-		<link rel="stylesheet" href="assets/css/dropdown-button.css" />
+        <link rel="stylesheet" href="assets/css/dropdown.css" />
+		
 		<link rel="stylesheet" href="assets/css/header-general.css"/>
 		
 		<noscript><link rel="stylesheet" href="assets/css/noscript.css" /></noscript> 
@@ -73,7 +74,7 @@
 								<h2>CHEM 241: Front Page</h2>
 							</header>
 
-							<p>I am currently not a TA for organic chemistry, but I really enjoyed the subject, and am hoping to help out current and future classmates. There are a significant number of resources and tips on this page that will (hopefully) help you do well in this class.</p>
+							<p class = "easy-read-text">I am currently not a teaching assistant for organic chemistry, but I really enjoyed the subject, and am hoping to help out current and future classmates. There are a significant number of resources and tips on this page that will (hopefully) help you do well in this class.</p>
 
 							<hr/>
 
@@ -96,7 +97,7 @@
 
 							<article>
 								<header>
-									<h3><a class = "scrolly" href="#">Notes</a></h3>
+									<h3><a class = "scrolly" href="#notes">Notes</a></h3>
 								</header>
 								<p>Notes I took from the textbook that may be useful</p>
 							</article>
@@ -105,12 +106,12 @@
 								<header>
 									<h3><a class = "scrolly" href="#">Synthesis</a></h3>
 								</header>
-								<p>A few synthesis and mechanism review packets/p>
+								<p>A few synthesis and mechanism review packets </p>
 							</article>	
 
 							<article>
 								<header>
-									<h3><a class = "scrolly" href="#">Tips & Tricks</a></h3>
+									<h3><a class = "scrolly" href="#tips-tricks">Tips & Tricks</a></h3>
 								</header>
 								<p>Methods I used to study for ochem that might be useful</p>
 							</article>																	
@@ -125,6 +126,8 @@
 							<header>
 								<h2>Midterm Materials</h2>
 							</header>
+
+							<p> This is a log of past exams from recent and current professors. Practice exams are one of the most useful ways to solidify your understanding of key concepts, and to understand the type of questions you'll see on an exam, but simply only studying from them will not go well. </p>
 						</article>
 
 						<div class = row>
@@ -206,25 +209,29 @@
 							</article>
 
 							<article class = "col-3 col-12-mobile special">
-								<header>
-									<h4> Midterm 3 Materials </h4>
-								</header>
 
-								<p><a href = "https://drive.google.com/open?id=1e2OplQAJy62aBlqiZXFnGHgJF4CX3XOg">Kozlowski Practice 1 (Blank)</a></p>
-								<p><a href = "https://drive.google.com/open?id=1_QhSgsLEHusptd3tsLshp_TxSu_3kntB">Kozlowski Practice 2 (Blank)</a></p>
-								<p><a href = "https://drive.google.com/open?id=15_2whz6MUrRpaLx-MuLn8Q0Cha0e3WDg">Kozlowski Practice 3 (Blank)</a></p>
-								<p><a href = "https://drive.google.com/open?id=1XfYp0Xw_LGlrZwvpi1A40IXX-mPUeEwr">Dailey 2017 (Blank)</a></p>
-								<p><a href = "https://drive.google.com/open?id=1gLPhxIaPFFxhSCANmy2M0k0qZ9d0yU0t">Dailey 2016 (Blank)</a></p>
-								<p><a href = "https://drive.google.com/open?id=1FScqx98BPp46ObW14h07C86PUPxwr8aa">Dailey 2014 (Blank)</a></p>
+                                <header>
+                                    <button class = "collapsible button ochem-midterm-section"> <h4 style = "color: #fff"> Midterm 3 Materials </h4> </button>
+                                    <div class = "contentochem">
 
-								<p><a href = "https://drive.google.com/open?id=1CXooXj6tHbbjJdSXTd4aZiD-sAAvejwJ">Dailey 2018 (Key)</a></p>
-								<p><a href = "https://drive.google.com/open?id=1NGJdO6cVXVGvg8f1UeoE7ymS4CTsGhgL">Dailey 2017 (Key)</a></p>
-								<p><a href = "https://drive.google.com/open?id=1GIRLsiTshEzsfCP60n3nbNw-JMm9BBam">Dailey 2016 (Key)</a></p>
-								<p><a href = "https://drive.google.com/open?id=1zxkjg1fDMONy9hPzeD311TX_bomMduf_">Dailey 2015 (Key)</a></p>
-								<p><a href = "https://drive.google.com/open?id=1KL0vGT0jhZ7RFjkqUJsS5rNeq53fU-5k">Dailey 2014 (Key)</a></p>
-								<p><a href = "https://drive.google.com/open?id=1a4M03JePRDMOPL3gL5xXtVOi_QFeDqlR">Kozlowski Practice 1 (Key)</a></p>
-								<p><a href = "https://drive.google.com/open?id=1keUeNn3rE4M-FCHwVtCAJnKO1cfFiz0T">Kozlowski Practice 2 (Key)</a></p>
-								<p><a href = "https://drive.google.com/open?id=1iFHPh9yxxJoGxW_xpGxYKUi6lk-byAGb">Kozlowski Practice 3 (Key)</a></p>
+                                        <p><a href = "https://drive.google.com/open?id=1e2OplQAJy62aBlqiZXFnGHgJF4CX3XOg">Kozlowski Practice 1 (Blank)</a></p>
+                                        <p><a href = "https://drive.google.com/open?id=1_QhSgsLEHusptd3tsLshp_TxSu_3kntB">Kozlowski Practice 2 (Blank)</a></p>
+                                        <p><a href = "https://drive.google.com/open?id=15_2whz6MUrRpaLx-MuLn8Q0Cha0e3WDg">Kozlowski Practice 3 (Blank)</a></p>
+                                        <p><a href = "https://drive.google.com/open?id=1XfYp0Xw_LGlrZwvpi1A40IXX-mPUeEwr">Dailey 2017 (Blank)</a></p>
+                                        <p><a href = "https://drive.google.com/open?id=1gLPhxIaPFFxhSCANmy2M0k0qZ9d0yU0t">Dailey 2016 (Blank)</a></p>
+                                        <p><a href = "https://drive.google.com/open?id=1FScqx98BPp46ObW14h07C86PUPxwr8aa">Dailey 2014 (Blank)</a></p>
+
+                                        <p><a href = "https://drive.google.com/open?id=1CXooXj6tHbbjJdSXTd4aZiD-sAAvejwJ">Dailey 2018 (Key)</a></p>
+                                        <p><a href = "https://drive.google.com/open?id=1NGJdO6cVXVGvg8f1UeoE7ymS4CTsGhgL">Dailey 2017 (Key)</a></p>
+                                        <p><a href = "https://drive.google.com/open?id=1GIRLsiTshEzsfCP60n3nbNw-JMm9BBam">Dailey 2016 (Key)</a></p>
+                                        <p><a href = "https://drive.google.com/open?id=1zxkjg1fDMONy9hPzeD311TX_bomMduf_">Dailey 2015 (Key)</a></p>
+                                        <p><a href = "https://drive.google.com/open?id=1KL0vGT0jhZ7RFjkqUJsS5rNeq53fU-5k">Dailey 2014 (Key)</a></p>
+                                        <p><a href = "https://drive.google.com/open?id=1a4M03JePRDMOPL3gL5xXtVOi_QFeDqlR">Kozlowski Practice 1 (Key)</a></p>
+                                        <p><a href = "https://drive.google.com/open?id=1keUeNn3rE4M-FCHwVtCAJnKO1cfFiz0T">Kozlowski Practice 2 (Key)</a></p>
+                                        <p><a href = "https://drive.google.com/open?id=1iFHPh9yxxJoGxW_xpGxYKUi6lk-byAGb">Kozlowski Practice 3 (Key)</a></p>
+                                    </div>                                    
+                                </header>
+
 							</article>
 
 							<article class = "col-3 col-12-mobile">
@@ -261,26 +268,16 @@
 					</section>
 				</div>
 				<div class = "custom-wrapper-fixed" id = "fixed"></div>	
-				-->	
-
-				<!-- Tips and Tricks -->
-				<div class="wrapper style1">
-					<section id="tips-tricks" class="container special">
-						<header>
-							<h2>Tips and Tricks</h2>
-						</header>
-					</section>
-				</div>
-				<div class = "custom-wrapper-fixed" id = "fixed"></div>		
+				-->		
 
 				<!-- Notes -->
 				<div class="wrapper style1">
-					<section id="tips-tricks" class="container special">
+					<section id="notes" class="container special">
 						<header>
 							<h2>Notes</h2>
 						</header>
 
-						<p> Chapters 1-2 are pretty much review, but make sure you understand the ideas behind molecular orbital theory extensively (including drawing MO diagrams, drawing single, double, and triple bond structures...) Chapter 3 is new material, but should be relatively easy to go through. Chapter 4 will be a mix of new and old material emphasizing bond energy and other related thermodynamics things. Chapter 5 is likely completely new, and is your first interesting glance into an innate part of chemistry as a whole. Chapter 6, 7, 8, 9, 10, and 11 are probably the most difficult part of this course, with the overall discussion tailored around reactions of molecules and their mechanisms. Chapter 12 and 13 are much different from the previous chapters and circle around spectroscopy. </p>
+						<p class = "easy-read-text"> Here are notes that I took for my class. They may or may not serve you useful, so try them out and see how it goes. </p>
 
 						<article class = "col-12 col-12-mobile">
 							<p><a href = "https://drive.google.com/open?id=1M3NUgUHGJsPpvcZdLqrpBhOTJwxtAH6C">Chapter 4 Notes</a></p>
@@ -294,6 +291,52 @@
 					</section>
 				</div>
 				<div class = "custom-wrapper-fixed" id = "fixed"></div>	
+
+				<!-- Tips and Tricks -->
+				<div class="wrapper style1">
+					<section id="tips-tricks" class="container special">
+						<header>
+							<h2>Tips and Tricks</h2>
+						</header>
+
+                        <header>
+                            <button class = "button collapsible"> <h3 style = "color: #fff"> Overview of Chapters 1 - 13 </h3> </button>
+                                <div class = "contentochem">
+            						<p class = "easy-read-text"> 
+                                        <br>
+                                        Chapters 1-2 are pretty much review, but make sure you understand the ideas behind molecular orbital theory extensively (including drawing MO diagrams; drawing single, double, and triple bond structures in VESPR theory...). Basic bonding concepts, acidicity, basicity, and solubility concepts should be well understood. 
+                						<br> <br>
+                						Chapter 3 is new material, but should be relatively easy to go through. Make sure you understand how to draw cyclohexane chairs like the back of your hand, to understand axial and equitorial positioning of substiuents, and to be able to draw energy conformations (gauche & eclipse). Use your kit to make a cyclohexane chair so you can VISUALIZE it. 
+                						<br> <br>
+                						BEFORE you go on, make SURE you really understand material from Chapters 1-3. The rest of the chapters really do build on core concepts here, and being unable to understand trans and cis on a cyclohexane, for example, will prove to be very harmful in the long run.
+                						<br><br>
+                						Chapter 4 will be a mix of new and old material emphasizing bond energy and other related thermodynamics things. Personally, predicting bond and dissociation energies is one of the more annoying things in organic chemistry. 
+                						<br><br>
+                						Chapter 5 is likely completely new, and is your first interesting glance into an innate part of chemistry as a whole. Stereochemistry will require you to use your modeling kit a lot. Make sure you really really understand (R) and (S), (E) and (Z), and are able to somewhat visualize innate stereochemistry (it's hard!). 
+                						<br><br>
+                						Chapter 6, 7, 8, 9, 10, and 11 are probably the most difficult part of this course, with the overall discussion tailored around reactions of molecules and their mechanisms. Various points of emphasis include core reactions (SN1, SN2, E1, and E2), and subsequent complicated mechanisms (MCPBA, OsO4, etc...). It is VERY important that you work slowly and keep track of all these mechanisms—-otherwise, you will fall behind those that do. Synthesis problems are also introduced here, and require a TON of practice. These six chapters, simply put, are no joke, and require practice on practice on practice.
+                						<br><br>
+                						Chapter 12 and 13 are much different from the previous chapters and circle around spectroscopy. Once you practice enough with this problems, you will be fine with them.</p>
+                                </div>
+                        </header>
+
+						<header>
+							<button class = "button collapsible"> <h3 style = "color: #fff"> Resources </h3> </button>
+                                <div class = "contentochem">
+                                    <p class = "easy-read-text"> 
+                                        <br>
+                                        Seriously. Some online content creators are some of the biggest lifesavers I encounted for this class. However, be careful which ones you choose to use! Online resources have no true credibility until they can produce good results over and over again--so be wary when you see random Quora or StackOverflow posts. Here are some of the most useful resources I discovered whilst learning organic chemistry.
+                                        <br>
+                                        <br>
+                                        <a href = "https://www.masterorganicchemistry.com/">1. masterorganicchemistry:</a> Easily one of the most reliable and helpful resources out there. The author of this page taught at MIT, and some of the posts on his page are astoundingly good. Very few, if any, covered the Sni mechanism (the retention substitution reaction), and his resources are consistently accurate and reliable. 
+                                        <br><br>
+                                        <a href = "https://www.youtube.com/channel/UC0cd_-e49hZpWLH3UIwoWRA">2. Professor Dave Explains:</a> This YouTube channel is filled with quality information about organic chemistry at the collegiate level. He most definitely helped me understand core concepts so that I could truly develop my ideas and thinking throughout organic chemistry. His explanations on stereochemistry, molecular orbital theory, cyclohexane chairs, etc. are some of clearest introductory-level explanations out there. Worth checking out.
+                                    </p>
+                                </div>
+						</header>						
+					</section>
+				</div>
+				<div class = "custom-wrapper-fixed" id = "fixed"></div>					
 
 				<!-- Footer -->
 				<div id="footer">
@@ -348,26 +391,21 @@
 
 			<script> /* Code from W3 schools */
 			/* When the user clicks on the button,
-			toggle between hiding and showing the dropdown content */
-			function myFunction() {
-			  document.getElementById("myDropdown").classList.toggle("show");
-			}
+			toggle between hiding and showing the dropdown content */          
+            var coll = document.getElementsByClassName("collapsible");
+            var i;
 
-			function filterFunction() {
-			  var input, filter, ul, li, a, i;
-			  input = document.getElementById("myInput");
-			  filter = input.value.toUpperCase();
-			  div = document.getElementById("myDropdown");
-			  a = div.getElementsByTagName("a");
-			  for (i = 0; i < a.length; i++) {
-			    txtValue = a[i].textContent || a[i].innerText;
-			    if (txtValue.toUpperCase().indexOf(filter) > -1) {
-			      a[i].style.display = "";
-			    } else {
-			      a[i].style.display = "none";
-			    }
-			  }
-			}
+            for (i = 0; i < coll.length; i++) {
+              coll[i].addEventListener("click", function() {
+                this.classList.toggle("active");
+                var content = this.nextElementSibling;
+                if (content.style.display === "block") {
+                  content.style.display = "none";
+                } else {
+                  content.style.display = "block";
+                }
+              });
+            }
 			</script>			
 
 	</body>

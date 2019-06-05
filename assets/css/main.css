@@ -3384,3 +3384,8 @@ input, select, textarea {
 #smallbottom {
 	padding-bottom: 2.5em;
 }
+
+.easy-read-text {
+	margin-left: 5%;
+	margin-right: 5%
+}
