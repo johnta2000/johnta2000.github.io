@@ -5,3 +5,7 @@
 #tips-tricks > .row {
 	margin-top: 0.5em;
 }
+
+.row > h4 {
+	color: #fff
+}

@@ -2779,6 +2779,11 @@ input, select, textarea {
 				padding-right: 2em;
 			}
 
+		/* Misc */
+			article > #teaching-button {
+				margin-top: 3em;
+			}
+
 	}
 
 /* Narrow */
@@ -3279,6 +3284,7 @@ input, select, textarea {
 						margin-bottom: 2em;
 					}
 
+		/* Misc */
 			button > h4 {
 				margin: 0.5em 1.5em 0.75em 1.5em;
 			}
@@ -3286,6 +3292,14 @@ input, select, textarea {
 			.h4-tips-tricks {
 				margin: 0.5em 1.5em 0.75em 1.5em;
 			}
+
+			#teaching-button > h3 {
+				margin: 0.5em 1.5em 0.75em 1.5em
+			}	
+
+			article > #teaching-button {
+				margin-top: 1em;
+			}	
 
 	}
 
