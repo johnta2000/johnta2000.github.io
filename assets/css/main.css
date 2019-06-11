@@ -2864,6 +2864,10 @@ input, select, textarea {
 				margin-bottom: 6em;
 			}
 
+			#midterm-materials-p {
+				margin-bottom: 0.5em;
+			}			
+
 		/* Special hr */
 			.contact-me-hr {
 				width: 50vh;
@@ -2876,6 +2880,10 @@ input, select, textarea {
 				top: 100%;
 				left: 50%; 
 				margin-left: -50%;
+			}
+
+			.collapsible {
+				width: 100%
 			}
 
 		/* Section/Article */
@@ -2984,6 +2992,12 @@ input, select, textarea {
 				line-height: 3em;
 				width: 100%;
 			}
+
+			/*
+			.button-midterm-materials {
+				padding: 0.65em 3em 0.65em 3em;
+			}
+			*/
 
 
 		/* Nav */
@@ -3264,6 +3278,10 @@ input, select, textarea {
 					.carousel article .image {
 						margin-bottom: 2em;
 					}
+
+			.h4-midterm-materials {
+				margin: 0.5em 1.5em 0.75em 1.5em;
+			}
 
 	}
 
