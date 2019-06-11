@@ -3279,7 +3279,11 @@ input, select, textarea {
 						margin-bottom: 2em;
 					}
 
-			.h4-midterm-materials {
+			button > h4 {
+				margin: 0.5em 1.5em 0.75em 1.5em;
+			}
+
+			.h4-tips-tricks {
 				margin: 0.5em 1.5em 0.75em 1.5em;
 			}
 
