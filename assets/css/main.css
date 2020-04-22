@@ -1857,7 +1857,7 @@ input, select, textarea {
 		.image.featured-10-special {
 			display: block;
 			width: 15%;
-			margin: 0 auto 0 auto;
+			margin: 0 auto 1vh auto;
 		}		
 
 		.image.left {
@@ -2797,7 +2797,7 @@ input, select, textarea {
 			.image.featured-10-special {
 				display: block;
 				width: 25%;
-				margin: 0vh auto 0 auto;
+				margin: 0 auto 1vh auto;
 			}			
 
 	}
@@ -2846,7 +2846,7 @@ input, select, textarea {
 			.image.featured-10-special {
 				display: block;
 				width: 40%;
-				margin: 0vh auto 0 auto;
+				margin: 0 auto 1vh auto;
 			}
 
 	}
@@ -2898,7 +2898,7 @@ input, select, textarea {
 			.image.featured-10-special {
 				display: block;
 				width: 40%;
-				margin: 10vh auto 0 auto;
+				margin: 0 auto 2vh auto;
 			}
 
 			#header:before {
