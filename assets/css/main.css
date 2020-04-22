@@ -83,7 +83,7 @@ input, select, textarea {
 	}
 
 	body {
-		background: #f0f4f4;
+		background: #FFFFFF; /* body background */
 		color: #5b5b5b;
 		font-size: 15pt;
 		line-height: 1.85em;
@@ -237,7 +237,7 @@ input, select, textarea {
 		@media screen and (max-width: 1680px) {
 
 			.container {
-				width: 1200px;
+				width: 100%;
 			}
 
 		}
@@ -1852,6 +1852,12 @@ input, select, textarea {
 			display: block;
 			width: 25%;
 			margin: 0 auto 4em auto;
+		}
+
+		.image.featured-10-special {
+			display: block;
+			width: 15%;
+			margin: 0 auto 0 auto;
 		}		
 
 		.image.left {
@@ -2224,7 +2230,7 @@ input, select, textarea {
 	#header {
 
 		/* background-image for header anchor */
-		background-image: url("../../images/homepage-background.jpg");
+		/* background-image: url("../../images/homepage-background.jpg"); */
 
 		position: relative;
 		background-size: cover;
@@ -2246,8 +2252,10 @@ input, select, textarea {
 			content: '';
 			display: inline-block;
 			vertical-align: middle;
-			height: 100vh;
+			height: 10vh;
 		}
+
+		
 
 		#header .inner {
 			position: relative;
@@ -2784,6 +2792,14 @@ input, select, textarea {
 				margin-top: 3em;
 			}
 
+		/* Image */
+
+			.image.featured-10-special {
+				display: block;
+				width: 25%;
+				margin: 0vh auto 0 auto;
+			}			
+
 	}
 
 /* Narrow */
@@ -2826,6 +2842,12 @@ input, select, textarea {
 				}
 
 		/* Image */
+
+			.image.featured-10-special {
+				display: block;
+				width: 40%;
+				margin: 0vh auto 0 auto;
+			}
 
 	}
 
@@ -2871,7 +2893,17 @@ input, select, textarea {
 
 			#midterm-materials-p {
 				margin-bottom: 0.5em;
-			}			
+			}
+
+			.image.featured-10-special {
+				display: block;
+				width: 40%;
+				margin: 10vh auto 0 auto;
+			}
+
+			#header:before {
+				height: 30vh;
+			}				
 
 		/* Special hr */
 			.contact-me-hr {
@@ -3425,3 +3457,56 @@ input, select, textarea {
 	margin-left: 5%;
 	margin-right: 5%
 }
+
+.main-nav {
+	color: #000000;
+	border-left: solid 1px #000000;
+	border-right: solid 1px #000000;	
+}
+
+.color-black {
+	color: #000000;
+	color: black;
+}
+
+.verticalcenter {
+	display: table-cell;
+
+	vertical-align: middle;
+}
+
+.testbox {
+	background-color: #cfc ;
+  	padding: 10px ;
+  	border: 1px solid green ;
+}
+
+ul.icons-special {
+		position: relative;
+		display: inline-block;
+		font-size: 1.25em;
+		cursor: default;
+		list-style: none;
+}
+
+ul.icons-special li {
+			display: inline-block;
+			padding-left: 0;
+			color: #000000;
+		}
+
+			ul.icons-special li a {
+				display: inline-block;
+				background: none;
+				width: 2.5em;
+				height: 2.5em;
+				line-height: 2.5em;
+				text-align: center;
+				border-radius: 100%;
+				border: 0;
+				color: inherit;
+			}
+
+				ul.icons-special li a:hover {
+					color: #A9A9A9;
+				}
