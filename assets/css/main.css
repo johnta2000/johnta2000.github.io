@@ -2225,6 +2225,10 @@ input, select, textarea {
 		padding: 8em 0 8em 0;
 	}
 
+	.small-custom-wrapper-fixed {
+		padding: 1em 0 1em 0;
+	}
+
 /* Header */
 
 	#header {
