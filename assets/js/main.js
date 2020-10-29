@@ -1,197 +1,217 @@
-/**
-* Template Name: iPortfolio - v2.0.1
-* Template URL: https://bootstrapmade.com/iportfolio-bootstrap-portfolio-websites-template/
-* Author: BootstrapMade.com
-* License: https://bootstrapmade.com/license/
+/*
+	Helios by HTML5 UP
+	html5up.net | @ajlkn
+	Free for personal and commercial use under the CCA 3.0 license (html5up.net/license)
 */
-!(function($) {
-  "use strict";
 
-  // Hero typed
-  if ($('.typed').length) {
-    var typed_strings = $(".typed").data('typed-items');
+(function($) {
 
-    typed_strings = typed_strings.split(',')
+	var	$window = $(window),
+		$body = $('body'),
+		settings = {
 
-    new Typed('.typed', {
-      strings: typed_strings,
-      loop: true,
-      typeSpeed: 100,
-      backSpeed: 50,
-      backDelay: 2000
-    });
-  }
+			// Carousels
+				carousels: {
+					speed: 4,
+					fadeIn: true,
+					fadeDelay: 250
+				},
 
-  // Smooth scroll for the navigation menu and links with .scrollto classes
-  $(document).on('click', '.nav-menu a, .scrollto', function(e) {
-    if (location.pathname.replace(/^\//, '') == this.pathname.replace(/^\//, '') && location.hostname == this.hostname) {
-      e.preventDefault();
-      var target = $(this.hash);
-      if (target.length) {
+		};
 
-        var scrollto = target.offset().top;
+	// Breakpoints.
+		breakpoints({
+			wide:      [ '1281px',  '1680px' ],
+			normal:    [ '961px',   '1280px' ],
+			narrow:    [ '841px',   '960px'  ],
+			narrower:  [ '737px',   '840px'  ],
+			mobile:    [ null,      '736px'  ]
+		});
 
-        $('html, body').animate({
-          scrollTop: scrollto
-        }, 1500, 'easeInOutExpo');
+	// Play initial animations on page load.
+		$window.on('load', function() {
+			window.setTimeout(function() {
+				$body.removeClass('is-preload');
+			}, 100);
+		});
 
+	// Dropdowns.
+		$('#nav > ul').dropotron({
+			mode: 'fade',
+			speed: 350,
+			noOpenerFade: true,
+			alignment: 'center'
+		});
 
-        if ($(this).parents('.nav-menu, .mobile-nav').length) {
-          $('.nav-menu .active, .mobile-nav .active').removeClass('active');
-          $(this).closest('li').addClass('active');
-        }
+	// Scrolly.
+		$('.scrolly').scrolly();
 
-        if ($('body').hasClass('mobile-nav-active')) {
-          $('body').removeClass('mobile-nav-active');
-          $('.mobile-nav-toggle i').toggleClass('icofont-navigation-menu icofont-close');
-        }
-        return false;
+	// Nav.
 
-      }
-    }
-  });
+		// Button.
+			$(
+				'<div id="navButton">' +
+					'<a href="#navPanel" class="toggle"></a>' +
+				'</div>'
+			)
+				.appendTo($body);
 
-  // Activate smooth scroll on page load with hash links in the url
-  $(document).ready(function() {
-    if (window.location.hash) {
-      var initial_nav = window.location.hash;
-      if ($(initial_nav).length) {
-        var scrollto = $(initial_nav).offset().top;
-        $('html, body').animate({
-          scrollTop: scrollto
-        }, 1500, 'easeInOutExpo');
-      }
-    }
-  });
+		// Panel.
+			$(
+				'<div id="navPanel">' +
+					'<nav>' +
+						$('#nav').navList() +
+					'</nav>' +
+				'</div>'
+			)
+				.appendTo($body)
+				.panel({
+					delay: 500,
+					hideOnClick: true,
+					hideOnSwipe: true,
+					resetScroll: true,
+					resetForms: true,
+					target: $body,
+					visibleClass: 'navPanel-visible'
+				});
 
-  $(document).on('click', '.mobile-nav-toggle', function(e) {
-    $('body').toggleClass('mobile-nav-active');
-    $('.mobile-nav-toggle i').toggleClass('icofont-navigation-menu icofont-close');
-  });
+	// Carousels.
+		$('.carousel').each(function() {
 
-  $(document).click(function(e) {
-    var container = $(".mobile-nav-toggle");
-    if (!container.is(e.target) && container.has(e.target).length === 0) {
-      if ($('body').hasClass('mobile-nav-active')) {
-        $('body').removeClass('mobile-nav-active');
-        $('.mobile-nav-toggle i').toggleClass('icofont-navigation-menu icofont-close');
-      }
-    }
-  });
+			var	$t = $(this),
+				$forward = $('<span class="forward"></span>'),
+				$backward = $('<span class="backward"></span>'),
+				$reel = $t.children('.reel'),
+				$items = $reel.children('article');
 
-  // Navigation active state on scroll
-  var nav_sections = $('section');
-  var main_nav = $('.nav-menu, .mobile-nav');
+			var	pos = 0,
+				leftLimit,
+				rightLimit,
+				itemWidth,
+				reelWidth,
+				timerId;
 
-  $(window).on('scroll', function() {
-    var cur_pos = $(this).scrollTop() + 200;
+			// Items.
+				if (settings.carousels.fadeIn) {
 
-    nav_sections.each(function() {
-      var top = $(this).offset().top,
-        bottom = top + $(this).outerHeight();
+					$items.addClass('loading');
 
-      if (cur_pos >= top && cur_pos <= bottom) {
-        if (cur_pos <= bottom) {
-          main_nav.find('li').removeClass('active');
-        }
-        main_nav.find('a[href="#' + $(this).attr('id') + '"]').parent('li').addClass('active');
-      }
-      if (cur_pos < 300) {
-        $(".nav-menu ul:first li:first").addClass('active');
-      }
-    });
-  });
+					$t.scrollex({
+						mode: 'middle',
+						top: '-20vh',
+						bottom: '-20vh',
+						enter: function() {
 
-  // Back to top button
-  $(window).scroll(function() {
-    if ($(this).scrollTop() > 100) {
-      $('.back-to-top').fadeIn('slow');
-    } else {
-      $('.back-to-top').fadeOut('slow');
-    }
-  });
+							var	timerId,
+								limit = $items.length - Math.ceil($window.width() / itemWidth);
 
-  $('.back-to-top').click(function() {
-    $('html, body').animate({
-      scrollTop: 0
-    }, 1500, 'easeInOutExpo');
-    return false;
-  });
+							timerId = window.setInterval(function() {
+								var x = $items.filter('.loading'), xf = x.first();
 
-  // jQuery counterUp
-  $('[data-toggle="counter-up"]').counterUp({
-    delay: 10,
-    time: 1000
-  });
+								if (x.length <= limit) {
 
-  // Skills section
-  $('.skills-content').waypoint(function() {
-    $('.progress .progress-bar').each(function() {
-      $(this).css("width", $(this).attr("aria-valuenow") + '%');
-    });
-  }, {
-    offset: '80%'
-  });
+									window.clearInterval(timerId);
+									$items.removeClass('loading');
+									return;
 
-  // Porfolio isotope and filter
-  $(window).on('load', function() {
-    var portfolioIsotope = $('.portfolio-container').isotope({
-      itemSelector: '.portfolio-item',
-      layoutMode: 'fitRows'
-    });
+								}
 
-    $('#portfolio-flters li').on('click', function() {
-      $("#portfolio-flters li").removeClass('filter-active');
-      $(this).addClass('filter-active');
+								xf.removeClass('loading');
 
-      portfolioIsotope.isotope({
-        filter: $(this).data('filter')
-      });
-      aos_init();
-    });
+							}, settings.carousels.fadeDelay);
 
-    // Initiate venobox (lightbox feature used in portofilo)
-    $(document).ready(function() {
-      $('.venobox').venobox();
-    });
-  });
+						}
+					});
 
-  // Testimonials carousel (uses the Owl Carousel library)
-  $(".testimonials-carousel").owlCarousel({
-    autoplay: true,
-    dots: true,
-    loop: true,
-    responsive: {
-      0: {
-        items: 1
-      },
-      768: {
-        items: 2
-      },
-      900: {
-        items: 3
-      }
-    }
-  });
+				}
 
-  // Portfolio details carousel
-  $(".portfolio-details-carousel").owlCarousel({
-    autoplay: true,
-    dots: true,
-    loop: true,
-    items: 1
-  });
+			// Main.
+				$t._update = function() {
+					pos = 0;
+					rightLimit = (-1 * reelWidth) + $window.width();
+					leftLimit = 0;
+					$t._updatePos();
+				};
 
-  // Init AOS
-  function aos_init() {
-    AOS.init({
-      duration: 1000,
-      easing: "ease-in-out-back",
-      once: true
-    });
-  }
-  $(window).on('load', function() {
-    aos_init();
-  });
+				$t._updatePos = function() { $reel.css('transform', 'translate(' + pos + 'px, 0)'); };
+
+			// Forward.
+				$forward
+					.appendTo($t)
+					.hide()
+					.mouseenter(function(e) {
+						timerId = window.setInterval(function() {
+							pos -= settings.carousels.speed;
+
+							if (pos <= rightLimit)
+							{
+								window.clearInterval(timerId);
+								pos = rightLimit;
+							}
+
+							$t._updatePos();
+						}, 10);
+					})
+					.mouseleave(function(e) {
+						window.clearInterval(timerId);
+					});
+
+			// Backward.
+				$backward
+					.appendTo($t)
+					.hide()
+					.mouseenter(function(e) {
+						timerId = window.setInterval(function() {
+							pos += settings.carousels.speed;
+
+							if (pos >= leftLimit) {
+
+								window.clearInterval(timerId);
+								pos = leftLimit;
+
+							}
+
+							$t._updatePos();
+						}, 10);
+					})
+					.mouseleave(function(e) {
+						window.clearInterval(timerId);
+					});
+
+			// Init.
+				$window.on('load', function() {
+
+					reelWidth = $reel[0].scrollWidth;
+
+					if (browser.mobile) {
+
+						$reel
+							.css('overflow-y', 'hidden')
+							.css('overflow-x', 'scroll')
+							.scrollLeft(0);
+						$forward.hide();
+						$backward.hide();
+
+					}
+					else {
+
+						$reel
+							.css('overflow', 'visible')
+							.scrollLeft(0);
+						$forward.show();
+						$backward.show();
+
+					}
+
+					$t._update();
+
+					$window.on('resize', function() {
+						reelWidth = $reel[0].scrollWidth;
+						$t._update();
+					}).trigger('resize');
+
+				});
+
+		});
 
 })(jQuery);
