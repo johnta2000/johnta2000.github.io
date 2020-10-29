@@ -83,7 +83,7 @@ input, select, textarea {
 	}
 
 	body {
-		background: #f0f4f4;
+		background: #FFFFFF; /* body background */
 		color: #5b5b5b;
 		font-size: 15pt;
 		line-height: 1.85em;
@@ -237,7 +237,7 @@ input, select, textarea {
 		@media screen and (max-width: 1680px) {
 
 			.container {
-				width: 1200px;
+				width: 100%;
 			}
 
 		}
@@ -1852,6 +1852,12 @@ input, select, textarea {
 			display: block;
 			width: 25%;
 			margin: 0 auto 4em auto;
+		}
+
+		.image.featured-10-special {
+			display: block;
+			width: 15%;
+			margin: 0 auto 1vh auto;
 		}		
 
 		.image.left {
@@ -2219,12 +2225,16 @@ input, select, textarea {
 		padding: 8em 0 8em 0;
 	}
 
+	.small-custom-wrapper-fixed {
+		padding: 1em 0 1em 0;
+	}
+
 /* Header */
 
 	#header {
 
 		/* background-image for header anchor */
-		background-image: url("../../images/homepage-background.jpg");
+		/* background-image: url("../../images/homepage-background.jpg"); */
 
 		position: relative;
 		background-size: cover;
@@ -2246,8 +2256,10 @@ input, select, textarea {
 			content: '';
 			display: inline-block;
 			vertical-align: middle;
-			height: 100vh;
+			height: 1vh;
 		}
+
+		
 
 		#header .inner {
 			position: relative;
@@ -2636,7 +2648,7 @@ input, select, textarea {
 			}
 
 			.carousel .forward:hover:before, .carousel .backward:hover:before {
-				background-color: rgba(239, 131, 118, 0.75);
+				background-color: #6D9BF1;
 			}
 
 		.carousel .forward {
@@ -2679,8 +2691,10 @@ input, select, textarea {
 			width: 18em;
 			background: #fff;
 			text-align: center;
-			padding: 0 1em 3em 1em;
-			margin: 0 2em 0 0;
+
+			/* Carousel padding */
+			padding: 1em 1em 3em 1em;
+			margin: 0em 2em 0 0;
 			white-space: normal;
 			opacity: 1.0;
 			-moz-transition: opacity 0.75s ease-in-out;
@@ -2690,7 +2704,7 @@ input, select, textarea {
 		}
 
 			.carousel article.loading {
-				opacity: 0;
+				opacity: 1.0;
 			}
 
 			.carousel article .image {
@@ -2777,6 +2791,19 @@ input, select, textarea {
 				padding-right: 2em;
 			}
 
+		/* Misc */
+			article > #teaching-button {
+				margin-top: 3em;
+			}
+
+		/* Image */
+
+			.image.featured-10-special {
+				display: block;
+				width: 25%;
+				margin: 0 auto 1vh auto;
+			}			
+
 	}
 
 /* Narrow */
@@ -2815,10 +2842,16 @@ input, select, textarea {
 
 				.carousel article {
 					width: 18em;
-					margin: 0 1em 0 0;
+					margin: 0em 1em 0 0;
 				}
 
 		/* Image */
+
+			.image.featured-10-special {
+				display: block;
+				width: 40%;
+				margin: 0 auto 1vh auto;
+			}
 
 	}
 
@@ -2862,6 +2895,20 @@ input, select, textarea {
 				margin-bottom: 6em;
 			}
 
+			#midterm-materials-p {
+				margin-bottom: 0.5em;
+			}
+
+			.image.featured-10-special {
+				display: block;
+				width: 40%;
+				margin: 0 auto 2vh auto;
+			}
+
+			#header:before {
+				height: 30vh;
+			}				
+
 		/* Special hr */
 			.contact-me-hr {
 				width: 50vh;
@@ -2874,6 +2921,10 @@ input, select, textarea {
 				top: 100%;
 				left: 50%; 
 				margin-left: -50%;
+			}
+
+			.collapsible {
+				width: 100%
 			}
 
 		/* Section/Article */
@@ -2982,6 +3033,12 @@ input, select, textarea {
 				line-height: 3em;
 				width: 100%;
 			}
+
+			/*
+			.button-midterm-materials {
+				padding: 0.65em 3em 0.65em 3em;
+			}
+			*/
 
 
 		/* Nav */
@@ -3209,6 +3266,9 @@ input, select, textarea {
 					font-size: 2.5em;
 				}
 
+			#custom-margin {
+				margin-bottom: 1em;
+			}	
 		/* Nav */
 
 			#nav {
@@ -3253,12 +3313,29 @@ input, select, textarea {
 				.carousel article {
 					width: 14em;
 					padding-bottom: 2em;
-					margin: 0 0.5em 0 0;
+					margin: 0em 0.5em 0 0;
 				}
 
 					.carousel article .image {
 						margin-bottom: 2em;
 					}
+
+		/* Misc */
+			button > h4 {
+				margin: 0.5em 1.5em 0.75em 1.5em;
+			}
+
+			.h4-tips-tricks {
+				margin: 0.5em 1.5em 0.75em 1.5em;
+			}
+
+			#teaching-link > h3 {
+				margin: 0.5em 1.5em 0.75em 1.5em
+			}	
+
+			article > #teaching-button {
+				margin-top: 1em;
+			}	
 
 	}
 
@@ -3369,4 +3446,75 @@ input, select, textarea {
 
 .inner header:before {
 	opacity: 1;
+}
+
+#no-padding {
+	padding-left: 0;
+	padding-right: 0;
+}
+
+#smallbottom {
+	padding-bottom: 2.5em;
+}
+
+.easy-read-text {
+	margin-left: 5%;
+	margin-right: 5%
+}
+
+.main-nav {
+	color: #000000;
+	border-left: solid 1px #000000;
+	border-right: solid 1px #000000;	
+}
+
+.color-black {
+	color: #000000;
+	color: black;
+}
+
+.verticalcenter {
+	display: table-cell;
+
+	vertical-align: middle;
+}
+
+.testbox {
+	background-color: #cfc ;
+  	padding: 10px ;
+  	border: 1px solid green ;
+}
+
+ul.icons-special {
+		position: relative;
+		display: inline-block;
+		font-size: 1.25em;
+		cursor: default;
+		list-style: none;
+}
+
+ul.icons-special li {
+			display: inline-block;
+			padding-left: 0;
+			color: #000000;
+		}
+
+			ul.icons-special li a {
+				display: inline-block;
+				background: none;
+				width: 2.5em;
+				height: 2.5em;
+				line-height: 2.5em;
+				text-align: center;
+				border-radius: 100%;
+				border: 0;
+				color: inherit;
+			}
+
+				ul.icons-special li a:hover {
+					color: #A9A9A9;
+				}
+
+.teaching-button-mod {
+	width: 50%
 }
