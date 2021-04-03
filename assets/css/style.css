@@ -259,6 +259,7 @@ h1, h2, h3, h4, h5, h6 {
   #hero {
     background-attachment: fixed;
   }
+
 }
 
 @media (max-width: 768px) {
@@ -271,6 +272,14 @@ h1, h2, h3, h4, h5, h6 {
     line-height: 24px;
     margin-bottom: 30px;
   }
+
+  /*
+  .hidden-picture {
+    width: 8em;
+    height: 8em;
+    align-content: center;
+  }
+  */
 }
 
 /*--------------------------------------------------------------
