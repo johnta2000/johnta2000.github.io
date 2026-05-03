@@ -27,6 +27,26 @@
   <!-- Template Main CSS File -->
   <link href="assets/css/style.css" rel="stylesheet">
 
+  <style>
+    body.teaching-page #main {
+      margin-left: 0;
+    }
+
+    body.teaching-page #hero {
+      height: 46vh;
+      min-height: 320px;
+    }
+
+    body.teaching-page #hero p span {
+      letter-spacing: 0;
+    }
+
+    body.teaching-page #footer {
+      position: static;
+      width: auto;
+    }
+  </style>
+
   <!-- Global site tag (gtag.js) - Google Analytics -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=UA-131825248-1"></script>
   <script>
@@ -45,45 +65,13 @@
   ======================================================== -->
 </head>
 
-<body>  
-
-  <!-- ======= Mobile nav toggle button ======= -->
-  <button type="button" class="mobile-nav-toggle d-xl-none"><i class="icofont-navigation-menu"></i></button>
-
-  <!-- ======= Header ======= -->
-  <header id="header">
-    <div class="d-flex flex-column">
-
-      <div class="profile">
-        <img src="assets/img/profile.jpg" alt="John Ta" class="img-fluid rounded-circle">
-        <h1 class="text-light"><a href="index.html">John Ta</a></h1>
-        <div class="social-links mt-3 text-center">
-          <a target="_blank" href="mailto:jta2000@sas.upenn.edu" class = "envelope"><i class="bx bx-envelope"></i></a>
-          <a target="_blank" href="https://www.linkedin.com/in/johnta2000/" class="linkedin"><i class="bx bxl-linkedin"></i></a>
-        </div>
-      </div>
-
-      <nav class="nav-menu">
-        <ul>
-          <li><a href="index.html"><i class="bx bx-home"></i> <span>Home</span></a></li>
-          <li><a href="index.html#about"><i class="bx bx-user"></i> <span>About</span></a></li>
-          <li class="active"><a href="teaching.html"><i class="bx bx-book-content"></i> Teaching </a></li>
-          <li><a href="tutoring.html"><i class="bx bx-server"></i> Tutoring</a></li>
-          <li><a target="_blank" href="mailto:jta2000@sas.upenn.edu"><i class="bx bx-envelope"></i> Contact</a></li>
-
-        </ul>
-      </nav><!-- .nav-menu -->
-      <button type="button" class="mobile-nav-toggle d-xl-none"><i class="icofont-navigation-menu"></i></button>
-
-    </div>
-  </header><!-- End Header -->
+<body class="teaching-page">  
 
   <!-- ======= Hero Section ======= -->
   <section id="hero" class="d-flex flex-column justify-content-center align-items-center">
     <div class="hero-container" data-aos="fade-in">
       <h1>John Ta</h1>
-        <p><span class="typed" data-typed-items="Teaching"></span></p> 
-      <!-- <p>I'm a <span class="typed" data-typed-items="Student, Teacher, Entrepreneur"></span></p> -->
+        <p><span>Teaching</span></p> 
     </div>
   </section><!-- End Hero -->
 
@@ -483,7 +471,6 @@
   <script src="assets/vendor/isotope-layout/isotope.pkgd.min.js"></script>
   <script src="assets/vendor/venobox/venobox.min.js"></script>
   <script src="assets/vendor/owl.carousel/owl.carousel.min.js"></script>
-  <script src="assets/vendor/typed.js/typed.min.js"></script>
   <script src="assets/vendor/aos/aos.js"></script>
 
   <!-- Template Main JS File -->
