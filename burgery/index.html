@@ -1,0 +1,947 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Burgery</title>
+    <style>
+      :root {
+        --paper: #fffdf6;
+        --paper-strong: #ffffff;
+        --red: #e02a27;
+        --red-dark: #a71917;
+        --yellow: #ffcb05;
+        --yellow-soft: #fff0a6;
+        --ink: #251b13;
+        --muted: #735f49;
+        --line: rgba(224, 42, 39, 0.18);
+        --shadow: 0 20px 44px rgba(89, 24, 16, 0.14);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        min-height: 100vh;
+        margin: 0;
+        color: var(--ink);
+        background:
+          linear-gradient(90deg, rgba(224, 42, 39, 0.06) 0 10px, transparent 10px 28px),
+          linear-gradient(180deg, #ffffff 0, var(--paper) 54%, #fff8d9 100%);
+        font-family:
+          Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+          Arial, sans-serif;
+      }
+
+      button {
+        font: inherit;
+      }
+
+      .page {
+        width: min(1180px, calc(100% - 32px));
+        margin: 0 auto;
+        padding: 28px 0 44px;
+      }
+
+      .masthead {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(180px, auto);
+        gap: 18px;
+        align-items: start;
+        margin-bottom: 16px;
+        padding-bottom: 18px;
+        border-bottom: 5px solid var(--red);
+      }
+
+      h1 {
+        margin: 0;
+        color: var(--red);
+        font-size: clamp(2.4rem, 7vw, 5.6rem);
+        line-height: 0.86;
+        font-weight: 950;
+        letter-spacing: 0;
+        text-transform: uppercase;
+      }
+
+      .subtitle {
+        max-width: 1000px;
+        margin: 12px 0 0;
+        color: var(--muted);
+        font-size: clamp(1rem, 1.55vw, 1.16rem);
+        line-height: 1.55;
+        white-space: nowrap;
+      }
+
+      .ledger-mark {
+        max-width: 260px;
+        margin-top: 12px;
+        color: var(--red);
+        font-size: clamp(0.9rem, 2vw, 1.2rem);
+        font-weight: 950;
+        letter-spacing: 0.14em;
+        line-height: 1.08;
+        text-align: right;
+        text-transform: uppercase;
+      }
+
+      .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+        gap: 10px;
+        margin: 18px 0;
+      }
+
+      .stat {
+        min-width: 0;
+        padding: 14px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.64);
+        box-shadow: 0 12px 24px rgba(89, 24, 16, 0.08);
+      }
+
+      .stat span {
+        display: block;
+        color: var(--muted);
+        font-size: 0.76rem;
+        font-weight: 850;
+        text-transform: uppercase;
+      }
+
+      .stat strong {
+        display: block;
+        margin-top: 6px;
+        color: var(--red);
+        font-size: clamp(1.48rem, 3vw, 2.28rem);
+        line-height: 1;
+      }
+
+      .section {
+        margin-top: 18px;
+        padding: 18px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: rgba(255, 253, 244, 0.84);
+        box-shadow: var(--shadow);
+      }
+
+      .section-header {
+        display: flex;
+        gap: 12px;
+        align-items: end;
+        justify-content: space-between;
+        margin-bottom: 14px;
+      }
+
+      h2 {
+        margin: 0;
+        color: var(--red-dark);
+        font-size: 1.1rem;
+        line-height: 1.15;
+        text-transform: uppercase;
+      }
+
+      .note {
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.88rem;
+      }
+
+      .chart {
+        display: grid;
+        gap: 9px;
+      }
+
+      .track-scale {
+        position: absolute;
+        inset: -24px 0 auto;
+        height: 20px;
+        pointer-events: none;
+      }
+
+      .scale-tick {
+        position: absolute;
+        bottom: 0;
+        left: var(--position);
+        color: var(--muted);
+        font-size: 0.68rem;
+        font-weight: 850;
+        transform: translateX(-50%);
+      }
+
+      .track-grid {
+        position: absolute;
+        inset: 0;
+        overflow: hidden;
+        border-radius: 7px;
+        pointer-events: none;
+      }
+
+      .gridline {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: var(--position);
+        width: 1px;
+        background: rgba(224, 42, 39, 0.14);
+      }
+
+      .gridline:first-child,
+      .gridline:last-child {
+        background: rgba(224, 42, 39, 0.24);
+      }
+
+      .bar-row {
+        display: grid;
+        grid-template-columns: 148px minmax(0, 1fr) 112px;
+        gap: 10px;
+        align-items: center;
+        min-height: 34px;
+      }
+
+      .bar-label {
+        overflow: hidden;
+        font-size: 0.9rem;
+        font-weight: 850;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .track {
+        position: relative;
+        margin-top: 22px;
+        height: 28px;
+        border: 1px solid rgba(224, 42, 39, 0.14);
+        border-radius: 7px;
+        background: rgba(255, 203, 5, 0.22);
+      }
+
+      .bar {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        align-items: flex-start;
+        justify-content: flex-end;
+        width: var(--width);
+        min-width: 66px;
+        height: 100%;
+        padding: 4px 9px 0;
+        border-radius: 6px;
+        background: linear-gradient(90deg, var(--red), #ef4a35 64%, var(--yellow));
+      }
+
+      .bar::after {
+        position: absolute;
+        inset: 4px 7px auto auto;
+        width: 18px;
+        height: 5px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.42);
+        content: "";
+      }
+
+      .bar-value {
+        position: relative;
+        z-index: 1;
+        color: #ffffff;
+        font-size: 0.78rem;
+        font-weight: 900;
+        line-height: 1;
+        text-align: right;
+        text-shadow: 0 1px 2px rgba(89, 24, 16, 0.34);
+        white-space: nowrap;
+      }
+
+      .bar-meta {
+        display: grid;
+        gap: 2px;
+        color: var(--muted);
+        font-size: 0.64rem;
+        font-weight: 850;
+        line-height: 1.15;
+        text-align: right;
+        text-transform: uppercase;
+      }
+
+      .bar-meta strong {
+        color: var(--ink);
+        font-size: 0.76rem;
+      }
+
+      .avg-label {
+        color: var(--muted);
+        font-size: 0.62rem;
+        text-transform: none;
+      }
+
+      .trip-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .trip-card {
+        min-width: 0;
+        padding: 14px;
+        border: 1px solid rgba(224, 42, 39, 0.18);
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.74);
+      }
+
+      .trip-card-header {
+        display: flex;
+        gap: 12px;
+        align-items: start;
+        justify-content: space-between;
+        margin-bottom: 12px;
+      }
+
+      .trip-card h3 {
+        margin: 0;
+        color: var(--red-dark);
+        font-size: 1rem;
+        line-height: 1.1;
+      }
+
+      .trip-date {
+        margin: 0;
+        color: var(--red);
+        font-size: 0.76rem;
+        font-weight: 900;
+        letter-spacing: 0.08em;
+        line-height: 1.1;
+        text-align: right;
+        text-transform: uppercase;
+        white-space: nowrap;
+      }
+
+      .trip-metrics {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      .trip-metric {
+        min-width: 0;
+      }
+
+      .trip-metric span {
+        display: block;
+        color: var(--muted);
+        font-size: 0.7rem;
+        font-weight: 850;
+        text-transform: uppercase;
+      }
+
+      .trip-metric strong {
+        display: block;
+        margin-top: 3px;
+        color: var(--red);
+        font-size: 1.12rem;
+        line-height: 1;
+      }
+
+      .trip-metric .top-eater {
+        overflow: hidden;
+        color: var(--ink);
+        font-size: 0.92rem;
+        line-height: 1.1;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .data-details {
+        margin-top: 18px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: rgba(255, 253, 244, 0.84);
+        box-shadow: var(--shadow);
+      }
+
+      .data-details[open] summary {
+        border-bottom: 1px solid var(--line);
+      }
+
+      .data-summary {
+        display: flex;
+        gap: 12px;
+        align-items: end;
+        justify-content: space-between;
+        padding: 18px;
+        cursor: pointer;
+        list-style: none;
+      }
+
+      .data-summary::-webkit-details-marker {
+        display: none;
+      }
+
+      .summary-copy {
+        min-width: 0;
+      }
+
+      .summary-action {
+        display: inline-flex;
+        align-items: center;
+        min-height: 32px;
+        padding: 4px 10px;
+        border: 1px solid rgba(224, 42, 39, 0.22);
+        border-radius: 8px;
+        background: rgba(255, 211, 77, 0.22);
+        color: var(--red-dark);
+        font-size: 0.82rem;
+        font-weight: 900;
+        white-space: nowrap;
+      }
+
+      .data-details[open] .summary-action::before {
+        content: "Hide ";
+      }
+
+      .data-details:not([open]) .summary-action::before {
+        content: "Show ";
+      }
+
+      .data-content {
+        padding: 0 18px 18px;
+      }
+
+      .tooltip {
+        position: fixed;
+        z-index: 5;
+        display: none;
+        width: min(300px, calc(100vw - 32px));
+        padding: 12px;
+        border: 1px solid rgba(224, 42, 39, 0.22);
+        border-radius: 8px;
+        background: #ffffff;
+        box-shadow: 0 18px 36px rgba(89, 24, 16, 0.2);
+        pointer-events: none;
+      }
+
+      .tooltip.is-visible {
+        display: block;
+      }
+
+      .tooltip-title {
+        margin: 0 0 8px;
+        color: var(--red);
+        font-weight: 950;
+      }
+
+      .tooltip-line {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        margin: 5px 0;
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+
+      .tooltip-line strong {
+        color: var(--ink);
+      }
+
+      .table-wrap {
+        overflow-x: auto;
+      }
+
+      table {
+        width: 100%;
+        min-width: 720px;
+        border-collapse: collapse;
+        font-size: 0.94rem;
+      }
+
+      th,
+      td {
+        padding: 12px 10px;
+        border-bottom: 1px solid var(--line);
+        text-align: left;
+      }
+
+      th {
+        color: var(--red-dark);
+        font-size: 0.78rem;
+        font-weight: 900;
+        text-transform: uppercase;
+      }
+
+      tbody tr:hover {
+        background: rgba(255, 211, 77, 0.16);
+      }
+
+      .number {
+        text-align: right;
+      }
+
+      .trip-pill {
+        display: inline-flex;
+        align-items: center;
+        min-height: 26px;
+        padding: 3px 9px;
+        border: 1px solid rgba(224, 42, 39, 0.2);
+        border-radius: 999px;
+        background: rgba(255, 203, 5, 0.18);
+        color: var(--red);
+        font-size: 0.82rem;
+        font-weight: 850;
+        white-space: nowrap;
+      }
+
+      .source {
+        margin: 12px 0 0;
+        color: var(--muted);
+        font-size: 0.82rem;
+        line-height: 1.45;
+      }
+
+      .source a {
+        color: var(--red);
+        font-weight: 800;
+      }
+
+      @media (max-width: 840px) {
+        .header-copy {
+          display: contents;
+        }
+
+        .masthead {
+          grid-template-columns: minmax(0, 1fr) minmax(82px, max-content);
+          gap: 12px;
+          align-items: start;
+          margin-bottom: 10px;
+          padding-bottom: 14px;
+        }
+
+        .ledger-mark {
+          grid-column: 2;
+          grid-row: 1;
+          max-width: 116px;
+          margin-top: 2px;
+          font-size: 0.68rem;
+          letter-spacing: 0.1em;
+          line-height: 1.16;
+        }
+
+        .stats-grid {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 8px;
+        }
+
+        .stat {
+          min-height: 82px;
+          padding: 10px;
+        }
+
+        .stat span {
+          font-size: 0.65rem;
+          line-height: 1.1;
+        }
+
+        .stat strong {
+          font-size: clamp(1.2rem, 6vw, 1.8rem);
+        }
+
+        h1 {
+          grid-column: 1;
+          grid-row: 1;
+        }
+
+        .subtitle {
+          grid-column: 1 / -1;
+          grid-row: 2;
+          max-width: none;
+          min-width: 0;
+          white-space: normal;
+          overflow-wrap: anywhere;
+        }
+
+        .bar-row {
+          grid-template-columns: minmax(0, 1fr) 104px;
+          gap: 8px;
+        }
+
+        .bar-label {
+          min-width: 0;
+        }
+
+        .track {
+          grid-column: 1 / -1;
+          grid-row: 2;
+        }
+
+        .bar-value {
+          font-size: 0.72rem;
+        }
+
+        .bar-meta {
+          font-size: 0.58rem;
+        }
+
+        .bar-meta strong {
+          font-size: 0.68rem;
+        }
+
+        .trip-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 520px) {
+        .page {
+          width: 100%;
+          padding: 14px 14px 44px;
+        }
+
+        .ledger-mark {
+          max-width: 94px;
+          font-size: 0.6rem;
+          letter-spacing: 0.08em;
+        }
+
+        h1 {
+          font-size: clamp(2rem, 13vw, 3.18rem);
+        }
+
+        .subtitle {
+          max-width: none;
+          margin-top: 8px;
+          font-size: 0.95rem;
+          line-height: 1.42;
+          white-space: normal;
+        }
+
+        .stats-grid {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        .section {
+          padding: 13px;
+        }
+
+        .section-header {
+          display: block;
+        }
+
+        .note {
+          margin-top: 6px;
+        }
+
+        .bar-row {
+          grid-template-columns: minmax(0, 1fr) 92px;
+          min-height: 54px;
+        }
+
+        .trip-metrics {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          row-gap: 12px;
+        }
+
+        .data-summary {
+          display: block;
+          padding: 13px;
+        }
+
+        .summary-action {
+          margin-top: 10px;
+        }
+
+        .data-content {
+          padding: 0 13px 13px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <header class="masthead">
+        <div class="header-copy">
+          <h1>Burgery</h1>
+          <p class="subtitle">
+            An extremely serious running tally of how many In-N-Out patties John and friends have
+            put away across trips.
+          </p>
+        </div>
+        <div class="ledger-mark">In-N-Out Patty Ledger</div>
+      </header>
+
+      <section class="stats-grid" id="statsGrid" aria-label="Aggregate patty statistics"></section>
+
+      <section class="section" aria-labelledby="chartTitle">
+        <div class="section-header">
+          <h2 id="chartTitle">Master Patty Chart</h2>
+          <p class="note">Hover a bar for trip-level breakdowns.</p>
+        </div>
+        <div class="chart" id="chart"></div>
+      </section>
+
+      <section class="section" aria-labelledby="tripStatsTitle">
+        <div class="section-header">
+          <h2 id="tripStatsTitle">Trip Stats</h2>
+          <p class="note">Average patties per logged eater, by trip.</p>
+        </div>
+        <div class="trip-grid" id="tripGrid"></div>
+      </section>
+
+      <details class="data-details" id="dataDetails">
+        <summary class="data-summary">
+          <div class="summary-copy">
+            <h2 id="tableTitle">Datapoints</h2>
+            <p class="note" id="tripSummary"></p>
+          </div>
+          <span class="summary-action">raw data</span>
+        </summary>
+        <div class="data-content">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Trip</th>
+                <th>Date</th>
+                <th>Name</th>
+                <th>Order Log</th>
+                <th class="number">Patties</th>
+              </tr>
+            </thead>
+            <tbody id="dataTable"></tbody>
+          </table>
+        </div>
+        <p class="source">
+          Nutrition panel uses a patty-only estimate of 110 calories, 90mg sodium, 6g fat, and 10g
+          protein per patty. Full item nutrition reference:
+          <a href="https://www.in-n-out.com/menu/nutrition-info">In-N-Out Nutrition Info</a>.
+        </p>
+        </div>
+      </details>
+    </main>
+
+    <div class="tooltip" id="tooltip" role="status" aria-live="polite"></div>
+
+    <script>
+      const trips = [
+        {
+          name: "Utah Trip",
+          date: "Feb 2026",
+          entries: [
+            { name: "John Ta", log: "1+1+1+4", patties: 7 },
+            { name: "Vivek Olumbe", log: "4+2+2", patties: 8 },
+            { name: "Henry Trinh", log: "3+2", patties: 5 },
+            { name: "Helen Wang", log: "1", patties: 1 },
+            { name: "Jenny Yoo", log: "2", patties: 2 },
+            { name: "Kevin Tang", log: "3+2+2", patties: 7 },
+            { name: "Darren Gils", log: "4", patties: 4 },
+            { name: "Jessi Hu", log: "2+1", patties: 3 },
+          ],
+        },
+        {
+          name: "Las Vegas",
+          date: "May 2026",
+          entries: [
+            { name: "Eleanor Pae", log: "2", patties: 2 },
+            { name: "Helen Wang", log: "2", patties: 2 },
+            { name: "Sherie Pan", log: "1", patties: 1 },
+            { name: "Pascal Le", log: "2", patties: 2 },
+            { name: "Edward Kim", log: "4", patties: 4 },
+            { name: "Kevin Tang", log: "4", patties: 4 },
+            { name: "Lucy Zhu", log: "2", patties: 2 },
+            { name: "John Ta", log: "4", patties: 4 },
+            { name: "Cynthia Gong", log: "1", patties: 1 },
+            { name: "Olivia An", log: "2", patties: 2 },
+            { name: "CC Huang", log: "6", patties: 6 },
+            { name: "Jessi Hu", log: "2", patties: 2 },
+          ],
+        },
+      ];
+
+      const nutritionPerPatty = {
+        calories: 110,
+        sodium: 90,
+        fat: 6,
+        protein: 10,
+      };
+
+      const formatNumber = new Intl.NumberFormat("en-US");
+      const allEntries = trips.flatMap((trip) =>
+        trip.entries.map((entry) => ({
+          ...entry,
+          trip: trip.name,
+          date: trip.date,
+        }))
+      );
+
+      const people = [...new Set(allEntries.map((entry) => entry.name))].map((name) => {
+        const entries = allEntries.filter((entry) => entry.name === name);
+        const totalPatties = entries.reduce((sum, entry) => sum + entry.patties, 0);
+        const tripCount = new Set(entries.map((entry) => entry.trip)).size;
+        return {
+          name,
+          total: totalPatties,
+          totalPatties,
+          tripCount,
+          pattiesPerTrip: totalPatties / tripCount,
+          entries,
+        };
+      });
+
+      people.sort((a, b) => b.total - a.total || a.name.localeCompare(b.name));
+
+      const totalPatties = allEntries.reduce((sum, entry) => sum + entry.patties, 0);
+      const leader = people[0];
+      const totalTrips = trips.length;
+      const maxPatties = Math.max(...people.map((person) => person.total));
+      const tripStats = trips.map((trip) => {
+        const total = trip.entries.reduce((sum, entry) => sum + entry.patties, 0);
+        const topEater = [...trip.entries].sort((a, b) => b.patties - a.patties || a.name.localeCompare(b.name))[0];
+        return {
+          name: trip.name,
+          date: trip.date,
+          total,
+          eaterCount: trip.entries.length,
+          average: total / trip.entries.length,
+          topEater,
+        };
+      });
+
+      function pluralize(count, singular, plural = `${singular}s`) {
+        return count === 1 ? singular : plural;
+      }
+
+      const stats = [
+        ["Total patties", totalPatties],
+        ["Calories", totalPatties * nutritionPerPatty.calories],
+        ["Sodium", `${formatNumber.format(totalPatties * nutritionPerPatty.sodium)}mg`],
+        ["Fat", `${formatNumber.format(totalPatties * nutritionPerPatty.fat)}g`],
+        ["Protein", `${formatNumber.format(totalPatties * nutritionPerPatty.protein)}g`],
+        ["Logged trips", totalTrips],
+      ];
+
+      document.getElementById("statsGrid").innerHTML = stats
+        .map(([label, value]) => {
+          const displayValue = typeof value === "number" ? formatNumber.format(value) : value;
+          return `<article class="stat"><span>${label}</span><strong>${displayValue}</strong></article>`;
+        })
+        .join("");
+
+      document.getElementById("tripSummary").textContent =
+        `${formatNumber.format(allEntries.length)} logged eaters across ${totalTrips} trips. Current leader: ${leader.name}.`;
+
+      document.getElementById("tripGrid").innerHTML = tripStats
+        .map(
+          (trip) => `
+            <article class="trip-card">
+              <div class="trip-card-header">
+                <h3>${trip.name}</h3>
+                <p class="trip-date">${trip.date}</p>
+              </div>
+              <div class="trip-metrics">
+                <div class="trip-metric">
+                  <span>Patties</span>
+                  <strong>${trip.total}</strong>
+                </div>
+                <div class="trip-metric">
+                  <span>Eaters</span>
+                  <strong>${trip.eaterCount}</strong>
+                </div>
+                <div class="trip-metric">
+                  <span>Avg/eater</span>
+                  <strong>${trip.average.toFixed(1)}</strong>
+                </div>
+                <div class="trip-metric">
+                  <span>Top eater</span>
+                  <strong class="top-eater" title="${trip.topEater.name}">${trip.topEater.name}</strong>
+                </div>
+              </div>
+            </article>
+          `
+        )
+        .join("");
+
+      const tooltip = document.getElementById("tooltip");
+
+      function showTooltip(event, person) {
+        tooltip.innerHTML = `
+          <p class="tooltip-title">${person.name}: ${person.total} patties</p>
+          ${person.entries
+            .map(
+              (entry) => `
+                <div class="tooltip-line">
+                  <span>${entry.trip} <strong>${entry.date}</strong></span>
+                  <strong>${entry.log} = ${entry.patties}</strong>
+                </div>
+              `
+            )
+            .join("")}
+        `;
+        tooltip.classList.add("is-visible");
+        moveTooltip(event);
+      }
+
+      function moveTooltip(event) {
+        const offset = 14;
+        const width = tooltip.offsetWidth || 300;
+        const x = Math.min(event.clientX + offset, window.innerWidth - width - 16);
+        const y = Math.min(event.clientY + offset, window.innerHeight - tooltip.offsetHeight - 16);
+        tooltip.style.left = `${Math.max(16, x)}px`;
+        tooltip.style.top = `${Math.max(16, y)}px`;
+      }
+
+      function hideTooltip() {
+        tooltip.classList.remove("is-visible");
+      }
+
+      const chart = document.getElementById("chart");
+      const axisMax = Math.ceil(maxPatties / 2) * 2;
+      const axisTicks = Array.from({ length: axisMax / 2 + 1 }, (_, index) => index * 2);
+
+      people.forEach((person, index) => {
+        const gridlines = axisTicks
+          .map((tick) => `<span class="gridline" style="--position: ${(tick / axisMax) * 100}%"></span>`)
+          .join("");
+        const scale = axisTicks
+          .map((tick) => `<span class="scale-tick" style="--position: ${(tick / axisMax) * 100}%">${tick}</span>`)
+          .join("");
+        const row = document.createElement("div");
+        row.className = "bar-row";
+        row.innerHTML = `
+          <div class="bar-label" title="${person.name}">${person.name}</div>
+          <div class="track">
+            ${index === 0 ? `<div class="track-scale" aria-hidden="true">${scale}</div>` : ""}
+            <div class="track-grid" aria-hidden="true">${gridlines}</div>
+            <div class="bar" style="--width: ${(person.total / axisMax) * 100}%">
+              <span class="bar-value">${person.total} ${pluralize(person.total, "patty", "patties")}</span>
+            </div>
+          </div>
+          <div class="bar-meta">
+            <span><strong>${person.tripCount}</strong> ${pluralize(person.tripCount, "trip")}</span>
+            <span><strong>${person.pattiesPerTrip.toFixed(1)}</strong> <span class="avg-label">(avg/trip)</span></span>
+          </div>
+        `;
+        row.addEventListener("mouseenter", (event) => showTooltip(event, person));
+        row.addEventListener("mousemove", moveTooltip);
+        row.addEventListener("mouseleave", hideTooltip);
+        row.addEventListener("focusin", (event) => showTooltip(event, person));
+        row.addEventListener("focusout", hideTooltip);
+        row.addEventListener("click", (event) => showTooltip(event, person));
+        row.tabIndex = 0;
+        chart.appendChild(row);
+      });
+
+      document.getElementById("dataTable").innerHTML = allEntries
+        .sort((a, b) => a.trip.localeCompare(b.trip) || b.patties - a.patties || a.name.localeCompare(b.name))
+        .map(
+          (entry) => `
+            <tr>
+              <td><span class="trip-pill">${entry.trip}</span></td>
+              <td>${entry.date}</td>
+              <td>${entry.name}</td>
+              <td>${entry.log}</td>
+              <td class="number">${entry.patties}</td>
+            </tr>
+          `
+        )
+        .join("");
+    </script>
+  </body>
+</html>
