@@ -667,33 +667,100 @@
         }
 
         table {
+          display: block;
           min-width: 0;
-          font-size: 0.72rem;
+          font-size: 0.86rem;
         }
 
-        th,
+        thead {
+          display: none;
+        }
+
+        tbody {
+          display: grid;
+          gap: 10px;
+          padding: 10px;
+        }
+
+        tbody tr {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) auto;
+          gap: 6px 12px;
+          padding: 10px;
+          border: 1px solid rgba(224, 42, 39, 0.16);
+          border-radius: 8px;
+          background: rgba(255, 255, 255, 0.74);
+        }
+
+        tbody tr:hover {
+          background: rgba(255, 255, 255, 0.86);
+        }
+
         td {
-          padding: 9px 5px;
+          min-width: 0;
+          padding: 0;
+          border-bottom: 0;
         }
 
-        th:nth-child(2),
+        td:nth-child(1) {
+          grid-column: 1;
+          grid-row: 1;
+        }
+
         td:nth-child(2) {
           display: none;
         }
 
-        th:first-child,
-        td:first-child {
-          max-width: 74px;
-        }
-
-        th:nth-child(3),
         td:nth-child(3) {
-          max-width: 90px;
+          grid-column: 1;
+          grid-row: 2;
+          overflow: hidden;
+          color: var(--ink);
+          font-weight: 850;
+          text-overflow: ellipsis;
+          white-space: nowrap;
         }
 
-        th:nth-child(4),
         td:nth-child(4) {
-          max-width: 88px;
+          grid-column: 1;
+          grid-row: 3;
+          color: var(--muted);
+          font-size: 0.8rem;
+          font-weight: 800;
+        }
+
+        td:nth-child(4)::before {
+          color: var(--red-dark);
+          content: "Order ";
+          font-size: 0.68rem;
+          font-weight: 900;
+          text-transform: uppercase;
+        }
+
+        td:nth-child(5) {
+          grid-column: 2;
+          grid-row: 1 / 4;
+          align-self: center;
+          min-width: 48px;
+          color: var(--red);
+          font-size: 1.5rem;
+          font-weight: 950;
+          text-align: right;
+        }
+
+        td:nth-child(5)::after {
+          display: block;
+          color: var(--muted);
+          content: "patties";
+          font-size: 0.58rem;
+          font-weight: 900;
+          line-height: 1;
+          text-transform: uppercase;
+        }
+
+        .trip-pill {
+          max-width: 100%;
+          font-size: 0.76rem;
         }
       }
     </style>
