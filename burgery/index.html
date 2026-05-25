@@ -597,7 +597,24 @@
 
         .bar-value {
           display: block;
+          position: absolute;
+          top: 4px;
+          left: 7px;
           font-size: 0.72rem;
+          text-align: left;
+          text-shadow:
+            0 1px 2px rgba(89, 24, 16, 0.46),
+            0 0 4px rgba(89, 24, 16, 0.24);
+        }
+
+        .bar {
+          min-width: 0;
+          padding: 0;
+          overflow: visible;
+        }
+
+        .bar::after {
+          display: none;
         }
 
         .bar-meta {
