@@ -962,6 +962,10 @@
         return count === 1 ? singular : plural;
       }
 
+      function formatAverage(value) {
+        return Number.isInteger(value) ? String(value) : value.toFixed(1);
+      }
+
       const stats = [
         ["Total patties", totalPatties],
         ["Calories", totalPatties * nutritionPerPatty.calories],
@@ -1069,7 +1073,7 @@
           </div>
           <div class="bar-meta">
             <span><strong>${person.tripCount}</strong> ${pluralize(person.tripCount, "trip")}</span>
-            <span><strong>${person.pattiesPerTrip.toFixed(1)}</strong> <span class="avg-label">(avg/trip)</span></span>
+            <span class="avg-label">(${formatAverage(person.pattiesPerTrip)} avg/trip)</span>
           </div>
         `;
         row.addEventListener("mouseenter", (event) => showTooltip(event, person));
