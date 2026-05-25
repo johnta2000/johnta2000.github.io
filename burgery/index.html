@@ -253,6 +253,10 @@
         white-space: nowrap;
       }
 
+      .mobile-total {
+        display: none;
+      }
+
       .bar-meta {
         display: grid;
         gap: 2px;
@@ -569,13 +573,16 @@
         }
 
         .bar-row {
-          grid-template-columns: minmax(0, 1fr) 104px;
-          column-gap: 8px;
-          row-gap: 2px;
+          grid-template-columns: minmax(0, 1fr) auto;
+          gap: 3px 8px;
+          min-height: auto;
         }
 
         .bar-label {
+          grid-column: 1;
+          grid-row: 1;
           min-width: 0;
+          font-size: 0.9rem;
         }
 
         .track {
@@ -585,23 +592,51 @@
         }
 
         .bar-row:first-child .track {
-          margin-top: 14px;
+          margin-top: 0;
         }
 
         .track-scale {
-          inset: -16px 0 auto;
+          display: none;
         }
 
         .bar-value {
-          font-size: 0.72rem;
+          display: none;
+        }
+
+        .mobile-total {
+          display: block;
+          grid-column: 2;
+          grid-row: 1;
+          color: var(--red);
+          font-size: 0.82rem;
+          font-weight: 950;
+          line-height: 1;
+          text-align: right;
+          white-space: nowrap;
         }
 
         .bar-meta {
-          font-size: 0.58rem;
+          display: flex;
+          grid-column: 1 / -1;
+          grid-row: 3;
+          gap: 6px;
+          align-items: center;
+          color: var(--muted);
+          font-size: 0.62rem;
+          line-height: 1;
+          text-align: left;
+          text-transform: none;
+        }
+
+        .bar-meta span + span::before {
+          margin-right: 6px;
+          color: rgba(115, 95, 73, 0.72);
+          content: "·";
         }
 
         .bar-meta strong {
-          font-size: 0.68rem;
+          color: var(--muted);
+          font-size: 0.62rem;
         }
 
         .trip-grid {
@@ -1039,6 +1074,7 @@
         row.className = "bar-row";
         row.innerHTML = `
           <div class="bar-label" title="${person.name}">${person.name}</div>
+          <div class="mobile-total">${person.total} ${pluralize(person.total, "patty", "patties")}</div>
           <div class="track">
             ${index === 0 ? `<div class="track-scale" aria-hidden="true">${scale}</div>` : ""}
             <div class="track-grid" aria-hidden="true">${gridlines}</div>
