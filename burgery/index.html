@@ -253,10 +253,6 @@
         white-space: nowrap;
       }
 
-      .mobile-total {
-        display: none;
-      }
-
       .bar-meta {
         display: grid;
         gap: 2px;
@@ -600,43 +596,33 @@
         }
 
         .bar-value {
-          display: none;
-        }
-
-        .mobile-total {
           display: block;
-          grid-column: 2;
-          grid-row: 1;
-          color: var(--red);
-          font-size: 0.82rem;
-          font-weight: 950;
-          line-height: 1;
-          text-align: right;
-          white-space: nowrap;
+          font-size: 0.72rem;
         }
 
         .bar-meta {
           display: flex;
-          grid-column: 1 / -1;
-          grid-row: 3;
-          gap: 6px;
+          grid-column: 2;
+          grid-row: 1;
+          gap: 7px;
           align-items: center;
           color: var(--muted);
-          font-size: 0.62rem;
+          font-size: 0.58rem;
           line-height: 1;
-          text-align: left;
+          justify-content: end;
+          text-align: right;
           text-transform: none;
+          white-space: nowrap;
         }
 
         .bar-meta span + span::before {
-          margin-right: 6px;
-          color: rgba(115, 95, 73, 0.72);
-          content: "·";
+          content: "";
+          margin: 0;
         }
 
         .bar-meta strong {
           color: var(--muted);
-          font-size: 0.62rem;
+          font-size: 0.58rem;
         }
 
         .trip-grid {
@@ -1074,7 +1060,6 @@
         row.className = "bar-row";
         row.innerHTML = `
           <div class="bar-label" title="${person.name}">${person.name}</div>
-          <div class="mobile-total">${person.total} ${pluralize(person.total, "patty", "patties")}</div>
           <div class="track">
             ${index === 0 ? `<div class="track-scale" aria-hidden="true">${scale}</div>` : ""}
             <div class="track-grid" aria-hidden="true">${gridlines}</div>
