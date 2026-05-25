@@ -155,8 +155,8 @@
 
       .track-scale {
         position: absolute;
-        inset: -24px 0 auto;
-        height: 20px;
+        inset: -18px 0 auto;
+        height: 16px;
         pointer-events: none;
       }
 
@@ -210,7 +210,7 @@
 
       .track {
         position: relative;
-        margin-top: 22px;
+        margin-top: 8px;
         height: 28px;
         border: 1px solid rgba(224, 42, 39, 0.14);
         border-radius: 7px;
@@ -570,7 +570,8 @@
 
         .bar-row {
           grid-template-columns: minmax(0, 1fr) 104px;
-          gap: 8px;
+          column-gap: 8px;
+          row-gap: 2px;
         }
 
         .bar-label {
@@ -580,6 +581,15 @@
         .track {
           grid-column: 1 / -1;
           grid-row: 2;
+          margin-top: 0;
+        }
+
+        .bar-row:first-child .track {
+          margin-top: 14px;
+        }
+
+        .track-scale {
+          inset: -16px 0 auto;
         }
 
         .bar-value {
@@ -889,6 +899,7 @@
         trip.entries.map((entry) => ({
           ...entry,
           trip: trip.name,
+          tripKey: `${trip.name} ${trip.date}`,
           date: trip.date,
         }))
       );
@@ -896,7 +907,7 @@
       const people = [...new Set(allEntries.map((entry) => entry.name))].map((name) => {
         const entries = allEntries.filter((entry) => entry.name === name);
         const totalPatties = entries.reduce((sum, entry) => sum + entry.patties, 0);
-        const tripCount = new Set(entries.map((entry) => entry.trip)).size;
+        const tripCount = new Set(entries.map((entry) => entry.tripKey)).size;
         return {
           name,
           total: totalPatties,
