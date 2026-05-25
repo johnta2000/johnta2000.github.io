@@ -598,13 +598,14 @@
         .bar-value {
           display: block;
           position: absolute;
-          top: 4px;
+          top: 50%;
           left: 7px;
           font-size: 0.72rem;
           text-align: left;
           text-shadow:
             0 1px 2px rgba(89, 24, 16, 0.46),
             0 0 4px rgba(89, 24, 16, 0.24);
+          transform: translateY(-50%);
         }
 
         .bar {
@@ -962,18 +963,21 @@
       const leader = people[0];
       const totalTrips = trips.length;
       const maxPatties = Math.max(...people.map((person) => person.total));
-      const tripStats = trips.map((trip) => {
-        const total = trip.entries.reduce((sum, entry) => sum + entry.patties, 0);
-        const topEater = [...trip.entries].sort((a, b) => b.patties - a.patties || a.name.localeCompare(b.name))[0];
-        return {
-          name: trip.name,
-          date: trip.date,
-          total,
-          eaterCount: trip.entries.length,
-          average: total / trip.entries.length,
-          topEater,
-        };
-      });
+      const tripStats = trips
+        .map((trip) => {
+          const total = trip.entries.reduce((sum, entry) => sum + entry.patties, 0);
+          const topEater = [...trip.entries].sort((a, b) => b.patties - a.patties || a.name.localeCompare(b.name))[0];
+          return {
+            name: trip.name,
+            date: trip.date,
+            sortDate: new Date(`${trip.date} 1`),
+            total,
+            eaterCount: trip.entries.length,
+            average: total / trip.entries.length,
+            topEater,
+          };
+        })
+        .sort((a, b) => b.sortDate - a.sortDate);
 
       function pluralize(count, singular, plural = `${singular}s`) {
         return count === 1 ? singular : plural;
