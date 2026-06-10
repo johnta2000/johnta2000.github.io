@@ -122,6 +122,7 @@ let state = loadState();
 let hideDone = false;
 
 const board = document.querySelector("#board");
+const warRoomApp = document.querySelector("#warRoomApp");
 const bucketTemplate = document.querySelector("#bucketTemplate");
 const groupTemplate = document.querySelector("#groupTemplate");
 const taskTemplate = document.querySelector("#taskTemplate");
@@ -141,6 +142,7 @@ const passwordGate = document.querySelector("#passwordGate");
 const passwordForm = document.querySelector("#passwordForm");
 const passwordInput = document.querySelector("#passwordInput");
 const passwordError = document.querySelector("#passwordError");
+const stickerLoader = document.querySelector("#stickerLoader");
 let catActionTimeout;
 
 if (sessionStorage.getItem(ACCESS_KEY) === "granted") {
@@ -156,7 +158,7 @@ passwordForm.addEventListener("submit", (event) => {
     sessionStorage.setItem(ACCESS_KEY, "granted");
     passwordInput.value = "";
     passwordError.setAttribute("hidden", "");
-    unlockWarRoom();
+    playStickerLoader();
     return;
   }
 
@@ -457,7 +459,37 @@ function flashButton(button, label) {
 
 function unlockWarRoom() {
   passwordGate.setAttribute("hidden", "");
+  stickerLoader.setAttribute("hidden", "");
+  stickerLoader.textContent = "";
+  warRoomApp.removeAttribute("hidden");
   document.body.classList.remove("locked");
+}
+
+function playStickerLoader() {
+  passwordGate.setAttribute("hidden", "");
+  stickerLoader.textContent = "";
+  stickerLoader.removeAttribute("hidden");
+  document.body.classList.add("locked");
+
+  const columns = 9;
+  const rows = 6;
+  const stickerCount = columns * rows;
+  for (let index = 0; index < stickerCount; index += 1) {
+    const column = index % columns;
+    const row = Math.floor(index / columns);
+    const sticker = document.createElement("img");
+    sticker.src = "./war-cat-sticker.png";
+    sticker.alt = "";
+    sticker.className = "sticker-rain";
+    sticker.style.setProperty("--x", `${(column + 0.5) * (100 / columns)}vw`);
+    sticker.style.setProperty("--y", `${row * 18 + 4}vh`);
+    sticker.style.setProperty("--r", `${(column % 2 === 0 ? -1 : 1) * (8 + Math.random() * 12)}deg`);
+    sticker.style.setProperty("--s", `${0.62 + Math.random() * 0.32}`);
+    sticker.style.animationDelay = `${row * 105 + column * 22}ms`;
+    stickerLoader.append(sticker);
+  }
+
+  window.setTimeout(unlockWarRoom, 1450);
 }
 
 function openAddModal() {

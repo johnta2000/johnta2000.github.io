@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>June 15 War Room</title>
-    <link rel="stylesheet" href="./styles.css?v=12" />
+    <link rel="stylesheet" href="./styles.css?v=14" />
   </head>
   <body>
     <section id="passwordGate" class="password-gate" aria-labelledby="passwordGateTitle" role="dialog" aria-modal="true">
@@ -16,7 +16,8 @@
         <p id="passwordError" class="password-error" role="alert" hidden>Wrong password.</p>
       </form>
     </section>
-    <main class="shell">
+    <section id="stickerLoader" class="sticker-loader" aria-label="Entering war room" hidden></section>
+    <main id="warRoomApp" class="shell" hidden>
       <section class="hero">
         <div class="hero-copy">
           <p class="eyebrow">War Room</p>
@@ -124,6 +125,6 @@
       </li>
     </template>
 
-    <script src="./app.js?v=12"></script>
+    <script src="./app.js?v=14"></script>
   </body>
 </html>

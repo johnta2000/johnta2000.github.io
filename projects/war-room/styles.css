@@ -17,6 +17,10 @@
   box-sizing: border-box;
 }
 
+[hidden] {
+  display: none !important;
+}
+
 body {
   margin: 0;
   min-height: 100vh;
@@ -89,6 +93,68 @@ body.modal-open {
   margin: 10px 0 0;
   color: var(--red);
   font-weight: 800;
+}
+
+.sticker-loader {
+  position: fixed;
+  inset: 0;
+  z-index: 45;
+  overflow: hidden;
+  background:
+    linear-gradient(180deg, rgba(31, 33, 29, 0.98), rgba(31, 33, 29, 0.82)),
+    radial-gradient(circle at center, rgba(255, 252, 245, 0.2), transparent 42%),
+    rgba(31, 33, 29, 0.9);
+}
+
+.sticker-loader::after {
+  content: "Loading war room";
+  position: absolute;
+  left: 50%;
+  bottom: 26px;
+  transform: translateX(-50%);
+  border: 1px solid rgba(255, 248, 232, 0.36);
+  border-radius: 999px;
+  background: rgba(31, 33, 29, 0.76);
+  color: #fff8e8;
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  padding: 9px 12px;
+  text-transform: uppercase;
+}
+
+.sticker-rain {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: clamp(74px, 10vw, 132px);
+  height: auto;
+  filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.36));
+  transform: translate(calc(var(--x) - 50%), -160px) rotate(var(--r)) scale(var(--s));
+  animation: stickerRain 980ms cubic-bezier(0.16, 0.92, 0.22, 1) both;
+}
+
+@keyframes stickerRain {
+  0% {
+    opacity: 0;
+    transform: translate(calc(var(--x) - 50%), -160px) rotate(calc(var(--r) * -1)) scale(var(--s));
+  }
+  22% {
+    opacity: 1;
+    transform: translate(calc(var(--x) - 50%), calc(var(--y) + 8vh)) rotate(var(--r)) scale(var(--s));
+  }
+  56% {
+    opacity: 1;
+    transform: translate(calc(var(--x) - 50%), var(--y)) rotate(calc(var(--r) * 0.55)) scale(var(--s));
+  }
+  82% {
+    opacity: 1;
+    transform: translate(calc(var(--x) - 50%), var(--y)) rotate(var(--r)) scale(var(--s));
+  }
+  100% {
+    opacity: 0.15;
+    transform: translate(calc(var(--x) - 50%), calc(var(--y) + 4vh)) rotate(calc(var(--r) * 1.2)) scale(calc(var(--s) * 0.96));
+  }
 }
 
 button,
