@@ -37,6 +37,11 @@ const seedBuckets = [
         ],
       },
       {
+        id: "bonus-articles",
+        title: "Bonus articles",
+        tasks: ["CSP 100k bonus announcement", "Ink Business Cash and Unlimited 100k bonus", "CSRB 200k bonus"],
+      },
+      {
         id: "maintouch-refresh",
         title: "Maintouch refresh / update",
         tasks: [
