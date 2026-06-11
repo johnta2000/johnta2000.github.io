@@ -94,18 +94,35 @@ const seedBuckets = [
         id: "shared-reddit",
         title: "Shared subreddits",
         tasks: [
-          { title: "r/chase combined post", tags: ["Personal", "Business", "Shared subreddit"] },
-          { title: "r/nextcard combined post", tags: ["Personal", "Business", "Shared subreddit"] },
+          {
+            title: "r/chase combined post",
+            tags: ["Personal", "Business", "Shared subreddit"],
+            stages: ["Content prepared", "Content posted"],
+          },
+          {
+            title: "r/nextcard combined post",
+            tags: ["Personal", "Business", "Shared subreddit"],
+            stages: ["Content prepared", "Content posted"],
+          },
         ],
       },
       {
         id: "personal-reddit",
         title: "Personal-only subreddits",
         tasks: [
-          { title: "r/sapphirepreferredcard post", tags: ["Personal", "O&O"] },
-          { title: "r/chasesapphire post", tags: ["Personal"] },
-          { title: "r/sapphirereserve post", tags: ["Personal"] },
-          { title: "r/chasesapphirereserve post", tags: ["Personal"] },
+          { title: "r/sapphirepreferredcard post", tags: ["Personal", "O&O"], stages: ["Content prepared", "Content posted"] },
+          { title: "r/chasesapphire post", tags: ["Personal"], stages: ["Content prepared", "Content posted"] },
+          { title: "r/sapphirereserve post", tags: ["Personal"], stages: ["Content prepared", "Content posted"] },
+          { title: "r/chasesapphirereserve post", tags: ["Personal"], stages: ["Content prepared", "Content posted"] },
+        ],
+      },
+      {
+        id: "video-posts",
+        title: "Videos",
+        tasks: [
+          { title: "CSP 100k video", stages: ["Content prepared", "Content posted"] },
+          { title: "IBU 100k video", stages: ["Content prepared", "Content posted"] },
+          { title: "IBC 100k video", stages: ["Content prepared", "Content posted"] },
         ],
       },
     ],
@@ -351,6 +368,19 @@ function migrateRenamedTaskData(saved) {
     if (saved.completed?.[oldId] && !saved.completed[newId]) saved.completed[newId] = saved.completed[oldId];
     if (saved.linearLinks?.[oldId] && !saved.linearLinks[newId]) saved.linearLinks[newId] = saved.linearLinks[oldId];
     if (saved.docLinks?.[oldId] && !saved.docLinks[newId]) saved.docLinks[newId] = saved.docLinks[oldId];
+  });
+
+  [
+    "social-shared-reddit-r-chase-combined-post-personal-business-shared-subreddit",
+    "social-shared-reddit-r-nextcard-combined-post-personal-business-shared-subreddit",
+    "social-personal-reddit-r-sapphirepreferredcard-post-personal-oando",
+    "social-personal-reddit-r-chasesapphire-post-personal",
+    "social-personal-reddit-r-sapphirereserve-post-personal",
+    "social-personal-reddit-r-chasesapphirereserve-post-personal",
+  ].forEach((taskId) => {
+    if (!saved.completed?.[taskId]) return;
+    saved.completed[slug(`${taskId}-Content prepared`)] = true;
+    saved.completed[slug(`${taskId}-Content posted`)] = true;
   });
 }
 
