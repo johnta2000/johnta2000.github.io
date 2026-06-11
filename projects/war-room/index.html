@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>June 15 War Room</title>
-    <link rel="stylesheet" href="./styles.css?v=14" />
+    <link rel="stylesheet" href="./styles.css?v=20" />
   </head>
   <body>
     <section id="passwordGate" class="password-gate" aria-labelledby="passwordGateTitle" role="dialog" aria-modal="true">
@@ -17,6 +17,12 @@
       </form>
     </section>
     <section id="stickerLoader" class="sticker-loader" aria-label="Entering war room" hidden></section>
+    <section id="sirenLayer" class="siren-layer" aria-hidden="true" hidden>
+      <span class="siren siren-left"></span>
+      <span class="siren siren-right"></span>
+      <span class="siren-beam beam-left"></span>
+      <span class="siren-beam beam-right"></span>
+    </section>
     <main id="warRoomApp" class="shell" hidden>
       <section class="hero">
         <div class="hero-copy">
@@ -89,6 +95,8 @@
           <input type="text" name="title" autocomplete="off" placeholder="Item or partner name" aria-label="Item title" />
           <select id="bucketSelect" name="bucket" aria-label="Bucket"></select>
           <select id="groupSelect" name="group" aria-label="Section"></select>
+          <input type="url" name="linearUrl" autocomplete="off" placeholder="Linear URL" aria-label="Linear URL" />
+          <input type="url" name="docUrl" autocomplete="off" placeholder="Google Doc URL" aria-label="Google Doc URL" />
           <input type="text" name="tags" autocomplete="off" placeholder="Tags: Business LTO, Waiting" aria-label="Tags" />
           <textarea name="notes" placeholder="Notes" aria-label="Notes"></textarea>
           <button type="submit">Add item</button>
@@ -125,6 +133,6 @@
       </li>
     </template>
 
-    <script src="./app.js?v=14"></script>
+    <script src="./app.js?v=27"></script>
   </body>
 </html>
