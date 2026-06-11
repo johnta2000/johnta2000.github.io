@@ -159,6 +159,11 @@ const addModal = document.querySelector("#addModal");
 const modalBackdrop = document.querySelector("#modalBackdrop");
 const closeAddModal = document.querySelector("#closeAddModal");
 const toggleAddPanel = document.querySelector("#toggleAddPanel");
+const linkModal = document.querySelector("#linkModal");
+const linkModalBackdrop = document.querySelector("#linkModalBackdrop");
+const closeLinkModal = document.querySelector("#closeLinkModal");
+const linkForm = document.querySelector("#linkForm");
+const linkModalTask = document.querySelector("#linkModalTask");
 const warCat = document.querySelector("#warCat");
 const passwordGate = document.querySelector("#passwordGate");
 const passwordForm = document.querySelector("#passwordForm");
@@ -168,6 +173,7 @@ const stickerLoader = document.querySelector("#stickerLoader");
 const sirenLayer = document.querySelector("#sirenLayer");
 let catActionTimeout;
 let sirenTimeout;
+let activeLinkTaskId = "";
 
 if (sessionStorage.getItem(ACCESS_KEY) === "granted") {
   unlockWarRoom();
@@ -219,9 +225,19 @@ addModal.addEventListener("click", (event) => {
     closeModal();
   }
 });
+closeLinkModal.addEventListener("click", closeLinksModal);
+linkModalBackdrop.addEventListener("click", closeLinksModal);
+linkModal.addEventListener("click", (event) => {
+  if (event.target === linkModal) {
+    closeLinksModal();
+  }
+});
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape" && !addModal.hasAttribute("hidden")) {
     closeModal();
+  }
+  if (event.key === "Escape" && !linkModal.hasAttribute("hidden")) {
+    closeLinksModal();
   }
 });
 
@@ -263,6 +279,10 @@ globalAddForm.addEventListener("submit", (event) => {
   bucketSelect.value = state.buckets[0].id;
   populateGroupSelect(bucketSelect.value);
   closeModal();
+});
+linkForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  saveLinksFromModal(new FormData(event.currentTarget));
 });
 
 render();
@@ -561,23 +581,11 @@ function handleTicketLinkAction(task) {
     return;
   }
 
-  const nextUrl = window.prompt("Paste Linear or Google Doc URL");
-  if (nextUrl === null) return;
-  const type = nextUrl.includes("docs.google.com") ? "doc" : "linear";
-  saveTaskUrl(task.id, nextUrl, type);
+  openLinksModal(task);
 }
 
 function editTaskLinks(task) {
-  const nextLinearUrl = window.prompt("Linear ticket URL. Leave blank to remove.", state.linearLinks[task.id] || "");
-  if (nextLinearUrl === null) return;
-
-  const nextDocUrl = window.prompt("Google Doc URL. Leave blank to remove.", state.docLinks[task.id] || "");
-  if (nextDocUrl === null) return;
-
-  setOptionalTaskUrl(task.id, nextLinearUrl, "linear");
-  setOptionalTaskUrl(task.id, nextDocUrl, "doc");
-  saveState();
-  render();
+  openLinksModal(task);
 }
 
 function saveLinearUrl(taskId, value) {
@@ -607,6 +615,31 @@ function setOptionalTaskUrl(taskId, value, type) {
       delete state.linearLinks[taskId];
     }
   }
+}
+
+function openLinksModal(task) {
+  activeLinkTaskId = task.id;
+  linkModalTask.textContent = task.title;
+  linkForm.elements.linearUrl.value = state.linearLinks[task.id] || "";
+  linkForm.elements.docUrl.value = state.docLinks[task.id] || "";
+  linkModal.removeAttribute("hidden");
+  document.body.classList.add("modal-open");
+  linkForm.elements.linearUrl.focus();
+}
+
+function closeLinksModal() {
+  linkModal.setAttribute("hidden", "");
+  document.body.classList.remove("modal-open");
+  activeLinkTaskId = "";
+}
+
+function saveLinksFromModal(formData) {
+  if (!activeLinkTaskId) return;
+  setOptionalTaskUrl(activeLinkTaskId, formData.get("linearUrl") || "", "linear");
+  setOptionalTaskUrl(activeLinkTaskId, formData.get("docUrl") || "", "doc");
+  saveState();
+  closeLinksModal();
+  render();
 }
 
 function slug(value) {

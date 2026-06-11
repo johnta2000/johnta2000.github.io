@@ -104,6 +104,25 @@
       </div>
     </section>
 
+    <section id="linkModal" class="modal-shell" aria-labelledby="linkModalTitle" aria-modal="true" role="dialog" hidden>
+      <button id="linkModalBackdrop" class="modal-backdrop" type="button" aria-label="Close ticket links modal"></button>
+      <div class="add-panel link-panel">
+        <header class="modal-header">
+          <div>
+            <p class="eyebrow">Ticket links</p>
+            <h2 id="linkModalTitle">Attach links</h2>
+            <p id="linkModalTask" class="modal-subtitle"></p>
+          </div>
+          <button id="closeLinkModal" class="icon-button" type="button" aria-label="Close">×</button>
+        </header>
+        <form id="linkForm" class="link-form">
+          <input type="url" name="linearUrl" autocomplete="off" placeholder="Linear URL" aria-label="Linear URL" />
+          <input type="url" name="docUrl" autocomplete="off" placeholder="Google Doc URL" aria-label="Google Doc URL" />
+          <button type="submit">Save links</button>
+        </form>
+      </div>
+    </section>
+
     <template id="bucketTemplate">
       <article class="bucket">
         <header class="bucket-header">
@@ -133,6 +152,6 @@
       </li>
     </template>
 
-    <script src="./app.js?v=28"></script>
+    <script src="./app.js?v=29"></script>
   </body>
 </html>
