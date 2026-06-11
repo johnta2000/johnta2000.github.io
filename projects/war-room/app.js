@@ -125,6 +125,14 @@ const seedBuckets = [
           { title: "IBC 100k video", stages: ["Content prepared", "Content posted"] },
         ],
       },
+      {
+        id: "linkedin",
+        title: "LinkedIn",
+        tasks: [
+          { title: "LinkedIn (John)", stages: ["Prepared", "Posted"] },
+          { title: "LinkedIn (Nextcard)", stages: ["Prepared", "Posted"] },
+        ],
+      },
     ],
   },
   {
