@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>June 15 Personal Cards War Room</title>
+    <link rel="stylesheet" href="./styles.css?v=20" />
+  </head>
+  <body>
+    <section id="passwordGate" class="password-gate" aria-labelledby="passwordGateTitle" role="dialog" aria-modal="true">
+      <form id="passwordForm" class="password-card">
+        <p class="eyebrow">Restricted project</p>
+        <h1 id="passwordGateTitle">War Room Access</h1>
+        <input id="passwordInput" type="password" autocomplete="current-password" placeholder="Password" aria-label="Password" />
+        <button type="submit">Enter war room</button>
+        <p id="passwordError" class="password-error" role="alert" hidden>Wrong password.</p>
+      </form>
+    </section>
+    <section id="stickerLoader" class="sticker-loader" aria-label="Entering war room" hidden></section>
+    <section id="sirenLayer" class="siren-layer" aria-hidden="true" hidden>
+      <span class="siren siren-left"></span>
+      <span class="siren siren-right"></span>
+      <span class="siren-beam beam-left"></span>
+      <span class="siren-beam beam-right"></span>
+    </section>
+    <main id="warRoomApp" class="shell" hidden>
+      <section class="hero">
+        <div class="hero-copy">
+          <p class="eyebrow">War Room</p>
+          <h1>June 15, 2026 Personal Cards Prep</h1>
+          <section class="summary" aria-label="Progress summary">
+            <div>
+              <span id="doneCount">0</span>
+              <small>done</small>
+            </div>
+            <div>
+              <span id="totalCount">0</span>
+              <small>total</small>
+            </div>
+            <div class="progress-wrap">
+              <div class="progress-meta">
+                <strong>Overall progress</strong>
+                <span id="percentCount">0%</span>
+              </div>
+              <div class="meter" aria-hidden="true">
+                <i id="meterFill"></i>
+              </div>
+            </div>
+          </section>
+          <section class="command-bar" aria-label="War room commands">
+            <button id="toggleAddPanel" type="button">Add to board</button>
+            <button id="expandAll" type="button">Expand all</button>
+            <button id="collapseDone" type="button">Hide done</button>
+            <button id="exportState" type="button">Export progress</button>
+            <button id="resetState" class="danger" type="button">Reset checks</button>
+          </section>
+        </div>
+        <button
+          class="war-cat"
+          id="warCat"
+          type="button"
+          aria-label="Activate War Cat 6/7 action"
+        >
+          <img src="../projects/war-room/war-cat.png" alt="War cat wearing a helmet in a battlefield scene" />
+          <span class="cat-caption">War Cat Command</span>
+          <span class="six-seven" aria-hidden="true">
+            <b>6</b>
+            <b>7</b>
+          </span>
+        </button>
+      </section>
+
+      <section id="board" class="board" aria-label="War room board"></section>
+
+      <aside class="reference">
+        <div>
+          <p class="eyebrow">Prior board</p>
+          <h2>Whiteboard reference</h2>
+        </div>
+        <img src="../projects/war-room/prior-war-room.png" alt="Photo of the prior war room whiteboard" />
+      </aside>
+    </main>
+
+    <section id="addModal" class="modal-shell" aria-labelledby="addModalTitle" aria-modal="true" role="dialog" hidden>
+      <button id="modalBackdrop" class="modal-backdrop" type="button" aria-label="Close add item modal"></button>
+      <div class="add-panel">
+        <header class="modal-header">
+          <div>
+            <p class="eyebrow">Add to board</p>
+            <h2 id="addModalTitle">New checklist item</h2>
+          </div>
+          <button id="closeAddModal" class="icon-button" type="button" aria-label="Close">×</button>
+        </header>
+        <form id="globalAddForm" class="global-add-form">
+          <input type="text" name="title" autocomplete="off" placeholder="Item or partner name" aria-label="Item title" />
+          <select id="bucketSelect" name="bucket" aria-label="Bucket"></select>
+          <select id="groupSelect" name="group" aria-label="Section"></select>
+          <input type="url" name="linearUrl" autocomplete="off" placeholder="Linear URL" aria-label="Linear URL" />
+          <input type="url" name="docUrl" autocomplete="off" placeholder="Google Doc URL" aria-label="Google Doc URL" />
+          <input type="text" name="tags" autocomplete="off" placeholder="Tags: Business LTO, Waiting" aria-label="Tags" />
+          <textarea name="notes" placeholder="Notes" aria-label="Notes"></textarea>
+          <button type="submit">Add item</button>
+        </form>
+      </div>
+    </section>
+
+    <section id="linkModal" class="modal-shell" aria-labelledby="linkModalTitle" aria-modal="true" role="dialog" hidden>
+      <button id="linkModalBackdrop" class="modal-backdrop" type="button" aria-label="Close ticket links modal"></button>
+      <div class="add-panel link-panel">
+        <header class="modal-header">
+          <div>
+            <p class="eyebrow">Ticket links</p>
+            <h2 id="linkModalTitle">Attach links</h2>
+            <p id="linkModalTask" class="modal-subtitle"></p>
+          </div>
+          <button id="closeLinkModal" class="icon-button" type="button" aria-label="Close">×</button>
+        </header>
+        <form id="linkForm" class="link-form">
+          <input type="url" name="linearUrl" autocomplete="off" placeholder="Linear URL" aria-label="Linear URL" />
+          <input type="url" name="docUrl" autocomplete="off" placeholder="Google Doc URL" aria-label="Google Doc URL" />
+          <button type="submit">Save links</button>
+        </form>
+      </div>
+    </section>
+
+    <template id="bucketTemplate">
+      <article class="bucket">
+        <header class="bucket-header">
+          <div>
+            <p class="bucket-kicker"></p>
+            <h2></h2>
+          </div>
+          <span class="bucket-progress"></span>
+        </header>
+        <div class="groups"></div>
+      </article>
+    </template>
+
+    <template id="groupTemplate">
+      <section class="task-group">
+        <h3></h3>
+        <ul></ul>
+      </section>
+    </template>
+
+    <template id="taskTemplate">
+      <li>
+        <label>
+          <input type="checkbox" />
+          <span></span>
+        </label>
+      </li>
+    </template>
+
+    <script src="./app.js?v=1"></script>
+  </body>
+</html>
