@@ -7,6 +7,7 @@ export default defineSchema({
     completed: v.any(),
     linearLinks: v.any(),
     docLinks: v.any(),
+    deletedTasks: v.optional(v.any()),
     buckets: v.optional(v.any()),
     updatedAt: v.number(),
   }).index("by_board", ["boardId"]),

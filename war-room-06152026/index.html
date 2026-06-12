@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>June 15 Personal Cards War Room</title>
-    <link rel="stylesheet" href="./styles.css?v=21" />
+    <link rel="stylesheet" href="./styles.css?v=22" />
   </head>
   <body>
     <section id="passwordGate" class="password-gate" aria-labelledby="passwordGateTitle" role="dialog" aria-modal="true">
@@ -122,20 +122,26 @@
     </section>
 
     <section id="linkModal" class="modal-shell" aria-labelledby="linkModalTitle" aria-modal="true" role="dialog" hidden>
-      <button id="linkModalBackdrop" class="modal-backdrop" type="button" aria-label="Close ticket links modal"></button>
+      <button id="linkModalBackdrop" class="modal-backdrop" type="button" aria-label="Close ticket editor"></button>
       <div class="add-panel link-panel">
         <header class="modal-header">
           <div>
-            <p class="eyebrow">Ticket links</p>
-            <h2 id="linkModalTitle">Attach links</h2>
+            <p class="eyebrow">Ticket editor</p>
+            <h2 id="linkModalTitle">Edit ticket</h2>
             <p id="linkModalTask" class="modal-subtitle"></p>
           </div>
           <button id="closeLinkModal" class="icon-button" type="button" aria-label="Close">×</button>
         </header>
         <form id="linkForm" class="link-form">
+          <input type="text" name="title" autocomplete="off" placeholder="Ticket title" aria-label="Ticket title" />
+          <textarea name="notes" placeholder="Notes" aria-label="Notes"></textarea>
+          <input type="text" name="tags" autocomplete="off" placeholder="Tags: Business LTO, Waiting" aria-label="Tags" />
           <input type="url" name="linearUrl" autocomplete="off" placeholder="Linear URL" aria-label="Linear URL" />
           <input type="url" name="docUrl" autocomplete="off" placeholder="Google Doc URL" aria-label="Google Doc URL" />
-          <button type="submit">Save links</button>
+          <div class="modal-actions">
+            <button id="deleteTicket" class="danger" type="button">Delete ticket</button>
+            <button type="submit">Save ticket</button>
+          </div>
         </form>
       </div>
     </section>
@@ -169,6 +175,6 @@
       </li>
     </template>
 
-    <script src="./app.js?v=3"></script>
+    <script src="./app.js?v=4"></script>
   </body>
 </html>

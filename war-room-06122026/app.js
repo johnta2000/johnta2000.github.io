@@ -175,6 +175,7 @@ const linkModalBackdrop = document.querySelector("#linkModalBackdrop");
 const closeLinkModal = document.querySelector("#closeLinkModal");
 const linkForm = document.querySelector("#linkForm");
 const linkModalTask = document.querySelector("#linkModalTask");
+const deleteTicket = document.querySelector("#deleteTicket");
 const warCat = document.querySelector("#warCat");
 const passwordGate = document.querySelector("#passwordGate");
 const passwordForm = document.querySelector("#passwordForm");
@@ -295,6 +296,7 @@ linkForm.addEventListener("submit", (event) => {
   event.preventDefault();
   saveLinksFromModal(new FormData(event.currentTarget));
 });
+deleteTicket.addEventListener("click", deleteActiveTicket);
 
 render();
 populateAddControls();
@@ -312,6 +314,7 @@ function createFallbackState() {
     completed: {},
     linearLinks: {},
     docLinks: {},
+    deletedTasks: {},
   };
 }
 
@@ -340,7 +343,9 @@ function mergeSeedWithSaved(fallback, saved) {
   const buckets = fallback.buckets.map((bucket) => ({
     ...bucket,
     groups: bucket.groups.map((group) => {
-      const seededTasks = group.tasks.map((task) => savedTasks.get(task.id) || task);
+      const seededTasks = group.tasks
+        .filter((task) => !saved.deletedTasks?.[task.id])
+        .map((task) => savedTasks.get(task.id) || task);
       const customTasks = saved.buckets
         .find((savedBucket) => savedBucket.id === bucket.id)
         ?.groups?.find((savedGroup) => savedGroup.id === group.id)
@@ -349,7 +354,13 @@ function mergeSeedWithSaved(fallback, saved) {
     }),
   }));
 
-  return { buckets, completed: saved.completed, linearLinks: saved.linearLinks || {}, docLinks: saved.docLinks || {} };
+  return {
+    buckets,
+    completed: saved.completed,
+    linearLinks: saved.linearLinks || {},
+    docLinks: saved.docLinks || {},
+    deletedTasks: saved.deletedTasks || {},
+  };
 }
 
 function migrateRenamedTaskData(saved) {
@@ -505,12 +516,7 @@ function addTask(formData) {
 function removeTask(bucketId, groupId, taskId) {
   const bucket = state.buckets.find((item) => item.id === bucketId);
   const group = bucket.groups.find((item) => item.id === groupId);
-  group.tasks = group.tasks.filter((task) => task.id !== taskId);
-  delete state.completed[taskId];
-  delete state.linearLinks[taskId];
-  delete state.docLinks[taskId];
-  saveState();
-  render();
+  removeTaskFromGroup(group, taskId);
 }
 
 function updateProgress() {
@@ -585,6 +591,7 @@ function saveRemoteState() {
             completed: state.completed,
             linearLinks: state.linearLinks,
             docLinks: state.docLinks,
+            deletedTasks: state.deletedTasks,
             buckets: state.buckets,
           },
         }),
@@ -710,12 +717,16 @@ function setOptionalTaskUrl(taskId, value, type) {
 
 function openLinksModal(task) {
   activeLinkTaskId = task.id;
-  linkModalTask.textContent = task.title;
+  linkModalTask.textContent = "Right-click edits this ticket. Double-click opens the saved link.";
+  linkForm.elements.title.value = task.title || "";
+  linkForm.elements.notes.value = task.notes || "";
+  linkForm.elements.tags.value = (task.tags || []).join(", ");
   linkForm.elements.linearUrl.value = state.linearLinks[task.id] || "";
   linkForm.elements.docUrl.value = state.docLinks[task.id] || "";
   linkModal.removeAttribute("hidden");
   document.body.classList.add("modal-open");
-  linkForm.elements.linearUrl.focus();
+  linkForm.elements.title.focus();
+  linkForm.elements.title.select();
 }
 
 function closeLinksModal() {
@@ -726,11 +737,52 @@ function closeLinksModal() {
 
 function saveLinksFromModal(formData) {
   if (!activeLinkTaskId) return;
+  const task = findTask(activeLinkTaskId)?.task;
+  if (!task) return;
+  const title = (formData.get("title") || "").trim();
+  if (!title) return;
+
+  task.title = title;
+  task.notes = (formData.get("notes") || "").trim();
+  task.tags = parseTags(formData.get("tags") || "");
+  task.custom = task.custom || !seedTaskIds.has(task.id);
   setOptionalTaskUrl(activeLinkTaskId, formData.get("linearUrl") || "", "linear");
   setOptionalTaskUrl(activeLinkTaskId, formData.get("docUrl") || "", "doc");
   saveState();
   closeLinksModal();
   render();
+}
+
+function deleteActiveTicket() {
+  if (!activeLinkTaskId) return;
+  const location = findTask(activeLinkTaskId);
+  if (!location) return;
+  const shouldDelete = window.confirm(`Delete "${location.task.title}" from this war room?`);
+  if (!shouldDelete) return;
+  removeTaskFromGroup(location.group, activeLinkTaskId);
+  closeLinksModal();
+}
+
+function removeTaskFromGroup(group, taskId) {
+  const task = group.tasks.find((item) => item.id === taskId);
+  group.tasks = group.tasks.filter((item) => item.id !== taskId);
+  if (seedTaskIds.has(taskId)) state.deletedTasks[taskId] = true;
+  delete state.completed[taskId];
+  delete state.linearLinks[taskId];
+  delete state.docLinks[taskId];
+  task?.stages?.forEach((stage) => delete state.completed[getStageId(task, stage)]);
+  saveState();
+  render();
+}
+
+function findTask(taskId) {
+  for (const bucket of state.buckets) {
+    for (const group of bucket.groups) {
+      const task = group.tasks.find((item) => item.id === taskId);
+      if (task) return { bucket, group, task };
+    }
+  }
+  return null;
 }
 
 function slug(value) {
