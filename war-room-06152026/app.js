@@ -773,7 +773,7 @@ function getPostProgressItems(buckets) {
 }
 
 function isPostStage(title) {
-  return /^(content posted|posted)$/i.test(title || "");
+  return /^(content posted|posted|published|gsc indexed)$/i.test(title || "");
 }
 
 function renderStages(node, task) {
