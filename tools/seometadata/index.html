@@ -1,0 +1,1028 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Typing Counter</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f6f7f2;
+        --panel: #ffffff;
+        --ink: #202124;
+        --muted: #666b73;
+        --line: #d8dcd2;
+        --focus: #246bfe;
+        --highlight: #ffe66f;
+        --shadow: 0 18px 50px rgba(29, 33, 41, 0.1);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background:
+          linear-gradient(135deg, rgba(36, 107, 254, 0.08), transparent 34%),
+          linear-gradient(225deg, rgba(28, 139, 102, 0.09), transparent 28%),
+          var(--bg);
+        color: var(--ink);
+        font-family:
+          Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+          "Segoe UI", sans-serif;
+      }
+
+      main {
+        width: min(980px, calc(100vw - 32px));
+        margin: 0 auto;
+        padding: 40px 0;
+      }
+
+      .shell {
+        display: grid;
+        gap: 20px;
+      }
+
+      .topbar {
+        display: flex;
+        align-items: end;
+        justify-content: space-between;
+        gap: 16px;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: clamp(30px, 5vw, 56px);
+        line-height: 0.95;
+        letter-spacing: 0;
+      }
+
+      .summary {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 10px;
+        min-width: min(560px, 100%);
+      }
+
+      .stat {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.72);
+        padding: 10px 12px;
+      }
+
+      .stat span {
+        display: block;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .stat strong {
+        display: block;
+        margin-top: 3px;
+        font-size: 24px;
+        line-height: 1;
+      }
+
+      .workspace {
+        display: grid;
+        gap: 18px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--panel);
+        box-shadow: var(--shadow);
+        padding: 22px;
+      }
+
+      .schema-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 18px;
+      }
+
+      .schema-panel {
+        display: grid;
+        align-content: start;
+        gap: 12px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fbfcfb;
+        padding: 16px;
+      }
+
+      .schema-panel h2 {
+        margin: 0;
+        font-size: 18px;
+        line-height: 1.2;
+        letter-spacing: 0;
+      }
+
+      .schema-panel p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.45;
+      }
+
+      .field {
+        display: grid;
+        gap: 8px;
+      }
+
+      .field-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      label {
+        font-size: 14px;
+        font-weight: 700;
+      }
+
+      .count {
+        color: var(--muted);
+        font-variant-numeric: tabular-nums;
+        font-size: 13px;
+      }
+
+      .title-input,
+      .content-editor,
+      .schema-input,
+      .schema-textarea {
+        width: 100%;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        letter-spacing: 0;
+      }
+
+      .title-input {
+        font: 18px/1.55 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          "Liberation Mono", monospace;
+        display: block;
+        min-height: 96px;
+        padding: 12px 14px;
+        resize: vertical;
+        color: var(--ink);
+        background: #fbfcfb;
+        outline: none;
+        overflow-wrap: anywhere;
+        white-space: pre-wrap;
+      }
+
+      .schema-input,
+      .schema-textarea {
+        padding: 10px 12px;
+        color: var(--ink);
+        background: #ffffff;
+        font: 14px/1.45 Inter, ui-sans-serif, system-ui, -apple-system,
+          BlinkMacSystemFont, "Segoe UI", sans-serif;
+        outline: none;
+      }
+
+      .schema-textarea {
+        min-height: 94px;
+        resize: vertical;
+      }
+
+      .schema-output {
+        min-height: 260px;
+        max-height: 520px;
+        margin: 0;
+        overflow: auto;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #202124;
+        color: #f5f6f2;
+        padding: 12px;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+        font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          "Liberation Mono", monospace;
+      }
+
+      .schema-output.error {
+        border-color: #b42318;
+        color: #fff1f0;
+      }
+
+      .content-editor {
+        min-height: 360px;
+        padding: 14px;
+        overflow: auto;
+        overflow-wrap: anywhere;
+        color: var(--ink);
+        background: #fbfcfb;
+        font: 17px/1.55 Inter, ui-sans-serif, system-ui, -apple-system,
+          BlinkMacSystemFont, "Segoe UI", sans-serif;
+        outline: none;
+      }
+
+      mark {
+        border-radius: 3px;
+        background: var(--highlight);
+        color: inherit;
+        padding: 1px 0;
+      }
+
+      .title-input:focus,
+      .content-editor:focus,
+      .schema-input:focus,
+      .schema-textarea:focus {
+        border-color: var(--focus);
+        box-shadow: 0 0 0 3px rgba(36, 107, 254, 0.15);
+      }
+
+      .toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+
+      .actions {
+        display: flex;
+        justify-content: flex-end;
+      }
+
+      .toolbar button {
+        min-width: 38px;
+        height: 34px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fbfcfb;
+        color: var(--ink);
+        font: 700 13px/1 Inter, ui-sans-serif, system-ui, sans-serif;
+        cursor: pointer;
+      }
+
+      .copy-button {
+        justify-self: start;
+        min-height: 36px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--ink);
+        color: #ffffff;
+        padding: 0 12px;
+        font: 700 13px/1 Inter, ui-sans-serif, system-ui, sans-serif;
+        cursor: pointer;
+      }
+
+      .clear-button {
+        min-height: 38px;
+        border: 1px solid #d0a8a8;
+        border-radius: 8px;
+        background: #fff7f7;
+        color: #8a1f1f;
+        padding: 0 12px;
+        font: 700 13px/1 Inter, ui-sans-serif, system-ui, sans-serif;
+        cursor: pointer;
+      }
+
+      .toolbar button:hover,
+      .toolbar button:focus,
+      .copy-button:hover,
+      .copy-button:focus,
+      .clear-button:hover,
+      .clear-button:focus {
+        border-color: var(--focus);
+        outline: none;
+      }
+
+      .content-editor h1,
+      .content-editor h2,
+      .content-editor h3,
+      .content-editor p,
+      .content-editor ul,
+      .content-editor ol {
+        margin: 0 0 12px;
+      }
+
+      .content-editor h1 {
+        font-size: 34px;
+        line-height: 1.12;
+      }
+
+      .content-editor h2 {
+        font-size: 28px;
+        line-height: 1.18;
+      }
+
+      .content-editor h3 {
+        font-size: 22px;
+        line-height: 1.25;
+      }
+
+      .content-editor ul,
+      .content-editor ol {
+        padding-left: 28px;
+      }
+
+      .content-editor li {
+        margin: 4px 0;
+      }
+
+      .progress {
+        height: 8px;
+        overflow: hidden;
+        border-radius: 999px;
+        background: #e5e9df;
+      }
+
+      .progress span {
+        display: block;
+        width: var(--progress, 0%);
+        height: 100%;
+        background: linear-gradient(90deg, #1c8b66, #246bfe);
+        transition: width 120ms ease;
+      }
+
+      @media (max-width: 760px) {
+        main {
+          width: min(100vw - 20px, 980px);
+          padding: 16px 0;
+        }
+
+        .topbar,
+        .field-header {
+          align-items: stretch;
+          flex-direction: column;
+        }
+
+        .actions {
+          justify-content: stretch;
+        }
+
+        .clear-button {
+          width: 100%;
+        }
+
+        .summary {
+          grid-template-columns: 1fr;
+          min-width: 0;
+        }
+
+        .schema-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .workspace {
+          padding: 14px;
+        }
+
+        .title-input,
+        .content-editor {
+          font-size: 16px;
+        }
+
+        .content-editor h1 {
+          font-size: 28px;
+        }
+
+        .content-editor h2 {
+          font-size: 23px;
+        }
+
+        .content-editor h3 {
+          font-size: 19px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="shell">
+        <div class="topbar">
+          <h1>Typing Counter</h1>
+          <div class="summary" aria-live="polite">
+            <div class="stat">
+              <span>Title</span>
+              <strong id="titleTotal">0</strong>
+            </div>
+            <div class="stat">
+              <span>Content</span>
+              <strong id="contentTotal">0</strong>
+            </div>
+            <div class="stat">
+              <span>After 160</span>
+              <strong id="overTotal">0</strong>
+            </div>
+            <div class="stat">
+              <span>Words</span>
+              <strong id="wordTotal">0</strong>
+            </div>
+          </div>
+        </div>
+
+        <section class="workspace">
+          <div class="actions">
+            <button id="clearAllButton" class="clear-button" type="button">Clear all</button>
+          </div>
+
+          <div class="field">
+            <div class="field-header">
+              <label for="titleInput">Title</label>
+              <span class="count"><strong id="titleInline">0</strong> characters</span>
+            </div>
+            <textarea
+              id="titleInput"
+              class="title-input"
+              autocomplete="off"
+              spellcheck="true"
+              rows="3"
+            ></textarea>
+          </div>
+
+          <div class="field">
+            <div class="field-header">
+              <label id="contentLabel" for="contentInput">Content</label>
+              <span class="count">
+                <strong id="contentInline">0</strong> characters ·
+                <strong id="wordInline">0</strong> words
+              </span>
+            </div>
+            <div class="toolbar" aria-label="Content formatting">
+              <button type="button" data-command="formatBlock" data-value="H1" title="Heading 1">H1</button>
+              <button type="button" data-command="formatBlock" data-value="H2" title="Heading 2">H2</button>
+              <button type="button" data-command="formatBlock" data-value="H3" title="Heading 3">H3</button>
+              <button type="button" data-command="formatBlock" data-value="P" title="Paragraph">P</button>
+              <button type="button" data-command="bold" title="Bold">B</button>
+              <button type="button" data-command="italic" title="Italic">I</button>
+              <button type="button" data-command="insertUnorderedList" title="Bulleted list">•</button>
+              <button type="button" data-command="insertOrderedList" title="Numbered list">1.</button>
+            </div>
+            <div
+              id="contentInput"
+              class="content-editor"
+              contenteditable="true"
+              role="textbox"
+              aria-labelledby="contentLabel"
+              aria-multiline="true"
+              spellcheck="true"
+            ></div>
+            <div class="progress" aria-hidden="true">
+              <span id="progressFill"></span>
+            </div>
+          </div>
+
+          <div class="schema-grid">
+            <section class="schema-panel" aria-labelledby="blogSchemaHeading">
+              <h2 id="blogSchemaHeading">Blog Posting Schema</h2>
+              <p>Optional BlogPosting JSON-LD payload.</p>
+
+              <div class="field">
+                <label for="descriptionInput">Description</label>
+                <textarea id="descriptionInput" class="schema-textarea" rows="3"></textarea>
+              </div>
+
+              <div class="field">
+                <label for="slugInput">Article slug</label>
+                <input
+                  id="slugInput"
+                  class="schema-input"
+                  placeholder="best-museums-bank-of-america-museums-on-us-san-francisco"
+                />
+              </div>
+
+              <div class="field">
+                <label for="authorNameInput">Author name</label>
+                <input id="authorNameInput" class="schema-input" value="NextCard" />
+              </div>
+
+              <div class="field">
+                <label for="authorTypeInput">Author type</label>
+                <input id="authorTypeInput" class="schema-input" value="Organization" />
+              </div>
+
+              <div class="field">
+                <label for="datePublishedInput">Date published</label>
+                <input id="datePublishedInput" class="schema-input" type="datetime-local" />
+              </div>
+
+              <div class="field">
+                <label for="dateModifiedInput">Date modified</label>
+                <input id="dateModifiedInput" class="schema-input" type="datetime-local" />
+              </div>
+
+              <button class="copy-button" type="button" data-copy-target="blogOutput">
+                Copy BlogPosting JSON-LD
+              </button>
+              <pre id="blogOutput" class="schema-output" aria-live="polite"></pre>
+            </section>
+
+            <section class="schema-panel" aria-labelledby="faqSchemaHeading">
+              <h2 id="faqSchemaHeading">FAQ Schema</h2>
+              <p>Optional FAQPage JSON-LD payload.</p>
+
+              <div class="field">
+                <label for="faqNameInput">FAQ page name</label>
+                <input id="faqNameInput" class="schema-input" />
+              </div>
+
+              <p>Questions and answers are derived from the FAQ section in Content.</p>
+
+              <button class="copy-button" type="button" data-copy-target="faqOutput">
+                Copy FAQPage JSON-LD
+              </button>
+              <pre id="faqOutput" class="schema-output" aria-live="polite"></pre>
+            </section>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <script>
+      const titleInput = document.querySelector("#titleInput");
+      const contentInput = document.querySelector("#contentInput");
+      const progressFill = document.querySelector("#progressFill");
+      const titleTotal = document.querySelector("#titleTotal");
+      const titleInline = document.querySelector("#titleInline");
+      const contentTotal = document.querySelector("#contentTotal");
+      const contentInline = document.querySelector("#contentInline");
+      const overTotal = document.querySelector("#overTotal");
+      const wordTotal = document.querySelector("#wordTotal");
+      const wordInline = document.querySelector("#wordInline");
+      const descriptionInput = document.querySelector("#descriptionInput");
+      const slugInput = document.querySelector("#slugInput");
+      const authorNameInput = document.querySelector("#authorNameInput");
+      const authorTypeInput = document.querySelector("#authorTypeInput");
+      const datePublishedInput = document.querySelector("#datePublishedInput");
+      const dateModifiedInput = document.querySelector("#dateModifiedInput");
+      const faqNameInput = document.querySelector("#faqNameInput");
+      const blogOutput = document.querySelector("#blogOutput");
+      const faqOutput = document.querySelector("#faqOutput");
+      const clearAllButton = document.querySelector("#clearAllButton");
+      const highlightLimit = 160;
+      const draftStorageKey = "seoMetadataToolDraft";
+      let currentWordCount = 0;
+      let isRestoringDraft = false;
+
+      function toDatetimeLocalValue(date) {
+        const offset = date.getTimezoneOffset();
+        const localDate = new Date(date.getTime() - offset * 60000);
+        return localDate.toISOString().slice(0, 16);
+      }
+
+      function datetimeLocalToIso(value) {
+        return value ? new Date(value).toISOString() : "";
+      }
+
+      function setIfEmpty(input, value) {
+        if (!input.value.trim()) {
+          input.value = value;
+        }
+      }
+
+      function getTitleValue() {
+        return titleInput.value.trim();
+      }
+
+      function getDescriptionValue() {
+        return descriptionInput.value.trim();
+      }
+
+      function getUrlValue() {
+        const slug = slugInput.value.trim().replace(/^\/+|\/+$/g, "");
+
+        if (!slug) {
+          return "";
+        }
+
+        const normalizedSlug = slug.startsWith("articles/")
+          ? slug.slice("articles/".length)
+          : slug;
+
+        return `https://www.nextcard.com/articles/${normalizedSlug}`;
+      }
+
+      function getKeywords() {
+        const title = getTitleValue();
+        return title ? [title] : [];
+      }
+
+      function removeEmptyValues(value) {
+        if (Array.isArray(value)) {
+          return value
+            .map(removeEmptyValues)
+            .filter((item) => {
+              if (Array.isArray(item)) return item.length > 0;
+              if (item && typeof item === "object") return Object.keys(item).length > 0;
+              return item !== "";
+            });
+        }
+
+        if (value && typeof value === "object") {
+          return Object.fromEntries(
+            Object.entries(value)
+              .map(([key, item]) => [key, removeEmptyValues(item)])
+              .filter(([, item]) => {
+                if (Array.isArray(item)) return item.length > 0;
+                if (item && typeof item === "object") return Object.keys(item).length > 0;
+                return item !== "";
+              }),
+          );
+        }
+
+        return value ?? "";
+      }
+
+      function setOutput(output, value, isError = false) {
+        output.classList.toggle("error", isError);
+        output.textContent = value;
+      }
+
+      function saveDraft() {
+        if (isRestoringDraft) {
+          return;
+        }
+
+        const draft = {
+          title: titleInput.value,
+          contentHtml: contentInput.innerHTML,
+          description: descriptionInput.value,
+          slug: slugInput.value,
+          authorName: authorNameInput.value,
+          authorType: authorTypeInput.value,
+          datePublished: datePublishedInput.value,
+          dateModified: dateModifiedInput.value,
+          faqName: faqNameInput.value,
+        };
+
+        localStorage.setItem(draftStorageKey, JSON.stringify(draft));
+      }
+
+      function loadDraft() {
+        const rawDraft = localStorage.getItem(draftStorageKey);
+
+        if (!rawDraft) {
+          return false;
+        }
+
+        try {
+          const draft = JSON.parse(rawDraft);
+          isRestoringDraft = true;
+          titleInput.value = draft.title || "";
+          contentInput.innerHTML = draft.contentHtml || "";
+          descriptionInput.value = draft.description || "";
+          slugInput.value = draft.slug || "";
+          authorNameInput.value = draft.authorName || "NextCard";
+          authorTypeInput.value = draft.authorType || "Organization";
+          datePublishedInput.value = draft.datePublished || "";
+          dateModifiedInput.value = draft.dateModified || "";
+          faqNameInput.value = draft.faqName || "";
+          return true;
+        } catch {
+          localStorage.removeItem(draftStorageKey);
+          return false;
+        } finally {
+          isRestoringDraft = false;
+        }
+      }
+
+      function refreshAll() {
+        updateTitle();
+        updateContent();
+        updateSchemas();
+      }
+
+      function clearAll() {
+        localStorage.removeItem(draftStorageKey);
+        titleInput.value = "";
+        contentInput.innerHTML = "";
+        descriptionInput.value = "";
+        slugInput.value = "";
+        authorNameInput.value = "NextCard";
+        authorTypeInput.value = "Organization";
+        faqNameInput.value = "";
+
+        const nowValue = toDatetimeLocalValue(new Date());
+        datePublishedInput.value = nowValue;
+        dateModifiedInput.value = nowValue;
+        refreshAll();
+        saveDraft();
+      }
+
+      function updateTitle() {
+        const count = titleInput.value.length;
+        titleTotal.textContent = count;
+        titleInline.textContent = count;
+        titleInput.style.height = "auto";
+        titleInput.style.height = `${titleInput.scrollHeight}px`;
+        faqNameInput.placeholder = getTitleValue() || "FAQ page name";
+        updateSchemas();
+        saveDraft();
+      }
+
+      function getTextLength(root) {
+        return root.textContent.replace(/\u00a0/g, " ").length;
+      }
+
+      function getWordCount(value) {
+        return value.trim().match(/\S+/g)?.length || 0;
+      }
+
+      function saveSelection(root) {
+        const selection = window.getSelection();
+
+        if (!selection.rangeCount) {
+          return null;
+        }
+
+        const range = selection.getRangeAt(0);
+
+        if (!root.contains(range.startContainer)) {
+          return null;
+        }
+
+        const before = range.cloneRange();
+        before.selectNodeContents(root);
+        before.setEnd(range.startContainer, range.startOffset);
+
+        return before.toString().length;
+      }
+
+      function restoreSelection(root, offset) {
+        if (offset === null) {
+          return;
+        }
+
+        const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+        let remaining = offset;
+        let node = walker.nextNode();
+
+        while (node) {
+          if (remaining <= node.textContent.length) {
+            const range = document.createRange();
+            const selection = window.getSelection();
+            range.setStart(node, remaining);
+            range.collapse(true);
+            selection.removeAllRanges();
+            selection.addRange(range);
+            return;
+          }
+
+          remaining -= node.textContent.length;
+          node = walker.nextNode();
+        }
+
+        const range = document.createRange();
+        const selection = window.getSelection();
+        range.selectNodeContents(root);
+        range.collapse(false);
+        selection.removeAllRanges();
+        selection.addRange(range);
+      }
+
+      function unwrapHighlights(root) {
+        root.querySelectorAll("mark[data-count-highlight]").forEach((mark) => {
+          mark.replaceWith(...mark.childNodes);
+        });
+        root.normalize();
+      }
+
+      function highlightFirstCharacters(root, limit) {
+        unwrapHighlights(root);
+
+        if (limit <= 0) {
+          return;
+        }
+
+        const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+          acceptNode(node) {
+            return node.textContent.length
+              ? NodeFilter.FILTER_ACCEPT
+              : NodeFilter.FILTER_REJECT;
+          },
+        });
+        let remaining = limit;
+        const ranges = [];
+        let node = walker.nextNode();
+
+        while (node && remaining > 0) {
+          const length = Math.min(node.textContent.length, remaining);
+          const range = document.createRange();
+          range.setStart(node, 0);
+          range.setEnd(node, length);
+          ranges.push(range);
+          remaining -= length;
+          node = walker.nextNode();
+        }
+
+        ranges.forEach((range) => {
+          const mark = document.createElement("mark");
+          mark.dataset.countHighlight = "true";
+          range.surroundContents(mark);
+        });
+      }
+
+      function updateContent() {
+        const caret = saveSelection(contentInput);
+        highlightFirstCharacters(contentInput, highlightLimit);
+
+        const value = contentInput.textContent.replace(/\u00a0/g, " ");
+        const characterCount = getTextLength(contentInput);
+        const wordCount = getWordCount(value);
+        currentWordCount = wordCount;
+
+        contentTotal.textContent = characterCount;
+        contentInline.textContent = characterCount;
+        overTotal.textContent = Math.max(0, characterCount - highlightLimit);
+        wordTotal.textContent = wordCount;
+        wordInline.textContent = wordCount;
+        progressFill.style.setProperty(
+          "--progress",
+          `${Math.min(100, (characterCount / highlightLimit) * 100)}%`,
+        );
+
+        restoreSelection(contentInput, caret);
+        updateSchemas();
+        saveDraft();
+      }
+
+      function buildBlogPostingSchema() {
+        return removeEmptyValues({
+          "@context": "https://schema.org",
+          "@type": "BlogPosting",
+          headline: getTitleValue(),
+          description: getDescriptionValue(),
+          datePublished: datetimeLocalToIso(datePublishedInput.value),
+          dateModified: datetimeLocalToIso(dateModifiedInput.value),
+          author: {
+            "@type": authorTypeInput.value.trim(),
+            name: authorNameInput.value.trim(),
+          },
+          url: getUrlValue(),
+          wordCount: currentWordCount || "",
+          keywords: getKeywords(),
+        });
+      }
+
+      function getCleanText(element) {
+        return element.textContent.replace(/\s+/g, " ").trim();
+      }
+
+      function isFaqHeading(element) {
+        return /^h[1-4]$/i.test(element.tagName) && /faq|frequently asked questions/i.test(getCleanText(element));
+      }
+
+      function isQuestionHeading(element) {
+        return /^h[2-4]$/i.test(element.tagName) && getCleanText(element).endsWith("?");
+      }
+
+      function getElementDepth(element) {
+        return Number(element.tagName.slice(1));
+      }
+
+      function parseFaqEntities() {
+        const faqHeading = Array.from(contentInput.querySelectorAll("h1, h2, h3, h4")).find(isFaqHeading);
+
+        if (!faqHeading) {
+          return [];
+        }
+
+        const faqDepth = getElementDepth(faqHeading);
+        const questions = [];
+        let currentQuestion = null;
+        let currentAnswer = [];
+        let node = faqHeading.nextElementSibling;
+
+        function pushQuestion() {
+          if (!currentQuestion) {
+            return;
+          }
+
+          const answer = currentAnswer.join(" ").replace(/\s+/g, " ").trim();
+
+          if (!answer) {
+            return;
+          }
+
+          questions.push({
+            "@type": "Question",
+            name: currentQuestion,
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: answer,
+            },
+          });
+        }
+
+        while (node) {
+          const tag = node.tagName.toLowerCase();
+
+          if (/^h[1-4]$/.test(tag)) {
+            const depth = getElementDepth(node);
+
+            if (depth <= faqDepth && !isQuestionHeading(node)) {
+              break;
+            }
+
+            if (isQuestionHeading(node)) {
+              pushQuestion();
+              currentQuestion = getCleanText(node);
+              currentAnswer = [];
+              node = node.nextElementSibling;
+              continue;
+            }
+          }
+
+          if (currentQuestion) {
+            const text = getCleanText(node);
+
+            if (text) {
+              currentAnswer.push(text);
+            }
+          }
+
+          node = node.nextElementSibling;
+        }
+
+        pushQuestion();
+        return questions;
+      }
+
+      function buildFaqSchema() {
+        const schema = removeEmptyValues({
+          "@context": "https://schema.org",
+          "@type": "FAQPage",
+          name: faqNameInput.value.trim() || getTitleValue(),
+          mainEntity: parseFaqEntities(),
+          url: getUrlValue(),
+          dateModified: datetimeLocalToIso(dateModifiedInput.value),
+          author: {
+            "@type": authorTypeInput.value.trim(),
+            name: authorNameInput.value.trim(),
+          },
+        });
+
+        if (!schema.mainEntity) {
+          schema.mainEntity = [];
+        }
+
+        return schema;
+      }
+
+      function updateSchemas() {
+        setOutput(blogOutput, JSON.stringify(buildBlogPostingSchema(), null, 2));
+
+        setOutput(faqOutput, JSON.stringify(buildFaqSchema(), null, 2));
+        saveDraft();
+      }
+
+      document.querySelectorAll(".toolbar button").forEach((button) => {
+        button.addEventListener("click", () => {
+          contentInput.focus();
+          document.execCommand(
+            button.dataset.command,
+            false,
+            button.dataset.value || null,
+          );
+          updateContent();
+        });
+      });
+
+      titleInput.addEventListener("input", updateTitle);
+      contentInput.addEventListener("input", updateContent);
+      contentInput.addEventListener("paste", () => {
+        requestAnimationFrame(updateContent);
+      });
+      clearAllButton.addEventListener("click", clearAll);
+
+      [
+        descriptionInput,
+        slugInput,
+        authorNameInput,
+        authorTypeInput,
+        datePublishedInput,
+        dateModifiedInput,
+        faqNameInput,
+      ].forEach((input) => {
+        input.addEventListener("input", updateSchemas);
+      });
+
+      document.querySelectorAll("[data-copy-target]").forEach((button) => {
+        button.addEventListener("click", async () => {
+          const target = document.querySelector(`#${button.dataset.copyTarget}`);
+          await navigator.clipboard.writeText(target.textContent);
+          const original = button.textContent;
+          button.textContent = "Copied";
+          setTimeout(() => {
+            button.textContent = original;
+          }, 1200);
+        });
+      });
+
+      const nowValue = toDatetimeLocalValue(new Date());
+      const hadDraft = loadDraft();
+      setIfEmpty(datePublishedInput, nowValue);
+      setIfEmpty(dateModifiedInput, nowValue);
+      refreshAll();
+
+      if (!hadDraft) {
+        saveDraft();
+      }
+    </script>
+  </body>
+</html>
