@@ -1,6 +1,8 @@
 const STORAGE_KEY = "john-ta-war-room-06122026-progress-v1";
 const ACCESS_KEY = "john-ta-war-room-06122026-access-v1";
 const ACCESS_PASSWORD = "corgi124";
+const BOARD_ID = "war-room-06122026";
+const CONVEX_URL = "https://rapid-shark-565.convex.cloud";
 
 const seedBuckets = [
   {
@@ -296,9 +298,10 @@ linkForm.addEventListener("submit", (event) => {
 
 render();
 populateAddControls();
+syncFromRemote();
 
-function loadState() {
-  const fallback = {
+function createFallbackState() {
+  return {
     buckets: seedBuckets.map((bucket) => ({
       ...bucket,
       groups: bucket.groups.map((group) => ({
@@ -310,6 +313,10 @@ function loadState() {
     linearLinks: {},
     docLinks: {},
   };
+}
+
+function loadState() {
+  const fallback = createFallbackState();
 
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
@@ -535,6 +542,59 @@ function updateProgress() {
 
 function saveState() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  saveRemoteState();
+}
+
+async function syncFromRemote() {
+  try {
+    const response = await fetch(`${CONVEX_URL}/api/query`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ path: "warRoom:get", args: { boardId: BOARD_ID } }),
+    });
+    const result = await response.json();
+    if (result.status !== "success") throw new Error(result.errorMessage || "Unable to load war room state");
+
+    if (result.value) {
+      state = mergeSeedWithSaved(createFallbackState(), result.value);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      render();
+      populateAddControls();
+      return;
+    }
+
+    saveRemoteState();
+  } catch (error) {
+    console.warn("War room shared sync unavailable; using local progress.", error);
+  }
+}
+
+let remoteSaveTimer;
+
+function saveRemoteState() {
+  clearTimeout(remoteSaveTimer);
+  remoteSaveTimer = window.setTimeout(async () => {
+    try {
+      const response = await fetch(`${CONVEX_URL}/api/mutation`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          path: "warRoom:save",
+          args: {
+            boardId: BOARD_ID,
+            completed: state.completed,
+            linearLinks: state.linearLinks,
+            docLinks: state.docLinks,
+            buckets: state.buckets,
+          },
+        }),
+      });
+      const result = await response.json();
+      if (result.status !== "success") throw new Error(result.errorMessage || "Unable to save war room state");
+    } catch (error) {
+      console.warn("War room shared save failed; local progress is still saved.", error);
+    }
+  }, 250);
 }
 
 function buildExport() {
