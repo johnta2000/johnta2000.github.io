@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>June 12 Business Cards War Room</title>
-    <link rel="stylesheet" href="./styles.css?v=20" />
+    <link rel="stylesheet" href="./styles.css?v=21" />
   </head>
   <body>
     <section id="passwordGate" class="password-gate" aria-labelledby="passwordGateTitle" role="dialog" aria-modal="true">
@@ -31,19 +31,36 @@
           <section class="summary" aria-label="Progress summary">
             <div>
               <span id="doneCount">0</span>
-              <small>done</small>
+              <small>prep done</small>
             </div>
             <div>
               <span id="totalCount">0</span>
-              <small>total</small>
+              <small>prep total</small>
             </div>
             <div class="progress-wrap">
               <div class="progress-meta">
-                <strong>Overall progress</strong>
+                <strong>Prep progress</strong>
                 <span id="percentCount">0%</span>
               </div>
               <div class="meter" aria-hidden="true">
                 <i id="meterFill"></i>
+              </div>
+            </div>
+            <div class="post-stat">
+              <span id="postDoneCount">0</span>
+              <small>post done</small>
+            </div>
+            <div class="post-stat">
+              <span id="postTotalCount">0</span>
+              <small>post total</small>
+            </div>
+            <div class="post-progress-wrap">
+              <div class="progress-meta">
+                <strong>Post progress</strong>
+                <span id="postPercentCount">0%</span>
+              </div>
+              <div class="meter post-meter" aria-hidden="true">
+                <i id="postMeterFill"></i>
               </div>
             </div>
           </section>
@@ -152,6 +169,6 @@
       </li>
     </template>
 
-    <script src="./app.js?v=1"></script>
+    <script src="./app.js?v=3"></script>
   </body>
 </html>

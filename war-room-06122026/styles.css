@@ -582,6 +582,16 @@ h1 {
   box-shadow: var(--shadow);
 }
 
+.post-stat,
+.post-progress-wrap {
+  border-top: 1px solid rgba(205, 198, 180, 0.78);
+  padding-top: 10px;
+}
+
+.post-progress-wrap {
+  min-width: 0;
+}
+
 .summary span {
   display: block;
   font-size: 1.55rem;
@@ -611,6 +621,10 @@ h1 {
   transition: width 180ms ease;
 }
 
+.post-meter i {
+  background: linear-gradient(90deg, var(--gold), var(--red));
+}
+
 .progress-wrap {
   min-width: 0;
 }
@@ -628,7 +642,23 @@ h1 {
 
 .progress-meta span {
   color: var(--ink);
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
   font-size: 0.78rem;
+}
+
+.progress-meta b {
+  font: inherit;
+}
+
+.stage-list li.is-post-stage {
+  background: rgba(255, 248, 236, 0.94);
+  border-color: rgba(157, 106, 33, 0.28);
+}
+
+.stage-list li.is-post-stage input[type="checkbox"] {
+  accent-color: var(--red);
 }
 
 .command-bar {

@@ -96,6 +96,14 @@ const seedBuckets = [
           { title: "LinkedIn (Nextcard)", stages: ["Prepared", "Posted"] },
         ],
       },
+      {
+        id: "threads",
+        title: "Threads",
+        tasks: [
+          { title: "Threads (John Ta)", stages: ["Content prepared", "Content posted"] },
+          { title: "Threads (Nextcard)", stages: ["Content prepared", "Content posted"] },
+        ],
+      },
     ],
   },
   {
@@ -134,6 +142,10 @@ const doneCount = document.querySelector("#doneCount");
 const totalCount = document.querySelector("#totalCount");
 const percentCount = document.querySelector("#percentCount");
 const meterFill = document.querySelector("#meterFill");
+const postDoneCount = document.querySelector("#postDoneCount");
+const postTotalCount = document.querySelector("#postTotalCount");
+const postPercentCount = document.querySelector("#postPercentCount");
+const postMeterFill = document.querySelector("#postMeterFill");
 const globalAddForm = document.querySelector("#globalAddForm");
 const bucketSelect = document.querySelector("#bucketSelect");
 const groupSelect = document.querySelector("#groupSelect");
@@ -480,18 +492,27 @@ function removeTask(bucketId, groupId, taskId) {
 }
 
 function updateProgress() {
-  const progressItems = getProgressItems(state.buckets);
-  const done = progressItems.filter((item) => state.completed[item.id]).length;
-  const total = progressItems.length;
+  const prepItems = getPrepProgressItems(state.buckets);
+  const postItems = getPostProgressItems(state.buckets);
+  const done = prepItems.filter((item) => state.completed[item.id]).length;
+  const total = prepItems.length;
   const percent = total ? Math.round((done / total) * 100) : 0;
+  const postDone = postItems.filter((item) => state.completed[item.id]).length;
+  const postTotal = postItems.length;
+  const postPercent = postTotal ? Math.round((postDone / postTotal) * 100) : 0;
+
   doneCount.textContent = done;
   totalCount.textContent = total;
   percentCount.textContent = `${percent}%`;
   meterFill.style.width = `${percent}%`;
+  postDoneCount.textContent = postDone;
+  postTotalCount.textContent = postTotal;
+  postPercentCount.textContent = `${postPercent}%`;
+  postMeterFill.style.width = `${postPercent}%`;
 
   document.querySelectorAll(".bucket").forEach((bucketNode) => {
     const bucket = state.buckets.find((item) => item.id === bucketNode.dataset.bucket);
-    const bucketItems = getProgressItems([bucket]);
+    const bucketItems = getPrepProgressItems([bucket]);
     const bucketDone = bucketItems.filter((item) => state.completed[item.id]).length;
     bucketNode.querySelector(".bucket-progress").textContent = `${bucketDone}/${bucketItems.length}`;
   });
@@ -675,12 +696,24 @@ function getProgressItems(buckets) {
     bucket.groups.flatMap((group) =>
       group.tasks.flatMap((task) => {
         if (task.stages?.length) {
-          return task.stages.map((stage) => ({ id: getStageId(task, stage) }));
+          return task.stages.map((stage) => ({ id: getStageId(task, stage), title: stage }));
         }
-        return [{ id: task.id }];
+        return [{ id: task.id, title: task.title }];
       }),
     ),
   );
+}
+
+function getPrepProgressItems(buckets) {
+  return getProgressItems(buckets).filter((item) => !isPostStage(item.title));
+}
+
+function getPostProgressItems(buckets) {
+  return getProgressItems(buckets).filter((item) => isPostStage(item.title));
+}
+
+function isPostStage(title) {
+  return /^(content posted|posted)$/i.test(title || "");
 }
 
 function renderStages(node, task) {
@@ -697,6 +730,7 @@ function renderStages(node, task) {
     checkbox.id = stageId;
     checkbox.checked = Boolean(state.completed[stageId]);
     text.textContent = stage;
+    item.classList.toggle("is-post-stage", isPostStage(stage));
     item.classList.toggle("is-done", checkbox.checked);
 
     checkbox.addEventListener("change", () => {
