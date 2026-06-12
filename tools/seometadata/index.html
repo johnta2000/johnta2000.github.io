@@ -150,6 +150,7 @@
       }
 
       .title-input,
+      .title-highlight-layer,
       .content-editor,
       .schema-input,
       .schema-textarea {
@@ -162,15 +163,40 @@
       .title-input {
         font: 18px/1.55 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
           "Liberation Mono", monospace;
+        position: absolute;
+        inset: 0;
+        z-index: 2;
         display: block;
-        min-height: 96px;
+        min-height: 100%;
         padding: 12px 14px;
         resize: vertical;
-        color: var(--ink);
-        background: #fbfcfb;
+        color: transparent;
+        caret-color: var(--ink);
+        background: transparent;
         outline: none;
         overflow-wrap: anywhere;
         white-space: pre-wrap;
+      }
+
+      .title-wrap {
+        position: relative;
+        min-height: 96px;
+      }
+
+      .title-highlight-layer {
+        position: absolute;
+        inset: 0;
+        z-index: 1;
+        min-height: 100%;
+        padding: 12px 14px;
+        overflow: auto;
+        pointer-events: none;
+        color: var(--ink);
+        background: #fbfcfb;
+        font: 18px/1.55 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          "Liberation Mono", monospace;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
       }
 
       .schema-input,
@@ -229,6 +255,7 @@
       }
 
       .title-input:focus,
+      .title-wrap:focus-within .title-highlight-layer,
       .content-editor:focus,
       .schema-input:focus,
       .schema-textarea:focus {
@@ -373,6 +400,7 @@
         }
 
         .title-input,
+        .title-highlight-layer,
         .content-editor {
           font-size: 16px;
         }
@@ -426,13 +454,16 @@
               <label for="titleInput">Title</label>
               <span class="count"><strong id="titleInline">0</strong> characters</span>
             </div>
-            <textarea
-              id="titleInput"
-              class="title-input"
-              autocomplete="off"
-              spellcheck="true"
-              rows="3"
-            ></textarea>
+            <div class="title-wrap">
+              <div id="titleHighlightLayer" class="title-highlight-layer" aria-hidden="true"></div>
+              <textarea
+                id="titleInput"
+                class="title-input"
+                autocomplete="off"
+                spellcheck="true"
+                rows="3"
+              ></textarea>
+            </div>
           </div>
 
           <div class="field">
@@ -535,6 +566,7 @@
 
     <script>
       const titleInput = document.querySelector("#titleInput");
+      const titleHighlightLayer = document.querySelector("#titleHighlightLayer");
       const contentInput = document.querySelector("#contentInput");
       const progressFill = document.querySelector("#progressFill");
       const titleTotal = document.querySelector("#titleTotal");
@@ -554,6 +586,7 @@
       const blogOutput = document.querySelector("#blogOutput");
       const faqOutput = document.querySelector("#faqOutput");
       const clearAllButton = document.querySelector("#clearAllButton");
+      const titleHighlightLimit = 60;
       const highlightLimit = 160;
       const draftStorageKey = "seoMetadataToolDraft";
       let currentWordCount = 0;
@@ -581,6 +614,15 @@
 
       function getDescriptionValue() {
         return descriptionInput.value.trim();
+      }
+
+      function escapeHtml(value) {
+        return value
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#039;");
       }
 
       function getUrlValue() {
@@ -706,10 +748,16 @@
 
       function updateTitle() {
         const count = titleInput.value.length;
+        const highlighted = escapeHtml(titleInput.value.slice(0, titleHighlightLimit));
+        const rest = escapeHtml(titleInput.value.slice(titleHighlightLimit));
+        const placeholder = count === 0 ? "&nbsp;" : "";
+
+        titleHighlightLayer.innerHTML = `${placeholder}<mark>${highlighted}</mark>${rest}`;
         titleTotal.textContent = count;
         titleInline.textContent = count;
         titleInput.style.height = "auto";
         titleInput.style.height = `${titleInput.scrollHeight}px`;
+        titleHighlightLayer.style.height = titleInput.style.height;
         faqNameInput.placeholder = getTitleValue() || "FAQ page name";
         updateSchemas();
         saveDraft();
@@ -984,6 +1032,10 @@
       });
 
       titleInput.addEventListener("input", updateTitle);
+      titleInput.addEventListener("scroll", () => {
+        titleHighlightLayer.scrollTop = titleInput.scrollTop;
+        titleHighlightLayer.scrollLeft = titleInput.scrollLeft;
+      });
       contentInput.addEventListener("input", updateContent);
       contentInput.addEventListener("paste", () => {
         requestAnimationFrame(updateContent);
