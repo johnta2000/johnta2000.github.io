@@ -48,7 +48,18 @@ const seedBuckets = [
       {
         id: "personal",
         title: "Personal",
-        tasks: [{ title: "Define personal tool candidates", tags: ["TBD"] }],
+        tasks: [
+          { title: "Define personal tool candidates", tags: ["TBD"] },
+          "Add sidebar Sapphire Preferred placement as an advertisement for the 100k CSP",
+          {
+            title: "Dashboard level advertising for Sapphire Preferred",
+            notes: "For unpaid users. Pro users can click X and it disappears after.",
+          },
+          {
+            title: "Update calculators to reflect limited time bonus LTO language",
+            stages: ["Posted"],
+          },
+        ],
       },
     ],
   },
@@ -63,12 +74,10 @@ const seedBuckets = [
         tasks: [
           {
             title: "r/chase combined post",
-            tags: ["Personal", "Business", "Shared subreddit"],
             stages: ["Content prepared", "Content posted"],
           },
           {
             title: "r/nextcard combined post",
-            tags: ["Personal", "Business", "Shared subreddit"],
             stages: ["Content prepared", "Content posted"],
           },
         ],
@@ -77,10 +86,10 @@ const seedBuckets = [
         id: "personal-reddit",
         title: "Personal-only subreddits",
         tasks: [
-          { title: "r/sapphirepreferredcard post", tags: ["Personal", "O&O"], stages: ["Content prepared", "Content posted"] },
-          { title: "r/chasesapphire post", tags: ["Personal"], stages: ["Content prepared", "Content posted"] },
-          { title: "r/sapphirereserve post", tags: ["Personal"], stages: ["Content prepared", "Content posted"] },
-          { title: "r/chasesapphirereserve post", tags: ["Personal"], stages: ["Content prepared", "Content posted"] },
+          { title: "r/sapphirepreferredcard post", stages: ["Content prepared", "Content posted"] },
+          { title: "r/chasesapphire post", stages: ["Content prepared", "Content posted"] },
+          { title: "r/sapphirereserve post", stages: ["Content prepared", "Content posted"] },
+          { title: "r/chasesapphirereserve post", stages: ["Content prepared", "Content posted"] },
         ],
       },
       {
@@ -104,6 +113,31 @@ const seedBuckets = [
         tasks: [
           { title: "Threads (John Ta)", stages: ["Content prepared", "Content posted"] },
           { title: "Threads (Nextcard)", stages: ["Content prepared", "Content posted"] },
+        ],
+      },
+    ],
+  },
+  {
+    id: "compliance",
+    kicker: "Workstream",
+    title: "Compliance",
+    groups: [
+      {
+        id: "prep",
+        title: "Prep",
+        tasks: [
+          "Crawl all subaffiliate content for CSP + CSR mentions",
+          "Update the CSP and CSR compliance docs to the best of our ability",
+        ],
+      },
+      {
+        id: "post",
+        title: "Post",
+        tasks: [
+          {
+            title: "Upload compliance docs to Affil app after CSP Launch",
+            stages: ["Posted"],
+          },
         ],
       },
     ],
@@ -897,7 +931,7 @@ function playStickerLoader() {
     const column = index % columns;
     const row = Math.floor(index / columns);
     const sticker = document.createElement("img");
-    sticker.src = "../projects/war-room/war-cat-sticker.png";
+    sticker.src = "./war-corgi.png";
     sticker.alt = "";
     sticker.className = "sticker-rain";
     sticker.style.setProperty("--x", `${(column + 0.5) * (100 / columns)}vw`);
