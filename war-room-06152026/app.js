@@ -26,17 +26,19 @@ const seedBuckets = [
         id: "personal",
         title: "Personal card comparators",
         tasks: [
-          "CSP vs Venture",
-          "CSP vs Strata Premier",
-          "CSP vs Bilt Obsidian",
-          "CSP vs Bank of America Premier Rewards",
-          "Huge Limited Time CSP Bonus",
+          { title: "CSP vs Venture", stages: ["Article written", "Article updated with 100k", "Published"] },
+          { title: "CSP vs Strata Premier", stages: ["Article written", "Article updated with 100k", "Published"] },
+          { title: "CSP vs Bilt Obsidian", stages: ["Article written", "Article updated with 100k", "Published"] },
+          { title: "CSP vs Bank of America Premier Rewards", stages: ["Article written", "Article updated with 100k", "Published"] },
         ],
       },
       {
         id: "bonus-articles",
         title: "Personal bonus articles",
-        tasks: ["CSP 100k bonus announcement", "Huge Limited Time CSP Bonus"],
+        tasks: [
+          { title: "CSP 100k bonus announcement", stages: ["Article written", "Post/Publish"] },
+          { title: "Huge Limited Time CSP Bonus", stages: ["Article written", "Post/Publish"] },
+        ],
       },
     ],
   },
@@ -97,6 +99,7 @@ const seedBuckets = [
         title: "Videos",
         tasks: [
           { title: "CSP 100k video", stages: ["Content prepared", "Content posted"] },
+          { title: "2 more social videos (Olivia)", stages: ["Content prepared", "Content posted"] },
         ],
       },
       {
@@ -333,6 +336,8 @@ function createFallbackState() {
     completed: {},
     linearLinks: {},
     docLinks: {},
+    maintouchLinks: {},
+    otherLinks: {},
     deletedTasks: {},
   };
 }
@@ -364,7 +369,7 @@ function mergeSeedWithSaved(fallback, saved) {
     groups: bucket.groups.map((group) => {
       const seededTasks = group.tasks
         .filter((task) => !saved.deletedTasks?.[task.id])
-        .map((task) => savedTasks.get(task.id) || task);
+        .map((task) => mergeSavedTask(task, savedTasks.get(task.id)));
       const customTasks = saved.buckets
         .find((savedBucket) => savedBucket.id === bucket.id)
         ?.groups?.find((savedGroup) => savedGroup.id === group.id)
@@ -373,13 +378,51 @@ function mergeSeedWithSaved(fallback, saved) {
     }),
   }));
 
+  migrateArticleStages(buckets, saved);
+
   return {
     buckets,
     completed: saved.completed,
     linearLinks: saved.linearLinks || {},
     docLinks: saved.docLinks || {},
+    maintouchLinks: saved.maintouchLinks || {},
+    otherLinks: saved.otherLinks || {},
     deletedTasks: saved.deletedTasks || {},
   };
+}
+
+function mergeSavedTask(seedTask, savedTask) {
+  if (!savedTask) return seedTask;
+  return {
+    ...savedTask,
+    title: seedTask.title,
+    tags: savedTask.tags || seedTask.tags || [],
+    notes: savedTask.notes || seedTask.notes || "",
+    stages: seedTask.stages?.length ? seedTask.stages : savedTask.stages || [],
+  };
+}
+
+function migrateArticleStages(buckets, saved) {
+  const articles = buckets.find((bucket) => bucket.id === "articles");
+  articles?.groups.forEach((group) => {
+    group.tasks.forEach((task) => {
+      const isComparator = group.id === "personal" && /\b(vs|vx)\b/i.test(task.title);
+      const isBonusArticle = group.id === "bonus-articles";
+
+      if (isComparator && !task.stages?.length) {
+        task.stages = ["Article written", "Article updated with 100k", "Published"];
+      }
+
+      if (isBonusArticle && !task.stages?.length) {
+        task.stages = ["Article written", "Post/Publish"];
+      }
+
+      if (saved.completed?.[task.id]) {
+        saved.completed[slug(`${task.id}-Article written`)] = true;
+        delete saved.completed[task.id];
+      }
+    });
+  });
 }
 
 function migrateRenamedTaskData(saved) {
@@ -397,6 +440,10 @@ function migrateRenamedTaskData(saved) {
     if (saved.completed?.[oldId] && !saved.completed[newId]) saved.completed[newId] = saved.completed[oldId];
     if (saved.linearLinks?.[oldId] && !saved.linearLinks[newId]) saved.linearLinks[newId] = saved.linearLinks[oldId];
     if (saved.docLinks?.[oldId] && !saved.docLinks[newId]) saved.docLinks[newId] = saved.docLinks[oldId];
+    if (saved.maintouchLinks?.[oldId] && !saved.maintouchLinks[newId]) {
+      saved.maintouchLinks[newId] = saved.maintouchLinks[oldId];
+    }
+    if (saved.otherLinks?.[oldId] && !saved.otherLinks[newId]) saved.otherLinks[newId] = saved.otherLinks[oldId];
   });
 
   [
@@ -512,6 +559,8 @@ function addTask(formData) {
   const groupId = formData.get("group");
   const linearUrl = (formData.get("linearUrl") || "").trim();
   const docUrl = (formData.get("docUrl") || "").trim();
+  const maintouchUrl = (formData.get("maintouchUrl") || "").trim();
+  const otherUrls = (formData.get("otherUrls") || "").trim();
   const tags = parseTags(formData.get("tags") || "");
   const notes = (formData.get("notes") || "").trim();
   if (!title) return;
@@ -528,6 +577,8 @@ function addTask(formData) {
   group.tasks.push(task);
   if (linearUrl) state.linearLinks[task.id] = linearUrl;
   if (docUrl) state.docLinks[task.id] = docUrl;
+  if (maintouchUrl) state.maintouchLinks[task.id] = maintouchUrl;
+  if (otherUrls) state.otherLinks[task.id] = otherUrls;
   saveState();
   render();
 }
@@ -610,6 +661,8 @@ function saveRemoteState() {
             completed: state.completed,
             linearLinks: state.linearLinks,
             docLinks: state.docLinks,
+            maintouchLinks: state.maintouchLinks,
+            otherLinks: state.otherLinks,
             deletedTasks: state.deletedTasks,
             buckets: state.buckets,
           },
@@ -638,6 +691,8 @@ function buildExport() {
           done: Boolean(state.completed[task.id]),
           linearUrl: state.linearLinks[task.id] || "",
           docUrl: state.docLinks[task.id] || "",
+          maintouchUrl: state.maintouchLinks[task.id] || "",
+          otherUrls: state.otherLinks[task.id] || "",
           stages: (task.stages || []).map((stage) => ({
             title: stage,
             done: Boolean(state.completed[getStageId(task, stage)]),
@@ -652,10 +707,15 @@ function renderTaskLinks(task) {
   const links = [
     renderSavedLink(task, "linear"),
     renderSavedLink(task, "doc"),
+    renderSavedLink(task, "maintouch"),
+    renderSavedLink(task, "other"),
   ].filter(Boolean);
 
   links.forEach((link, index) => {
-    if (index > 0) link.classList.add("is-stacked");
+    if (index > 0) {
+      link.classList.add("is-stacked");
+      link.dataset.stack = String(index + 1);
+    }
   });
   return links;
 }
@@ -666,18 +726,27 @@ function renderLinearLink(task) {
 
 function renderSavedLink(task, type) {
   const isDoc = type === "doc";
-  const existingUrl = isDoc ? state.docLinks[task.id] : state.linearLinks[task.id];
+  const isMaintouch = type === "maintouch";
+  const isOther = type === "other";
+  const existingUrl = getTaskUrl(task.id, type);
   if (!existingUrl) return null;
 
   const control = document.createElement("a");
-  control.className = `task-link ${isDoc ? "doc-link" : "linear-link"}`;
-  control.href = existingUrl;
+  control.className = `task-link ${isOther ? "other-link" : isMaintouch ? "maintouch-link" : isDoc ? "doc-link" : "linear-link"}`;
+  control.href = getPrimaryUrl(existingUrl);
   control.target = "_blank";
   control.rel = "noreferrer";
-  control.title = isDoc
-    ? "Open Google Doc. Drop a new Google Doc URL here to replace it."
-    : "Open Linear ticket. Drop a new Linear URL here to replace it.";
-  control.setAttribute("aria-label", isDoc ? "Open Google Doc" : "Open Linear ticket");
+  control.title = isOther
+    ? "Open first other URL. Right-click ticket to edit all other URLs."
+    : isMaintouch
+    ? "Open Maintouch link. Drop a new Maintouch URL here to replace it."
+    : isDoc
+      ? "Open Google Doc. Drop a new Google Doc URL here to replace it."
+      : "Open Linear ticket. Drop a new Linear URL here to replace it.";
+  control.setAttribute(
+    "aria-label",
+    isOther ? "Open other URL" : isMaintouch ? "Open Maintouch link" : isDoc ? "Open Google Doc" : "Open Linear ticket",
+  );
   control.addEventListener("dragover", (event) => {
     event.preventDefault();
   });
@@ -693,8 +762,14 @@ function renderSavedLink(task, type) {
 function handleTicketLinkAction(task) {
   const existingLinearUrl = state.linearLinks[task.id];
   const existingDocUrl = state.docLinks[task.id];
-  if (existingLinearUrl || existingDocUrl) {
-    window.open(existingLinearUrl || existingDocUrl, "_blank", "noopener,noreferrer");
+  const existingMaintouchUrl = state.maintouchLinks[task.id];
+  const existingOtherUrl = state.otherLinks[task.id];
+  if (existingLinearUrl || existingDocUrl || existingMaintouchUrl || existingOtherUrl) {
+    window.open(
+      existingLinearUrl || existingDocUrl || existingMaintouchUrl || getPrimaryUrl(existingOtherUrl),
+      "_blank",
+      "noopener,noreferrer",
+    );
     return;
   }
 
@@ -719,19 +794,29 @@ function saveTaskUrl(taskId, value, type) {
 
 function setOptionalTaskUrl(taskId, value, type) {
   const cleanedUrl = value.trim();
-  if (type === "doc") {
-    if (cleanedUrl) {
-      state.docLinks[taskId] = cleanedUrl;
-    } else {
-      delete state.docLinks[taskId];
-    }
+  const target = getLinkStore(type);
+  if (cleanedUrl) {
+    target[taskId] = cleanedUrl;
   } else {
-    if (cleanedUrl) {
-      state.linearLinks[taskId] = cleanedUrl;
-    } else {
-      delete state.linearLinks[taskId];
-    }
+    delete target[taskId];
   }
+}
+
+function getTaskUrl(taskId, type) {
+  return getLinkStore(type)[taskId] || "";
+}
+
+function getLinkStore(type) {
+  if (type === "doc") return state.docLinks;
+  if (type === "maintouch") return state.maintouchLinks;
+  if (type === "other") return state.otherLinks;
+  return state.linearLinks;
+}
+
+function getPrimaryUrl(value) {
+  return String(value || "")
+    .split(/\s+/)
+    .find(Boolean) || "";
 }
 
 function openLinksModal(task) {
@@ -742,6 +827,8 @@ function openLinksModal(task) {
   linkForm.elements.tags.value = (task.tags || []).join(", ");
   linkForm.elements.linearUrl.value = state.linearLinks[task.id] || "";
   linkForm.elements.docUrl.value = state.docLinks[task.id] || "";
+  linkForm.elements.maintouchUrl.value = state.maintouchLinks[task.id] || "";
+  linkForm.elements.otherUrls.value = state.otherLinks[task.id] || "";
   linkModal.removeAttribute("hidden");
   document.body.classList.add("modal-open");
   linkForm.elements.title.focus();
@@ -767,6 +854,8 @@ function saveLinksFromModal(formData) {
   task.custom = task.custom || !seedTaskIds.has(task.id);
   setOptionalTaskUrl(activeLinkTaskId, formData.get("linearUrl") || "", "linear");
   setOptionalTaskUrl(activeLinkTaskId, formData.get("docUrl") || "", "doc");
+  setOptionalTaskUrl(activeLinkTaskId, formData.get("maintouchUrl") || "", "maintouch");
+  setOptionalTaskUrl(activeLinkTaskId, formData.get("otherUrls") || "", "other");
   saveState();
   closeLinksModal();
   render();
@@ -789,6 +878,8 @@ function removeTaskFromGroup(group, taskId) {
   delete state.completed[taskId];
   delete state.linearLinks[taskId];
   delete state.docLinks[taskId];
+  delete state.maintouchLinks[taskId];
+  delete state.otherLinks[taskId];
   task?.stages?.forEach((stage) => delete state.completed[getStageId(task, stage)]);
   saveState();
   render();
@@ -859,7 +950,7 @@ function getPostProgressItems(buckets) {
 }
 
 function isPostStage(title) {
-  return /^(content posted|posted|published|gsc indexed)$/i.test(title || "");
+  return /^(content posted|posted|published|post\/publish|gsc indexed)$/i.test(title || "");
 }
 
 function renderStages(node, task) {

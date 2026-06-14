@@ -1022,8 +1022,16 @@ label span {
   top: 63px;
 }
 
+.task-link[data-stack="3"] {
+  top: 87px;
+}
+
 .staged-ticket > .task-link.is-stacked {
   top: 66px;
+}
+
+.staged-ticket > .task-link[data-stack="3"] {
+  top: 90px;
 }
 
 .task-link::before {
@@ -1053,6 +1061,30 @@ label span {
   box-shadow:
     0 4px 0 #2f69be,
     0 8px 0 #2f69be;
+}
+
+.maintouch-link {
+  border-color: rgba(255, 111, 24, 0.42);
+  background: #fff url("./maintouch-icon.png") center / 16px 16px no-repeat;
+}
+
+.other-link {
+  border-color: rgba(65, 81, 66, 0.35);
+  background: #fff;
+}
+
+.other-link::after {
+  content: "";
+  position: absolute;
+  left: 5px;
+  top: 5px;
+  width: 8px;
+  height: 8px;
+  border: 2px solid #415142;
+  border-left: 0;
+  border-bottom: 0;
+  border-radius: 2px;
+  transform: rotate(45deg);
 }
 
 li.is-done span {

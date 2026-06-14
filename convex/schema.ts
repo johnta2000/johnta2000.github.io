@@ -7,6 +7,8 @@ export default defineSchema({
     completed: v.any(),
     linearLinks: v.any(),
     docLinks: v.any(),
+    maintouchLinks: v.optional(v.any()),
+    otherLinks: v.optional(v.any()),
     deletedTasks: v.optional(v.any()),
     buckets: v.optional(v.any()),
     updatedAt: v.number(),

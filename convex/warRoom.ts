@@ -6,6 +6,8 @@ const stateArgs = {
   completed: v.any(),
   linearLinks: v.any(),
   docLinks: v.any(),
+  maintouchLinks: v.optional(v.any()),
+  otherLinks: v.optional(v.any()),
   deletedTasks: v.optional(v.any()),
   buckets: v.optional(v.any()),
 };
@@ -32,6 +34,8 @@ export const save = mutation({
       completed: args.completed,
       linearLinks: args.linearLinks,
       docLinks: args.docLinks,
+      maintouchLinks: args.maintouchLinks,
+      otherLinks: args.otherLinks,
       deletedTasks: args.deletedTasks,
       buckets: args.buckets,
       updatedAt: Date.now(),
