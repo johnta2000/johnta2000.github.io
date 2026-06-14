@@ -915,24 +915,18 @@ label {
   cursor: pointer;
 }
 
-.staged-ticket > .task-link {
-  position: absolute;
-  left: 18px;
-  top: 42px;
-}
-
 .staged-ticket > label {
   display: block;
   min-height: 0;
-  padding-bottom: 8px;
+  padding-bottom: 5px;
   cursor: default;
 }
 
 .stage-list {
   display: grid;
-  gap: 5px;
+  gap: 4px;
   margin: 0;
-  padding: 0 8px 8px 36px;
+  padding: 0 8px 7px 34px;
 }
 
 .stage-list li {
@@ -941,16 +935,16 @@ label {
 
 .stage-list label {
   display: grid;
-  grid-template-columns: 19px 1fr;
-  gap: 6px;
-  min-height: 30px;
-  padding: 6px 8px;
-  font-size: 0.72rem;
+  grid-template-columns: 17px 1fr;
+  gap: 5px;
+  min-height: 26px;
+  padding: 4px 7px;
+  font-size: 0.68rem;
 }
 
 .stage-list input[type="checkbox"] {
-  width: 15px;
-  height: 15px;
+  width: 14px;
+  height: 14px;
 }
 
 .stage-list span {
@@ -993,18 +987,16 @@ label span {
 
 .task-note {
   display: block;
-  margin-top: 6px;
+  margin-top: 4px;
   color: var(--muted);
-  font-size: 0.72rem;
-  line-height: 1.25;
+  font-size: 0.64rem;
+  line-height: 1.18;
   text-decoration: none;
 }
 
 .task-link {
-  position: absolute;
-  left: 18px;
-  top: 39px;
-  display: block;
+  position: relative;
+  display: inline-block;
   width: 20px;
   height: 20px;
   min-height: 20px;
@@ -1018,24 +1010,26 @@ label span {
   overflow: hidden;
 }
 
-.task-link.is-stacked {
-  top: 63px;
-}
-
-.task-link[data-stack="3"] {
-  top: 87px;
-}
-
-.staged-ticket > .task-link.is-stacked {
-  top: 66px;
-}
-
-.staged-ticket > .task-link[data-stack="3"] {
-  top: 90px;
-}
-
 .task-link::before {
   content: none;
+}
+
+.task-link-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 6px;
+  font-style: normal;
+}
+
+.staged-ticket .task-link-row {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  width: 20px;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 0;
 }
 
 .linear-link {
@@ -1093,20 +1087,6 @@ li.is-done span {
 
 li.is-done .task-tags {
   text-decoration: none;
-}
-
-.remove-task {
-  position: absolute;
-  top: 7px;
-  right: 7px;
-  min-height: 28px;
-  padding: 0 8px;
-  color: var(--red);
-  font-size: 0.72rem;
-}
-
-li:has(.remove-task) label {
-  padding-right: 76px;
 }
 
 .reference {

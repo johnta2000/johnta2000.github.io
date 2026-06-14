@@ -496,7 +496,6 @@ function renderTask(task, bucketId, groupId) {
   if (task.stages?.length) {
     checkbox.remove();
     node.classList.add("staged-ticket");
-    renderTaskLinks(task).reverse().forEach((link) => node.prepend(link));
     renderStages(node, task);
     node.classList.toggle("is-done", areAllStagesDone(task));
   } else {
@@ -510,7 +509,6 @@ function renderTask(task, bucketId, groupId) {
       node.classList.toggle("is-done", checkbox.checked);
       updateProgress();
     });
-    renderTaskLinks(task).forEach((link) => checkbox.insertAdjacentElement("afterend", link));
   }
 
   node.addEventListener("dblclick", (event) => {
@@ -541,13 +539,16 @@ function renderTask(task, bucketId, groupId) {
     titleNode.append(notes);
   }
 
-  if (task.custom || !seedTaskIds.has(task.id)) {
-    const remove = document.createElement("button");
-    remove.className = "remove-task";
-    remove.type = "button";
-    remove.textContent = "Remove";
-    remove.addEventListener("click", () => removeTask(bucketId, groupId, task.id));
-    node.append(remove);
+  const taskLinks = renderTaskLinks(task);
+  if (taskLinks.length) {
+    const linkRow = document.createElement("em");
+    linkRow.className = "task-link-row";
+    linkRow.append(...taskLinks);
+    if (task.stages?.length) {
+      node.append(linkRow);
+    } else {
+      titleNode.append(linkRow);
+    }
   }
 
   return node;
@@ -704,20 +705,12 @@ function buildExport() {
 }
 
 function renderTaskLinks(task) {
-  const links = [
+  return [
     renderSavedLink(task, "linear"),
     renderSavedLink(task, "doc"),
     renderSavedLink(task, "maintouch"),
     renderSavedLink(task, "other"),
   ].filter(Boolean);
-
-  links.forEach((link, index) => {
-    if (index > 0) {
-      link.classList.add("is-stacked");
-      link.dataset.stack = String(index + 1);
-    }
-  });
-  return links;
 }
 
 function renderLinearLink(task) {
