@@ -1,0 +1,476 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex, nofollow">
+    <title>John's Apartment Navigation</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #17202a;
+        --muted: #5c6670;
+        --line: #d9dee5;
+        --paper: #fbfaf7;
+        --panel: #ffffff;
+        --red: #c83a32;
+        --blue: #2458d8;
+        --green: #2f7d5f;
+        --gold: #b46b20;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: var(--paper);
+        color: var(--ink);
+      }
+
+      .page {
+        width: min(1180px, calc(100vw - 32px));
+        margin: 0 auto;
+        padding: 28px 0 40px;
+      }
+
+      header {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 18px;
+        align-items: end;
+        padding-bottom: 18px;
+        border-bottom: 2px solid var(--line);
+      }
+
+      h1 {
+        margin: 0 0 8px;
+        font-size: clamp(30px, 4vw, 56px);
+        line-height: 1;
+        letter-spacing: 0;
+      }
+
+      .address {
+        margin: 0;
+        color: var(--muted);
+        font-size: clamp(16px, 1.7vw, 22px);
+        line-height: 1.35;
+        font-weight: 650;
+      }
+
+      .unit-badge {
+        min-width: 190px;
+        padding: 18px 20px;
+        border: 2px solid var(--line);
+        border-radius: 8px;
+        background: var(--panel);
+        text-align: center;
+      }
+
+      .label {
+        display: block;
+        margin-bottom: 5px;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+      }
+
+      .unit-badge strong {
+        display: block;
+        font-size: 32px;
+        line-height: 1;
+      }
+
+      .hero-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1.05fr) minmax(360px, .95fr);
+        grid-template-areas:
+          "photo entrance"
+          "photo steps";
+        gap: 18px;
+        align-items: start;
+        margin-top: 22px;
+      }
+
+      .photo-frame,
+      .panel {
+        overflow: hidden;
+        border: 2px solid var(--line);
+        border-radius: 8px;
+        background: var(--panel);
+      }
+
+      .photo-frame {
+        grid-area: photo;
+        position: relative;
+        min-height: 620px;
+      }
+
+      .photo-frame img {
+        display: block;
+        width: 100%;
+        height: 100%;
+        min-height: 620px;
+        object-fit: cover;
+      }
+
+      .photo-caption {
+        position: absolute;
+        left: 18px;
+        bottom: 18px;
+        max-width: 410px;
+        padding: 13px 15px;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, .95);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, .16);
+        font-size: 18px;
+        line-height: 1.25;
+        font-weight: 800;
+      }
+
+      .photo-caption span {
+        color: var(--red);
+      }
+
+      .steps {
+        grid-area: steps;
+        display: grid;
+        gap: 14px;
+        padding: 18px;
+      }
+
+      .step {
+        display: grid;
+        grid-template-columns: 48px minmax(0, 1fr);
+        gap: 13px;
+        align-items: center;
+        padding: 16px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+      }
+
+      .step.has-code {
+        grid-template-columns: 48px minmax(0, 1fr) auto;
+      }
+
+      .step-number {
+        display: grid;
+        width: 48px;
+        height: 48px;
+        place-items: center;
+        border-radius: 50%;
+        background: var(--ink);
+        color: white;
+        font-size: 22px;
+        font-weight: 900;
+      }
+
+      .step h2 {
+        margin: 0 0 5px;
+        font-size: 21px;
+        line-height: 1.1;
+      }
+
+      .step p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 16px;
+        line-height: 1.35;
+        font-weight: 620;
+      }
+
+      .code {
+        display: inline-block;
+        justify-self: end;
+        padding: 8px 12px;
+        border: 2px solid #f0c5c0;
+        border-radius: 8px;
+        background: #fff4f2;
+        color: var(--red);
+        font-size: 30px;
+        line-height: 1;
+        font-weight: 950;
+      }
+
+      .entrance-panel {
+        grid-area: entrance;
+      }
+
+      .panel {
+        display: grid;
+        grid-template-rows: auto 1fr;
+      }
+
+      .panel-text {
+        padding: 15px 16px 13px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .panel-text h2 {
+        margin: 0 0 4px;
+        font-size: 20px;
+        line-height: 1.1;
+      }
+
+      .panel-text p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 15px;
+        line-height: 1.35;
+        font-weight: 620;
+      }
+
+      .map-image {
+        width: 100%;
+        height: 230px;
+        object-fit: cover;
+      }
+
+      .entrance-panel .map-image {
+        height: 250px;
+      }
+
+      .quick-note {
+        border: 2px solid #d8c59f;
+        background: #fff8e8;
+      }
+
+      .quick-note .panel-text {
+        border-bottom: 0;
+      }
+
+      .quick-note ul {
+        margin: 12px 0 0;
+        padding-left: 20px;
+        color: var(--ink);
+        font-size: 18px;
+        line-height: 1.38;
+        font-weight: 750;
+      }
+
+      .parking-dropdown {
+        display: block;
+        margin-top: 14px;
+        border-color: #e1d3b6;
+        background: #fffaf0;
+      }
+
+      .parking-dropdown summary {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 14px;
+        align-items: center;
+        padding: 15px 16px 13px;
+        cursor: pointer;
+        list-style: none;
+      }
+
+      .parking-dropdown summary::-webkit-details-marker {
+        display: none;
+      }
+
+      .parking-dropdown summary h2,
+      .parking-dropdown summary p {
+        margin: 0;
+      }
+
+      .parking-dropdown summary h2 {
+        margin-bottom: 4px;
+        font-size: 20px;
+        line-height: 1.1;
+      }
+
+      .parking-dropdown summary p {
+        color: var(--muted);
+        font-size: 15px;
+        line-height: 1.35;
+        font-weight: 620;
+      }
+
+      .dropdown-icon {
+        display: grid;
+        width: 36px;
+        height: 36px;
+        place-items: center;
+        border: 1px solid var(--line);
+        border-radius: 50%;
+        color: var(--ink);
+        font-size: 20px;
+        font-weight: 900;
+        transition: transform .18s ease;
+      }
+
+      .parking-dropdown[open] .dropdown-icon {
+        transform: rotate(180deg);
+      }
+
+      .parking-content {
+        border-top: 1px solid var(--line);
+      }
+
+      .parking-content .map-image {
+        display: block;
+        width: min(100%, 640px);
+        height: auto;
+        margin: 16px auto;
+        object-fit: contain;
+      }
+
+      .parking-content .quick-note {
+        border-width: 1px 0 0;
+        border-radius: 0;
+      }
+
+      footer {
+        margin-top: 18px;
+        color: var(--muted);
+        font-size: 13px;
+        font-weight: 650;
+        text-align: center;
+      }
+
+      @media (max-width: 900px) {
+        header,
+        .hero-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .hero-grid {
+          grid-template-areas:
+            "entrance"
+            "photo"
+            "steps";
+        }
+
+        .unit-badge {
+          text-align: left;
+        }
+
+        .photo-frame,
+        .photo-frame img {
+          min-height: 390px;
+        }
+
+        .entrance-panel .map-image {
+          height: 220px;
+        }
+      }
+
+      @media (max-width: 560px) {
+        .step.has-code {
+          grid-template-columns: 48px minmax(0, 1fr);
+        }
+
+        .step.has-code .code {
+          grid-column: 2;
+          justify-self: start;
+          margin-top: 8px;
+        }
+      }
+
+      @media print {
+        body {
+          background: white;
+        }
+
+        .page {
+          width: 100%;
+          padding: 0;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="page" aria-label="Apartment arrival instructions">
+      <header>
+        <div>
+          <h1>John's Apartment Navigation</h1>
+          <p class="address">635 King St, San Francisco, CA 94107</p>
+        </div>
+        <div class="unit-badge">
+          <span class="label">Unit</span>
+          <strong>Loft #23</strong>
+        </div>
+      </header>
+
+      <section class="hero-grid">
+        <article class="panel entrance-panel">
+          <div class="panel-text">
+            <h2>Entrance Location</h2>
+            <p>Look for the King St entrance near the blue dot.</p>
+          </div>
+          <img class="map-image" src="assets/map-entry.png" alt="Map showing the entrance area on King Street">
+        </article>
+
+        <figure class="photo-frame">
+          <img src="assets/front-door.png" alt="Building entrance with red 635 door and lockbox circled on the left wall">
+          <figcaption class="photo-caption">
+            Use the <span>lockbox on the left wall</span>, then enter through the red door marked 635.
+          </figcaption>
+        </figure>
+
+        <section class="panel steps" aria-label="How to get in">
+          <div class="step has-code">
+            <div class="step-number">1</div>
+            <div>
+              <h2>Open the lockbox</h2>
+              <p>Enter the code exactly.</p>
+            </div>
+            <span class="code">#2728</span>
+          </div>
+          <div class="step">
+            <div class="step-number">2</div>
+            <div>
+              <h2>Go inside to the elevator</h2>
+              <p>Once inside the lobby, head straight to the elevator area.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-number">3</div>
+            <div>
+              <h2>Select “Loft”</h2>
+              <p>Use the elevator controls and choose Loft.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-number">4</div>
+            <div>
+              <h2>Turn right</h2>
+              <p>After exiting, take a right and go to Unit 23.</p>
+            </div>
+          </div>
+        </section>
+      </section>
+
+      <details class="panel parking-dropdown">
+        <summary>
+          <div>
+            <h2>Parking</h2>
+            <p>Optional. Tap to see the map and garage fallback.</p>
+          </div>
+          <span class="dropdown-icon" aria-hidden="true">⌄</span>
+        </summary>
+        <div class="parking-content">
+          <img class="map-image" src="assets/map-parking.png" alt="Map showing street parking and garage entrance nearby">
+          <article class="quick-note">
+            <div class="panel-text">
+              <h2>If street parking is full</h2>
+              <p>Use the garage entrance on Berry St and take the elevator downstairs.</p>
+              <ul>
+                <li>Street parking: King St / nearby blocks</li>
+                <li>Garage entrance: Berry St side</li>
+                <li>Destination: Loft #23</li>
+              </ul>
+            </div>
+          </article>
+        </div>
+      </details>
+
+      <footer>Share this page as a screenshot or photo for easy arrival instructions.</footer>
+    </main>
+  </body>
+</html>
