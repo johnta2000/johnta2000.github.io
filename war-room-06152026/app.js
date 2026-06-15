@@ -395,7 +395,7 @@ function mergeSavedTask(seedTask, savedTask) {
   if (!savedTask) return seedTask;
   return {
     ...savedTask,
-    title: seedTask.title,
+    title: savedTask.title || seedTask.title,
     tags: savedTask.tags || seedTask.tags || [],
     notes: savedTask.notes || seedTask.notes || "",
     stages: seedTask.stages?.length ? seedTask.stages : savedTask.stages || [],
