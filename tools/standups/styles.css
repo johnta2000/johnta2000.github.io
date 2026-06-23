@@ -259,9 +259,8 @@ select:focus,
 }
 
 .previous-content .progression-card {
-  border-color: rgba(18, 106, 92, 0.36);
-  background: linear-gradient(180deg, #f3fbf8, #ffffff);
-  box-shadow: inset 4px 0 0 var(--accent);
+  border-color: #dfe2da;
+  background: #f7f7f3;
 }
 
 .previous-content .completion-card {
@@ -286,18 +285,18 @@ select:focus,
   align-items: center;
   gap: 10px;
   min-height: 28px;
-  color: var(--accent-strong);
+  color: #777d75;
 }
 
 .progression-bridge span {
   height: 1px;
-  background: linear-gradient(90deg, rgba(18, 106, 92, 0.16), rgba(18, 106, 92, 0.72));
+  background: #dfe2da;
 }
 
 .progression-bridge strong {
-  border: 1px solid rgba(18, 106, 92, 0.28);
+  border: 1px solid #dfe2da;
   border-radius: 999px;
-  background: var(--accent-soft);
+  background: #f4f4f0;
   padding: 5px 9px;
   font-size: 12px;
   line-height: 1;
@@ -463,12 +462,12 @@ button svg {
 }
 
 .completion-target > span {
-  color: var(--accent-strong);
+  color: #30342f;
 }
 
 .completion-target .editor-toolbar,
 .completion-target .rich-editor {
-  border-color: rgba(18, 106, 92, 0.34);
+  border-color: var(--line);
 }
 
 .editor-toolbar {
