@@ -205,8 +205,8 @@ function renderPrevious(entry, personName) {
   els.previousContent.className = "previous-content";
   els.previousContent.innerHTML = "";
   els.previousContent.append(
-    renderSection("Yesterday / things I did", entry.yesterday),
-    renderSection("Today / things to do", entry.today),
+    renderSection(`Planned on ${formatDate(entry.standupDate)}`, entry.today),
+    renderSection(`Completed before ${formatDate(entry.standupDate)}`, entry.yesterday),
     renderSection("Blockers", entry.blockers),
     renderSection("Notes", entry.notes),
   );
