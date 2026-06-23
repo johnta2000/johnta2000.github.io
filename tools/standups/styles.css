@@ -252,23 +252,27 @@ select:focus,
 .previous-content section {
   display: grid;
   gap: 7px;
-  border: 1px solid var(--line);
+  border: 1px solid #e3e4df;
   border-radius: 8px;
-  background: var(--surface-quiet);
+  background: #f1f2ee;
   padding: 14px;
 }
 
+.previous-content h3 {
+  color: #5d635c;
+}
+
 .previous-content .progression-card {
-  border-color: #dfe2da;
-  background: #f7f7f3;
+  border-color: #e0e2dd;
+  background: #f0f1ed;
 }
 
 .previous-content .completion-card {
-  background: #ffffff;
+  background: #f5f5f1;
 }
 
 .previous-content .support-card {
-  background: #fbfaf6;
+  background: #f3f3ef;
 }
 
 .section-note {
@@ -305,13 +309,13 @@ select:focus,
 
 .previous-content .rendered-rich-text {
   margin: 0;
-  color: #565b55;
+  color: #737971;
   line-height: 1.5;
 }
 
 .previous-content .rendered-rich-text strong,
 .previous-content .rendered-rich-text b {
-  color: #3f443f;
+  color: #626861;
 }
 
 .rendered-rich-text p,
