@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="robots" content="noindex, nofollow" />
     <title>Daily Standups Tracker</title>
-    <link rel="stylesheet" href="./styles.css?v=8" />
+    <link rel="stylesheet" href="./styles.css?v=9" />
   </head>
   <body>
     <section id="passwordGate" class="password-gate" aria-labelledby="passwordTitle" role="dialog" aria-modal="true">
@@ -70,6 +70,7 @@
                   <button type="button" data-command="bold" title="Bold"><strong>B</strong></button>
                   <button type="button" data-command="insertUnorderedList" title="Bulleted list, Command Shift 8">•</button>
                   <button type="button" data-command="insertOrderedList" title="Numbered list, Command Shift 7">1.</button>
+                  <button type="button" data-command="toggleChecklist" title="Checklist, type [ ] then space">☐</button>
                 </div>
                 <div id="yesterday" class="rich-editor" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Yesterday / things I did" data-placeholder="What changed since your last update?"></div>
               </section>
@@ -79,6 +80,7 @@
                   <button type="button" data-command="bold" title="Bold"><strong>B</strong></button>
                   <button type="button" data-command="insertUnorderedList" title="Bulleted list, Command Shift 8">•</button>
                   <button type="button" data-command="insertOrderedList" title="Numbered list, Command Shift 7">1.</button>
+                  <button type="button" data-command="toggleChecklist" title="Checklist, type [ ] then space">☐</button>
                 </div>
                 <div id="today" class="rich-editor" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Today / things to do" data-placeholder="What are you moving forward today?"></div>
               </section>
@@ -88,6 +90,7 @@
                   <button type="button" data-command="bold" title="Bold"><strong>B</strong></button>
                   <button type="button" data-command="insertUnorderedList" title="Bulleted list, Command Shift 8">•</button>
                   <button type="button" data-command="insertOrderedList" title="Numbered list, Command Shift 7">1.</button>
+                  <button type="button" data-command="toggleChecklist" title="Checklist, type [ ] then space">☐</button>
                 </div>
                 <div id="blockers" class="rich-editor" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Blockers" data-placeholder="Anything stuck, waiting, or risky?"></div>
               </section>
@@ -97,6 +100,7 @@
                   <button type="button" data-command="bold" title="Bold"><strong>B</strong></button>
                   <button type="button" data-command="insertUnorderedList" title="Bulleted list, Command Shift 8">•</button>
                   <button type="button" data-command="insertOrderedList" title="Numbered list, Command Shift 7">1.</button>
+                  <button type="button" data-command="toggleChecklist" title="Checklist, type [ ] then space">☐</button>
                 </div>
                 <div id="notes" class="rich-editor" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Notes" data-placeholder="Useful context, links, or handoff notes."></div>
               </section>
@@ -128,6 +132,6 @@
       </button>
     </template>
 
-    <script src="./app.js?v=8"></script>
+    <script src="./app.js?v=9"></script>
   </body>
 </html>

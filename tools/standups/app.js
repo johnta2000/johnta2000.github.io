@@ -54,7 +54,11 @@ function initStandups() {
     button.addEventListener("click", () => runEditorCommand(button));
   });
   editors.forEach((editor) => {
-    editor.addEventListener("input", () => editor.classList.remove("is-invalid"));
+    editor.addEventListener("input", () => {
+      editor.classList.remove("is-invalid");
+      normalizeChecklists(editor);
+    });
+    editor.addEventListener("click", handleChecklistClick);
     editor.addEventListener("keydown", handleEditorKeydown);
     editor.addEventListener("keyup", handleEditorKeyup);
   });
@@ -280,12 +284,21 @@ function handleEditorKeydown(event) {
 }
 
 function handleEditorKeyup(event) {
+  normalizeChecklists(event.currentTarget);
   if (event.key !== " ") return;
 
   const block = getCurrentTextBlock();
   if (!block) return;
 
   const text = block.textContent || "";
+  if (/^\[( |x)\]\s$/i.test(text)) {
+    const checked = /^\[x\]\s$/i.test(text);
+    block.textContent = "";
+    applyEditorCommand("toggleChecklist");
+    setCurrentChecklistItemChecked(checked);
+    return;
+  }
+
   if (/^[-*]\s$/.test(text)) {
     block.textContent = "";
     applyEditorCommand("insertUnorderedList");
@@ -298,7 +311,72 @@ function handleEditorKeyup(event) {
 }
 
 function applyEditorCommand(command) {
+  if (command === "toggleChecklist") {
+    document.execCommand("insertUnorderedList", false, null);
+    convertCurrentListToChecklist();
+    return;
+  }
+
   document.execCommand(command, false, null);
+}
+
+function handleChecklistClick(event) {
+  const item = event.target.closest("li");
+  if (!item?.closest("ul.check-list")) return;
+
+  const rect = item.getBoundingClientRect();
+  if (event.clientX > rect.left + 28) return;
+
+  event.preventDefault();
+  toggleChecklistItem(item);
+}
+
+function convertCurrentListToChecklist() {
+  const item = getCurrentListItem();
+  const list = item?.closest("ul");
+  if (!item || !list) return;
+
+  list.classList.add("check-list");
+  list.dataset.list = "checklist";
+  list.querySelectorAll("li").forEach((listItem) => {
+    if (!listItem.dataset.checked) listItem.dataset.checked = "false";
+  });
+}
+
+function normalizeChecklists(editor) {
+  editor.querySelectorAll("ul.check-list, ul[data-list='checklist']").forEach((list) => {
+    list.classList.add("check-list");
+    list.dataset.list = "checklist";
+    list.querySelectorAll("li").forEach((item) => {
+      if (item.dataset.checked !== "true") item.dataset.checked = "false";
+    });
+  });
+}
+
+function setCurrentChecklistItemChecked(checked) {
+  const item = getCurrentListItem();
+  if (item?.closest("ul.check-list")) {
+    item.dataset.checked = checked ? "true" : "false";
+  }
+}
+
+function toggleChecklistItem(item) {
+  item.dataset.checked = item.dataset.checked === "true" ? "false" : "true";
+}
+
+function getCurrentListItem() {
+  const selection = window.getSelection();
+  if (!selection?.rangeCount) return null;
+
+  let node = selection.anchorNode;
+  if (node?.nodeType === Node.TEXT_NODE) node = node.parentElement;
+
+  while (node && node.nodeType === Node.ELEMENT_NODE && !node.classList?.contains("rich-editor")) {
+    if (node.nodeName === "LI") return node;
+    node = node.parentElement;
+  }
+
+  return null;
 }
 
 function getCurrentTextBlock() {
@@ -334,6 +412,7 @@ function getEditorHtml(editor) {
 
 function setEditorHtml(editor, html) {
   editor.innerHTML = sanitizeRichText(html);
+  normalizeChecklists(editor);
   editor.classList.remove("is-invalid");
 }
 
@@ -355,7 +434,17 @@ function sanitizeRichText(html) {
       return;
     }
 
+    const isChecklist = node.tagName === "UL" && (node.classList.contains("check-list") || node.dataset.list === "checklist");
+    const isChecklistItem = node.tagName === "LI" && node.closest("ul.check-list, ul[data-list='checklist']");
+    const wasChecked = node.dataset.checked === "true";
     [...node.attributes].forEach((attribute) => node.removeAttribute(attribute.name));
+    if (isChecklist) {
+      node.classList.add("check-list");
+      node.dataset.list = "checklist";
+    }
+    if (isChecklistItem) {
+      node.dataset.checked = wasChecked ? "true" : "false";
+    }
   });
   return template.innerHTML;
 }

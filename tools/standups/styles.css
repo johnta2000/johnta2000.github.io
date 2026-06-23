@@ -288,6 +288,55 @@ select:focus,
   margin: 3px 0;
 }
 
+.rendered-rich-text ul.check-list,
+.rich-editor ul.check-list {
+  display: grid;
+  gap: 8px;
+  margin: 4px 0 10px;
+  padding: 0;
+  list-style: none;
+}
+
+.rendered-rich-text ul.check-list li,
+.rich-editor ul.check-list li {
+  position: relative;
+  min-height: 24px;
+  margin: 0;
+  padding-left: 32px;
+}
+
+.rendered-rich-text ul.check-list li::before,
+.rich-editor ul.check-list li::before {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 0;
+  width: 18px;
+  height: 18px;
+  border: 2px solid #7a7f76;
+  border-radius: 4px;
+  background: #fff;
+}
+
+.rendered-rich-text ul.check-list li[data-checked="true"]::before,
+.rich-editor ul.check-list li[data-checked="true"]::before {
+  border-color: var(--accent);
+  background: var(--accent);
+}
+
+.rendered-rich-text ul.check-list li[data-checked="true"]::after,
+.rich-editor ul.check-list li[data-checked="true"]::after {
+  content: "";
+  position: absolute;
+  top: 6px;
+  left: 5px;
+  width: 8px;
+  height: 4px;
+  border-bottom: 2px solid #fff;
+  border-left: 2px solid #fff;
+  transform: rotate(-45deg);
+}
+
 .empty-state {
   margin: 0;
   color: var(--muted);
