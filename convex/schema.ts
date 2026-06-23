@@ -13,4 +13,18 @@ export default defineSchema({
     buckets: v.optional(v.any()),
     updatedAt: v.number(),
   }).index("by_board", ["boardId"]),
+  standupEntries: defineTable({
+    teamId: v.string(),
+    standupDate: v.string(),
+    personKey: v.string(),
+    personName: v.string(),
+    yesterday: v.string(),
+    today: v.string(),
+    blockers: v.optional(v.string()),
+    notes: v.optional(v.string()),
+    submittedAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_date", ["teamId", "standupDate"])
+    .index("by_person_date", ["teamId", "personKey", "standupDate"]),
 });

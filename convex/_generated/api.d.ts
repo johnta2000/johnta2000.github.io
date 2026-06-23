@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as standups from "../standups.js";
 import type * as warRoom from "../warRoom.js";
 
 import type {
@@ -17,6 +18,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  standups: typeof standups;
   warRoom: typeof warRoom;
 }>;
 

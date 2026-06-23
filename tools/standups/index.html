@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Daily Standups Tracker</title>
+    <link rel="stylesheet" href="./styles.css?v=8" />
+  </head>
+  <body>
+    <section id="passwordGate" class="password-gate" aria-labelledby="passwordTitle" role="dialog" aria-modal="true">
+      <form id="passwordForm" class="password-card">
+        <p class="eyebrow">Restricted tool</p>
+        <h1 id="passwordTitle">Daily Standups Tracker</h1>
+        <label class="field">
+          <span>Password</span>
+          <input id="passwordInput" type="password" autocomplete="current-password" required />
+        </label>
+        <button type="submit">Enter</button>
+        <p id="passwordError" class="password-error" role="alert" hidden>Wrong password.</p>
+      </form>
+    </section>
+
+    <main id="standupsApp" class="app-shell" hidden>
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Daily standups</p>
+          <h1>Daily Standups Tracker</h1>
+        </div>
+        <div class="date-control">
+          <label for="standupDate">Standup date</label>
+          <input id="standupDate" type="date" />
+        </div>
+      </header>
+
+      <section class="workspace" aria-label="Standup entry workspace">
+        <form id="standupForm" class="entry-form">
+          <div class="identity-row">
+            <label class="field name-field">
+              <span>Your name</span>
+              <select id="personName" name="personName" required>
+                <option value="">Select a person</option>
+                <option value="John">John</option>
+                <option value="Vivek">Vivek</option>
+                <option value="Vishal">Vishal</option>
+                <option value="Jenny">Jenny</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="compare-grid">
+            <section class="previous-panel" aria-labelledby="previousTitle">
+              <div class="panel-heading">
+                <p class="eyebrow">Previous submission</p>
+                <h2 id="previousTitle">No person selected</h2>
+              </div>
+              <div id="previousContent" class="previous-content empty-state">
+                Select your name to pull in your most recent prior standup.
+              </div>
+            </section>
+
+            <section class="today-panel" aria-labelledby="todayTitle">
+              <div class="panel-heading">
+                <p id="todayEyebrow" class="eyebrow">Today</p>
+                <h2 id="todayTitle">Select a person</h2>
+              </div>
+              <section class="field rich-field">
+                <span>Yesterday / things I did</span>
+                <div class="editor-toolbar" aria-label="Yesterday formatting">
+                  <button type="button" data-command="bold" title="Bold"><strong>B</strong></button>
+                  <button type="button" data-command="insertUnorderedList" title="Bulleted list, Command Shift 8">•</button>
+                  <button type="button" data-command="insertOrderedList" title="Numbered list, Command Shift 7">1.</button>
+                </div>
+                <div id="yesterday" class="rich-editor" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Yesterday / things I did" data-placeholder="What changed since your last update?"></div>
+              </section>
+              <section class="field rich-field">
+                <span>Today / things to do</span>
+                <div class="editor-toolbar" aria-label="Today formatting">
+                  <button type="button" data-command="bold" title="Bold"><strong>B</strong></button>
+                  <button type="button" data-command="insertUnorderedList" title="Bulleted list, Command Shift 8">•</button>
+                  <button type="button" data-command="insertOrderedList" title="Numbered list, Command Shift 7">1.</button>
+                </div>
+                <div id="today" class="rich-editor" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Today / things to do" data-placeholder="What are you moving forward today?"></div>
+              </section>
+              <section class="field rich-field">
+                <span>Blockers <em>(Optional)</em></span>
+                <div class="editor-toolbar" aria-label="Blockers formatting">
+                  <button type="button" data-command="bold" title="Bold"><strong>B</strong></button>
+                  <button type="button" data-command="insertUnorderedList" title="Bulleted list, Command Shift 8">•</button>
+                  <button type="button" data-command="insertOrderedList" title="Numbered list, Command Shift 7">1.</button>
+                </div>
+                <div id="blockers" class="rich-editor" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Blockers" data-placeholder="Anything stuck, waiting, or risky?"></div>
+              </section>
+              <section class="field rich-field">
+                <span>Notes <em>(Optional)</em></span>
+                <div class="editor-toolbar" aria-label="Notes formatting">
+                  <button type="button" data-command="bold" title="Bold"><strong>B</strong></button>
+                  <button type="button" data-command="insertUnorderedList" title="Bulleted list, Command Shift 8">•</button>
+                  <button type="button" data-command="insertOrderedList" title="Numbered list, Command Shift 7">1.</button>
+                </div>
+                <div id="notes" class="rich-editor" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Notes" data-placeholder="Useful context, links, or handoff notes."></div>
+              </section>
+              <div class="form-actions">
+                <p id="saveStatus" class="save-status" role="status"></p>
+                <button type="submit">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"/><path d="M17 21v-8H7v8"/><path d="M7 3v5h8"/></svg>
+                  Save update
+                </button>
+              </div>
+            </section>
+          </div>
+        </form>
+
+        <aside class="daily-list" aria-labelledby="dailyListTitle">
+          <div class="panel-heading">
+            <p id="rosterDate" class="eyebrow"></p>
+            <h2 id="dailyListTitle">Submitted Updates</h2>
+          </div>
+          <div id="entriesList" class="entries-list"></div>
+        </aside>
+      </section>
+    </main>
+
+    <template id="entryTemplate">
+      <button class="entry-row" type="button">
+        <span class="entry-name"></span>
+        <span class="entry-time"></span>
+      </button>
+    </template>
+
+    <script src="./app.js?v=8"></script>
+  </body>
+</html>
