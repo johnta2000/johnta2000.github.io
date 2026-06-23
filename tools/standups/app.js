@@ -205,22 +205,44 @@ function renderPrevious(entry, personName) {
   els.previousContent.className = "previous-content";
   els.previousContent.innerHTML = "";
   els.previousContent.append(
-    renderSection(`Planned on ${formatDate(entry.standupDate)}`, entry.today),
-    renderSection(`Completed before ${formatDate(entry.standupDate)}`, entry.yesterday),
-    renderSection("Blockers", entry.blockers),
-    renderSection("Notes", entry.notes),
+    renderSection(`Planned on ${formatDate(entry.standupDate)}`, entry.today, {
+      className: "progression-card",
+      note: "Compare this against today's Things I did",
+    }),
+    renderProgressionBridge(),
+    renderSection(`Previous day completion`, entry.yesterday, {
+      className: "completion-card",
+      note: `Already completed before ${formatDate(entry.standupDate)}`,
+    }),
+    renderSection("Blockers", entry.blockers, { className: "support-card" }),
+    renderSection("Notes", entry.notes, { className: "support-card" }),
   );
 }
 
-function renderSection(title, value) {
+function renderSection(title, value, options = {}) {
   const section = document.createElement("section");
   const heading = document.createElement("h3");
   const content = document.createElement("div");
+  if (options.className) section.className = options.className;
   heading.textContent = title;
   content.className = "rendered-rich-text";
   content.innerHTML = value?.trim() ? sanitizeRichText(value) : "Nothing entered.";
-  section.append(heading, content);
+  section.append(heading);
+  if (options.note) {
+    const note = document.createElement("p");
+    note.className = "section-note";
+    note.textContent = options.note;
+    section.append(note);
+  }
+  section.append(content);
   return section;
+}
+
+function renderProgressionBridge() {
+  const bridge = document.createElement("div");
+  bridge.className = "progression-bridge";
+  bridge.innerHTML = "<span></span><strong>Becomes today's completed work</strong>";
+  return bridge;
 }
 
 function renderEntries(entries) {

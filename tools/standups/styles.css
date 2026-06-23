@@ -236,30 +236,72 @@ select:focus,
 
 .previous-content {
   display: grid;
-  gap: 14px;
+  gap: 12px;
   margin-top: 31px;
+}
+
+.previous-content.empty-state {
+  min-height: 175px;
+  align-content: start;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-quiet);
+  padding: 21px 14px;
+}
+
+.previous-content section {
+  display: grid;
+  gap: 7px;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--surface-quiet);
   padding: 14px;
 }
 
-.previous-content.empty-state {
-  min-height: 175px;
-  align-content: start;
-  padding: 21px 14px;
+.previous-content .progression-card {
+  border-color: rgba(18, 106, 92, 0.36);
+  background: linear-gradient(180deg, #f3fbf8, #ffffff);
+  box-shadow: inset 4px 0 0 var(--accent);
 }
 
-.previous-content section {
+.previous-content .completion-card {
+  background: #ffffff;
+}
+
+.previous-content .support-card {
+  background: #fbfaf6;
+}
+
+.section-note {
+  margin: -2px 0 2px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.progression-bridge {
   display: grid;
-  gap: 5px;
-  border-bottom: 1px solid var(--line);
-  padding-bottom: 12px;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 10px;
+  min-height: 28px;
+  color: var(--accent-strong);
 }
 
-.previous-content section:last-child {
-  border-bottom: 0;
-  padding-bottom: 0;
+.progression-bridge span {
+  height: 1px;
+  background: linear-gradient(90deg, rgba(18, 106, 92, 0.16), rgba(18, 106, 92, 0.72));
+}
+
+.progression-bridge strong {
+  border: 1px solid rgba(18, 106, 92, 0.28);
+  border-radius: 999px;
+  background: var(--accent-soft);
+  padding: 5px 9px;
+  font-size: 12px;
+  line-height: 1;
+  white-space: nowrap;
 }
 
 .previous-content .rendered-rich-text {
@@ -399,6 +441,15 @@ button svg {
 
 .rich-field > span {
   margin-bottom: 8px;
+}
+
+.completion-target > span {
+  color: var(--accent-strong);
+}
+
+.completion-target .editor-toolbar,
+.completion-target .rich-editor {
+  border-color: rgba(18, 106, 92, 0.34);
 }
 
 .editor-toolbar {
