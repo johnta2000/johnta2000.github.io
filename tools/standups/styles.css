@@ -259,7 +259,7 @@ select:focus,
 }
 
 .previous-content h3 {
-  color: #5d635c;
+  color: #7d837b;
 }
 
 .previous-content .progression-card {
@@ -277,7 +277,7 @@ select:focus,
 
 .section-note {
   margin: -2px 0 2px;
-  color: var(--muted);
+  color: #969b93;
   font-size: 12px;
   font-weight: 800;
   line-height: 1.35;
@@ -309,13 +309,13 @@ select:focus,
 
 .previous-content .rendered-rich-text {
   margin: 0;
-  color: #737971;
+  color: #8b9189;
   line-height: 1.5;
 }
 
 .previous-content .rendered-rich-text strong,
 .previous-content .rendered-rich-text b {
-  color: #626861;
+  color: #767c74;
 }
 
 .rendered-rich-text p,
@@ -369,7 +369,7 @@ select:focus,
 }
 
 .previous-content .rendered-rich-text ul.check-list li {
-  color: #656a64;
+  color: #8b9189;
 }
 
 .previous-content .rendered-rich-text ul.check-list li::before {
