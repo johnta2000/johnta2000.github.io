@@ -306,8 +306,13 @@ select:focus,
 
 .previous-content .rendered-rich-text {
   margin: 0;
-  color: #393d38;
+  color: #565b55;
   line-height: 1.5;
+}
+
+.previous-content .rendered-rich-text strong,
+.previous-content .rendered-rich-text b {
+  color: #3f443f;
 }
 
 .rendered-rich-text p,
@@ -358,6 +363,20 @@ select:focus,
   border: 2px solid #7a7f76;
   border-radius: 4px;
   background: #fff;
+}
+
+.previous-content .rendered-rich-text ul.check-list li {
+  color: #656a64;
+}
+
+.previous-content .rendered-rich-text ul.check-list li::before {
+  border-color: #aeb4ab;
+  background: #f0f1ed;
+}
+
+.previous-content .rendered-rich-text ul.check-list li[data-checked="true"]::before {
+  border-color: #8e9992;
+  background: #8e9992;
 }
 
 .rendered-rich-text ul.check-list li[data-checked="true"]::before,
