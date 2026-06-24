@@ -27,6 +27,7 @@ const els = {
   yesterdayShortcutDate: document.querySelector("#yesterdayShortcutDate"),
   todayShortcutDate: document.querySelector("#todayShortcutDate"),
   tomorrowShortcutDate: document.querySelector("#tomorrowShortcutDate"),
+  dateJumpButtons: document.querySelectorAll("[data-date-jump]"),
   entriesList: document.querySelector("#entriesList"),
   entryTemplate: document.querySelector("#entryTemplate"),
 };
@@ -352,13 +353,27 @@ async function jumpToRelativeDate(offsetDays) {
 
 function updateDateShortcuts() {
   const today = new Date();
-  const yesterday = new Date(today);
-  const tomorrow = new Date(today);
-  yesterday.setDate(today.getDate() - 1);
-  tomorrow.setDate(today.getDate() + 1);
+  const yesterday = addDays(today, -1);
+  const tomorrow = addDays(today, 1);
   els.yesterdayShortcutDate.textContent = formatShortDate(toDateInputValue(yesterday));
   els.todayShortcutDate.textContent = formatShortDate(toDateInputValue(today));
   els.tomorrowShortcutDate.textContent = formatShortDate(toDateInputValue(tomorrow));
+  els.dateJumpButtons.forEach((button) => {
+    const shortcutDate = toDateInputValue(addDays(today, Number(button.dataset.dateJump)));
+    const isActive = shortcutDate === els.date.value;
+    button.classList.toggle("is-active", isActive);
+    if (isActive) {
+      button.setAttribute("aria-current", "date");
+    } else {
+      button.removeAttribute("aria-current");
+    }
+  });
+}
+
+function addDays(date, days) {
+  const next = new Date(date);
+  next.setDate(next.getDate() + days);
+  return next;
 }
 
 function updateTodayHeading() {

@@ -500,6 +500,17 @@ select:focus,
   outline: none;
 }
 
+.date-jump button.is-active {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+
+.date-jump button.is-active span,
+.date-jump button.is-active strong {
+  color: #fff;
+}
+
 .date-jump span {
   color: #747a72;
   font-size: 11px;
