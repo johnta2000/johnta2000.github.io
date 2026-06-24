@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="robots" content="noindex, nofollow" />
     <title>Daily Standups Tracker</title>
-    <link rel="stylesheet" href="./styles.css?v=16" />
+    <link rel="stylesheet" href="./styles.css?v=17" />
   </head>
   <body>
     <section id="passwordGate" class="password-gate" aria-labelledby="passwordTitle" role="dialog" aria-modal="true">
@@ -105,11 +105,12 @@
                 <div id="notes" class="rich-editor" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Notes" data-placeholder="Useful context, links, or handoff notes."></div>
               </section>
               <div class="form-actions">
-                <p id="saveStatus" class="save-status" role="status"></p>
-                <button type="submit">
-                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"/><path d="M17 21v-8H7v8"/><path d="M7 3v5h8"/></svg>
-                  Save update
-                </button>
+                <p id="saveStatus" class="save-status" role="status">Autosave ready</p>
+                <nav class="date-jump" aria-label="Standup date shortcuts">
+                  <button type="button" data-date-jump="-1"><span>Yesterday's update</span><strong id="yesterdayShortcutDate"></strong></button>
+                  <button type="button" data-date-jump="0"><span>Today's update</span><strong id="todayShortcutDate"></strong></button>
+                  <button type="button" data-date-jump="1"><span>Tomorrow's update</span><strong id="tomorrowShortcutDate"></strong></button>
+                </nav>
               </div>
             </section>
           </div>
@@ -132,6 +133,6 @@
       </button>
     </template>
 
-    <script src="./app.js?v=16"></script>
+    <script src="./app.js?v=17"></script>
   </body>
 </html>

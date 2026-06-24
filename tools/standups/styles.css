@@ -275,6 +275,41 @@ select:focus,
   background: #f3f3ef;
 }
 
+.previous-details {
+  display: grid;
+  gap: 10px;
+}
+
+.previous-details summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border: 1px solid #e3e4df;
+  border-radius: 8px;
+  background: #f3f3ef;
+  color: #7d837b;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 800;
+  padding: 12px 14px;
+}
+
+.previous-details summary::after {
+  content: "+";
+  color: #9aa098;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.previous-details[open] summary::after {
+  content: "-";
+}
+
+.previous-details > section {
+  margin-top: 10px;
+}
+
 .section-note {
   margin: -2px 0 2px;
   color: #969b93;
@@ -409,22 +444,64 @@ select:focus,
 }
 
 .form-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 6;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #fff;
+  background: rgba(255, 255, 255, 0.96);
   box-shadow: 0 10px 24px rgba(35, 41, 34, 0.08);
   padding: 10px;
+  backdrop-filter: blur(10px);
 }
 
 .save-status {
-  min-height: 20px;
+  min-width: 150px;
   margin: 0;
-  color: var(--muted);
+  color: #4d554f;
   font-size: 14px;
+  font-weight: 800;
+}
+
+.date-jump {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  min-width: min(520px, 100%);
+}
+
+.date-jump button {
+  display: grid;
+  gap: 2px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfcfb;
+  color: #30342f;
+  padding: 8px 10px;
+  text-align: left;
+}
+
+.date-jump button:hover,
+.date-jump button:focus {
+  border-color: #b8beb4;
+  background: #f6f7f3;
+  outline: none;
+}
+
+.date-jump span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.date-jump strong {
+  font-size: 14px;
+  line-height: 1.1;
 }
 
 button[type="submit"],

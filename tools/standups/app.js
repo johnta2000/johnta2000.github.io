@@ -24,6 +24,9 @@ const els = {
   blockers: document.querySelector("#blockers"),
   notes: document.querySelector("#notes"),
   saveStatus: document.querySelector("#saveStatus"),
+  yesterdayShortcutDate: document.querySelector("#yesterdayShortcutDate"),
+  todayShortcutDate: document.querySelector("#todayShortcutDate"),
+  tomorrowShortcutDate: document.querySelector("#tomorrowShortcutDate"),
   entriesList: document.querySelector("#entriesList"),
   entryTemplate: document.querySelector("#entryTemplate"),
 };
@@ -31,6 +34,8 @@ const els = {
 const editors = [els.yesterday, els.today, els.blockers, els.notes];
 let entriesForDate = [];
 let activePrevious = null;
+let autosaveTimer;
+let isHydrating = false;
 
 init();
 
@@ -47,9 +52,13 @@ function init() {
 function initStandups() {
   els.date.value = toDateInputValue(new Date());
   els.personName.value = localStorage.getItem(LOCAL_NAME_KEY) || "";
+  updateDateShortcuts();
   els.date.addEventListener("change", handleDateChange);
   els.personName.addEventListener("change", loadPersonContext);
-  els.form.addEventListener("submit", saveStandup);
+  els.form.addEventListener("submit", (event) => event.preventDefault());
+  document.querySelectorAll("[data-date-jump]").forEach((button) => {
+    button.addEventListener("click", () => jumpToRelativeDate(Number(button.dataset.dateJump)));
+  });
   document.querySelectorAll("[data-command]").forEach((button) => {
     button.addEventListener("click", () => runEditorCommand(button));
   });
@@ -57,6 +66,7 @@ function initStandups() {
     editor.addEventListener("input", () => {
       editor.classList.remove("is-invalid");
       normalizeChecklists(editor);
+      queueAutosave();
     });
     editor.addEventListener("click", handleChecklistClick);
     editor.addEventListener("keydown", handleEditorKeydown);
@@ -97,7 +107,9 @@ function unlockApp() {
 }
 
 async function handleDateChange() {
+  clearTimeout(autosaveTimer);
   clearForm();
+  updateDateShortcuts();
   await refreshDailyList();
   updateTodayHeading();
   if (els.personName.value.trim()) loadPersonContext();
@@ -123,6 +135,7 @@ async function loadPersonContext() {
   updateTodayHeading();
   if (!personName) return;
 
+  clearTimeout(autosaveTimer);
   localStorage.setItem(LOCAL_NAME_KEY, personName);
   els.previousTitle.textContent = "Loading previous update";
   els.previousContent.className = "previous-content empty-state";
@@ -154,13 +167,15 @@ async function loadPersonContext() {
   }
 }
 
-async function saveStandup(event) {
-  event.preventDefault();
+async function saveStandup({ silent = false } = {}) {
   const personName = els.personName.value.trim();
   if (!personName) return;
-  if (!validateRequiredEditors()) return;
+  if (!hasSavableContent()) {
+    els.saveStatus.textContent = "Autosave ready";
+    return;
+  }
 
-  els.saveStatus.textContent = "Saving...";
+  if (!silent) els.saveStatus.textContent = "Saving...";
   localStorage.setItem(LOCAL_NAME_KEY, personName);
 
   try {
@@ -174,7 +189,7 @@ async function saveStandup(event) {
       notes: getEditorHtml(els.notes),
     });
 
-    els.saveStatus.textContent = "Saved.";
+    els.saveStatus.textContent = `Last saved ${formatTime(Date.now())}`;
     await refreshDailyList();
     renderPrevious(activePrevious, personName);
   } catch (error) {
@@ -184,12 +199,16 @@ async function saveStandup(event) {
 }
 
 function fillCurrent(entry) {
+  isHydrating = true;
   setEditorHtml(els.yesterday, entry?.yesterday || "");
   setEditorHtml(els.today, entry?.today || "");
   setEditorHtml(els.blockers, entry?.blockers || "");
   setEditorHtml(els.notes, entry?.notes || "");
+  isHydrating = false;
   if (entry) {
-    els.saveStatus.textContent = `Loaded ${entry.personName}'s saved update for ${formatDate(entry.standupDate)}.`;
+    els.saveStatus.textContent = `Last saved ${formatTime(entry.updatedAt)}`;
+  } else {
+    els.saveStatus.textContent = "Autosave ready";
   }
 }
 
@@ -210,12 +229,7 @@ function renderPrevious(entry, personName) {
       note: "Compare this against today's Things I did",
     }),
     renderProgressionBridge(),
-    renderSection(`Previous day completion`, entry.yesterday, {
-      className: "completion-card",
-      note: `Already completed before ${formatDate(entry.standupDate)}`,
-    }),
-    renderSection("Blockers", entry.blockers, { className: "support-card" }),
-    renderSection("Notes", entry.notes, { className: "support-card" }),
+    renderPreviousDetails(entry),
   );
 }
 
@@ -243,6 +257,23 @@ function renderProgressionBridge() {
   bridge.className = "progression-bridge";
   bridge.innerHTML = "<span></span><strong>Becomes today's completed work</strong>";
   return bridge;
+}
+
+function renderPreviousDetails(entry) {
+  const details = document.createElement("details");
+  details.className = "previous-details";
+  const summary = document.createElement("summary");
+  summary.textContent = "View previous completion, blockers, and notes";
+  details.append(
+    summary,
+    renderSection(`Previous day completion`, entry.yesterday, {
+      className: "completion-card",
+      note: `Already completed before ${formatDate(entry.standupDate)}`,
+    }),
+    renderSection("Blockers", entry.blockers, { className: "support-card" }),
+    renderSection("Notes", entry.notes, { className: "support-card" }),
+  );
+  return details;
 }
 
 function renderEntries(entries) {
@@ -278,6 +309,58 @@ function clearForm() {
   els.saveStatus.textContent = "";
 }
 
+function queueAutosave() {
+  if (isHydrating) return;
+  clearTimeout(autosaveTimer);
+  const personName = els.personName.value.trim();
+  if (!personName) {
+    els.saveStatus.textContent = "Select a person to autosave";
+    return;
+  }
+  if (!hasSavableContent()) {
+    els.saveStatus.textContent = "Autosave ready";
+    return;
+  }
+
+  els.saveStatus.textContent = "Saving soon...";
+  autosaveTimer = window.setTimeout(() => {
+    autosaveTimer = null;
+    saveStandup({ silent: true });
+  }, 800);
+}
+
+async function flushAutosave() {
+  if (!autosaveTimer) return;
+  clearTimeout(autosaveTimer);
+  autosaveTimer = null;
+  if (els.personName.value.trim() && hasSavableContent()) {
+    await saveStandup();
+  }
+}
+
+function hasSavableContent() {
+  return editors.some((editor) => editor.textContent.trim());
+}
+
+async function jumpToRelativeDate(offsetDays) {
+  await flushAutosave();
+  const date = new Date(`${toDateInputValue(new Date())}T12:00:00`);
+  date.setDate(date.getDate() + offsetDays);
+  els.date.value = toDateInputValue(date);
+  handleDateChange();
+}
+
+function updateDateShortcuts() {
+  const today = new Date();
+  const yesterday = new Date(today);
+  const tomorrow = new Date(today);
+  yesterday.setDate(today.getDate() - 1);
+  tomorrow.setDate(today.getDate() + 1);
+  els.yesterdayShortcutDate.textContent = formatShortDate(toDateInputValue(yesterday));
+  els.todayShortcutDate.textContent = formatShortDate(toDateInputValue(today));
+  els.tomorrowShortcutDate.textContent = formatShortDate(toDateInputValue(tomorrow));
+}
+
 function updateTodayHeading() {
   const personName = els.personName.value.trim();
   els.todayEyebrow.textContent = `Today ${formatDate(els.date.value)}`;
@@ -288,6 +371,7 @@ function runEditorCommand(button) {
   const editor = button.closest(".rich-field").querySelector(".rich-editor");
   editor.focus();
   applyEditorCommand(button.dataset.command);
+  queueAutosave();
 }
 
 function handleEditorKeydown(event) {
@@ -384,6 +468,7 @@ function setCurrentChecklistItemChecked(checked) {
 
 function toggleChecklistItem(item) {
   item.dataset.checked = item.dataset.checked === "true" ? "false" : "true";
+  queueAutosave();
 }
 
 function getCurrentListItem() {
@@ -508,6 +593,13 @@ function formatDate(value) {
     month: "short",
     day: "numeric",
     year: "numeric",
+  }).format(new Date(`${value}T12:00:00`));
+}
+
+function formatShortDate(value) {
+  return new Intl.DateTimeFormat("en", {
+    month: "short",
+    day: "numeric",
   }).format(new Date(`${value}T12:00:00`));
 }
 
