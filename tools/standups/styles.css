@@ -447,60 +447,64 @@ select:focus,
   position: sticky;
   bottom: 0;
   z-index: 6;
-  display: flex;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  gap: 14px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.96);
-  box-shadow: 0 10px 24px rgba(35, 41, 34, 0.08);
-  padding: 10px;
+  background: rgba(250, 250, 247, 0.96);
+  box-shadow: 0 8px 18px rgba(35, 41, 34, 0.08);
+  padding: 8px 10px;
   backdrop-filter: blur(10px);
 }
 
 .save-status {
-  min-width: 150px;
+  min-width: 120px;
   margin: 0;
-  color: #4d554f;
-  font-size: 14px;
-  font-weight: 800;
+  color: #747a72;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
 }
 
 .date-jump {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
-  min-width: min(520px, 100%);
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  min-width: 0;
 }
 
 .date-jump button {
-  display: grid;
-  gap: 2px;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
   border: 1px solid var(--line);
-  border-radius: 8px;
-  background: #fbfcfb;
-  color: #30342f;
-  padding: 8px 10px;
-  text-align: left;
+  border-radius: 999px;
+  background: transparent;
+  color: #4b514b;
+  padding: 5px 9px;
+  white-space: nowrap;
 }
 
 .date-jump button:hover,
 .date-jump button:focus {
   border-color: #b8beb4;
-  background: #f6f7f3;
+  background: #f4f5f1;
   outline: none;
 }
 
 .date-jump span {
-  color: var(--muted);
+  color: #747a72;
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 700;
   line-height: 1.1;
 }
 
 .date-jump strong {
-  font-size: 14px;
+  color: #30342f;
+  font-size: 12px;
   line-height: 1.1;
 }
 
@@ -668,7 +672,15 @@ button svg {
   .topbar,
   .form-actions {
     align-items: stretch;
-    flex-direction: column;
+  }
+
+  .form-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .date-jump {
+    justify-content: stretch;
+    overflow-x: auto;
   }
 
   .identity-row {
