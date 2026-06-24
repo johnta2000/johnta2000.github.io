@@ -444,19 +444,15 @@ select:focus,
 }
 
 .form-actions {
-  position: sticky;
-  bottom: 0;
-  z-index: 6;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
   gap: 14px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: rgba(250, 250, 247, 0.96);
-  box-shadow: 0 8px 18px rgba(35, 41, 34, 0.08);
+  background: #fafaf7;
+  box-shadow: none;
   padding: 8px 10px;
-  backdrop-filter: blur(10px);
 }
 
 .save-status {
