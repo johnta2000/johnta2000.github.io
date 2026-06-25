@@ -4,6 +4,7 @@ const LOCAL_NAME_KEY = "standups:last-person-name";
 const ACCESS_KEY = "standups:access";
 const ACCESS_PASSWORD = "corgi124";
 const ACCESS_DURATION_MS = 7 * 24 * 60 * 60 * 1000;
+const TEAM_MEMBERS = ["John", "Vivek", "Vishal", "Jenny"];
 
 const els = {
   app: document.querySelector("#standupsApp"),
@@ -29,6 +30,7 @@ const els = {
   tomorrowShortcutDate: document.querySelector("#tomorrowShortcutDate"),
   dateJumpButtons: document.querySelectorAll("[data-date-jump]"),
   entriesList: document.querySelector("#entriesList"),
+  unsubmittedList: document.querySelector("#unsubmittedList"),
   entryTemplate: document.querySelector("#entryTemplate"),
 };
 
@@ -278,31 +280,49 @@ function renderPreviousDetails(entry) {
 }
 
 function renderEntries(entries) {
-  if (!entries.length) {
-    setEntriesState("No one has submitted for this date yet.");
-    return;
+  const sorted = [...entries].sort((a, b) => a.personName.localeCompare(b.personName));
+  const submittedNames = new Set(sorted.map((entry) => entry.personName));
+  const unsubmitted = TEAM_MEMBERS.filter((name) => !submittedNames.has(name));
+
+  if (sorted.length) {
+    els.entriesList.replaceChildren(
+      ...sorted.map((entry) => renderRosterButton(entry.personName, `Updated ${formatTime(entry.updatedAt)}`, "submitted")),
+    );
+  } else {
+    els.entriesList.replaceChildren(renderRosterEmpty("No one has submitted for this date yet."));
   }
 
-  const sorted = [...entries].sort((a, b) => a.personName.localeCompare(b.personName));
-  els.entriesList.replaceChildren(
-    ...sorted.map((entry) => {
-      const row = els.entryTemplate.content.firstElementChild.cloneNode(true);
-      row.querySelector(".entry-name").textContent = entry.personName;
-      row.querySelector(".entry-time").textContent = `Updated ${formatTime(entry.updatedAt)}`;
-      row.addEventListener("click", () => {
-        els.personName.value = entry.personName;
-        loadPersonContext();
-      });
-      return row;
-    }),
-  );
+  if (unsubmitted.length) {
+    els.unsubmittedList.replaceChildren(
+      ...unsubmitted.map((name) => renderRosterButton(name, "No update yet", "unsubmitted")),
+    );
+  } else {
+    els.unsubmittedList.replaceChildren(renderRosterEmpty("Everyone has submitted."));
+  }
 }
 
-function setEntriesState(message) {
+function renderRosterButton(name, meta, status) {
+  const row = els.entryTemplate.content.firstElementChild.cloneNode(true);
+  row.classList.add(`entry-row-${status}`);
+  row.querySelector(".entry-name").textContent = name;
+  row.querySelector(".entry-time").textContent = meta;
+  row.addEventListener("click", () => {
+    els.personName.value = name;
+    loadPersonContext();
+  });
+  return row;
+}
+
+function renderRosterEmpty(message) {
   const p = document.createElement("p");
   p.className = "empty-state";
   p.textContent = message;
-  els.entriesList.replaceChildren(p);
+  return p;
+}
+
+function setEntriesState(message) {
+  els.entriesList.replaceChildren(renderRosterEmpty(message));
+  els.unsubmittedList.replaceChildren(renderRosterEmpty("Loading roster..."));
 }
 
 function clearForm() {

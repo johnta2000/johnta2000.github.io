@@ -638,6 +638,15 @@ button svg {
   top: 18px;
 }
 
+.roster-subhead {
+  margin-top: 10px;
+}
+
+.roster-subhead h2 {
+  color: #596058;
+  font-size: 17px;
+}
+
 .entries-list {
   display: grid;
   gap: 8px;
@@ -653,6 +662,19 @@ button svg {
   color: var(--ink);
   padding: 10px 12px;
   text-align: left;
+}
+
+.entry-row-unsubmitted {
+  background: #f7f7f3;
+  color: #596058;
+}
+
+.entry-row-unsubmitted .entry-name {
+  color: #596058;
+}
+
+.entry-row-unsubmitted .entry-time {
+  color: #8a9088;
 }
 
 .entry-row:hover,
