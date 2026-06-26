@@ -57,6 +57,8 @@ function initStandups() {
   els.date.value = toDateInputValue(new Date());
   els.personName.value = localStorage.getItem(LOCAL_NAME_KEY) || "";
   updateDateShortcuts();
+  els.date.addEventListener("click", openDatePicker);
+  els.date.addEventListener("focus", openDatePicker);
   els.date.addEventListener("change", handleDateChange);
   els.personName.addEventListener("change", loadPersonContext);
   els.form.addEventListener("submit", (event) => event.preventDefault());
@@ -389,6 +391,22 @@ function updateDateShortcuts() {
       button.removeAttribute("aria-current");
     }
   });
+}
+
+function openDatePicker(event) {
+  if (event?.type === "focus" && els.date.dataset.pickerOpening === "true") return;
+  if (typeof els.date.showPicker !== "function") return;
+
+  try {
+    els.date.dataset.pickerOpening = "true";
+    els.date.showPicker();
+  } catch (error) {
+    // Some browsers only allow showPicker from direct user gestures.
+  } finally {
+    window.setTimeout(() => {
+      delete els.date.dataset.pickerOpening;
+    }, 0);
+  }
 }
 
 function addDays(date, days) {
