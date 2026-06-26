@@ -39,6 +39,7 @@ let entriesForDate = [];
 let activePrevious = null;
 let autosaveTimer;
 let isHydrating = false;
+let shouldResetNewChecklistItem = false;
 
 init();
 
@@ -410,6 +411,11 @@ function runEditorCommand(button) {
 }
 
 function handleEditorKeydown(event) {
+  if (event.key === "Enter") {
+    const item = getCurrentListItem();
+    shouldResetNewChecklistItem = item?.closest("ul.check-list") && item.dataset.checked === "true";
+  }
+
   const commandKey = event.metaKey || event.ctrlKey;
   if (!commandKey || !event.shiftKey) return;
 
@@ -426,6 +432,13 @@ function handleEditorKeydown(event) {
 
 function handleEditorKeyup(event) {
   normalizeChecklists(event.currentTarget);
+  if (event.key === "Enter" && shouldResetNewChecklistItem) {
+    setCurrentChecklistItemChecked(false);
+    shouldResetNewChecklistItem = false;
+    queueAutosave();
+    return;
+  }
+  if (event.key !== "Enter") shouldResetNewChecklistItem = false;
   if (event.key !== " ") return;
 
   const block = getCurrentTextBlock();
