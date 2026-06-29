@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="robots" content="noindex, nofollow" />
     <title>Daily Standups Tracker</title>
-    <link rel="stylesheet" href="./styles.css?v=25" />
+    <link rel="stylesheet" href="./styles.css?v=26" />
   </head>
   <body>
     <section id="passwordGate" class="password-gate" aria-labelledby="passwordTitle" role="dialog" aria-modal="true">
@@ -107,6 +107,8 @@
               <div class="form-actions">
                 <p id="saveStatus" class="save-status" role="status">Autosave ready</p>
                 <nav class="date-jump" aria-label="Standup date shortcuts">
+                  <button class="date-jump-compact" type="button" data-date-jump="-3" aria-label="Open update from three days ago"><strong id="olderTwoShortcutDate"></strong></button>
+                  <button class="date-jump-compact" type="button" data-date-jump="-2" aria-label="Open update from two days ago"><strong id="olderOneShortcutDate"></strong></button>
                   <button type="button" data-date-jump="-1"><span>Yesterday's update</span><strong id="yesterdayShortcutDate"></strong></button>
                   <button type="button" data-date-jump="0"><span>Today's update</span><strong id="todayShortcutDate"></strong></button>
                   <button type="button" data-date-jump="1"><span>Tomorrow's update</span><strong id="tomorrowShortcutDate"></strong></button>
@@ -137,6 +139,6 @@
       </button>
     </template>
 
-    <script src="./app.js?v=25"></script>
+    <script src="./app.js?v=26"></script>
   </body>
 </html>

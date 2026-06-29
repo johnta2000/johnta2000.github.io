@@ -25,6 +25,8 @@ const els = {
   blockers: document.querySelector("#blockers"),
   notes: document.querySelector("#notes"),
   saveStatus: document.querySelector("#saveStatus"),
+  olderTwoShortcutDate: document.querySelector("#olderTwoShortcutDate"),
+  olderOneShortcutDate: document.querySelector("#olderOneShortcutDate"),
   yesterdayShortcutDate: document.querySelector("#yesterdayShortcutDate"),
   todayShortcutDate: document.querySelector("#todayShortcutDate"),
   tomorrowShortcutDate: document.querySelector("#tomorrowShortcutDate"),
@@ -376,8 +378,12 @@ async function jumpToRelativeDate(offsetDays) {
 
 function updateDateShortcuts() {
   const today = new Date();
+  const olderTwo = addDays(today, -3);
+  const olderOne = addDays(today, -2);
   const yesterday = addDays(today, -1);
   const tomorrow = addDays(today, 1);
+  els.olderTwoShortcutDate.textContent = formatShortDate(toDateInputValue(olderTwo));
+  els.olderOneShortcutDate.textContent = formatShortDate(toDateInputValue(olderOne));
   els.yesterdayShortcutDate.textContent = formatShortDate(toDateInputValue(yesterday));
   els.todayShortcutDate.textContent = formatShortDate(toDateInputValue(today));
   els.tomorrowShortcutDate.textContent = formatShortDate(toDateInputValue(tomorrow));

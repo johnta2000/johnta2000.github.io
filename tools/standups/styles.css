@@ -453,7 +453,7 @@ select:focus,
   display: flex;
   align-items: center;
   gap: 12px;
-  width: min(760px, calc(100vw - 32px));
+  width: min(860px, calc(100vw - 32px));
   border: 1px solid var(--line);
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.98);
@@ -491,6 +491,10 @@ select:focus,
   padding: 6px 10px;
   white-space: nowrap;
   min-width: 0;
+}
+
+.date-jump .date-jump-compact {
+  padding-inline: 11px;
 }
 
 .date-jump button:hover,
