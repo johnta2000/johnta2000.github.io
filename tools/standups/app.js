@@ -70,6 +70,9 @@ function initStandups() {
   document.querySelectorAll("[data-command]").forEach((button) => {
     button.addEventListener("click", () => runEditorCommand(button));
   });
+  document.querySelectorAll("[data-copy-editor]").forEach((button) => {
+    button.addEventListener("click", () => copyEditorContents(button));
+  });
   editors.forEach((editor) => {
     editor.addEventListener("input", () => {
       editor.classList.remove("is-invalid");
@@ -434,6 +437,60 @@ function runEditorCommand(button) {
   queueAutosave();
 }
 
+async function copyEditorContents(button) {
+  const editor = button.closest(".rich-field").querySelector(".rich-editor");
+  const html = getEditorHtml(editor);
+  const text = getEditorText(editor);
+
+  try {
+    if (navigator.clipboard?.write && window.ClipboardItem) {
+      await navigator.clipboard.write([
+        new ClipboardItem({
+          "text/html": new Blob([html], { type: "text/html" }),
+          "text/plain": new Blob([text], { type: "text/plain" }),
+        }),
+      ]);
+    } else if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+    } else {
+      copyTextFallback(text);
+    }
+
+    flashCopyButton(button, "Copied");
+  } catch (error) {
+    try {
+      copyTextFallback(text);
+      flashCopyButton(button, "Copied");
+    } catch (fallbackError) {
+      flashCopyButton(button, "Failed");
+    }
+  }
+}
+
+function flashCopyButton(button, label) {
+  const originalLabel = button.dataset.originalLabel || button.textContent;
+  button.dataset.originalLabel = originalLabel;
+  button.textContent = label;
+  button.classList.toggle("is-copied", label === "Copied");
+  window.clearTimeout(button.copyResetTimer);
+  button.copyResetTimer = window.setTimeout(() => {
+    button.textContent = originalLabel;
+    button.classList.remove("is-copied");
+  }, 1300);
+}
+
+function copyTextFallback(text) {
+  const textarea = document.createElement("textarea");
+  textarea.value = text;
+  textarea.setAttribute("readonly", "");
+  textarea.style.position = "fixed";
+  textarea.style.opacity = "0";
+  document.body.append(textarea);
+  textarea.select();
+  document.execCommand("copy");
+  textarea.remove();
+}
+
 function handleEditorKeydown(event) {
   if (event.key === "Enter") {
     const item = getCurrentListItem();
@@ -589,6 +646,10 @@ function getEditorHtml(editor) {
   return sanitizeRichText(editor.innerHTML);
 }
 
+function getEditorText(editor) {
+  return editor.innerText.trim();
+}
+
 function setEditorHtml(editor, html) {
   editor.innerHTML = sanitizeRichText(html);
   normalizeChecklists(editor);
@@ -606,7 +667,7 @@ function sanitizeRichText(html) {
 
   const template = document.createElement("template");
   template.innerHTML = html;
-  const allowedTags = new Set(["B", "STRONG", "I", "EM", "U", "UL", "OL", "LI", "DIV", "P", "BR"]);
+  const allowedTags = new Set(["B", "STRONG", "I", "EM", "U", "S", "STRIKE", "DEL", "UL", "OL", "LI", "DIV", "P", "BR"]);
   template.content.querySelectorAll("*").forEach((node) => {
     if (!allowedTags.has(node.tagName)) {
       node.replaceWith(document.createTextNode(node.textContent || ""));

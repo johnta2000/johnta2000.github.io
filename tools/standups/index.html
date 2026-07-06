@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="robots" content="noindex, nofollow" />
     <title>Daily Standups Tracker</title>
-    <link rel="stylesheet" href="./styles.css?v=26" />
+    <link rel="stylesheet" href="./styles.css?v=28" />
   </head>
   <body>
     <section id="passwordGate" class="password-gate" aria-labelledby="passwordTitle" role="dialog" aria-modal="true">
@@ -68,9 +68,11 @@
                 <span>Yesterday / things I did</span>
                 <div class="editor-toolbar" aria-label="Yesterday formatting">
                   <button type="button" data-command="bold" title="Bold"><strong>B</strong></button>
+                  <button type="button" data-command="strikeThrough" title="Strikethrough"><s>S</s></button>
                   <button type="button" data-command="insertUnorderedList" title="Bulleted list, Command Shift 8">•</button>
                   <button type="button" data-command="insertOrderedList" title="Numbered list, Command Shift 7">1.</button>
                   <button type="button" data-command="toggleChecklist" title="Checklist, type [ ] then space">☐</button>
+                  <button class="copy-editor-button" type="button" data-copy-editor title="Copy contents">Copy</button>
                 </div>
                 <div id="yesterday" class="rich-editor" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Yesterday / things I did" data-placeholder="What changed since your last update?"></div>
               </section>
@@ -78,9 +80,11 @@
                 <span>Today / things to do</span>
                 <div class="editor-toolbar" aria-label="Today formatting">
                   <button type="button" data-command="bold" title="Bold"><strong>B</strong></button>
+                  <button type="button" data-command="strikeThrough" title="Strikethrough"><s>S</s></button>
                   <button type="button" data-command="insertUnorderedList" title="Bulleted list, Command Shift 8">•</button>
                   <button type="button" data-command="insertOrderedList" title="Numbered list, Command Shift 7">1.</button>
                   <button type="button" data-command="toggleChecklist" title="Checklist, type [ ] then space">☐</button>
+                  <button class="copy-editor-button" type="button" data-copy-editor title="Copy contents">Copy</button>
                 </div>
                 <div id="today" class="rich-editor" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Today / things to do" data-placeholder="What are you moving forward today?"></div>
               </section>
@@ -88,9 +92,11 @@
                 <span>Blockers <em>(Optional)</em></span>
                 <div class="editor-toolbar" aria-label="Blockers formatting">
                   <button type="button" data-command="bold" title="Bold"><strong>B</strong></button>
+                  <button type="button" data-command="strikeThrough" title="Strikethrough"><s>S</s></button>
                   <button type="button" data-command="insertUnorderedList" title="Bulleted list, Command Shift 8">•</button>
                   <button type="button" data-command="insertOrderedList" title="Numbered list, Command Shift 7">1.</button>
                   <button type="button" data-command="toggleChecklist" title="Checklist, type [ ] then space">☐</button>
+                  <button class="copy-editor-button" type="button" data-copy-editor title="Copy contents">Copy</button>
                 </div>
                 <div id="blockers" class="rich-editor" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Blockers" data-placeholder="Anything stuck, waiting, or risky?"></div>
               </section>
@@ -98,9 +104,11 @@
                 <span>Notes <em>(Optional)</em></span>
                 <div class="editor-toolbar" aria-label="Notes formatting">
                   <button type="button" data-command="bold" title="Bold"><strong>B</strong></button>
+                  <button type="button" data-command="strikeThrough" title="Strikethrough"><s>S</s></button>
                   <button type="button" data-command="insertUnorderedList" title="Bulleted list, Command Shift 8">•</button>
                   <button type="button" data-command="insertOrderedList" title="Numbered list, Command Shift 7">1.</button>
                   <button type="button" data-command="toggleChecklist" title="Checklist, type [ ] then space">☐</button>
+                  <button class="copy-editor-button" type="button" data-copy-editor title="Copy contents">Copy</button>
                 </div>
                 <div id="notes" class="rich-editor" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Notes" data-placeholder="Useful context, links, or handoff notes."></div>
               </section>
@@ -139,6 +147,6 @@
       </button>
     </template>
 
-    <script src="./app.js?v=26"></script>
+    <script src="./app.js?v=28"></script>
   </body>
 </html>

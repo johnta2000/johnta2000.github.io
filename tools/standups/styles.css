@@ -597,6 +597,23 @@ button svg {
   line-height: 1;
 }
 
+.editor-toolbar .copy-editor-button {
+  width: auto;
+  min-width: 52px;
+  margin-left: auto;
+  padding: 0 10px;
+  border-color: var(--line);
+  background: #fff;
+  color: #62685f;
+  font-size: 12px;
+}
+
+.editor-toolbar .copy-editor-button.is-copied {
+  border-color: rgba(18, 122, 102, 0.28);
+  background: rgba(18, 122, 102, 0.1);
+  color: var(--accent);
+}
+
 .editor-toolbar button:hover,
 .editor-toolbar button:focus {
   border-color: var(--line);
