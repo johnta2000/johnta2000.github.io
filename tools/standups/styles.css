@@ -139,7 +139,7 @@ h3 {
 }
 
 label,
-.field span,
+.field > span,
 .date-control label {
   color: #30342f;
   font-size: 13px;
@@ -653,10 +653,35 @@ button svg {
 
 .daily-list {
   display: grid;
-  gap: 12px;
+  gap: 14px;
   padding: 16px;
   position: sticky;
   top: 18px;
+}
+
+.daily-notes-card {
+  display: grid;
+  gap: 12px;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 16px;
+}
+
+.daily-notes-field > span {
+  color: #596058;
+  font-size: 12px;
+}
+
+.daily-notes-editor {
+  min-height: 118px;
+  max-height: 260px;
+}
+
+.daily-notes-status {
+  margin: -2px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.35;
 }
 
 .roster-subhead {

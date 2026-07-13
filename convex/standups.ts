@@ -28,6 +28,19 @@ export const listForDate = query({
   },
 });
 
+export const getDayNotes = query({
+  args: {
+    teamId: v.string(),
+    standupDate: v.string(),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("standupDayNotes")
+      .withIndex("by_date", (q) => q.eq("teamId", args.teamId).eq("standupDate", args.standupDate))
+      .unique();
+  },
+});
+
 export const getForPersonAndDate = query({
   args: {
     teamId: v.string(),
@@ -107,6 +120,38 @@ export const save = mutation({
     return await ctx.db.insert("standupEntries", {
       ...payload,
       submittedAt: now,
+    });
+  },
+});
+
+export const saveDayNotes = mutation({
+  args: {
+    teamId: v.string(),
+    standupDate: v.string(),
+    notes: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const now = Date.now();
+    const existing = await ctx.db
+      .query("standupDayNotes")
+      .withIndex("by_date", (q) => q.eq("teamId", args.teamId).eq("standupDate", args.standupDate))
+      .unique();
+
+    const payload = {
+      teamId: args.teamId,
+      standupDate: args.standupDate,
+      notes: args.notes.trim(),
+      updatedAt: now,
+    };
+
+    if (existing) {
+      await ctx.db.patch(existing._id, payload);
+      return existing._id;
+    }
+
+    return await ctx.db.insert("standupDayNotes", {
+      ...payload,
+      createdAt: now,
     });
   },
 });

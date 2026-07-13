@@ -27,4 +27,11 @@ export default defineSchema({
   })
     .index("by_date", ["teamId", "standupDate"])
     .index("by_person_date", ["teamId", "personKey", "standupDate"]),
+  standupDayNotes: defineTable({
+    teamId: v.string(),
+    standupDate: v.string(),
+    notes: v.string(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("by_date", ["teamId", "standupDate"]),
 });

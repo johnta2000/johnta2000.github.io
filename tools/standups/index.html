@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="robots" content="noindex, nofollow" />
     <title>Daily Standups Tracker</title>
-    <link rel="stylesheet" href="./styles.css?v=28" />
+    <link rel="stylesheet" href="./styles.css?v=30" />
   </head>
   <body>
     <section id="passwordGate" class="password-gate" aria-labelledby="passwordTitle" role="dialog" aria-modal="true">
@@ -127,6 +127,25 @@
         </form>
 
         <aside class="daily-list" aria-labelledby="dailyListTitle">
+          <section class="daily-notes-card" aria-labelledby="dailyNotesTitle">
+            <div class="panel-heading">
+              <p id="dailyNotesDate" class="eyebrow"></p>
+              <h2 id="dailyNotesTitle">Daily Notes</h2>
+            </div>
+            <section class="field rich-field daily-notes-field">
+              <span>Shared notes for this date</span>
+              <div class="editor-toolbar" aria-label="Daily notes formatting">
+                <button type="button" data-command="bold" title="Bold"><strong>B</strong></button>
+                <button type="button" data-command="strikeThrough" title="Strikethrough"><s>S</s></button>
+                <button type="button" data-command="insertUnorderedList" title="Bulleted list, Command Shift 8">•</button>
+                <button type="button" data-command="insertOrderedList" title="Numbered list, Command Shift 7">1.</button>
+                <button type="button" data-command="toggleChecklist" title="Checklist, type [ ] then space">☐</button>
+                <button class="copy-editor-button" type="button" data-copy-editor title="Copy contents">Copy</button>
+              </div>
+              <div id="dailyNotes" class="rich-editor daily-notes-editor" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Daily notes" data-placeholder="General context for the whole team's standup."></div>
+            </section>
+            <p id="dailyNotesStatus" class="daily-notes-status" role="status">Daily notes ready</p>
+          </section>
           <div class="panel-heading">
             <p id="rosterDate" class="eyebrow"></p>
             <h2 id="dailyListTitle">Submitted Updates</h2>
@@ -147,6 +166,6 @@
       </button>
     </template>
 
-    <script src="./app.js?v=28"></script>
+    <script src="./app.js?v=30"></script>
   </body>
 </html>

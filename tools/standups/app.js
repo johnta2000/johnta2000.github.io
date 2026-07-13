@@ -24,6 +24,9 @@ const els = {
   today: document.querySelector("#today"),
   blockers: document.querySelector("#blockers"),
   notes: document.querySelector("#notes"),
+  dailyNotes: document.querySelector("#dailyNotes"),
+  dailyNotesDate: document.querySelector("#dailyNotesDate"),
+  dailyNotesStatus: document.querySelector("#dailyNotesStatus"),
   saveStatus: document.querySelector("#saveStatus"),
   olderTwoShortcutDate: document.querySelector("#olderTwoShortcutDate"),
   olderOneShortcutDate: document.querySelector("#olderOneShortcutDate"),
@@ -36,10 +39,13 @@ const els = {
   entryTemplate: document.querySelector("#entryTemplate"),
 };
 
-const editors = [els.yesterday, els.today, els.blockers, els.notes];
+const personEditors = [els.yesterday, els.today, els.blockers, els.notes];
+const allEditors = [...personEditors, els.dailyNotes];
 let entriesForDate = [];
 let activePrevious = null;
 let autosaveTimer;
+let dailyNotesAutosaveTimer;
+let activeDailyNotesDate = "";
 let isHydrating = false;
 let shouldResetNewChecklistItem = false;
 
@@ -58,6 +64,7 @@ function init() {
 function initStandups() {
   els.date.value = toDateInputValue(new Date());
   els.personName.value = localStorage.getItem(LOCAL_NAME_KEY) || "";
+  configureRichTextCommands();
   updateDateShortcuts();
   els.date.addEventListener("click", openDatePicker);
   els.date.addEventListener("focus", openDatePicker);
@@ -67,27 +74,40 @@ function initStandups() {
   document.querySelectorAll("[data-date-jump]").forEach((button) => {
     button.addEventListener("click", () => jumpToRelativeDate(Number(button.dataset.dateJump)));
   });
+  document.querySelectorAll(".editor-toolbar button").forEach((button) => {
+    button.addEventListener("pointerdown", (event) => event.preventDefault());
+  });
   document.querySelectorAll("[data-command]").forEach((button) => {
     button.addEventListener("click", () => runEditorCommand(button));
   });
   document.querySelectorAll("[data-copy-editor]").forEach((button) => {
     button.addEventListener("click", () => copyEditorContents(button));
   });
-  editors.forEach((editor) => {
+  allEditors.forEach((editor) => {
     editor.addEventListener("input", () => {
       editor.classList.remove("is-invalid");
       normalizeChecklists(editor);
-      queueAutosave();
+      queueEditorAutosave(editor);
     });
     editor.addEventListener("click", handleChecklistClick);
     editor.addEventListener("keydown", handleEditorKeydown);
     editor.addEventListener("keyup", handleEditorKeyup);
   });
 
+  loadDailyNotes();
   refreshDailyList().then(() => {
     if (els.personName.value.trim()) loadPersonContext();
     updateTodayHeading();
   });
+}
+
+function configureRichTextCommands() {
+  try {
+    document.execCommand("styleWithCSS", false, false);
+    document.execCommand("defaultParagraphSeparator", false, "div");
+  } catch (error) {
+    // Browser support varies; the editor still works without these hints.
+  }
 }
 
 function handlePasswordSubmit(event) {
@@ -119,9 +139,10 @@ function unlockApp() {
 
 async function handleDateChange() {
   clearTimeout(autosaveTimer);
+  await flushDailyNotesAutosave();
   clearForm();
   updateDateShortcuts();
-  await refreshDailyList();
+  await Promise.all([refreshDailyList(), loadDailyNotes()]);
   updateTodayHeading();
   if (els.personName.value.trim()) loadPersonContext();
 }
@@ -207,6 +228,52 @@ async function saveStandup({ silent = false } = {}) {
     console.error(error);
     els.saveStatus.textContent = "Save failed. Check Convex and try again.";
   }
+}
+
+async function loadDailyNotes() {
+  activeDailyNotesDate = els.date.value;
+  els.dailyNotesDate.textContent = formatDate(els.date.value);
+  els.dailyNotesStatus.textContent = "Loading daily notes...";
+
+  try {
+    const entry = await convexQuery("standups:getDayNotes", {
+      teamId: TEAM_ID,
+      standupDate: els.date.value,
+    });
+
+    isHydrating = true;
+    setEditorHtml(els.dailyNotes, entry?.notes || "");
+    isHydrating = false;
+    els.dailyNotesStatus.textContent = entry ? `Last saved ${formatTime(entry.updatedAt)}` : "Daily notes ready";
+  } catch (error) {
+    console.error(error);
+    isHydrating = false;
+    els.dailyNotesStatus.textContent = getConvexMissingFunctionMessage(error) || "Could not load daily notes.";
+  }
+}
+
+async function saveDailyNotes({ silent = false } = {}) {
+  const standupDate = activeDailyNotesDate || els.date.value;
+  if (!standupDate) return;
+  if (!silent) els.dailyNotesStatus.textContent = "Saving daily notes...";
+
+  try {
+    await convexMutation("standups:saveDayNotes", {
+      teamId: TEAM_ID,
+      standupDate,
+      notes: getEditorHtml(els.dailyNotes),
+    });
+
+    els.dailyNotesStatus.textContent = `Last saved ${formatTime(Date.now())}`;
+  } catch (error) {
+    console.error(error);
+    els.dailyNotesStatus.textContent = getConvexMissingFunctionMessage(error) || "Daily notes save failed.";
+  }
+}
+
+function getConvexMissingFunctionMessage(error) {
+  if (!String(error?.message || "").includes("Could not find public function")) return "";
+  return "Daily notes need Convex deploy.";
 }
 
 function fillCurrent(entry) {
@@ -334,8 +401,17 @@ function setEntriesState(message) {
 }
 
 function clearForm() {
-  editors.forEach((editor) => setEditorHtml(editor, ""));
+  personEditors.forEach((editor) => setEditorHtml(editor, ""));
   els.saveStatus.textContent = "";
+}
+
+function queueEditorAutosave(editor) {
+  if (editor === els.dailyNotes) {
+    queueDailyNotesAutosave();
+    return;
+  }
+
+  queueAutosave();
 }
 
 function queueAutosave() {
@@ -367,12 +443,30 @@ async function flushAutosave() {
   }
 }
 
+function queueDailyNotesAutosave() {
+  if (isHydrating) return;
+  clearTimeout(dailyNotesAutosaveTimer);
+  els.dailyNotesStatus.textContent = "Saving daily notes soon...";
+  dailyNotesAutosaveTimer = window.setTimeout(() => {
+    dailyNotesAutosaveTimer = null;
+    saveDailyNotes({ silent: true });
+  }, 800);
+}
+
+async function flushDailyNotesAutosave() {
+  if (!dailyNotesAutosaveTimer) return;
+  clearTimeout(dailyNotesAutosaveTimer);
+  dailyNotesAutosaveTimer = null;
+  await saveDailyNotes();
+}
+
 function hasSavableContent() {
-  return editors.some((editor) => editor.textContent.trim());
+  return personEditors.some((editor) => editor.textContent.trim());
 }
 
 async function jumpToRelativeDate(offsetDays) {
   await flushAutosave();
+  await flushDailyNotesAutosave();
   const date = new Date(`${toDateInputValue(new Date())}T12:00:00`);
   date.setDate(date.getDate() + offsetDays);
   els.date.value = toDateInputValue(date);
@@ -434,7 +528,7 @@ function runEditorCommand(button) {
   const editor = button.closest(".rich-field").querySelector(".rich-editor");
   editor.focus();
   applyEditorCommand(button.dataset.command);
-  queueAutosave();
+  queueEditorAutosave(editor);
 }
 
 async function copyEditorContents(button) {
@@ -516,7 +610,7 @@ function handleEditorKeyup(event) {
   if (event.key === "Enter" && shouldResetNewChecklistItem) {
     setCurrentChecklistItemChecked(false);
     shouldResetNewChecklistItem = false;
-    queueAutosave();
+    queueEditorAutosave(event.currentTarget);
     return;
   }
   if (event.key !== "Enter") shouldResetNewChecklistItem = false;
@@ -597,7 +691,8 @@ function setCurrentChecklistItemChecked(checked) {
 
 function toggleChecklistItem(item) {
   item.dataset.checked = item.dataset.checked === "true" ? "false" : "true";
-  queueAutosave();
+  const editor = item.closest(".rich-editor");
+  if (editor) queueEditorAutosave(editor);
 }
 
 function getCurrentListItem() {
