@@ -239,6 +239,7 @@ select:focus,
   display: grid;
   gap: 12px;
   margin-top: 31px;
+  min-width: 0;
 }
 
 .previous-content.empty-state {
@@ -253,6 +254,8 @@ select:focus,
 .previous-content section {
   display: grid;
   gap: 7px;
+  min-width: 0;
+  overflow: hidden;
   border: 1px solid #e3e4df;
   border-radius: 8px;
   background: #f1f2ee;
@@ -347,6 +350,13 @@ select:focus,
   margin: 0;
   color: #8b9189;
   line-height: 1.5;
+}
+
+.rendered-rich-text,
+.rich-editor {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .previous-content .rendered-rich-text strong,
