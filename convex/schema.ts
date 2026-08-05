@@ -34,4 +34,31 @@ export default defineSchema({
     createdAt: v.number(),
     updatedAt: v.number(),
   }).index("by_date", ["teamId", "standupDate"]),
+  sleepNights: defineTable({
+    sleepDate: v.string(),
+    source: v.union(v.literal("whoop"), v.literal("apple_health"), v.literal("eightsleep"), v.literal("manual")),
+    score: v.number(),
+    scoreKind: v.union(v.literal("native"), v.literal("derived")),
+    durationMinutes: v.optional(v.number()),
+    efficiency: v.optional(v.number()),
+    hrv: v.optional(v.number()),
+    restingHeartRate: v.optional(v.number()),
+    deepMinutes: v.optional(v.number()),
+    remMinutes: v.optional(v.number()),
+    asleepAt: v.optional(v.string()),
+    wokeAt: v.optional(v.string()),
+    importBatchId: v.string(),
+    importedAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_date", ["sleepDate"])
+    .index("by_source_date", ["source", "sleepDate"]),
+  alertnessRatings: defineTable({
+    ratingDate: v.string(),
+    score: v.number(),
+    note: v.optional(v.string()),
+    timezone: v.string(),
+    recordedAt: v.number(),
+    updatedAt: v.number(),
+  }).index("by_date", ["ratingDate"]),
 });

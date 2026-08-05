@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="theme-color" content="#f2f4ed" />
+    <title>Daylight — Personal Sleep Lab</title>
+    <link rel="stylesheet" href="./styles.css?v=1" />
+  </head>
+  <body>
+    <section id="accessGate" class="access-gate" aria-labelledby="gateTitle">
+      <div class="gate-orbit" aria-hidden="true"><span></span></div>
+      <form id="accessForm" class="gate-card">
+        <div class="brand-mark"><span></span> Daylight</div>
+        <p class="eyebrow">Personal sleep lab · private</p>
+        <h1 id="gateTitle">Make sense of how<br />rest becomes <em>feeling.</em></h1>
+        <p class="gate-copy">Your sleep and alertness history is protected by a personal access code.</p>
+        <label class="code-field">
+          <span>Access code</span>
+          <input id="accessInput" type="password" autocomplete="current-password" required />
+        </label>
+        <button class="primary-button gate-button" type="submit">
+          <span>Open my dashboard</span><span aria-hidden="true">↗</span>
+        </button>
+        <p id="accessError" class="form-error" role="alert" hidden>That access code did not work.</p>
+        <p class="gate-footnote">Encrypted in transit · Stored in your private database</p>
+      </form>
+    </section>
+
+    <div id="app" class="app" hidden>
+      <header class="site-header">
+        <a class="brand-mark" href="./" aria-label="Daylight dashboard"><span></span> Daylight</a>
+        <div class="header-actions">
+          <p id="lastUpdated">Sleep lab</p>
+          <button id="lockButton" class="icon-button" type="button" aria-label="Lock dashboard" title="Lock dashboard">⌁</button>
+        </div>
+      </header>
+
+      <main>
+        <section class="hero-grid" aria-labelledby="heroTitle">
+          <div class="hero-copy">
+            <p id="heroDate" class="eyebrow">Today</p>
+            <h1 id="heroTitle">Good morning,<br /><em>John.</em></h1>
+            <p id="heroSummary" class="hero-summary">Import your first sleep history to start finding the pattern between sleep and how you feel.</p>
+            <div class="hero-actions">
+              <button class="primary-button" type="button" data-open-import>Import sleep data <span aria-hidden="true">↗</span></button>
+              <button id="reminderButton" class="text-button" type="button">Add noon reminder <span aria-hidden="true">↓</span></button>
+            </div>
+          </div>
+
+          <article class="score-orbit" aria-label="Latest aggregate sleep score">
+            <div class="orbit-ring ring-one" aria-hidden="true"></div>
+            <div class="orbit-ring ring-two" aria-hidden="true"></div>
+            <div class="score-core">
+              <span>Aggregate</span>
+              <strong id="latestScore">—</strong>
+              <small id="latestScoreLabel">No data yet</small>
+            </div>
+            <p class="orbit-note" id="orbitNote">Your latest night</p>
+          </article>
+        </section>
+
+        <section class="source-strip" aria-label="Latest scores by source">
+          <article class="source-card source-whoop">
+            <div><span class="source-dot"></span><p>Whoop</p></div>
+            <strong id="whoopScore">—</strong>
+            <small id="whoopStatus">Awaiting import</small>
+          </article>
+          <article class="source-card source-apple">
+            <div><span class="source-dot"></span><p>Apple Health</p></div>
+            <strong id="appleScore">—</strong>
+            <small id="appleStatus">Awaiting import</small>
+          </article>
+          <article class="source-card source-eight">
+            <div><span class="source-dot"></span><p>Eight Sleep</p></div>
+            <strong id="eightScore">—</strong>
+            <small id="eightStatus">Awaiting import</small>
+          </article>
+          <button class="source-card source-add" type="button" data-open-import>
+            <span>+</span>
+            <div><p>Add data</p><small>CSV, JSON, or Health export</small></div>
+          </button>
+        </section>
+
+        <section class="dashboard-grid">
+          <article class="panel trend-panel">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Last 28 nights</p>
+                <h2>Your sleep signal</h2>
+              </div>
+              <div class="chart-legend" aria-label="Chart legend">
+                <span><i class="legend-aggregate"></i>Aggregate</span>
+                <span><i class="legend-source"></i>Sources</span>
+              </div>
+            </div>
+            <div class="canvas-wrap">
+              <canvas id="trendChart" role="img" aria-label="Sleep scores over the last 28 nights"></canvas>
+              <div id="trendEmpty" class="chart-empty">Your timeline will appear after your first import.</div>
+            </div>
+          </article>
+
+          <article class="panel checkin-panel">
+            <div class="checkin-top">
+              <div>
+                <p class="eyebrow">Noon pulse · Pacific time</p>
+                <h2>How alert do you feel?</h2>
+              </div>
+              <span id="checkinState" class="status-pill">Due at 12:00</span>
+            </div>
+            <p class="checkin-copy">Go with your first instinct. Consistency matters more than precision.</p>
+            <div id="ratingScale" class="rating-scale" role="radiogroup" aria-label="Alertness from 1 to 10"></div>
+            <div class="rating-labels"><span>Foggy</span><span>Fully switched on</span></div>
+            <label class="note-field">
+              <span>One-line context <em>optional</em></span>
+              <input id="alertnessNote" type="text" maxlength="500" placeholder="Late coffee, hard workout, unusual stress…" />
+            </label>
+            <div class="checkin-actions">
+              <button id="saveAlertness" class="primary-button" type="button" disabled>Save today’s check-in</button>
+              <p id="checkinMessage" role="status"></p>
+            </div>
+          </article>
+
+          <article class="panel relationship-panel">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Sleep × alertness</p>
+                <h2>Does better sleep feel better?</h2>
+              </div>
+              <div id="correlationBadge" class="correlation-badge">Not enough data</div>
+            </div>
+            <div class="canvas-wrap scatter-wrap">
+              <canvas id="scatterChart" role="img" aria-label="Sleep score compared with noon alertness"></canvas>
+              <div id="scatterEmpty" class="chart-empty">Log at least three matched days to reveal your trend.</div>
+            </div>
+            <div class="insight-grid">
+              <div><span>Paired days</span><strong id="pairedDays">0</strong></div>
+              <div><span>Your sweet spot</span><strong id="sweetSpot">—</strong></div>
+              <div><span>Signal</span><strong id="signalLabel">Learning</strong></div>
+            </div>
+          </article>
+
+          <article class="panel recent-panel">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Recent history</p>
+                <h2>Night by night</h2>
+              </div>
+              <button class="text-button" type="button" data-open-import>Manage data <span aria-hidden="true">↗</span></button>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Night</th><th>Aggregate</th><th>Sources</th><th>Duration</th><th>Noon alertness</th></tr></thead>
+                <tbody id="historyRows"></tbody>
+              </table>
+              <div id="historyEmpty" class="table-empty">No sleep nights imported yet.</div>
+            </div>
+          </article>
+        </section>
+      </main>
+
+      <footer>
+        <div class="brand-mark"><span></span> Daylight</div>
+        <p>A personal experiment, not medical advice.</p>
+      </footer>
+    </div>
+
+    <dialog id="importDialog" class="import-dialog" aria-labelledby="importTitle">
+      <form method="dialog" class="dialog-shell">
+        <div class="dialog-heading">
+          <div>
+            <p class="eyebrow">Bring your history together</p>
+            <h2 id="importTitle">Import sleep data</h2>
+          </div>
+          <button class="icon-button" value="cancel" aria-label="Close import dialog">×</button>
+        </div>
+
+        <div class="import-options">
+          <label class="upload-card">
+            <input id="fileInput" type="file" accept=".csv,.json,.xml,text/csv,application/json,text/xml" multiple />
+            <span class="upload-icon">↑</span>
+            <strong>Choose export files</strong>
+            <small>Whoop CSV · Eight Sleep CSV/JSON · Apple Health export.xml</small>
+          </label>
+          <div class="import-explainer">
+            <h3>What happens to each source</h3>
+            <div><span class="source-dot whoop-dot"></span><p><strong>Whoop</strong><small>Uses Sleep Performance as its native score.</small></p></div>
+            <div><span class="source-dot apple-dot"></span><p><strong>Apple Health</strong><small>Sleep duration becomes a clearly labeled derived score.</small></p></div>
+            <div><span class="source-dot eight-dot"></span><p><strong>Eight Sleep</strong><small>Uses a native score when included in the export.</small></p></div>
+          </div>
+        </div>
+
+        <details class="manual-entry">
+          <summary>Add one night manually</summary>
+          <div class="manual-grid">
+            <label><span>Source</span><select id="manualSource"><option value="whoop">Whoop</option><option value="apple_health">Apple Health</option><option value="eightsleep">Eight Sleep</option><option value="manual">Other</option></select></label>
+            <label><span>Wake date</span><input id="manualDate" type="date" /></label>
+            <label><span>Sleep score</span><input id="manualScore" type="number" min="0" max="100" step="1" placeholder="82" /></label>
+            <label><span>Duration (hours)</span><input id="manualDuration" type="number" min="0" max="24" step="0.1" placeholder="7.6" /></label>
+          </div>
+          <button id="addManual" class="secondary-button" type="button">Add this night</button>
+        </details>
+
+        <div id="importPreview" class="import-preview" hidden>
+          <div><strong id="previewCount">0 nights ready</strong><span id="previewSources"></span></div>
+          <button id="confirmImport" class="primary-button" type="button">Import to Daylight</button>
+        </div>
+        <p id="importMessage" class="dialog-message" role="status"></p>
+      </form>
+    </dialog>
+
+    <script src="./app.js?v=1"></script>
+  </body>
+</html>
