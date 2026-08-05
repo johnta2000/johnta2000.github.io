@@ -111,7 +111,6 @@ async function initializeClerk() {
       withSignUp: true,
       forceRedirectUrl: window.location.href.split("#")[0],
       signUpForceRedirectUrl: window.location.href.split("#")[0],
-      initialValues: { emailAddress: "john@affil.ai" },
       appearance: {
         variables: {
           colorPrimary: "#17231e",

@@ -26,13 +26,18 @@ const sleepNight = v.object({
 
 async function requireAuthorizedUser(ctx: QueryCtx | MutationCtx) {
   const identity = await ctx.auth.getUserIdentity();
-  const allowedEmail = process.env.SLEEP_ALLOWED_EMAIL?.trim().toLowerCase();
+  const allowedEmails = new Set(
+    (process.env.SLEEP_ALLOWED_EMAIL || "")
+      .split(",")
+      .map((value) => value.trim().toLowerCase())
+      .filter(Boolean),
+  );
   const email = identity?.email?.trim().toLowerCase();
 
   if (!identity || !email || identity.emailVerified === false) {
     throw new Error("Sign in with a verified email to open this dashboard.");
   }
-  if (!allowedEmail || email !== allowedEmail) {
+  if (!allowedEmails.has(email)) {
     throw new Error("This email is not authorized for the sleep dashboard.");
   }
 
