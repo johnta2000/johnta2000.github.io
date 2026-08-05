@@ -100,6 +100,15 @@ h1 em, h2 em { color: var(--lime); font-family: var(--serif); font-weight: 400; 
 .gate-button:hover { background: #dbff75; }
 .gate-footnote { margin: 1.1rem 0 0; color: #758179; font-size: 0.72rem; }
 .form-error { margin: 0.85rem 0 0; color: #ff9f8d; font-size: 0.85rem; }
+.clerk-sign-in { min-height: 82px; }
+.clerk-sign-in:empty { display: none; }
+.clerk-sign-in .cl-rootBox,
+.clerk-sign-in .cl-cardBox,
+.clerk-sign-in .cl-card { width: 100%; max-width: none; }
+.clerk-sign-in .cl-card { border: 1px solid rgba(255, 255, 255, 0.12); box-shadow: none; }
+.auth-status { margin: 1rem 0 0; color: #aeb8b2; font-size: 0.8rem; line-height: 1.5; }
+.auth-sign-out { border-color: #7a877f; color: #f4f6ef; }
+.auth-sign-out:hover { border-color: var(--lime); background: var(--lime); color: var(--ink); }
 
 .app { min-height: 100vh; }
 .site-header, main, footer { width: min(1500px, calc(100% - clamp(2rem, 7vw, 8rem))); margin-inline: auto; }

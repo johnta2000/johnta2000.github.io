@@ -1,5 +1,4 @@
 const CONVEX_URL = "https://rapid-shark-565.convex.cloud";
-const TOKEN_KEY = "daylight:access-token";
 const SOURCE_LABELS = {
   whoop: "Whoop",
   apple_health: "Apple Health",
@@ -15,9 +14,9 @@ const SOURCE_COLORS = {
 
 const els = {
   gate: document.querySelector("#accessGate"),
-  accessForm: document.querySelector("#accessForm"),
-  accessInput: document.querySelector("#accessInput"),
-  accessError: document.querySelector("#accessError"),
+  clerkSignIn: document.querySelector("#clerkSignIn"),
+  authStatus: document.querySelector("#authStatus"),
+  authSignOut: document.querySelector("#authSignOut"),
   app: document.querySelector("#app"),
   lockButton: document.querySelector("#lockButton"),
   lastUpdated: document.querySelector("#lastUpdated"),
@@ -62,31 +61,25 @@ const els = {
   addManual: document.querySelector("#addManual"),
 };
 
-let accessToken = sessionStorage.getItem(TOKEN_KEY) || "";
 let sleepNights = [];
 let alertnessRatings = [];
 let stagedNights = [];
 let selectedRating = null;
 let chartResizeTimer;
 
-init();
+init().catch((error) => showAuthError(error));
 
-function init() {
+async function init() {
   buildRatingScale();
   els.manualDate.value = todayPacific();
   els.heroDate.textContent = formatLongDate(todayPacific());
   bindEvents();
-
-  if (accessToken) {
-    verifyAndUnlock().catch(() => lockDashboard(false));
-  } else {
-    els.accessInput.focus();
-  }
+  await initializeClerk();
 }
 
 function bindEvents() {
-  els.accessForm.addEventListener("submit", handleAccessSubmit);
-  els.lockButton.addEventListener("click", () => lockDashboard(true));
+  els.lockButton.addEventListener("click", signOut);
+  els.authSignOut.addEventListener("click", signOut);
   document.querySelectorAll("[data-open-import]").forEach((button) => {
     button.addEventListener("click", openImportDialog);
   });
@@ -102,50 +95,76 @@ function bindEvents() {
   });
 }
 
-async function handleAccessSubmit(event) {
-  event.preventDefault();
-  els.accessError.hidden = true;
-  const button = els.accessForm.querySelector("button[type='submit']");
-  button.disabled = true;
-  button.querySelector("span:first-child").textContent = "Checking…";
-
+async function initializeClerk() {
   try {
-    accessToken = await sha256(els.accessInput.value);
-    await convexQuery("sleep:verify", { accessToken });
-    sessionStorage.setItem(TOKEN_KEY, accessToken);
-    els.accessInput.value = "";
-    await unlockDashboard();
+    if (!window.Clerk) throw new Error("Secure sign-in did not load. Check your connection and try again.");
+    await window.Clerk.load({ ui: { ClerkUI: window.__internal_ClerkUICtor } });
+
+    if (window.Clerk.isSignedIn) {
+      await unlockDashboard();
+      return;
+    }
+
+    els.authStatus.hidden = true;
+    window.Clerk.mountSignIn(els.clerkSignIn, {
+      routing: "hash",
+      withSignUp: true,
+      forceRedirectUrl: window.location.href.split("#")[0],
+      signUpForceRedirectUrl: window.location.href.split("#")[0],
+      initialValues: { emailAddress: "john@affil.ai" },
+      appearance: {
+        variables: {
+          colorPrimary: "#17231e",
+          colorBackground: "#f8faf5",
+          colorText: "#17231e",
+          colorInputBackground: "#ffffff",
+          colorInputText: "#17231e",
+          borderRadius: "4px",
+          fontFamily: "Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+        },
+      },
+    });
   } catch (error) {
     console.error(error);
-    accessToken = "";
-    sessionStorage.removeItem(TOKEN_KEY);
-    els.accessError.hidden = false;
-    els.accessInput.select();
-  } finally {
-    button.disabled = false;
-    button.querySelector("span:first-child").textContent = "Open my dashboard";
+    showAuthError(error);
   }
 }
 
-async function verifyAndUnlock() {
-  await convexQuery("sleep:verify", { accessToken });
-  await unlockDashboard();
-}
-
 async function unlockDashboard() {
-  els.gate.hidden = true;
-  els.app.hidden = false;
-  await loadDashboard();
+  els.authStatus.hidden = false;
+  els.authStatus.textContent = "Verifying your account…";
+  try {
+    const viewer = await convexQuery("sleep:verify", {});
+    els.lastUpdated.textContent = viewer.email || "Sleep lab";
+    els.gate.hidden = true;
+    els.app.hidden = false;
+    await loadDashboard();
+  } catch (error) {
+    console.error(error);
+    showAuthError(error);
+  }
 }
 
-function lockDashboard(focusInput) {
-  accessToken = "";
+async function signOut() {
   sleepNights = [];
   alertnessRatings = [];
-  sessionStorage.removeItem(TOKEN_KEY);
+  if (window.Clerk?.isSignedIn) await window.Clerk.signOut();
+  window.location.assign(window.location.href.split("#")[0]);
+}
+
+function showAuthError(error) {
+  const message = String(error?.message || error || "");
   els.app.hidden = true;
   els.gate.hidden = false;
-  if (focusInput) els.accessInput.focus();
+  els.authStatus.hidden = false;
+  els.authSignOut.hidden = !window.Clerk?.isSignedIn;
+  if (/not authorized/i.test(message)) {
+    els.authStatus.textContent = "This Clerk account is signed in, but it is not approved for this private dashboard.";
+  } else if (/auth provider|token|authenticated|verified email/i.test(message)) {
+    els.authStatus.textContent = "Clerk sign-in is ready, but its Convex integration still needs to be activated in the Clerk dashboard.";
+  } else {
+    els.authStatus.textContent = "Secure sign-in could not finish loading. Refresh the page and try again.";
+  }
 }
 
 async function loadDashboard() {
@@ -154,15 +173,15 @@ async function loadDashboard() {
   const startDate = addDays(endDate, -365);
 
   try {
-    const data = await convexQuery("sleep:dashboard", { accessToken, startDate, endDate });
+    const data = await convexQuery("sleep:dashboard", { startDate, endDate });
     sleepNights = data.nights || [];
     alertnessRatings = data.alertness || [];
     renderDashboard();
     els.lastUpdated.textContent = `Updated ${formatTime(new Date())}`;
   } catch (error) {
     console.error(error);
-    if (/access code|Invalid sleep/i.test(error.message)) {
-      lockDashboard(true);
+    if (/authorized|authenticated|token|verified email/i.test(error.message)) {
+      showAuthError(error);
       return;
     }
     els.lastUpdated.textContent = "Could not refresh";
@@ -271,7 +290,6 @@ async function saveTodayAlertness() {
   els.checkinMessage.textContent = "Saving…";
   try {
     await convexMutation("sleep:saveAlertness", {
-      accessToken,
       ratingDate: todayPacific(),
       score: selectedRating,
       note: els.alertnessNote.value.trim() || undefined,
@@ -526,7 +544,6 @@ async function importStagedNights() {
     const batchId = `web-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     for (let index = 0; index < stagedNights.length; index += 500) {
       const result = await convexMutation("sleep:importNights", {
-        accessToken,
         importBatchId: batchId,
         nights: stagedNights.slice(index, index + 500),
       });
@@ -842,9 +859,14 @@ async function convexQuery(path, args) { return convexCall("query", path, args);
 async function convexMutation(path, args) { return convexCall("mutation", path, args); }
 
 async function convexCall(kind, path, args) {
+  const token = await getConvexToken();
+  if (!token) throw new Error("Not authenticated with Clerk.");
   const response = await fetch(`${CONVEX_URL}/api/${kind}`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
     body: JSON.stringify({ path, args }),
   });
   const result = await response.json();
@@ -852,10 +874,31 @@ async function convexCall(kind, path, args) {
   return result.value;
 }
 
-async function sha256(value) {
-  const bytes = new TextEncoder().encode(value);
-  const digest = await crypto.subtle.digest("SHA-256", bytes);
-  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+async function getConvexToken() {
+  const session = window.Clerk?.session;
+  if (!session) return null;
+
+  const sessionToken = await session.getToken();
+  const audience = readJwtPayload(sessionToken)?.aud;
+  if (audience === "convex" || (Array.isArray(audience) && audience.includes("convex"))) {
+    return sessionToken;
+  }
+
+  try {
+    return await session.getToken({ template: "convex" });
+  } catch {
+    return sessionToken;
+  }
+}
+
+function readJwtPayload(token) {
+  if (!token) return null;
+  try {
+    const encoded = token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
+    return JSON.parse(decodeURIComponent(escape(atob(encoded))));
+  } catch {
+    return null;
+  }
 }
 
 function todayPacific() { return dateInTimeZone(new Date(), "America/Los_Angeles"); }

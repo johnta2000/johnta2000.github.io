@@ -1,4 +1,5 @@
 import { mutation, query } from "./_generated/server";
+import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { v } from "convex/values";
 
 const source = v.union(
@@ -23,11 +24,19 @@ const sleepNight = v.object({
   wokeAt: v.optional(v.string()),
 });
 
-function verifyAccess(accessToken: string) {
-  const expected = process.env.SLEEP_ACCESS_HASH?.trim();
-  if (!expected || accessToken.length !== 64 || accessToken !== expected) {
-    throw new Error("Invalid sleep dashboard access code.");
+async function requireAuthorizedUser(ctx: QueryCtx | MutationCtx) {
+  const identity = await ctx.auth.getUserIdentity();
+  const allowedEmail = process.env.SLEEP_ALLOWED_EMAIL?.trim().toLowerCase();
+  const email = identity?.email?.trim().toLowerCase();
+
+  if (!identity || !email || identity.emailVerified === false) {
+    throw new Error("Sign in with a verified email to open this dashboard.");
   }
+  if (!allowedEmail || email !== allowedEmail) {
+    throw new Error("This email is not authorized for the sleep dashboard.");
+  }
+
+  return identity;
 }
 
 function assertIsoDate(value: string, field: string) {
@@ -42,21 +51,20 @@ function cleanOptionalNumber(value: number | undefined, min: number, max: number
 }
 
 export const verify = query({
-  args: { accessToken: v.string() },
-  handler: async (_ctx, { accessToken }) => {
-    verifyAccess(accessToken);
-    return true;
+  args: {},
+  handler: async (ctx) => {
+    const identity = await requireAuthorizedUser(ctx);
+    return { email: identity.email };
   },
 });
 
 export const dashboard = query({
   args: {
-    accessToken: v.string(),
     startDate: v.string(),
     endDate: v.string(),
   },
   handler: async (ctx, args) => {
-    verifyAccess(args.accessToken);
+    await requireAuthorizedUser(ctx);
     assertIsoDate(args.startDate, "startDate");
     assertIsoDate(args.endDate, "endDate");
 
@@ -77,12 +85,11 @@ export const dashboard = query({
 
 export const importNights = mutation({
   args: {
-    accessToken: v.string(),
     importBatchId: v.string(),
     nights: v.array(sleepNight),
   },
   handler: async (ctx, args) => {
-    verifyAccess(args.accessToken);
+    await requireAuthorizedUser(ctx);
     if (!args.nights.length || args.nights.length > 500) {
       throw new Error("Import between 1 and 500 nights at a time.");
     }
@@ -131,14 +138,13 @@ export const importNights = mutation({
 
 export const saveAlertness = mutation({
   args: {
-    accessToken: v.string(),
     ratingDate: v.string(),
     score: v.number(),
     note: v.optional(v.string()),
     timezone: v.string(),
   },
   handler: async (ctx, args) => {
-    verifyAccess(args.accessToken);
+    await requireAuthorizedUser(ctx);
     assertIsoDate(args.ratingDate, "ratingDate");
     if (!Number.isInteger(args.score) || args.score < 1 || args.score > 10) {
       throw new Error("Alertness must be a whole number from 1 to 10.");

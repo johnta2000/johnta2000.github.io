@@ -6,26 +6,21 @@
     <meta name="robots" content="noindex, nofollow" />
     <meta name="theme-color" content="#f2f4ed" />
     <title>Daylight — Personal Sleep Lab</title>
-    <link rel="stylesheet" href="./styles.css?v=1" />
+    <link rel="stylesheet" href="./styles.css?v=2" />
   </head>
   <body>
     <section id="accessGate" class="access-gate" aria-labelledby="gateTitle">
       <div class="gate-orbit" aria-hidden="true"><span></span></div>
-      <form id="accessForm" class="gate-card">
+      <div class="gate-card">
         <div class="brand-mark"><span></span> Daylight</div>
         <p class="eyebrow">Personal sleep lab · private</p>
         <h1 id="gateTitle">Make sense of how<br />rest becomes <em>feeling.</em></h1>
-        <p class="gate-copy">Your sleep and alertness history is protected by a personal access code.</p>
-        <label class="code-field">
-          <span>Access code</span>
-          <input id="accessInput" type="password" autocomplete="current-password" required />
-        </label>
-        <button class="primary-button gate-button" type="submit">
-          <span>Open my dashboard</span><span aria-hidden="true">↗</span>
-        </button>
-        <p id="accessError" class="form-error" role="alert" hidden>That access code did not work.</p>
-        <p class="gate-footnote">Encrypted in transit · Stored in your private database</p>
-      </form>
+        <p class="gate-copy">Enter your email and use the six-digit code Clerk sends you. Only your approved account can reach the sleep data.</p>
+        <div id="clerkSignIn" class="clerk-sign-in" aria-live="polite"></div>
+        <p id="authStatus" class="auth-status" role="status">Loading secure sign-in…</p>
+        <button id="authSignOut" class="secondary-button auth-sign-out" type="button" hidden>Use a different email</button>
+        <p class="gate-footnote">Passwordless sign-in by Clerk · Server-verified access</p>
+      </div>
     </section>
 
     <div id="app" class="app" hidden>
@@ -210,6 +205,19 @@
       </form>
     </dialog>
 
-    <script src="./app.js?v=1"></script>
+    <script
+      defer
+      crossorigin="anonymous"
+      src="https://active-magpie-34.clerk.accounts.dev/npm/@clerk/ui@1/dist/ui.browser.js"
+      type="text/javascript"
+    ></script>
+    <script
+      defer
+      crossorigin="anonymous"
+      data-clerk-publishable-key="pk_test_YWN0aXZlLW1hZ3BpZS0zNC5jbGVyay5hY2NvdW50cy5kZXYk"
+      src="https://active-magpie-34.clerk.accounts.dev/npm/@clerk/clerk-js@6/dist/clerk.browser.js"
+      type="text/javascript"
+    ></script>
+    <script defer src="./app.js?v=2"></script>
   </body>
 </html>
