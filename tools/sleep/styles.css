@@ -147,6 +147,10 @@ h1 em, h2 em { color: var(--lime); font-family: var(--serif); font-weight: 400; 
 .source-apple .source-dot, .apple-dot { background: var(--orange); }
 .source-eight .source-dot, .eight-dot { background: var(--aqua); }
 .source-whoop .source-dot, .whoop-dot { background: var(--blue); }
+.source-action { margin-top: 0.8rem; padding: 0; border: 0; border-bottom: 1px solid currentColor; background: transparent; color: var(--ink); cursor: pointer; font: inherit; font-size: 0.68rem; font-weight: 720; }
+.source-action:disabled { cursor: wait; opacity: 0.55; }
+.source-action-muted { margin-left: 0.65rem; color: var(--muted); font-weight: 600; }
+.source-message { display: block; min-height: 0.8rem; margin-top: 0.4rem; color: var(--muted); font-size: 0.62rem; line-height: 1.35; }
 .source-add { display: flex; align-items: center; gap: 1rem; cursor: pointer; }
 .source-add:hover { background: rgba(255, 255, 255, 0.35); }
 .source-add > span { display: grid; width: 40px; height: 40px; place-items: center; border: 1px solid #b8c0b8; border-radius: 50%; font-size: 1.3rem; }

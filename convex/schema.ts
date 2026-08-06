@@ -61,4 +61,21 @@ export default defineSchema({
     recordedAt: v.number(),
     updatedAt: v.number(),
   }).index("by_date", ["ratingDate"]),
+  whoopOAuthStates: defineTable({
+    state: v.string(),
+    clerkSubject: v.string(),
+    createdAt: v.number(),
+    expiresAt: v.number(),
+  }).index("by_state", ["state"]),
+  whoopConnections: defineTable({
+    clerkSubject: v.string(),
+    accessTokenEncrypted: v.string(),
+    refreshTokenEncrypted: v.string(),
+    expiresAt: v.number(),
+    scope: v.string(),
+    tokenType: v.string(),
+    connectedAt: v.number(),
+    updatedAt: v.number(),
+    lastSyncedAt: v.optional(v.number()),
+  }).index("by_subject", ["clerkSubject"]),
 });

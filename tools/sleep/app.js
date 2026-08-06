@@ -29,6 +29,9 @@ const els = {
   appleScore: document.querySelector("#appleScore"),
   eightScore: document.querySelector("#eightScore"),
   whoopStatus: document.querySelector("#whoopStatus"),
+  whoopAction: document.querySelector("#whoopAction"),
+  whoopDisconnect: document.querySelector("#whoopDisconnect"),
+  whoopMessage: document.querySelector("#whoopMessage"),
   appleStatus: document.querySelector("#appleStatus"),
   eightStatus: document.querySelector("#eightStatus"),
   trendChart: document.querySelector("#trendChart"),
@@ -89,6 +92,8 @@ function bindEvents() {
   els.saveAlertness.addEventListener("click", saveTodayAlertness);
   els.alertnessNote.addEventListener("input", updateSaveButton);
   els.reminderButton.addEventListener("click", downloadNoonReminder);
+  els.whoopAction.addEventListener("click", handleWhoopAction);
+  els.whoopDisconnect.addEventListener("click", disconnectWhoop);
   window.addEventListener("resize", () => {
     clearTimeout(chartResizeTimer);
     chartResizeTimer = setTimeout(renderCharts, 100);
@@ -138,6 +143,7 @@ async function unlockDashboard() {
     els.gate.hidden = true;
     els.app.hidden = false;
     await loadDashboard();
+    await initializeWhoop();
   } catch (error) {
     console.error(error);
     showAuthError(error);
@@ -185,6 +191,102 @@ async function loadDashboard() {
     }
     els.lastUpdated.textContent = "Could not refresh";
   }
+}
+
+async function initializeWhoop() {
+  const params = new URLSearchParams(window.location.search);
+  const callbackStatus = params.get("whoop");
+  if (callbackStatus === "error") {
+    els.whoopMessage.textContent = "WHOOP authorization did not finish. Try connecting again.";
+  }
+
+  try {
+    const status = await convexQuery("whoopData:status", {});
+    setWhoopConnectionState(status);
+    if (callbackStatus === "connected") {
+      els.whoopMessage.textContent = "Connected. Importing your WHOOP sleep history…";
+      await syncWhoop();
+    }
+  } catch (error) {
+    console.error(error);
+    els.whoopMessage.textContent = readableWhoopError(error);
+  } finally {
+    if (callbackStatus) {
+      params.delete("whoop");
+      params.delete("reason");
+      const query = params.toString();
+      window.history.replaceState({}, "", `${window.location.pathname}${query ? `?${query}` : ""}`);
+    }
+  }
+}
+
+function setWhoopConnectionState(status) {
+  els.whoopAction.dataset.connected = status.connected ? "true" : "false";
+  els.whoopAction.textContent = status.connected ? "Sync Whoop" : "Connect Whoop";
+  els.whoopDisconnect.hidden = !status.connected;
+  if (status.connected && status.lastSyncedAt) {
+    els.whoopMessage.textContent = `Last synced ${formatTime(new Date(status.lastSyncedAt))}`;
+  }
+}
+
+async function disconnectWhoop() {
+  els.whoopAction.disabled = true;
+  els.whoopDisconnect.disabled = true;
+  els.whoopMessage.textContent = "Disconnecting…";
+  try {
+    await convexAction("whoop:disconnect", {});
+    setWhoopConnectionState({ connected: false });
+    els.whoopMessage.textContent = "WHOOP disconnected. Imported history remains in your dashboard.";
+  } catch (error) {
+    console.error(error);
+    els.whoopMessage.textContent = readableWhoopError(error);
+  } finally {
+    els.whoopAction.disabled = false;
+    els.whoopDisconnect.disabled = false;
+  }
+}
+
+async function handleWhoopAction() {
+  if (els.whoopAction.dataset.connected === "true") {
+    await syncWhoop();
+    return;
+  }
+  els.whoopAction.disabled = true;
+  els.whoopAction.textContent = "Opening Whoop…";
+  els.whoopMessage.textContent = "";
+  try {
+    const result = await convexAction("whoop:beginConnect", {});
+    window.location.assign(result.url);
+  } catch (error) {
+    console.error(error);
+    els.whoopMessage.textContent = readableWhoopError(error);
+    els.whoopAction.disabled = false;
+    els.whoopAction.textContent = "Connect Whoop";
+  }
+}
+
+async function syncWhoop() {
+  els.whoopAction.disabled = true;
+  els.whoopAction.textContent = "Syncing…";
+  try {
+    const result = await convexAction("whoop:sync", {});
+    els.whoopMessage.textContent = `Synced ${result.inserted + result.updated} nights from Whoop.`;
+    await loadDashboard();
+    setWhoopConnectionState({ connected: true, lastSyncedAt: Date.now() });
+  } catch (error) {
+    console.error(error);
+    els.whoopMessage.textContent = readableWhoopError(error);
+  } finally {
+    els.whoopAction.disabled = false;
+    els.whoopAction.textContent = "Sync Whoop";
+  }
+}
+
+function readableWhoopError(error) {
+  const message = String(error?.message || error || "");
+  if (/WHOOP_CLIENT/i.test(message)) return "WHOOP developer credentials still need to be configured.";
+  if (/connect WHOOP/i.test(message)) return "Connect WHOOP before syncing.";
+  return "WHOOP could not finish that request. Try again.";
 }
 
 function renderDashboard() {
@@ -856,6 +958,7 @@ function downloadNoonReminder() {
 
 async function convexQuery(path, args) { return convexCall("query", path, args); }
 async function convexMutation(path, args) { return convexCall("mutation", path, args); }
+async function convexAction(path, args) { return convexCall("action", path, args); }
 
 async function convexCall(kind, path, args) {
   const token = await getConvexToken();

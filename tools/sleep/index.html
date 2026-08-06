@@ -66,6 +66,9 @@
             <div><span class="source-dot"></span><p>Whoop</p></div>
             <strong id="whoopScore">—</strong>
             <small id="whoopStatus">Awaiting import</small>
+            <button id="whoopAction" class="source-action" type="button">Connect Whoop</button>
+            <button id="whoopDisconnect" class="source-action source-action-muted" type="button" hidden>Disconnect</button>
+            <span id="whoopMessage" class="source-message" role="status"></span>
           </article>
           <article class="source-card source-apple">
             <div><span class="source-dot"></span><p>Apple Health</p></div>
@@ -223,6 +226,6 @@
       src="https://clerk.john-ta.com/npm/@clerk/clerk-js@6/dist/clerk.browser.js"
       type="text/javascript"
     ></script>
-    <script defer src="./app.js?v=4"></script>
+    <script defer src="./app.js?v=5"></script>
   </body>
 </html>
