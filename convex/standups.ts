@@ -1,4 +1,5 @@
 import { mutation, query } from "./_generated/server";
+import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { v } from "convex/values";
 
 const entryFields = {
@@ -15,12 +16,41 @@ function normalizePersonKey(name: string) {
   return name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 }
 
+async function requireAuthorizedUser(ctx: QueryCtx | MutationCtx) {
+  const identity = await ctx.auth.getUserIdentity();
+  const allowedEmails = new Set(
+    (process.env.STANDUPS_ALLOWED_EMAIL || process.env.SLEEP_ALLOWED_EMAIL || "")
+      .split(",")
+      .map((value) => value.trim().toLowerCase())
+      .filter(Boolean),
+  );
+  const email = identity?.email?.trim().toLowerCase();
+
+  if (!identity || !email || identity.emailVerified === false) {
+    throw new Error("Sign in with a verified email to open standups.");
+  }
+  if (!allowedEmails.has(email)) {
+    throw new Error("This email is not authorized for standups.");
+  }
+
+  return identity;
+}
+
+export const verify = query({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await requireAuthorizedUser(ctx);
+    return { email: identity.email };
+  },
+});
+
 export const listForDate = query({
   args: {
     teamId: v.string(),
     standupDate: v.string(),
   },
   handler: async (ctx, args) => {
+    await requireAuthorizedUser(ctx);
     return await ctx.db
       .query("standupEntries")
       .withIndex("by_date", (q) => q.eq("teamId", args.teamId).eq("standupDate", args.standupDate))
@@ -34,6 +64,7 @@ export const getDayNotes = query({
     standupDate: v.string(),
   },
   handler: async (ctx, args) => {
+    await requireAuthorizedUser(ctx);
     return await ctx.db
       .query("standupDayNotes")
       .withIndex("by_date", (q) => q.eq("teamId", args.teamId).eq("standupDate", args.standupDate))
@@ -48,6 +79,7 @@ export const getForPersonAndDate = query({
     personName: v.string(),
   },
   handler: async (ctx, args) => {
+    await requireAuthorizedUser(ctx);
     const personKey = normalizePersonKey(args.personName);
     if (!personKey) return null;
 
@@ -67,6 +99,7 @@ export const getPreviousForPerson = query({
     personName: v.string(),
   },
   handler: async (ctx, args) => {
+    await requireAuthorizedUser(ctx);
     const personKey = normalizePersonKey(args.personName);
     if (!personKey) return null;
 
@@ -85,6 +118,7 @@ export const getPreviousForPerson = query({
 export const save = mutation({
   args: entryFields,
   handler: async (ctx, args) => {
+    await requireAuthorizedUser(ctx);
     const now = Date.now();
     const personName = args.personName.trim();
     const personKey = normalizePersonKey(personName);
@@ -131,6 +165,7 @@ export const saveDayNotes = mutation({
     notes: v.string(),
   },
   handler: async (ctx, args) => {
+    await requireAuthorizedUser(ctx);
     const now = Date.now();
     const existing = await ctx.db
       .query("standupDayNotes")

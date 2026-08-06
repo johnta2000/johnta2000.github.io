@@ -1,17 +1,15 @@
 const CONVEX_URL = "https://rapid-shark-565.convex.cloud";
 const TEAM_ID = "johns-website-default";
 const LOCAL_NAME_KEY = "standups:last-person-name";
-const ACCESS_KEY = "standups:access";
-const ACCESS_PASSWORD = "corgi124";
-const ACCESS_DURATION_MS = 7 * 24 * 60 * 60 * 1000;
 const TEAM_MEMBERS = ["John", "Vivek", "Vishal", "Jenny"];
 
 const els = {
   app: document.querySelector("#standupsApp"),
-  passwordGate: document.querySelector("#passwordGate"),
-  passwordForm: document.querySelector("#passwordForm"),
-  passwordInput: document.querySelector("#passwordInput"),
-  passwordError: document.querySelector("#passwordError"),
+  accessGate: document.querySelector("#accessGate"),
+  clerkSignIn: document.querySelector("#clerkSignIn"),
+  authStatus: document.querySelector("#authStatus"),
+  authSignOut: document.querySelector("#authSignOut"),
+  lockButton: document.querySelector("#lockButton"),
   date: document.querySelector("#standupDate"),
   form: document.querySelector("#standupForm"),
   personName: document.querySelector("#personName"),
@@ -52,13 +50,7 @@ let shouldResetNewChecklistItem = false;
 init();
 
 function init() {
-  els.passwordForm.addEventListener("submit", handlePasswordSubmit);
-  if (!hasStoredAccess()) {
-    els.passwordInput.focus();
-    return;
-  }
-
-  unlockApp();
+  initializeClerk();
 }
 
 function initStandups() {
@@ -70,6 +62,8 @@ function initStandups() {
   els.date.addEventListener("focus", openDatePicker);
   els.date.addEventListener("change", handleDateChange);
   els.personName.addEventListener("change", loadPersonContext);
+  els.lockButton.addEventListener("click", signOut);
+  els.authSignOut.addEventListener("click", signOut);
   els.form.addEventListener("submit", (event) => event.preventDefault());
   document.querySelectorAll("[data-date-jump]").forEach((button) => {
     button.addEventListener("click", () => jumpToRelativeDate(Number(button.dataset.dateJump)));
@@ -110,31 +104,75 @@ function configureRichTextCommands() {
   }
 }
 
-function handlePasswordSubmit(event) {
-  event.preventDefault();
-  if (els.passwordInput.value !== ACCESS_PASSWORD) {
-    els.passwordError.removeAttribute("hidden");
-    els.passwordInput.select();
-    return;
+async function initializeClerk() {
+  try {
+    if (!window.Clerk) throw new Error("Secure sign-in did not load. Refresh the page and try again.");
+    await window.Clerk.load({ ui: { ClerkUI: window.__internal_ClerkUICtor } });
+
+    if (window.Clerk.isSignedIn) {
+      await unlockApp();
+      return;
+    }
+
+    els.authStatus.hidden = true;
+    window.Clerk.mountSignIn(els.clerkSignIn, {
+      routing: "hash",
+      withSignUp: true,
+      forceRedirectUrl: window.location.href.split("#")[0],
+      signUpForceRedirectUrl: window.location.href.split("#")[0],
+      appearance: {
+        variables: {
+          colorPrimary: "#126a5c",
+          colorBackground: "#ffffff",
+          colorText: "#202124",
+          colorInputBackground: "#ffffff",
+          colorInputText: "#202124",
+          borderRadius: "8px",
+          fontFamily: "Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+        },
+      },
+    });
+  } catch (error) {
+    console.error(error);
+    showAuthError(error);
   }
-
-  localStorage.setItem(ACCESS_KEY, String(Date.now() + ACCESS_DURATION_MS));
-  els.passwordInput.value = "";
-  els.passwordError.setAttribute("hidden", "");
-  unlockApp();
 }
 
-function hasStoredAccess() {
-  const expiresAt = Number(localStorage.getItem(ACCESS_KEY) || 0);
-  if (expiresAt > Date.now()) return true;
-  localStorage.removeItem(ACCESS_KEY);
-  return false;
+async function unlockApp() {
+  els.authStatus.hidden = false;
+  els.authStatus.textContent = "Verifying your account...";
+  try {
+    const viewer = await convexQuery("standups:verify", {});
+    els.accessGate.setAttribute("hidden", "");
+    els.app.removeAttribute("hidden");
+    els.lockButton.textContent = viewer.email ? `Sign out ${viewer.email}` : "Sign out";
+    initStandups();
+  } catch (error) {
+    console.error(error);
+    showAuthError(error);
+  }
 }
 
-function unlockApp() {
-  els.passwordGate.setAttribute("hidden", "");
-  els.app.removeAttribute("hidden");
-  initStandups();
+async function signOut() {
+  clearTimeout(autosaveTimer);
+  clearTimeout(dailyNotesAutosaveTimer);
+  if (window.Clerk?.isSignedIn) await window.Clerk.signOut();
+  window.location.assign(window.location.href.split("#")[0]);
+}
+
+function showAuthError(error) {
+  const message = String(error?.message || error || "");
+  els.app.setAttribute("hidden", "");
+  els.accessGate.removeAttribute("hidden");
+  els.authStatus.hidden = false;
+  els.authSignOut.hidden = !window.Clerk?.isSignedIn;
+  if (/not authorized/i.test(message)) {
+    els.authStatus.textContent = "This Clerk account is signed in, but it is not approved for standups.";
+  } else if (/auth provider|token|authenticated|verified email|jwt|invalidauthheader/i.test(message)) {
+    els.authStatus.textContent = "Clerk sign-in loaded, but the Convex auth integration needs attention.";
+  } else {
+    els.authStatus.textContent = "Secure sign-in could not finish loading. Refresh the page and try again.";
+  }
 }
 
 async function handleDateChange() {
@@ -799,16 +837,48 @@ async function convexMutation(path, args) {
 }
 
 async function convexCall(kind, path, args) {
+  const token = await getConvexToken();
+  if (!token) throw new Error("Not authenticated with Clerk.");
   const response = await fetch(`${CONVEX_URL}/api/${kind}`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
     body: JSON.stringify({ path, args }),
   });
   const result = await response.json();
-  if (result.status !== "success") {
+  if (!response.ok || result.status !== "success") {
     throw new Error(result.errorMessage || `Convex ${kind} failed`);
   }
   return result.value;
+}
+
+async function getConvexToken() {
+  const session = window.Clerk?.session;
+  if (!session) return null;
+
+  const sessionToken = await session.getToken();
+  const audience = readJwtPayload(sessionToken)?.aud;
+  if (audience === "convex" || (Array.isArray(audience) && audience.includes("convex"))) {
+    return sessionToken;
+  }
+
+  try {
+    return await session.getToken({ template: "convex" });
+  } catch {
+    return sessionToken;
+  }
+}
+
+function readJwtPayload(token) {
+  if (!token) return null;
+  try {
+    const encoded = token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
+    return JSON.parse(decodeURIComponent(escape(atob(encoded))));
+  } catch {
+    return null;
+  }
 }
 
 function toDateInputValue(date) {

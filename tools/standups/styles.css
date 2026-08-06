@@ -43,6 +43,7 @@ button {
   display: none !important;
 }
 
+.access-gate,
 .password-gate {
   display: grid;
   place-items: center;
@@ -50,6 +51,7 @@ button {
   padding: 24px;
 }
 
+.access-card,
 .password-card {
   display: grid;
   gap: 16px;
@@ -61,11 +63,13 @@ button {
   padding: 24px;
 }
 
+.access-card h1,
 .password-card h1 {
   font-size: 34px;
   line-height: 1;
 }
 
+.access-card button,
 .password-card button {
   min-height: 43px;
   border: 1px solid var(--accent-strong);
@@ -73,6 +77,46 @@ button {
   background: var(--accent);
   color: #fff;
   font-weight: 800;
+}
+
+.access-copy {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.clerk-sign-in {
+  min-height: 82px;
+}
+
+.clerk-sign-in:empty {
+  display: none;
+}
+
+.clerk-sign-in .cl-rootBox,
+.clerk-sign-in .cl-cardBox,
+.clerk-sign-in .cl-card {
+  width: 100%;
+  max-width: none;
+}
+
+.clerk-sign-in .cl-card {
+  border: 1px solid var(--line);
+  box-shadow: none;
+}
+
+.auth-status,
+.access-footnote {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.auth-sign-out {
+  background: #fff;
+  color: var(--accent);
 }
 
 .password-error {
@@ -136,6 +180,24 @@ h3 {
   display: grid;
   gap: 7px;
   min-width: 190px;
+}
+
+.lock-button {
+  min-height: 43px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  padding: 0 12px;
+}
+
+.lock-button:hover,
+.lock-button:focus {
+  border-color: var(--accent);
+  color: var(--accent);
+  outline: none;
 }
 
 label,

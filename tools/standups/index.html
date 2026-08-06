@@ -5,20 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="robots" content="noindex, nofollow" />
     <title>Daily Standups Tracker</title>
-    <link rel="stylesheet" href="./styles.css?v=31" />
+    <link rel="stylesheet" href="./styles.css?v=32" />
   </head>
   <body>
-    <section id="passwordGate" class="password-gate" aria-labelledby="passwordTitle" role="dialog" aria-modal="true">
-      <form id="passwordForm" class="password-card">
+    <section id="accessGate" class="access-gate" aria-labelledby="accessTitle" role="dialog" aria-modal="true">
+      <div class="access-card">
         <p class="eyebrow">Restricted tool</p>
-        <h1 id="passwordTitle">Daily Standups Tracker</h1>
-        <label class="field">
-          <span>Password</span>
-          <input id="passwordInput" type="password" autocomplete="current-password" required />
-        </label>
-        <button type="submit">Enter</button>
-        <p id="passwordError" class="password-error" role="alert" hidden>Wrong password.</p>
-      </form>
+        <h1 id="accessTitle">Daily Standups Tracker</h1>
+        <p class="access-copy">Sign in with your approved email to view and edit standups.</p>
+        <div id="clerkSignIn" class="clerk-sign-in" aria-live="polite"></div>
+        <p id="authStatus" class="auth-status" role="status">Loading secure sign-in...</p>
+        <button id="authSignOut" class="auth-sign-out" type="button" hidden>Use a different email</button>
+        <p class="access-footnote">Passwordless sign-in by Clerk · Server-verified access</p>
+      </div>
     </section>
 
     <main id="standupsApp" class="app-shell" hidden>
@@ -31,6 +30,7 @@
           <label for="standupDate">Standup date</label>
           <input id="standupDate" type="date" />
         </div>
+        <button id="lockButton" class="lock-button" type="button">Sign out</button>
       </header>
 
       <section class="workspace" aria-label="Standup entry workspace">
@@ -166,6 +166,19 @@
       </button>
     </template>
 
-    <script src="./app.js?v=30"></script>
+    <script
+      defer
+      crossorigin="anonymous"
+      src="https://clerk.john-ta.com/npm/@clerk/ui@1/dist/ui.browser.js"
+      type="text/javascript"
+    ></script>
+    <script
+      defer
+      crossorigin="anonymous"
+      data-clerk-publishable-key="pk_live_Y2xlcmsuam9obi10YS5jb20k"
+      src="https://clerk.john-ta.com/npm/@clerk/clerk-js@6/dist/clerk.browser.js"
+      type="text/javascript"
+    ></script>
+    <script defer src="./app.js?v=32"></script>
   </body>
 </html>
