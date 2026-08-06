@@ -159,7 +159,7 @@ function showAuthError(error) {
   els.authSignOut.hidden = !window.Clerk?.isSignedIn;
   if (/not authorized/i.test(message)) {
     els.authStatus.textContent = "This Clerk account is signed in, but it is not approved for this private dashboard.";
-  } else if (/auth provider|token|authenticated|verified email/i.test(message)) {
+  } else if (/auth provider|token|authenticated|verified email|jwt|invalidauthheader/i.test(message)) {
     els.authStatus.textContent = "Clerk sign-in is ready, but its Convex integration still needs to be activated in the Clerk dashboard.";
   } else {
     els.authStatus.textContent = "Secure sign-in could not finish loading. Refresh the page and try again.";
@@ -869,7 +869,10 @@ async function convexCall(kind, path, args) {
     body: JSON.stringify({ path, args }),
   });
   const result = await response.json();
-  if (result.status !== "success") throw new Error(result.errorMessage || `Data ${kind} failed.`);
+  if (!response.ok || result.status !== "success") {
+    const detail = result.errorMessage || result.message || result.code;
+    throw new Error(detail || `Data ${kind} failed.`);
+  }
   return result.value;
 }
 
