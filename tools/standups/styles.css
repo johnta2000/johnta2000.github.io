@@ -784,13 +784,16 @@ button svg {
   place-items: center;
   background: rgba(32, 33, 36, 0.42);
   padding: 22px;
+  overflow: hidden;
 }
 
 .notetaker-modal {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
-  width: min(780px, 100%);
-  max-height: min(760px, calc(100vh - 44px));
+  width: min(940px, 100%);
+  height: min(820px, calc(100vh - 44px));
+  max-height: calc(100vh - 44px);
+  min-height: 0;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--surface);
@@ -827,9 +830,14 @@ button svg {
 
 .notetaker-modal-content {
   display: grid;
+  align-content: start;
   gap: 12px;
-  overflow: auto;
+  min-height: 0;
+  max-height: 100%;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 18px;
+  -webkit-overflow-scrolling: touch;
 }
 
 .notetaker-note-card {
