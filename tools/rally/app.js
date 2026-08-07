@@ -25,6 +25,8 @@ async function init() {
 }
 
 function wireShell() {
+  document.addEventListener("click", handleAppLink);
+  window.addEventListener("popstate", () => navigateTo(new URL(location.href), { push: false }));
   el.openMenu.addEventListener("click", () => { el.sidebar.classList.add("open"); el.menuBackdrop.hidden = false; });
   [el.closeMenu, el.menuBackdrop].forEach((button) => button.addEventListener("click", closeMenu));
   el.eventSwitcher.addEventListener("click", () => { el.eventMenu.hidden = !el.eventMenu.hidden; });
@@ -35,6 +37,47 @@ function wireShell() {
 }
 
 function closeMenu() { el.sidebar.classList.remove("open"); el.menuBackdrop.hidden = true; }
+
+function readRoute(url) {
+  const params = url.searchParams;
+  return {
+    view: views.some(([id]) => id === params.get("view")) ? params.get("view") : "home",
+    eventId: params.get("event") || DEFAULT_EVENT,
+  };
+}
+
+function handleAppLink(event) {
+  if (event.defaultPrevented || (event.button !== undefined && event.button !== 0) || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+  const anchor = event.target.closest("a[href]");
+  if (!anchor || anchor.target === "_blank" || anchor.hasAttribute("download")) return;
+  const url = new URL(anchor.href, location.href);
+  if (url.origin !== location.origin || url.pathname !== BASE_PATH) return;
+  event.preventDefault();
+  void navigateTo(url);
+}
+
+async function navigateTo(url, { push = true } = {}) {
+  const route = readRoute(url);
+  if (push) history.pushState({}, "", `${url.pathname}${url.search}${url.hash}`);
+  closeMenu();
+  el.eventMenu.hidden = true;
+  const eventChanged = route.eventId !== activeEvent;
+  activeView = route.view;
+  if (eventChanged) {
+    activeEvent = route.eventId;
+    el.page.className = "page";
+    el.page.innerHTML = `<div class="empty">Opening ${escapeHtml(events.find((event) => event.id === activeEvent)?.name || "rave room")}…</div>`;
+    try {
+      data = await convexMutation("rally:bootstrap", { eventId: activeEvent });
+      events = await convexQuery("rally:listEvents", {});
+    } catch (error) {
+      showToast(error.message || "Could not open that rave room");
+      return;
+    }
+  }
+  render();
+  window.scrollTo({ top: 0, behavior: "auto" });
+}
 
 async function initializeClerk() {
   try {
@@ -75,7 +118,7 @@ function render() {
   el.sideNav.innerHTML = views.filter(([id]) => data.id === DEFAULT_EVENT || id !== "lineup").map(([id,label,icon]) => `<a href="${href(id)}" class="${activeView === id ? "active" : ""}"><span class="nav-icon">${icon}</span>${label}</a>`).join("");
   el.bottomNav.innerHTML = views.filter(([id]) => ["home","stay","crew","travel","tasks"].includes(id)).map(([id,label,icon]) => `<a href="${href(id)}" class="${activeView === id ? "active" : ""}"><span>${icon}</span>${label}</a>`).join("");
   el.eventMenu.innerHTML = events.map((event) => `<button data-event="${event.id}"><strong>${escapeHtml(event.name)}</strong><br><small>${escapeHtml(event.location)}</small></button>`).join("");
-  el.eventMenu.querySelectorAll("button").forEach((button) => button.addEventListener("click", () => location.assign(href("home", button.dataset.event))));
+  el.eventMenu.querySelectorAll("button").forEach((button) => button.addEventListener("click", () => navigateTo(new URL(href("home", button.dataset.event), location.origin))));
   el.page.className = `page${activeView === "lineup" ? " lineup" : ""}`;
   const renderer = { home: renderHome, stay: renderStay, crew: renderCrew, travel: renderTravel, passes: renderPasses, tasks: renderTasks, lineup: renderLineup }[activeView] || renderHome;
   renderer();
@@ -136,7 +179,7 @@ function openAssign(roomId){openDialog("Assign a room","Choose a person. Existin
 function openFlight(){openDialog("Link a flight leg","For layovers, add each flight as a separate leg.",selectField("Traveler","memberId",data.members.map((m)=>[m.id,m.name]))+`<div class="form-row">${field("Airline","airline")}${field("Flight number","number")}</div><div class="form-row">${field("From","origin")}${field("To","destination")}</div><div class="form-row">${field("Departs","departure","","datetime-local")}${field("Arrives","arrival","","datetime-local")}</div>`,async(values)=>{await act("add-flight",values,"Flight leg added");closeDialog()});}
 function openCar(){openDialog("Add rental car","Keep ground transportation next to the crew’s flights.",`<div class="form-row">${field("Company","company")}${field("Vehicle","vehicle")}</div>`+field("Confirmation","confirmation")+`<div class="form-row">${field("Pickup","pickup","","datetime-local")}${field("Drop-off","dropoff","","datetime-local")}</div>`+selectField("Driver","driverId",data.members.map((m)=>[m.id,m.name])),async(values)=>{await act("add-car",values,"Rental car added");closeDialog()});}
 function openPass(){openDialog("Add passes","Track tickets, shuttles, parking, or entry add-ons.",field("Pass type","name")+`<div class="form-row">${selectField("Held by","ownerId",data.members.map((m)=>[m.id,m.name]))}${field("Quantity","quantity",1,"number")}</div>`+field("Status","status",`1 / ${data.members.length} secured`),async(values)=>{await act("add-pass",values,"Pass added");closeDialog()});}
-function openNewEvent(){openDialog("New rave room","Give every rave its own crew, stay, travel, passes, and tickets.",field("Rave name","name")+field("Location","location")+`<div class="form-row">${field("Starts","startsAt","","date")}${field("Ends","endsAt","","date")}</div>`+field("Admin name","adminName",data.members.find((m)=>m.id===data.currentMemberId)?.name||"John"),async(values)=>{const created=await convexMutation("rally:act",{eventId:activeEvent,action:"create-event",payload:values});location.assign(href("home",created.id))});}
+function openNewEvent(){openDialog("New rave room","Give every rave its own crew, stay, travel, passes, and tickets.",field("Rave name","name")+field("Location","location")+`<div class="form-row">${field("Starts","startsAt","","date")}${field("Ends","endsAt","","date")}</div>`+field("Admin name","adminName",data.members.find((m)=>m.id===data.currentMemberId)?.name||"John"),async(values)=>{const created=await convexMutation("rally:act",{eventId:activeEvent,action:"create-event",payload:values});closeDialog();await navigateTo(new URL(href("home",created.id),location.origin))});}
 
 async function act(action,payload,message,rerender=true){data=await convexMutation("rally:act",{eventId:activeEvent,action,payload});if(rerender)render();showToast(message);return data;}
 function showToast(message){el.toast.textContent=`✓ ${message}`;el.toast.hidden=false;clearTimeout(el.toast.timer);el.toast.timer=setTimeout(()=>el.toast.hidden=true,2800)}
