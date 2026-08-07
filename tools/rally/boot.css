@@ -1,0 +1,57 @@
+.booting .topbar .secondary,
+.booting .topbar .avatar,
+.booting .sidebar-bottom {
+  visibility: hidden;
+}
+
+.nav-skeleton {
+  display: block;
+  width: 82%;
+  height: 30px;
+  margin: 5px 9px;
+  border-radius: 7px;
+  background: #2c2d28;
+  animation: rally-pulse 1.35s ease-in-out infinite alternate;
+}
+
+.nav-skeleton.short { width: 58%; }
+
+.boot-heading {
+  display: grid;
+  gap: 11px;
+  padding: 10px 2px 28px;
+}
+
+.boot-heading i,
+.boot-heading b,
+.boot-heading span,
+.boot-grid article {
+  display: block;
+  border-radius: 9px;
+  background: #e7e6de;
+  animation: rally-pulse 1.35s ease-in-out infinite alternate;
+}
+
+.boot-heading i { width: 112px; height: 10px; }
+.boot-heading b { width: min(420px, 72%); height: 51px; }
+.boot-heading span { width: min(310px, 60%); height: 14px; }
+.boot-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+.boot-grid article { min-height: 105px; border: 1px solid #e0dfd7; background: #eeede6; }
+
+@keyframes rally-pulse {
+  from { opacity: .45; }
+  to { opacity: .92; }
+}
+
+@media (max-width: 620px) {
+  .boot-grid { grid-template-columns: 1fr; }
+  .boot-heading b { width: 88%; height: 43px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav-skeleton,
+  .boot-heading i,
+  .boot-heading b,
+  .boot-heading span,
+  .boot-grid article { animation: none; }
+}

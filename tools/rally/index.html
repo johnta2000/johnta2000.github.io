@@ -7,10 +7,11 @@
     <meta name="theme-color" content="#1c1d19" />
     <title>Rally · Rave project rooms</title>
     <link rel="stylesheet" href="./styles.css?v=1" />
+    <link rel="stylesheet" href="./boot.css?v=1" />
     <style>[hidden]{display:none!important}</style>
   </head>
-  <body>
-    <section id="accessGate" class="access-gate">
+  <body class="booting">
+    <section id="accessGate" class="access-gate" hidden>
       <div class="gate-brand"><span class="brand-mark"><i></i><i></i><i></i></span> Rally</div>
       <div class="access-card">
         <p class="eyebrow">Private rave rooms</p>
@@ -22,18 +23,18 @@
       </div>
     </section>
 
-    <div id="rallyApp" class="app-shell" hidden>
+    <div id="rallyApp" class="app-shell">
       <aside id="sidebar" class="sidebar">
         <div class="brand"><span class="brand-mark"><i></i><i></i><i></i></span><strong>Rally</strong><button id="closeMenu" class="mobile-only">×</button></div>
         <button id="eventSwitcher" class="event-switcher"><span id="eventThumb">LL</span><span><small>Project room</small><strong id="eventName">Lost Lands '26</strong></span><b>⌄</b></button>
         <div id="eventMenu" class="event-menu" hidden></div>
-        <nav id="sideNav" aria-label="Rally sections"></nav>
+        <nav id="sideNav" aria-label="Rally sections"><span class="nav-skeleton"></span><span class="nav-skeleton"></span><span class="nav-skeleton short"></span></nav>
         <div class="sidebar-bottom"><button id="newEvent">＋ New rave room</button><button id="signOut">Sign out</button><a href="/">← john-ta.com</a></div>
       </aside>
       <button id="menuBackdrop" class="menu-backdrop" hidden aria-label="Close menu"></button>
       <main class="main-column">
         <header class="topbar"><button id="openMenu" class="icon-button">☰</button><div class="mobile-event"><strong id="mobileEventName"></strong><small id="mobileCountdown"></small></div><span></span><button id="topInvite" class="secondary">＋ Invite crew</button><button id="accountButton" class="avatar">JT</button></header>
-        <div id="page" class="page"></div>
+        <div id="page" class="page"><section class="boot-heading"><i></i><b></b><span></span></section><div class="boot-grid"><article></article><article></article><article></article><article></article><article></article><article></article></div></div>
         <nav id="bottomNav" class="bottom-nav" aria-label="Mobile Rally sections"></nav>
       </main>
     </div>
@@ -42,6 +43,6 @@
 
     <script defer crossorigin="anonymous" src="https://clerk.john-ta.com/npm/@clerk/ui@1/dist/ui.browser.js"></script>
     <script defer crossorigin="anonymous" data-clerk-publishable-key="pk_live_Y2xlcmsuam9obi10YS5jb20k" src="https://clerk.john-ta.com/npm/@clerk/clerk-js@6/dist/clerk.browser.js"></script>
-    <script defer src="./app.js?v=2"></script>
+    <script defer src="./app.js?v=3"></script>
   </body>
 </html>

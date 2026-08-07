@@ -84,6 +84,9 @@ async function initializeClerk() {
     if (!window.Clerk) throw new Error("Secure sign-in did not load.");
     await window.Clerk.load({ ui: { ClerkUI: window.__internal_ClerkUICtor } });
     if (window.Clerk.isSignedIn) return unlock();
+    document.body.classList.remove("booting");
+    el.rallyApp.hidden = true;
+    el.accessGate.hidden = false;
     el.authStatus.hidden = true;
     window.Clerk.mountSignIn(el.clerkSignIn, {
       routing: "hash", withSignUp: true,
@@ -94,17 +97,22 @@ async function initializeClerk() {
 }
 
 async function unlock() {
-  el.authStatus.hidden = false; el.authStatus.textContent = "Opening your rave rooms…";
   try {
-    data = await convexMutation("rally:bootstrap", { eventId: activeEvent });
-    events = await convexQuery("rally:listEvents", {});
-    el.accessGate.hidden = true; el.rallyApp.hidden = false;
+    const [room, knownEvents] = await Promise.all([
+      convexMutation("rally:bootstrap", { eventId: activeEvent }),
+      convexQuery("rally:listEvents", {}),
+    ]);
+    data = room;
+    events = knownEvents.length ? knownEvents : await convexQuery("rally:listEvents", {});
     render();
+    el.accessGate.hidden = true;
+    el.rallyApp.hidden = false;
+    document.body.classList.remove("booting");
   } catch (error) { showAuthError(error); }
 }
 
 function showAuthError(error) {
-  console.error(error); el.accessGate.hidden = false; el.rallyApp.hidden = true; el.authStatus.hidden = false; el.authSignOut.hidden = !window.Clerk?.isSignedIn;
+  console.error(error); document.body.classList.remove("booting"); el.accessGate.hidden = false; el.rallyApp.hidden = true; el.authStatus.hidden = false; el.authSignOut.hidden = !window.Clerk?.isSignedIn;
   el.authStatus.textContent = /not been invited/i.test(String(error?.message || error)) ? "This email has not been invited to this Rally room." : "Secure sign-in could not finish. Refresh and try again.";
   el.authSignOut.onclick = signOut;
 }
