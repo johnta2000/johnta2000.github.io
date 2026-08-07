@@ -928,23 +928,23 @@ button svg {
 .notetaker-section-body {
   color: #3f453f;
   font-size: 14px;
-  line-height: 1.5;
+  line-height: 1.55;
 }
 
 .notetaker-section-body div,
 .notetaker-section-body p {
-  margin-bottom: 7px;
+  margin: 0 0 8px;
 }
 
 .notetaker-section-body ul,
 .notetaker-section-body ol {
-  margin-top: 0;
-  margin-bottom: 0;
+  margin: 0;
+  padding-left: 18px;
 }
 
 .notetaker-section-body li {
-  margin: 5px 0;
-  padding-left: 2px;
+  margin: 7px 0;
+  padding-left: 4px;
 }
 
 .notetaker-section-body a {
@@ -952,6 +952,11 @@ button svg {
   font-weight: 800;
   text-decoration-thickness: 1px;
   text-underline-offset: 2px;
+}
+
+.notetaker-section-body strong {
+  color: #222722;
+  font-weight: 900;
 }
 
 .daily-notes-field > span {

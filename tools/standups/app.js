@@ -426,14 +426,12 @@ function buildNotetakerContent(note) {
   const template = document.createElement("template");
   template.innerHTML = sanitizeRichText(note.html);
   removeGeneratedFathomHeader(template.content);
-  cleanNotetakerText(template.content);
-
-  const sections = sectionizeNotetakerNodes([...template.content.childNodes]);
+  const sections = sectionizeNotetakerBlocks(extractNotetakerBlocks(template.content));
   if (!sections.length) {
-    const section = document.createElement("section");
-    section.className = "notetaker-section";
-    section.append(...[...template.content.childNodes].map((node) => node.cloneNode(true)));
-    content.append(section);
+    const empty = document.createElement("p");
+    empty.className = "empty-state";
+    empty.textContent = "No readable notetaker notes were found for this meeting.";
+    content.append(empty);
     return content;
   }
 
@@ -447,12 +445,50 @@ function removeGeneratedFathomHeader(fragment) {
   if (/^Fathom:/i.test(firstElement.textContent.trim())) firstElement.remove();
 }
 
-function cleanNotetakerText(root) {
-  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
-  const textNodes = [];
-  while (walker.nextNode()) textNodes.push(walker.currentNode);
-  textNodes.forEach((node) => {
-    node.textContent = cleanNotetakerTextValue(node.textContent || "");
+function extractNotetakerBlocks(root) {
+  const blocks = [];
+  root.childNodes.forEach((node) => {
+    if (!node.textContent?.trim()) return;
+
+    if (node.nodeType !== Node.ELEMENT_NODE) {
+      pushNotetakerTextBlock(blocks, node.textContent || "");
+      return;
+    }
+
+    const element = node;
+    const tagName = element.tagName;
+    if (tagName === "UL" || tagName === "OL") {
+      element.querySelectorAll("li").forEach((item) => {
+        pushNotetakerTextBlock(blocks, item.textContent || "", { preferListItem: true });
+      });
+      return;
+    }
+
+    const heading = getNotetakerHeading(element);
+    if (heading) {
+      blocks.push({ type: "heading", text: heading });
+      return;
+    }
+
+    pushNotetakerTextBlock(blocks, element.textContent || "");
+  });
+  return blocks;
+}
+
+function pushNotetakerTextBlock(blocks, value, options = {}) {
+  const lines = String(value)
+    .split(/\n+/)
+    .map(cleanNotetakerTextValue)
+    .filter(Boolean);
+
+  lines.forEach((line) => {
+    const bullet = /^[-*•]\s+(.+)$/.exec(line);
+    const numbered = /^\d+[.)]\s+(.+)$/.exec(line);
+    if (options.preferListItem || bullet || numbered) {
+      blocks.push({ type: "listItem", text: bullet?.[1] || numbered?.[1] || line });
+    } else {
+      blocks.push({ type: "paragraph", text: line });
+    }
   });
 }
 
@@ -460,31 +496,32 @@ function cleanNotetakerTextValue(value) {
   return value
     .replace(/\[\s*\d{1,2}:\d{2}(?::\d{2})?\s*\]/g, "")
     .replace(/(^|\s)\d{1,2}:\d{2}(?::\d{2})?\s*[-–—]\s*/g, "$1")
+    .replace(/\((?:https?:\/\/)?fathom\.video\/[^)]*(?:timestamp|tab=summary)[^)]*\)/gi, "")
+    .replace(/\[([^\]]+)\]\((?:https?:\/\/)?fathom\.video\/[^)]*\)/gi, "$1")
+    .replace(/\*\*([^*]+)\*\*/g, "**$1**")
     .replace(/\s{2,}/g, " ")
     .trim();
 }
 
-function sectionizeNotetakerNodes(nodes) {
+function sectionizeNotetakerBlocks(blocks) {
   const sections = [];
   let current = null;
 
-  nodes.forEach((node) => {
-    if (!node.textContent?.trim()) return;
-    const heading = getNotetakerHeading(node);
-    if (heading) {
-      current = { title: heading, nodes: [] };
+  blocks.forEach((block) => {
+    if (block.type === "heading") {
+      current = { title: block.text, blocks: [] };
       sections.push(current);
       return;
     }
 
     if (!current) {
-      current = { title: "Summary", nodes: [] };
+      current = { title: "Summary", blocks: [] };
       sections.push(current);
     }
-    current.nodes.push(node.cloneNode(true));
+    current.blocks.push(block);
   });
 
-  return sections.filter((section) => section.nodes.length || section.title);
+  return sections.filter((section) => section.blocks.length);
 }
 
 function getNotetakerHeading(node) {
@@ -506,10 +543,84 @@ function renderNotetakerSection(section) {
   wrapper.className = `notetaker-section${isActionSection ? " notetaker-section-actions" : ""}`;
   title.className = "notetaker-section-title";
   title.textContent = section.title;
-  body.className = "notetaker-section-body rendered-rich-text";
-  body.append(...section.nodes);
+  body.className = "notetaker-section-body";
+  appendNotetakerBlocks(body, section.blocks);
   wrapper.append(title, body);
   return wrapper;
+}
+
+function appendNotetakerBlocks(container, blocks) {
+  let list = null;
+  const closeList = () => {
+    if (!list) return;
+    container.append(list);
+    list = null;
+  };
+
+  blocks.forEach((block) => {
+    if (block.type === "listItem") {
+      if (!list) list = document.createElement("ul");
+      const item = document.createElement("li");
+      appendInlineNotetakerText(item, block.text);
+      list.append(item);
+      return;
+    }
+
+    closeList();
+    const paragraph = document.createElement("p");
+    appendInlineNotetakerText(paragraph, block.text);
+    container.append(paragraph);
+  });
+  closeList();
+}
+
+function appendInlineNotetakerText(parent, value) {
+  const tokens = parseInlineNotetakerTokens(value);
+  if (!tokens.length) {
+    parent.textContent = value;
+    return;
+  }
+
+  tokens.forEach((token) => {
+    if (token.type === "text") {
+      parent.append(document.createTextNode(token.value));
+      return;
+    }
+    if (token.type === "strong") {
+      const strong = document.createElement("strong");
+      strong.textContent = token.value;
+      parent.append(strong);
+      return;
+    }
+    if (token.type === "link") {
+      const link = document.createElement("a");
+      link.href = token.href;
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      link.textContent = token.value;
+      parent.append(link);
+    }
+  });
+}
+
+function parseInlineNotetakerTokens(value) {
+  const tokens = [];
+  const pattern = /\[([^\]]+)\]\((https?:\/\/[^)]+)\)|\*\*([^*]+)\*\*/g;
+  let cursor = 0;
+  let match;
+
+  while ((match = pattern.exec(value))) {
+    if (match.index > cursor) tokens.push({ type: "text", value: value.slice(cursor, match.index) });
+    if (match[1]) {
+      tokens.push({ type: "link", value: match[1], href: match[2] });
+    } else {
+      tokens.push({ type: "strong", value: match[3] });
+    }
+    cursor = pattern.lastIndex;
+  }
+
+  if (cursor < value.length) tokens.push({ type: "text", value: value.slice(cursor) });
+  return tokens;
 }
 
 function getConvexMissingFunctionMessage(error) {
