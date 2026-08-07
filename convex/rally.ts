@@ -178,6 +178,9 @@ export const act = mutation({
       const room = state.rooms.find((item: RallyState) => item.id === p.id);
       const record = { hotel: p.hotel, roomType: p.roomType, confirmation: p.confirmation, checkIn: p.checkIn, checkOut: p.checkOut, capacity: Number(p.capacity) || 1 };
       if (room) Object.assign(room, record); else state.rooms.push({ id: id(), ...record, memberIds: [] });
+    } else if (args.action === "delete-room") {
+      if (!state.rooms.some((item: RallyState) => item.id === p.id)) throw new Error("That room no longer exists.");
+      state.rooms = state.rooms.filter((item: RallyState) => item.id !== p.id);
     } else if (args.action === "assign-room") {
       state.rooms.forEach((room: RallyState) => { room.memberIds = room.memberIds.filter((memberId: string) => memberId !== p.memberId); });
       const room = state.rooms.find((item: RallyState) => item.id === p.roomId);
