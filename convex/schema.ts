@@ -44,6 +44,7 @@ export default defineSchema({
     meetingUrl: v.optional(v.string()),
     startedAt: v.optional(v.string()),
     html: v.optional(v.string()),
+    actionItems: v.optional(v.any()),
     importedAt: v.number(),
   })
     .index("by_recording", ["teamId", "recordingId"])

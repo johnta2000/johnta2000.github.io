@@ -904,6 +904,105 @@ button svg {
   padding: 14px;
 }
 
+.notetaker-action-panel {
+  display: grid;
+  gap: 10px;
+  border: 1px solid rgba(18, 106, 92, 0.22);
+  border-radius: 8px;
+  background: #f3fbf7;
+  padding: 12px;
+}
+
+.notetaker-action-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.notetaker-action-header h3 {
+  color: var(--accent-strong);
+  font-size: 14px;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.notetaker-action-header span {
+  color: #66706a;
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.notetaker-action-list {
+  display: grid;
+  gap: 8px;
+}
+
+.notetaker-action-item {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  gap: 10px;
+  border: 1px solid rgba(18, 106, 92, 0.14);
+  border-radius: 8px;
+  background: #fff;
+  padding: 10px;
+}
+
+.notetaker-action-check {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border: 2px solid #8aa198;
+  border-radius: 5px;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.notetaker-action-item.is-complete .notetaker-action-check {
+  border-color: var(--accent);
+  background: var(--accent);
+}
+
+.notetaker-action-body {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.notetaker-action-body p {
+  margin: 0;
+  color: #2e3731;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.notetaker-action-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  color: #66706a;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.notetaker-action-meta span,
+.notetaker-action-meta a {
+  border: 1px solid #dce7e1;
+  border-radius: 999px;
+  background: #f8fcfa;
+  color: #66706a;
+  padding: 4px 8px;
+  text-decoration: none;
+}
+
+.notetaker-action-meta a {
+  color: var(--accent);
+}
+
 .notetaker-section {
   display: grid;
   gap: 8px;

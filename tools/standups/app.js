@@ -423,15 +423,21 @@ function buildNotetakerContent(note) {
     return content;
   }
 
+  const actionItems = normalizeFathomActionItems(note.actionItems);
+  if (actionItems.length) content.append(renderFathomActionItems(actionItems));
+
   const template = document.createElement("template");
   template.innerHTML = sanitizeRichText(note.html);
   removeGeneratedFathomHeader(template.content);
+  removeActionItemsSection(template.content);
   const sections = sectionizeNotetakerBlocks(extractNotetakerBlocks(template.content));
   if (!sections.length) {
-    const empty = document.createElement("p");
-    empty.className = "empty-state";
-    empty.textContent = "No readable notetaker notes were found for this meeting.";
-    content.append(empty);
+    if (!actionItems.length) {
+      const empty = document.createElement("p");
+      empty.className = "empty-state";
+      empty.textContent = "No readable notetaker notes were found for this meeting.";
+      content.append(empty);
+    }
     return content;
   }
 
@@ -443,6 +449,80 @@ function removeGeneratedFathomHeader(fragment) {
   const firstElement = [...fragment.childNodes].find((node) => node.nodeType === Node.ELEMENT_NODE);
   if (!firstElement) return;
   if (/^Fathom:/i.test(firstElement.textContent.trim())) firstElement.remove();
+}
+
+function removeActionItemsSection(fragment) {
+  const children = [...fragment.childNodes];
+  const actionHeadingIndex = children.findIndex((node) => /^Action items$/i.test(node.textContent?.trim() || ""));
+  if (actionHeadingIndex === -1) return;
+
+  children.slice(actionHeadingIndex).forEach((node) => node.remove());
+}
+
+function normalizeFathomActionItems(value) {
+  return Array.isArray(value)
+    ? value
+        .map((item) => ({
+          description: cleanNotetakerTextValue(item?.description || ""),
+          completed: Boolean(item?.completed),
+          playbackUrl: item?.playbackUrl || "",
+          assigneeName: item?.assigneeName || "",
+          assigneeEmail: item?.assigneeEmail || "",
+        }))
+        .filter((item) => item.description)
+    : [];
+}
+
+function renderFathomActionItems(items) {
+  const section = document.createElement("section");
+  const header = document.createElement("div");
+  const title = document.createElement("h3");
+  const count = document.createElement("span");
+  const list = document.createElement("div");
+
+  section.className = "notetaker-action-panel";
+  header.className = "notetaker-action-header";
+  title.textContent = "Action Items";
+  count.textContent = `${items.length} to confirm`;
+  list.className = "notetaker-action-list";
+  list.append(...items.map(renderFathomActionItem));
+  header.append(title, count);
+  section.append(header, list);
+  return section;
+}
+
+function renderFathomActionItem(item) {
+  const row = document.createElement("article");
+  const check = document.createElement("span");
+  const body = document.createElement("div");
+  const text = document.createElement("p");
+  const meta = document.createElement("div");
+
+  row.className = `notetaker-action-item${item.completed ? " is-complete" : ""}`;
+  check.className = "notetaker-action-check";
+  check.textContent = item.completed ? "✓" : "";
+  body.className = "notetaker-action-body";
+  appendInlineNotetakerText(text, item.description);
+  meta.className = "notetaker-action-meta";
+
+  if (item.assigneeName || item.assigneeEmail) {
+    const assignee = document.createElement("span");
+    assignee.textContent = item.assigneeName || item.assigneeEmail;
+    meta.append(assignee);
+  }
+  if (item.playbackUrl) {
+    const link = document.createElement("a");
+    link.href = item.playbackUrl;
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    link.textContent = "Jump to moment";
+    meta.append(link);
+  }
+
+  body.append(text);
+  if (meta.childElementCount) body.append(meta);
+  row.append(check, body);
+  return row;
 }
 
 function extractNotetakerBlocks(root) {

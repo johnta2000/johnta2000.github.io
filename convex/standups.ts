@@ -343,6 +343,7 @@ export const upsertFathomMeetingNotes = internalMutation({
         meetingUrl: v.optional(v.string()),
         startedAt: v.optional(v.string()),
         html: v.string(),
+        actionItems: v.optional(v.any()),
       }),
     ),
   },
@@ -358,7 +359,7 @@ export const upsertFathomMeetingNotes = internalMutation({
         .unique();
 
       if (existingImport) {
-        if (!existingImport.html && meeting.html) {
+        if ((!existingImport.html && meeting.html) || !existingImport.actionItems) {
           await ctx.db.patch(existingImport._id, {
             html: meeting.html,
             title: meeting.title,
@@ -366,6 +367,7 @@ export const upsertFathomMeetingNotes = internalMutation({
             shareUrl: meeting.shareUrl,
             meetingUrl: meeting.meetingUrl,
             startedAt: meeting.startedAt,
+            actionItems: meeting.actionItems || [],
           });
         }
         skipped += 1;
@@ -382,6 +384,7 @@ export const upsertFathomMeetingNotes = internalMutation({
         meetingUrl: meeting.meetingUrl,
         startedAt: meeting.startedAt,
         html: meeting.html,
+        actionItems: meeting.actionItems || [],
         importedAt: now,
       });
       imported.push(meeting.recordingId);
@@ -538,6 +541,13 @@ function toFathomImportPayload(meeting: FathomMeeting) {
     meetingUrl: meeting.meeting_url || "",
     startedAt: meeting.scheduled_start_time || meeting.recording_start_time || meeting.created_at || "",
     html: htmlParts.filter(Boolean).join(""),
+    actionItems: actionItems.map((item) => ({
+      description: item.description || "",
+      completed: Boolean(item.completed),
+      playbackUrl: item.recording_playback_url || "",
+      assigneeName: item.assignee?.name || "",
+      assigneeEmail: item.assignee?.email || "",
+    })),
   };
 }
 
