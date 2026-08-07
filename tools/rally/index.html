@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="theme-color" content="#1c1d19" />
+    <title>Rally · Rave project rooms</title>
+    <link rel="stylesheet" href="./styles.css?v=1" />
+  </head>
+  <body>
+    <section id="accessGate" class="access-gate">
+      <div class="gate-brand"><span class="brand-mark"><i></i><i></i><i></i></span> Rally</div>
+      <div class="access-card">
+        <p class="eyebrow">Private rave rooms</p>
+        <h1>Everyone on the<br><em>same wavelength.</em></h1>
+        <p>Rooms, flights, passes, people, and loose ends—together in one place.</p>
+        <div id="clerkSignIn"></div>
+        <p id="authStatus" class="auth-status">Loading secure sign-in…</p>
+        <button id="authSignOut" class="text-button" hidden>Use a different email</button>
+      </div>
+    </section>
+
+    <div id="rallyApp" class="app-shell" hidden>
+      <aside id="sidebar" class="sidebar">
+        <div class="brand"><span class="brand-mark"><i></i><i></i><i></i></span><strong>Rally</strong><button id="closeMenu" class="mobile-only">×</button></div>
+        <button id="eventSwitcher" class="event-switcher"><span id="eventThumb">LL</span><span><small>Project room</small><strong id="eventName">Lost Lands '26</strong></span><b>⌄</b></button>
+        <div id="eventMenu" class="event-menu" hidden></div>
+        <nav id="sideNav" aria-label="Rally sections"></nav>
+        <div class="sidebar-bottom"><button id="newEvent">＋ New rave room</button><button id="signOut">Sign out</button><a href="/">← john-ta.com</a></div>
+      </aside>
+      <button id="menuBackdrop" class="menu-backdrop" hidden aria-label="Close menu"></button>
+      <main class="main-column">
+        <header class="topbar"><button id="openMenu" class="icon-button">☰</button><div class="mobile-event"><strong id="mobileEventName"></strong><small id="mobileCountdown"></small></div><span></span><button id="topInvite" class="secondary">＋ Invite crew</button><button id="accountButton" class="avatar">JT</button></header>
+        <div id="page" class="page"></div>
+        <nav id="bottomNav" class="bottom-nav" aria-label="Mobile Rally sections"></nav>
+      </main>
+    </div>
+    <div id="dialogRoot"></div>
+    <div id="toast" class="toast" hidden></div>
+
+    <script defer crossorigin="anonymous" src="https://clerk.john-ta.com/npm/@clerk/ui@1/dist/ui.browser.js"></script>
+    <script defer crossorigin="anonymous" data-clerk-publishable-key="pk_live_Y2xlcmsuam9obi10YS5jb20k" src="https://clerk.john-ta.com/npm/@clerk/clerk-js@6/dist/clerk.browser.js"></script>
+    <script defer src="./app.js?v=1"></script>
+  </body>
+</html>
