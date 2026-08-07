@@ -843,18 +843,28 @@ button svg {
 
 .notetaker-note-card {
   display: grid;
-  gap: 12px;
+  gap: 14px;
   border: 1px solid var(--line);
   border-radius: 8px;
+  background: #fff;
+  padding: 0;
+  overflow: hidden;
+}
+
+.notetaker-note-header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 14px;
+  border-bottom: 1px solid var(--line);
   background: var(--surface-quiet);
   padding: 14px;
 }
 
-.notetaker-note-header {
+.notetaker-note-header-text {
   display: grid;
   gap: 4px;
-  border-bottom: 1px solid var(--line);
-  padding-bottom: 10px;
+  min-width: 0;
 }
 
 .notetaker-note-header h3 {
@@ -867,6 +877,90 @@ button svg {
   color: var(--muted);
   font-size: 12px;
   font-weight: 700;
+}
+
+.notetaker-note-actions {
+  display: flex;
+  justify-content: flex-end;
+  flex: 0 0 auto;
+}
+
+.notetaker-note-actions a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 31px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1;
+  padding: 0 11px;
+  text-decoration: none;
+}
+
+.notetaker-note-actions a:hover,
+.notetaker-note-actions a:focus {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  outline: none;
+}
+
+.notetaker-note-body {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+}
+
+.notetaker-section {
+  display: grid;
+  gap: 8px;
+  border: 1px solid #eceee8;
+  border-radius: 8px;
+  background: #fbfbf8;
+  padding: 12px;
+}
+
+.notetaker-section-actions {
+  border-color: rgba(18, 106, 92, 0.18);
+  background: #f5fbf8;
+}
+
+.notetaker-section-title {
+  color: #3e463f;
+  font-size: 13px;
+  font-weight: 900;
+  line-height: 1.25;
+}
+
+.notetaker-section-body {
+  color: #3f453f;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.notetaker-section-body div,
+.notetaker-section-body p {
+  margin-bottom: 7px;
+}
+
+.notetaker-section-body ul,
+.notetaker-section-body ol {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+.notetaker-section-body li {
+  margin: 5px 0;
+  padding-left: 2px;
+}
+
+.notetaker-section-body a {
+  color: var(--accent);
+  font-weight: 800;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
 }
 
 .daily-notes-field > span {

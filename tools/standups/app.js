@@ -413,24 +413,134 @@ function renderFathomNotesModal() {
 function renderFathomNoteCard(note) {
   const card = document.createElement("article");
   const header = document.createElement("div");
+  const headerText = document.createElement("div");
+  const headerActions = document.createElement("div");
   const title = document.createElement("h3");
   const meta = document.createElement("p");
-  const content = document.createElement("div");
 
   card.className = "notetaker-note-card";
   header.className = "notetaker-note-header";
+  headerText.className = "notetaker-note-header-text";
+  headerActions.className = "notetaker-note-actions";
   title.textContent = note.title || note.meetingTitle || "Affilignment";
-  meta.textContent = [note.startedAt ? formatMeetingTimestamp(note.startedAt) : "", note.shareUrl ? "Fathom recording available" : ""]
+  meta.textContent = [note.startedAt ? formatMeetingTimestamp(note.startedAt) : "", "Imported from Fathom"]
     .filter(Boolean)
     .join(" · ");
-  content.className = "rendered-rich-text";
-  content.innerHTML = note.html?.trim()
-    ? sanitizeRichText(note.html)
-    : `<div><strong>${escapeHtml(note.title || note.meetingTitle || "Affilignment")}</strong></div><div>Imported before note content was stored. Sync Fathom again if you want the full summary here.</div>`;
 
-  header.append(title, meta);
-  card.append(header, content);
+  headerText.append(title, meta);
+  if (note.shareUrl || note.meetingUrl) {
+    const link = document.createElement("a");
+    link.href = note.shareUrl || note.meetingUrl;
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    link.textContent = "Open recording";
+    headerActions.append(link);
+  }
+
+  header.append(headerText, headerActions);
+  card.append(header, buildNotetakerContent(note));
   return card;
+}
+
+function buildNotetakerContent(note) {
+  const content = document.createElement("div");
+  content.className = "notetaker-note-body";
+
+  if (!note.html?.trim()) {
+    const empty = document.createElement("p");
+    empty.className = "empty-state";
+    empty.textContent = "Imported before note content was stored. Sync Fathom again if you want the full summary here.";
+    content.append(empty);
+    return content;
+  }
+
+  const template = document.createElement("template");
+  template.innerHTML = sanitizeRichText(note.html);
+  removeGeneratedFathomHeader(template.content);
+  cleanNotetakerText(template.content);
+
+  const sections = sectionizeNotetakerNodes([...template.content.childNodes]);
+  if (!sections.length) {
+    const section = document.createElement("section");
+    section.className = "notetaker-section";
+    section.append(...[...template.content.childNodes].map((node) => node.cloneNode(true)));
+    content.append(section);
+    return content;
+  }
+
+  content.append(...sections.map(renderNotetakerSection));
+  return content;
+}
+
+function removeGeneratedFathomHeader(fragment) {
+  const firstElement = [...fragment.childNodes].find((node) => node.nodeType === Node.ELEMENT_NODE);
+  if (!firstElement) return;
+  if (/^Fathom:/i.test(firstElement.textContent.trim())) firstElement.remove();
+}
+
+function cleanNotetakerText(root) {
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  const textNodes = [];
+  while (walker.nextNode()) textNodes.push(walker.currentNode);
+  textNodes.forEach((node) => {
+    node.textContent = cleanNotetakerTextValue(node.textContent || "");
+  });
+}
+
+function cleanNotetakerTextValue(value) {
+  return value
+    .replace(/\[\s*\d{1,2}:\d{2}(?::\d{2})?\s*\]/g, "")
+    .replace(/(^|\s)\d{1,2}:\d{2}(?::\d{2})?\s*[-–—]\s*/g, "$1")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
+function sectionizeNotetakerNodes(nodes) {
+  const sections = [];
+  let current = null;
+
+  nodes.forEach((node) => {
+    if (!node.textContent?.trim()) return;
+    const heading = getNotetakerHeading(node);
+    if (heading) {
+      current = { title: heading, nodes: [] };
+      sections.push(current);
+      return;
+    }
+
+    if (!current) {
+      current = { title: "Summary", nodes: [] };
+      sections.push(current);
+    }
+    current.nodes.push(node.cloneNode(true));
+  });
+
+  return sections.filter((section) => section.nodes.length || section.title);
+}
+
+function getNotetakerHeading(node) {
+  if (node.nodeType !== Node.ELEMENT_NODE) return "";
+  const element = node;
+  const text = element.textContent.trim();
+  if (!text || text.length > 80) return "";
+  const strong = element.querySelector("strong, b");
+  const onlyStrongText = strong?.textContent?.trim() === text;
+  return onlyStrongText ? text.replace(/:$/, "") : "";
+}
+
+function renderNotetakerSection(section) {
+  const wrapper = document.createElement("section");
+  const title = document.createElement("h3");
+  const body = document.createElement("div");
+  const isActionSection = /action|follow.?up|next step/i.test(section.title);
+
+  wrapper.className = `notetaker-section${isActionSection ? " notetaker-section-actions" : ""}`;
+  title.className = "notetaker-section-title";
+  title.textContent = section.title;
+  body.className = "notetaker-section-body rendered-rich-text";
+  body.append(...section.nodes);
+  wrapper.append(title, body);
+  return wrapper;
 }
 
 function getConvexMissingFunctionMessage(error) {
