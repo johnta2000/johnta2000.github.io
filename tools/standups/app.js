@@ -33,7 +33,6 @@ const els = {
   notetakerModalDate: document.querySelector("#notetakerModalDate"),
   notetakerModalContent: document.querySelector("#notetakerModalContent"),
   notetakerCloseButton: document.querySelector("#notetakerCloseButton"),
-  fathomSyncButton: document.querySelector("#fathomSyncButton"),
   saveStatus: document.querySelector("#saveStatus"),
   olderTwoShortcutDate: document.querySelector("#olderTwoShortcutDate"),
   olderOneShortcutDate: document.querySelector("#olderOneShortcutDate"),
@@ -72,7 +71,6 @@ function initStandups() {
   els.date.addEventListener("focus", openDatePicker);
   els.date.addEventListener("change", handleDateChange);
   els.personName.addEventListener("change", loadPersonContext);
-  els.fathomSyncButton.addEventListener("click", syncFathomNotes);
   els.notetakerViewButton.addEventListener("click", openNotetakerModal);
   els.notetakerCloseButton.addEventListener("click", closeNotetakerModal);
   els.notetakerModal.addEventListener("click", (event) => {
@@ -337,7 +335,7 @@ function renderFathomNotesSummary() {
   els.notetakerSummary.textContent = count
     ? `${count} Affilignment meeting${count === 1 ? "" : "s"} imported for this date.`
     : "No Affilignment meeting notes imported for this date.";
-  els.notetakerStatus.textContent = count ? "Notetaker notes ready" : "Use Sync Fathom to pull notes for this date.";
+  els.notetakerStatus.textContent = count ? "Notetaker notes ready" : "Fathom notes sync daily at 10:30 AM and 11:00 AM PT.";
 }
 
 async function saveDailyNotes({ silent = false } = {}) {
@@ -356,35 +354,6 @@ async function saveDailyNotes({ silent = false } = {}) {
   } catch (error) {
     console.error(error);
     els.dailyNotesStatus.textContent = getConvexMissingFunctionMessage(error) || "Daily notes save failed.";
-  }
-}
-
-async function syncFathomNotes() {
-  await flushDailyNotesAutosave();
-  els.fathomSyncButton.disabled = true;
-  els.notetakerStatus.textContent = "Syncing Affilignment notes from Fathom...";
-
-  try {
-    const result = await convexAction("standups:syncFathomAffilignment", {
-      teamId: TEAM_ID,
-      standupDate: els.date.value,
-    });
-
-    await loadFathomNotes();
-    if (result.imported) {
-      els.notetakerStatus.textContent = `Imported ${result.imported} Fathom meeting${result.imported === 1 ? "" : "s"}.`;
-    } else if (result.matched) {
-      els.notetakerStatus.textContent = "Affilignment meetings were already imported.";
-    } else {
-      els.notetakerStatus.textContent = "No Affilignment meetings found for this date.";
-    }
-  } catch (error) {
-    console.error(error);
-    els.notetakerStatus.textContent = String(error?.message || "").includes("FATHOM_API_KEY")
-      ? "Add FATHOM_API_KEY in Convex before syncing."
-      : "Fathom sync failed.";
-  } finally {
-    els.fathomSyncButton.disabled = false;
   }
 }
 
@@ -449,7 +418,7 @@ function buildNotetakerContent(note) {
   if (!note.html?.trim()) {
     const empty = document.createElement("p");
     empty.className = "empty-state";
-    empty.textContent = "Imported before note content was stored. Sync Fathom again if you want the full summary here.";
+    empty.textContent = "Imported before note content was stored. Future scheduled syncs will store the full summary here.";
     content.append(empty);
     return content;
   }
