@@ -9,9 +9,15 @@ crons.interval(
   internal.whoop.syncAll,
 );
 
-crons.interval(
-  "sync affilignment meeting notes",
-  { hours: 1 },
+crons.daily(
+  "sync affilignment meeting notes at 10:30am PT",
+  { hourUTC: 17, minuteUTC: 30 },
+  internal.standups.syncRecentFathomAffilignment,
+);
+
+crons.daily(
+  "sync affilignment meeting notes at 11am PT",
+  { hourUTC: 18, minuteUTC: 0 },
   internal.standups.syncRecentFathomAffilignment,
 );
 
