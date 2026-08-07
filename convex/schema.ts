@@ -34,6 +34,20 @@ export default defineSchema({
     createdAt: v.number(),
     updatedAt: v.number(),
   }).index("by_date", ["teamId", "standupDate"]),
+  standupFathomImports: defineTable({
+    teamId: v.string(),
+    standupDate: v.string(),
+    recordingId: v.string(),
+    title: v.string(),
+    meetingTitle: v.optional(v.string()),
+    shareUrl: v.optional(v.string()),
+    meetingUrl: v.optional(v.string()),
+    startedAt: v.optional(v.string()),
+    html: v.optional(v.string()),
+    importedAt: v.number(),
+  })
+    .index("by_recording", ["teamId", "recordingId"])
+    .index("by_date", ["teamId", "standupDate"]),
   sleepNights: defineTable({
     sleepDate: v.string(),
     source: v.union(v.literal("whoop"), v.literal("apple_health"), v.literal("eightsleep"), v.literal("manual")),

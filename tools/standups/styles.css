@@ -731,11 +731,142 @@ button svg {
   top: 18px;
 }
 
-.daily-notes-card {
+.daily-notes-card,
+.notetaker-card {
   display: grid;
   gap: 12px;
   border-bottom: 1px solid var(--line);
   padding-bottom: 16px;
+}
+
+.notetaker-summary {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.notetaker-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.notetaker-actions button {
+  flex: 1 1 0;
+  min-height: 32px;
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 800;
+  padding: 0 10px;
+  white-space: nowrap;
+}
+
+.notetaker-actions button:first-child {
+  background: var(--accent);
+  color: #fff;
+}
+
+.notetaker-actions button:hover,
+.notetaker-actions button:focus {
+  background: var(--accent-soft);
+  color: var(--accent);
+  outline: none;
+}
+
+.notetaker-actions button:disabled {
+  border-color: var(--line);
+  background: #f1f2ee;
+  color: #8a9088;
+  cursor: wait;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  background: rgba(32, 33, 36, 0.42);
+  padding: 22px;
+}
+
+.notetaker-modal {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  width: min(780px, 100%);
+  max-height: min(760px, calc(100vh - 44px));
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: 0 26px 80px rgba(20, 24, 20, 0.24);
+  overflow: hidden;
+}
+
+.modal-header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid var(--line);
+  padding: 18px;
+}
+
+.modal-close-button {
+  min-height: 34px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  padding: 0 12px;
+}
+
+.modal-close-button:hover,
+.modal-close-button:focus {
+  border-color: var(--accent);
+  color: var(--accent);
+  outline: none;
+}
+
+.notetaker-modal-content {
+  display: grid;
+  gap: 12px;
+  overflow: auto;
+  padding: 18px;
+}
+
+.notetaker-note-card {
+  display: grid;
+  gap: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-quiet);
+  padding: 14px;
+}
+
+.notetaker-note-header {
+  display: grid;
+  gap: 4px;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 10px;
+}
+
+.notetaker-note-header h3 {
+  color: var(--ink);
+  font-size: 16px;
+}
+
+.notetaker-note-header p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .daily-notes-field > span {

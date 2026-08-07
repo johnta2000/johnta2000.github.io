@@ -9,4 +9,10 @@ crons.interval(
   internal.whoop.syncAll,
 );
 
+crons.interval(
+  "sync affilignment meeting notes",
+  { hours: 1 },
+  internal.standups.syncRecentFathomAffilignment,
+);
+
 export default crons;

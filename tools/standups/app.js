@@ -25,6 +25,15 @@ const els = {
   dailyNotes: document.querySelector("#dailyNotes"),
   dailyNotesDate: document.querySelector("#dailyNotesDate"),
   dailyNotesStatus: document.querySelector("#dailyNotesStatus"),
+  notetakerDate: document.querySelector("#notetakerDate"),
+  notetakerSummary: document.querySelector("#notetakerSummary"),
+  notetakerStatus: document.querySelector("#notetakerStatus"),
+  notetakerViewButton: document.querySelector("#notetakerViewButton"),
+  notetakerModal: document.querySelector("#notetakerModal"),
+  notetakerModalDate: document.querySelector("#notetakerModalDate"),
+  notetakerModalContent: document.querySelector("#notetakerModalContent"),
+  notetakerCloseButton: document.querySelector("#notetakerCloseButton"),
+  fathomSyncButton: document.querySelector("#fathomSyncButton"),
   saveStatus: document.querySelector("#saveStatus"),
   olderTwoShortcutDate: document.querySelector("#olderTwoShortcutDate"),
   olderOneShortcutDate: document.querySelector("#olderOneShortcutDate"),
@@ -41,6 +50,7 @@ const personEditors = [els.yesterday, els.today, els.blockers, els.notes];
 const allEditors = [...personEditors, els.dailyNotes];
 let entriesForDate = [];
 let activePrevious = null;
+let fathomNotesForDate = [];
 let autosaveTimer;
 let dailyNotesAutosaveTimer;
 let activeDailyNotesDate = "";
@@ -62,6 +72,15 @@ function initStandups() {
   els.date.addEventListener("focus", openDatePicker);
   els.date.addEventListener("change", handleDateChange);
   els.personName.addEventListener("change", loadPersonContext);
+  els.fathomSyncButton.addEventListener("click", syncFathomNotes);
+  els.notetakerViewButton.addEventListener("click", openNotetakerModal);
+  els.notetakerCloseButton.addEventListener("click", closeNotetakerModal);
+  els.notetakerModal.addEventListener("click", (event) => {
+    if (event.target === els.notetakerModal) closeNotetakerModal();
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && !els.notetakerModal.hasAttribute("hidden")) closeNotetakerModal();
+  });
   els.lockButton.addEventListener("click", signOut);
   els.authSignOut.addEventListener("click", signOut);
   els.form.addEventListener("submit", (event) => event.preventDefault());
@@ -89,6 +108,7 @@ function initStandups() {
   });
 
   loadDailyNotes();
+  loadFathomNotes();
   refreshDailyList().then(() => {
     if (els.personName.value.trim()) loadPersonContext();
     updateTodayHeading();
@@ -180,7 +200,7 @@ async function handleDateChange() {
   await flushDailyNotesAutosave();
   clearForm();
   updateDateShortcuts();
-  await Promise.all([refreshDailyList(), loadDailyNotes()]);
+  await Promise.all([refreshDailyList(), loadDailyNotes(), loadFathomNotes()]);
   updateTodayHeading();
   if (els.personName.value.trim()) loadPersonContext();
 }
@@ -290,6 +310,36 @@ async function loadDailyNotes() {
   }
 }
 
+async function loadFathomNotes() {
+  els.notetakerDate.textContent = formatDate(els.date.value);
+  els.notetakerModalDate.textContent = formatDate(els.date.value);
+  els.notetakerSummary.textContent = "Loading Fathom notes...";
+  els.notetakerStatus.textContent = "Loading notetaker notes...";
+  els.notetakerViewButton.disabled = true;
+
+  try {
+    fathomNotesForDate = await convexQuery("standups:listFathomNotesForDate", {
+      teamId: TEAM_ID,
+      standupDate: els.date.value,
+    });
+    renderFathomNotesSummary();
+  } catch (error) {
+    console.error(error);
+    fathomNotesForDate = [];
+    els.notetakerSummary.textContent = "Could not load Fathom notes.";
+    els.notetakerStatus.textContent = getConvexMissingFunctionMessage(error) || "Notetaker notes unavailable.";
+  }
+}
+
+function renderFathomNotesSummary() {
+  const count = fathomNotesForDate.length;
+  els.notetakerViewButton.disabled = count === 0;
+  els.notetakerSummary.textContent = count
+    ? `${count} Affilignment meeting${count === 1 ? "" : "s"} imported for this date.`
+    : "No Affilignment meeting notes imported for this date.";
+  els.notetakerStatus.textContent = count ? "Notetaker notes ready" : "Use Sync Fathom to pull notes for this date.";
+}
+
 async function saveDailyNotes({ silent = false } = {}) {
   const standupDate = activeDailyNotesDate || els.date.value;
   if (!standupDate) return;
@@ -307,6 +357,80 @@ async function saveDailyNotes({ silent = false } = {}) {
     console.error(error);
     els.dailyNotesStatus.textContent = getConvexMissingFunctionMessage(error) || "Daily notes save failed.";
   }
+}
+
+async function syncFathomNotes() {
+  await flushDailyNotesAutosave();
+  els.fathomSyncButton.disabled = true;
+  els.notetakerStatus.textContent = "Syncing Affilignment notes from Fathom...";
+
+  try {
+    const result = await convexAction("standups:syncFathomAffilignment", {
+      teamId: TEAM_ID,
+      standupDate: els.date.value,
+    });
+
+    await loadFathomNotes();
+    if (result.imported) {
+      els.notetakerStatus.textContent = `Imported ${result.imported} Fathom meeting${result.imported === 1 ? "" : "s"}.`;
+    } else if (result.matched) {
+      els.notetakerStatus.textContent = "Affilignment meetings were already imported.";
+    } else {
+      els.notetakerStatus.textContent = "No Affilignment meetings found for this date.";
+    }
+  } catch (error) {
+    console.error(error);
+    els.notetakerStatus.textContent = String(error?.message || "").includes("FATHOM_API_KEY")
+      ? "Add FATHOM_API_KEY in Convex before syncing."
+      : "Fathom sync failed.";
+  } finally {
+    els.fathomSyncButton.disabled = false;
+  }
+}
+
+function openNotetakerModal() {
+  renderFathomNotesModal();
+  els.notetakerModal.removeAttribute("hidden");
+  els.notetakerCloseButton.focus();
+}
+
+function closeNotetakerModal() {
+  els.notetakerModal.setAttribute("hidden", "");
+}
+
+function renderFathomNotesModal() {
+  if (!fathomNotesForDate.length) {
+    const empty = document.createElement("p");
+    empty.className = "empty-state";
+    empty.textContent = "No notetaker notes imported for this date yet.";
+    els.notetakerModalContent.replaceChildren(empty);
+    return;
+  }
+
+  els.notetakerModalContent.replaceChildren(...fathomNotesForDate.map(renderFathomNoteCard));
+}
+
+function renderFathomNoteCard(note) {
+  const card = document.createElement("article");
+  const header = document.createElement("div");
+  const title = document.createElement("h3");
+  const meta = document.createElement("p");
+  const content = document.createElement("div");
+
+  card.className = "notetaker-note-card";
+  header.className = "notetaker-note-header";
+  title.textContent = note.title || note.meetingTitle || "Affilignment";
+  meta.textContent = [note.startedAt ? formatMeetingTimestamp(note.startedAt) : "", note.shareUrl ? "Fathom recording available" : ""]
+    .filter(Boolean)
+    .join(" · ");
+  content.className = "rendered-rich-text";
+  content.innerHTML = note.html?.trim()
+    ? sanitizeRichText(note.html)
+    : `<div><strong>${escapeHtml(note.title || note.meetingTitle || "Affilignment")}</strong></div><div>Imported before note content was stored. Sync Fathom again if you want the full summary here.</div>`;
+
+  header.append(title, meta);
+  card.append(header, content);
+  return card;
 }
 
 function getConvexMissingFunctionMessage(error) {
@@ -800,7 +924,7 @@ function sanitizeRichText(html) {
 
   const template = document.createElement("template");
   template.innerHTML = html;
-  const allowedTags = new Set(["B", "STRONG", "I", "EM", "U", "S", "STRIKE", "DEL", "UL", "OL", "LI", "DIV", "P", "BR"]);
+  const allowedTags = new Set(["A", "B", "STRONG", "I", "EM", "U", "S", "STRIKE", "DEL", "UL", "OL", "LI", "DIV", "P", "BR"]);
   template.content.querySelectorAll("*").forEach((node) => {
     if (!allowedTags.has(node.tagName)) {
       node.replaceWith(document.createTextNode(node.textContent || ""));
@@ -810,7 +934,13 @@ function sanitizeRichText(html) {
     const isChecklist = node.tagName === "UL" && (node.classList.contains("check-list") || node.dataset.list === "checklist");
     const isChecklistItem = node.tagName === "LI" && node.closest("ul.check-list, ul[data-list='checklist']");
     const wasChecked = node.dataset.checked === "true";
+    const href = node.tagName === "A" ? node.getAttribute("href") || "" : "";
     [...node.attributes].forEach((attribute) => node.removeAttribute(attribute.name));
+    if (node.tagName === "A" && /^https?:\/\//i.test(href)) {
+      node.setAttribute("href", href);
+      node.setAttribute("target", "_blank");
+      node.setAttribute("rel", "noopener noreferrer");
+    }
     if (isChecklist) {
       node.classList.add("check-list");
       node.dataset.list = "checklist";
@@ -834,6 +964,10 @@ async function convexQuery(path, args) {
 
 async function convexMutation(path, args) {
   return convexCall("mutation", path, args);
+}
+
+async function convexAction(path, args) {
+  return convexCall("action", path, args);
 }
 
 async function convexCall(kind, path, args) {
@@ -906,4 +1040,13 @@ function formatTime(timestamp) {
     hour: "numeric",
     minute: "2-digit",
   }).format(new Date(timestamp));
+}
+
+function formatMeetingTimestamp(value) {
+  return new Intl.DateTimeFormat("en", {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(new Date(value));
 }
