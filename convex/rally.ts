@@ -243,6 +243,9 @@ export const act = mutation({
       const record = { title: String(p.title || "").trim(), status: p.status || "todo", category: p.category || "General", assigneeId: p.assigneeId || "", dueDate: p.dueDate || "" };
       if (!record.title) throw new Error("Ticket title is required.");
       if (task) Object.assign(task, record); else state.tasks.unshift({ id: id(), ...record, createdAt: Date.now() });
+    } else if (args.action === "delete-task") {
+      if (!state.tasks.some((item: RallyState) => item.id === p.id)) throw new Error("That ticket no longer exists.");
+      state.tasks = state.tasks.filter((item: RallyState) => item.id !== p.id);
     } else if (args.action === "save-room") {
       const room = state.rooms.find((item: RallyState) => item.id === p.id);
       const record = { hotel: p.hotel, roomType: p.roomType, confirmation: p.confirmation, checkIn: p.checkIn, checkOut: p.checkOut, capacity: Number(p.capacity) || 1 };
@@ -254,12 +257,40 @@ export const act = mutation({
       state.rooms.forEach((room: RallyState) => { room.memberIds = room.memberIds.filter((memberId: string) => memberId !== p.memberId); });
       const room = state.rooms.find((item: RallyState) => item.id === p.roomId);
       if (room && room.memberIds.length < room.capacity) room.memberIds.push(p.memberId);
-    } else if (args.action === "add-flight") {
-      state.travel.push({ id: id(), ...p, number: String(p.number || "").toUpperCase(), origin: String(p.origin || "").toUpperCase(), destination: String(p.destination || "").toUpperCase(), status: "scheduled" });
-    } else if (args.action === "add-car") {
-      state.cars.push({ id: id(), ...p });
-    } else if (args.action === "add-pass") {
-      state.passes.push({ id: id(), ...p, quantity: Number(p.quantity) || 1 });
+    } else if (["add-flight", "save-flight"].includes(args.action)) {
+      const trip = state.travel.find((item: RallyState) => item.id === p.id);
+      const record = { ...p, id: undefined, number: String(p.number || "").toUpperCase(), origin: String(p.origin || "").toUpperCase(), destination: String(p.destination || "").toUpperCase(), status: "scheduled" };
+      delete record.id;
+      if (trip) Object.assign(trip, record); else state.travel.push({ id: id(), ...record });
+    } else if (args.action === "delete-flight") {
+      if (!state.travel.some((item: RallyState) => item.id === p.id)) throw new Error("That flight leg no longer exists.");
+      state.travel = state.travel.filter((item: RallyState) => item.id !== p.id);
+    } else if (["add-car", "save-car"].includes(args.action)) {
+      const car = state.cars.find((item: RallyState) => item.id === p.id);
+      const record = { ...p, id: undefined };
+      delete record.id;
+      if (car) Object.assign(car, record); else state.cars.push({ id: id(), ...record });
+    } else if (args.action === "delete-car") {
+      if (!state.cars.some((item: RallyState) => item.id === p.id)) throw new Error("That rental car no longer exists.");
+      state.cars = state.cars.filter((item: RallyState) => item.id !== p.id);
+    } else if (["add-pass", "save-pass"].includes(args.action)) {
+      const pass = state.passes.find((item: RallyState) => item.id === p.id);
+      const record = { ...p, id: undefined, quantity: Number(p.quantity) || 1 };
+      delete record.id;
+      if (pass) Object.assign(pass, record); else state.passes.push({ id: id(), ...record });
+    } else if (args.action === "delete-pass") {
+      if (!state.passes.some((item: RallyState) => item.id === p.id)) throw new Error("That pass no longer exists.");
+      state.passes = state.passes.filter((item: RallyState) => item.id !== p.id);
+    } else if (args.action === "remove-member") {
+      if (!["admin", "leader"].includes(current.role)) throw new Error("Only an admin can remove crew.");
+      const member = state.members.find((person: RallyState) => person.id === p.id);
+      if (!member || ["admin", "leader"].includes(member.role)) throw new Error("That crew member cannot be removed.");
+      state.members = state.members.filter((person: RallyState) => person.id !== p.id);
+      state.rooms.forEach((room: RallyState) => { room.memberIds = room.memberIds.filter((memberId: string) => memberId !== p.id); });
+      state.travel = state.travel.filter((trip: RallyState) => trip.memberId !== p.id);
+      state.cars.forEach((car: RallyState) => { if (car.driverId === p.id) car.driverId = ""; });
+      state.tasks.forEach((task: RallyState) => { if (task.assigneeId === p.id) task.assigneeId = ""; });
+      state.passes.forEach((pass: RallyState) => { if (pass.ownerId === p.id) pass.ownerId = ""; });
     } else if (args.action === "create-event") {
       if (!["admin", "leader"].includes(current.role)) throw new Error("Only an admin can create a rave room.");
       const eventId = String(p.name || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 48);

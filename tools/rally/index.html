@@ -14,6 +14,12 @@
       .dialog-actions.split{grid-template-columns:1fr 1fr}
       .danger-button{min-height:40px;padding:0 14px;border:1px solid #e3b7b1;border-radius:8px;background:#fff7f5;color:#a13a2e;font-size:.7rem;font-weight:820;cursor:pointer}
       .danger-button.armed{border-color:#9f3126;background:#9f3126;color:#fff}
+      .editable-card{position:relative;padding-right:52px}
+      .card-menu{position:absolute;top:12px;right:12px;width:32px;height:28px;border:1px solid #d8d9ce;border-radius:7px;background:#fff;color:#73756c;cursor:pointer}
+      .member-actions{display:flex;align-items:center;gap:6px}
+      .member-action.remove{border-color:#e3c4bf;background:#fff8f6;color:#9d4035}
+      .claimed-label{color:#6f7168;font-size:.58rem;font-weight:800}
+      .confirm-dialog{width:min(430px,100%)}
       @media(max-width:620px){.dialog-actions.split{grid-template-columns:1fr}}
     </style>
   </head>
@@ -50,6 +56,6 @@
 
     <script defer crossorigin="anonymous" src="https://clerk.john-ta.com/npm/@clerk/ui@1/dist/ui.browser.js"></script>
     <script defer crossorigin="anonymous" data-clerk-publishable-key="pk_live_Y2xlcmsuam9obi10YS5jb20k" src="https://clerk.john-ta.com/npm/@clerk/clerk-js@6/dist/clerk.browser.js"></script>
-    <script defer src="./app.js?v=5"></script>
+    <script defer src="./app.js?v=6"></script>
   </body>
 </html>
