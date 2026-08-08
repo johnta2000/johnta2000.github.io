@@ -335,7 +335,7 @@ function renderFathomNotesSummary() {
   els.notetakerSummary.textContent = count
     ? `${count} Affilignment meeting${count === 1 ? "" : "s"} imported for this date.`
     : "No Affilignment meeting notes imported for this date.";
-  els.notetakerStatus.textContent = count ? "Notetaker notes ready" : "Fathom notes sync daily at 10:30 AM and 11:00 AM PT.";
+  els.notetakerStatus.textContent = count ? "Notetaker notes ready" : "";
 }
 
 async function saveDailyNotes({ silent = false } = {}) {
