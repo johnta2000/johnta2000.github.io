@@ -34,6 +34,21 @@ export default defineSchema({
     createdAt: v.number(),
     updatedAt: v.number(),
   }).index("by_date", ["teamId", "standupDate"]),
+  standupItemComments: defineTable({
+    teamId: v.string(),
+    standupDate: v.string(),
+    personKey: v.string(),
+    personName: v.string(),
+    fieldName: v.string(),
+    itemKey: v.string(),
+    itemText: v.string(),
+    comment: v.string(),
+    authorEmail: v.string(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_entry", ["teamId", "standupDate", "personKey"])
+    .index("by_item", ["teamId", "standupDate", "personKey", "fieldName", "itemKey"]),
   standupFathomImports: defineTable({
     teamId: v.string(),
     standupDate: v.string(),

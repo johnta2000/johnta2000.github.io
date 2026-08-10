@@ -680,6 +680,21 @@ button svg {
   font-size: 12px;
 }
 
+.editor-toolbar .comment-editor-button {
+  width: auto;
+  min-width: 76px;
+  padding: 0 10px;
+  border-color: #dfe3dc;
+  background: #fff;
+  color: var(--accent);
+  font-size: 12px;
+}
+
+.editor-toolbar .comment-editor-button:disabled {
+  color: #8a9088;
+  cursor: wait;
+}
+
 .editor-toolbar .copy-editor-button.is-copied {
   border-color: rgba(18, 122, 102, 0.28);
   background: rgba(18, 122, 102, 0.1);
@@ -721,6 +736,78 @@ button svg {
 
 .rich-editor.is-invalid {
   border-color: var(--danger);
+}
+
+.item-comments {
+  display: grid;
+  gap: 8px;
+  border: 1px solid #e4e8e0;
+  border-top: 0;
+  border-radius: 0 0 8px 8px;
+  background: #fbfcf8;
+  padding: 10px;
+}
+
+.rich-editor + .item-comments:not([hidden]) {
+  margin-top: -1px;
+}
+
+.rich-editor:has(+ .item-comments:not([hidden])) {
+  border-radius: 0;
+}
+
+.item-comment {
+  display: grid;
+  gap: 6px;
+  border: 1px solid #dce4da;
+  border-radius: 8px;
+  background: #fff;
+  padding: 10px;
+}
+
+.item-comment-target {
+  margin: 0;
+  color: #66706a;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.item-comment-target::before {
+  content: "On: ";
+  color: #929990;
+}
+
+.item-comment-body {
+  margin: 0;
+  color: #2f342f;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.item-comment-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  color: #82887f;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.item-comment-meta button {
+  border: 0;
+  background: transparent;
+  color: #7b8178;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 0;
+}
+
+.item-comment-meta button:hover,
+.item-comment-meta button:focus {
+  color: var(--danger);
+  outline: none;
 }
 
 .daily-list {

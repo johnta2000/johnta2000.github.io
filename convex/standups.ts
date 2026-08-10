@@ -164,6 +164,28 @@ export const getForPersonAndDate = query({
   },
 });
 
+export const listItemComments = query({
+  args: {
+    teamId: v.string(),
+    standupDate: v.string(),
+    personName: v.string(),
+  },
+  handler: async (ctx, args) => {
+    await requireAuthorizedUser(ctx);
+    const personKey = normalizePersonKey(args.personName);
+    if (!personKey) return [];
+
+    const comments = await ctx.db
+      .query("standupItemComments")
+      .withIndex("by_entry", (q) =>
+        q.eq("teamId", args.teamId).eq("standupDate", args.standupDate).eq("personKey", personKey),
+      )
+      .collect();
+
+    return comments.sort((a, b) => a.createdAt - b.createdAt);
+  },
+});
+
 export const getPreviousForPerson = query({
   args: {
     teamId: v.string(),
@@ -184,6 +206,54 @@ export const getPreviousForPerson = query({
       .take(1);
 
     return entries[0] ?? null;
+  },
+});
+
+export const saveItemComment = mutation({
+  args: {
+    teamId: v.string(),
+    standupDate: v.string(),
+    personName: v.string(),
+    fieldName: v.string(),
+    itemKey: v.string(),
+    itemText: v.string(),
+    comment: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const identity = await requireAuthorizedUser(ctx);
+    const now = Date.now();
+    const personName = args.personName.trim();
+    const personKey = normalizePersonKey(personName);
+    const comment = args.comment.trim();
+    const itemText = args.itemText.trim();
+
+    if (!personKey) throw new Error("Name is required.");
+    if (!itemText) throw new Error("Select or place your cursor in an item first.");
+    if (!comment) throw new Error("Comment is required.");
+
+    return await ctx.db.insert("standupItemComments", {
+      teamId: args.teamId,
+      standupDate: args.standupDate,
+      personKey,
+      personName,
+      fieldName: args.fieldName,
+      itemKey: args.itemKey,
+      itemText,
+      comment,
+      authorEmail: identity.email || "",
+      createdAt: now,
+      updatedAt: now,
+    });
+  },
+});
+
+export const deleteItemComment = mutation({
+  args: {
+    commentId: v.id("standupItemComments"),
+  },
+  handler: async (ctx, args) => {
+    await requireAuthorizedUser(ctx);
+    await ctx.db.delete(args.commentId);
   },
 });
 

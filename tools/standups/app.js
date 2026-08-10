@@ -2,6 +2,7 @@ const CONVEX_URL = "https://rapid-shark-565.convex.cloud";
 const TEAM_ID = "johns-website-default";
 const LOCAL_NAME_KEY = "standups:last-person-name";
 const TEAM_MEMBERS = ["John", "Vivek", "Vishal", "Jenny"];
+const COMMENT_FIELDS = ["yesterday", "today", "blockers", "notes"];
 
 const els = {
   app: document.querySelector("#standupsApp"),
@@ -22,6 +23,12 @@ const els = {
   today: document.querySelector("#today"),
   blockers: document.querySelector("#blockers"),
   notes: document.querySelector("#notes"),
+  commentLists: {
+    yesterday: document.querySelector("#comments-yesterday"),
+    today: document.querySelector("#comments-today"),
+    blockers: document.querySelector("#comments-blockers"),
+    notes: document.querySelector("#comments-notes"),
+  },
   dailyNotes: document.querySelector("#dailyNotes"),
   dailyNotesDate: document.querySelector("#dailyNotesDate"),
   dailyNotesStatus: document.querySelector("#dailyNotesStatus"),
@@ -49,6 +56,7 @@ const personEditors = [els.yesterday, els.today, els.blockers, els.notes];
 const allEditors = [...personEditors, els.dailyNotes];
 let entriesForDate = [];
 let activePrevious = null;
+let standupComments = [];
 let fathomNotesForDate = [];
 let autosaveTimer;
 let dailyNotesAutosaveTimer;
@@ -93,6 +101,9 @@ function initStandups() {
   });
   document.querySelectorAll("[data-copy-editor]").forEach((button) => {
     button.addEventListener("click", () => copyEditorContents(button));
+  });
+  document.querySelectorAll("[data-comment-editor]").forEach((button) => {
+    button.addEventListener("click", () => addCommentForEditor(button));
   });
   allEditors.forEach((editor) => {
     editor.addEventListener("input", () => {
@@ -197,6 +208,7 @@ async function handleDateChange() {
   clearTimeout(autosaveTimer);
   await flushDailyNotesAutosave();
   clearForm();
+  clearItemComments();
   updateDateShortcuts();
   await Promise.all([refreshDailyList(), loadDailyNotes(), loadFathomNotes()]);
   updateTodayHeading();
@@ -229,9 +241,10 @@ async function loadPersonContext() {
   els.previousContent.className = "previous-content empty-state";
   els.previousContent.textContent = "Looking for the most recent prior submission...";
   els.saveStatus.textContent = "";
+  clearItemComments();
 
   try {
-    const [current, previous] = await Promise.all([
+    const [current, previous, comments] = await Promise.all([
       convexQuery("standups:getForPersonAndDate", {
         teamId: TEAM_ID,
         standupDate: els.date.value,
@@ -242,16 +255,24 @@ async function loadPersonContext() {
         beforeDate: els.date.value,
         personName,
       }),
+      convexQuery("standups:listItemComments", {
+        teamId: TEAM_ID,
+        standupDate: els.date.value,
+        personName,
+      }),
     ]);
 
     activePrevious = previous;
+    standupComments = comments;
     fillCurrent(current);
     renderPrevious(previous, personName);
+    renderItemComments();
   } catch (error) {
     console.error(error);
     els.previousTitle.textContent = "Convex unavailable";
     els.previousContent.className = "previous-content empty-state";
     els.previousContent.textContent = "I could not load the comparison yet.";
+    clearItemComments();
   }
 }
 
@@ -722,6 +743,119 @@ function fillCurrent(entry) {
   }
 }
 
+async function reloadItemComments() {
+  const personName = els.personName.value.trim();
+  if (!personName) {
+    clearItemComments();
+    return;
+  }
+
+  standupComments = await convexQuery("standups:listItemComments", {
+    teamId: TEAM_ID,
+    standupDate: els.date.value,
+    personName,
+  });
+  renderItemComments();
+}
+
+function renderItemComments() {
+  COMMENT_FIELDS.forEach((fieldName) => {
+    const list = els.commentLists[fieldName];
+    const comments = standupComments.filter((comment) => comment.fieldName === fieldName);
+    if (!list) return;
+
+    list.hidden = comments.length === 0;
+    list.replaceChildren(...comments.map(renderItemComment));
+  });
+}
+
+function clearItemComments() {
+  standupComments = [];
+  COMMENT_FIELDS.forEach((fieldName) => {
+    const list = els.commentLists[fieldName];
+    if (!list) return;
+    list.hidden = true;
+    list.replaceChildren();
+  });
+}
+
+function renderItemComment(comment) {
+  const card = document.createElement("article");
+  const item = document.createElement("p");
+  const body = document.createElement("p");
+  const meta = document.createElement("div");
+  const author = document.createElement("span");
+  const remove = document.createElement("button");
+
+  card.className = "item-comment";
+  item.className = "item-comment-target";
+  item.textContent = comment.itemText;
+  body.className = "item-comment-body";
+  body.textContent = comment.comment;
+  meta.className = "item-comment-meta";
+  author.textContent = [comment.authorEmail || "Standup comment", formatTime(comment.createdAt)].filter(Boolean).join(" · ");
+  remove.type = "button";
+  remove.textContent = "Remove";
+  remove.addEventListener("click", () => deleteItemComment(comment._id));
+
+  meta.append(author, remove);
+  card.append(item, body, meta);
+  return card;
+}
+
+async function addCommentForEditor(button) {
+  const editor = button.closest(".rich-field").querySelector(".rich-editor");
+  const personName = els.personName.value.trim();
+  if (!personName) {
+    els.saveStatus.textContent = "Select a person before commenting.";
+    return;
+  }
+
+  const target = getCommentTarget(editor);
+  if (!target.itemText) {
+    els.saveStatus.textContent = "Put your cursor in an item before commenting.";
+    editor.focus();
+    return;
+  }
+
+  const comment = window.prompt(`Comment on:\n${target.itemText}`);
+  if (!comment?.trim()) return;
+
+  button.disabled = true;
+  button.textContent = "Saving";
+  try {
+    await flushAutosave();
+    await convexMutation("standups:saveItemComment", {
+      teamId: TEAM_ID,
+      standupDate: els.date.value,
+      personName,
+      fieldName: editor.id,
+      itemKey: target.itemKey,
+      itemText: target.itemText,
+      comment,
+    });
+    els.saveStatus.textContent = `Comment saved ${formatTime(Date.now())}`;
+    await reloadItemComments();
+  } catch (error) {
+    console.error(error);
+    els.saveStatus.textContent = "Comment save failed. Check Convex and try again.";
+  } finally {
+    button.disabled = false;
+    button.textContent = "Comment";
+  }
+}
+
+async function deleteItemComment(commentId) {
+  try {
+    await convexMutation("standups:deleteItemComment", { commentId });
+    els.saveStatus.textContent = `Comment removed ${formatTime(Date.now())}`;
+    await reloadItemComments();
+  } catch (error) {
+    console.error(error);
+    els.saveStatus.textContent = "Comment remove failed.";
+  }
+}
+
 function renderPrevious(entry, personName) {
   if (!entry) {
     els.previousTitle.textContent = `${personName}'s prior standup`;
@@ -835,6 +969,7 @@ function setEntriesState(message) {
 function clearForm() {
   personEditors.forEach((editor) => setEditorHtml(editor, ""));
   els.saveStatus.textContent = "";
+  clearItemComments();
 }
 
 function queueEditorAutosave(editor) {
@@ -1155,6 +1290,37 @@ function getCurrentTextBlock() {
   }
 
   return node?.classList?.contains("rich-editor") ? node : null;
+}
+
+function getCommentTarget(editor) {
+  const selection = window.getSelection();
+  const selectedText = selection && editorContainsSelection(editor, selection) ? normalizeItemText(selection.toString()) : "";
+  const itemText = selectedText || normalizeItemText(getCurrentTextBlock()?.textContent || "");
+  return {
+    itemText,
+    itemKey: hashCommentTarget(itemText),
+  };
+}
+
+function editorContainsSelection(editor, selection) {
+  if (!selection?.rangeCount) return false;
+  const anchor = selection.anchorNode;
+  const focus = selection.focusNode;
+  return Boolean(anchor && focus && editor.contains(anchor) && editor.contains(focus));
+}
+
+function normalizeItemText(value) {
+  return String(value || "").replace(/\s+/g, " ").trim();
+}
+
+function hashCommentTarget(value) {
+  let hash = 2166136261;
+  const normalized = normalizeItemText(value).toLowerCase();
+  for (let index = 0; index < normalized.length; index += 1) {
+    hash ^= normalized.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return `item-${(hash >>> 0).toString(36)}`;
 }
 
 function validateRequiredEditors() {
