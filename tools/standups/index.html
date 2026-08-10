@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="robots" content="noindex, nofollow" />
     <title>Daily Standups Tracker</title>
-    <link rel="stylesheet" href="./styles.css?v=41" />
+    <link rel="stylesheet" href="./styles.css?v=42" />
   </head>
   <body>
     <section id="accessGate" class="access-gate" aria-labelledby="accessTitle" role="dialog" aria-modal="true">
@@ -72,7 +72,7 @@
                   <button type="button" data-command="insertUnorderedList" title="Bulleted list, Command Shift 8">•</button>
                   <button type="button" data-command="insertOrderedList" title="Numbered list, Command Shift 7">1.</button>
                   <button type="button" data-command="toggleChecklist" title="Checklist, type [ ] then space">☐</button>
-                  <button class="comment-editor-button" type="button" data-comment-editor title="Comment on selected item">Comment</button>
+                  <button class="comment-editor-button" type="button" data-comment-editor title="Comment on selected item, Command Option M">Comment</button>
                   <button class="copy-editor-button" type="button" data-copy-editor title="Copy contents">Copy</button>
                 </div>
                 <div id="yesterday" class="rich-editor" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Yesterday / things I did" data-placeholder="What changed since your last update?"></div>
@@ -86,7 +86,7 @@
                   <button type="button" data-command="insertUnorderedList" title="Bulleted list, Command Shift 8">•</button>
                   <button type="button" data-command="insertOrderedList" title="Numbered list, Command Shift 7">1.</button>
                   <button type="button" data-command="toggleChecklist" title="Checklist, type [ ] then space">☐</button>
-                  <button class="comment-editor-button" type="button" data-comment-editor title="Comment on selected item">Comment</button>
+                  <button class="comment-editor-button" type="button" data-comment-editor title="Comment on selected item, Command Option M">Comment</button>
                   <button class="copy-editor-button" type="button" data-copy-editor title="Copy contents">Copy</button>
                 </div>
                 <div id="today" class="rich-editor" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Today / things to do" data-placeholder="What are you moving forward today?"></div>
@@ -100,7 +100,7 @@
                   <button type="button" data-command="insertUnorderedList" title="Bulleted list, Command Shift 8">•</button>
                   <button type="button" data-command="insertOrderedList" title="Numbered list, Command Shift 7">1.</button>
                   <button type="button" data-command="toggleChecklist" title="Checklist, type [ ] then space">☐</button>
-                  <button class="comment-editor-button" type="button" data-comment-editor title="Comment on selected item">Comment</button>
+                  <button class="comment-editor-button" type="button" data-comment-editor title="Comment on selected item, Command Option M">Comment</button>
                   <button class="copy-editor-button" type="button" data-copy-editor title="Copy contents">Copy</button>
                 </div>
                 <div id="blockers" class="rich-editor" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Blockers" data-placeholder="Anything stuck, waiting, or risky?"></div>
@@ -114,7 +114,7 @@
                   <button type="button" data-command="insertUnorderedList" title="Bulleted list, Command Shift 8">•</button>
                   <button type="button" data-command="insertOrderedList" title="Numbered list, Command Shift 7">1.</button>
                   <button type="button" data-command="toggleChecklist" title="Checklist, type [ ] then space">☐</button>
-                  <button class="comment-editor-button" type="button" data-comment-editor title="Comment on selected item">Comment</button>
+                  <button class="comment-editor-button" type="button" data-comment-editor title="Comment on selected item, Command Option M">Comment</button>
                   <button class="copy-editor-button" type="button" data-copy-editor title="Copy contents">Copy</button>
                 </div>
                 <div id="notes" class="rich-editor" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Notes" data-placeholder="Useful context, links, or handoff notes."></div>
@@ -212,6 +212,6 @@
       src="https://clerk.john-ta.com/npm/@clerk/clerk-js@6/dist/clerk.browser.js"
       type="text/javascript"
     ></script>
-    <script defer src="./app.js?v=41"></script>
+    <script defer src="./app.js?v=42"></script>
   </body>
 </html>

@@ -803,8 +803,10 @@ function renderItemComment(comment) {
   return card;
 }
 
-async function addCommentForEditor(button) {
-  const editor = button.closest(".rich-field").querySelector(".rich-editor");
+async function addCommentForEditor(source) {
+  const field = source.closest(".rich-field");
+  const editor = source.classList.contains("rich-editor") ? source : field.querySelector(".rich-editor");
+  const button = field.querySelector("[data-comment-editor]");
   const personName = els.personName.value.trim();
   if (!personName) {
     els.saveStatus.textContent = "Select a person before commenting.";
@@ -1156,6 +1158,12 @@ function handleEditorKeydown(event) {
   if (event.key === "Enter") {
     const item = getCurrentListItem();
     shouldResetNewChecklistItem = item?.closest("ul.check-list") && item.dataset.checked === "true";
+  }
+
+  if ((event.metaKey || event.ctrlKey) && event.altKey && event.code === "KeyM") {
+    event.preventDefault();
+    addCommentForEditor(event.currentTarget);
+    return;
   }
 
   const commandKey = event.metaKey || event.ctrlKey;
