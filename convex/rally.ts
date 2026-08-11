@@ -33,11 +33,20 @@ function routeState(state: RallyState, identity: Identity) {
   const member = memberFor(state, identity);
   if (!member) throw new Error("This email has not been invited to this rave room.");
   const { lineupFavorites = {}, ...sharedState } = state;
+  const lineupInterests: Record<string, Array<{ id: string; name: string; initials: string; color: string }>> = {};
+  state.members.forEach((person: RallyState) => {
+    const artistIds = Array.isArray(lineupFavorites[person.id]) ? lineupFavorites[person.id] : [];
+    artistIds.forEach((artistId: string) => {
+      lineupInterests[artistId] ||= [];
+      lineupInterests[artistId].push({ id: person.id, name: person.name, initials: person.initials, color: person.color });
+    });
+  });
   return {
     ...sharedState,
     members: state.members.map(({ clerkSubject: _clerkSubject, ...person }: RallyState) => person),
     currentMemberId: member.id,
     currentLineupFavorites: Array.isArray(lineupFavorites[member.id]) ? lineupFavorites[member.id] : [],
+    lineupInterests,
     isAdmin: ["admin", "leader"].includes(member.role),
   };
 }

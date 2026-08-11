@@ -392,6 +392,76 @@
         width: auto;
       }
 
+      .rally-only {
+        display: none;
+      }
+
+      .rally-mode col.rally-only {
+        display: table-column;
+      }
+
+      .rally-mode th.rally-only,
+      .rally-mode td.rally-only {
+        display: table-cell;
+      }
+
+      .rally-mode col.col-artist {
+        width: 35%;
+      }
+
+      .rally-mode col.col-type {
+        width: 12%;
+      }
+
+      .rally-mode col.col-genre {
+        width: 18%;
+      }
+
+      .interest-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+      }
+
+      .interest-person {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 3px 7px 3px 3px;
+        border: 1px solid rgba(160, 225, 197, 0.17);
+        border-radius: 999px;
+        background: rgba(160, 225, 197, 0.07);
+        color: #dffbf2;
+        font-size: 0.65rem;
+        font-weight: 850;
+        white-space: nowrap;
+      }
+
+      .interest-person i {
+        display: grid;
+        width: 22px;
+        height: 22px;
+        place-items: center;
+        border-radius: 50%;
+        background: #d7d0ff;
+        color: #251e42;
+        font-size: 0.52rem;
+        font-style: normal;
+        font-weight: 950;
+      }
+
+      .interest-person i.coral { background: #ffd8ca; color: #5a281d; }
+      .interest-person i.sky { background: #dcedff; color: #20384c; }
+      .interest-person i.yellow { background: #fff0b7; color: #493d12; }
+      .interest-person i.green { background: #dcefd6; color: #24431c; }
+      .interest-person i.pink { background: #ffddec; color: #55223a; }
+      .interest-person i.blue { background: #dbe8ff; color: #21365d; }
+      .interest-person i.orange { background: #ffe0c5; color: #57351e; }
+
+      .interest-empty {
+        color: rgba(202, 230, 220, 0.38);
+      }
+
       th,
       td {
         padding: 13px 16px;
@@ -617,6 +687,38 @@
           width: 23% !important;
         }
 
+        .rally-mode col.col-artist {
+          width: 34% !important;
+        }
+
+        .rally-mode col.col-type {
+          width: 11% !important;
+        }
+
+        .rally-mode col.col-genre {
+          width: 18% !important;
+        }
+
+        .rally-mode col.col-interest {
+          width: 28% !important;
+        }
+
+        .interest-list {
+          gap: 2px;
+        }
+
+        .interest-person {
+          gap: 3px;
+          padding: 2px 4px 2px 2px;
+          font-size: 7.5px;
+        }
+
+        .interest-person i {
+          width: 16px;
+          height: 16px;
+          font-size: 6px;
+        }
+
         th,
         td {
           padding: 6px 4px;
@@ -720,6 +822,7 @@
               <col class="col-artist">
               <col class="col-type">
               <col class="col-genre">
+              <col class="col-interest rally-only">
             </colgroup>
             <thead>
               <tr>
@@ -727,6 +830,7 @@
                 <th>Artist</th>
                 <th>Type</th>
                 <th>Genre</th>
+                <th class="rally-only">Interested</th>
               </tr>
             </thead>
             <tbody id="table-body"></tbody>
@@ -956,7 +1060,10 @@
       const lineupById = new Map(lineup.map((entry) => [entry.id, entry]));
       const mobileViewQuery = window.matchMedia("(max-width: 760px)");
       const rallyManagedFavorites = window.parent !== window && new URLSearchParams(window.location.search).get("rally") === "1";
+      document.documentElement.classList.toggle("rally-mode", rallyManagedFavorites);
       let favorites = new Set(rallyManagedFavorites ? [] : readStoredFavorites());
+      let lineupInterests = {};
+      let currentRallyMember = null;
       let activeView = "table";
       let favoritesOnly = false;
       let viewingSharedFavorites = false;
@@ -1183,7 +1290,7 @@
         if (!entries.length) {
           els.tableBody.innerHTML = `
             <tr>
-              <td class="empty-state" colspan="4">No artists match the current filters.</td>
+              <td class="empty-state" colspan="${rallyManagedFavorites ? 5 : 4}">No artists match the current filters.</td>
             </tr>
           `;
           return;
@@ -1204,10 +1311,30 @@
                 <td class="artist-cell">${escapeHtml(entry.artist)}</td>
                 <td class="type-cell">${escapeHtml(entry.billing)}</td>
                 <td class="genre-cell">${escapeHtml(entry.genre)}</td>
+                <td class="rally-only">${renderInterest(entry.id)}</td>
               </tr>
             `
           )
           .join("");
+      }
+
+      function renderInterest(artistId) {
+        const people = Array.isArray(lineupInterests[artistId]) ? lineupInterests[artistId] : [];
+        if (!people.length) return `<span class="interest-empty">—</span>`;
+        return `<div class="interest-list">${people.map((person) => {
+          const allowedColors = new Set(["coral", "sky", "purple", "yellow", "green", "pink", "blue", "orange"]);
+          const color = allowedColors.has(person.color) ? person.color : "purple";
+          return `<span class="interest-person" title="${escapeHtml(person.name)}"><i class="${color}">${escapeHtml(person.initials)}</i><span>${escapeHtml(person.name)}</span></span>`;
+        }).join("")}</div>`;
+      }
+
+      function updateCurrentMemberInterest(artistId) {
+        if (!rallyManagedFavorites || !currentRallyMember) return;
+        const people = Array.isArray(lineupInterests[artistId]) ? lineupInterests[artistId] : [];
+        const withoutCurrent = people.filter((person) => person.id !== currentRallyMember.id);
+        if (favorites.has(artistId)) withoutCurrent.push(currentRallyMember);
+        if (withoutCurrent.length) lineupInterests[artistId] = withoutCurrent;
+        else delete lineupInterests[artistId];
       }
 
       function updateViewButtons() {
@@ -1348,6 +1475,7 @@
             favorites.add(id);
           }
 
+          updateCurrentMemberInterest(id);
           saveFavorites();
           render();
           if (wasViewingSharedFavorites) showToast("Edited list saved as yours.");
@@ -1361,8 +1489,10 @@
         if (rallyManagedFavorites) {
           window.addEventListener("message", (event) => {
             if (event.origin !== window.location.origin || event.source !== window.parent || !event.data || typeof event.data !== "object") return;
-            if (event.data.type === "rally-lineup-favorites" && Array.isArray(event.data.artistIds)) {
+            if (event.data.type === "rally-lineup-state" && Array.isArray(event.data.artistIds)) {
               favorites = new Set(event.data.artistIds.filter((id) => validFavoriteIds.has(id)));
+              lineupInterests = event.data.interests && typeof event.data.interests === "object" ? event.data.interests : {};
+              currentRallyMember = event.data.currentMember && typeof event.data.currentMember === "object" ? event.data.currentMember : null;
               viewingSharedFavorites = false;
               render();
             }
