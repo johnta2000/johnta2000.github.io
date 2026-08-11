@@ -176,6 +176,50 @@ export const addUpcomingRaves2026 = internalMutation({
   },
 });
 
+export const addEdcHotelReservations2027 = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const doc = await findDoc(ctx, EDC);
+    if (!doc?.buckets) throw new Error("EDC Las Vegas 2027 is unavailable.");
+    const state = structuredClone(doc.buckets) as RallyState;
+    const reservations = [
+      {
+        id: "edc-rio-17316046",
+        hotel: "Rio Hotel & Casino",
+        roomType: "Renovated | 2 Queen Beds Deluxe",
+        confirmation: "17316046",
+        checkIn: "Fri, May 21, 2027 · 4:00 PM",
+        checkOut: "Mon, May 24, 2027 · 11:00 AM",
+        capacity: 4,
+        bathrooms: 1,
+        totalCost: "",
+        notes: "Booked for 1 adult · Standard Room Free Night · Special rate CR54749 · 3700 W Flamingo Rd, Las Vegas, NV 89103 · $52 daily resort fee noted by hotel",
+        memberIds: [],
+      },
+      {
+        id: "edc-rio-58045118",
+        hotel: "Rio Hotel & Casino",
+        roomType: "Renovated | 2 Queen Beds Deluxe",
+        confirmation: "58045118",
+        checkIn: "Fri, May 21, 2027 · 4:00 PM",
+        checkOut: "Mon, May 24, 2027 · 11:00 AM",
+        capacity: 4,
+        bathrooms: 1,
+        totalCost: "",
+        notes: "Booked for 4 adults · Standard Room Free Night · Special rate CR54749 · 3700 W Flamingo Rd, Las Vegas, NV 89103 · $52 daily resort fee noted by hotel",
+        memberIds: [],
+      },
+    ];
+    reservations.forEach((reservation) => {
+      const existing = state.rooms.find((room: RallyState) => room.id === reservation.id || room.confirmation === reservation.confirmation);
+      if (existing) Object.assign(existing, reservation, { memberIds: existing.memberIds || [] });
+      else state.rooms.push(reservation);
+    });
+    await ctx.db.patch(doc._id, { buckets: state, updatedAt: Date.now() });
+    return { rooms: reservations.map(({ confirmation }) => confirmation) };
+  },
+});
+
 export const bootstrap = mutation({
   args: { eventId: v.string() },
   handler: async (ctx, args) => {
