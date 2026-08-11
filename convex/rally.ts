@@ -215,8 +215,32 @@ export const listEvents = query({
   },
 });
 
+export const sharedCrewCandidates = query({
+  args: { eventId: v.string() },
+  handler: async (ctx, args) => {
+    const identity = await requireIdentity(ctx);
+    const targetDoc = await findDoc(ctx, args.eventId);
+    const target = targetDoc?.buckets as RallyState | undefined;
+    const current = target && memberFor(target, identity);
+    if (!target || !current || !["admin", "leader"].includes(current.role)) throw new Error("Only an admin can invite crew.");
+    const existingEmails = new Set(target.members.map((person: RallyState) => normalizedEmail(person.email)).filter(Boolean));
+    const candidates = new Map<string, RallyState>();
+    const docs = await ctx.db.query("warRoomState").collect();
+    docs.forEach((doc) => {
+      const state = doc.buckets as RallyState | undefined;
+      if (!state || state.id === args.eventId || !doc.boardId.startsWith("rally:") || !memberFor(state, identity)) return;
+      state.members.forEach((person: RallyState) => {
+        const email = normalizedEmail(person.email);
+        if (!email || email === identity.email || existingEmails.has(email) || candidates.has(email)) return;
+        candidates.set(email, { name: person.name, email, origin: person.origin || "TBD", initials: person.initials, color: person.color });
+      });
+    });
+    return [...candidates.values()].sort((a, b) => a.name.localeCompare(b.name));
+  },
+});
+
 export const invitationTarget = internalQuery({
-  args: { eventId: v.string(), memberId: v.string(), subject: v.string(), email: v.string() },
+  args: { eventId: v.string(), memberId: v.string(), name: v.string(), inviteEmail: v.string(), subject: v.string(), email: v.string() },
   handler: async (ctx, args) => {
     const doc = await findDoc(ctx, args.eventId);
     if (!doc?.buckets) throw new Error("Rally room unavailable.");
@@ -224,21 +248,29 @@ export const invitationTarget = internalQuery({
     const current = memberFor(state, { subject: args.subject, email: args.email });
     if (!current || !["admin", "leader"].includes(current.role)) throw new Error("Only an admin can invite crew.");
     const member = state.members.find((person: RallyState) => person.id === args.memberId);
-    if (!member || ["admin", "leader"].includes(member.role)) throw new Error("Choose a crew member to invite.");
-    return { eventName: state.name, memberName: member.name };
+    if (member && ["admin", "leader"].includes(member.role)) throw new Error("Choose a crew member to invite.");
+    if (!member && !args.name.trim()) throw new Error("Enter their name.");
+    if (state.members.some((person: RallyState) => person.id !== member?.id && normalizedEmail(person.email) === args.inviteEmail)) throw new Error("That email is already in this rave room.");
+    return { eventName: state.name, memberName: member?.name || args.name.trim() };
   },
 });
 
 export const finishInvitation = internalMutation({
-  args: { eventId: v.string(), memberId: v.string(), email: v.string(), subject: v.string(), adminEmail: v.string(), invitationId: v.string() },
+  args: { eventId: v.string(), memberId: v.string(), name: v.string(), origin: v.string(), email: v.string(), subject: v.string(), adminEmail: v.string(), invitationId: v.string() },
   handler: async (ctx, args) => {
     const doc = await findDoc(ctx, args.eventId);
     if (!doc?.buckets) throw new Error("Rally room unavailable.");
     const state = structuredClone(doc.buckets) as RallyState;
     const current = memberFor(state, { subject: args.subject, email: args.adminEmail });
     if (!current || !["admin", "leader"].includes(current.role)) throw new Error("Only an admin can invite crew.");
-    const member = state.members.find((person: RallyState) => person.id === args.memberId);
-    if (!member) throw new Error("That crew profile no longer exists.");
+    let member = state.members.find((person: RallyState) => person.id === args.memberId);
+    if (!member) {
+      const name = args.name.trim();
+      if (!name) throw new Error("Enter their name.");
+      const colors = ["sky", "purple", "yellow", "green", "pink", "blue", "orange"];
+      member = { id: args.memberId, name, email: "", origin: args.origin.trim().toUpperCase() || "TBD", initials: name.split(/\s+/).map((part: string) => part[0]).join("").slice(0, 2).toUpperCase(), color: colors[state.members.length % colors.length], role: "member", status: "not_invited", clerkSubject: "" };
+      state.members.push(member);
+    }
     if (state.members.some((person: RallyState) => person.id !== member.id && normalizedEmail(person.email) === args.email)) throw new Error("That email is already linked to someone else.");
     member.email = args.email;
     member.status = "invited";
@@ -249,15 +281,16 @@ export const finishInvitation = internalMutation({
 });
 
 export const sendInvitation = action({
-  args: { eventId: v.string(), memberId: v.string(), email: v.string() },
-  handler: async (ctx, args): Promise<RallyState> => {
+  args: { eventId: v.string(), memberId: v.optional(v.string()), name: v.string(), origin: v.optional(v.string()), email: v.string() },
+  handler: async (ctx, args): Promise<{ room: RallyState; memberName: string }> => {
     const identity = await ctx.auth.getUserIdentity() as Identity | null;
     const adminEmail = normalizedEmail(identity?.email);
     const email = normalizedEmail(args.email);
     if (!identity || !adminEmail || identity.emailVerified === false) throw new Error("Sign in with a verified email to invite crew.");
     if (!email.includes("@")) throw new Error("Enter a valid email address.");
+    const memberId = args.memberId || `m-${crypto.randomUUID()}`;
     const target: { eventName: string; memberName: string } = await ctx.runQuery(internal.rally.invitationTarget, {
-      eventId: args.eventId, memberId: args.memberId, subject: identity.subject, email: adminEmail,
+      eventId: args.eventId, memberId, name: args.name, inviteEmail: email, subject: identity.subject, email: adminEmail,
     });
     const secret = process.env.CLERK_SECRET_KEY;
     if (!secret) throw new Error("Clerk invitations are not configured yet.");
@@ -272,14 +305,15 @@ export const sendInvitation = action({
         redirect_url: redirect.toString(),
         notify: true,
         ignore_existing: true,
-        public_metadata: { rallyEventId: args.eventId, rallyMemberId: args.memberId, rallyEventName: target.eventName },
+        public_metadata: { rallyEventId: args.eventId, rallyMemberId: memberId, rallyEventName: target.eventName },
       }),
     });
     const result = await response.json() as { id?: string; errors?: Array<{ long_message?: string; message?: string }> };
     if (!response.ok || !result.id) throw new Error(result.errors?.[0]?.long_message || result.errors?.[0]?.message || `Clerk could not invite ${target.memberName}.`);
-    return await ctx.runMutation(internal.rally.finishInvitation, {
-      eventId: args.eventId, memberId: args.memberId, email, subject: identity.subject, adminEmail, invitationId: result.id,
+    const room = await ctx.runMutation(internal.rally.finishInvitation, {
+      eventId: args.eventId, memberId, name: target.memberName, origin: args.origin || "TBD", email, subject: identity.subject, adminEmail, invitationId: result.id,
     });
+    return { room, memberName: target.memberName };
   },
 });
 
