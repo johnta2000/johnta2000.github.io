@@ -14,7 +14,7 @@ let draggedTask = null;
 let lineupSaveTimer = null;
 let lineupRefreshTimer = null;
 
-const el = Object.fromEntries(["accessGate","clerkSignIn","authStatus","authSignOut","rallyApp","sidebar","closeMenu","openMenu","menuBackdrop","eventSwitcher","eventMenu","eventName","eventThumb","mobileEventName","mobileCountdown","sideNav","bottomNav","page","topInvite","accountButton","signOut","newEvent","dialogRoot","toast"].map((id) => [id, document.getElementById(id)]));
+const el = Object.fromEntries(["accessGate","clerkSignIn","authStatus","authSignOut","rallyApp","sidebar","closeMenu","openMenu","menuBackdrop","eventSwitcher","eventMenu","eventName","eventThumb","mobileEventName","mobileCountdown","sideNav","page","topInvite","accountButton","signOut","newEvent","dialogRoot","toast"].map((id) => [id, document.getElementById(id)]));
 
 init();
 
@@ -128,7 +128,6 @@ function render() {
   el.eventName.textContent = data.name; el.mobileEventName.textContent = data.name; el.mobileCountdown.textContent = `${days} days away`;
   el.eventThumb.textContent = initials(data.name); el.topInvite.hidden = !data.isAdmin;
   el.sideNav.innerHTML = views.filter(([id]) => data.id === DEFAULT_EVENT || id !== "lineup").map(([id,label,icon]) => `<a href="${href(id)}" class="${activeView === id ? "active" : ""}"><span class="nav-icon">${icon}</span>${label}</a>`).join("");
-  el.bottomNav.innerHTML = views.filter(([id]) => ["home","stay","crew","travel","tasks"].includes(id)).map(([id,label,icon]) => `<a href="${href(id)}" class="${activeView === id ? "active" : ""}"><span>${icon}</span>${label}</a>`).join("");
   el.eventMenu.innerHTML = events.map((event) => `<button data-event="${event.id}"><strong>${escapeHtml(event.name)}</strong><br><small>${escapeHtml(event.location)}</small></button>`).join("");
   el.eventMenu.querySelectorAll("button").forEach((button) => button.addEventListener("click", () => navigateTo(new URL(href("home", button.dataset.event), location.origin))));
   el.page.className = `page${activeView === "lineup" ? " lineup" : ""}`;
