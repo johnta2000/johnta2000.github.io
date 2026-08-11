@@ -72,8 +72,8 @@ function seedState(eventId: string, adminEmail: string, adminSubject: string): R
       ...names.map((name, index) => ({ id: ids[index], name, email: "", origin: "TBD", initials: name.split(/\s+/).map((part) => part[0]).join("").slice(0, 2).toUpperCase(), color: colors[index], role: "member", status: "not_invited", clerkSubject: "" })),
     ],
     rooms: [
-      { id: "r-1", hotel: "Hyatt Regency Columbus", roomType: "2 Queen Beds", confirmation: "HY-4821", checkIn: "Thu, Sep 17", checkOut: "Mon, Sep 21", capacity: 4, memberIds: [] },
-      { id: "r-2", hotel: "Hyatt Regency Columbus", roomType: "King + Sofa Bed", confirmation: "HY-4822", checkIn: "Thu, Sep 17", checkOut: "Mon, Sep 21", capacity: 4, memberIds: [] },
+      { id: "r-1", hotel: "Hyatt Regency Columbus", roomType: "2 Queen Beds", confirmation: "HY-4821", checkIn: "Thu, Sep 17", checkOut: "Mon, Sep 21", capacity: 4, bathrooms: 1, memberIds: [] },
+      { id: "r-2", hotel: "Hyatt Regency Columbus", roomType: "King + Sofa Bed", confirmation: "HY-4822", checkIn: "Thu, Sep 17", checkOut: "Mon, Sep 21", capacity: 4, bathrooms: 1, memberIds: [] },
     ],
     passes: [
       { id: "p-1", name: "Weekend admission", ownerId: "m-john", quantity: 8, status: "8 / 8 secured" },
@@ -250,7 +250,7 @@ export const act = mutation({
       state.tasks = state.tasks.filter((item: RallyState) => item.id !== p.id);
     } else if (args.action === "save-room") {
       const room = state.rooms.find((item: RallyState) => item.id === p.id);
-      const record = { hotel: p.hotel, roomType: p.roomType, confirmation: p.confirmation, checkIn: p.checkIn, checkOut: p.checkOut, capacity: Number(p.capacity) || 1, totalCost: String(p.totalCost || "").trim(), notes: String(p.notes || "").trim() };
+      const record = { hotel: p.hotel, roomType: p.roomType, confirmation: p.confirmation, checkIn: p.checkIn, checkOut: p.checkOut, capacity: Number(p.capacity) || 1, bathrooms: Math.max(1, Number(p.bathrooms) || 1), totalCost: String(p.totalCost || "").trim(), notes: String(p.notes || "").trim() };
       if (room) Object.assign(room, record); else state.rooms.push({ id: id(), ...record, memberIds: [] });
     } else if (args.action === "delete-room") {
       if (!state.rooms.some((item: RallyState) => item.id === p.id)) throw new Error("That room no longer exists.");
