@@ -108,7 +108,7 @@ async function insertState(ctx: MutationCtx, state: RallyState) {
   });
 }
 
-export const add2026BlockParties = internalMutation({
+export const addUpcomingRaves2026 = internalMutation({
   args: {},
   handler: async (ctx) => {
     const source = await findDoc(ctx, LOST_LANDS);
@@ -134,6 +134,13 @@ export const add2026BlockParties = internalMutation({
         endsAt: "2026-10-31",
         startTime: "16:00",
         timeZoneLabel: "PDT",
+      },
+      {
+        id: "decadence-digital-city-2026",
+        name: "Decadence: The Digital City",
+        location: "Colorado Convention Center, Denver, CO",
+        startsAt: "2026-12-30",
+        endsAt: "2026-12-31",
       },
     ];
     const created: string[] = [];
