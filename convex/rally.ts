@@ -248,7 +248,7 @@ export const act = mutation({
       state.tasks = state.tasks.filter((item: RallyState) => item.id !== p.id);
     } else if (args.action === "save-room") {
       const room = state.rooms.find((item: RallyState) => item.id === p.id);
-      const record = { hotel: p.hotel, roomType: p.roomType, confirmation: p.confirmation, checkIn: p.checkIn, checkOut: p.checkOut, capacity: Number(p.capacity) || 1 };
+      const record = { hotel: p.hotel, roomType: p.roomType, confirmation: p.confirmation, checkIn: p.checkIn, checkOut: p.checkOut, capacity: Number(p.capacity) || 1, totalCost: String(p.totalCost || "").trim(), notes: String(p.notes || "").trim() };
       if (room) Object.assign(room, record); else state.rooms.push({ id: id(), ...record, memberIds: [] });
     } else if (args.action === "delete-room") {
       if (!state.rooms.some((item: RallyState) => item.id === p.id)) throw new Error("That room no longer exists.");
