@@ -955,7 +955,8 @@
       const validFavoriteIds = new Set(lineup.map((entry) => entry.id));
       const lineupById = new Map(lineup.map((entry) => [entry.id, entry]));
       const mobileViewQuery = window.matchMedia("(max-width: 760px)");
-      let favorites = new Set(readStoredFavorites());
+      const rallyManagedFavorites = window.parent !== window && new URLSearchParams(window.location.search).get("rally") === "1";
+      let favorites = new Set(rallyManagedFavorites ? [] : readStoredFavorites());
       let activeView = "table";
       let favoritesOnly = false;
       let viewingSharedFavorites = false;
@@ -1088,7 +1089,7 @@
 
         if (hasSharedFavorites) {
           favorites = new Set(sharedFavorites);
-        } else {
+        } else if (!rallyManagedFavorites) {
           favorites = new Set(readStoredFavorites());
         }
       }
@@ -1101,8 +1102,8 @@
         if (els.sortMode.value !== "poster") params.set("sort", els.sortMode.value);
         if (activeView !== "table" && !mobileViewQuery.matches) params.set("view", activeView);
         if (favoritesOnly) params.set("fav", "1");
-        if (favorites.size) params.set("f", encodeSharedFavorites());
-        const next = `${window.location.pathname}${params.toString() ? `#${params}` : ""}`;
+        if (!rallyManagedFavorites && favorites.size) params.set("f", encodeSharedFavorites());
+        const next = `${window.location.pathname}${rallyManagedFavorites ? "?rally=1" : ""}${params.toString() ? `#${params}` : ""}`;
         window.history.replaceState({}, "", next);
       }
 
@@ -1235,6 +1236,11 @@
       }
 
       function saveFavorites() {
+        if (rallyManagedFavorites) {
+          window.parent.postMessage({ type: "rally-lineup-favorites-changed", artistIds: [...favorites] }, window.location.origin);
+          viewingSharedFavorites = false;
+          return;
+        }
         try {
           localStorage.setItem(favoriteStorageKey, JSON.stringify([...favorites]));
           viewingSharedFavorites = false;
@@ -1256,17 +1262,17 @@
       function saveFavoritesAsMine() {
         saveFavorites();
         render();
-        showToast("Saved as your favorites on this device.");
+        showToast(rallyManagedFavorites ? "Saved to your Rally profile." : "Saved as your favorites on this device.");
       }
 
       function clearFavorites() {
-        if (!window.confirm("Reset your saved favorites on this device?")) return;
+        if (!window.confirm(rallyManagedFavorites ? "Clear your saved Rally favorites?" : "Reset your saved favorites on this device?")) return;
         favorites = new Set();
         favoritesOnly = false;
         viewingSharedFavorites = false;
         saveFavorites();
         render();
-        showToast("Your saved favorites were reset.");
+        showToast(rallyManagedFavorites ? "Your Rally favorites were cleared." : "Your saved favorites were reset.");
       }
 
       function showToast(message) {
@@ -1352,6 +1358,18 @@
           render();
         });
 
+        if (rallyManagedFavorites) {
+          window.addEventListener("message", (event) => {
+            if (event.origin !== window.location.origin || event.source !== window.parent || !event.data || typeof event.data !== "object") return;
+            if (event.data.type === "rally-lineup-favorites" && Array.isArray(event.data.artistIds)) {
+              favorites = new Set(event.data.artistIds.filter((id) => validFavoriteIds.has(id)));
+              viewingSharedFavorites = false;
+              render();
+            }
+            if (event.data.type === "rally-lineup-favorites-saved") showToast("Saved to your Rally profile.");
+          });
+        }
+
         mobileViewQuery.addEventListener("change", render);
       }
 
@@ -1361,6 +1379,7 @@
       readStateFromUrl();
       bindEvents();
       render();
+      if (rallyManagedFavorites) window.parent.postMessage({ type: "rally-lineup-ready" }, window.location.origin);
     </script>
   </body>
 </html>

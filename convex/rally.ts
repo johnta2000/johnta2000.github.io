@@ -32,10 +32,12 @@ function memberFor(state: RallyState, identity: Identity) {
 function routeState(state: RallyState, identity: Identity) {
   const member = memberFor(state, identity);
   if (!member) throw new Error("This email has not been invited to this rave room.");
+  const { lineupFavorites = {}, ...sharedState } = state;
   return {
-    ...state,
+    ...sharedState,
     members: state.members.map(({ clerkSubject: _clerkSubject, ...person }: RallyState) => person),
     currentMemberId: member.id,
+    currentLineupFavorites: Array.isArray(lineupFavorites[member.id]) ? lineupFavorites[member.id] : [],
     isAdmin: ["admin", "leader"].includes(member.role),
   };
 }
@@ -44,7 +46,7 @@ function seedState(eventId: string, adminEmail: string, adminSubject: string): R
   const base = {
     id: eventId,
     leaderId: eventId === LOST_LANDS ? "m-john" : `${eventId}-admin`,
-    rooms: [], travel: [], cars: [], tasks: [], passes: [],
+    rooms: [], travel: [], cars: [], tasks: [], passes: [], lineupFavorites: {},
   };
   if (eventId === EDC) {
     return {
@@ -265,6 +267,19 @@ export const act = mutation({
     } else if (args.action === "delete-flight") {
       if (!state.travel.some((item: RallyState) => item.id === p.id)) throw new Error("That flight leg no longer exists.");
       state.travel = state.travel.filter((item: RallyState) => item.id !== p.id);
+    } else if (args.action === "save-flight-group") {
+      const memberIds = [...new Set((Array.isArray(p.memberIds) ? p.memberIds : []).map(String))];
+      if (!memberIds.length) throw new Error("Choose at least one traveler.");
+      if (memberIds.some((memberId) => !state.members.some((member: RallyState) => member.id === memberId))) throw new Error("One of those travelers is no longer in this rave room.");
+      const oldIds = new Set((Array.isArray(p.ids) ? p.ids : []).map(String));
+      state.travel = state.travel.filter((item: RallyState) => !oldIds.has(item.id));
+      const record = { airline: String(p.airline || "").trim(), number: String(p.number || "").trim().toUpperCase(), origin: String(p.origin || "").trim().toUpperCase(), destination: String(p.destination || "").trim().toUpperCase(), departure: p.departure, arrival: p.arrival, confirmation: String(p.confirmation || "").trim().toUpperCase(), status: "scheduled" };
+      if (!record.airline || !record.number || !record.origin || !record.destination || !record.departure || !record.arrival) throw new Error("Complete the flight details before saving.");
+      memberIds.forEach((memberId) => state.travel.push({ id: id(), memberId, ...record }));
+    } else if (args.action === "delete-flight-group") {
+      const ids = new Set((Array.isArray(p.ids) ? p.ids : []).map(String));
+      if (!ids.size) throw new Error("That flight group no longer exists.");
+      state.travel = state.travel.filter((item: RallyState) => !ids.has(item.id));
     } else if (["add-car", "save-car"].includes(args.action)) {
       const car = state.cars.find((item: RallyState) => item.id === p.id);
       const record = { ...p, id: undefined };
@@ -291,6 +306,11 @@ export const act = mutation({
       state.cars.forEach((car: RallyState) => { if (car.driverId === p.id) car.driverId = ""; });
       state.tasks.forEach((task: RallyState) => { if (task.assigneeId === p.id) task.assigneeId = ""; });
       state.passes.forEach((pass: RallyState) => { if (pass.ownerId === p.id) pass.ownerId = ""; });
+      if (state.lineupFavorites) delete state.lineupFavorites[p.id];
+    } else if (args.action === "save-lineup-favorites") {
+      const artistIds = [...new Set((Array.isArray(p.artistIds) ? p.artistIds : []).map(String).filter((value) => value.length > 0 && value.length <= 160))].slice(0, 500);
+      state.lineupFavorites ||= {};
+      state.lineupFavorites[current.id] = artistIds;
     } else if (args.action === "create-event") {
       if (!["admin", "leader"].includes(current.role)) throw new Error("Only an admin can create a rave room.");
       const eventId = String(p.name || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 48);
