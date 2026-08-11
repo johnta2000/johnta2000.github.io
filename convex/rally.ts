@@ -258,7 +258,7 @@ export const invitationTarget = internalQuery({
     if (member && ["admin", "leader"].includes(member.role)) throw new Error("Choose a crew member to invite.");
     if (!member && !args.name.trim()) throw new Error("Enter their name.");
     if (state.members.some((person: RallyState) => person.id !== member?.id && normalizedEmail(person.email) === args.inviteEmail)) throw new Error("That email is already in this rave room.");
-    return { eventName: state.name, memberName: member?.name || args.name.trim() };
+    return { eventName: state.name, memberName: member?.name || args.name.trim(), inviterName: current.name };
   },
 });
 
@@ -296,7 +296,7 @@ export const sendInvitation = action({
     if (!identity || !adminEmail || identity.emailVerified === false) throw new Error("Sign in with a verified email to invite crew.");
     if (!email.includes("@")) throw new Error("Enter a valid email address.");
     const memberId = args.memberId || `m-${crypto.randomUUID()}`;
-    const target: { eventName: string; memberName: string } = await ctx.runQuery(internal.rally.invitationTarget, {
+    const target: { eventName: string; memberName: string; inviterName: string } = await ctx.runQuery(internal.rally.invitationTarget, {
       eventId: args.eventId, memberId, name: args.name, inviteEmail: email, subject: identity.subject, email: adminEmail,
     });
     const secret = process.env.CLERK_SECRET_KEY;
@@ -312,7 +312,7 @@ export const sendInvitation = action({
         redirect_url: redirect.toString(),
         notify: true,
         ignore_existing: true,
-        public_metadata: { rallyEventId: args.eventId, rallyMemberId: memberId, rallyEventName: target.eventName },
+        public_metadata: { rallyEventId: args.eventId, rallyMemberId: memberId, rallyEventName: target.eventName, rallyInviteeName: target.memberName, rallyInviterName: target.inviterName },
       }),
     });
     const result = await response.json() as { id?: string; errors?: Array<{ long_message?: string; message?: string }> };
