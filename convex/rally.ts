@@ -108,6 +108,60 @@ async function insertState(ctx: MutationCtx, state: RallyState) {
   });
 }
 
+export const add2026BlockParties = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const source = await findDoc(ctx, LOST_LANDS);
+    const sourceState = source?.buckets as RallyState | undefined;
+    const admin = sourceState?.members?.find((person: RallyState) => ["admin", "leader"].includes(person.role));
+    if (!admin) throw new Error("Lost Lands admin profile is unavailable.");
+    const events = [
+      {
+        id: "btsm-kai-wachi-block-party-2026",
+        name: "Black Tiger Sex Machine & Kai Wachi Block Party",
+        location: "The Midway, San Francisco, CA",
+        startsAt: "2026-09-04",
+        endsAt: "2026-09-04",
+        startTime: "18:00",
+        timeZoneLabel: "PDT",
+      },
+      {
+        id: "midnight-carnival-rl-grime-2026",
+        name: "Midnight Carnival Block Party ft. RL GRIME",
+        presenter: "The Midway and Opel Productions present",
+        location: "The Midway, San Francisco, CA",
+        startsAt: "2026-10-31",
+        endsAt: "2026-10-31",
+        startTime: "16:00",
+        timeZoneLabel: "PDT",
+      },
+    ];
+    const created: string[] = [];
+    for (const event of events) {
+      if (await findDoc(ctx, event.id)) continue;
+      const adminId = `${event.id}-admin`;
+      await insertState(ctx, {
+        ...event,
+        leaderId: adminId,
+        rooms: [], travel: [], cars: [], tasks: [], passes: [], lineupFavorites: {},
+        members: [{
+          id: adminId,
+          name: admin.name,
+          email: admin.email,
+          origin: admin.origin || "SFO",
+          initials: admin.initials || "JO",
+          color: admin.color || "coral",
+          role: "admin",
+          status: "confirmed",
+          clerkSubject: admin.clerkSubject,
+        }],
+      });
+      created.push(event.id);
+    }
+    return { created, available: events.map((event) => event.id) };
+  },
+});
+
 export const bootstrap = mutation({
   args: { eventId: v.string() },
   handler: async (ctx, args) => {
