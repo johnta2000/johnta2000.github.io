@@ -142,6 +142,13 @@ export const addUpcomingRaves2026 = internalMutation({
         startsAt: "2026-12-30",
         endsAt: "2026-12-31",
       },
+      {
+        id: "niteharts-festival-2026",
+        name: "Niteharts Festival 2026",
+        location: "Snapdragon Stadium, San Diego, CA",
+        startsAt: "2026-10-09",
+        endsAt: "2026-10-11",
+      },
     ];
     const created: string[] = [];
     for (const event of events) {
