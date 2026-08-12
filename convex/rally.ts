@@ -445,8 +445,8 @@ export const act = mutation({
       state.cars = state.cars.filter((item: RallyState) => item.id !== p.id);
     } else if (["add-pass", "save-pass"].includes(args.action)) {
       const pass = state.passes.find((item: RallyState) => item.id === p.id);
-      const record = { ...p, id: undefined, quantity: Number(p.quantity) || 1 };
-      delete record.id;
+      const record = { name: String(p.name || "").trim(), category: String(p.category || "Pass").trim(), ownerId: String(p.ownerId || ""), quantity: Number(p.quantity) || 1, unitCost: String(p.unitCost || "").trim(), totalCost: String(p.totalCost || "").trim(), status: String(p.status || "").trim(), notes: String(p.notes || "").trim() };
+      if (!record.name) throw new Error("Purchase name is required.");
       if (pass) Object.assign(pass, record); else state.passes.push({ id: id(), ...record });
     } else if (args.action === "delete-pass") {
       if (!state.passes.some((item: RallyState) => item.id === p.id)) throw new Error("That pass no longer exists.");
