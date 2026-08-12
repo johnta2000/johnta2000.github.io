@@ -220,6 +220,42 @@ export const addEdcHotelReservations2027 = internalMutation({
   },
 });
 
+export const addNitehartsLineup2026 = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const doc = await findDoc(ctx, "niteharts-festival-2026");
+    if (!doc?.buckets) throw new Error("Niteharts Festival 2026 is unavailable.");
+    const state = structuredClone(doc.buckets) as RallyState;
+    const performances = [
+      ["fri-isoxo", "ISOxo H.C.D.", "Friday", "2026-10-09"],
+      ["fri-jane-remover", "Jane Remover", "Friday", "2026-10-09"],
+      ["fri-frost-children", "Frost Children (DJ set)", "Friday", "2026-10-09"],
+      ["fri-porter-robinson", "Porter Robinson (DJ set)", "Friday", "2026-10-09"],
+      ["fri-yaego", "Yaego", "Friday", "2026-10-09"],
+      ["fri-devault", "Devault", "Friday", "2026-10-09"],
+      ["sat-isoknock", "ISOKNOCK", "Saturday", "2026-10-10"],
+      ["sat-daine", "Daine", "Saturday", "2026-10-10"],
+      ["sat-thaiboy-swedm", "Thaiboy Digital & swedm®", "Saturday", "2026-10-10"],
+      ["sat-kimj", "KimJ", "Saturday", "2026-10-10"],
+      ["sat-2hollis", "2hollis", "Saturday", "2026-10-10"],
+      ["sat-lyny", "LYNY", "Saturday", "2026-10-10"],
+      ["sat-flava-d", "Flava D", "Saturday", "2026-10-10"],
+      ["sun-knock2-borne", "Knock2 B2B Borne", "Sunday", "2026-10-11"],
+      ["sun-dj-snake", "DJ Snake", "Sunday", "2026-10-11"],
+      ["sun-underscores", "underscores", "Sunday", "2026-10-11"],
+      ["sun-nitepunk", "Nitepunk", "Sunday", "2026-10-11"],
+      ["sun-rl-grime", "RL Grime", "Sunday", "2026-10-11"],
+      ["sun-hamdi", "Hamdi", "Sunday", "2026-10-11"],
+      ["sun-control-freak", "Control Freak", "Sunday", "2026-10-11"],
+    ];
+    state.lineup = performances.map(([id, name, day, date]) => ({ id, name, day, date }));
+    state.lineupSource = "https://www.niteharts.com/schedule";
+    state.lineupUpdatedAt = "2026-08-12";
+    await ctx.db.patch(doc._id, { buckets: state, updatedAt: Date.now() });
+    return { performances: state.lineup.length };
+  },
+});
+
 export const bootstrap = mutation({
   args: { eventId: v.string() },
   handler: async (ctx, args) => {
