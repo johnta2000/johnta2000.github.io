@@ -487,6 +487,49 @@ export const debugRecentFathomMeetings = internalAction({
   },
 });
 
+export const importFathomCallByUrl = internalAction({
+  args: {
+    teamId: v.string(),
+    standupDate: v.string(),
+    callUrl: v.string(),
+  },
+  handler: async (ctx, args): Promise<{ imported: number; skipped: number; recordingId: string; title: string }> => {
+    const apiKey = process.env.FATHOM_API_KEY;
+    if (!apiKey) throw new Error("Add FATHOM_API_KEY to Convex environment variables before importing Fathom.");
+
+    const start = new Date(`${args.standupDate}T00:00:00+14:00`);
+    const end = new Date(`${args.standupDate}T23:59:59-12:00`);
+    const meetings = await fetchFathomMeetings(apiKey, {
+      maxPages: 2,
+      createdAfter: start.toISOString(),
+      createdBefore: end.toISOString(),
+    });
+    const normalizedCallUrl = normalizeFathomUrl(args.callUrl);
+    const meeting = meetings.find((candidate) =>
+      [candidate.url, candidate.meeting_url, candidate.share_url]
+        .filter(Boolean)
+        .some((url) => normalizeFathomUrl(url || "") === normalizedCallUrl),
+    );
+    if (!meeting) throw new Error(`Could not find Fathom call ${args.callUrl} in recent meetings.`);
+
+    const payload = toFathomImportPayload(meeting);
+    const result: { imported: number; skipped: number } = await ctx.runMutation(
+      internal.standups.upsertFathomMeetingNotes,
+      {
+        teamId: args.teamId,
+        standupDate: args.standupDate,
+        meetings: [payload],
+      },
+    );
+
+    return {
+      ...result,
+      recordingId: payload.recordingId,
+      title: payload.title,
+    };
+  },
+});
+
 export const upsertFathomMeetingNotes = internalMutation({
   args: {
     teamId: v.string(),
@@ -668,6 +711,10 @@ async function fetchFathomMeetings(
 function isAffilignmentMeeting(meeting: FathomMeeting) {
   const text = `${meeting.title || ""} ${meeting.meeting_title || ""}`.toLowerCase();
   return text.includes(FATHOM_MATCH_TITLE);
+}
+
+function normalizeFathomUrl(value: string) {
+  return value.trim().replace(/^http:\/\//i, "https://").replace(/\/+$/, "");
 }
 
 function toFathomImportPayload(meeting: FathomMeeting) {
