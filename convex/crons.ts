@@ -21,4 +21,16 @@ crons.daily(
   internal.standups.syncRecentFathomAffilignment,
 );
 
+crons.daily(
+  "sync affilignment meeting notes at 12pm PT",
+  { hourUTC: 19, minuteUTC: 0 },
+  internal.standups.syncRecentFathomAffilignment,
+);
+
+crons.daily(
+  "sync affilignment meeting notes at 5pm PT",
+  { hourUTC: 0, minuteUTC: 0 },
+  internal.standups.syncRecentFathomAffilignment,
+);
+
 export default crons;

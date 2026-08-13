@@ -257,6 +257,61 @@ export const deleteItemComment = mutation({
   },
 });
 
+export const moveStandupEntryDate = internalMutation({
+  args: {
+    teamId: v.string(),
+    fromDate: v.string(),
+    toDate: v.string(),
+    personName: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const personKey = normalizePersonKey(args.personName);
+    if (!personKey) throw new Error("Name is required.");
+
+    const source = await ctx.db
+      .query("standupEntries")
+      .withIndex("by_person_date", (q) =>
+        q.eq("teamId", args.teamId).eq("personKey", personKey).eq("standupDate", args.fromDate),
+      )
+      .unique();
+    if (!source) throw new Error(`No ${args.personName} standup found on ${args.fromDate}.`);
+
+    const existingTarget = await ctx.db
+      .query("standupEntries")
+      .withIndex("by_person_date", (q) =>
+        q.eq("teamId", args.teamId).eq("personKey", personKey).eq("standupDate", args.toDate),
+      )
+      .unique();
+    if (existingTarget) throw new Error(`${args.personName} already has a standup on ${args.toDate}.`);
+
+    await ctx.db.patch(source._id, {
+      standupDate: args.toDate,
+      updatedAt: Date.now(),
+    });
+
+    const comments = await ctx.db
+      .query("standupItemComments")
+      .withIndex("by_entry", (q) =>
+        q.eq("teamId", args.teamId).eq("standupDate", args.fromDate).eq("personKey", personKey),
+      )
+      .collect();
+    for (const comment of comments) {
+      await ctx.db.patch(comment._id, {
+        standupDate: args.toDate,
+        updatedAt: Date.now(),
+      });
+    }
+
+    return {
+      movedEntryId: source._id,
+      movedComments: comments.length,
+      fromDate: args.fromDate,
+      toDate: args.toDate,
+      personName: source.personName,
+    };
+  },
+});
+
 export const save = mutation({
   args: entryFields,
   handler: async (ctx, args) => {
