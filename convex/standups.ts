@@ -312,6 +312,38 @@ export const moveStandupEntryDate = internalMutation({
   },
 });
 
+export const moveStandupDayNotesDate = internalMutation({
+  args: {
+    teamId: v.string(),
+    fromDate: v.string(),
+    toDate: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const source = await ctx.db
+      .query("standupDayNotes")
+      .withIndex("by_date", (q) => q.eq("teamId", args.teamId).eq("standupDate", args.fromDate))
+      .unique();
+    if (!source) throw new Error(`No daily notes found on ${args.fromDate}.`);
+
+    const existingTarget = await ctx.db
+      .query("standupDayNotes")
+      .withIndex("by_date", (q) => q.eq("teamId", args.teamId).eq("standupDate", args.toDate))
+      .unique();
+    if (existingTarget) throw new Error(`Daily notes already exist on ${args.toDate}.`);
+
+    await ctx.db.patch(source._id, {
+      standupDate: args.toDate,
+      updatedAt: Date.now(),
+    });
+
+    return {
+      movedDayNotesId: source._id,
+      fromDate: args.fromDate,
+      toDate: args.toDate,
+    };
+  },
+});
+
 export const save = mutation({
   args: entryFields,
   handler: async (ctx, args) => {
