@@ -256,6 +256,50 @@ export const addNitehartsLineup2026 = internalMutation({
   },
 });
 
+export const addNitehartsHotels2026 = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const doc = await findDoc(ctx, "niteharts-festival-2026");
+    if (!doc?.buckets) throw new Error("Niteharts Festival 2026 is unavailable.");
+    const state = structuredClone(doc.buckets) as RallyState;
+    const reservations = [
+      {
+        id: "niteharts-springhill-83588998",
+        hotel: "SpringHill Suites by Marriott San Diego Mission Valley",
+        roomType: "Room type not provided",
+        confirmation: "83588998",
+        checkIn: "Fri, Oct 9, 2026",
+        checkOut: "Mon, Oct 12, 2026",
+        capacity: 1,
+        bathrooms: 1,
+        totalCost: "",
+        notes: "2401 Camino Del Rio North, San Diego, CA 92108 · +1 (619) 582-2838 · Occupancy and room type not shown in reservation screenshot",
+        memberIds: [],
+      },
+      {
+        id: "niteharts-springhill-84279689",
+        hotel: "SpringHill Suites by Marriott San Diego Mission Valley",
+        roomType: "Room type not provided",
+        confirmation: "84279689",
+        checkIn: "Fri, Oct 9, 2026",
+        checkOut: "Mon, Oct 12, 2026",
+        capacity: 1,
+        bathrooms: 1,
+        totalCost: "",
+        notes: "2401 Camino Del Rio North, San Diego, CA 92108 · +1 (619) 582-2838 · Occupancy and room type not shown in reservation screenshot",
+        memberIds: [],
+      },
+    ];
+    reservations.forEach((reservation) => {
+      const existing = state.rooms.find((room: RallyState) => room.id === reservation.id || room.confirmation === reservation.confirmation);
+      if (existing) Object.assign(existing, reservation, { memberIds: existing.memberIds || [] });
+      else state.rooms.push(reservation);
+    });
+    await ctx.db.patch(doc._id, { buckets: state, updatedAt: Date.now() });
+    return { rooms: reservations.map(({ confirmation }) => confirmation) };
+  },
+});
+
 export const bootstrap = mutation({
   args: { eventId: v.string() },
   handler: async (ctx, args) => {
