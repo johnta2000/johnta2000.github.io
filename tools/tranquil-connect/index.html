@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="robots" content="noindex,nofollow">
+    <meta name="theme-color" content="#f3f0e8">
+    <title>Connect Tranquil</title>
+    <link rel="stylesheet" href="./styles.css?v=1">
+  </head>
+  <body>
+    <main>
+      <div class="mark">◌</div>
+      <p class="eyebrow">Tranquil account sync</p>
+      <h1>Keep your focus history.</h1>
+      <p id="description">Sign in to connect this browser to your Tranquil account. Your statistics will follow you across extension updates and browsers.</p>
+      <div id="clerk-sign-in"></div>
+      <section id="result" hidden>
+        <strong id="result-title"></strong>
+        <p id="result-copy"></p>
+      </section>
+      <p id="status" role="status">Loading secure sign-in…</p>
+    </main>
+    <script defer crossorigin="anonymous" src="https://clerk.john-ta.com/npm/@clerk/ui@1/dist/ui.browser.js"></script>
+    <script defer crossorigin="anonymous" data-clerk-publishable-key="pk_live_Y2xlcmsuam9obi10YS5jb20k" src="https://clerk.john-ta.com/npm/@clerk/clerk-js@6/dist/clerk.browser.js"></script>
+    <script defer src="./app.js?v=1"></script>
+  </body>
+</html>
