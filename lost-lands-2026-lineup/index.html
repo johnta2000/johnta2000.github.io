@@ -833,7 +833,7 @@
               <tr>
                 <th aria-label="Favorite"></th>
                 <th>Artist</th>
-                <th>Type</th>
+                <th>Day</th>
                 <th>Genre</th>
                 <th class="rally-only">Interested</th>
               </tr>
@@ -845,7 +845,7 @@
     </main>
 
     <script>
-      const mainLineup = `
+      const legacyMainLineup = `
         ADVENTURE CLUB | ÆON:MODE | ALLEYCVT | ARMNHMR | ATLIENS | AUDIOFREQ
         | BARELY ALIVE | BEAR GRILLZ | BENDA | BLOSSOM | BOOGIE T | BORGORE | BOU
         | CALCIUM | CANABLISS | CASPA | CRANKDAT | CRAZE | CULTURE SHOCK | CYCLOPS
@@ -864,7 +864,7 @@
         | ZOMBOY
       `;
 
-      const supportLineup = `
+      const legacySupportLineup = `
         SJ | 2DY4 | ALIENPARK | ALL THE REASON | ARLO | AU5 | AUSTERIA | AVELLO
         | BADKLAAT | BASSTRIPPER | BELLA RENEE | BIG FLORIDA | BRAINRACK | CAPOCHINO
         | CASEY CLUB | CHAMPAGNE DRIP | CHASSI | CHOZEN | CODD DUBZ | CRIZZLY | CRUMB PIT
@@ -1019,7 +1019,7 @@
           .replace(/[^a-z0-9]+/g, "-")
           .replace(/^-|-$/g, "");
 
-      const parseLineup = (value, billing) =>
+      const parseLegacyLineup = (value, billing) =>
         value
           .split("|")
           .map((artist) => artist.trim().replace(/\s+/g, " "))
@@ -1035,10 +1035,112 @@
             notes: ""
           }));
 
-      const lineup = [
-        ...parseLineup(mainLineup, "Main"),
-        ...parseLineup(supportLineup, "Support")
-      ].map((entry, index) => ({ ...entry, posterIndex: index }));
+      const legacyLineup = [
+        ...parseLegacyLineup(legacyMainLineup, "Main"),
+        ...parseLegacyLineup(legacySupportLineup, "Support")
+      ];
+      const legacyByArtist = new Map(legacyLineup.map((entry) => [entry.artist, entry]));
+
+      const lineupByDay = {
+        Wednesday: `
+          BARELY ALIVE | CALCIUM B2B MAD DUBZ | CASPA | CHASSI | DISTINCT MOTIVE
+          | EMORFIK B2B USAYBFLOW | GARDELLA | HAIRITAGE | HERSHE | HYDRAULIX
+          | IZZY VADIM | JAENGA | MILE32 | MPORT | MUERTE | NIKITA, THE WICKED
+          | RIOT TEN | SMOAKLAND
+        `,
+        Thursday: `
+          ALIENPARK | DEADCROW | DIRT MONKEY | FUNTCASE | MACHAKI | MINDSET | PHRVA
+          | RSUN | RZRKT | SUPER FUTURE | ZEN SELEKTA | MEGA B2B2B2B PRE-PARTY
+          | LABEL TAKEOVER
+        `,
+        Friday: `
+          SJ | AUSTERIA | BADKLAAT | BASSTRIPPER | BEAR GRILLZ | BENDA | BORGORE
+          | CANABLISS | CASEY CLUB | CRIZZLY | DION TIMMER | DIRTYSNATCHA | DOCTOR P
+          | DODGE & FUSKI | DR. USHUU | DRINKURWATER | DUBSCRIBE | EXCISION (2 HOUR SET)
+          | FUTURE EXIT | HOL! | INFEKT B2B SAMPLIFIRE | IVY LAB | IZADI | JANTSEN
+          | JKYL & HYDE | KLIPTIC | KLO | LAZRUS | LEVITY | LIQUID STRANGER | LUMASI
+          | NEUMONIC | NGHTMRE | NIMDA | OLIVERSE | PAPER SKIES | PEGBOARD NERDS
+          | PONI | PROBCAUSE | RAVENSCOON | REAPER | RICHARD FINGER | RIOT | SETH DAVID
+          | SHLUMP | SIGMA | SIPPY | SUBSONIC | SULLIVAN KING B2B RAY VOLPE
+          | THE RESISTANCE | TWOPERCENT | TYNAN | VAMPA | VKTM | THE WIDDLER | WILEY
+          | WOOLI (SUNSET SET) | XOTIX | YOOKIE | ZERO
+        `,
+        Saturday: `
+          2DY4 | ÆON:MODE B2B BLOSSOM | ALL THE REASON | AU5 | AUDIOFREQ | BELLA RENEE
+          | BIG FLORIDA | BOU | BRAINRACK | CAPOCHINO | CHOZEN | CRAZE B2B DIESELBOY
+          | CRUMB PIT | CYCLOPS | DARKSIDERZ B2B MADGRRL | DELTA HEAVY | DIRTYPHONICS
+          | DR. FRESCH | EFFIN | FLOSSTRADAMUS | FLUX PAVILION | GANJA WHITE NIGHT
+          | GHENGAR | GLADDE PALING | GREEN MATTER | HEDEX | HEYZ | HVDES | ILLENIUM
+          | IMANU | IVORY | JESSICA AUDIFFRED | JOSH TEED | KAI WACHI | LAYZ | LEOTRIX
+          | LIL TEXAS | LOWCATION | MEFJUS + DAXTA MC | MOZEY | MYRIAS | MYTHM | NEOTEK
+          | NOETIKA | PHASEONE | PROSECUTE | SAINT MILLER | SEVEN LIONS (SUNSET SET)
+          | SLANDER | SPACE WIZARD | STONED LEVEL | SUBTRONICS B2B LEVEL UP | TISOKI
+          | TRUTH | TOKYO MACHINE | WHALES | WHETHAN | WRAZ | ZINGARA | ZOMBOY
+        `,
+        Sunday: `
+          ADVENTURE CLUB (THROWBACK SET) | ARLO | ARMNHMR | ATLIENS | AVELLO | BOOGIE T
+          | CHAMPAGNE DRIP | CODD DUBZ | CRANKDAT B2B ALLEYCVT | CRYSTAL SKIES
+          | DISTANT MATTER | DREAM TAKERS | EPTIC B2B LYNY | EXCISION (DETOX)
+          | EXCISION B2B SPACE LACES | FINNUH | GHASTLY | GRABBITZ | HALIENE
+          | HOSTAGE SITUATION | HURTBOX | KILLMATTER | KNOW GOOD | KOMPANY | KREWELLA
+          | LUCI | MAD DUBZ | MODAL NODES | OG NIXIN | ONARA | PASSPORT | PRETTY SWEET
+          | REMK | ROI* | RYNS | SISTO | SKILAH | SODOWN | SPORTMODE | SQISHI | STUMPI
+          | TAIKI NULIGHT | TRIVECTA | USAYBFLOW | VIRTUAL RIOT | WARLORD | WAX MOTIF
+          | WILLIAM BLACK | WONKYWILLA | YETEP | YVM3 | ZOEY808
+        `
+      };
+
+      const preferenceAliases = {
+        "CALCIUM B2B MAD DUBZ": ["CALCIUM", "MAD DUBZ"],
+        "EMORFIK B2B USAYBFLOW": ["EMORFIK", "USAYBFLOW"],
+        "RSUN": ["RUSN"],
+        "INFEKT B2B SAMPLIFIRE": ["INFEKT", "SAMPLIFIRE"],
+        "SULLIVAN KING B2B RAY VOLPE": ["SULLIVAN KING", "RAY VOLPE"],
+        "WOOLI (SUNSET SET)": ["WOOLI"],
+        "ÆON:MODE B2B BLOSSOM": ["ÆON:MODE", "BLOSSOM"],
+        "CRAZE B2B DIESELBOY": ["CRAZE", "DIESELBOY"],
+        "DARKSIDERZ B2B MADGRRL": ["DARKSIDERZ", "MADGRRL"],
+        "MEFJUS + DAXTA MC": ["MEFJUS"],
+        "SEVEN LIONS (SUNSET SET)": ["SEVEN LIONS"],
+        "SUBTRONICS B2B LEVEL UP": ["SUBTRONICS", "LEVEL UP"],
+        "ADVENTURE CLUB (THROWBACK SET)": ["ADVENTURE CLUB"],
+        "CRANKDAT B2B ALLEYCVT": ["CRANKDAT", "ALLEYCVT"],
+        "EPTIC B2B LYNY": ["EPTIC", "LYNY"],
+        "EXCISION (DETOX)": ["EXCISION (DETOX SET)"],
+        "SKILAH": ["SIKLAH"]
+      };
+
+      const lineup = Object.entries(lineupByDay).flatMap(([day, value]) =>
+        value.split("|").map((artist) => artist.trim().replace(/\s+/g, " ")).filter(Boolean).map((artist) => {
+          const aliases = preferenceAliases[artist] || [artist];
+          const legacy = aliases.map((alias) => legacyByArtist.get(alias)).find(Boolean);
+          return {
+            id: legacy?.id || `set-${artistSlug(artist)}`,
+            artist,
+            billing: legacy?.billing || (aliases.some((alias) => legacyByArtist.get(alias)?.billing === "Main") ? "Main" : "Support"),
+            genre: genreByArtist[artist] || aliases.map((alias) => genreByArtist[alias]).find(Boolean) || "Bass",
+            day,
+            time: "",
+            stage: "",
+            notes: ""
+          };
+        })
+      ).map((entry, index) => ({ ...entry, posterIndex: index }));
+
+      const currentIdsByLegacyId = new Map();
+      const addPreferenceAlias = (fromId, toId) => {
+        const currentIds = currentIdsByLegacyId.get(fromId) || new Set();
+        currentIds.add(toId);
+        currentIdsByLegacyId.set(fromId, currentIds);
+      };
+      lineup.forEach((entry) => {
+        addPreferenceAlias(entry.id, entry.id);
+        (preferenceAliases[entry.artist] || [entry.artist]).forEach((alias) => {
+          const legacyId = legacyByArtist.get(alias)?.id;
+          if (legacyId) addPreferenceAlias(legacyId, entry.id);
+        });
+      });
+      const currentFavoriteIds = (id) => [...(currentIdsByLegacyId.get(id) || [id])];
 
       const els = {
         artistCount: document.getElementById("artist-count"),
@@ -1092,7 +1194,9 @@
       function readStoredFavorites() {
         try {
           const stored = JSON.parse(localStorage.getItem(favoriteStorageKey) || "[]");
-          return Array.isArray(stored) ? stored.filter((id) => validFavoriteIds.has(id)) : [];
+          return Array.isArray(stored)
+            ? [...new Set(stored.flatMap(currentFavoriteIds).filter((id) => validFavoriteIds.has(id)))]
+            : [];
         } catch (error) {
           return [];
         }
@@ -1164,7 +1268,7 @@
 
         return value
           .split(",")
-          .map((id) => id.trim())
+          .flatMap((id) => currentFavoriteIds(id.trim()))
           .filter((id) => validFavoriteIds.has(id));
       }
 
@@ -1314,7 +1418,7 @@
                   >★</button>
                 </td>
                 <td class="artist-cell">${escapeHtml(entry.artist)}</td>
-                <td class="type-cell">${escapeHtml(entry.billing)}</td>
+                <td class="type-cell">${escapeHtml(entry.day.slice(0, 3))}</td>
                 <td class="genre-cell">${escapeHtml(entry.genre)}</td>
                 <td class="rally-only">${renderInterest(entry.id)}</td>
               </tr>
@@ -1495,8 +1599,20 @@
           window.addEventListener("message", (event) => {
             if (event.origin !== window.location.origin || event.source !== window.parent || !event.data || typeof event.data !== "object") return;
             if (event.data.type === "rally-lineup-state" && Array.isArray(event.data.artistIds)) {
-              favorites = new Set(event.data.artistIds.filter((id) => validFavoriteIds.has(id)));
-              lineupInterests = event.data.interests && typeof event.data.interests === "object" ? event.data.interests : {};
+              favorites = new Set(event.data.artistIds.flatMap(currentFavoriteIds).filter((id) => validFavoriteIds.has(id)));
+              lineupInterests = {};
+              if (event.data.interests && typeof event.data.interests === "object") {
+                Object.entries(event.data.interests).forEach(([artistId, people]) => {
+                  if (!Array.isArray(people)) return;
+                  currentFavoriteIds(artistId).forEach((currentId) => {
+                    if (!validFavoriteIds.has(currentId)) return;
+                    const existingPeople = lineupInterests[currentId] || [];
+                    lineupInterests[currentId] = [...existingPeople, ...people].filter((person, index, all) =>
+                      person?.id && all.findIndex((candidate) => candidate?.id === person.id) === index
+                    );
+                  });
+                });
+              }
               currentRallyMember = event.data.currentMember && typeof event.data.currentMember === "object" ? event.data.currentMember : null;
               viewingSharedFavorites = false;
               render();
