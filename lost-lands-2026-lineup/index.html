@@ -150,6 +150,7 @@
         grid-template-columns:
           minmax(220px, 1fr)
           minmax(134px, 0.4fr)
+          minmax(134px, 0.4fr)
           minmax(150px, 0.46fr)
           minmax(148px, 0.46fr)
           auto auto auto;
@@ -777,9 +778,17 @@
             class="search-field"
             id="search"
             type="search"
-            placeholder="Search artists, type, or genre"
+            placeholder="Search artists, day, type, or genre"
             autocomplete="off"
           >
+          <select class="select-field" id="day-filter" aria-label="Day filter">
+            <option value="all">All days</option>
+            <option value="Wednesday">Wednesday</option>
+            <option value="Thursday">Thursday</option>
+            <option value="Friday">Friday</option>
+            <option value="Saturday">Saturday</option>
+            <option value="Sunday">Sunday</option>
+          </select>
           <select class="select-field" id="billing-filter" aria-label="Type filter">
             <option value="all">All types</option>
             <option value="main">Main lineup</option>
@@ -1146,6 +1155,7 @@
         artistCount: document.getElementById("artist-count"),
         billingFilter: document.getElementById("billing-filter"),
         clearFavoritesButton: document.getElementById("clear-favorites-button"),
+        dayFilter: document.getElementById("day-filter"),
         favoriteCount: document.getElementById("favorite-count"),
         favoritesFilterButton: document.getElementById("favorites-filter-button"),
         genreFilter: document.getElementById("genre-filter"),
@@ -1275,6 +1285,7 @@
       function readStateFromUrl() {
         const params = getIncomingParams();
         els.search.value = params.get("q") || "";
+        els.dayFilter.value = params.get("day") || "all";
         const type = params.get("type") || params.get("billing") || "all";
         favoritesOnly = params.get("fav") === "1" || type === "favorites";
         els.billingFilter.value = type === "favorites" ? "all" : type;
@@ -1285,6 +1296,10 @@
 
         if (![...els.billingFilter.options].some((option) => option.value === els.billingFilter.value)) {
           els.billingFilter.value = "all";
+        }
+
+        if (![...els.dayFilter.options].some((option) => option.value === els.dayFilter.value)) {
+          els.dayFilter.value = "all";
         }
 
         if (![...els.genreFilter.options].some((option) => option.value === els.genreFilter.value)) {
@@ -1313,6 +1328,7 @@
       function writeStateToUrl() {
         const params = new URLSearchParams();
         if (els.search.value.trim()) params.set("q", els.search.value.trim());
+        if (els.dayFilter.value !== "all") params.set("day", els.dayFilter.value);
         if (els.billingFilter.value !== "all") params.set("type", els.billingFilter.value);
         if (els.genreFilter.value !== "all") params.set("genre", els.genreFilter.value);
         if (els.sortMode.value !== "poster") params.set("sort", els.sortMode.value);
@@ -1325,6 +1341,7 @@
 
       function getFilteredLineup() {
         const query = normalizeText(els.search.value.trim());
+        const day = els.dayFilter.value;
         const type = els.billingFilter.value;
         const genre = els.genreFilter.value;
         const sortMode = els.sortMode.value;
@@ -1332,12 +1349,13 @@
         const filtered = lineup.filter((entry) => {
           const matchesQuery =
             !query ||
-            normalizeText(`${entry.artist} ${entry.billing} ${entry.genre}`).includes(query);
+            normalizeText(`${entry.artist} ${entry.day} ${entry.billing} ${entry.genre}`).includes(query);
+          const matchesDay = day === "all" || entry.day === day;
           const matchesType = type === "all" || entry.billing.toLowerCase() === type;
           const matchesGenre = genre === "all" || entry.genre === genre;
           const matchesFavorite = !favoritesOnly || favorites.has(entry.id);
 
-          return matchesQuery && matchesType && matchesGenre && matchesFavorite;
+          return matchesQuery && matchesDay && matchesType && matchesGenre && matchesFavorite;
         });
 
         return filtered.sort((left, right) => {
@@ -1560,7 +1578,7 @@
       }
 
       function bindEvents() {
-        [els.search, els.billingFilter, els.genreFilter, els.sortMode].forEach((control) => {
+        [els.search, els.dayFilter, els.billingFilter, els.genreFilter, els.sortMode].forEach((control) => {
           control.addEventListener("input", render);
           control.addEventListener("change", render);
         });
