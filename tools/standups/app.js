@@ -60,6 +60,7 @@ let standupComments = [];
 let fathomNotesForDate = [];
 let autosaveTimer;
 let dailyNotesAutosaveTimer;
+let midnightResetTimer;
 let activeDailyNotesDate = "";
 let isHydrating = false;
 let shouldResetNewChecklistItem = false;
@@ -118,6 +119,7 @@ function initStandups() {
 
   loadDailyNotes();
   loadFathomNotes();
+  scheduleMidnightDateReset();
   refreshDailyList().then(() => {
     if (els.personName.value.trim()) loadPersonContext();
     updateTodayHeading();
@@ -1040,6 +1042,30 @@ async function jumpToRelativeDate(offsetDays) {
   date.setDate(date.getDate() + offsetDays);
   els.date.value = toDateInputValue(date);
   handleDateChange();
+}
+
+function scheduleMidnightDateReset() {
+  clearTimeout(midnightResetTimer);
+  const scheduledToday = toDateInputValue(new Date());
+  const now = new Date();
+  const nextMidnight = new Date(now);
+  nextMidnight.setHours(24, 0, 2, 0);
+  midnightResetTimer = window.setTimeout(() => {
+    resetDateAfterMidnight(scheduledToday);
+  }, nextMidnight.getTime() - now.getTime());
+}
+
+async function resetDateAfterMidnight(previousToday) {
+  const currentToday = toDateInputValue(new Date());
+  if (currentToday !== previousToday && els.date.value === previousToday) {
+    await flushAutosave();
+    await flushDailyNotesAutosave();
+    els.date.value = currentToday;
+    await handleDateChange();
+  } else {
+    updateDateShortcuts();
+  }
+  scheduleMidnightDateReset();
 }
 
 function updateDateShortcuts() {
