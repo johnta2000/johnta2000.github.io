@@ -330,6 +330,41 @@ export const addDecadenceTickets2026 = internalMutation({
   },
 });
 
+export const addDecadenceLineup2026 = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const doc = await findDoc(ctx, "decadence-digital-city-2026");
+    if (!doc?.buckets) throw new Error("Decadence: The Digital City is unavailable.");
+    const state = structuredClone(doc.buckets) as RallyState;
+    const names = [
+      "Alesso", "ALLEYCVT", "Black Tiger Sex Machine", "Crankdat", "Daniel Allan",
+      "Deathpact", "DJ Snake", "Excision", "GorillaT", "Green Velvet", "GRiZ",
+      "ISOxo", "it's murph", "Kasbo", "Lane 8", "Levity", "Marshmello",
+      "Seven Lions", "Sullivan King", "The Resistance", "Yousuke Yukimatsu",
+      "Zeds Dead", "Zingara",
+    ];
+    state.lineup ||= [];
+    names.forEach((name) => {
+      const artist = {
+        id: `decadence-${name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}`,
+        name,
+        day: "Day TBD",
+        date: "",
+        time: "",
+        stage: "",
+        notes: "",
+      };
+      const existing = state.lineup.find((entry: RallyState) => entry.id === artist.id);
+      if (existing) Object.assign(existing, artist);
+      else state.lineup.push(artist);
+    });
+    state.lineupSource = "https://decadencenye.com/lineup/";
+    state.lineupUpdatedAt = "2026-08-20";
+    await ctx.db.patch(doc._id, { buckets: state, updatedAt: Date.now() });
+    return { performances: state.lineup.length };
+  },
+});
+
 export const bootstrap = mutation({
   args: { eventId: v.string() },
   handler: async (ctx, args) => {
@@ -561,6 +596,28 @@ export const act = mutation({
     } else if (args.action === "delete-pass") {
       if (!state.passes.some((item: RallyState) => item.id === p.id)) throw new Error("That pass no longer exists.");
       state.passes = state.passes.filter((item: RallyState) => item.id !== p.id);
+    } else if (args.action === "save-lineup-artist") {
+      if (!["admin", "leader"].includes(current.role)) throw new Error("Only an admin can edit the lineup.");
+      state.lineup ||= [];
+      const artist = state.lineup.find((item: RallyState) => item.id === p.id);
+      const record = {
+        name: String(p.name || "").trim(),
+        day: String(p.day || "Day TBD").trim() || "Day TBD",
+        date: String(p.date || "").trim(),
+        time: String(p.time || "").trim(),
+        stage: String(p.stage || "").trim(),
+        notes: String(p.notes || "").trim(),
+      };
+      if (!record.name) throw new Error("Artist name is required.");
+      if (artist) Object.assign(artist, record);
+      else state.lineup.push({ id: id(), ...record });
+    } else if (args.action === "delete-lineup-artist") {
+      if (!["admin", "leader"].includes(current.role)) throw new Error("Only an admin can edit the lineup.");
+      if (!state.lineup?.some((item: RallyState) => item.id === p.id)) throw new Error("That artist is no longer in the lineup.");
+      state.lineup = state.lineup.filter((item: RallyState) => item.id !== p.id);
+      Object.keys(state.lineupFavorites || {}).forEach((memberId) => {
+        state.lineupFavorites[memberId] = state.lineupFavorites[memberId].filter((artistId: string) => artistId !== p.id);
+      });
     } else if (args.action === "remove-member") {
       if (!["admin", "leader"].includes(current.role)) throw new Error("Only an admin can remove crew.");
       const member = state.members.find((person: RallyState) => person.id === p.id);
