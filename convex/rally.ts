@@ -300,6 +300,36 @@ export const addNitehartsHotels2026 = internalMutation({
   },
 });
 
+export const addDecadenceTickets2026 = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const doc = await findDoc(ctx, "decadence-digital-city-2026");
+    if (!doc?.buckets) throw new Error("Decadence: The Digital City is unavailable.");
+    const state = structuredClone(doc.buckets) as RallyState;
+    const buyer = state.members.find((member: RallyState) => ["admin", "leader"].includes(member.role));
+    if (!buyer) throw new Error("The Decadence admin profile is unavailable.");
+    const purchase = {
+      id: "decadence-2-day-ga-laylo-tier-3-2026",
+      name: "2-Day GA Pass",
+      category: "Pass",
+      ownerId: buyer.id,
+      quantity: 8,
+      unitCost: "350.14",
+      totalCost: "2801.12",
+      status: "8 / 8 secured",
+      notes: "Laylo Presale · General Admission 3 (Tier 3)",
+    };
+    const existing = state.passes.find((pass: RallyState) =>
+      pass.id === purchase.id ||
+      (pass.name === purchase.name && String(pass.notes || "").includes("Laylo Presale")),
+    );
+    if (existing) Object.assign(existing, purchase);
+    else state.passes.push(purchase);
+    await ctx.db.patch(doc._id, { buckets: state, updatedAt: Date.now() });
+    return { quantity: purchase.quantity, totalCost: purchase.totalCost, unitCost: purchase.unitCost };
+  },
+});
+
 export const bootstrap = mutation({
   args: { eventId: v.string() },
   handler: async (ctx, args) => {
