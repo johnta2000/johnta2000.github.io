@@ -44,10 +44,14 @@ select{padding:0 13px;border:1px solid #bcb8ad;border-radius:12px;outline:0;back
 .results-bar p strong{color:var(--ink)}
 .results-bar button{border:0;background:none;color:var(--green);font-size:.65rem;font-weight:800;cursor:pointer}
 .menu-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
-.menu-item{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px;min-height:110px;padding:19px 20px;border:1px solid var(--line);border-radius:13px;background:var(--card);box-shadow:var(--shadow)}
+.menu-item{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px;min-height:110px;padding:19px 20px;border:1px solid var(--line);border-radius:13px;background:var(--card);box-shadow:var(--shadow);color:inherit;text-decoration:none;transition:border-color .16s,transform .16s,box-shadow .16s}
+.menu-item:hover{transform:translateY(-2px);border-color:#99a69a;box-shadow:0 20px 48px rgba(25,36,28,.11)}
+.menu-item:focus-visible{outline:3px solid var(--lime);outline-offset:2px}
 .menu-item h3{margin:0;font-size:.84rem;letter-spacing:-.015em;line-height:1.35}
 .menu-item p{display:-webkit-box;overflow:hidden;margin:8px 0 0;color:var(--muted);font-size:.65rem;line-height:1.5;-webkit-box-orient:vertical;-webkit-line-clamp:2}
-.menu-item footer{align-self:start;color:var(--green);font-family:Georgia,serif;font-size:1.05rem;white-space:nowrap}
+.menu-item footer{display:grid;align-self:start;gap:9px;color:var(--green);text-align:right;white-space:nowrap}
+.menu-item footer strong{font-family:Georgia,serif;font-size:1.05rem;font-weight:400}
+.menu-item footer span{font-family:Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:.54rem;font-weight:850;text-transform:uppercase;letter-spacing:.05em}
 .menu-item .item-meta{display:block;margin-top:10px;color:#8b8f87;font-size:.54rem;font-weight:800;letter-spacing:.07em;text-transform:uppercase}
 .load-more{display:block;width:100%;min-height:52px;margin-top:16px;border:1px solid var(--forest);border-radius:11px;background:transparent;color:var(--forest);font-size:.7rem;font-weight:850;cursor:pointer}
 .load-more:hover{background:var(--forest);color:#fff}

@@ -79,7 +79,7 @@
       const category = categoryMap.get(item.categoryId)?.name || "Other items";
       const description = item.description ? `<p>${escapeHtml(item.description)}</p>` : "";
       const tags = [category, item.ageRestricted ? "ID required" : ""].filter(Boolean).join(" · ");
-      return `<article class="menu-item"><div><h3>${escapeHtml(item.name)}</h3>${description}<span class="item-meta">${escapeHtml(tags)}</span></div><footer>${money(item.price)}</footer></article>`;
+      return `<a class="menu-item" href="${escapeHtml(item.url)}" target="_blank" rel="noopener" aria-label="${escapeHtml(item.name)}, ${money(item.price)} — view on Clover"><div><h3>${escapeHtml(item.name)}</h3>${description}<span class="item-meta">${escapeHtml(tags)}</span></div><footer><strong>${money(item.price)}</strong><span>View on Clover ↗</span></footer></a>`;
     }).join("");
   };
 
