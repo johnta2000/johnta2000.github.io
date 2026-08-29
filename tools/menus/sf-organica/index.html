@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#143d2b" />
+    <meta name="description" content="Search all currently available items at SF Organica in San Francisco." />
+    <title>SF Organica Menu — Fast Search</title>
+    <link rel="stylesheet" href="./styles.css?v=1" />
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="crumb" href="../"><span>JT</span><b>Menu index</b></a>
+      <div class="top-actions">
+        <a href="https://sf-organica-san-francisco.cloveronline.com/menu/all" target="_blank" rel="noopener">Order on Clover ↗</a>
+        <a href="/">john-ta.com</a>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero">
+        <div class="hero-copy">
+          <p class="eyebrow">500 Larkin Street · San Francisco</p>
+          <h1>SF<br /><em>Organica</em></h1>
+          <p class="hero-note">The complete menu, rebuilt for speed. Search every available item, jump to a section, or sort by price.</p>
+        </div>
+        <dl class="menu-stats">
+          <div><dt>Available now</dt><dd id="itemTotal">4,270</dd></div>
+          <div><dt>Sections</dt><dd id="categoryTotal">15</dd></div>
+          <div><dt>Menu captured</dt><dd>Aug 29, 2026</dd></div>
+        </dl>
+      </section>
+
+      <section class="menu-shell" aria-labelledby="menu-heading">
+        <div class="menu-heading">
+          <div><p class="eyebrow">Full catalog</p><h2 id="menu-heading">Find anything.</h2></div>
+          <a class="call-link" href="tel:+14158007358">Call (415) 800-7358</a>
+        </div>
+
+        <div class="search-wrap">
+          <label class="search-box">
+            <span aria-hidden="true">⌕</span>
+            <span class="sr-only">Search the SF Organica menu</span>
+            <input id="searchInput" type="search" autocomplete="off" placeholder="Search 4,270 items — try “turkey”, “mango”, or “oat milk”" />
+            <kbd>⌘ K</kbd>
+          </label>
+          <select id="sortSelect" aria-label="Sort menu items">
+            <option value="menu">Menu order</option>
+            <option value="az">Name: A–Z</option>
+            <option value="price-low">Price: low to high</option>
+            <option value="price-high">Price: high to low</option>
+          </select>
+        </div>
+
+        <nav id="categoryNav" class="category-nav" aria-label="Menu sections"></nav>
+
+        <div class="results-bar" aria-live="polite">
+          <p id="resultCount">Loading menu…</p>
+          <button id="clearButton" type="button" hidden>Clear filters</button>
+        </div>
+
+        <div id="menuGrid" class="menu-grid"></div>
+        <div id="emptyState" class="empty-state" hidden><span>Nothing matched.</span><p>Try a shorter search or switch back to all sections.</p></div>
+        <button id="loadMore" class="load-more" type="button" hidden>Show more items</button>
+      </section>
+
+      <section class="source-note">
+        <p><strong>A faster view, not the checkout.</strong> Availability and prices were captured from SF Organica’s Clover menu on August 29, 2026 and can change. Confirm final details when ordering.</p>
+        <a href="https://sf-organica-san-francisco.cloveronline.com/menu/all" target="_blank" rel="noopener">Open the original menu ↗</a>
+      </section>
+    </main>
+
+    <footer><a href="../">← All menus</a><span>Independent menu index · Not affiliated with SF Organica or Clover</span></footer>
+    <script src="./menu-data.js?v=1"></script>
+    <script src="./app.js?v=1"></script>
+  </body>
+</html>
