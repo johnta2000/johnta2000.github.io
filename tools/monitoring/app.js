@@ -48,23 +48,63 @@ function duration(value) {
   return value >= 1000 ? `${(value / 1000).toFixed(1)} s` : `${value} ms`;
 }
 
+function number(value) {
+  return Number.isFinite(value) ? new Intl.NumberFormat().format(value) : "—";
+}
+
+function percent(value) {
+  return Number.isFinite(value) ? `${value.toFixed(1)}%` : "—";
+}
+
+function statusMeta(status) {
+  const states = {
+    healthy: ["healthy", "Healthy"],
+    watch: ["watch", "Watch"],
+    alert: ["error", "Alert"],
+    error: ["error", "Error"],
+    unavailable: ["unavailable", "Unavailable"],
+    not_configured: ["pending", "Not configured"],
+  };
+  const [className, label] = states[status] ?? ["pending", "Unknown"];
+  return { className, label };
+}
+
+function monitorStats(monitor) {
+  if (monitor.id === "paze-directory") {
+    return [
+      ["Merchants", monitor.currentCount ?? "—"],
+      ["Pages", monitor.pagination?.pagesFetched ?? "—"],
+      ["Duration", duration(monitor.durationMs)],
+    ];
+  }
+  if (monitor.id === "paze-clover-map-ranking") {
+    return [
+      ["Clicks · 7d", number(monitor.metrics?.clicks)],
+      ["Impressions · 7d", number(monitor.metrics?.impressions)],
+      ["Position", Number.isFinite(monitor.metrics?.position) ? monitor.metrics.position.toFixed(2) : "—"],
+    ];
+  }
+  return [
+    ["Coverage", Number.isFinite(monitor.metrics?.programsChecked) ? `${monitor.metrics.programsChecked}/${monitor.metrics.totalPrograms ?? "—"}` : "—"],
+    ["Failures", number(monitor.metrics?.failedPrograms)],
+    ["Pending", number(monitor.metrics?.pendingEvents)],
+  ];
+}
+
 function monitorCard(monitor, index) {
   const active = monitor.configured;
-  const statusClass = monitor.status === "healthy" ? "healthy" : monitor.status === "error" ? "error" : "pending";
-  const statusLabel = monitor.status === "healthy" ? "Healthy" : monitor.status === "error" ? "Needs attention" : "Not configured";
+  const { className: statusClass, label: statusLabel } = statusMeta(monitor.status);
   let body;
   if (active) {
-    const pagination = monitor.pagination;
+    const stats = monitorStats(monitor);
     body = `
       ${monitor.error ? `<div class="alert error-alert monitor-alert" role="alert"><strong>Incomplete run</strong><span>${escapeHtml(monitor.error)}</span></div>` : ""}
       <div class="monitor-stats">
-        <div class="monitor-stat"><span>Merchants</span><strong>${monitor.currentCount ?? "—"}</strong></div>
-        <div class="monitor-stat"><span>Pages</span><strong>${pagination?.pagesFetched ?? "—"}</strong></div>
-        <div class="monitor-stat"><span>Duration</span><strong>${duration(monitor.durationMs)}</strong></div>
+        ${stats.map(([label, value]) => `<div class="monitor-stat"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></div>`).join("")}
       </div>
       <div class="monitor-footer">
         <span>${escapeHtml(monitor.cadence ?? "Manual")}</span>
-        <span>Latest success ${escapeHtml(relativeTime(monitor.latestSuccessAt))}</span>
+        <span>Latest run ${escapeHtml(relativeTime(monitor.latestRunAt))}</span>
         <button class="monitor-open" type="button" data-monitor-id="${escapeHtml(monitor.id)}">View details <span aria-hidden="true">↗</span></button>
       </div>`;
   } else {
@@ -134,6 +174,121 @@ function sourceLink(monitor) {
     : `<span>Source not configured</span>`;
 }
 
+function sourceLinks(monitor) {
+  const urls = monitor.sourceUrls?.length ? monitor.sourceUrls : monitor.sourceUrl ? [monitor.sourceUrl] : [];
+  return urls.length
+    ? urls.map((url, index) => `<a href="${escapeHtml(url)}" target="_blank" rel="noreferrer">${index ? `Source ${index + 1}` : "Open source"} <span aria-hidden="true">↗</span></a>`).join("")
+    : `<span>No source URL reported</span>`;
+}
+
+function metricDelta(current, previous, { inverse = false, suffix = "" } = {}) {
+  if (!Number.isFinite(current) || !Number.isFinite(previous)) return "No comparison";
+  const change = current - previous;
+  const improved = inverse ? change < 0 : change > 0;
+  const direction = change === 0 ? "Flat" : improved ? "Improved" : "Declined";
+  return `${direction} ${change > 0 ? "+" : ""}${change.toFixed(1)}${suffix}`;
+}
+
+function statusBanner(monitor) {
+  const { className, label } = statusMeta(monitor.status);
+  return `<div class="report-banner ${className}" role="status"><span class="status-pill ${className}">${label}</span><p>${escapeHtml(monitor.summary ?? "No summary reported.")}</p></div>`;
+}
+
+function externalRunMarkup(run) {
+  const { className, label } = statusMeta(run.status);
+  const prominent = run.meaningful || !["healthy"].includes(run.status);
+  return `
+    <details class="run ${prominent ? "change" : "stable"}"${prominent ? " open" : ""}>
+      <summary>
+        <span class="run-title"><strong>${escapeHtml(run.summary)}</strong><span>${escapeHtml(fullDate(run.timestamp))}</span></span>
+        <span class="run-meta">${escapeHtml(run.eventType ?? "status")}</span>
+        <span class="run-meta">${duration(run.durationMs)}</span>
+        <span class="badge ${className === "healthy" ? "success" : className === "error" ? "error" : "change"}">${label}</span>
+      </summary>
+      <div class="run-body">
+        <div class="run-facts"><span>${escapeHtml(run.monitorId)}</span><span>${run.meaningful ? "Meaningful event" : "Routine snapshot"}</span></div>
+      </div>
+    </details>`;
+}
+
+function externalHistoryMarkup(monitorId) {
+  const runs = currentSnapshot.monitorHistory?.[monitorId]?.runs ?? [];
+  return `
+    <section class="dialog-section">
+      <div class="dialog-section-heading"><div><p class="eyebrow">Secure report history</p><h3>Recent checks</h3></div><span class="dialog-note">Routine checks are collapsed</span></div>
+      <div class="run-history">${runs.length ? runs.map(externalRunMarkup).join("") : `<p class="empty-state">The first heartbeat report is pending.</p>`}</div>
+    </section>`;
+}
+
+function queryRows(queries = []) {
+  if (!queries.length) return `<p class="empty-state">No query-level rows were reported.</p>`;
+  return `<div class="report-table" role="table" aria-label="Core query results">
+    <div class="report-table-row report-table-head" role="row"><span>Query</span><span>Map share</span><span>First NextCard URL</span><span>Rank</span></div>
+    ${queries.map((row) => `<div class="report-table-row" role="row"><strong>${escapeHtml(row.query ?? "—")}</strong><span>${percent(row.mapImpressionShare)}</span><span>${escapeHtml(row.firstNextcardUrl ?? "Not visible")}</span><span>${number(row.rank)}</span></div>`).join("")}
+  </div>`;
+}
+
+function rankingDialogMarkup(monitor) {
+  const metrics = monitor.metrics ?? {};
+  const details = monitor.details ?? {};
+  const inspection = details.inspection ?? {};
+  const live = details.live ?? {};
+  return `
+    <div class="dialog-meta"><p>${escapeHtml(monitor.description)}</p><div><span>${escapeHtml(monitor.cadence)}</span>${sourceLinks(monitor)}</div></div>
+    ${statusBanner(monitor)}
+    <section class="dialog-metrics" aria-label="Ranking monitor summary">
+      <div><span>Clicks · finalized 7d</span><strong>${number(metrics.clicks)}</strong><small>${escapeHtml(metricDelta(metrics.clicks, metrics.previousClicks))}</small></div>
+      <div><span>Impressions · finalized 7d</span><strong>${number(metrics.impressions)}</strong><small>${escapeHtml(metricDelta(metrics.impressions, metrics.previousImpressions))}</small></div>
+      <div><span>Average position</span><strong>${Number.isFinite(metrics.position) ? metrics.position.toFixed(2) : "—"}</strong><small>${escapeHtml(metricDelta(metrics.position, metrics.previousPosition, { inverse: true }))}</small></div>
+      <div><span>Map impression share</span><strong>${percent(metrics.mapImpressionShare)}</strong><small>${escapeHtml(metricDelta(metrics.mapImpressionShare, metrics.previousMapImpressionShare, { suffix: " pts" }))}</small></div>
+    </section>
+    <section class="dialog-section">
+      <div class="dialog-section-heading"><div><p class="eyebrow">Cannibalization</p><h3>Core-query ownership</h3></div><span class="count-bubble">${number(metrics.serpMapFirstCount)}/${number(metrics.serpQueryCount)}</span></div>
+      ${queryRows(details.queries)}
+    </section>
+    <section class="dialog-section">
+      <div class="dialog-section-heading"><div><p class="eyebrow">Technical health</p><h3>Index and live page</h3></div></div>
+      <div class="config-table report-facts">
+        <div><span>Index verdict</span><strong>${escapeHtml(inspection.verdict ?? (inspection.indexed ? "Indexed" : "Not reported"))}</strong></div>
+        <div><span>Last crawl</span><strong>${escapeHtml(inspection.lastCrawl ? fullDate(inspection.lastCrawl) : "Not reported")}</strong></div>
+        <div><span>Fetch / robots</span><strong>${escapeHtml(`${inspection.fetchState ?? "—"} · ${inspection.robots ?? "—"}`)}</strong></div>
+        <div><span>Google canonical</span><strong>${escapeHtml(inspection.googleCanonical ?? "Not reported")}</strong></div>
+        <div><span>Live HTTP / canonical</span><strong>${escapeHtml(`${live.httpStatus ?? "—"} · ${live.canonical ?? "—"}`)}</strong></div>
+      </div>
+      ${details.recommendation ? `<p class="report-recommendation"><strong>Recommended action:</strong> ${escapeHtml(details.recommendation)}</p>` : ""}
+    </section>
+    ${externalHistoryMarkup(monitor.id)}`;
+}
+
+function eventRows(events = []) {
+  if (!events.length) return `<div class="no-change"><span class="check" aria-hidden="true">✓</span><div><strong>No pending discoveries</strong><p>No new official-source event was reported in the latest check.</p></div></div>`;
+  return `<div class="discovery-list">${events.map((event) => `<article><div><strong>${escapeHtml(event.program ?? "Official source")}</strong><span class="badge change">${escapeHtml(event.status ?? "Pending")}</span></div><p>${escapeHtml(event.change ?? event.summary ?? "Change detected")}</p>${event.url ? `<a href="${escapeHtml(event.url)}" target="_blank" rel="noreferrer">Official source ↗</a>` : ""}</article>`).join("")}</div>`;
+}
+
+function bonusDialogMarkup(monitor) {
+  const metrics = monitor.metrics ?? {};
+  const details = monitor.details ?? {};
+  return `
+    <div class="dialog-meta"><p>${escapeHtml(monitor.description)}</p><div><span>${escapeHtml(monitor.cadence)}</span>${sourceLinks(monitor)}</div></div>
+    ${statusBanner(monitor)}
+    <section class="dialog-metrics" aria-label="Transfer bonus monitor summary">
+      <div><span>Programs checked</span><strong>${number(metrics.programsChecked)}/${number(metrics.totalPrograms)}</strong><small>Official-source registry</small></div>
+      <div><span>Pages checked</span><strong>${number(metrics.pagesChecked)}</strong><small>Latest completed sweep</small></div>
+      <div><span>Coverage failures</span><strong>${number(metrics.failedPrograms)}</strong><small>Never treated as “no news”</small></div>
+      <div><span>Pending events</span><strong>${number(metrics.pendingEvents)}</strong><small>Awaiting delivery or review</small></div>
+    </section>
+    <section class="dialog-section">
+      <div class="dialog-section-heading"><div><p class="eyebrow">Discovery queue</p><h3>Latest official changes</h3></div><span class="count-bubble">${number((details.events ?? []).length)}</span></div>
+      ${eventRows(details.events)}
+    </section>
+    <section class="dialog-section">
+      <div class="dialog-section-heading"><div><p class="eyebrow">Coverage integrity</p><h3>Failed or blocked sources</h3></div><span class="count-bubble">${number((details.failures ?? []).length)}</span></div>
+      ${(details.failures ?? []).length ? `<ul class="failure-list">${details.failures.map((failure) => `<li><strong>${escapeHtml(failure.program ?? failure.source ?? "Source")}</strong><span>${escapeHtml(failure.reason ?? "Fetch failed")}</span></li>`).join("")}</ul>` : `<p class="empty-state">No source failures were reported.</p>`}
+      ${details.recommendation ? `<p class="report-recommendation"><strong>Recommended action:</strong> ${escapeHtml(details.recommendation)}</p>` : ""}
+    </section>
+    ${externalHistoryMarkup(monitor.id)}`;
+}
+
 function pazeDialogMarkup(monitor) {
   const { history, baseline } = currentSnapshot;
   const latestRun = history.runs[0];
@@ -188,9 +343,11 @@ function openMonitorDialog(monitorId) {
   if (!monitor) return;
   els.monitorDialogTitle.textContent = monitor.name;
   els.monitorDialogEyebrow.textContent = monitor.configured ? "Active monitor" : "Collector placeholder";
-  els.monitorDialogContent.innerHTML = monitor.id === "paze-directory"
-    ? pazeDialogMarkup(monitor)
-    : placeholderDialogMarkup(monitor);
+  if (!monitor.configured) els.monitorDialogContent.innerHTML = placeholderDialogMarkup(monitor);
+  else if (monitor.id === "paze-directory") els.monitorDialogContent.innerHTML = pazeDialogMarkup(monitor);
+  else if (monitor.id === "paze-clover-map-ranking") els.monitorDialogContent.innerHTML = rankingDialogMarkup(monitor);
+  else if (monitor.id === "transfer-bonus-discovery") els.monitorDialogContent.innerHTML = bonusDialogMarkup(monitor);
+  else els.monitorDialogContent.innerHTML = placeholderDialogMarkup(monitor);
   els.monitorDialog.showModal();
 }
 
@@ -201,7 +358,9 @@ function renderSnapshot(snapshot) {
 
     const overall = document.querySelector("#overall-status");
     overall.className = `overall-card is-${state.overallStatus}`;
-    overall.querySelector("strong").textContent = state.overallStatus === "healthy" ? "All active monitors healthy" : "A monitor needs attention";
+    overall.querySelector("strong").textContent = state.overallStatus === "healthy"
+      ? "All active monitors healthy"
+      : state.overallStatus === "watch" ? "Coverage or ranking needs watching" : "A monitor needs attention";
     overall.querySelector(".meta").textContent = `${configured.length} active · ${state.monitors.length - configured.length} ready to configure`;
 
     document.querySelector("#generated-at").textContent = `Snapshot ${relativeTime(state.generatedAt)} · ${fullDate(state.generatedAt)}`;
