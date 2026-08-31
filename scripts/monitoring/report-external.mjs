@@ -27,8 +27,8 @@ export function validateExternalReport(value) {
   }
   if (value.metrics != null && !isRecord(value.metrics)) throw new Error("metrics must be an object.");
   if (value.details != null && !isRecord(value.details)) throw new Error("details must be an object.");
-  if (value.sourceUrls != null && (!Array.isArray(value.sourceUrls) || value.sourceUrls.some((url) => !/^https:\/\//.test(url)))) {
-    throw new Error("sourceUrls must contain HTTPS URLs only.");
+  if (value.sourceUrls != null && (!Array.isArray(value.sourceUrls) || value.sourceUrls.length > 12 || value.sourceUrls.some((url) => !/^https:\/\//.test(url)))) {
+    throw new Error("sourceUrls must contain no more than 12 HTTPS URLs.");
   }
 
   return {

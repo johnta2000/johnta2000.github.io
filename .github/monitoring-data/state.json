@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-08-31T18:28:07.607Z",
+  "generatedAt": "2026-08-31T19:35:06.856Z",
   "overallStatus": "healthy",
-  "latestEventId": null,
+  "latestEventId": "20260831193506-recovery",
   "monitors": [
     {
       "id": "paze-directory",
@@ -14,10 +14,10 @@
       "cadence": "Hourly",
       "expectedCount": 33,
       "currentCount": 33,
-      "latestRunAt": "2026-08-31T18:28:07.607Z",
-      "latestSuccessAt": "2026-08-31T18:28:07.607Z",
+      "latestRunAt": "2026-08-31T19:35:06.856Z",
+      "latestSuccessAt": "2026-08-31T19:35:06.856Z",
       "latestChangeAt": null,
-      "durationMs": 899,
+      "durationMs": 1511,
       "summary": "No merchant changes across 3 pages.",
       "error": null,
       "pagination": {
@@ -34,36 +34,64 @@
         "added": [],
         "removed": [],
         "renamed": []
+      },
+      "cache": {
+        "runId": "1788204906856",
+        "requestCount": 3,
+        "crawlIds": [
+          "primary"
+        ],
+        "requestIds": [
+          "1788204906862001",
+          "1788204907370002",
+          "1788204907921003"
+        ]
       }
     },
     {
       "id": "paze-clover-map-ranking",
       "name": "Paze / Clover map ranking",
-      "description": "Reserved for a configurable collector that tracks map-pack position and ranking movement.",
+      "description": "Tracks the dedicated map page across Search Console, cannibalization, index health, and clean Google result checks.",
       "configured": false,
       "status": "not_configured",
-      "sourceUrl": null,
-      "cadence": null,
+      "sourceUrl": "https://www.nextcard.com/tools/clover-paze-map",
+      "cadence": "3× daily via Codex",
       "config": {
-        "query": null,
-        "location": null,
-        "target": null
+        "property": "sc-domain:nextcard.com",
+        "queries": [
+          "paze clover map",
+          "clover paze map",
+          "paze clover",
+          "clover paze",
+          "paze map"
+        ],
+        "compareUrls": [
+          "map",
+          "/tools",
+          "dining guide"
+        ]
       }
     },
     {
-      "id": "paze-bonus-discovery",
-      "name": "Paze bonus discovery",
-      "description": "Reserved for a configurable collector that detects new Paze promotions and offer terms.",
+      "id": "transfer-bonus-discovery",
+      "name": "Transfer bonus discovery",
+      "description": "Scans official issuer and loyalty-program sources for new transfer bonuses, changed terms, and coverage failures.",
       "configured": false,
       "status": "not_configured",
-      "sourceUrl": "https://www.paze.com/offers",
-      "cadence": null,
+      "sourceUrl": null,
+      "cadence": "Codex heartbeat",
       "config": {
-        "sources": [],
-        "keywords": [],
+        "sources": [
+          "Citi public transfer API",
+          "Bilt official sources",
+          "45-program official-source registry"
+        ],
+        "sourcePolicy": "official only",
         "notifyOn": [
           "new",
-          "changed"
+          "changed",
+          "failure",
+          "recovery"
         ]
       }
     }

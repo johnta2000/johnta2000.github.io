@@ -3,6 +3,77 @@
   "maxRuns": 336,
   "runs": [
     {
+      "id": "2026-08-31T19:35:06.856Z",
+      "monitorId": "paze-directory",
+      "timestamp": "2026-08-31T19:35:06.856Z",
+      "status": "success",
+      "changed": false,
+      "initialized": false,
+      "confirmed": true,
+      "durationMs": 1511,
+      "count": 33,
+      "previousCount": 33,
+      "pagination": {
+        "complete": true,
+        "pagesFetched": 3,
+        "pageCounts": [
+          12,
+          12,
+          9
+        ],
+        "finalPage": 2
+      },
+      "diff": {
+        "added": [],
+        "removed": [],
+        "renamed": []
+      },
+      "cache": {
+        "runId": "1788204906856",
+        "requestCount": 3,
+        "crawlIds": [
+          "primary"
+        ],
+        "requestIds": [
+          "1788204906862001",
+          "1788204907370002",
+          "1788204907921003"
+        ]
+      },
+      "summary": "No merchant changes across 3 pages.",
+      "error": null
+    },
+    {
+      "id": "2026-08-31T19:33:36.883Z",
+      "monitorId": "paze-directory",
+      "timestamp": "2026-08-31T19:33:36.883Z",
+      "status": "failure",
+      "changed": false,
+      "initialized": false,
+      "confirmed": false,
+      "durationMs": 693,
+      "count": null,
+      "previousCount": 33,
+      "pagination": null,
+      "diff": {
+        "added": [],
+        "removed": [],
+        "renamed": []
+      },
+      "cache": {
+        "runId": "1788204816883",
+        "requestCount": 1,
+        "crawlIds": [
+          "primary"
+        ],
+        "requestIds": [
+          "1788204816891001"
+        ]
+      },
+      "summary": "The crawl was incomplete; the last successful baseline was preserved.",
+      "error": "Page 0 continuation pointed to page unknown."
+    },
+    {
       "id": "2026-08-31T18:28:07.607Z",
       "monitorId": "paze-directory",
       "timestamp": "2026-08-31T18:28:07.607Z",

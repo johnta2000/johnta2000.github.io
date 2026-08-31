@@ -309,6 +309,11 @@ h3 { margin-bottom: 8px; font-size: 19px; letter-spacing: -0.02em; }
 .dialog-metrics > div { min-width: 0; border: 1px solid var(--line); border-radius: 8px; background: #fbfcfb; padding: 14px; }
 .dialog-metrics span, .dialog-metrics small { display: block; color: var(--muted); font-size: 10px; }
 .dialog-metrics strong { display: block; overflow: hidden; margin: 6px 0 4px; font-size: 21px; line-height: 1.05; text-overflow: ellipsis; white-space: nowrap; }
+.cache-proof { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin: -10px 0 28px; border: 1px solid #cbd8f7; border-radius: 8px; background: #f4f7ff; padding: 12px 14px; }
+.cache-proof div { min-width: 0; }
+.cache-proof span { display: block; color: var(--blue-dark); font-size: 9px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.cache-proof code { display: block; overflow: hidden; margin-top: 3px; color: var(--ink); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.cache-proof p { flex: 0 0 auto; margin: 0; color: var(--muted); font-size: 11px; }
 .dialog-section { border-top: 1px solid var(--line); padding: 28px 0; }
 .dialog-section:last-child { padding-bottom: 0; }
 .dialog-section-heading { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-bottom: 18px; }
@@ -396,6 +401,7 @@ footer { display: flex; justify-content: space-between; gap: 20px; border-top: 1
   .dialog-meta { flex-direction: column; gap: 12px; }
   .dialog-metrics { grid-template-columns: 1fr 1fr; }
   .dialog-section-heading { align-items: flex-start; }
+  .cache-proof { align-items: flex-start; flex-direction: column; gap: 7px; }
   .report-table { border: 0; overflow: visible; }
   .report-table-head { display: none; }
   .report-table-row { grid-template-columns: 1fr auto; border: 1px solid var(--line); border-radius: 8px; }

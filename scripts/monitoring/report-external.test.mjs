@@ -25,6 +25,7 @@ test("validates a sanitized external report", () => {
 test("rejects unsupported monitors and non-HTTPS sources", () => {
   assert.throws(() => validateExternalReport({ ...sample, monitorId: "other" }), /Unsupported monitorId/);
   assert.throws(() => validateExternalReport({ ...sample, sourceUrls: ["http://example.com"] }), /HTTPS/);
+  assert.throws(() => validateExternalReport({ ...sample, sourceUrls: Array(13).fill("https://example.com") }), /12 HTTPS/);
 });
 
 test("submits only the secret and validated report to Convex", async () => {

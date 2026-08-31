@@ -1,7 +1,30 @@
 {
   "schemaVersion": 1,
   "feedId": "john-ta-monitoring-changes",
-  "generatedAt": "2026-08-31T18:28:07.607Z",
-  "latestEventId": null,
-  "events": []
+  "generatedAt": "2026-08-31T19:35:06.856Z",
+  "latestEventId": "20260831193506-recovery",
+  "events": [
+    {
+      "id": "20260831193506-recovery",
+      "type": "monitor_recovery",
+      "severity": "recovery",
+      "monitorId": "paze-directory",
+      "timestamp": "2026-08-31T19:35:06.856Z",
+      "title": "Paze directory monitor recovered",
+      "summary": "No merchant changes across 3 pages.",
+      "dashboardUrl": "https://john-ta.com/tools/monitoring/",
+      "sourceUrl": "https://www.paze.com/merchant-directory?page=0"
+    },
+    {
+      "id": "20260831193336-failure",
+      "type": "monitor_failure",
+      "severity": "error",
+      "monitorId": "paze-directory",
+      "timestamp": "2026-08-31T19:33:36.883Z",
+      "title": "Paze directory monitor failed",
+      "summary": "Page 0 continuation pointed to page unknown.",
+      "dashboardUrl": "https://john-ta.com/tools/monitoring/",
+      "sourceUrl": "https://www.paze.com/merchant-directory?page=0"
+    }
+  ]
 }

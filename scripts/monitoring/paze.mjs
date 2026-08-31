@@ -93,18 +93,51 @@ export function parsePage(html, pageNumber) {
 
 function pageNumberFromHref(href) {
   if (!href) return null;
-  const url = new URL(href, SOURCE_URL);
+  const url = new URL(decodeHtml(href), SOURCE_URL);
   const value = Number.parseInt(url.searchParams.get("page") ?? "", 10);
   return Number.isInteger(value) ? value : null;
 }
 
-async function fetchWithRetry(url, fetchImpl, attempts = 3) {
+export function createFreshnessContext({ now = Date.now, runId = String(now()) } = {}) {
+  let sequence = 0;
+  const requests = [];
+  return {
+    runId,
+    next({ crawlId, page, attempt }) {
+      sequence += 1;
+      const requestId = String((now() * 1000) + sequence);
+      requests.push({ requestId, crawlId, page, attempt });
+      return requestId;
+    },
+    snapshot() {
+      return {
+        runId,
+        requestCount: requests.length,
+        crawlIds: [...new Set(requests.map(({ crawlId }) => crawlId))],
+        requestIds: requests.map(({ requestId }) => requestId),
+      };
+    },
+  };
+}
+
+export async function fetchWithRetry(url, fetchImpl, {
+  attempts = 3,
+  crawlId = "primary",
+  page = 0,
+  freshness = createFreshnessContext(),
+  wait = (delay) => new Promise((done) => setTimeout(done, delay)),
+} = {}) {
   let lastError;
   for (let attempt = 1; attempt <= attempts; attempt += 1) {
     try {
-      const response = await fetchImpl(url, {
+      const freshUrl = new URL(url);
+      freshUrl.searchParams.set("_monitor_ts", freshness.next({ crawlId, page, attempt }));
+      const response = await fetchImpl(freshUrl, {
+        cache: "no-store",
         headers: {
           accept: "text/html,application/xhtml+xml",
+          "cache-control": "no-cache, no-store, max-age=0",
+          pragma: "no-cache",
           "user-agent": "john-ta-monitor/1.0 (+https://john-ta.com/tools/monitoring/)",
         },
         signal: AbortSignal.timeout(20_000),
@@ -113,13 +146,16 @@ async function fetchWithRetry(url, fetchImpl, attempts = 3) {
       return await response.text();
     } catch (error) {
       lastError = error;
-      if (attempt < attempts) await new Promise((done) => setTimeout(done, 750 * attempt));
+      if (attempt < attempts) await wait(750 * attempt);
     }
   }
   throw lastError;
 }
 
-export async function collectDirectory(fetchImpl = fetch) {
+export async function collectDirectory(fetchImpl = fetch, {
+  crawlId = "primary",
+  freshness = createFreshnessContext(),
+} = {}) {
   const merchants = [];
   const pageCounts = [];
   const seen = new Set();
@@ -128,7 +164,7 @@ export async function collectDirectory(fetchImpl = fetch) {
   while (page < PAGE_LIMIT) {
     const url = new URL(SOURCE_URL);
     url.searchParams.set("page", String(page));
-    const html = await fetchWithRetry(url, fetchImpl);
+    const html = await fetchWithRetry(url, fetchImpl, { crawlId, page, freshness });
     const parsed = parsePage(html, page);
 
     for (const merchant of parsed.merchants) {
@@ -158,6 +194,7 @@ export async function collectDirectory(fetchImpl = fetch) {
       pageCounts,
       finalPage: page,
     },
+    cache: freshness.snapshot(),
   };
 }
 
@@ -298,6 +335,7 @@ function createState({ previousState, run, baseline, feed }) {
         error: run.error,
         pagination: run.pagination,
         diff: run.diff,
+        cache: run.cache,
       },
       {
         id: "paze-clover-map-ranking",
@@ -333,7 +371,9 @@ function createState({ previousState, run, baseline, feed }) {
 
 export async function runMonitor({ fetchImpl = fetch, now = () => new Date() } = {}) {
   const started = performance.now();
-  const timestamp = now().toISOString();
+  const startedAt = now();
+  const timestamp = startedAt.toISOString();
+  const freshness = createFreshnessContext({ runId: String(startedAt.getTime()) });
   const baseline = await readJson(paths.baseline, {
     schemaVersion: 1,
     monitorId: "paze-directory",
@@ -356,7 +396,7 @@ export async function runMonitor({ fetchImpl = fetch, now = () => new Date() } =
   let run;
 
   try {
-    const first = await collectDirectory(fetchImpl);
+    const first = await collectDirectory(fetchImpl, { crawlId: "primary", freshness });
     if (!baseline.merchants.length && first.merchants.length !== EXPECTED_INITIAL_COUNT) {
       throw new Error(
         `Initial crawl found ${first.merchants.length} merchants; expected the validated baseline of ${EXPECTED_INITIAL_COUNT}.`,
@@ -371,7 +411,7 @@ export async function runMonitor({ fetchImpl = fetch, now = () => new Date() } =
     let confirmed = !changed;
 
     if (changed) {
-      const second = await collectDirectory(fetchImpl);
+      const second = await collectDirectory(fetchImpl, { crawlId: "confirmation", freshness });
       if (!sameSet(first.merchants, second.merchants)) {
         throw new Error("A potential directory change was not reproduced by the confirmation crawl.");
       }
@@ -405,6 +445,7 @@ export async function runMonitor({ fetchImpl = fetch, now = () => new Date() } =
       previousCount: baseline.merchants.length || first.merchants.length,
       pagination: first.pagination,
       diff,
+      cache: freshness.snapshot(),
       summary,
       error: null,
     };
@@ -422,6 +463,7 @@ export async function runMonitor({ fetchImpl = fetch, now = () => new Date() } =
       previousCount: baseline.merchants.length || null,
       pagination: null,
       diff: { added: [], removed: [], renamed: [] },
+      cache: freshness.snapshot(),
       summary: "The crawl was incomplete; the last successful baseline was preserved.",
       error: error instanceof Error ? error.message : String(error),
     };

@@ -162,7 +162,7 @@ function runMarkup(run) {
         ${badge}
       </summary>
       <div class="run-body">
-        <div class="run-facts"><span>${escapeHtml(pageText)}</span><span>Confirmation: ${run.confirmed ? "complete" : "not complete"}</span><span>Baseline preserved: ${run.status === "failure" ? "yes" : "updated"}</span></div>
+        <div class="run-facts"><span>${escapeHtml(pageText)}</span><span>Confirmation: ${run.confirmed ? "complete" : "not complete"}</span><span>Baseline preserved: ${run.status === "failure" ? "yes" : "updated"}</span><span>Freshness ID: ${escapeHtml(run.cache?.runId ?? "legacy run")}</span></div>
         ${run.error ? `<p class="run-error">${escapeHtml(run.error)}</p>` : diffMarkup(run)}
       </div>
     </details>`;
@@ -308,6 +308,7 @@ function pazeDialogMarkup(monitor) {
       <div><span>Last change</span><strong>${latestChange ? escapeHtml(relativeTime(latestChange.timestamp)) : "None yet"}</strong><small>${latestChange ? escapeHtml(fullDate(latestChange.timestamp)) : "Baseline remains stable"}</small></div>
       <div><span>Retained runs</span><strong>${history.runs.length}</strong><small>14 day cap</small></div>
     </section>
+    <div class="cache-proof"><div><span>Freshness ID</span><code>${escapeHtml(latestRun?.cache?.runId ?? monitor.cache?.runId ?? "Pending next run")}</code></div><p>${number(latestRun?.cache?.requestCount ?? monitor.cache?.requestCount)} unique no-store request${(latestRun?.cache?.requestCount ?? monitor.cache?.requestCount) === 1 ? "" : "s"} · ${escapeHtml((latestRun?.cache?.crawlIds ?? monitor.cache?.crawlIds ?? []).join(" + ") || "legacy run")}</p></div>
     <section class="dialog-section">
       <div class="dialog-section-heading"><div><p class="eyebrow">Latest comparison</p><h3>Before / after</h3></div><span class="badge ${confirmationClass}">${confirmationText}</span></div>
       ${diffMarkup(latestChange ?? latestRun)}
@@ -447,10 +448,15 @@ function showAuthError(error) {
 async function convexQuery(path, args) {
   const token = await getConvexToken();
   if (!token) throw new Error("Not authenticated with Clerk.");
-  const response = await fetch(`${CONVEX_URL}/api/query`, {
+  const queryUrl = new URL(`${CONVEX_URL}/api/query`);
+  queryUrl.searchParams.set("_monitor_ts", String(Date.now()));
+  const response = await fetch(queryUrl, {
     method: "POST",
+    cache: "no-store",
     headers: {
       "Content-Type": "application/json",
+      "Cache-Control": "no-cache, no-store, max-age=0",
+      Pragma: "no-cache",
       Authorization: `Bearer ${token}`,
     },
     body: JSON.stringify({ path, args }),

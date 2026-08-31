@@ -21,6 +21,9 @@ test("dashboard starts locked and loads Clerk", () => {
 test("public page does not reference repository JSON", () => {
   assert.doesNotMatch(html, /data\/change-feed\.json/);
   assert.doesNotMatch(app, /loadJson|DATA_ROOT/);
+  assert.match(app, /_monitor_ts/);
+  assert.match(app, /cache: "no-store"/);
+  assert.match(app, /Cache-Control": "no-cache, no-store, max-age=0/);
 });
 
 test("overview keeps monitor-specific detail inside an accessible dialog", () => {

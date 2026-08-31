@@ -192,7 +192,11 @@ function mergeIngestSnapshot(incoming: MonitoringSnapshot, existing?: Monitoring
     if (!monitors.some((candidate) => candidate.id === id)) monitors.push(monitor);
   }
 
-  const timestamp = String(incomingState.generatedAt || existing.state.generatedAt || new Date().toISOString());
+  const generatedAtCandidates = [incomingState.generatedAt, existing.state.generatedAt]
+    .filter((value): value is string => typeof value === "string" && Number.isFinite(Date.parse(value)));
+  const timestamp = generatedAtCandidates.length
+    ? generatedAtCandidates.sort((a, b) => Date.parse(b) - Date.parse(a))[0]
+    : new Date().toISOString();
   const feed = mergeFeed(incoming.feed, existing.feed, timestamp);
   return {
     ...incoming,
