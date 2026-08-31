@@ -513,6 +513,15 @@
         text-transform: uppercase;
       }
 
+      .artist-stage {
+        display: block;
+        margin-top: 3px;
+        color: var(--muted);
+        font-size: 0.68rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+      }
+
       .type-cell,
       .genre-cell {
         min-width: 0;
@@ -788,6 +797,9 @@
             <option value="Friday">Friday</option>
             <option value="Saturday">Saturday</option>
             <option value="Sunday">Sunday</option>
+          </select>
+          <select class="select-field" id="stage-filter" aria-label="Stage filter">
+            <option value="all">All stages</option>
           </select>
           <select class="select-field" id="billing-filter" aria-label="Type filter">
             <option value="all">All types</option>
@@ -1119,6 +1131,22 @@
         "SKILAH": ["SIKLAH"]
       };
 
+      const stageLineups = {
+        "Prehistoric Stage": `ATLIENS | AVELLO | CAPOCHINO | CRANKDAT B2B ALLEYCVT | EFFIN | EXCISION (2 HOUR SET) | EXCISION B2B SPACE LACES | FLUX PAVILION | GRABBITZ | HEYZ | HOL! | ILLENIUM | INFEKT B2B SAMPLIFIRE | JESSICA AUDIFFRED | JKYL & HYDE | KAI WACHI | KOMPANY | LEVITY | MAD DUBZ | NEOTEK | RAVENSCOON | SETH DAVID | SLANDER | SULLIVAN KING B2B RAY VOLPE | TYNAN | USAYBFLOW | ZOMBOY`,
+        "Wompy Woods": `ADVENTURE CLUB (THROWBACK SET) | ALL THE REASON | ARMNHMR | BENDA | BIG FLORIDA | BOOGIE T | BRAINRACK | CRYSTAL SKIES | DION TIMMER | DREAM TAKERS | DRINKURWATER | EPTIC B2B LYNY | EXCISION (DETOX) | GANJA WHITE NIGHT | GHENGAR | HALIENE | HVDES | IVORY | KNOW GOOD | LIQUID STRANGER | NGHTMRE | OLIVERSE | PAPER SKIES | PHASEONE | RIOT | SEVEN LIONS (SUNSET SET) | SIPPY | SPACE WIZARD | SUBTRONICS B2B LEVEL UP | THE RESISTANCE | TISOKI | VIRTUAL RIOT | VKTM | WONKYWILLA | WOOLI (SUNSET SET) | YETEP | YOOKIE | ZINGARA`,
+        "The Crater": `2DY4 | ALIENPARK | BADKLAAT | BARELY ALIVE | BEAR GRILLZ | BORGORE | CALCIUM B2B MAD DUBZ | CHAMPAGNE DRIP | CHASSI | CODD DUBZ | CRIZZLY | CYCLOPS | DEADCROW | DOCTOR P | DIRTYSNATCHA | DR. FRESCH | EMORFIK B2B USAYBFLOW | FLOSSTRADAMUS | FUNTCASE | IZZY VADIM | KREWELLA | LAYZ | LUCI | MACHAKI | MILE32 | MUERTE | PEGBOARD NERDS | PRETTY SWEET | PROSECUTE | RIOT TEN | RZRKT | SODOWN | STONED LEVEL | TRIVECTA | WHALES | WHETHAN | THE WIDDLER | WILLIAM BLACK`,
+        "Forest Stage": `ÆON:MODE B2B BLOSSOM | ARLO | AUSTERIA | BELLA RENEE | BOU | CANABLISS | CRAZE B2B DIESELBOY | CRUMB PIT | DELTA HEAVY | DIRTYPHONICS | DISTANT MATTER | DR. USHUU | GHASTLY | HEDEX | IMANU | IVY LAB | JANTSEN | LUMASI | MEFJUS + DAXTA MC | MOZEY | PASSPORT | PROBCAUSE | RICHARD FINGER | RYNS | SHLUMP | SKILAH | STUMPI | TAIKI NULIGHT | TWOPERCENT | WAX MOTIF | WILEY | XOTIX | ZOEY808`,
+        "Subsidia Stage": `SJ | AU5 | CASEY CLUB | CHOZEN | DUBSCRIBE | FINNUH | FUTURE EXIT | GREEN MATTER | HOSTAGE SITUATION | HURTBOX | IZADI | JOSH TEED | KLIPTIC | KLO | LAZRUS | LEOTRIX | LOWCATION | MODAL NODES | MYRIAS | MYTHM | NEUMONIC | NIMDA | NOETIKA | OG NIXIN | ONARA | PONI | ROI* | SAINT MILLER | SISTO | SQISHI | TOKYO MACHINE | TRUTH | VAMPA | WARLORD | WRAZ | YVM3 | ZERO`,
+        "Raptor Alley": `AUDIOFREQ | BASSTRIPPER | DARKSIDERZ B2B MADGRRL | GLADDE PALING | KILLMATTER | LIL TEXAS | REAPER | REMK | SIGMA | SPORTMODE | SUBSONIC`,
+        "Grove Stage": `CASPA | DIRT MONKEY | DISTINCT MOTIVE | GARDELLA | HAIRITAGE | HERSHE | HYDRAULIX | JAENGA | MINDSET | MPORT | NIKITA, THE WICKED | PHRVA | RSUN | SMOAKLAND | SUPER FUTURE | ZEN SELEKTA`
+      };
+
+      const stageByArtist = new Map();
+      Object.entries(stageLineups).forEach(([stage, artists]) => {
+        artists.split("|").map((artist) => artist.trim().replace(/\s+/g, " ")).filter(Boolean)
+          .forEach((artist) => stageByArtist.set(artist, stage));
+      });
+
       const lineup = Object.entries(lineupByDay).flatMap(([day, value]) =>
         value.split("|").map((artist) => artist.trim().replace(/\s+/g, " ")).filter(Boolean).map((artist) => {
           const aliases = preferenceAliases[artist] || [artist];
@@ -1130,7 +1158,7 @@
             genre: genreByArtist[artist] || aliases.map((alias) => genreByArtist[alias]).find(Boolean) || "Bass",
             day,
             time: "",
-            stage: "",
+            stage: stageByArtist.get(artist) || "Stage TBD",
             notes: ""
           };
         })
@@ -1159,6 +1187,7 @@
         favoriteCount: document.getElementById("favorite-count"),
         favoritesFilterButton: document.getElementById("favorites-filter-button"),
         genreFilter: document.getElementById("genre-filter"),
+        stageFilter: document.getElementById("stage-filter"),
         posterContent: document.getElementById("poster-content"),
         posterView: document.getElementById("poster-view"),
         posterViewButton: document.getElementById("poster-view-button"),
@@ -1290,6 +1319,7 @@
         favoritesOnly = params.get("fav") === "1" || type === "favorites";
         els.billingFilter.value = type === "favorites" ? "all" : type;
         els.genreFilter.value = params.get("genre") || "all";
+        els.stageFilter.value = params.get("stage") || "all";
         els.sortMode.value = params.get("sort") || "poster";
         activeView =
           params.get("view") === "poster" && !mobileViewQuery.matches ? "poster" : "table";
@@ -1304,6 +1334,10 @@
 
         if (![...els.genreFilter.options].some((option) => option.value === els.genreFilter.value)) {
           els.genreFilter.value = "all";
+        }
+
+        if (![...els.stageFilter.options].some((option) => option.value === els.stageFilter.value)) {
+          els.stageFilter.value = "all";
         }
 
         if (![...els.sortMode.options].some((option) => option.value === els.sortMode.value)) {
@@ -1331,6 +1365,7 @@
         if (els.dayFilter.value !== "all") params.set("day", els.dayFilter.value);
         if (els.billingFilter.value !== "all") params.set("type", els.billingFilter.value);
         if (els.genreFilter.value !== "all") params.set("genre", els.genreFilter.value);
+        if (els.stageFilter.value !== "all") params.set("stage", els.stageFilter.value);
         if (els.sortMode.value !== "poster") params.set("sort", els.sortMode.value);
         if (activeView !== "table" && !mobileViewQuery.matches) params.set("view", activeView);
         if (favoritesOnly) params.set("fav", "1");
@@ -1344,18 +1379,20 @@
         const day = els.dayFilter.value;
         const type = els.billingFilter.value;
         const genre = els.genreFilter.value;
+        const stage = els.stageFilter.value;
         const sortMode = els.sortMode.value;
 
         const filtered = lineup.filter((entry) => {
           const matchesQuery =
             !query ||
-            normalizeText(`${entry.artist} ${entry.day} ${entry.billing} ${entry.genre}`).includes(query);
+            normalizeText(`${entry.artist} ${entry.day} ${entry.stage} ${entry.billing} ${entry.genre}`).includes(query);
           const matchesDay = day === "all" || entry.day === day;
           const matchesType = type === "all" || entry.billing.toLowerCase() === type;
           const matchesGenre = genre === "all" || entry.genre === genre;
+          const matchesStage = stage === "all" || entry.stage === stage;
           const matchesFavorite = !favoritesOnly || favorites.has(entry.id);
 
-          return matchesQuery && matchesDay && matchesType && matchesGenre && matchesFavorite;
+          return matchesQuery && matchesDay && matchesType && matchesGenre && matchesStage && matchesFavorite;
         });
 
         return filtered.sort((left, right) => {
@@ -1435,7 +1472,7 @@
                     aria-label="${favorites.has(entry.id) ? "Remove" : "Add"} ${escapeHtml(entry.artist)} favorite"
                   >★</button>
                 </td>
-                <td class="artist-cell">${escapeHtml(entry.artist)}</td>
+                <td class="artist-cell">${escapeHtml(entry.artist)}<span class="artist-stage">${escapeHtml(entry.stage)}</span></td>
                 <td class="type-cell">${escapeHtml(entry.day.slice(0, 3))}</td>
                 <td class="genre-cell">${escapeHtml(entry.genre)}</td>
                 <td class="rally-only">${renderInterest(entry.id)}</td>
@@ -1577,8 +1614,17 @@
         });
       }
 
+      function initStageFilter() {
+        Object.keys(stageLineups).forEach((stage) => {
+          const option = document.createElement("option");
+          option.value = stage;
+          option.textContent = stage;
+          els.stageFilter.append(option);
+        });
+      }
+
       function bindEvents() {
-        [els.search, els.dayFilter, els.billingFilter, els.genreFilter, els.sortMode].forEach((control) => {
+        [els.search, els.dayFilter, els.stageFilter, els.billingFilter, els.genreFilter, els.sortMode].forEach((control) => {
           control.addEventListener("input", render);
           control.addEventListener("change", render);
         });
@@ -1644,6 +1690,7 @@
 
       els.artistCount.textContent = `${lineup.length} artists`;
       initGenreFilter();
+      initStageFilter();
       setCanonicalUrl();
       readStateFromUrl();
       bindEvents();
