@@ -1,4 +1,12 @@
-const DATA_ROOT = "data";
+const CONVEX_URL = "https://rapid-shark-565.convex.cloud";
+const els = {
+  gate: document.querySelector("#access-gate"),
+  clerkSignIn: document.querySelector("#clerk-sign-in"),
+  authStatus: document.querySelector("#auth-status"),
+  authSignOut: document.querySelector("#auth-sign-out"),
+  app: document.querySelector("#app"),
+  lockButton: document.querySelector("#lock-button"),
+};
 
 const escapeHtml = (value = "") => String(value)
   .replaceAll("&", "&amp;")
@@ -116,17 +124,8 @@ function runMarkup(run) {
     </details>`;
 }
 
-async function loadJson(name) {
-  const response = await fetch(`${DATA_ROOT}/${name}`, { cache: "no-store" });
-  if (!response.ok) throw new Error(`${name}: HTTP ${response.status}`);
-  return response.json();
-}
-
-async function render() {
-  try {
-    const [state, history, baseline, feed] = await Promise.all([
-      loadJson("state.json"), loadJson("history.json"), loadJson("paze-baseline.json"), loadJson("change-feed.json"),
-    ]);
+function renderSnapshot(snapshot) {
+    const { state, history, baseline, feed } = snapshot;
     const configured = state.monitors.filter((monitor) => monitor.configured);
     const paze = state.monitors.find((monitor) => monitor.id === "paze-directory");
     const latestRun = history.runs[0];
@@ -160,16 +159,125 @@ async function render() {
       ? history.runs.map(runMarkup).join("")
       : `<p class="empty-state">No runs recorded yet.</p>`;
 
-    const feedLink = document.querySelector('.feed-callout .button-link');
-    feedLink.setAttribute("aria-label", `Open change feed with ${feed.events.length} retained meaningful events`);
+    const feedCount = document.querySelector("#feed-event-count");
+    feedCount.textContent = `${feed.events.length} secure event${feed.events.length === 1 ? "" : "s"}`;
+    feedCount.setAttribute("aria-label", `${feed.events.length} retained meaningful events in the authenticated Convex feed`);
+}
+
+async function initializeClerk() {
+  try {
+    if (!window.Clerk) throw new Error("Secure sign-in did not load. Check your connection and try again.");
+    await window.Clerk.load({ ui: { ClerkUI: window.__internal_ClerkUICtor } });
+
+    if (window.Clerk.isSignedIn) {
+      await unlockDashboard();
+      return;
+    }
+
+    els.authStatus.hidden = true;
+    window.Clerk.mountSignIn(els.clerkSignIn, {
+      routing: "hash",
+      withSignUp: true,
+      forceRedirectUrl: window.location.href.split("#")[0],
+      signUpForceRedirectUrl: window.location.href.split("#")[0],
+      appearance: {
+        variables: {
+          colorPrimary: "#202124",
+          colorBackground: "#fbfcfb",
+          colorText: "#202124",
+          colorInputBackground: "#ffffff",
+          colorInputText: "#202124",
+          borderRadius: "8px",
+          fontFamily: "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+        },
+      },
+    });
   } catch (error) {
     console.error(error);
-    document.querySelector("#load-error").hidden = false;
-    const overall = document.querySelector("#overall-status");
-    overall.className = "overall-card is-attention";
-    overall.querySelector("strong").textContent = "Snapshot unavailable";
-    overall.querySelector(".meta").textContent = "The dashboard could not read its repository data";
+    showAuthError(error);
   }
 }
 
-render();
+async function unlockDashboard() {
+  els.authStatus.hidden = false;
+  els.authStatus.textContent = "Verifying your account with Convex…";
+  try {
+    const result = await convexQuery("monitoring:dashboard", {});
+    if (!result.snapshot) throw new Error("Secure monitor data has not been synced yet.");
+    renderSnapshot(result.snapshot);
+    els.gate.hidden = true;
+    els.app.hidden = false;
+  } catch (error) {
+    console.error(error);
+    showAuthError(error);
+  }
+}
+
+async function signOut() {
+  els.app.hidden = true;
+  if (window.Clerk?.isSignedIn) await window.Clerk.signOut();
+  window.location.assign(window.location.href.split("#")[0]);
+}
+
+function showAuthError(error) {
+  const message = String(error?.message || error || "");
+  els.app.hidden = true;
+  els.gate.hidden = false;
+  els.authStatus.hidden = false;
+  els.authSignOut.hidden = !window.Clerk?.isSignedIn;
+
+  if (/not authorized/i.test(message)) {
+    els.authStatus.textContent = "This Clerk account is signed in, but it is not approved for this private dashboard.";
+  } else if (/has not been synced/i.test(message)) {
+    els.authStatus.textContent = "Sign-in succeeded, but the first secure monitor sync is still pending.";
+  } else if (/auth provider|token|authenticated|verified email|jwt|invalidauthheader/i.test(message)) {
+    els.authStatus.textContent = "Your sign-in could not be verified by Convex. Sign out and try the approved account again.";
+  } else {
+    els.authStatus.textContent = "Secure sign-in could not finish loading. Refresh the page and try again.";
+  }
+}
+
+async function convexQuery(path, args) {
+  const token = await getConvexToken();
+  if (!token) throw new Error("Not authenticated with Clerk.");
+  const response = await fetch(`${CONVEX_URL}/api/query`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ path, args }),
+  });
+  const result = await response.json();
+  if (!response.ok || result.status !== "success") {
+    throw new Error(result.errorMessage || result.message || result.code || "Secure data query failed.");
+  }
+  return result.value;
+}
+
+async function getConvexToken() {
+  const session = window.Clerk?.session;
+  if (!session) return null;
+  const sessionToken = await session.getToken();
+  const audience = readJwtPayload(sessionToken)?.aud;
+  if (audience === "convex" || (Array.isArray(audience) && audience.includes("convex"))) return sessionToken;
+  try {
+    return await session.getToken({ template: "convex" });
+  } catch {
+    return sessionToken;
+  }
+}
+
+function readJwtPayload(token) {
+  if (!token) return null;
+  try {
+    const encoded = token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
+    return JSON.parse(decodeURIComponent(escape(atob(encoded))));
+  } catch {
+    return null;
+  }
+}
+
+els.lockButton.addEventListener("click", signOut);
+els.authSignOut.addEventListener("click", signOut);
+initializeClerk();

@@ -7,8 +7,9 @@ import { performance } from "node:perf_hooks";
 
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(SCRIPT_DIR, "../..");
-const DATA_DIR = resolve(ROOT, "tools/monitoring/data");
+const DATA_DIR = resolve(ROOT, ".github/monitoring-data");
 const SOURCE_URL = "https://www.paze.com/merchant-directory?page=0";
+const CONVEX_URL = process.env.CONVEX_URL || "https://rapid-shark-565.convex.cloud";
 const PAGE_LIMIT = 25;
 const HISTORY_LIMIT = 336;
 const FEED_LIMIT = 100;
@@ -241,6 +242,29 @@ async function writeJson(path, value) {
   await writeFile(path, `${JSON.stringify(value, null, 2)}\n`);
 }
 
+async function publishToConvex(snapshot) {
+  const secret = process.env.MONITORING_INGEST_SECRET;
+  if (!secret) {
+    if (process.env.CI) throw new Error("MONITORING_INGEST_SECRET is not configured for secure Convex sync.");
+    return { skipped: true };
+  }
+
+  const response = await fetch(`${CONVEX_URL}/api/mutation`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      path: "monitoring:ingest",
+      args: { secret, snapshot },
+    }),
+    signal: AbortSignal.timeout(20_000),
+  });
+  const result = await response.json();
+  if (!response.ok || result.status !== "success") {
+    throw new Error(result.errorMessage || result.message || "Secure Convex sync failed.");
+  }
+  return result.value;
+}
+
 function eventId(timestamp, type) {
   return `${timestamp.replace(/[-:.TZ]/g, "").slice(0, 14)}-${type}`;
 }
@@ -451,10 +475,17 @@ export async function runMonitor({ fetchImpl = fetch, now = () => new Date() } =
     writeJson(paths.state, state),
   ]);
 
+  try {
+    await publishToConvex({ state, history, baseline: nextBaseline, feed });
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error));
+    process.exitCode = 1;
+  }
+
   const label = run.status === "success" ? "PASS" : "FAIL";
   console.log(`${label} ${run.summary} (${run.durationMs} ms)`);
   if (run.error) console.error(run.error);
-  process.exitCode = run.status === "success" ? 0 : 1;
+  if (run.status !== "success") process.exitCode = 1;
   return run;
 }
 
