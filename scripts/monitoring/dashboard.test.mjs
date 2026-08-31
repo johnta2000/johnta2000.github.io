@@ -21,6 +21,15 @@ test("public page does not reference repository JSON", () => {
   assert.doesNotMatch(app, /loadJson|DATA_ROOT/);
 });
 
+test("overview keeps monitor-specific detail inside an accessible dialog", () => {
+  assert.match(html, /<dialog id="monitor-dialog"/);
+  assert.doesNotMatch(html, />Current merchants</);
+  assert.doesNotMatch(html, />Recent runs</);
+  assert.match(app, /function openMonitorDialog/);
+  assert.match(app, /data-monitor-id/);
+  assert.match(app, /placeholderDialogMarkup/);
+});
+
 test("hourly workflow syncs with a secret and stores history outside the Pages path", () => {
   assert.match(workflow, /MONITORING_INGEST_SECRET: \$\{\{ secrets\.MONITORING_INGEST_SECRET \}\}/);
   assert.match(workflow, /git add \.github\/monitoring-data/);

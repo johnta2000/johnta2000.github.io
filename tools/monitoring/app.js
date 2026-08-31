@@ -6,7 +6,15 @@ const els = {
   authSignOut: document.querySelector("#auth-sign-out"),
   app: document.querySelector("#app"),
   lockButton: document.querySelector("#lock-button"),
+  monitorList: document.querySelector("#monitor-list"),
+  monitorDialog: document.querySelector("#monitor-dialog"),
+  monitorDialogTitle: document.querySelector("#monitor-dialog-title"),
+  monitorDialogEyebrow: document.querySelector("#monitor-dialog-eyebrow"),
+  monitorDialogContent: document.querySelector("#monitor-dialog-content"),
+  monitorDialogClose: document.querySelector("#monitor-dialog-close"),
 };
+
+let currentSnapshot = null;
 
 const escapeHtml = (value = "") => String(value)
   .replaceAll("&", "&amp;")
@@ -44,10 +52,6 @@ function monitorCard(monitor, index) {
   const active = monitor.configured;
   const statusClass = monitor.status === "healthy" ? "healthy" : monitor.status === "error" ? "error" : "pending";
   const statusLabel = monitor.status === "healthy" ? "Healthy" : monitor.status === "error" ? "Needs attention" : "Not configured";
-  const source = monitor.sourceUrl
-    ? `<a href="${escapeHtml(monitor.sourceUrl)}" target="_blank" rel="noreferrer">Source ↗</a>`
-    : "Source pending";
-
   let body;
   if (active) {
     const pagination = monitor.pagination;
@@ -61,15 +65,15 @@ function monitorCard(monitor, index) {
       <div class="monitor-footer">
         <span>${escapeHtml(monitor.cadence ?? "Manual")}</span>
         <span>Latest success ${escapeHtml(relativeTime(monitor.latestSuccessAt))}</span>
-        ${source}
+        <button class="monitor-open" type="button" data-monitor-id="${escapeHtml(monitor.id)}">View details <span aria-hidden="true">↗</span></button>
       </div>`;
   } else {
-    const configKeys = Object.keys(monitor.config ?? {});
     body = `
-      <div class="config-list" aria-label="Collector configuration fields">
-        ${configKeys.map((key) => `<span class="config-chip">${escapeHtml(key)}</span>`).join("")}
-      </div>
-      <div class="monitor-footer"><span>Collector slot ready</span>${source}</div>`;
+      <p class="monitor-pending-copy">Collector slot ready when its inputs and cadence are configured.</p>
+      <div class="monitor-footer">
+        <span>Setup pending</span>
+        <button class="monitor-open" type="button" data-monitor-id="${escapeHtml(monitor.id)}">View details <span aria-hidden="true">↗</span></button>
+      </div>`;
   }
 
   return `
@@ -124,40 +128,84 @@ function runMarkup(run) {
     </details>`;
 }
 
+function sourceLink(monitor) {
+  return monitor.sourceUrl
+    ? `<a href="${escapeHtml(monitor.sourceUrl)}" target="_blank" rel="noreferrer">Open source <span aria-hidden="true">↗</span></a>`
+    : `<span>Source not configured</span>`;
+}
+
+function pazeDialogMarkup(monitor) {
+  const { history, baseline } = currentSnapshot;
+  const latestRun = history.runs[0];
+  const latestChange = history.runs.find((run) => run.changed);
+  const confirmationClass = latestRun?.status === "failure" ? "error" : latestChange ? "change" : "success";
+  const confirmationText = latestRun?.status === "failure" ? "Baseline preserved" : latestChange ? "Confirmed twice" : "No change";
+
+  return `
+    <div class="dialog-meta">
+      <p>${escapeHtml(monitor.description)}</p>
+      <div><span>${escapeHtml(monitor.cadence ?? "Manual")}</span>${sourceLink(monitor)}</div>
+    </div>
+    ${monitor.error ? `<div class="alert error-alert dialog-alert" role="alert"><strong>Incomplete run</strong><span>${escapeHtml(monitor.error)}</span></div>` : ""}
+    <section class="dialog-metrics" aria-label="Paze monitor summary">
+      <div><span>Merchants</span><strong>${monitor.currentCount ?? "—"}</strong></div>
+      <div><span>Latest success</span><strong>${escapeHtml(relativeTime(monitor.latestSuccessAt))}</strong><small>${escapeHtml(fullDate(monitor.latestSuccessAt))}</small></div>
+      <div><span>Last change</span><strong>${latestChange ? escapeHtml(relativeTime(latestChange.timestamp)) : "None yet"}</strong><small>${latestChange ? escapeHtml(fullDate(latestChange.timestamp)) : "Baseline remains stable"}</small></div>
+      <div><span>Retained runs</span><strong>${history.runs.length}</strong><small>14 day cap</small></div>
+    </section>
+    <section class="dialog-section">
+      <div class="dialog-section-heading"><div><p class="eyebrow">Latest comparison</p><h3>Before / after</h3></div><span class="badge ${confirmationClass}">${confirmationText}</span></div>
+      ${diffMarkup(latestChange ?? latestRun)}
+    </section>
+    <section class="dialog-section">
+      <div class="dialog-section-heading"><div><p class="eyebrow">Successful baseline</p><h3>Current merchants</h3></div><span class="count-bubble">${baseline.merchants.length}</span></div>
+      <div class="merchant-roster" aria-label="Current Paze merchants">${baseline.merchants.map((merchant) => `<span class="merchant-name">${escapeHtml(merchant.name)}</span>`).join("")}</div>
+    </section>
+    <section class="dialog-section">
+      <div class="dialog-section-heading"><div><p class="eyebrow">Repository history</p><h3>Recent runs</h3></div><span class="dialog-note">Stable runs are collapsed</span></div>
+      <div class="run-history">${history.runs.length ? history.runs.map(runMarkup).join("") : `<p class="empty-state">No runs recorded yet.</p>`}</div>
+    </section>`;
+}
+
+function placeholderDialogMarkup(monitor) {
+  const entries = Object.entries(monitor.config ?? {});
+  return `
+    <div class="dialog-meta">
+      <p>${escapeHtml(monitor.description)}</p>
+      <div>${sourceLink(monitor)}</div>
+    </div>
+    <div class="setup-banner"><span aria-hidden="true">◇</span><div><strong>Collector not configured</strong><p>This monitor is isolated from Paze directory data and will populate its own history after setup.</p></div></div>
+    <section class="dialog-section">
+      <div class="dialog-section-heading"><div><p class="eyebrow">Collector inputs</p><h3>Configuration</h3></div></div>
+      <div class="config-table">
+        ${entries.map(([key, value]) => `<div><span>${escapeHtml(key)}</span><strong>${value == null || (Array.isArray(value) && !value.length) ? "Not set" : escapeHtml(Array.isArray(value) ? value.join(", ") : value)}</strong></div>`).join("")}
+      </div>
+    </section>`;
+}
+
+function openMonitorDialog(monitorId) {
+  const monitor = currentSnapshot?.state.monitors.find((item) => item.id === monitorId);
+  if (!monitor) return;
+  els.monitorDialogTitle.textContent = monitor.name;
+  els.monitorDialogEyebrow.textContent = monitor.configured ? "Active monitor" : "Collector placeholder";
+  els.monitorDialogContent.innerHTML = monitor.id === "paze-directory"
+    ? pazeDialogMarkup(monitor)
+    : placeholderDialogMarkup(monitor);
+  els.monitorDialog.showModal();
+}
+
 function renderSnapshot(snapshot) {
-    const { state, history, baseline, feed } = snapshot;
+    currentSnapshot = snapshot;
+    const { state, feed } = snapshot;
     const configured = state.monitors.filter((monitor) => monitor.configured);
-    const paze = state.monitors.find((monitor) => monitor.id === "paze-directory");
-    const latestRun = history.runs[0];
-    const latestChange = history.runs.find((run) => run.changed);
 
     const overall = document.querySelector("#overall-status");
     overall.className = `overall-card is-${state.overallStatus}`;
     overall.querySelector("strong").textContent = state.overallStatus === "healthy" ? "All active monitors healthy" : "A monitor needs attention";
     overall.querySelector(".meta").textContent = `${configured.length} active · ${state.monitors.length - configured.length} ready to configure`;
 
-    document.querySelector("#active-count").textContent = configured.length;
-    document.querySelector("#configured-count").textContent = `${state.monitors.length - configured.length} collector slots ready`;
-    document.querySelector("#latest-success").textContent = relativeTime(paze?.latestSuccessAt);
-    document.querySelector("#latest-success-date").textContent = fullDate(paze?.latestSuccessAt);
-    document.querySelector("#last-change").textContent = latestChange ? relativeTime(latestChange.timestamp) : "None yet";
-    document.querySelector("#last-change-date").textContent = latestChange ? fullDate(latestChange.timestamp) : "Baseline established; no later change";
-    document.querySelector("#run-count").textContent = history.runs.length;
     document.querySelector("#generated-at").textContent = `Snapshot ${relativeTime(state.generatedAt)} · ${fullDate(state.generatedAt)}`;
-    document.querySelector("#monitor-list").innerHTML = state.monitors.map(monitorCard).join("");
-
-    document.querySelector("#latest-diff").className = "";
-    document.querySelector("#latest-diff").innerHTML = diffMarkup(latestChange ?? latestRun);
-    const confirmation = document.querySelector("#confirmation-badge");
-    confirmation.className = `badge ${latestRun?.status === "failure" ? "error" : latestChange ? "change" : "success"}`;
-    confirmation.textContent = latestRun?.status === "failure" ? "Baseline preserved" : latestChange ? "Confirmed twice" : "No change";
-
-    document.querySelector("#merchant-total").textContent = baseline.merchants.length;
-    document.querySelector("#merchant-roster").innerHTML = baseline.merchants
-      .map((merchant) => `<span class="merchant-name">${escapeHtml(merchant.name)}</span>`).join("");
-    document.querySelector("#run-history").innerHTML = history.runs.length
-      ? history.runs.map(runMarkup).join("")
-      : `<p class="empty-state">No runs recorded yet.</p>`;
+    els.monitorList.innerHTML = state.monitors.map(monitorCard).join("");
 
     const feedCount = document.querySelector("#feed-event-count");
     feedCount.textContent = `${feed.events.length} secure event${feed.events.length === 1 ? "" : "s"}`;
@@ -280,4 +328,12 @@ function readJwtPayload(token) {
 
 els.lockButton.addEventListener("click", signOut);
 els.authSignOut.addEventListener("click", signOut);
+els.monitorList.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-monitor-id]");
+  if (button) openMonitorDialog(button.dataset.monitorId);
+});
+els.monitorDialogClose.addEventListener("click", () => els.monitorDialog.close());
+els.monitorDialog.addEventListener("click", (event) => {
+  if (event.target === els.monitorDialog) els.monitorDialog.close();
+});
 initializeClerk();
