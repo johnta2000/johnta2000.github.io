@@ -22,6 +22,12 @@ const EXTERNAL_MONITORS = {
     cadence: "3× daily via Codex",
     defaultSource: "https://www.nextcard.com/tools/clover-paze-map",
   },
+  "bilt-calculator-ranking": {
+    name: "Bilt calculator ranking",
+    description: "Tracks the Bilt calculator across Search Console query performance, index health, canonical integrity, and live-page checks.",
+    cadence: "Every 6 hours via Codex",
+    defaultSource: "https://www.nextcard.com/tools/bilt-calculator",
+  },
   "transfer-bonus-discovery": {
     name: "Transfer bonus discovery",
     description: "Scans official issuer and loyalty-program sources for new transfer bonuses, changed terms, and coverage failures.",
@@ -239,7 +245,7 @@ function applyExternalReport(snapshot: MonitoringSnapshot, report: ExternalRepor
 
   const monitors = currentMonitors
     .filter((candidate) => candidate.id !== report.monitorId && candidate.id !== "paze-bonus-discovery");
-  const order = ["paze-directory", "paze-clover-map-ranking", "transfer-bonus-discovery"];
+  const order = ["paze-directory", "paze-clover-map-ranking", "bilt-calculator-ranking", "transfer-bonus-discovery"];
   monitors.push(monitor);
   monitors.sort((a, b) => order.indexOf(String(a.id)) - order.indexOf(String(b.id)));
 

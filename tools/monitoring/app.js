@@ -77,7 +77,7 @@ function monitorStats(monitor) {
       ["Duration", duration(monitor.durationMs)],
     ];
   }
-  if (monitor.id === "paze-clover-map-ranking") {
+  if (["paze-clover-map-ranking", "bilt-calculator-ranking"].includes(monitor.id)) {
     return [
       ["Clicks · 7d", number(monitor.metrics?.clicks)],
       ["Impressions · 7d", number(monitor.metrics?.impressions)],
@@ -220,8 +220,14 @@ function externalHistoryMarkup(monitorId) {
     </section>`;
 }
 
-function queryRows(queries = []) {
+function queryRows(queries = [], mode = "map") {
   if (!queries.length) return `<p class="empty-state">No query-level rows were reported.</p>`;
+  if (mode === "page") {
+    return `<div class="report-table" role="table" aria-label="Core query results">
+      <div class="report-table-row report-table-head" role="row"><span>Query</span><span>Clicks</span><span>Impressions</span><span>Position</span></div>
+      ${queries.map((row) => `<div class="report-table-row" role="row"><strong>${escapeHtml(row.query ?? "—")}</strong><span>${number(row.clicks)}</span><span>${number(row.impressions)}</span><span>${Number.isFinite(row.position) ? row.position.toFixed(2) : "—"}</span></div>`).join("")}
+    </div>`;
+  }
   return `<div class="report-table" role="table" aria-label="Core query results">
     <div class="report-table-row report-table-head" role="row"><span>Query</span><span>Map share</span><span>First NextCard URL</span><span>Rank</span></div>
     ${queries.map((row) => `<div class="report-table-row" role="row"><strong>${escapeHtml(row.query ?? "—")}</strong><span>${percent(row.mapImpressionShare)}</span><span>${escapeHtml(row.firstNextcardUrl ?? "Not visible")}</span><span>${number(row.rank)}</span></div>`).join("")}
@@ -233,6 +239,13 @@ function rankingDialogMarkup(monitor) {
   const details = monitor.details ?? {};
   const inspection = details.inspection ?? {};
   const live = details.live ?? {};
+  const isBilt = monitor.id === "bilt-calculator-ranking";
+  const fourthMetric = isBilt
+    ? `<div><span>CTR · finalized 7d</span><strong>${percent(metrics.ctr)}</strong><small>${escapeHtml(metricDelta(metrics.ctr, metrics.previousCtr, { suffix: " pts" }))}</small></div>`
+    : `<div><span>Map impression share</span><strong>${percent(metrics.mapImpressionShare)}</strong><small>${escapeHtml(metricDelta(metrics.mapImpressionShare, metrics.previousMapImpressionShare, { suffix: " pts" }))}</small></div>`;
+  const queryHeading = isBilt
+    ? `<div><p class="eyebrow">Search performance</p><h3>Core Bilt calculator queries</h3></div><span class="count-bubble">${number((details.queries ?? []).length)}</span>`
+    : `<div><p class="eyebrow">Cannibalization</p><h3>Core-query ownership</h3></div><span class="count-bubble">${number(metrics.serpMapFirstCount)}/${number(metrics.serpQueryCount)}</span>`;
   return `
     <div class="dialog-meta"><p>${escapeHtml(monitor.description)}</p><div><span>${escapeHtml(monitor.cadence)}</span>${sourceLinks(monitor)}</div></div>
     ${statusBanner(monitor)}
@@ -240,11 +253,11 @@ function rankingDialogMarkup(monitor) {
       <div><span>Clicks · finalized 7d</span><strong>${number(metrics.clicks)}</strong><small>${escapeHtml(metricDelta(metrics.clicks, metrics.previousClicks))}</small></div>
       <div><span>Impressions · finalized 7d</span><strong>${number(metrics.impressions)}</strong><small>${escapeHtml(metricDelta(metrics.impressions, metrics.previousImpressions))}</small></div>
       <div><span>Average position</span><strong>${Number.isFinite(metrics.position) ? metrics.position.toFixed(2) : "—"}</strong><small>${escapeHtml(metricDelta(metrics.position, metrics.previousPosition, { inverse: true }))}</small></div>
-      <div><span>Map impression share</span><strong>${percent(metrics.mapImpressionShare)}</strong><small>${escapeHtml(metricDelta(metrics.mapImpressionShare, metrics.previousMapImpressionShare, { suffix: " pts" }))}</small></div>
+      ${fourthMetric}
     </section>
     <section class="dialog-section">
-      <div class="dialog-section-heading"><div><p class="eyebrow">Cannibalization</p><h3>Core-query ownership</h3></div><span class="count-bubble">${number(metrics.serpMapFirstCount)}/${number(metrics.serpQueryCount)}</span></div>
-      ${queryRows(details.queries)}
+      <div class="dialog-section-heading">${queryHeading}</div>
+      ${queryRows(details.queries, isBilt ? "page" : "map")}
     </section>
     <section class="dialog-section">
       <div class="dialog-section-heading"><div><p class="eyebrow">Technical health</p><h3>Index and live page</h3></div></div>
@@ -346,7 +359,7 @@ function openMonitorDialog(monitorId) {
   els.monitorDialogEyebrow.textContent = monitor.configured ? "Active monitor" : "Collector placeholder";
   if (!monitor.configured) els.monitorDialogContent.innerHTML = placeholderDialogMarkup(monitor);
   else if (monitor.id === "paze-directory") els.monitorDialogContent.innerHTML = pazeDialogMarkup(monitor);
-  else if (monitor.id === "paze-clover-map-ranking") els.monitorDialogContent.innerHTML = rankingDialogMarkup(monitor);
+  else if (["paze-clover-map-ranking", "bilt-calculator-ranking"].includes(monitor.id)) els.monitorDialogContent.innerHTML = rankingDialogMarkup(monitor);
   else if (monitor.id === "transfer-bonus-discovery") els.monitorDialogContent.innerHTML = bonusDialogMarkup(monitor);
   else els.monitorDialogContent.innerHTML = placeholderDialogMarkup(monitor);
   els.monitorDialog.showModal();
