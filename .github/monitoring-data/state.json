@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-09-01T17:50:41.709Z",
+  "generatedAt": "2026-09-01T21:04:53.368Z",
   "overallStatus": "healthy",
   "latestEventId": "20260831193506-recovery",
   "monitors": [
@@ -14,10 +14,10 @@
       "cadence": "Hourly",
       "expectedCount": 33,
       "currentCount": 33,
-      "latestRunAt": "2026-09-01T17:50:41.709Z",
-      "latestSuccessAt": "2026-09-01T17:50:41.709Z",
+      "latestRunAt": "2026-09-01T21:04:53.368Z",
+      "latestSuccessAt": "2026-09-01T21:04:53.368Z",
       "latestChangeAt": null,
-      "durationMs": 1608,
+      "durationMs": 2111,
       "summary": "No merchant changes across 3 pages.",
       "error": null,
       "pagination": {
@@ -36,15 +36,15 @@
         "renamed": []
       },
       "cache": {
-        "runId": "1788285041709",
+        "runId": "1788296693368",
         "requestCount": 3,
         "crawlIds": [
           "primary"
         ],
         "requestIds": [
-          "1788285041712001",
-          "1788285042353002",
-          "1788285042761003"
+          "1788296693370001",
+          "1788296694116002",
+          "1788296694795003"
         ]
       }
     },
@@ -70,6 +70,27 @@
           "/tools",
           "dining guide"
         ]
+      }
+    },
+    {
+      "id": "bilt-calculator-ranking",
+      "name": "Bilt calculator ranking",
+      "description": "Tracks the Bilt calculator across Search Console query performance, index health, canonical integrity, and live-page checks.",
+      "configured": false,
+      "status": "not_configured",
+      "sourceUrl": "https://www.nextcard.com/tools/bilt-calculator",
+      "cadence": "Every 6 hours via Codex",
+      "config": {
+        "property": "sc-domain:nextcard.com",
+        "page": "https://www.nextcard.com/tools/bilt-calculator",
+        "queries": [
+          "bilt calculator",
+          "bilt 2.0 calculator",
+          "bilt calculator 2.0",
+          "bilt points calculator",
+          "bilt card calculator"
+        ],
+        "compareWindow": "Finalized 7 days vs previous 7 days"
       }
     },
     {
