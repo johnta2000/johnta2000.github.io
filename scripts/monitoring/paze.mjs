@@ -308,13 +308,14 @@ function eventId(timestamp, type) {
 
 function createState({ previousState, run, baseline, feed }) {
   const previousMonitor = previousState?.monitors?.find(({ id }) => id === "paze-directory") ?? {};
+  const previousChaseMonitor = previousState?.monitors?.find(({ id }) => id === "chase-sapphire-reserve-tables");
   const latestSuccessAt = run.status === "success" ? run.timestamp : previousMonitor.latestSuccessAt ?? null;
   const latestChangeAt = run.changed ? run.timestamp : previousMonitor.latestChangeAt ?? null;
 
   return {
     schemaVersion: 1,
     generatedAt: run.timestamp,
-    overallStatus: run.status === "success" ? "healthy" : "attention",
+    overallStatus: run.status === "success" && previousChaseMonitor?.status !== "error" ? "healthy" : "attention",
     latestEventId: feed.events[0]?.id ?? null,
     monitors: [
       {
@@ -364,6 +365,23 @@ function createState({ previousState, run, baseline, feed }) {
           sourcePolicy: "official only",
           notifyOn: ["new", "changed", "failure", "recovery"],
         },
+      },
+      previousChaseMonitor?.configured ? previousChaseMonitor : {
+        id: "chase-sapphire-reserve-tables",
+        name: "Chase Sapphire Reserve Exclusive Tables",
+        description: "Tracks restaurant-list membership across six OpenTable Sapphire Reserve Exclusive Tables markets.",
+        configured: false,
+        status: "not_configured",
+        sourceUrl: "https://www.opentable.com/sapphire-reserve/atlanta",
+        sourceUrls: [
+          "https://www.opentable.com/sapphire-reserve/atlanta",
+          "https://www.opentable.com/sapphire-reserve/san-francisco",
+          "https://www.opentable.com/sapphire-reserve/los-angeles",
+          "https://www.opentable.com/sapphire-reserve/new-york-city",
+          "https://www.opentable.com/sapphire-reserve/chicago",
+          "https://www.opentable.com/sapphire-reserve/boston",
+        ],
+        cadence: "Every 4 hours",
       },
     ],
   };

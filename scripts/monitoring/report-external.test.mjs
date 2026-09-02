@@ -22,6 +22,11 @@ test("validates a sanitized external report", () => {
   });
 });
 
+test("accepts the Chase Exclusive Tables monitor identity", () => {
+  const report = validateExternalReport({ ...sample, monitorId: "chase-sapphire-reserve-tables" });
+  assert.equal(report.monitorId, "chase-sapphire-reserve-tables");
+});
+
 test("rejects unsupported monitors and non-HTTPS sources", () => {
   assert.throws(() => validateExternalReport({ ...sample, monitorId: "other" }), /Unsupported monitorId/);
   assert.throws(() => validateExternalReport({ ...sample, sourceUrls: ["http://example.com"] }), /HTTPS/);

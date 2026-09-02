@@ -1,8 +1,8 @@
-name: Paze merchant monitor
+name: Chase Sapphire Reserve tables monitor
 
 on:
   schedule:
-    - cron: "17 * * * *"
+    - cron: "23 */4 * * *"
   workflow_dispatch:
 
 permissions:
@@ -28,25 +28,28 @@ jobs:
           node-version: 22
 
       - name: Test collector
-        run: node --test scripts/monitoring/paze.test.mjs
+        run: node --test scripts/monitoring/chase-reserve-tables.test.mjs
 
-      - name: Collect Paze directory
+      - name: Collect six OpenTable city lists
         id: collect
         continue-on-error: true
         env:
           CONVEX_URL: https://rapid-shark-565.convex.cloud
           MONITORING_INGEST_SECRET: ${{ secrets.MONITORING_INGEST_SECRET }}
-        run: node scripts/monitoring/paze.mjs
+        run: node scripts/monitoring/chase-reserve-tables.mjs
 
       - name: Commit monitor data
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add .github/monitoring-data
+          git add .github/monitoring-data/chase-reserve-tables-baseline.json
+          git add .github/monitoring-data/chase-reserve-tables-history.json
+          git add .github/monitoring-data/change-feed.json
+          git add .github/monitoring-data/state.json
           if git diff --cached --quiet; then
             echo "No monitor data changed."
           else
-            git commit -m "Record Paze monitor run"
+            git commit -m "Record Chase Reserve tables run"
             git push
           fi
 

@@ -1,0 +1,621 @@
+{
+  "schemaVersion": 1,
+  "monitorId": "chase-sapphire-reserve-tables",
+  "capturedAt": "2026-09-02T07:13:02.664Z",
+  "sources": [
+    {
+      "id": "atlanta",
+      "name": "Atlanta",
+      "url": "https://www.opentable.com/sapphire-reserve/atlanta"
+    },
+    {
+      "id": "san-francisco",
+      "name": "San Francisco",
+      "url": "https://www.opentable.com/sapphire-reserve/san-francisco"
+    },
+    {
+      "id": "los-angeles",
+      "name": "Los Angeles",
+      "url": "https://www.opentable.com/sapphire-reserve/los-angeles"
+    },
+    {
+      "id": "new-york-city",
+      "name": "New York City",
+      "url": "https://www.opentable.com/sapphire-reserve/new-york-city"
+    },
+    {
+      "id": "chicago",
+      "name": "Chicago",
+      "url": "https://www.opentable.com/sapphire-reserve/chicago"
+    },
+    {
+      "id": "boston",
+      "name": "Boston",
+      "url": "https://www.opentable.com/sapphire-reserve/boston"
+    }
+  ],
+  "cities": [
+    {
+      "id": "atlanta",
+      "name": "Atlanta",
+      "url": "https://www.opentable.com/sapphire-reserve/atlanta",
+      "restaurants": [
+        {
+          "name": "Canoe",
+          "key": "canoe"
+        },
+        {
+          "name": "Füm",
+          "key": "f m"
+        },
+        {
+          "name": "Lazy Betty",
+          "key": "lazy betty"
+        },
+        {
+          "name": "Little Sparrow",
+          "key": "little sparrow"
+        },
+        {
+          "name": "Marcel",
+          "key": "marcel"
+        },
+        {
+          "name": "Mujō",
+          "key": "muj"
+        },
+        {
+          "name": "Rabbit Ears",
+          "key": "rabbit ears"
+        }
+      ]
+    },
+    {
+      "id": "san-francisco",
+      "name": "San Francisco",
+      "url": "https://www.opentable.com/sapphire-reserve/san-francisco",
+      "restaurants": [
+        {
+          "name": "Angler San Francisco",
+          "key": "angler san francisco"
+        },
+        {
+          "name": "Aziza",
+          "key": "aziza"
+        },
+        {
+          "name": "Bodega SF",
+          "key": "bodega sf"
+        },
+        {
+          "name": "Burdell",
+          "key": "burdell"
+        },
+        {
+          "name": "Californios",
+          "key": "californios"
+        },
+        {
+          "name": "Camden Spit and Larder",
+          "key": "camden spit and larder"
+        },
+        {
+          "name": "Chez Noir",
+          "key": "chez noir"
+        },
+        {
+          "name": "Commis",
+          "key": "commis"
+        },
+        {
+          "name": "Dalida",
+          "key": "dalida"
+        },
+        {
+          "name": "Ernest",
+          "key": "ernest"
+        },
+        {
+          "name": "Frances",
+          "key": "frances"
+        },
+        {
+          "name": "Gary Danko",
+          "key": "gary danko"
+        },
+        {
+          "name": "Hilda and Jesse",
+          "key": "hilda and jesse"
+        },
+        {
+          "name": "House of Prime Rib",
+          "key": "house of prime rib"
+        },
+        {
+          "name": "Maria Isabel",
+          "key": "maria isabel"
+        },
+        {
+          "name": "Niku Steakhouse",
+          "key": "niku steakhouse"
+        },
+        {
+          "name": "Nisei",
+          "key": "nisei"
+        },
+        {
+          "name": "O' by Claude Le Tohic",
+          "key": "o by claude le tohic"
+        },
+        {
+          "name": "Omakase",
+          "key": "omakase"
+        },
+        {
+          "name": "Popoca",
+          "key": "popoca"
+        },
+        {
+          "name": "PRESS Restaurant",
+          "key": "press restaurant"
+        },
+        {
+          "name": "Rich Table",
+          "key": "rich table"
+        },
+        {
+          "name": "Saison",
+          "key": "saison"
+        },
+        {
+          "name": "Saison Cellar & Wine Bar - San Francisco",
+          "key": "saison cellar and wine bar san francisco"
+        },
+        {
+          "name": "Selby's",
+          "key": "selby s"
+        },
+        {
+          "name": "SingleThread Restaurant & Inn",
+          "key": "singlethread restaurant and inn"
+        },
+        {
+          "name": "State Bird Provisions",
+          "key": "state bird provisions"
+        },
+        {
+          "name": "The Anchovy Bar",
+          "key": "the anchovy bar"
+        },
+        {
+          "name": "The Happy Crane",
+          "key": "the happy crane"
+        },
+        {
+          "name": "The Progress",
+          "key": "the progress"
+        }
+      ]
+    },
+    {
+      "id": "los-angeles",
+      "name": "Los Angeles",
+      "url": "https://www.opentable.com/sapphire-reserve/los-angeles",
+      "restaurants": [
+        {
+          "name": "Amiga Amore",
+          "key": "amiga amore"
+        },
+        {
+          "name": "Anajak Thai Cuisine",
+          "key": "anajak thai cuisine"
+        },
+        {
+          "name": "Antico Nuovo",
+          "key": "antico nuovo"
+        },
+        {
+          "name": "Baroo",
+          "key": "baroo"
+        },
+        {
+          "name": "Barra Santos",
+          "key": "barra santos"
+        },
+        {
+          "name": "Bavel",
+          "key": "bavel"
+        },
+        {
+          "name": "Bestia",
+          "key": "bestia"
+        },
+        {
+          "name": "Camélia",
+          "key": "cam lia"
+        },
+        {
+          "name": "chi SPACCA",
+          "key": "chi spacca"
+        },
+        {
+          "name": "Citrin",
+          "key": "citrin"
+        },
+        {
+          "name": "Delilah - Los Angeles",
+          "key": "delilah los angeles"
+        },
+        {
+          "name": "Dunsmoor",
+          "key": "dunsmoor"
+        },
+        {
+          "name": "Found Oyster",
+          "key": "found oyster"
+        },
+        {
+          "name": "Gwen",
+          "key": "gwen"
+        },
+        {
+          "name": "Harriet's",
+          "key": "harriet s"
+        },
+        {
+          "name": "Hermon's",
+          "key": "hermon s"
+        },
+        {
+          "name": "Kato",
+          "key": "kato"
+        },
+        {
+          "name": "La Dolce Vita",
+          "key": "la dolce vita"
+        },
+        {
+          "name": "Loreto",
+          "key": "loreto"
+        },
+        {
+          "name": "Majordōmo",
+          "key": "majord mo"
+        },
+        {
+          "name": "Meteora",
+          "key": "meteora"
+        },
+        {
+          "name": "Osteria Mozza",
+          "key": "osteria mozza"
+        },
+        {
+          "name": "Petit Trois Le Valley",
+          "key": "petit trois le valley"
+        },
+        {
+          "name": "Queen's Raw Bar & Grill",
+          "key": "queen s raw bar and grill"
+        },
+        {
+          "name": "Rasarumah",
+          "key": "rasarumah"
+        },
+        {
+          "name": "Republique",
+          "key": "republique"
+        },
+        {
+          "name": "Steak 48 - Beverly Hills",
+          "key": "steak 48 beverly hills"
+        },
+        {
+          "name": "Super Peach",
+          "key": "super peach"
+        },
+        {
+          "name": "The Nice Guy",
+          "key": "the nice guy"
+        },
+        {
+          "name": "Vespertine",
+          "key": "vespertine"
+        }
+      ]
+    },
+    {
+      "id": "new-york-city",
+      "name": "New York City",
+      "url": "https://www.opentable.com/sapphire-reserve/new-york-city",
+      "restaurants": [
+        {
+          "name": "Altro Paradiso",
+          "key": "altro paradiso"
+        },
+        {
+          "name": "Bar Kabawa",
+          "key": "bar kabawa"
+        },
+        {
+          "name": "Casa Mono",
+          "key": "casa mono"
+        },
+        {
+          "name": "Ci Siamo",
+          "key": "ci siamo"
+        },
+        {
+          "name": "Don Angie",
+          "key": "don angie"
+        },
+        {
+          "name": "Estela",
+          "key": "estela"
+        },
+        {
+          "name": "Fairfax",
+          "key": "fairfax"
+        },
+        {
+          "name": "Hawksmoor NYC",
+          "key": "hawksmoor nyc"
+        },
+        {
+          "name": "Jeffrey's Grocery",
+          "key": "jeffrey s grocery"
+        },
+        {
+          "name": "Joseph Leonard",
+          "key": "joseph leonard"
+        },
+        {
+          "name": "Kabawa",
+          "key": "kabawa"
+        },
+        {
+          "name": "l'abeille",
+          "key": "l abeille"
+        },
+        {
+          "name": "Maddy Rose at Liberty House",
+          "key": "maddy rose at liberty house"
+        },
+        {
+          "name": "Manhatta",
+          "key": "manhatta"
+        },
+        {
+          "name": "Momofuku Noodle Bar - East Village",
+          "key": "momofuku noodle bar east village"
+        },
+        {
+          "name": "Momofuku Noodle Bar - Uptown",
+          "key": "momofuku noodle bar uptown"
+        },
+        {
+          "name": "Muku",
+          "key": "muku"
+        },
+        {
+          "name": "Musaafer - New York",
+          "key": "musaafer new york"
+        },
+        {
+          "name": "Parcelle Chinatown",
+          "key": "parcelle chinatown"
+        },
+        {
+          "name": "Phoenix Palace",
+          "key": "phoenix palace"
+        },
+        {
+          "name": "Potluck Club",
+          "key": "potluck club"
+        },
+        {
+          "name": "Red Hook Tavern",
+          "key": "red hook tavern"
+        },
+        {
+          "name": "Sailor",
+          "key": "sailor"
+        },
+        {
+          "name": "San Sabino",
+          "key": "san sabino"
+        },
+        {
+          "name": "Sunn's",
+          "key": "sunn s"
+        },
+        {
+          "name": "The Dining Room at Gramercy Tavern",
+          "key": "the dining room at gramercy tavern"
+        },
+        {
+          "name": "The Tavern at Gramercy Tavern",
+          "key": "the tavern at gramercy tavern"
+        },
+        {
+          "name": "Tolo",
+          "key": "tolo"
+        },
+        {
+          "name": "Una Pizza Napoletana",
+          "key": "una pizza napoletana"
+        },
+        {
+          "name": "Union Square Cafe",
+          "key": "union square cafe"
+        }
+      ]
+    },
+    {
+      "id": "chicago",
+      "name": "Chicago",
+      "url": "https://www.opentable.com/sapphire-reserve/chicago",
+      "restaurants": [
+        {
+          "name": "After",
+          "key": "after"
+        },
+        {
+          "name": "Alla Vita",
+          "key": "alla vita"
+        },
+        {
+          "name": "Anelya",
+          "key": "anelya"
+        },
+        {
+          "name": "avec River North",
+          "key": "avec river north"
+        },
+        {
+          "name": "avec West Loop",
+          "key": "avec west loop"
+        },
+        {
+          "name": "Boka",
+          "key": "boka"
+        },
+        {
+          "name": "Brasero",
+          "key": "brasero"
+        },
+        {
+          "name": "Cariño",
+          "key": "cari o"
+        },
+        {
+          "name": "Chicago Cut Steakhouse",
+          "key": "chicago cut steakhouse"
+        },
+        {
+          "name": "Daisies Chicago",
+          "key": "daisies chicago"
+        },
+        {
+          "name": "Elske",
+          "key": "elske"
+        },
+        {
+          "name": "Ever",
+          "key": "ever"
+        },
+        {
+          "name": "Fioretta",
+          "key": "fioretta"
+        },
+        {
+          "name": "Gingie",
+          "key": "gingie"
+        },
+        {
+          "name": "Hawksmoor Chicago",
+          "key": "hawksmoor chicago"
+        },
+        {
+          "name": "Kasama",
+          "key": "kasama"
+        },
+        {
+          "name": "Lula Cafe",
+          "key": "lula cafe"
+        },
+        {
+          "name": "Mariscos San Pedro",
+          "key": "mariscos san pedro"
+        },
+        {
+          "name": "Mirra",
+          "key": "mirra"
+        },
+        {
+          "name": "Momotaro",
+          "key": "momotaro"
+        },
+        {
+          "name": "Mott Street",
+          "key": "mott street"
+        },
+        {
+          "name": "NORIKO",
+          "key": "noriko"
+        },
+        {
+          "name": "Obelix",
+          "key": "obelix"
+        },
+        {
+          "name": "PERILLA korean steakhouse",
+          "key": "perilla korean steakhouse"
+        },
+        {
+          "name": "PIZZ'AMICI",
+          "key": "pizz amici"
+        },
+        {
+          "name": "Prime & Provisions Steakhouse",
+          "key": "prime and provisions steakhouse"
+        },
+        {
+          "name": "Sepia",
+          "key": "sepia"
+        }
+      ]
+    },
+    {
+      "id": "boston",
+      "name": "Boston",
+      "url": "https://www.opentable.com/sapphire-reserve/boston",
+      "restaurants": [
+        {
+          "name": "Bar Volpe",
+          "key": "bar volpe"
+        },
+        {
+          "name": "Celeste",
+          "key": "celeste"
+        },
+        {
+          "name": "Comfort Kitchen",
+          "key": "comfort kitchen"
+        },
+        {
+          "name": "Fox & The Knife",
+          "key": "fox and the knife"
+        },
+        {
+          "name": "Grill 23 & Bar",
+          "key": "grill 23 and bar"
+        },
+        {
+          "name": "Harvest",
+          "key": "harvest"
+        },
+        {
+          "name": "Krasi",
+          "key": "krasi"
+        },
+        {
+          "name": "La Royal",
+          "key": "la royal"
+        },
+        {
+          "name": "Mahaniyom",
+          "key": "mahaniyom"
+        },
+        {
+          "name": "Umbria",
+          "key": "umbria"
+        },
+        {
+          "name": "Uni",
+          "key": "uni"
+        }
+      ]
+    }
+  ]
+}

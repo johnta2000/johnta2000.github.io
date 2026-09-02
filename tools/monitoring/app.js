@@ -84,6 +84,13 @@ function monitorStats(monitor) {
       ["Position", Number.isFinite(monitor.metrics?.position) ? monitor.metrics.position.toFixed(2) : "—"],
     ];
   }
+  if (monitor.id === "chase-sapphire-reserve-tables") {
+    return [
+      ["Restaurants", number(monitor.metrics?.restaurantCount)],
+      ["Cities", number(monitor.metrics?.cityCount)],
+      ["Latest diff", `+${number(monitor.metrics?.addedCount)} / −${number(monitor.metrics?.removedCount)}`],
+    ];
+  }
   return [
     ["Coverage", Number.isFinite(monitor.metrics?.programsChecked) ? `${monitor.metrics.programsChecked}/${monitor.metrics.totalPrograms ?? "—"}` : "—"],
     ["Failures", number(monitor.metrics?.failedPrograms)],
@@ -289,6 +296,67 @@ function bonusDialogMarkup(monitor) {
     ${externalHistoryMarkup(monitor.id)}`;
 }
 
+function chaseCityMarkup(city) {
+  const changed = (city.added?.length ?? 0) + (city.removed?.length ?? 0) > 0;
+  return `
+    <details class="city-list${changed ? " changed" : ""}"${changed ? " open" : ""}>
+      <summary><span><strong>${escapeHtml(city.name)}</strong><small>${escapeHtml(city.url)}</small></span><span>${number(city.count)} restaurants</span></summary>
+      <div class="city-list-body">
+        ${changed ? `<div class="diff-columns">
+          <div class="diff-group added"><h3>Added · ${city.added.length}</h3>${city.added.length ? `<ul>${city.added.map((name) => `<li>${escapeHtml(name)}</li>`).join("")}</ul>` : "<p>None</p>"}</div>
+          <div class="diff-group removed"><h3>Removed · ${city.removed.length}</h3>${city.removed.length ? `<ul>${city.removed.map((name) => `<li>${escapeHtml(name)}</li>`).join("")}</ul>` : "<p>None</p>"}</div>
+        </div>` : ""}
+        <div class="merchant-roster" aria-label="${escapeHtml(city.name)} restaurants">${(city.restaurants ?? []).map((name) => `<span class="merchant-name">${escapeHtml(name)}</span>`).join("")}</div>
+        <a class="city-source" href="${escapeHtml(city.url)}" target="_blank" rel="noreferrer">Open ${escapeHtml(city.name)} source ↗</a>
+      </div>
+    </details>`;
+}
+
+function chaseRunMarkup(run) {
+  const failure = run.status === "error" || run.status === "failure";
+  const prominent = failure || run.changed;
+  const cityChanges = (run.cities ?? []).filter((city) => city.added?.length || city.removed?.length);
+  return `
+    <details class="run ${failure ? "failure" : run.changed ? "change" : "stable"}"${prominent ? " open" : ""}>
+      <summary>
+        <span class="run-title"><strong>${escapeHtml(run.summary)}</strong><span>${escapeHtml(fullDate(run.timestamp))}</span></span>
+        <span class="run-meta">${number(run.count)} restaurants</span>
+        <span class="run-meta">${duration(run.durationMs)}</span>
+        <span class="badge ${failure ? "error" : run.changed ? "change" : "success"}">${failure ? "Failed" : run.changed ? "Change" : "Stable"}</span>
+      </summary>
+      <div class="run-body">
+        <div class="run-facts"><span>${number(run.cache?.requestCount)} fresh requests</span><span>Freshness ID: ${escapeHtml(run.cache?.runId ?? "legacy")}</span><span>Confirmation: ${run.confirmed ? "complete" : "not required/incomplete"}</span></div>
+        ${run.error ? `<p class="run-error">${escapeHtml(run.error)}</p>` : cityChanges.length ? cityChanges.map((city) => `<p class="run-city-change"><strong>${escapeHtml(city.name)}:</strong> +${city.added.length} / −${city.removed.length}</p>`).join("") : ""}
+      </div>
+    </details>`;
+}
+
+function chaseDialogMarkup(monitor) {
+  const metrics = monitor.metrics ?? {};
+  const details = monitor.details ?? {};
+  const history = currentSnapshot.monitorHistory?.[monitor.id]?.runs ?? [];
+  const latestRun = history[0];
+  const latestChange = history.find((run) => run.changed);
+  return `
+    <div class="dialog-meta"><p>${escapeHtml(monitor.description)}</p><div><span>${escapeHtml(monitor.cadence)}</span><span>Six OpenTable markets</span></div></div>
+    ${statusBanner(monitor)}
+    <section class="dialog-metrics" aria-label="Chase Exclusive Tables monitor summary">
+      <div><span>Restaurants</span><strong>${number(metrics.restaurantCount)}</strong><small>Current validated baseline</small></div>
+      <div><span>Cities</span><strong>${number(metrics.cityCount)}</strong><small>All required on every crawl</small></div>
+      <div><span>Latest additions</span><strong>${number(metrics.addedCount)}</strong><small>Confirmed membership changes</small></div>
+      <div><span>Latest removals</span><strong>${number(metrics.removedCount)}</strong><small>Never inferred from partial data</small></div>
+    </section>
+    <div class="cache-proof"><div><span>Freshness ID</span><code>${escapeHtml(latestRun?.cache?.runId ?? details.cache?.runId ?? "Pending next run")}</code></div><p>${number(latestRun?.cache?.requestCount ?? details.cache?.requestCount)} unique no-store requests · ${escapeHtml((latestRun?.cache?.crawlIds ?? details.cache?.crawlIds ?? []).join(" + ") || "legacy run")}</p></div>
+    <section class="dialog-section">
+      <div class="dialog-section-heading"><div><p class="eyebrow">Six-city baseline</p><h3>Current restaurant lists</h3></div><span class="dialog-note">Last change ${escapeHtml(latestChange ? relativeTime(latestChange.timestamp) : "not recorded")}</span></div>
+      <div class="city-lists">${(details.cities ?? []).map(chaseCityMarkup).join("")}</div>
+    </section>
+    <section class="dialog-section">
+      <div class="dialog-section-heading"><div><p class="eyebrow">Repository history</p><h3>Recent checks</h3></div><span class="dialog-note">Stable runs are collapsed</span></div>
+      <div class="run-history">${history.length ? history.map(chaseRunMarkup).join("") : `<p class="empty-state">The first six-city run is pending.</p>`}</div>
+    </section>`;
+}
+
 function pazeDialogMarkup(monitor) {
   const { history, baseline } = currentSnapshot;
   const latestRun = history.runs[0];
@@ -348,6 +416,7 @@ function openMonitorDialog(monitorId) {
   else if (monitor.id === "paze-directory") els.monitorDialogContent.innerHTML = pazeDialogMarkup(monitor);
   else if (monitor.id === "paze-clover-map-ranking") els.monitorDialogContent.innerHTML = rankingDialogMarkup(monitor);
   else if (monitor.id === "transfer-bonus-discovery") els.monitorDialogContent.innerHTML = bonusDialogMarkup(monitor);
+  else if (monitor.id === "chase-sapphire-reserve-tables") els.monitorDialogContent.innerHTML = chaseDialogMarkup(monitor);
   else els.monitorDialogContent.innerHTML = placeholderDialogMarkup(monitor);
   els.monitorDialog.showModal();
 }
@@ -361,7 +430,7 @@ function renderSnapshot(snapshot) {
     overall.className = `overall-card is-${state.overallStatus}`;
     overall.querySelector("strong").textContent = state.overallStatus === "healthy"
       ? "All active monitors healthy"
-      : state.overallStatus === "watch" ? "Coverage or ranking needs watching" : "A monitor needs attention";
+      : state.overallStatus === "watch" ? "An active monitor needs watching" : "A monitor needs attention";
     overall.querySelector(".meta").textContent = `${configured.length} active · ${state.monitors.length - configured.length} ready to configure`;
 
     document.querySelector("#generated-at").textContent = `Snapshot ${relativeTime(state.generatedAt)} · ${fullDate(state.generatedAt)}`;

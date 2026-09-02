@@ -28,6 +28,12 @@ const EXTERNAL_MONITORS = {
     cadence: "Codex heartbeat",
     defaultSource: null,
   },
+  "chase-sapphire-reserve-tables": {
+    name: "Chase Sapphire Reserve Exclusive Tables",
+    description: "Tracks restaurant-list membership across six OpenTable Sapphire Reserve Exclusive Tables markets.",
+    cadence: "Every 4 hours",
+    defaultSource: "https://www.opentable.com/sapphire-reserve/atlanta",
+  },
 } as const;
 
 type ExternalReport = {
@@ -187,7 +193,7 @@ function mergeIngestSnapshot(incoming: MonitoringSnapshot, existing?: Monitoring
   );
   const monitors = incomingMonitors
     .filter((monitor) => monitor.id !== "paze-bonus-discovery")
-    .map((monitor) => externalById.get(monitor.id) ?? monitor);
+    .map((monitor) => monitor.configured ? monitor : externalById.get(monitor.id) ?? monitor);
   for (const [id, monitor] of externalById) {
     if (!monitors.some((candidate) => candidate.id === id)) monitors.push(monitor);
   }
@@ -202,7 +208,10 @@ function mergeIngestSnapshot(incoming: MonitoringSnapshot, existing?: Monitoring
     ...incoming,
     state: recomputeState({ ...incomingState, monitors }, timestamp, feed.latestEventId),
     feed,
-    monitorHistory: existing.monitorHistory ?? incoming.monitorHistory ?? {},
+    monitorHistory: {
+      ...(existing.monitorHistory ?? {}),
+      ...(incoming.monitorHistory ?? {}),
+    },
   };
 }
 
@@ -239,9 +248,13 @@ function applyExternalReport(snapshot: MonitoringSnapshot, report: ExternalRepor
 
   const monitors = currentMonitors
     .filter((candidate) => candidate.id !== report.monitorId && candidate.id !== "paze-bonus-discovery");
-  const order = ["paze-directory", "paze-clover-map-ranking", "transfer-bonus-discovery"];
+  const order = ["paze-directory", "paze-clover-map-ranking", "transfer-bonus-discovery", "chase-sapphire-reserve-tables"];
   monitors.push(monitor);
-  monitors.sort((a, b) => order.indexOf(String(a.id)) - order.indexOf(String(b.id)));
+  monitors.sort((a, b) => {
+    const left = order.indexOf(String(a.id));
+    const right = order.indexOf(String(b.id));
+    return (left < 0 ? order.length : left) - (right < 0 ? order.length : right);
+  });
 
   const histories = isRecord(snapshot.monitorHistory) ? snapshot.monitorHistory : {};
   const currentHistory = isRecord(histories[report.monitorId]) ? histories[report.monitorId] : {};
