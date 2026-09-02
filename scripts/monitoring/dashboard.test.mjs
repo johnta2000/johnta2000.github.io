@@ -28,6 +28,15 @@ test("public page does not reference repository JSON", () => {
   assert.match(app, /Cache-Control": "no-cache, no-store, max-age=0/);
 });
 
+test("dashboard assets and authenticated snapshot refresh cannot remain stale", () => {
+  assert.match(html, /styles\.css\?v=20260902\.2/);
+  assert.match(html, /app\.js\?v=20260902\.2/);
+  assert.match(html, /id="refresh-button"/);
+  assert.match(app, /function refreshDashboard/);
+  assert.match(app, /visibilitychange/);
+  assert.match(app, /60_000/);
+});
+
 test("overview keeps monitor-specific detail inside an accessible dialog", () => {
   assert.match(html, /<dialog id="monitor-dialog"/);
   assert.doesNotMatch(html, />Current merchants</);

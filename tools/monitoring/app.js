@@ -5,6 +5,7 @@ const els = {
   authStatus: document.querySelector("#auth-status"),
   authSignOut: document.querySelector("#auth-sign-out"),
   app: document.querySelector("#app"),
+  refreshButton: document.querySelector("#refresh-button"),
   lockButton: document.querySelector("#lock-button"),
   monitorList: document.querySelector("#monitor-list"),
   monitorDialog: document.querySelector("#monitor-dialog"),
@@ -15,6 +16,7 @@ const els = {
 };
 
 let currentSnapshot = null;
+let refreshPromise = null;
 
 const escapeHtml = (value = "") => String(value)
   .replaceAll("&", "&amp;")
@@ -503,6 +505,33 @@ async function unlockDashboard() {
   }
 }
 
+async function refreshDashboard({ announce = false } = {}) {
+  if (!window.Clerk?.isSignedIn || els.app.hidden) return;
+  if (refreshPromise) return refreshPromise;
+
+  els.refreshButton.disabled = true;
+  if (announce) els.refreshButton.textContent = "Refreshing…";
+  refreshPromise = (async () => {
+    const result = await convexQuery("monitoring:dashboard", {});
+    if (!result.snapshot) throw new Error("Secure monitor data has not been synced yet.");
+    renderSnapshot(result.snapshot);
+    if (announce) els.refreshButton.textContent = "Updated";
+  })();
+
+  try {
+    await refreshPromise;
+  } catch (error) {
+    console.error(error);
+    if (announce) els.refreshButton.textContent = "Retry refresh";
+  } finally {
+    refreshPromise = null;
+    els.refreshButton.disabled = false;
+    if (announce && els.refreshButton.textContent === "Updated") {
+      window.setTimeout(() => { els.refreshButton.textContent = "Refresh"; }, 1400);
+    }
+  }
+}
+
 async function signOut() {
   els.app.hidden = true;
   if (window.Clerk?.isSignedIn) await window.Clerk.signOut();
@@ -574,6 +603,7 @@ function readJwtPayload(token) {
 }
 
 els.lockButton.addEventListener("click", signOut);
+els.refreshButton.addEventListener("click", () => refreshDashboard({ announce: true }));
 els.authSignOut.addEventListener("click", signOut);
 els.monitorList.addEventListener("click", (event) => {
   const button = event.target.closest("[data-monitor-id]");
@@ -583,4 +613,10 @@ els.monitorDialogClose.addEventListener("click", () => els.monitorDialog.close()
 els.monitorDialog.addEventListener("click", (event) => {
   if (event.target === els.monitorDialog) els.monitorDialog.close();
 });
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") refreshDashboard();
+});
+window.setInterval(() => {
+  if (document.visibilityState === "visible") refreshDashboard();
+}, 60_000);
 initializeClerk();
