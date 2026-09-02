@@ -33,6 +33,18 @@ test("rejects unsupported monitors and non-HTTPS sources", () => {
   assert.throws(() => validateExternalReport({ ...sample, sourceUrls: Array(13).fill("https://example.com") }), /12 HTTPS/);
 });
 
+test("accepts the Bilt calculator ranking monitor", () => {
+  const report = validateExternalReport({
+    ...sample,
+    monitorId: "bilt-calculator-ranking",
+    summary: "The Bilt calculator remains indexed and its core-query position is stable.",
+    metrics: { clicks: 143, impressions: 1289, position: 4.9, ctr: 11.1 },
+    sourceUrls: ["https://www.nextcard.com/tools/bilt-calculator"],
+  });
+  assert.equal(report.monitorId, "bilt-calculator-ranking");
+  assert.equal(report.metrics.position, 4.9);
+});
+
 test("submits only the secret and validated report to Convex", async () => {
   let request;
   const fetchImpl = async (url, init) => {

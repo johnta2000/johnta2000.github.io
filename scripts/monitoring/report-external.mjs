@@ -7,7 +7,7 @@ import { pathToFileURL } from "node:url";
 
 const CONVEX_URL = process.env.CONVEX_URL || "https://rapid-shark-565.convex.cloud";
 const DEFAULT_SECRET_FILE = resolve(homedir(), ".codex/secrets/john-ta-monitoring-report-secret");
-const MONITOR_IDS = new Set(["paze-clover-map-ranking", "transfer-bonus-discovery", "chase-sapphire-reserve-tables"]);
+const MONITOR_IDS = new Set(["paze-clover-map-ranking", "bilt-calculator-ranking", "transfer-bonus-discovery", "chase-sapphire-reserve-tables"]);
 const STATUSES = new Set(["healthy", "watch", "alert", "unavailable", "error"]);
 
 function isRecord(value) {

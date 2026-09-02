@@ -42,6 +42,7 @@ test("overview keeps monitor-specific detail inside an accessible dialog", () =>
 
 test("reporting cards use the existing Codex monitor identities", () => {
   assert.match(app, /paze-clover-map-ranking/);
+  assert.match(app, /bilt-calculator-ranking/);
   assert.match(app, /transfer-bonus-discovery/);
   assert.match(app, /chase-sapphire-reserve-tables/);
   assert.match(app, /chaseDialogMarkup/);
@@ -70,4 +71,5 @@ test("external heartbeat reports use a separate write-only credential", () => {
   assert.match(backend, /MONITORING_REPORT_SECRET/);
   assert.match(backend, /MAX_EXTERNAL_RUNS = 60/);
   assert.match(backend, /mergeIngestSnapshot/);
+  assert.match(backend, /bilt-calculator-ranking/);
 });

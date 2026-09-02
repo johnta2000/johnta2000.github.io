@@ -353,6 +353,21 @@ function createState({ previousState, run, baseline, feed }) {
         },
       },
       {
+        id: "bilt-calculator-ranking",
+        name: "Bilt calculator ranking",
+        description: "Tracks the Bilt calculator across Search Console query performance, index health, canonical integrity, and live-page checks.",
+        configured: false,
+        status: "not_configured",
+        sourceUrl: "https://www.nextcard.com/tools/bilt-calculator",
+        cadence: "Every 6 hours via Codex",
+        config: {
+          property: "sc-domain:nextcard.com",
+          page: "https://www.nextcard.com/tools/bilt-calculator",
+          queries: ["bilt calculator", "bilt 2.0 calculator", "bilt calculator 2.0", "bilt points calculator", "bilt card calculator"],
+          compareWindow: "Finalized 7 days vs previous 7 days",
+        },
+      },
+      {
         id: "transfer-bonus-discovery",
         name: "Transfer bonus discovery",
         description: "Scans official issuer and loyalty-program sources for new transfer bonuses, changed terms, and coverage failures.",
