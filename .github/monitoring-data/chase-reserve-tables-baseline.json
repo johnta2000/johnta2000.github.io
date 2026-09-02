@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "monitorId": "chase-sapphire-reserve-tables",
-  "capturedAt": "2026-09-02T12:49:39.889Z",
+  "capturedAt": "2026-09-02T19:25:38.456Z",
   "sources": [
     {
       "id": "atlanta",
@@ -168,8 +168,8 @@
           "key": "saison"
         },
         {
-          "name": "Saison Cellar & Wine Bar - San Francisco",
-          "key": "saison cellar and wine bar san francisco"
+          "name": "Saison Wine Bar et Salon",
+          "key": "saison wine bar et salon"
         },
         {
           "name": "Selby's",

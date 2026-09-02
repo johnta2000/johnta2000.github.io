@@ -1,9 +1,30 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-09-02T18:45:38.357Z",
+  "generatedAt": "2026-09-02T19:25:38.456Z",
   "overallStatus": "healthy",
-  "latestEventId": "20260831193506-recovery",
+  "latestEventId": "20260902192538-chase-sapphire-reserve-tables-restaurant-change",
   "monitors": [
+    {
+      "id": "bilt-calculator-ranking",
+      "name": "Bilt calculator ranking",
+      "description": "Tracks the Bilt calculator across Search Console query performance, index health, canonical integrity, and live-page checks.",
+      "configured": false,
+      "status": "not_configured",
+      "sourceUrl": "https://www.nextcard.com/tools/bilt-calculator",
+      "cadence": "Every 6 hours via Codex",
+      "config": {
+        "property": "sc-domain:nextcard.com",
+        "page": "https://www.nextcard.com/tools/bilt-calculator",
+        "queries": [
+          "bilt calculator",
+          "bilt 2.0 calculator",
+          "bilt calculator 2.0",
+          "bilt points calculator",
+          "bilt card calculator"
+        ],
+        "compareWindow": "Finalized 7 days vs previous 7 days"
+      }
+    },
     {
       "id": "paze-directory",
       "name": "Paze merchant directory",
@@ -73,27 +94,6 @@
       }
     },
     {
-      "id": "bilt-calculator-ranking",
-      "name": "Bilt calculator ranking",
-      "description": "Tracks the Bilt calculator across Search Console query performance, index health, canonical integrity, and live-page checks.",
-      "configured": false,
-      "status": "not_configured",
-      "sourceUrl": "https://www.nextcard.com/tools/bilt-calculator",
-      "cadence": "Every 6 hours via Codex",
-      "config": {
-        "property": "sc-domain:nextcard.com",
-        "page": "https://www.nextcard.com/tools/bilt-calculator",
-        "queries": [
-          "bilt calculator",
-          "bilt 2.0 calculator",
-          "bilt calculator 2.0",
-          "bilt points calculator",
-          "bilt card calculator"
-        ],
-        "compareWindow": "Finalized 7 days vs previous 7 days"
-      }
-    },
-    {
       "id": "transfer-bonus-discovery",
       "name": "Transfer bonus discovery",
       "description": "Scans official issuer and loyalty-program sources for new transfer bonuses, changed terms, and coverage failures.",
@@ -132,17 +132,17 @@
         "https://www.opentable.com/sapphire-reserve/boston"
       ],
       "cadence": "Every 4 hours",
-      "latestRunAt": "2026-09-02T12:49:39.889Z",
-      "latestSuccessAt": "2026-09-02T12:49:39.889Z",
-      "latestChangeAt": null,
-      "durationMs": 699,
-      "summary": "No restaurant-list changes across six cities (135 restaurants).",
+      "latestRunAt": "2026-09-02T19:25:38.456Z",
+      "latestSuccessAt": "2026-09-02T19:25:38.456Z",
+      "latestChangeAt": "2026-09-02T19:25:38.456Z",
+      "durationMs": 1473,
+      "summary": "1 restaurants added and 1 removed across six cities.",
       "error": null,
       "metrics": {
         "restaurantCount": 135,
         "cityCount": 6,
-        "addedCount": 0,
-        "removedCount": 0
+        "addedCount": 1,
+        "removedCount": 1
       },
       "details": {
         "cities": [
@@ -192,7 +192,7 @@
               "PRESS Restaurant",
               "Rich Table",
               "Saison",
-              "Saison Cellar & Wine Bar - San Francisco",
+              "Saison Wine Bar et Salon",
               "Selby's",
               "SingleThread Restaurant & Inn",
               "State Bird Provisions",
@@ -200,8 +200,12 @@
               "The Happy Crane",
               "The Progress"
             ],
-            "added": [],
-            "removed": []
+            "added": [
+              "Saison Wine Bar et Salon"
+            ],
+            "removed": [
+              "Saison Cellar & Wine Bar - San Francisco"
+            ]
           },
           {
             "id": "los-angeles",
@@ -343,18 +347,25 @@
           }
         ],
         "cache": {
-          "runId": "1788353379889",
-          "requestCount": 6,
+          "runId": "1788377138456",
+          "requestCount": 12,
           "crawlIds": [
-            "primary"
+            "primary",
+            "confirmation"
           ],
           "requestIds": [
-            "1788353379891001",
-            "1788353379928002",
-            "1788353379930003",
-            "1788353379931004",
-            "1788353379932005",
-            "1788353379932006"
+            "1788377138458001",
+            "1788377138628002",
+            "1788377138629003",
+            "1788377138630004",
+            "1788377138631005",
+            "1788377138631006",
+            "1788377139309007",
+            "1788377139309008",
+            "1788377139310009",
+            "1788377139310010",
+            "1788377139310011",
+            "1788377139311012"
           ]
         }
       }
