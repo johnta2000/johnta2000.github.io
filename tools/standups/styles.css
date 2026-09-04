@@ -878,6 +878,11 @@ button svg {
   outline: none;
 }
 
+.comment-overview-item.is-active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
 .comment-overview-marker {
   display: grid;
   place-items: center;
@@ -966,8 +971,7 @@ button svg {
   -webkit-overflow-scrolling: touch;
 }
 
-.notetaker-modal,
-.comment-modal {
+.notetaker-modal {
   width: min(940px, 100%);
   margin: auto 0;
   border: 1px solid var(--line);
@@ -975,10 +979,6 @@ button svg {
   background: var(--surface);
   box-shadow: 0 26px 80px rgba(20, 24, 20, 0.24);
   overflow: hidden;
-}
-
-.comment-modal {
-  width: min(620px, 100%);
 }
 
 .modal-header {
@@ -1019,40 +1019,79 @@ button svg {
   padding: 18px;
 }
 
-.comment-modal-content {
+.comment-thread-panel {
   display: grid;
-  gap: 16px;
-  padding: 18px;
+  gap: 12px;
+  border: 1px solid rgba(18, 106, 92, 0.35);
+  border-radius: 6px;
+  background: #fff;
+  box-shadow: 0 8px 22px rgba(35, 41, 34, 0.08);
+  padding: 12px;
 }
 
-.comment-highlight {
-  display: grid;
-  gap: 7px;
-  border-left: 3px solid var(--accent);
-  background: #f3f8f5;
-  padding: 12px 14px;
+.comment-panel-header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 10px;
 }
 
-.comment-highlight p {
+.comment-panel-header > div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.comment-panel-header h3 {
+  font-size: 14px;
+}
+
+.comment-panel-context {
   margin: 0;
   color: var(--accent);
   font-size: 10px;
   font-weight: 900;
+  line-height: 1.25;
   text-transform: uppercase;
 }
 
-.comment-highlight blockquote {
+.comment-panel-close {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  border: 1px solid transparent;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--muted);
+  font-size: 21px;
+  line-height: 1;
+}
+
+.comment-panel-close:hover,
+.comment-panel-close:focus {
+  border-color: var(--line);
+  background: var(--surface-quiet);
+  color: var(--ink);
+  outline: none;
+}
+
+.comment-panel-highlight {
   margin: 0;
+  border-left: 3px solid var(--accent);
+  background: #f3f8f5;
   color: #303530;
-  font-size: 15px;
+  font-size: 13px;
   font-weight: 700;
-  line-height: 1.45;
+  line-height: 1.4;
+  padding: 10px 11px;
 }
 
 .comment-thread {
   display: grid;
   gap: 9px;
-  max-height: 300px;
+  max-height: 220px;
   overflow-y: auto;
 }
 

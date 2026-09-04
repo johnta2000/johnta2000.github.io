@@ -33,9 +33,9 @@ const els = {
   commentsCount: document.querySelector("#commentsCount"),
   commentsSummary: document.querySelector("#commentsSummary"),
   commentsOverview: document.querySelector("#commentsOverview"),
-  commentModal: document.querySelector("#commentModal"),
-  commentModalContext: document.querySelector("#commentModalContext"),
-  commentModalTitle: document.querySelector("#commentModalTitle"),
+  commentThreadPanel: document.querySelector("#commentThreadPanel"),
+  commentPanelContext: document.querySelector("#commentPanelContext"),
+  commentPanelTitle: document.querySelector("#commentPanelTitle"),
   commentCloseButton: document.querySelector("#commentCloseButton"),
   commentHighlight: document.querySelector("#commentHighlight"),
   commentThread: document.querySelector("#commentThread"),
@@ -98,17 +98,14 @@ function initStandups() {
   els.personName.addEventListener("change", loadPersonContext);
   els.notetakerViewButton.addEventListener("click", openNotetakerModal);
   els.notetakerCloseButton.addEventListener("click", closeNotetakerModal);
-  els.commentCloseButton.addEventListener("click", closeCommentModal);
+  els.commentCloseButton.addEventListener("click", closeCommentThread);
   els.commentReplyForm.addEventListener("submit", saveCommentReply);
   els.notetakerModal.addEventListener("click", (event) => {
     if (event.target === els.notetakerModal) closeNotetakerModal();
   });
-  els.commentModal.addEventListener("click", (event) => {
-    if (event.target === els.commentModal) closeCommentModal();
-  });
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape" && !els.notetakerModal.hasAttribute("hidden")) closeNotetakerModal();
-    if (event.key === "Escape" && !els.commentModal.hasAttribute("hidden")) closeCommentModal();
+    if (event.key === "Escape" && !els.commentThreadPanel.hasAttribute("hidden")) closeCommentThread();
   });
   els.lockButton.addEventListener("click", signOut);
   els.authSignOut.addEventListener("click", signOut);
@@ -231,7 +228,7 @@ function showAuthError(error) {
 async function handleDateChange() {
   clearTimeout(autosaveTimer);
   await flushDailyNotesAutosave();
-  closeCommentModal();
+  closeCommentThread();
   clearForm();
   clearItemComments();
   updateDateShortcuts();
@@ -841,7 +838,11 @@ function renderGlobalCommentButton(group) {
   excerpt.textContent = group.itemText;
   copy.append(meta, excerpt);
   button.append(marker, copy);
-  button.addEventListener("click", () => openCommentModal(group));
+  if (activeCommentTarget?.key === group.key) {
+    button.classList.add("is-active");
+    button.setAttribute("aria-current", "true");
+  }
+  button.addEventListener("click", () => openCommentThread(group));
   return button;
 }
 
@@ -886,7 +887,7 @@ function addCommentMarker(editor, group) {
   marker.addEventListener("click", (event) => {
     event.preventDefault();
     event.stopPropagation();
-    openCommentModal(group);
+    openCommentThread(group);
   });
   block.classList.add("has-comment-marker");
   block.append(marker);
@@ -931,7 +932,7 @@ function addCommentForEditor(source) {
   const existing = groupComments(standupComments).find(
     (group) => group.fieldName === editor.id && group.itemKey === target.itemKey,
   );
-  openCommentModal(
+  openCommentThread(
     existing || {
       key: `${normalizePersonKey(personName)}:${editor.id}:${target.itemKey}`,
       personKey: normalizePersonKey(personName),
@@ -957,27 +958,31 @@ async function deleteItemComment(commentId) {
   }
 }
 
-function openCommentModal(target, { focusReply = false } = {}) {
+function openCommentThread(target, { focusReply = false } = {}) {
   activeCommentTarget = {
     ...target,
     comments: [...(target.comments || [])],
   };
-  els.commentModalContext.textContent = `${target.personName} · ${COMMENT_FIELD_LABELS[target.fieldName] || target.fieldName}`;
-  els.commentModalTitle.textContent = target.comments?.length ? "Comment thread" : "Add a comment";
+  els.commentPanelContext.textContent = `${target.personName} · ${COMMENT_FIELD_LABELS[target.fieldName] || target.fieldName}`;
+  els.commentPanelTitle.textContent = target.comments?.length ? "Comment thread" : "Add a comment";
   els.commentHighlight.textContent = target.itemText;
   els.commentReply.value = "";
   els.commentReplyStatus.textContent = "";
   renderCommentThread();
-  els.commentModal.removeAttribute("hidden");
-  window.setTimeout(() => (focusReply ? els.commentReply.focus() : els.commentCloseButton.focus()), 0);
+  els.commentThreadPanel.removeAttribute("hidden");
+  renderGlobalComments();
+  window.setTimeout(() => {
+    if (focusReply) els.commentReply.focus();
+  }, 0);
 }
 
-function closeCommentModal() {
-  if (!els.commentModal) return;
-  els.commentModal.setAttribute("hidden", "");
+function closeCommentThread() {
+  if (!els.commentThreadPanel) return;
+  els.commentThreadPanel.setAttribute("hidden", "");
   activeCommentTarget = null;
   els.commentReply.value = "";
   els.commentReplyStatus.textContent = "";
+  renderGlobalComments();
 }
 
 function renderCommentThread() {
@@ -1037,7 +1042,7 @@ async function saveCommentReply(event) {
     await reloadItemComments();
     refreshActiveCommentTarget();
     els.commentReplyStatus.textContent = "Comment added";
-    els.commentModalTitle.textContent = "Comment thread";
+    els.commentPanelTitle.textContent = "Comment thread";
     els.commentReply.focus();
   } catch (error) {
     console.error(error);
