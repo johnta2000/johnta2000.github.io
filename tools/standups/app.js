@@ -3,6 +3,12 @@ const TEAM_ID = "johns-website-default";
 const LOCAL_NAME_KEY = "standups:last-person-name";
 const TEAM_MEMBERS = ["John", "Vivek", "Vishal", "Jenny"];
 const COMMENT_FIELDS = ["yesterday", "today", "blockers", "notes"];
+const COMMENT_FIELD_LABELS = {
+  yesterday: "Yesterday / things I did",
+  today: "Today / things to do",
+  blockers: "Blockers",
+  notes: "Notes",
+};
 
 const els = {
   app: document.querySelector("#standupsApp"),
@@ -23,12 +29,20 @@ const els = {
   today: document.querySelector("#today"),
   blockers: document.querySelector("#blockers"),
   notes: document.querySelector("#notes"),
-  commentLists: {
-    yesterday: document.querySelector("#comments-yesterday"),
-    today: document.querySelector("#comments-today"),
-    blockers: document.querySelector("#comments-blockers"),
-    notes: document.querySelector("#comments-notes"),
-  },
+  commentsDate: document.querySelector("#commentsDate"),
+  commentsCount: document.querySelector("#commentsCount"),
+  commentsSummary: document.querySelector("#commentsSummary"),
+  commentsOverview: document.querySelector("#commentsOverview"),
+  commentModal: document.querySelector("#commentModal"),
+  commentModalContext: document.querySelector("#commentModalContext"),
+  commentModalTitle: document.querySelector("#commentModalTitle"),
+  commentCloseButton: document.querySelector("#commentCloseButton"),
+  commentHighlight: document.querySelector("#commentHighlight"),
+  commentThread: document.querySelector("#commentThread"),
+  commentReplyForm: document.querySelector("#commentReplyForm"),
+  commentReply: document.querySelector("#commentReply"),
+  commentReplyButton: document.querySelector("#commentReplyButton"),
+  commentReplyStatus: document.querySelector("#commentReplyStatus"),
   dailyNotes: document.querySelector("#dailyNotes"),
   dailyNotesDate: document.querySelector("#dailyNotesDate"),
   dailyNotesStatus: document.querySelector("#dailyNotesStatus"),
@@ -57,6 +71,8 @@ const allEditors = [...personEditors, els.dailyNotes];
 let entriesForDate = [];
 let activePrevious = null;
 let standupComments = [];
+let commentsForDate = [];
+let activeCommentTarget = null;
 let fathomNotesForDate = [];
 let autosaveTimer;
 let dailyNotesAutosaveTimer;
@@ -82,11 +98,17 @@ function initStandups() {
   els.personName.addEventListener("change", loadPersonContext);
   els.notetakerViewButton.addEventListener("click", openNotetakerModal);
   els.notetakerCloseButton.addEventListener("click", closeNotetakerModal);
+  els.commentCloseButton.addEventListener("click", closeCommentModal);
+  els.commentReplyForm.addEventListener("submit", saveCommentReply);
   els.notetakerModal.addEventListener("click", (event) => {
     if (event.target === els.notetakerModal) closeNotetakerModal();
   });
+  els.commentModal.addEventListener("click", (event) => {
+    if (event.target === els.commentModal) closeCommentModal();
+  });
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape" && !els.notetakerModal.hasAttribute("hidden")) closeNotetakerModal();
+    if (event.key === "Escape" && !els.commentModal.hasAttribute("hidden")) closeCommentModal();
   });
   els.lockButton.addEventListener("click", signOut);
   els.authSignOut.addEventListener("click", signOut);
@@ -120,7 +142,7 @@ function initStandups() {
   loadDailyNotes();
   loadFathomNotes();
   scheduleMidnightDateReset();
-  refreshDailyList().then(() => {
+  Promise.all([refreshDailyList(), loadCommentsForDate()]).then(() => {
     if (els.personName.value.trim()) loadPersonContext();
     updateTodayHeading();
   });
@@ -209,10 +231,11 @@ function showAuthError(error) {
 async function handleDateChange() {
   clearTimeout(autosaveTimer);
   await flushDailyNotesAutosave();
+  closeCommentModal();
   clearForm();
   clearItemComments();
   updateDateShortcuts();
-  await Promise.all([refreshDailyList(), loadDailyNotes(), loadFathomNotes()]);
+  await Promise.all([refreshDailyList(), loadDailyNotes(), loadFathomNotes(), loadCommentsForDate()]);
   updateTodayHeading();
   if (els.personName.value.trim()) loadPersonContext();
 }
@@ -246,7 +269,7 @@ async function loadPersonContext() {
   clearItemComments();
 
   try {
-    const [current, previous, comments] = await Promise.all([
+    const [current, previous] = await Promise.all([
       convexQuery("standups:getForPersonAndDate", {
         teamId: TEAM_ID,
         standupDate: els.date.value,
@@ -257,15 +280,10 @@ async function loadPersonContext() {
         beforeDate: els.date.value,
         personName,
       }),
-      convexQuery("standups:listItemComments", {
-        teamId: TEAM_ID,
-        standupDate: els.date.value,
-        personName,
-      }),
     ]);
 
     activePrevious = previous;
-    standupComments = comments;
+    standupComments = commentsForDate.filter((comment) => comment.personName === personName);
     fillCurrent(current);
     renderPrevious(previous, personName);
     renderItemComments();
@@ -746,69 +764,157 @@ function fillCurrent(entry) {
 }
 
 async function reloadItemComments() {
-  const personName = els.personName.value.trim();
-  if (!personName) {
-    clearItemComments();
-    return;
-  }
-
-  standupComments = await convexQuery("standups:listItemComments", {
-    teamId: TEAM_ID,
-    standupDate: els.date.value,
-    personName,
-  });
-  renderItemComments();
+  await loadCommentsForDate();
 }
 
 function renderItemComments() {
+  clearEditorCommentMarkers();
   COMMENT_FIELDS.forEach((fieldName) => {
-    const list = els.commentLists[fieldName];
-    const comments = standupComments.filter((comment) => comment.fieldName === fieldName);
-    if (!list) return;
-
-    list.hidden = comments.length === 0;
-    list.replaceChildren(...comments.map(renderItemComment));
+    const editor = els[fieldName];
+    const groups = groupComments(standupComments.filter((comment) => comment.fieldName === fieldName));
+    groups.forEach((group) => addCommentMarker(editor, group));
   });
 }
 
 function clearItemComments() {
   standupComments = [];
-  COMMENT_FIELDS.forEach((fieldName) => {
-    const list = els.commentLists[fieldName];
-    if (!list) return;
-    list.hidden = true;
-    list.replaceChildren();
+  clearEditorCommentMarkers();
+}
+
+async function loadCommentsForDate() {
+  els.commentsDate.textContent = formatDate(els.date.value);
+  els.commentsSummary.textContent = "Loading comments...";
+  els.commentsOverview.replaceChildren();
+
+  try {
+    const results = await Promise.all(
+      TEAM_MEMBERS.map((personName) =>
+        convexQuery("standups:listItemComments", {
+          teamId: TEAM_ID,
+          standupDate: els.date.value,
+          personName,
+        }),
+      ),
+    );
+    commentsForDate = results.flat().sort((a, b) => a.createdAt - b.createdAt);
+    const selectedPerson = els.personName.value.trim();
+    standupComments = selectedPerson
+      ? commentsForDate.filter((comment) => comment.personName === selectedPerson)
+      : [];
+    renderGlobalComments();
+    renderItemComments();
+  } catch (error) {
+    console.error(error);
+    commentsForDate = [];
+    standupComments = [];
+    els.commentsCount.textContent = "0";
+    els.commentsSummary.textContent = "Could not load comments.";
+    clearEditorCommentMarkers();
+  }
+}
+
+function renderGlobalComments() {
+  const groups = groupComments(commentsForDate);
+  els.commentsCount.textContent = String(groups.length);
+  els.commentsCount.setAttribute("aria-label", `${groups.length} commented item${groups.length === 1 ? "" : "s"}`);
+  els.commentsSummary.textContent = groups.length
+    ? `${groups.length} item${groups.length === 1 ? "" : "s"} discussed across this date's standups.`
+    : "No comments for this date yet.";
+  els.commentsOverview.replaceChildren(...groups.map(renderGlobalCommentButton));
+}
+
+function renderGlobalCommentButton(group) {
+  const button = document.createElement("button");
+  const marker = document.createElement("span");
+  const copy = document.createElement("span");
+  const meta = document.createElement("span");
+  const excerpt = document.createElement("span");
+
+  button.type = "button";
+  button.className = "comment-overview-item";
+  marker.className = "comment-overview-marker";
+  marker.textContent = String(group.comments.length);
+  copy.className = "comment-overview-copy";
+  meta.className = "comment-overview-meta";
+  meta.textContent = `${group.personName} · ${COMMENT_FIELD_LABELS[group.fieldName] || group.fieldName}`;
+  excerpt.className = "comment-overview-excerpt";
+  excerpt.textContent = group.itemText;
+  copy.append(meta, excerpt);
+  button.append(marker, copy);
+  button.addEventListener("click", () => openCommentModal(group));
+  return button;
+}
+
+function groupComments(comments) {
+  const grouped = new Map();
+  comments.forEach((comment) => {
+    const key = `${comment.personKey}:${comment.fieldName}:${comment.itemKey}`;
+    if (!grouped.has(key)) {
+      grouped.set(key, {
+        key,
+        personKey: comment.personKey,
+        personName: comment.personName,
+        fieldName: comment.fieldName,
+        itemKey: comment.itemKey,
+        itemText: comment.itemText,
+        comments: [],
+      });
+    }
+    grouped.get(key).comments.push(comment);
+  });
+  return [...grouped.values()].sort((a, b) => {
+    const latestA = a.comments.at(-1)?.createdAt || 0;
+    const latestB = b.comments.at(-1)?.createdAt || 0;
+    return latestB - latestA;
   });
 }
 
-function renderItemComment(comment) {
-  const card = document.createElement("article");
-  const item = document.createElement("p");
-  const body = document.createElement("p");
-  const meta = document.createElement("div");
-  const author = document.createElement("span");
-  const remove = document.createElement("button");
+function addCommentMarker(editor, group) {
+  const block = findCommentTargetBlock(editor, group);
+  if (!block) return;
 
-  card.className = "item-comment";
-  item.className = "item-comment-target";
-  item.textContent = comment.itemText;
-  body.className = "item-comment-body";
-  body.textContent = comment.comment;
-  meta.className = "item-comment-meta";
-  author.textContent = [comment.authorEmail || "Standup comment", formatTime(comment.createdAt)].filter(Boolean).join(" · ");
-  remove.type = "button";
-  remove.textContent = "Remove";
-  remove.addEventListener("click", () => deleteItemComment(comment._id));
-
-  meta.append(author, remove);
-  card.append(item, body, meta);
-  return card;
+  const marker = document.createElement("button");
+  marker.type = "button";
+  marker.className = "comment-marker";
+  marker.contentEditable = "false";
+  marker.dataset.count = String(group.comments.length);
+  marker.setAttribute(
+    "aria-label",
+    `View ${group.comments.length} comment${group.comments.length === 1 ? "" : "s"} on this item`,
+  );
+  marker.setAttribute("title", "View comments");
+  marker.addEventListener("click", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    openCommentModal(group);
+  });
+  block.classList.add("has-comment-marker");
+  block.append(marker);
 }
 
-async function addCommentForEditor(source) {
+function findCommentTargetBlock(editor, group) {
+  const blocks = [...editor.querySelectorAll("li, p, div")].filter(
+    (block) => !block.querySelector("li, p, div") && normalizeItemText(block.textContent),
+  );
+  if (!blocks.length && normalizeItemText(editor.textContent)) blocks.push(editor);
+
+  const exact = blocks.find((block) => hashCommentTarget(block.textContent) === group.itemKey);
+  if (exact) return exact;
+
+  const targetText = normalizeItemText(group.itemText).toLowerCase();
+  return blocks.find((block) => normalizeItemText(block.textContent).toLowerCase().includes(targetText)) || null;
+}
+
+function clearEditorCommentMarkers() {
+  personEditors.forEach((editor) => {
+    editor.querySelectorAll(".comment-marker").forEach((marker) => marker.remove());
+    editor.querySelectorAll(".has-comment-marker").forEach((block) => block.classList.remove("has-comment-marker"));
+  });
+}
+
+function addCommentForEditor(source) {
   const field = source.closest(".rich-field");
   const editor = source.classList.contains("rich-editor") ? source : field.querySelector(".rich-editor");
-  const button = field.querySelector("[data-comment-editor]");
   const personName = els.personName.value.trim();
   if (!personName) {
     els.saveStatus.textContent = "Select a person before commenting.";
@@ -822,31 +928,21 @@ async function addCommentForEditor(source) {
     return;
   }
 
-  const comment = window.prompt(`Comment on:\n${target.itemText}`);
-  if (!comment?.trim()) return;
-
-  button.disabled = true;
-  button.textContent = "Saving";
-  try {
-    await flushAutosave();
-    await convexMutation("standups:saveItemComment", {
-      teamId: TEAM_ID,
-      standupDate: els.date.value,
+  const existing = groupComments(standupComments).find(
+    (group) => group.fieldName === editor.id && group.itemKey === target.itemKey,
+  );
+  openCommentModal(
+    existing || {
+      key: `${normalizePersonKey(personName)}:${editor.id}:${target.itemKey}`,
+      personKey: normalizePersonKey(personName),
       personName,
       fieldName: editor.id,
       itemKey: target.itemKey,
       itemText: target.itemText,
-      comment,
-    });
-    els.saveStatus.textContent = `Comment saved ${formatTime(Date.now())}`;
-    await reloadItemComments();
-  } catch (error) {
-    console.error(error);
-    els.saveStatus.textContent = "Comment save failed. Check Convex and try again.";
-  } finally {
-    button.disabled = false;
-    button.textContent = "Comment";
-  }
+      comments: [],
+    },
+    { focusReply: true },
+  );
 }
 
 async function deleteItemComment(commentId) {
@@ -854,10 +950,109 @@ async function deleteItemComment(commentId) {
     await convexMutation("standups:deleteItemComment", { commentId });
     els.saveStatus.textContent = `Comment removed ${formatTime(Date.now())}`;
     await reloadItemComments();
+    refreshActiveCommentTarget();
   } catch (error) {
     console.error(error);
     els.saveStatus.textContent = "Comment remove failed.";
   }
+}
+
+function openCommentModal(target, { focusReply = false } = {}) {
+  activeCommentTarget = {
+    ...target,
+    comments: [...(target.comments || [])],
+  };
+  els.commentModalContext.textContent = `${target.personName} · ${COMMENT_FIELD_LABELS[target.fieldName] || target.fieldName}`;
+  els.commentModalTitle.textContent = target.comments?.length ? "Comment thread" : "Add a comment";
+  els.commentHighlight.textContent = target.itemText;
+  els.commentReply.value = "";
+  els.commentReplyStatus.textContent = "";
+  renderCommentThread();
+  els.commentModal.removeAttribute("hidden");
+  window.setTimeout(() => (focusReply ? els.commentReply.focus() : els.commentCloseButton.focus()), 0);
+}
+
+function closeCommentModal() {
+  if (!els.commentModal) return;
+  els.commentModal.setAttribute("hidden", "");
+  activeCommentTarget = null;
+  els.commentReply.value = "";
+  els.commentReplyStatus.textContent = "";
+}
+
+function renderCommentThread() {
+  const comments = activeCommentTarget?.comments || [];
+  if (!comments.length) {
+    const empty = document.createElement("p");
+    empty.className = "comment-thread-empty";
+    empty.textContent = "No comments on this item yet.";
+    els.commentThread.replaceChildren(empty);
+    return;
+  }
+  els.commentThread.replaceChildren(...comments.map(renderCommentMessage));
+}
+
+function renderCommentMessage(comment) {
+  const message = document.createElement("article");
+  const header = document.createElement("div");
+  const author = document.createElement("strong");
+  const time = document.createElement("span");
+  const body = document.createElement("p");
+  const remove = document.createElement("button");
+
+  message.className = "comment-message";
+  header.className = "comment-message-header";
+  author.textContent = comment.authorEmail || "Standup comment";
+  time.textContent = formatTime(comment.createdAt);
+  body.textContent = comment.comment;
+  remove.type = "button";
+  remove.textContent = "Remove";
+  remove.addEventListener("click", () => deleteItemComment(comment._id));
+  header.append(author, time, remove);
+  message.append(header, body);
+  return message;
+}
+
+async function saveCommentReply(event) {
+  event.preventDefault();
+  const comment = els.commentReply.value.trim();
+  if (!activeCommentTarget || !comment) return;
+
+  els.commentReplyButton.disabled = true;
+  els.commentReplyButton.textContent = "Saving";
+  els.commentReplyStatus.textContent = "Saving comment...";
+  try {
+    await flushAutosave();
+    await convexMutation("standups:saveItemComment", {
+      teamId: TEAM_ID,
+      standupDate: els.date.value,
+      personName: activeCommentTarget.personName,
+      fieldName: activeCommentTarget.fieldName,
+      itemKey: activeCommentTarget.itemKey,
+      itemText: activeCommentTarget.itemText,
+      comment,
+    });
+    els.saveStatus.textContent = `Comment saved ${formatTime(Date.now())}`;
+    els.commentReply.value = "";
+    await reloadItemComments();
+    refreshActiveCommentTarget();
+    els.commentReplyStatus.textContent = "Comment added";
+    els.commentModalTitle.textContent = "Comment thread";
+    els.commentReply.focus();
+  } catch (error) {
+    console.error(error);
+    els.commentReplyStatus.textContent = "Comment could not be saved.";
+  } finally {
+    els.commentReplyButton.disabled = false;
+    els.commentReplyButton.textContent = "Add comment";
+  }
+}
+
+function refreshActiveCommentTarget() {
+  if (!activeCommentTarget) return;
+  const refreshed = groupComments(commentsForDate).find((group) => group.key === activeCommentTarget.key);
+  activeCommentTarget = refreshed || { ...activeCommentTarget, comments: [] };
+  renderCommentThread();
 }
 
 function renderPrevious(entry, personName) {
@@ -1345,6 +1540,14 @@ function editorContainsSelection(editor, selection) {
 
 function normalizeItemText(value) {
   return String(value || "").replace(/\s+/g, " ").trim();
+}
+
+function normalizePersonKey(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
 }
 
 function hashCommentTarget(value) {
