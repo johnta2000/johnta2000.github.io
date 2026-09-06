@@ -3,6 +3,47 @@
   "maxRuns": 336,
   "runs": [
     {
+      "id": "2026-09-06T13:41:43.063Z",
+      "monitorId": "paze-directory",
+      "timestamp": "2026-09-06T13:41:43.063Z",
+      "status": "success",
+      "changed": false,
+      "initialized": false,
+      "confirmed": true,
+      "durationMs": 2294,
+      "count": 33,
+      "previousCount": 33,
+      "pagination": {
+        "complete": true,
+        "pagesFetched": 3,
+        "pageCounts": [
+          12,
+          12,
+          9
+        ],
+        "finalPage": 2
+      },
+      "diff": {
+        "added": [],
+        "removed": [],
+        "renamed": []
+      },
+      "cache": {
+        "runId": "1788702103063",
+        "requestCount": 3,
+        "crawlIds": [
+          "primary"
+        ],
+        "requestIds": [
+          "1788702103065001",
+          "1788702103932002",
+          "1788702104601003"
+        ]
+      },
+      "summary": "No merchant changes across 3 pages.",
+      "error": null
+    },
+    {
       "id": "2026-09-06T09:28:31.494Z",
       "monitorId": "paze-directory",
       "timestamp": "2026-09-06T09:28:31.494Z",
