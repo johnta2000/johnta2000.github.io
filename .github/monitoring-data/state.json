@@ -1,9 +1,30 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-09-06T13:41:43.063Z",
+  "generatedAt": "2026-09-06T15:34:11.877Z",
   "overallStatus": "healthy",
   "latestEventId": "20260906121137-chase-sapphire-reserve-tables-restaurant-change",
   "monitors": [
+    {
+      "id": "bilt-calculator-ranking",
+      "name": "Bilt calculator ranking",
+      "description": "Tracks the Bilt calculator across Search Console query performance, index health, canonical integrity, and live-page checks.",
+      "configured": false,
+      "status": "not_configured",
+      "sourceUrl": "https://www.nextcard.com/tools/bilt-calculator",
+      "cadence": "Every 6 hours via Codex",
+      "config": {
+        "property": "sc-domain:nextcard.com",
+        "page": "https://www.nextcard.com/tools/bilt-calculator",
+        "queries": [
+          "bilt calculator",
+          "bilt 2.0 calculator",
+          "bilt calculator 2.0",
+          "bilt points calculator",
+          "bilt card calculator"
+        ],
+        "compareWindow": "Finalized 7 days vs previous 7 days"
+      }
+    },
     {
       "id": "paze-directory",
       "name": "Paze merchant directory",
@@ -73,27 +94,6 @@
       }
     },
     {
-      "id": "bilt-calculator-ranking",
-      "name": "Bilt calculator ranking",
-      "description": "Tracks the Bilt calculator across Search Console query performance, index health, canonical integrity, and live-page checks.",
-      "configured": false,
-      "status": "not_configured",
-      "sourceUrl": "https://www.nextcard.com/tools/bilt-calculator",
-      "cadence": "Every 6 hours via Codex",
-      "config": {
-        "property": "sc-domain:nextcard.com",
-        "page": "https://www.nextcard.com/tools/bilt-calculator",
-        "queries": [
-          "bilt calculator",
-          "bilt 2.0 calculator",
-          "bilt calculator 2.0",
-          "bilt points calculator",
-          "bilt card calculator"
-        ],
-        "compareWindow": "Finalized 7 days vs previous 7 days"
-      }
-    },
-    {
       "id": "transfer-bonus-discovery",
       "name": "Transfer bonus discovery",
       "description": "Scans official issuer and loyalty-program sources for new transfer bonuses, changed terms, and coverage failures.",
@@ -132,17 +132,17 @@
         "https://www.opentable.com/sapphire-reserve/boston"
       ],
       "cadence": "Every 4 hours",
-      "latestRunAt": "2026-09-06T12:11:37.279Z",
-      "latestSuccessAt": "2026-09-06T12:11:37.279Z",
+      "latestRunAt": "2026-09-06T15:34:11.877Z",
+      "latestSuccessAt": "2026-09-06T15:34:11.877Z",
       "latestChangeAt": "2026-09-06T12:11:37.279Z",
-      "durationMs": 1745,
-      "summary": "1 restaurants added and 1 removed across six cities.",
+      "durationMs": 589,
+      "summary": "No restaurant-list changes across six cities (135 restaurants).",
       "error": null,
       "metrics": {
         "restaurantCount": 135,
         "cityCount": 6,
-        "addedCount": 1,
-        "removedCount": 1
+        "addedCount": 0,
+        "removedCount": 0
       },
       "details": {
         "cities": [
@@ -280,12 +280,8 @@
               "Una Pizza Napoletana",
               "Union Square Cafe"
             ],
-            "added": [
-              "Razza - Jersey City"
-            ],
-            "removed": [
-              "Maddy Rose at Liberty House"
-            ]
+            "added": [],
+            "removed": []
           },
           {
             "id": "chicago",
@@ -347,25 +343,18 @@
           }
         ],
         "cache": {
-          "runId": "1788696697279",
-          "requestCount": 12,
+          "runId": "1788708851877",
+          "requestCount": 6,
           "crawlIds": [
-            "primary",
-            "confirmation"
+            "primary"
           ],
           "requestIds": [
-            "1788696697282001",
-            "1788696697323002",
-            "1788696697324003",
-            "1788696697325004",
-            "1788696697326005",
-            "1788696697327006",
-            "1788696698137007",
-            "1788696698138008",
-            "1788696698138009",
-            "1788696698140010",
-            "1788696698140011",
-            "1788696698141012"
+            "1788708851880001",
+            "1788708851921002",
+            "1788708851922003",
+            "1788708851923004",
+            "1788708851924005",
+            "1788708851925006"
           ]
         }
       }
