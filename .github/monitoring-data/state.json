@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-09-05T23:55:58.644Z",
+  "generatedAt": "2026-09-06T04:44:23.763Z",
   "overallStatus": "healthy",
   "latestEventId": "20260902192538-chase-sapphire-reserve-tables-restaurant-change",
   "monitors": [
@@ -14,10 +14,10 @@
       "cadence": "Hourly",
       "expectedCount": 33,
       "currentCount": 33,
-      "latestRunAt": "2026-09-05T23:55:58.644Z",
-      "latestSuccessAt": "2026-09-05T23:55:58.644Z",
+      "latestRunAt": "2026-09-06T04:44:23.763Z",
+      "latestSuccessAt": "2026-09-06T04:44:23.763Z",
       "latestChangeAt": null,
-      "durationMs": 1595,
+      "durationMs": 1679,
       "summary": "No merchant changes across 3 pages.",
       "error": null,
       "pagination": {
@@ -36,15 +36,15 @@
         "renamed": []
       },
       "cache": {
-        "runId": "1788652558644",
+        "runId": "1788669863763",
         "requestCount": 3,
         "crawlIds": [
           "primary"
         ],
         "requestIds": [
-          "1788652558646001",
-          "1788652559192002",
-          "1788652559737003"
+          "1788669863765001",
+          "1788669864462002",
+          "1788669864883003"
         ]
       }
     },
