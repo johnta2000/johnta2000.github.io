@@ -249,12 +249,14 @@ function rankingDialogMarkup(monitor) {
   const inspection = details.inspection ?? {};
   const live = details.live ?? {};
   const isBilt = monitor.id === "bilt-calculator-ranking";
+  const mapFirstCount = metrics.mapFirstCount ?? metrics.serpMapFirstCount;
+  const queryCount = metrics.queryCount ?? metrics.serpQueryCount;
   const fourthMetric = isBilt
     ? `<div><span>CTR · finalized 7d</span><strong>${percent(metrics.ctr)}</strong><small>${escapeHtml(metricDelta(metrics.ctr, metrics.previousCtr, { suffix: " pts" }))}</small></div>`
     : `<div><span>Map impression share</span><strong>${percent(metrics.mapImpressionShare)}</strong><small>${escapeHtml(metricDelta(metrics.mapImpressionShare, metrics.previousMapImpressionShare, { suffix: " pts" }))}</small></div>`;
   const queryHeading = isBilt
     ? `<div><p class="eyebrow">Search performance</p><h3>Core Bilt calculator queries</h3></div><span class="count-bubble">${number((details.queries ?? []).length)}</span>`
-    : `<div><p class="eyebrow">Cannibalization</p><h3>Core-query ownership</h3></div><span class="count-bubble">${number(metrics.serpMapFirstCount)}/${number(metrics.serpQueryCount)}</span>`;
+    : `<div><p class="eyebrow">Cannibalization</p><h3>Core-query ownership</h3></div><span class="count-bubble">${number(mapFirstCount)}/${number(queryCount)}</span>`;
   return `
     <div class="dialog-meta"><p>${escapeHtml(monitor.description)}</p><div><span>${escapeHtml(monitor.cadence)}</span>${sourceLinks(monitor)}</div></div>
     ${statusBanner(monitor)}
