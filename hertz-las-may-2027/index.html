@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Hertz LAS May 2027 price watch for 6–12 passenger vehicles, excluding trucks and pickups." />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Hertz LAS May 2027 · Price Watch</title>
+    <link rel="icon" href="../assets/img/favicon.png" />
+    <link rel="stylesheet" href="styles.css?v=20260906.2" />
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="wordmark" href="/" aria-label="John Ta home">JT<span>/</span>HERTZ WATCH</a>
+      <nav aria-label="Page links">
+        <a href="#trip">Trip</a>
+        <a href="#history">History</a>
+        <a id="booking-link-top" class="booking-link" href="#" target="_blank" rel="noreferrer">Open Hertz ↗</a>
+      </nav>
+    </header>
+
+    <main>
+      <section class="hero" aria-labelledby="page-title">
+        <div class="hero-copy">
+          <p class="eyebrow">Las Vegas · May 20–24, 2027 · 6–12 passengers</p>
+          <h1 id="page-title">How low can<br />the rate <em>go?</em></h1>
+          <p class="lede">A durable record of the lowest visible Hertz rate for a 6–12 passenger vehicle, excluding pickups and trucks—not filter values, hidden markup, or booking-page guesses.</p>
+        </div>
+        <aside class="rate-card" aria-live="polite">
+          <div class="rate-card-top">
+            <span id="monitor-status" class="status-pill pending">Loading</span>
+            <span id="last-success-relative">Reading history…</span>
+          </div>
+          <p class="rate-label">Last qualifying rate</p>
+          <div class="rate-value"><strong id="latest-rate">—</strong><span>/day</span></div>
+          <p id="latest-vehicle" class="rate-vehicle">Waiting for monitor data</p>
+          <div class="rate-footer">
+            <span>Estimated total</span>
+            <strong id="latest-total">—</strong>
+          </div>
+        </aside>
+      </section>
+
+      <div id="latest-alert" class="alert" role="status" hidden></div>
+
+      <section id="trip" class="trip-panel" aria-labelledby="trip-title">
+        <div class="section-label">
+          <span>01</span>
+          <p>Itinerary</p>
+        </div>
+        <div class="trip-route">
+          <div class="airport-code">LAS</div>
+          <div class="route-line" aria-hidden="true"><span></span></div>
+          <div class="airport-code">LAS</div>
+        </div>
+        <div class="trip-times">
+          <div><span>Pick up</span><strong id="pickup-time">—</strong><small id="pickup-location">—</small></div>
+          <div><span>Return</span><strong id="return-time">—</strong><small id="return-location">—</small></div>
+        </div>
+      </section>
+
+      <section id="history" class="history-section" aria-labelledby="history-title">
+        <div class="section-heading">
+          <div class="section-label"><span>02</span><p>Price history</p></div>
+          <div>
+            <h2 id="history-title">The long slide.</h2>
+            <p id="history-summary">Loading recorded observations…</p>
+          </div>
+        </div>
+
+        <div class="metrics" aria-label="Pricing summary">
+          <article><span>Threshold</span><strong id="threshold-rate">—</strong><small id="threshold-note">Target daily rate</small></article>
+          <article><span>Change since first</span><strong id="price-change">—</strong><small id="price-change-note">Across successful checks</small></article>
+          <article><span>Successful checks</span><strong id="successful-count">—</strong><small id="failed-count">— unavailable</small></article>
+        </div>
+
+        <div class="chart-panel">
+          <div class="chart-heading">
+            <div><span>Lowest qualifying daily rate</span><strong id="chart-current">—</strong></div>
+            <div class="legend"><span class="legend-rate">Observed rate</span><span class="legend-threshold">$120 threshold</span></div>
+          </div>
+          <div id="price-chart" class="chart-wrap" aria-live="polite"></div>
+        </div>
+      </section>
+
+      <section class="details-grid">
+        <article class="evidence-card">
+          <div class="section-label"><span>03</span><p>Last success</p></div>
+          <h2 id="evidence-vehicle">No successful check yet</h2>
+          <div class="evidence-meta">
+            <span id="evidence-date">—</span>
+            <span id="evidence-tax">Taxes/fees unknown</span>
+          </div>
+          <p id="evidence-copy">Rendered evidence will appear here.</p>
+          <a id="booking-link-evidence" href="#" target="_blank" rel="noreferrer">Inspect the same Hertz search ↗</a>
+        </article>
+
+        <article class="method-card">
+          <p class="eyebrow">Eligibility rule</p>
+          <h2>6–12 seats.<br />No trucks.</h2>
+          <p>The checker reads the visible passenger-capacity feature, rejects pickup/truck classes, and accepts a rate only when <code>$N</code> is visibly paired with <code>/day</code> inside that card.</p>
+          <div class="method-example"><span>Current best</span><strong>$80 <small>/day</small></strong></div>
+        </article>
+      </section>
+
+      <section class="runs-section" aria-labelledby="runs-title">
+        <div class="runs-heading">
+          <div><p class="eyebrow">Durable run log</p><h2 id="runs-title">Every attempt, kept.</h2></div>
+          <div class="filter-group" aria-label="Filter run history">
+            <button class="filter active" data-filter="all" type="button">All</button>
+            <button class="filter" data-filter="success" type="button">Successful</button>
+            <button class="filter" data-filter="failure" type="button">Unavailable</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Checked</th><th>Status</th><th>Daily rate</th><th>Seats</th><th>Vehicle</th><th>Est. total</th><th>Source</th></tr></thead>
+            <tbody id="run-rows"><tr><td colspan="7">Loading run history…</td></tr></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <span>Hertz LAS price watch</span>
+      <span>Repository-backed · Read-only · No bookings</span>
+    </footer>
+    <script src="app.js?v=20260906.2" defer></script>
+  </body>
+</html>

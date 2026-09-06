@@ -1,0 +1,73 @@
+name: Hertz LAS May 2027 price monitor
+
+on:
+  schedule:
+    # 8:27 AM Pacific during daylight saving time; GitHub cron is UTC.
+    - cron: "27 15 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: monitoring-data-writer
+  cancel-in-progress: false
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out site
+        uses: actions/checkout@v4
+        with:
+          ref: master
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install monitor dependencies
+        run: npm ci
+
+      - name: Install read-only browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Test deterministic price parser
+        run: node --test scripts/monitoring/hertz-las-may-2027.test.mjs scripts/monitoring/report-external.test.mjs
+
+      - name: Check Hertz vehicle cards
+        id: collect
+        continue-on-error: true
+        env:
+          HERTZ_SCREENSHOT_PATH: ${{ runner.temp }}/hertz-las-may-2027.png
+        run: node scripts/monitoring/hertz-las-may-2027.mjs
+
+      - name: Retain rendered evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hertz-las-may-2027-${{ github.run_id }}
+          path: ${{ runner.temp }}/hertz-las-may-2027.png
+          if-no-files-found: ignore
+          retention-days: 30
+
+      - name: Commit every monitor run
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .github/monitoring-data/hertz-las-may-2027-history.json
+          git add hertz-las-may-2027/history.json
+          if git diff --cached --quiet; then
+            echo "No Hertz monitor data changed."
+          else
+            git commit -m "Record Hertz LAS price monitor run"
+            git push
+          fi
+
+      # An unavailable Hertz page is data, not a broken workflow. The collector
+      # persists the failed attempt above so the dashboard can show it without
+      # turning the daily job into noisy failure email.

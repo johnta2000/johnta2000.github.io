@@ -1,7 +1,9 @@
 {
   "scripts": {
     "convex:dev": "convex dev",
-    "convex:deploy": "convex deploy"
+    "convex:deploy": "convex deploy",
+    "monitor:hertz": "node scripts/monitoring/hertz-las-may-2027.mjs",
+    "test:monitoring": "node --test scripts/monitoring/*.test.mjs"
   },
   "dependencies": {
     "convex": "^1.41.0"
@@ -9,5 +11,7 @@
   "overrides": {
     "esbuild": "0.28.1"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "playwright": "^1.55.0"
+  }
 }
