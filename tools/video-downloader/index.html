@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Private team tool for saving permitted YouTube videos as MP4 files." />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="color-scheme" content="dark" />
+    <title>Video Downloader — John Ta</title>
+    <link rel="icon" href="../../assets/img/favicon.png" />
+    <link rel="stylesheet" href="styles.css?v=20260906.1" />
+  </head>
+  <body>
+    <div class="ambient ambient-one" aria-hidden="true"></div>
+    <div class="ambient ambient-two" aria-hidden="true"></div>
+
+    <section id="access-gate" class="access-gate" aria-labelledby="gate-title">
+      <div class="gate-card">
+        <a class="wordmark" href="/" aria-label="John Ta home">JT<span>/</span>TOOLS</a>
+        <p class="eyebrow">Private team utility</p>
+        <h1 id="gate-title">Your downloader.<br /><em>Zero weird websites.</em></h1>
+        <p class="gate-copy">Sign in with an approved team email. Downloads are processed by John’s Mac and expire automatically.</p>
+        <div id="clerk-sign-in" class="clerk-sign-in" aria-live="polite"></div>
+        <p id="auth-status" class="auth-status" role="status">Loading secure sign-in…</p>
+        <button id="auth-sign-out" class="text-button" type="button" hidden>Use a different email</button>
+        <p class="gate-footnote"><span aria-hidden="true"></span> Clerk sign-in · Convex queue · local processing</p>
+      </div>
+    </section>
+
+    <div id="app" class="site-shell" hidden>
+      <header class="site-header">
+        <a class="wordmark" href="/" aria-label="John Ta home">JT<span>/</span>TOOLS</a>
+        <div class="header-actions">
+          <div id="worker-status" class="worker-pill is-checking" role="status">
+            <span aria-hidden="true"></span>
+            <b>Checking John’s Mac</b>
+          </div>
+          <button id="sign-out" class="text-button" type="button">Sign out</button>
+        </div>
+      </header>
+
+      <main>
+        <section class="hero" aria-labelledby="page-title">
+          <p class="eyebrow">YouTube → MP4</p>
+          <h1 id="page-title">Get the file.<br /><em>Skip the sketch.</em></h1>
+          <p class="lede">Paste a link and your private Mac worker handles the rest. Nothing passes through a public downloader site.</p>
+        </section>
+
+        <section class="download-card" aria-labelledby="download-title">
+          <div class="card-heading">
+            <div class="download-mark" aria-hidden="true">↓</div>
+            <div>
+              <h2 id="download-title">Start a download</h2>
+              <p>Single videos only. Finished MP4s stay available for one hour.</p>
+            </div>
+          </div>
+
+          <form id="download-form">
+            <label for="video-url">YouTube URL</label>
+            <input id="video-url" name="url" type="url" inputmode="url" autocomplete="off" placeholder="https://www.youtube.com/watch?v=…" required />
+
+            <div class="form-row">
+              <div>
+                <label for="quality">Quality</label>
+                <select id="quality" name="quality">
+                  <option value="best">Best available MP4</option>
+                  <option value="1080">Up to 1080p</option>
+                  <option value="720">Up to 720p</option>
+                  <option value="480">Up to 480p</option>
+                </select>
+              </div>
+              <button id="submit-download" class="primary-button" type="submit" disabled>
+                <span aria-hidden="true">↓</span> Queue MP4
+              </button>
+            </div>
+
+            <label class="permission-check">
+              <input id="permission" type="checkbox" required />
+              <span>I own this video or have permission to download it.</span>
+            </label>
+          </form>
+          <div id="form-message" class="form-message" role="alert" hidden></div>
+        </section>
+
+        <section class="queue-section" aria-labelledby="queue-title">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Your queue</p>
+              <h2 id="queue-title">Recent downloads</h2>
+            </div>
+            <button id="refresh-jobs" class="text-button" type="button">Refresh</button>
+          </div>
+          <div id="jobs" class="jobs" aria-live="polite">
+            <div class="empty-state">Your queued and completed videos will appear here.</div>
+          </div>
+        </section>
+      </main>
+
+      <footer>
+        <span>john-ta.com private tools</span>
+        <span>Files expire automatically · one download at a time</span>
+      </footer>
+    </div>
+
+    <noscript><div class="noscript">JavaScript is required for secure sign-in and downloads.</div></noscript>
+    <script defer crossorigin="anonymous" src="https://clerk.john-ta.com/npm/@clerk/ui@1/dist/ui.browser.js"></script>
+    <script defer crossorigin="anonymous" data-clerk-publishable-key="pk_live_Y2xlcmsuam9obi10YS5jb20k" src="https://clerk.john-ta.com/npm/@clerk/clerk-js@6/dist/clerk.browser.js"></script>
+    <script src="app.js?v=20260906.1" defer></script>
+  </body>
+</html>

@@ -10,6 +10,7 @@
 
 import type * as crons from "../crons.js";
 import type * as http from "../http.js";
+import type * as videoDownloads from "../videoDownloads.js";
 import type * as sleep from "../sleep.js";
 import type * as standups from "../standups.js";
 import type * as warRoom from "../warRoom.js";
@@ -26,6 +27,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   crons: typeof crons;
   http: typeof http;
+  videoDownloads: typeof videoDownloads;
   sleep: typeof sleep;
   standups: typeof standups;
   warRoom: typeof warRoom;

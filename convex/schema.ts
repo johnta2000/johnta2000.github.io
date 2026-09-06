@@ -64,6 +64,45 @@ export default defineSchema({
   })
     .index("by_recording", ["teamId", "recordingId"])
     .index("by_date", ["teamId", "standupDate"]),
+  videoDownloads: defineTable({
+    requesterSubject: v.string(),
+    requesterEmail: v.string(),
+    videoUrl: v.string(),
+    quality: v.union(v.literal("best"), v.literal("1080"), v.literal("720"), v.literal("480")),
+    status: v.union(
+      v.literal("queued"),
+      v.literal("processing"),
+      v.literal("uploading"),
+      v.literal("ready"),
+      v.literal("failed"),
+      v.literal("expired"),
+    ),
+    progress: v.number(),
+    speed: v.optional(v.string()),
+    eta: v.optional(v.string()),
+    workerId: v.optional(v.string()),
+    title: v.optional(v.string()),
+    filename: v.optional(v.string()),
+    storageId: v.optional(v.id("_storage")),
+    fileSize: v.optional(v.number()),
+    error: v.optional(v.string()),
+    createdAt: v.number(),
+    startedAt: v.optional(v.number()),
+    completedAt: v.optional(v.number()),
+    expiresAt: v.optional(v.number()),
+    updatedAt: v.number(),
+  })
+    .index("by_status", ["status", "createdAt"])
+    .index("by_requester_created", ["requesterSubject", "createdAt"]),
+  videoDownloaderWorkers: defineTable({
+    workerId: v.string(),
+    hostname: v.string(),
+    version: v.string(),
+    currentJobId: v.optional(v.id("videoDownloads")),
+    lastSeenAt: v.number(),
+  })
+    .index("by_worker", ["workerId"])
+    .index("by_last_seen", ["lastSeenAt"]),
   sleepNights: defineTable({
     sleepDate: v.string(),
     source: v.union(v.literal("whoop"), v.literal("apple_health"), v.literal("eightsleep"), v.literal("manual")),
