@@ -90,7 +90,10 @@
       }
 
       .app-header {
-        display: block;
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
         margin-bottom: 12px;
         padding: 14px 16px;
         border: 1px solid var(--line);
@@ -102,7 +105,102 @@
       }
 
       .header-copy {
+        flex: 1 1 260px;
         min-width: 0;
+      }
+
+      .account-button {
+        min-height: 38px;
+        padding: 0 12px;
+        border: 1px solid rgba(55, 211, 139, 0.45);
+        border-radius: 8px;
+        background: rgba(55, 211, 139, 0.12);
+        color: #d9ffe9;
+        font-size: 0.8rem;
+        font-weight: 900;
+        white-space: nowrap;
+      }
+
+      .account-button.is-signed-in {
+        border-color: rgba(246, 207, 101, 0.42);
+        background: rgba(246, 207, 101, 0.1);
+        color: #fff7c6;
+      }
+
+      .rally-mode .standalone-auth {
+        display: none !important;
+      }
+
+      .account-dialog {
+        width: min(460px, calc(100vw - 28px));
+        max-height: calc(100dvh - 28px);
+        padding: 0;
+        overflow: auto;
+        border: 1px solid rgba(160, 225, 197, 0.28);
+        border-radius: 12px;
+        background: #081815;
+        color: var(--text);
+        box-shadow: 0 28px 90px rgba(0, 0, 0, 0.6);
+      }
+
+      .account-dialog::backdrop {
+        background: rgba(1, 7, 6, 0.76);
+        backdrop-filter: blur(5px);
+      }
+
+      .account-dialog-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 20px 20px 8px;
+      }
+
+      .account-dialog-head h2,
+      .account-dialog-head p {
+        margin: 0;
+      }
+
+      .account-dialog-head p {
+        margin-top: 6px;
+        color: var(--muted);
+        font-size: 0.85rem;
+        line-height: 1.45;
+      }
+
+      .dialog-close {
+        width: 34px;
+        min-width: 34px;
+        height: 34px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.04);
+        color: var(--text);
+        font-size: 1.2rem;
+      }
+
+      .account-content {
+        padding: 8px 20px 20px;
+      }
+
+      .signed-in-card {
+        display: grid;
+        gap: 14px;
+        padding: 16px;
+        border: 1px solid var(--line);
+        border-radius: 9px;
+        background: rgba(4, 16, 15, 0.72);
+      }
+
+      .signed-in-card strong,
+      .signed-in-card span {
+        display: block;
+      }
+
+      .signed-in-card span {
+        margin-top: 4px;
+        color: var(--muted);
+        font-size: 0.82rem;
       }
 
       .eyebrow {
@@ -149,6 +247,7 @@
         display: grid;
         grid-template-columns:
           minmax(220px, 1fr)
+          minmax(134px, 0.4fr)
           minmax(134px, 0.4fr)
           minmax(134px, 0.4fr)
           minmax(150px, 0.46fr)
@@ -780,6 +879,9 @@
               <span class="metric">Set times pending</span>
             </div>
           </div>
+          <button class="account-button standalone-auth" id="account-button" type="button" hidden>
+            Sign in to sync
+          </button>
         </section>
 
         <section class="toolbar" aria-label="Lineup controls">
@@ -865,7 +967,22 @@
       </div>
     </main>
 
+    <dialog class="account-dialog standalone-auth" id="account-dialog">
+      <div class="account-dialog-head">
+        <div>
+          <h2 id="account-dialog-title">Save your lineup</h2>
+          <p id="account-dialog-copy">Create an account or sign in to keep favorites synced across devices.</p>
+        </div>
+        <button class="dialog-close" id="account-dialog-close" type="button" aria-label="Close">×</button>
+      </div>
+      <div class="account-content" id="account-content"></div>
+    </dialog>
+
+    <script defer crossorigin="anonymous" src="https://clerk.john-ta.com/npm/@clerk/ui@1/dist/ui.browser.js"></script>
+    <script defer crossorigin="anonymous" data-clerk-publishable-key="pk_live_Y2xlcmsuam9obi10YS5jb20k" src="https://clerk.john-ta.com/npm/@clerk/clerk-js@6/dist/clerk.browser.js"></script>
     <script>
+      const CONVEX_URL = "https://dashing-heron-837.convex.cloud";
+      const LINEUP_EVENT_ID = "lost-lands-2026";
       const legacyMainLineup = `
         ADVENTURE CLUB | ÆON:MODE | ALLEYCVT | ARMNHMR | ATLIENS | AUDIOFREQ
         | BARELY ALIVE | BEAR GRILLZ | BENDA | BLOSSOM | BOOGIE T | BORGORE | BOU
@@ -1181,6 +1298,12 @@
 
       const els = {
         artistCount: document.getElementById("artist-count"),
+        accountButton: document.getElementById("account-button"),
+        accountContent: document.getElementById("account-content"),
+        accountDialog: document.getElementById("account-dialog"),
+        accountDialogClose: document.getElementById("account-dialog-close"),
+        accountDialogCopy: document.getElementById("account-dialog-copy"),
+        accountDialogTitle: document.getElementById("account-dialog-title"),
         billingFilter: document.getElementById("billing-filter"),
         clearFavoritesButton: document.getElementById("clear-favorites-button"),
         dayFilter: document.getElementById("day-filter"),
@@ -1201,15 +1324,17 @@
         tableViewButton: document.getElementById("table-view-button")
       };
 
-      const favoriteStorageKey = "lost-lands-2026-lineup-favorites";
       const validFavoriteIds = new Set(lineup.map((entry) => entry.id));
       const lineupById = new Map(lineup.map((entry) => [entry.id, entry]));
       const mobileViewQuery = window.matchMedia("(max-width: 760px)");
       const rallyManagedFavorites = window.parent !== window && new URLSearchParams(window.location.search).get("rally") === "1";
       document.documentElement.classList.toggle("rally-mode", rallyManagedFavorites);
-      let favorites = new Set(rallyManagedFavorites ? [] : readStoredFavorites());
+      let favorites = new Set();
       let lineupInterests = {};
       let currentRallyMember = null;
+      let cloudAccount = null;
+      let cloudSaveTimer = null;
+      let anonymousHintShown = false;
       let activeView = "table";
       let favoritesOnly = false;
       let viewingSharedFavorites = false;
@@ -1228,17 +1353,6 @@
           .replace(/>/g, "&gt;")
           .replace(/"/g, "&quot;")
           .replace(/'/g, "&#039;");
-      }
-
-      function readStoredFavorites() {
-        try {
-          const stored = JSON.parse(localStorage.getItem(favoriteStorageKey) || "[]");
-          return Array.isArray(stored)
-            ? [...new Set(stored.flatMap(currentFavoriteIds).filter((id) => validFavoriteIds.has(id)))]
-            : [];
-        } catch (error) {
-          return [];
-        }
       }
 
       function getCanonicalUrl() {
@@ -1354,8 +1468,6 @@
 
         if (hasSharedFavorites) {
           favorites = new Set(sharedFavorites);
-        } else if (!rallyManagedFavorites) {
-          favorites = new Set(readStoredFavorites());
         }
       }
 
@@ -1369,7 +1481,6 @@
         if (els.sortMode.value !== "poster") params.set("sort", els.sortMode.value);
         if (activeView !== "table" && !mobileViewQuery.matches) params.set("view", activeView);
         if (favoritesOnly) params.set("fav", "1");
-        if (!rallyManagedFavorites && favorites.size) params.set("f", encodeSharedFavorites());
         const next = `${window.location.pathname}${rallyManagedFavorites ? "?rally=1" : ""}${params.toString() ? `#${params}` : ""}`;
         window.history.replaceState({}, "", next);
       }
@@ -1512,6 +1623,11 @@
         els.favoritesFilterButton.setAttribute("aria-pressed", String(favoritesOnly));
         els.saveFavoritesButton.hidden = !viewingSharedFavorites || favorites.size === 0;
         els.clearFavoritesButton.hidden = favorites.size === 0;
+        if (!rallyManagedFavorites) {
+          els.accountButton.hidden = false;
+          els.accountButton.classList.toggle("is-signed-in", Boolean(cloudAccount));
+          els.accountButton.textContent = cloudAccount ? `${cloudAccount.name} · Synced` : "Sign in to sync";
+        }
       }
 
       function render() {
@@ -1532,12 +1648,20 @@
           viewingSharedFavorites = false;
           return;
         }
-        try {
-          localStorage.setItem(favoriteStorageKey, JSON.stringify([...favorites]));
-          viewingSharedFavorites = false;
-        } catch (error) {
-          // Sharing still works even when storage is unavailable.
-        }
+        viewingSharedFavorites = false;
+        if (!cloudAccount) return;
+        window.clearTimeout(cloudSaveTimer);
+        cloudSaveTimer = window.setTimeout(async () => {
+          try {
+            await convexMutation("lineupFavorites:saveMine", {
+              eventId: LINEUP_EVENT_ID,
+              artistIds: [...favorites],
+            });
+            showToast("Favorites synced.");
+          } catch (error) {
+            showToast(error.message || "Could not sync favorites.");
+          }
+        }, 250);
       }
 
       function setView(view) {
@@ -1551,9 +1675,13 @@
       }
 
       function saveFavoritesAsMine() {
+        if (!rallyManagedFavorites && !cloudAccount) {
+          openAccountDialog();
+          return;
+        }
         saveFavorites();
         render();
-        showToast(rallyManagedFavorites ? "Saved to your Rally profile." : "Saved as your favorites on this device.");
+        showToast(rallyManagedFavorites ? "Saved to your Rally profile." : "Saving to your account…");
       }
 
       function clearFavorites() {
@@ -1563,7 +1691,7 @@
         viewingSharedFavorites = false;
         saveFavorites();
         render();
-        showToast(rallyManagedFavorites ? "Your Rally favorites were cleared." : "Your saved favorites were reset.");
+        showToast(rallyManagedFavorites ? "Your Rally favorites were cleared." : cloudAccount ? "Your synced favorites were cleared." : "Favorites cleared.");
       }
 
       function showToast(message) {
@@ -1578,9 +1706,135 @@
         window.setTimeout(() => toast.remove(), 2200);
       }
 
+      async function initializeOptionalAccount() {
+        if (rallyManagedFavorites) return;
+        try {
+          if (!window.Clerk) throw new Error("Clerk did not load");
+          await window.Clerk.load({ ui: { ClerkUI: window.__internal_ClerkUICtor } });
+          window.Clerk.addListener(({ user }) => {
+            if (user && !cloudAccount) void loadCloudFavorites();
+            if (!user && cloudAccount) {
+              cloudAccount = null;
+              favorites = new Set();
+              render();
+            }
+          });
+          if (window.Clerk.isSignedIn) await loadCloudFavorites();
+          else updateViewButtons();
+        } catch (error) {
+          console.warn("Optional lineup sign-in could not initialize", error);
+          els.accountButton.hidden = false;
+          els.accountButton.textContent = "Sign in unavailable";
+          els.accountButton.disabled = true;
+        }
+      }
+
+      async function loadCloudFavorites() {
+        try {
+          const result = await convexQuery("lineupFavorites:getMine", { eventId: LINEUP_EVENT_ID });
+          cloudAccount = { name: result.name || "Account" };
+          if (!viewingSharedFavorites) {
+            favorites = new Set((result.artistIds || []).flatMap(currentFavoriteIds).filter((id) => validFavoriteIds.has(id)));
+          }
+          render();
+          if (els.accountDialog.open) renderAccountDialog();
+        } catch (error) {
+          console.warn("Could not load synced lineup favorites", error);
+          showToast("Signed in, but favorites could not load.");
+        }
+      }
+
+      function openAccountDialog() {
+        if (rallyManagedFavorites || els.accountButton.disabled) return;
+        els.accountDialog.showModal();
+        renderAccountDialog();
+      }
+
+      function renderAccountDialog() {
+        try { window.Clerk?.unmountSignIn(els.accountContent); } catch (error) { /* Not mounted yet. */ }
+        if (cloudAccount) {
+          els.accountDialogTitle.textContent = "Favorites are synced";
+          els.accountDialogCopy.textContent = "Your Lost Lands picks follow this account on any device.";
+          els.accountContent.innerHTML = `
+            <div class="signed-in-card">
+              <div><strong>${escapeHtml(cloudAccount.name)}</strong><span>${favorites.size} saved favorite${favorites.size === 1 ? "" : "s"}</span></div>
+              <button class="button" id="account-sign-out" type="button">Sign out</button>
+            </div>
+          `;
+          document.getElementById("account-sign-out").addEventListener("click", async () => {
+            await window.Clerk.signOut();
+            cloudAccount = null;
+            favorites = new Set();
+            els.accountDialog.close();
+            render();
+          });
+          return;
+        }
+
+        els.accountDialogTitle.textContent = "Save your lineup";
+        els.accountDialogCopy.textContent = "Create an account or sign in to keep favorites synced across devices.";
+        els.accountContent.innerHTML = "";
+        window.Clerk.mountSignIn(els.accountContent, {
+          routing: "virtual",
+          withSignUp: true,
+          appearance: {
+            variables: {
+              colorPrimary: "#37d38b",
+              colorBackground: "#fffef9",
+              borderRadius: "9px",
+              fontFamily: "Inter, ui-sans-serif, system-ui",
+            },
+          },
+        });
+      }
+
+      async function convexQuery(path, args) {
+        return convexCall("query", path, args);
+      }
+
+      async function convexMutation(path, args) {
+        return convexCall("mutation", path, args);
+      }
+
+      async function convexCall(kind, path, args) {
+        const token = await getConvexToken();
+        if (!token) throw new Error("Sign in to sync your favorites.");
+        const response = await fetch(`${CONVEX_URL}/api/${kind}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ path, args }),
+        });
+        const result = await response.json();
+        if (!response.ok || result.status !== "success") {
+          throw new Error(result.errorMessage || `Convex ${kind} failed`);
+        }
+        return result.value;
+      }
+
+      async function getConvexToken() {
+        const session = window.Clerk?.session;
+        if (!session) return null;
+        const sessionToken = await session.getToken();
+        const audience = readJwtPayload(sessionToken)?.aud;
+        if (audience === "convex" || (Array.isArray(audience) && audience.includes("convex"))) return sessionToken;
+        try { return await session.getToken({ template: "convex" }); } catch (error) { return sessionToken; }
+      }
+
+      function readJwtPayload(token) {
+        if (!token) return null;
+        try {
+          const encoded = token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
+          return JSON.parse(decodeURIComponent(escape(atob(encoded))));
+        } catch (error) {
+          return null;
+        }
+      }
+
       async function shareCurrentView() {
         writeStateToUrl();
-        const url = window.location.href;
+        const params = getHashParams();
+        if (favorites.size) params.set("f", encodeSharedFavorites());
+        const url = `${getCanonicalUrl()}${params.toString() ? `#${params}` : ""}`;
         try {
           if (navigator.clipboard && window.isSecureContext) {
             await navigator.clipboard.writeText(url);
@@ -1635,6 +1889,11 @@
         els.saveFavoritesButton.addEventListener("click", saveFavoritesAsMine);
         els.clearFavoritesButton.addEventListener("click", clearFavorites);
         els.shareButton.addEventListener("click", shareCurrentView);
+        els.accountButton.addEventListener("click", openAccountDialog);
+        els.accountDialogClose.addEventListener("click", () => els.accountDialog.close());
+        els.accountDialog.addEventListener("click", (event) => {
+          if (event.target === els.accountDialog) els.accountDialog.close();
+        });
 
         els.tableBody.addEventListener("click", (event) => {
           const button = event.target.closest("[data-favorite-id]");
@@ -1651,6 +1910,10 @@
           updateCurrentMemberInterest(id);
           saveFavorites();
           render();
+          if (!rallyManagedFavorites && !cloudAccount && !anonymousHintShown) {
+            anonymousHintShown = true;
+            showToast("Sign in to keep favorites across devices.");
+          }
           if (wasViewingSharedFavorites) showToast("Edited list saved as yours.");
         });
 
@@ -1696,6 +1959,7 @@
       bindEvents();
       render();
       if (rallyManagedFavorites) window.parent.postMessage({ type: "rally-lineup-ready" }, window.location.origin);
+      else window.addEventListener("load", initializeOptionalAccount, { once: true });
     </script>
   </body>
 </html>

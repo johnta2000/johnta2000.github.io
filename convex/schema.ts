@@ -147,4 +147,10 @@ export default defineSchema({
     updatedAt: v.number(),
     lastSyncedAt: v.optional(v.number()),
   }).index("by_subject", ["clerkSubject"]),
+  lineupFavorites: defineTable({
+    eventId: v.string(),
+    clerkSubject: v.string(),
+    artistIds: v.array(v.string()),
+    updatedAt: v.number(),
+  }).index("by_user_event", ["clerkSubject", "eventId"]),
 });
