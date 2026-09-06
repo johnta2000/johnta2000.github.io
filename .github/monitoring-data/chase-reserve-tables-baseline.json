@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "monitorId": "chase-sapphire-reserve-tables",
-  "capturedAt": "2026-09-06T04:50:12.135Z",
+  "capturedAt": "2026-09-06T12:11:37.279Z",
   "sources": [
     {
       "id": "atlanta",
@@ -378,10 +378,6 @@
           "key": "l abeille"
         },
         {
-          "name": "Maddy Rose at Liberty House",
-          "key": "maddy rose at liberty house"
-        },
-        {
           "name": "Manhatta",
           "key": "manhatta"
         },
@@ -412,6 +408,10 @@
         {
           "name": "Potluck Club",
           "key": "potluck club"
+        },
+        {
+          "name": "Razza - Jersey City",
+          "key": "razza jersey city"
         },
         {
           "name": "Red Hook Tavern",
