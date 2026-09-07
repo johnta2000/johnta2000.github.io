@@ -19,6 +19,7 @@
   const maxPriceLabel = document.querySelector("#maxPriceLabel");
   const priceSummary = document.querySelector("#priceSummary");
   const rangeShell = document.querySelector("#rangeShell");
+  const showMenuImages = document.body.classList.contains("hem");
 
   const categoryMap = new Map(data.categories.map((category) => [category.id, category]));
   const items = data.items.map((item, index) => ({
@@ -117,7 +118,13 @@
       const category = categoryMap.get(item.categoryId)?.name || "Other items";
       const description = item.description ? `<p>${escapeHtml(item.description)}</p>` : "";
       const tags = [category, item.ageRestricted ? "ID required" : ""].filter(Boolean).join(" · ");
-      return `<a class="menu-item" href="${escapeHtml(item.url)}" target="_blank" rel="noopener" aria-label="${escapeHtml(item.name)}, ${money(item.price)} — view on Clover"><div><h3>${escapeHtml(item.name)}</h3>${description}<span class="item-meta">${escapeHtml(tags)}</span></div><footer><strong>${money(item.price)}</strong><span>View on Clover ↗</span></footer></a>`;
+      const photo = showMenuImages
+        ? item.image
+          ? `<div class="item-photo"><img src="${escapeHtml(item.image)}" alt="" width="375" height="375" loading="lazy" decoding="async" /></div>`
+          : `<div class="item-photo item-photo-placeholder" aria-hidden="true"><span>HẺM</span></div>`
+        : "";
+      const cardClass = showMenuImages ? "menu-item photo-card" : "menu-item";
+      return `<a class="${cardClass}" href="${escapeHtml(item.url)}" target="_blank" rel="noopener" aria-label="${escapeHtml(item.name)}, ${money(item.price)} — view on Clover">${photo}<div><h3>${escapeHtml(item.name)}</h3>${description}<span class="item-meta">${escapeHtml(tags)}</span></div><footer><strong>${money(item.price)}</strong><span>View on Clover ↗</span></footer></a>`;
     }).join("");
   };
 
