@@ -88,6 +88,8 @@ test("persists required evidence fields for successful fixture runs", async () =
   assert.deepEqual(run.itinerary, ITINERARY);
   assert.equal(run.lowestVisibleDailyRateUsd, 80);
   assert.equal(run.passengerCapacity, 7);
+  assert.equal(run.eligibleVehicles.length, 1);
+  assert.equal(run.eligibleVehicles[0].vehicleClass, "7 Passenger Std 2WD SUV — Nissan Pathfinder or similar");
   assert.equal(run.criteriaVersion, CRITERIA_VERSION);
   assert.equal(run.status, "success");
   assert.equal(run.error, null);

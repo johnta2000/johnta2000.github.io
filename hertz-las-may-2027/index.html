@@ -7,7 +7,7 @@
     <meta name="robots" content="noindex, nofollow" />
     <title>Hertz LAS May 2027 · Price Watch</title>
     <link rel="icon" href="../assets/img/favicon.png" />
-    <link rel="stylesheet" href="styles.css?v=20260906.2" />
+    <link rel="stylesheet" href="styles.css?v=20260906.3" />
   </head>
   <body>
     <header class="site-header">
@@ -15,6 +15,7 @@
       <nav aria-label="Page links">
         <a href="#trip">Trip</a>
         <a href="#history">History</a>
+        <a href="#options">Options</a>
         <a id="booking-link-top" class="booking-link" href="#" target="_blank" rel="noreferrer">Open Hertz ↗</a>
       </nav>
     </header>
@@ -63,7 +64,7 @@
         <div class="section-heading">
           <div class="section-label"><span>02</span><p>Price history</p></div>
           <div>
-            <h2 id="history-title">The long slide.</h2>
+            <h2 id="history-title">The full story.</h2>
             <p id="history-summary">Loading recorded observations…</p>
           </div>
         </div>
@@ -71,21 +72,49 @@
         <div class="metrics" aria-label="Pricing summary">
           <article><span>Threshold</span><strong id="threshold-rate">—</strong><small id="threshold-note">Target daily rate</small></article>
           <article><span>Change since first</span><strong id="price-change">—</strong><small id="price-change-note">Across successful checks</small></article>
-          <article><span>Successful checks</span><strong id="successful-count">—</strong><small id="failed-count">— unavailable</small></article>
+          <article><span>Recorded prices</span><strong id="successful-count">—</strong><small id="failed-count">—</small></article>
         </div>
 
         <div class="chart-panel">
           <div class="chart-heading">
-            <div><span>Lowest qualifying daily rate</span><strong id="chart-current">—</strong></div>
-            <div class="legend"><span class="legend-rate">Observed rate</span><span class="legend-threshold">$120 threshold</span></div>
+            <div><span>Lowest daily rate</span><strong id="chart-current">—</strong><small id="legacy-count">Loading series…</small></div>
+            <div class="legend"><span class="legend-legacy">Legacy all-vehicle</span><span class="legend-family">6–12 seats, no trucks</span><span class="legend-threshold">$120 threshold</span></div>
           </div>
           <div id="price-chart" class="chart-wrap" aria-live="polite"></div>
         </div>
       </section>
 
+      <section id="options" class="options-section" aria-labelledby="options-title">
+        <div class="section-heading">
+          <div class="section-label"><span>03</span><p>Current market</p></div>
+          <div>
+            <h2 id="options-title">What qualifies today.</h2>
+            <p>Every currently visible 6–12 passenger option, with pickups and trucks removed.</p>
+          </div>
+        </div>
+
+        <div class="metrics options-metrics" aria-label="Current qualifying vehicle summary">
+          <article><span>Qualifying options</span><strong id="options-count">—</strong><small>Visible priced cards</small></article>
+          <article><span>Daily-rate range</span><strong id="options-range">—</strong><small>Lowest to highest</small></article>
+          <article><span>At or below $120</span><strong id="under-threshold-count">—</strong><small>Target-matching options</small></article>
+        </div>
+
+        <div class="market-grid">
+          <article class="chart-panel options-panel">
+            <div class="chart-heading"><div><span>Daily rate by vehicle</span><strong>Cheapest first</strong></div><div class="legend"><span class="legend-under">At/below target</span><span class="legend-over">Above target</span></div></div>
+            <div id="options-chart" class="chart-wrap" aria-live="polite"></div>
+          </article>
+          <article class="capacity-panel">
+            <p class="eyebrow">Seat mix</p>
+            <h3>Capacity at a glance.</h3>
+            <div id="capacity-chart" class="capacity-chart" aria-live="polite"></div>
+          </article>
+        </div>
+      </section>
+
       <section class="details-grid">
         <article class="evidence-card">
-          <div class="section-label"><span>03</span><p>Last success</p></div>
+          <div class="section-label"><span>04</span><p>Last success</p></div>
           <h2 id="evidence-vehicle">No successful check yet</h2>
           <div class="evidence-meta">
             <span id="evidence-date">—</span>
@@ -106,18 +135,21 @@
       <section class="runs-section" aria-labelledby="runs-title">
         <div class="runs-heading">
           <div><p class="eyebrow">Durable run log</p><h2 id="runs-title">Every attempt, kept.</h2></div>
+        </div>
+        <details class="run-details">
+          <summary>View all recorded attempts</summary>
           <div class="filter-group" aria-label="Filter run history">
             <button class="filter active" data-filter="all" type="button">All</button>
             <button class="filter" data-filter="success" type="button">Successful</button>
             <button class="filter" data-filter="failure" type="button">Unavailable</button>
           </div>
-        </div>
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th>Checked</th><th>Status</th><th>Daily rate</th><th>Seats</th><th>Vehicle</th><th>Est. total</th><th>Source</th></tr></thead>
-            <tbody id="run-rows"><tr><td colspan="7">Loading run history…</td></tr></tbody>
-          </table>
-        </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Checked</th><th>Status</th><th>Daily rate</th><th>Seats</th><th>Vehicle</th><th>Est. total</th><th>Source</th></tr></thead>
+              <tbody id="run-rows"><tr><td colspan="7">Loading run history…</td></tr></tbody>
+            </table>
+          </div>
+        </details>
       </section>
     </main>
 
@@ -125,6 +157,6 @@
       <span>Hertz LAS price watch</span>
       <span>Repository-backed · Read-only · No bookings</span>
     </footer>
-    <script src="app.js?v=20260906.2" defer></script>
+    <script src="app.js?v=20260906.3" defer></script>
   </body>
 </html>

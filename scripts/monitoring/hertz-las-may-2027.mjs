@@ -320,6 +320,14 @@ export async function runMonitor(options = {}) {
         validVehicleCardCount: validCards.length,
         eligibleVehicleCardCount: validCards.length,
         visiblePricedVehicleCardCount: pricedCards.length,
+        eligibleVehicles: validCards.slice(0, 24).map((card) => ({
+          vehicle: card.vehicle,
+          vehicleClass: card.vehicleClass,
+          passengerCapacity: card.passengerCapacity,
+          dailyRateUsd: card.dailyRateUsd,
+          estimatedTotalUsd: card.estimatedTotalUsd,
+          taxesFeesVisibility: card.taxesFeesVisibility,
+        })),
         criteriaVersion: CRITERIA_VERSION,
       };
     }

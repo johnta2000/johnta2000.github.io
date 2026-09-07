@@ -12,6 +12,8 @@ const workflow = await readFile(resolve(root, ".github/workflows/hertz-las-may-2
 test("Hertz price watch is a standalone static page", () => {
   assert.ok(html.includes("JT<span>/</span>HERTZ WATCH"));
   assert.match(html, /id="price-chart"/);
+  assert.match(html, /id="options-chart"/);
+  assert.match(html, /id="capacity-chart"/);
   assert.match(html, /id="run-rows"/);
   assert.match(app, /fetch\(`history\.json\?ts=/);
   assert.doesNotMatch(html, /Clerk|Convex|tools\/monitoring/);
@@ -21,6 +23,8 @@ test("Hertz price watch is a standalone static page", () => {
 test("standalone page includes threshold, evidence, and failure presentation", () => {
   assert.match(app, /thresholdDailyRateUsd/);
   assert.match(app, /criteriaVersion/);
+  assert.match(app, /legacySuccessful/);
+  assert.match(app, /eligibleVehicles/);
   assert.match(app, /rawEvidenceExcerpt/);
   assert.match(app, /Latest attempt unavailable/);
   assert.match(html, /6–12 seats/);
