@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#50271f" />
     <meta name="description" content="Search every currently available item at Hẻm by Lê Quý in San Francisco." />
     <title>Hẻm by Lê Quý Menu — Fast Search</title>
-    <link rel="stylesheet" href="../sf-organica/styles.css?v=3" />
+    <link rel="stylesheet" href="../sf-organica/styles.css?v=4" />
   </head>
   <body class="hem">
     <header class="topbar">
@@ -50,17 +50,19 @@
             <option value="price-low">Cheapest first</option>
             <option value="price-high">Most expensive first</option>
           </select>
-          <div class="price-controls" aria-label="Filter by price">
-            <span class="price-label">Price</span>
-            <button type="button" data-price-preset="all" class="active">Any</button>
-            <button type="button" data-price-preset="under-5">≤ $5</button>
-            <button type="button" data-price-preset="5-10">$5–10</button>
-            <button type="button" data-price-preset="10-20">$10–20</button>
-            <button type="button" data-price-preset="20-plus">$20+</button>
-            <div class="custom-price">
-              <label><span>Min $</span><input id="minPrice" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0" /></label>
-              <i>to</i>
-              <label><span>Max $</span><input id="maxPrice" type="number" min="0" step="0.01" inputmode="decimal" placeholder="Any" /></label>
+          <div class="price-filter">
+            <button id="priceToggle" class="price-toggle" type="button" aria-expanded="false" aria-controls="pricePopover"><span aria-hidden="true">$</span> Price <b id="priceSummary"></b></button>
+            <div id="pricePopover" class="price-popover" hidden>
+              <div class="price-popover-head"><strong>Price</strong><button id="priceReset" type="button">Reset</button></div>
+              <div class="price-values">
+                <div><span>Low</span><strong id="minPriceLabel">$0.00</strong></div>
+                <div><span>High</span><strong id="maxPriceLabel">$0.00</strong></div>
+              </div>
+              <div id="rangeShell" class="range-shell">
+                <div class="range-rail"></div>
+                <input id="minPrice" type="range" aria-label="Minimum price" />
+                <input id="maxPrice" type="range" aria-label="Maximum price" />
+              </div>
             </div>
           </div>
         </div>
@@ -80,6 +82,6 @@
 
     <footer><a href="../">← All menus</a><span>Independent menu index · Not affiliated with Hẻm by Lê Quý or Clover</span></footer>
     <script src="./menu-data.js?v=1"></script>
-    <script src="../sf-organica/app.js?v=3"></script>
+    <script src="../sf-organica/app.js?v=4"></script>
   </body>
 </html>

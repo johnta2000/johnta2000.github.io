@@ -12,7 +12,13 @@
   const emptyState = document.querySelector("#emptyState");
   const minPriceInput = document.querySelector("#minPrice");
   const maxPriceInput = document.querySelector("#maxPrice");
-  const pricePresetButtons = [...document.querySelectorAll("[data-price-preset]")];
+  const priceToggle = document.querySelector("#priceToggle");
+  const pricePopover = document.querySelector("#pricePopover");
+  const priceReset = document.querySelector("#priceReset");
+  const minPriceLabel = document.querySelector("#minPriceLabel");
+  const maxPriceLabel = document.querySelector("#maxPriceLabel");
+  const priceSummary = document.querySelector("#priceSummary");
+  const rangeShell = document.querySelector("#rangeShell");
 
   const categoryMap = new Map(data.categories.map((category) => [category.id, category]));
   const items = data.items.map((item, index) => ({
@@ -23,6 +29,8 @@
 
   let selectedCategory = "all";
   let visibleCount = 120;
+  const absoluteMinPrice = Math.min(...items.map((item) => item.price));
+  const absoluteMaxPrice = Math.max(...items.map((item) => item.price));
 
   const money = (cents) => new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -32,6 +40,30 @@
   const escapeHtml = (value = "") => value.replace(/[&<>'"]/g, (char) => ({
     "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;",
   })[char]);
+
+  [minPriceInput, maxPriceInput].forEach((input) => {
+    input.min = absoluteMinPrice;
+    input.max = absoluteMaxPrice;
+    input.step = 1;
+  });
+  minPriceInput.value = absoluteMinPrice;
+  maxPriceInput.value = absoluteMaxPrice;
+
+  const isPriceFiltered = () => Number(minPriceInput.value) !== absoluteMinPrice || Number(maxPriceInput.value) !== absoluteMaxPrice;
+
+  const updatePriceUI = () => {
+    const minPrice = Number(minPriceInput.value);
+    const maxPrice = Number(maxPriceInput.value);
+    const span = Math.max(1, absoluteMaxPrice - absoluteMinPrice);
+    const start = ((minPrice - absoluteMinPrice) / span) * 100;
+    const end = ((maxPrice - absoluteMinPrice) / span) * 100;
+    rangeShell.style.setProperty("--range-start", `${start}%`);
+    rangeShell.style.setProperty("--range-end", `${end}%`);
+    minPriceLabel.textContent = money(minPrice);
+    maxPriceLabel.textContent = money(maxPrice);
+    priceSummary.textContent = isPriceFiltered() ? `${money(minPrice)}–${money(maxPrice)}` : "";
+    priceToggle.classList.toggle("active", isPriceFiltered());
+  };
 
   const categoryButton = (id, label, count) => {
     const button = document.createElement("button");
@@ -55,8 +87,8 @@
   const getResults = () => {
     const query = searchInput.value.trim().toLowerCase();
     const terms = query.split(/\s+/).filter(Boolean);
-    const minPrice = minPriceInput.value === "" ? 0 : Number(minPriceInput.value) * 100;
-    const maxPrice = maxPriceInput.value === "" ? Infinity : Number(maxPriceInput.value) * 100;
+    const minPrice = Number(minPriceInput.value);
+    const maxPrice = Number(maxPriceInput.value);
     const filtered = items.filter((item) => {
       const categoryMatch = selectedCategory === "all" || item.categoryId === selectedCategory;
       const searchMatch = !terms.length || terms.every((term) => item.search.includes(term));
@@ -77,7 +109,7 @@
     const shown = results.slice(0, visibleCount);
     const categoryName = selectedCategory === "all" ? "all sections" : categoryMap.get(selectedCategory)?.name;
     resultCount.innerHTML = `<strong>${results.length.toLocaleString()}</strong> ${results.length === 1 ? "item" : "items"} in ${escapeHtml(categoryName)}`;
-    clearButton.hidden = selectedCategory === "all" && !searchInput.value && !minPriceInput.value && !maxPriceInput.value;
+    clearButton.hidden = selectedCategory === "all" && !searchInput.value && !isPriceFiltered();
     emptyState.hidden = results.length !== 0;
     loadMore.hidden = shown.length >= results.length;
     loadMore.textContent = `Show more items · ${Math.min(120, results.length - shown.length).toLocaleString()} next`;
@@ -95,32 +127,43 @@
     searchTimer = window.setTimeout(() => { visibleCount = 120; render(); }, 40);
   });
   sortSelect.addEventListener("change", () => { visibleCount = 120; render(); });
-  const pricePresets = {
-    "all": ["", ""],
-    "under-5": ["", "5"],
-    "5-10": ["5", "10"],
-    "10-20": ["10", "20"],
-    "20-plus": ["20", ""],
-  };
-  pricePresetButtons.forEach((button) => button.addEventListener("click", () => {
-    [minPriceInput.value, maxPriceInput.value] = pricePresets[button.dataset.pricePreset];
-    pricePresetButtons.forEach((node) => node.classList.toggle("active", node === button));
+  priceToggle.addEventListener("click", () => {
+    pricePopover.hidden = !pricePopover.hidden;
+    priceToggle.setAttribute("aria-expanded", String(!pricePopover.hidden));
+  });
+  priceReset.addEventListener("click", () => {
+    minPriceInput.value = absoluteMinPrice;
+    maxPriceInput.value = absoluteMaxPrice;
+    updatePriceUI();
     visibleCount = 120;
     render();
-  }));
-  [minPriceInput, maxPriceInput].forEach((input) => input.addEventListener("input", () => {
-    pricePresetButtons.forEach((button) => button.classList.remove("active"));
+  });
+  minPriceInput.addEventListener("input", () => {
+    if (Number(minPriceInput.value) > Number(maxPriceInput.value)) minPriceInput.value = maxPriceInput.value;
+    updatePriceUI();
     visibleCount = 120;
     render();
-  }));
+  });
+  maxPriceInput.addEventListener("input", () => {
+    if (Number(maxPriceInput.value) < Number(minPriceInput.value)) maxPriceInput.value = minPriceInput.value;
+    updatePriceUI();
+    visibleCount = 120;
+    render();
+  });
+  document.addEventListener("click", (event) => {
+    if (!event.target.closest(".price-filter") && !pricePopover.hidden) {
+      pricePopover.hidden = true;
+      priceToggle.setAttribute("aria-expanded", "false");
+    }
+  });
   clearButton.addEventListener("click", () => {
     searchInput.value = "";
-    minPriceInput.value = "";
-    maxPriceInput.value = "";
+    minPriceInput.value = absoluteMinPrice;
+    maxPriceInput.value = absoluteMaxPrice;
     selectedCategory = "all";
     visibleCount = 120;
     categoryNav.querySelectorAll("button").forEach((button) => button.classList.toggle("active", button.dataset.category === "all"));
-    pricePresetButtons.forEach((button) => button.classList.toggle("active", button.dataset.pricePreset === "all"));
+    updatePriceUI();
     render();
     searchInput.focus();
   });
@@ -130,15 +173,22 @@
       event.preventDefault();
       searchInput.focus();
     }
-    if (event.key === "Escape" && document.activeElement === searchInput) {
-      searchInput.value = "";
-      searchInput.blur();
-      visibleCount = 120;
-      render();
+    if (event.key === "Escape") {
+      if (!pricePopover.hidden) {
+        pricePopover.hidden = true;
+        priceToggle.setAttribute("aria-expanded", "false");
+        priceToggle.focus();
+      } else if (document.activeElement === searchInput) {
+        searchInput.value = "";
+        searchInput.blur();
+        visibleCount = 120;
+        render();
+      }
     }
   });
 
   document.querySelector("#itemTotal").textContent = items.length.toLocaleString();
   document.querySelector("#categoryTotal").textContent = data.categories.length.toLocaleString();
+  updatePriceUI();
   render();
 })();
