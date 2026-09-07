@@ -3,7 +3,7 @@ const preview = new URLSearchParams(window.location.search).get("preview") === "
 const PASSWORD_KEY = "john-ta-video-downloader-password";
 const VISITOR_KEY = "john-ta-video-downloader-visitor";
 const REQUEST_TIMEOUT_MS = 10_000;
-const PASSWORD_SHA256 = "8fbf0611a18c725991f715cc09930ff9bd952c8384499a3e2327ffd181c3b227";
+const PASSWORD_HASH = "f97234b7";
 
 const els = {
   gate: document.querySelector("#access-gate"),
@@ -30,7 +30,7 @@ let sitePassword = sessionStorage.getItem(PASSWORD_KEY) || "";
 let visitorId = localStorage.getItem(VISITOR_KEY) || "";
 
 if (!/^[a-zA-Z0-9_-]{16,100}$/.test(visitorId)) {
-  visitorId = window.crypto.randomUUID().replaceAll("-", "");
+  visitorId = `${Date.now().toString(36)}${Math.random().toString(36).slice(2)}${Math.random().toString(36).slice(2)}`;
   localStorage.setItem(VISITOR_KEY, visitorId);
 }
 
@@ -169,11 +169,13 @@ async function refresh() {
   }
 }
 
-async function passwordMatches(password) {
-  const bytes = new TextEncoder().encode(password);
-  const digest = await window.crypto.subtle.digest("SHA-256", bytes);
-  const hex = Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
-  return hex === PASSWORD_SHA256;
+function passwordMatches(password) {
+  let hash = 2166136261;
+  for (const character of password) {
+    hash ^= character.charCodeAt(0);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0).toString(16).padStart(8, "0") === PASSWORD_HASH;
 }
 
 async function unlock() {
