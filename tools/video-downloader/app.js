@@ -1,18 +1,10 @@
 const CONVEX_URL = "https://rapid-shark-565.convex.cloud";
 const preview = new URLSearchParams(window.location.search).get("preview") === "1";
-const PASSWORD_KEY = "john-ta-video-downloader-password";
 const VISITOR_KEY = "john-ta-video-downloader-visitor";
 const REQUEST_TIMEOUT_MS = 10_000;
-const PASSWORD_HASH = "f97234b7";
 
 const els = {
-  gate: document.querySelector("#access-gate"),
   app: document.querySelector("#app"),
-  accessForm: document.querySelector("#access-form"),
-  accessPassword: document.querySelector("#access-password"),
-  accessSubmit: document.querySelector("#access-submit"),
-  authStatus: document.querySelector("#auth-status"),
-  lockTool: document.querySelector("#lock-tool"),
   workerStatus: document.querySelector("#worker-status"),
   form: document.querySelector("#download-form"),
   videoUrl: document.querySelector("#video-url"),
@@ -26,7 +18,6 @@ const els = {
 
 let workerOnline = false;
 let refreshPromise = null;
-let sitePassword = sessionStorage.getItem(PASSWORD_KEY) || "";
 let visitorId = localStorage.getItem(VISITOR_KEY) || "";
 
 if (!/^[a-zA-Z0-9_-]{16,100}$/.test(visitorId)) {
@@ -126,7 +117,6 @@ function renderJobs(jobs) {
 }
 
 async function convexRequest(kind, path, args = {}) {
-  if (!sitePassword) throw new Error("Enter the shared password first.");
   const controller = new AbortController();
   const timeout = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
   let response;
@@ -139,10 +129,10 @@ async function convexRequest(kind, path, args = {}) {
         "Content-Type": "application/json",
         "Cache-Control": "no-cache, no-store, max-age=0",
       },
-      body: JSON.stringify({ path, args: { ...args, password: sitePassword, visitorId } }),
+      body: JSON.stringify({ path, args: { ...args, visitorId } }),
     });
   } catch (error) {
-    if (error?.name === "AbortError") throw new Error("Password check timed out.");
+    if (error?.name === "AbortError") throw new Error("The downloader service timed out.");
     throw new Error("Couldn’t reach the downloader service.");
   } finally {
     window.clearTimeout(timeout);
@@ -155,7 +145,7 @@ async function convexRequest(kind, path, args = {}) {
 }
 
 async function refresh() {
-  if (preview || !sitePassword || els.app.hidden || refreshPromise) return refreshPromise;
+  if (preview || refreshPromise) return refreshPromise;
   refreshPromise = Promise.all([
     convexRequest("query", "videoDownloads:workerStatus"),
     convexRequest("query", "videoDownloads:listMine"),
@@ -169,92 +159,16 @@ async function refresh() {
   }
 }
 
-function passwordMatches(password) {
-  let hash = 2166136261;
-  for (const character of password) {
-    hash ^= character.charCodeAt(0);
-    hash = Math.imul(hash, 16777619);
+function initialize() {
+  if (preview) {
+    renderWorker({ online: true, busy: false });
+    return;
   }
-  return (hash >>> 0).toString(16).padStart(8, "0") === PASSWORD_HASH;
-}
-
-async function unlock() {
-  els.authStatus.hidden = false;
-  els.authStatus.textContent = "Checking password…";
-  if (!(await passwordMatches(sitePassword))) {
-    throw new Error("Incorrect downloader password.");
-  }
-  els.gate.hidden = true;
-  els.app.hidden = false;
-  sessionStorage.setItem(PASSWORD_KEY, sitePassword);
   refresh().catch((error) => {
     renderWorker({ online: false, busy: false });
     setFormMessage(error.message || "Couldn’t reach the downloader service.");
   });
 }
-
-function showAuthError(error) {
-  const message = String(error?.message || error || "");
-  els.app.hidden = true;
-  els.gate.hidden = false;
-  els.authStatus.hidden = false;
-  els.authStatus.textContent = /incorrect downloader password/i.test(message)
-    ? "That password didn’t work. Try again."
-    : message.toLowerCase().includes("timed out")
-      ? "Password check timed out. Try again."
-      : "Couldn’t reach the downloader. Check your connection and try again.";
-  els.accessPassword.select();
-}
-
-async function initializeAccess() {
-  if (preview) {
-    els.gate.hidden = true;
-    els.app.hidden = false;
-    renderWorker({ online: true, busy: false });
-    return;
-  }
-  if (sitePassword) {
-    try {
-      await unlock();
-      return;
-    } catch {
-      sitePassword = "";
-      sessionStorage.removeItem(PASSWORD_KEY);
-    }
-  }
-  els.authStatus.textContent = "Enter the password to continue.";
-  els.accessPassword.focus();
-}
-
-function lockTool() {
-  sitePassword = "";
-  sessionStorage.removeItem(PASSWORD_KEY);
-  els.app.hidden = true;
-  els.gate.hidden = false;
-  els.accessPassword.value = "";
-  els.authStatus.textContent = "Enter the password to continue.";
-  els.accessPassword.focus();
-}
-
-els.accessForm.addEventListener("submit", async (event) => {
-  event.preventDefault();
-  sitePassword = els.accessPassword.value;
-  els.authStatus.textContent = "Checking password…";
-  els.accessSubmit.disabled = true;
-  els.accessSubmit.textContent = "Checking…";
-  try {
-    await unlock();
-    els.accessPassword.value = "";
-  } catch (error) {
-    console.error(error);
-    sitePassword = "";
-    sessionStorage.removeItem(PASSWORD_KEY);
-    showAuthError(error);
-  } finally {
-    els.accessSubmit.disabled = false;
-    els.accessSubmit.textContent = "Unlock";
-  }
-});
 
 els.form.addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -282,10 +196,9 @@ els.form.addEventListener("submit", async (event) => {
 els.videoUrl.addEventListener("input", updateSubmitState);
 els.permission.addEventListener("change", updateSubmitState);
 els.refreshJobs.addEventListener("click", () => refresh().catch((error) => setFormMessage(error.message)));
-els.lockTool.addEventListener("click", lockTool);
 document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "visible") refresh().catch(() => {});
 });
 window.setInterval(() => refresh().catch(() => {}), 4_000);
 
-initializeAccess();
+initialize();

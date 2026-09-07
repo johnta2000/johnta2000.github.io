@@ -18,13 +18,6 @@ const quality = v.union(
   v.literal("480"),
 );
 
-function requireSitePassword(password: string) {
-  const expected = process.env.DOWNLOADER_SITE_PASSWORD;
-  if (!expected || password !== expected) {
-    throw new Error("Incorrect downloader password.");
-  }
-}
-
 function requesterFor(visitorId: string) {
   if (!/^[a-zA-Z0-9_-]{16,100}$/.test(visitorId)) {
     throw new Error("This browser session could not be identified. Refresh and try again.");
@@ -80,14 +73,12 @@ async function touchWorker(
 
 export const requestDownload = mutation({
   args: {
-    password: v.string(),
     visitorId: v.string(),
     videoUrl: v.string(),
     quality,
     permissionConfirmed: v.boolean(),
   },
   handler: async (ctx, args) => {
-    requireSitePassword(args.password);
     const user = requesterFor(args.visitorId);
     if (!args.permissionConfirmed) {
       throw new Error("Confirm that you have permission to download this video.");
@@ -126,9 +117,8 @@ export const requestDownload = mutation({
 });
 
 export const listMine = query({
-  args: { password: v.string(), visitorId: v.string() },
+  args: { visitorId: v.string() },
   handler: async (ctx, args) => {
-    requireSitePassword(args.password);
     const user = requesterFor(args.visitorId);
     const now = Date.now();
     const jobs = await ctx.db
@@ -160,9 +150,8 @@ export const listMine = query({
 });
 
 export const workerStatus = query({
-  args: { password: v.string(), visitorId: v.string() },
+  args: { visitorId: v.string() },
   handler: async (ctx, args) => {
-    requireSitePassword(args.password);
     requesterFor(args.visitorId);
     const worker = await ctx.db
       .query("videoDownloaderWorkers")

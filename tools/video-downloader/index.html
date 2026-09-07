@@ -14,25 +14,7 @@
     <div class="ambient ambient-one" aria-hidden="true"></div>
     <div class="ambient ambient-two" aria-hidden="true"></div>
 
-    <section id="access-gate" class="access-gate" aria-labelledby="gate-title">
-      <div class="gate-card">
-        <a class="wordmark" href="/" aria-label="John Ta home">JT<span>/</span>TOOLS</a>
-        <p class="eyebrow">Private team utility</p>
-        <h1 id="gate-title">Your downloader.<br /><em>Zero weird websites.</em></h1>
-        <p class="gate-copy">Enter the shared password. Downloads are processed by John’s Mac and expire automatically.</p>
-        <form id="access-form" class="access-form">
-          <label for="access-password">Password</label>
-          <div class="access-row">
-            <input id="access-password" name="password" type="password" autocomplete="current-password" required />
-            <button id="access-submit" class="primary-button" type="submit">Unlock</button>
-          </div>
-        </form>
-        <p id="auth-status" class="auth-status" role="status">Enter the password to continue.</p>
-        <p class="gate-footnote"><span aria-hidden="true"></span> Password access · Convex queue · local processing</p>
-      </div>
-    </section>
-
-    <div id="app" class="site-shell" hidden>
+    <div id="app" class="site-shell">
       <header class="site-header">
         <a class="wordmark" href="/" aria-label="John Ta home">JT<span>/</span>TOOLS</a>
         <div class="header-actions">
@@ -40,7 +22,6 @@
             <span aria-hidden="true"></span>
             <b>Checking John’s Mac</b>
           </div>
-          <button id="lock-tool" class="text-button" type="button">Lock</button>
         </div>
       </header>
 
@@ -107,7 +88,7 @@
       </footer>
     </div>
 
-    <noscript><div class="noscript">JavaScript is required for password access and downloads.</div></noscript>
-    <script src="app.js?v=20260906.5" defer></script>
+    <noscript><div class="noscript">JavaScript is required for downloads.</div></noscript>
+    <script src="app.js?v=20260906.6" defer></script>
   </body>
 </html>
