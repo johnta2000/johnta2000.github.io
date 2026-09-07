@@ -3,6 +3,53 @@
   "maxRuns": 336,
   "runs": [
     {
+      "id": "2026-09-07T20:36:35.760Z",
+      "monitorId": "paze-directory",
+      "timestamp": "2026-09-07T20:36:35.760Z",
+      "status": "success",
+      "changed": true,
+      "initialized": false,
+      "confirmed": true,
+      "durationMs": 4198,
+      "count": 32,
+      "previousCount": 33,
+      "pagination": {
+        "complete": true,
+        "pagesFetched": 3,
+        "pageCounts": [
+          12,
+          12,
+          8
+        ],
+        "finalPage": 2
+      },
+      "diff": {
+        "added": [],
+        "removed": [
+          "Xsolla"
+        ],
+        "renamed": []
+      },
+      "cache": {
+        "runId": "1788813395760",
+        "requestCount": 6,
+        "crawlIds": [
+          "primary",
+          "confirmation"
+        ],
+        "requestIds": [
+          "1788813395763001",
+          "1788813396558002",
+          "1788813397239003",
+          "1788813397947004",
+          "1788813398682005",
+          "1788813399359006"
+        ]
+      },
+      "summary": "0 added, 1 removed, 0 renamed.",
+      "error": null
+    },
+    {
       "id": "2026-09-07T16:29:50.327Z",
       "monitorId": "paze-directory",
       "timestamp": "2026-09-07T16:29:50.327Z",
