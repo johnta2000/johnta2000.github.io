@@ -9,6 +9,7 @@ import {
   CRITERIA_VERSION,
   ITINERARY,
   VEHICLE_CRITERIA,
+  historyToCsv,
   isEligibleVehicleCard,
   parseFixtureHtml,
   runMonitor,
@@ -78,9 +79,10 @@ test("persists required evidence fields for successful fixture runs", async () =
   const htmlPath = resolve(directory, "fixture.html");
   const historyPath = resolve(directory, "history.json");
   const publicHistoryPath = resolve(directory, "public-history.json");
+  const publicCsvPath = resolve(directory, "history.csv");
   await writeFile(htmlPath, fixture);
 
-  const { run } = await runMonitor({ htmlPath, historyPath, publicHistoryPath });
+  const { run } = await runMonitor({ htmlPath, historyPath, publicHistoryPath, publicCsvPath });
   const stored = JSON.parse(await readFile(historyPath, "utf8"));
   const publicStored = JSON.parse(await readFile(publicHistoryPath, "utf8"));
   assert.equal(stored.runs.length, 1);
@@ -96,6 +98,7 @@ test("persists required evidence fields for successful fixture runs", async () =
   assert.match(run.rawEvidenceExcerpt, /Nissan Pathfinder/);
   assert.deepEqual(stored.vehicleCriteria, VEHICLE_CRITERIA);
   assert.deepEqual(publicStored, stored);
+  assert.match(await readFile(publicCsvPath, "utf8"), /2027|Nissan Pathfinder/);
 });
 
 test("persists a scoped unavailable run when priced cards do not qualify", async () => {
@@ -103,12 +106,26 @@ test("persists a scoped unavailable run when priced cards do not qualify", async
   const htmlPath = resolve(directory, "fixture.html");
   const historyPath = resolve(directory, "history.json");
   const publicHistoryPath = resolve(directory, "public-history.json");
+  const publicCsvPath = resolve(directory, "history.csv");
   await writeFile(htmlPath, `<article data-monitor-vehicle-card data-monitor-passengers="6"><h3>Pickup — RAM 2500 or similar</h3><span>$55/day</span></article>`);
 
-  await assert.rejects(runMonitor({ htmlPath, historyPath, publicHistoryPath }), /6–12 passenger non-truck/);
+  await assert.rejects(runMonitor({ htmlPath, historyPath, publicHistoryPath, publicCsvPath }), /6–12 passenger non-truck/);
   const stored = JSON.parse(await readFile(historyPath, "utf8"));
   assert.equal(stored.runs[0].status, "no_eligible_vehicle");
   assert.equal(stored.runs[0].visiblePricedVehicleCardCount, 1);
   assert.equal(stored.runs[0].eligibleVehicleCardCount, 0);
   assert.equal(stored.runs[0].criteriaVersion, CRITERIA_VERSION);
+});
+
+test("exports a stable one-row-per-check CSV", () => {
+  const csv = historyToCsv({ runs: [{
+    checkedAt: "2026-09-06T23:40:26.000Z",
+    status: "success",
+    criteriaVersion: 2,
+    passengerCapacity: 7,
+    lowestVisibleDailyRateUsd: 80,
+    vehicle: 'Pathfinder, "or similar"',
+  }] });
+  assert.match(csv, /^checkedAt,status,criteriaVersion,/);
+  assert.match(csv, /,"Pathfinder, ""or similar""",/);
 });

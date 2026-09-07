@@ -151,6 +151,9 @@ h1 em { color: #bd8800; font-family: Georgia, "Times New Roman", serif; font-wei
 
 .runs-section { scroll-margin-top: 30px; }
 .runs-heading { display: flex; justify-content: space-between; gap: 24px; align-items: end; margin-bottom: 24px; }
+.data-links { display: flex; flex-wrap: wrap; gap: 8px; }
+.data-links a { border: 1px solid var(--line); border-radius: 999px; background: var(--panel); padding: 8px 12px; font-size: 10px; font-weight: 800; text-decoration: none; }
+.data-links a:hover { border-color: var(--ink); }
 .run-details { border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); padding: 18px 0; }
 .run-details summary { cursor: pointer; font-size: 13px; font-weight: 800; }
 .run-details[open] summary { margin-bottom: 18px; }

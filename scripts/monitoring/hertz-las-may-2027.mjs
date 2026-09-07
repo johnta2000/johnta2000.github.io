@@ -26,6 +26,7 @@ export const VEHICLE_CRITERIA = Object.freeze({
 const ROOT = resolve(import.meta.dirname, "../..");
 const DEFAULT_HISTORY_PATH = resolve(ROOT, ".github/monitoring-data/hertz-las-may-2027-history.json");
 const DEFAULT_PUBLIC_HISTORY_PATH = resolve(ROOT, "hertz-las-may-2027/history.json");
+const DEFAULT_PUBLIC_CSV_PATH = resolve(ROOT, "hertz-las-may-2027/history.csv");
 const CARD_SELECTOR = [
   '[class~="MuiCard-root"]',
   '[data-testid*="vehicle-card" i]',
@@ -42,6 +43,7 @@ export function parseCliArgs(argv = process.argv.slice(2)) {
   const options = {
     historyPath: process.env.HERTZ_HISTORY_PATH || DEFAULT_HISTORY_PATH,
     publicHistoryPath: process.env.HERTZ_PUBLIC_HISTORY_PATH || DEFAULT_PUBLIC_HISTORY_PATH,
+    publicCsvPath: process.env.HERTZ_PUBLIC_CSV_PATH || DEFAULT_PUBLIC_CSV_PATH,
     screenshotPath: process.env.HERTZ_SCREENSHOT_PATH || null,
     htmlPath: null,
   };
@@ -49,6 +51,7 @@ export function parseCliArgs(argv = process.argv.slice(2)) {
     const argument = argv[index];
     if (argument === "--history") options.historyPath = resolve(argv[++index]);
     else if (argument === "--public-history") options.publicHistoryPath = resolve(argv[++index]);
+    else if (argument === "--public-csv") options.publicCsvPath = resolve(argv[++index]);
     else if (argument === "--screenshot") options.screenshotPath = resolve(argv[++index]);
     else if (argument === "--html") options.htmlPath = resolve(argv[++index]);
     else throw new Error(`Unknown argument: ${argument}`);
@@ -260,6 +263,31 @@ async function writeHistory(path, history) {
   await rename(temporaryPath, path);
 }
 
+const csvCell = (value) => {
+  if (value == null) return "";
+  const text = String(value).replace(/\u001b\[[0-9;]*m/g, "").replace(/[\r\n]+/g, " ");
+  return /[",\r\n]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
+};
+
+export function historyToCsv(history) {
+  const columns = [
+    "checkedAt", "status", "criteriaVersion", "passengerCapacity", "lowestVisibleDailyRateUsd",
+    "vehicleClass", "vehicle", "estimatedTotalUsd", "taxesFeesVisibility", "eligibleVehicleCardCount",
+    "visiblePricedVehicleCardCount", "source", "checkedUrl", "error",
+  ];
+  return `${[
+    columns.join(","),
+    ...(history.runs || []).map((run) => columns.map((column) => csvCell(run[column])).join(",")),
+  ].join("\n")}\n`;
+}
+
+async function writeText(path, text) {
+  await mkdir(resolve(path, ".."), { recursive: true });
+  const temporaryPath = `${path}.${process.pid}.tmp`;
+  await writeFile(temporaryPath, text, "utf8");
+  await rename(temporaryPath, path);
+}
+
 export async function runMonitor(options = {}) {
   const startedAt = new Date();
   const started = performance.now();
@@ -365,9 +393,15 @@ export async function runMonitor(options = {}) {
   history.runs = [run, ...(history.runs || []).filter((candidate) => candidate.id !== run.id)];
   await writeHistory(historyPath, history);
   await writeHistory(options.publicHistoryPath || DEFAULT_PUBLIC_HISTORY_PATH, history);
+  await writeText(options.publicCsvPath || DEFAULT_PUBLIC_CSV_PATH, historyToCsv(history));
 
   if (run.status !== "success") throw new Error(run.error);
-  return { run, historyPath, publicHistoryPath: options.publicHistoryPath || DEFAULT_PUBLIC_HISTORY_PATH };
+  return {
+    run,
+    historyPath,
+    publicHistoryPath: options.publicHistoryPath || DEFAULT_PUBLIC_HISTORY_PATH,
+    publicCsvPath: options.publicCsvPath || DEFAULT_PUBLIC_CSV_PATH,
+  };
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {

@@ -7,7 +7,7 @@
     <meta name="robots" content="noindex, nofollow" />
     <title>Hertz LAS May 2027 · Price Watch</title>
     <link rel="icon" href="../assets/img/favicon.png" />
-    <link rel="stylesheet" href="styles.css?v=20260906.3" />
+    <link rel="stylesheet" href="styles.css?v=20260906.4" />
   </head>
   <body>
     <header class="site-header">
@@ -88,8 +88,8 @@
         <div class="section-heading">
           <div class="section-label"><span>03</span><p>Current market</p></div>
           <div>
-            <h2 id="options-title">What qualifies today.</h2>
-            <p>Every currently visible 6–12 passenger option, with pickups and trucks removed.</p>
+            <h2 id="options-title">What qualified at the last check.</h2>
+            <p>Latest verified snapshot: <strong id="snapshot-time">loading…</strong> <span id="snapshot-age"></span>. This is a saved observation—not a live Hertz feed.</p>
           </div>
         </div>
 
@@ -135,6 +135,10 @@
       <section class="runs-section" aria-labelledby="runs-title">
         <div class="runs-heading">
           <div><p class="eyebrow">Durable run log</p><h2 id="runs-title">Every attempt, kept.</h2></div>
+          <div class="data-links" aria-label="Download monitor history">
+            <a href="history.csv" download>Download CSV</a>
+            <a href="history.json" download>Download JSON</a>
+          </div>
         </div>
         <details class="run-details">
           <summary>View all recorded attempts</summary>
@@ -157,6 +161,6 @@
       <span>Hertz LAS price watch</span>
       <span>Repository-backed · Read-only · No bookings</span>
     </footer>
-    <script src="app.js?v=20260906.3" defer></script>
+    <script src="app.js?v=20260906.4" defer></script>
   </body>
 </html>

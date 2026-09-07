@@ -8,7 +8,7 @@ The current criteria (version 2) are 6–12 passengers inclusive, with pickups a
 
 The deterministic Playwright collector searches only visible rendered vehicle-card containers. A rate is valid only when card text contains `$N/day` or `$N` followed by `/day`, the visible capacity is between 6 and 12, and the card is not a pickup or truck. Bare currency values, filter sliders, hidden elements, page-level text, and cards without a trustworthy capacity are not candidates.
 
-Every attempt—including failures—is prepended to the private repository source log at `.github/monitoring-data/hertz-las-may-2027-history.json`. The script then writes the same JSON to `hertz-las-may-2027/history.json`, which is the static page's deployable data source. Each new record contains the timestamp, checked URL, full itinerary, lowest valid rate, vehicle class, passenger capacity, estimated total, taxes/fees visibility, rendered evidence, status/error, duration, page metadata, and eligible-card count.
+Every attempt—including failures—is prepended to the private repository source log at `.github/monitoring-data/hertz-las-may-2027-history.json`. The script then writes the same JSON to `hertz-las-may-2027/history.json`, which is the static page's deployable data source, and a one-row-per-check summary to `hertz-las-may-2027/history.csv`. Each new JSON record contains the timestamp, checked URL, full itinerary, lowest valid rate, vehicle class, passenger capacity, estimated total, taxes/fees visibility, rendered evidence, status/error, duration, page metadata, eligible-card count, and the complete qualifying-vehicle snapshot for successful checks.
 
 The initial 26 observations came from the reconstructed source-thread CSV and are marked `source: "reconstructed"`. They tracked the cheapest vehicle of any size, so they remain visible as `Legacy scope` in the durable log but are excluded from the version-2 chart and summary. Unknown legacy fields are `not_recorded` or `null`, never inferred.
 
@@ -40,7 +40,7 @@ Open `http://localhost:4173/hertz-las-may-2027/`.
 
 ## Schedule and deployment
 
-`.github/workflows/hertz-las-may-2027-monitor.yml` runs daily at 15:27 UTC and supports manual dispatch. It tests the parser, performs the read-only check, uploads a 30-day screenshot artifact, and commits both history files even when collection fails. An unavailable Hertz page is recorded in the dashboard without failing the workflow, which avoids noisy scheduled-run alerts.
+`.github/workflows/hertz-las-may-2027-monitor.yml` runs daily at 15:27 UTC and supports manual dispatch. It tests the parser, performs the read-only check, uploads a 30-day screenshot artifact, and commits the durable JSON, public JSON, and public CSV even when collection fails. An unavailable Hertz page is recorded in the dashboard without failing the workflow, which avoids noisy scheduled-run alerts.
 
 This repository deploys static files through GitHub Pages. Commit the Hertz collector, standalone page, history files, dependency lockfile, and workflow, then push `master`. No Convex deployment or monitoring-dashboard secret is required for this standalone page.
 

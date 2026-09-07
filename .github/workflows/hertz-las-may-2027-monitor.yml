@@ -61,6 +61,7 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add .github/monitoring-data/hertz-las-may-2027-history.json
           git add hertz-las-may-2027/history.json
+          git add hertz-las-may-2027/history.csv
           if git diff --cached --quiet; then
             echo "No Hertz monitor data changed."
           else

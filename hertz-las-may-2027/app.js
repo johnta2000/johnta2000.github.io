@@ -5,6 +5,7 @@ const els = Object.fromEntries([
   "price-chart", "evidence-vehicle", "evidence-date", "evidence-tax", "evidence-copy", "run-rows",
   "booking-link-top", "booking-link-evidence", "options-count", "options-range", "under-threshold-count",
   "options-chart", "capacity-chart", "legacy-count",
+  "snapshot-time", "snapshot-age",
 ].map((id) => [id, document.getElementById(id)]));
 
 let history = null;
@@ -139,12 +140,14 @@ function render(data) {
   els["successful-count"].textContent = String(allSuccessful.length);
   els["failed-count"].textContent = `${successful.length} family-scope · ${legacySuccessful.length} legacy`;
   els["legacy-count"].textContent = `${legacySuccessful.length} legacy all-vehicle observations + ${successful.length} family-vehicle observation${successful.length === 1 ? "" : "s"}`;
-  els["history-summary"].textContent = `Every successful observation from ${fullDate(firstSuccess?.checkedAt).split(",")[0]} through ${fullDate(allSuccessful[0]?.checkedAt).split(",")[0]}. The line preserves the original all-vehicle history; larger family vehicles are overlaid as a distinct series.`;
+  els["history-summary"].textContent = `Saved checks from ${fullDate(firstSuccess?.checkedAt).split(",")[0]} through ${fullDate(allSuccessful[0]?.checkedAt).split(",")[0]}—not live rates. Gray is the original cheapest-any-vehicle history; yellow marks 6–12-seat, non-truck results.`;
   els["chart-current"].textContent = `${money(latestSuccess?.lowestVisibleDailyRateUsd)}/day`;
   els["evidence-vehicle"].textContent = latestSuccess ? `${latestSuccess.vehicle} · ${latestSuccess.passengerCapacity ?? "?"} seats` : "No successful qualifying check yet";
   els["evidence-date"].textContent = fullDate(latestSuccess?.checkedAt);
   els["evidence-tax"].textContent = `Taxes/fees: ${(latestSuccess?.taxesFeesVisibility ?? "unknown").replaceAll("_", " ")}`;
   els["evidence-copy"].textContent = latestSuccess?.rawEvidenceExcerpt ?? "Rendered evidence will appear here.";
+  els["snapshot-time"].textContent = fullDate(latestSuccess?.checkedAt);
+  els["snapshot-age"].textContent = latestSuccess ? `(${relativeTime(latestSuccess.checkedAt)})` : "";
   const options = latestSuccess?.eligibleVehicles ?? [];
   const optionRates = options.map((option) => option.dailyRateUsd).filter(Number.isFinite);
   els["options-count"].textContent = String(options.length || latestSuccess?.eligibleVehicleCardCount || 0);

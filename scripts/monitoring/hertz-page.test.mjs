@@ -14,6 +14,8 @@ test("Hertz price watch is a standalone static page", () => {
   assert.match(html, /id="price-chart"/);
   assert.match(html, /id="options-chart"/);
   assert.match(html, /id="capacity-chart"/);
+  assert.match(html, /href="history\.csv"/);
+  assert.match(html, /saved observation—not a live Hertz feed/);
   assert.match(html, /id="run-rows"/);
   assert.match(app, /fetch\(`history\.json\?ts=/);
   assert.doesNotMatch(html, /Clerk|Convex|tools\/monitoring/);
@@ -35,6 +37,7 @@ test("scheduled job updates both durable and public history", () => {
   assert.match(workflow, /cron: "27 15 \* \* \*"/);
   assert.match(workflow, /\.github\/monitoring-data\/hertz-las-may-2027-history\.json/);
   assert.match(workflow, /git add hertz-las-may-2027\/history\.json/);
+  assert.match(workflow, /git add hertz-las-may-2027\/history\.csv/);
   assert.doesNotMatch(workflow, /Report collector failure/);
   assert.doesNotMatch(workflow, /MONITORING_REPORT_SECRET|convex/i);
 });
