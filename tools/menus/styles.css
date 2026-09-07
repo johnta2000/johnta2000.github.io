@@ -16,9 +16,11 @@ h1{grid-column:1;margin:0;font-family:Georgia,"Times New Roman",serif;font-size:
 .section-heading{display:flex;align-items:end;justify-content:space-between;gap:24px;margin-bottom:24px}
 .section-heading h2{margin:0;font-size:2rem;letter-spacing:-.045em}
 .section-heading>p{margin:0;color:var(--muted);font-size:.72rem}
+.restaurant-list{display:grid;gap:12px}
 .restaurant-card{display:grid;grid-template-columns:88px minmax(0,1fr) auto;gap:24px;align-items:center;padding:26px;border:1px solid var(--line);border-radius:18px;background:var(--card);box-shadow:var(--shadow);text-decoration:none;transition:transform .18s,border-color .18s}
 .restaurant-card:hover{transform:translateY(-3px);border-color:#a6aa9f}
 .restaurant-mark{display:grid;width:88px;height:88px;place-items:center;border-radius:15px;background:var(--green);color:var(--lime);font-family:Georgia,serif;font-size:1.8rem}
+.hem-card .restaurant-mark{background:#50271f;color:#f3cf80;font-size:1.15rem;letter-spacing:.04em}
 .status{display:flex;align-items:center;gap:7px;color:var(--green);font-size:.59rem;font-weight:850;text-transform:uppercase;letter-spacing:.09em}
 .status i{width:7px;height:7px;border-radius:50%;background:#38a46b;box-shadow:0 0 0 4px #dff2e7}
 .restaurant-copy h3{margin:8px 0 5px;font-size:1.55rem;letter-spacing:-.04em}

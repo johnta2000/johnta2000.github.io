@@ -1,5 +1,5 @@
 (() => {
-  const data = window.SF_ORGANICA_MENU;
+  const data = window.RESTAURANT_MENU || window.SF_ORGANICA_MENU || window.HEM_MENU;
   if (!data) return;
 
   const searchInput = document.querySelector("#searchInput");
@@ -10,6 +10,9 @@
   const clearButton = document.querySelector("#clearButton");
   const loadMore = document.querySelector("#loadMore");
   const emptyState = document.querySelector("#emptyState");
+  const minPriceInput = document.querySelector("#minPrice");
+  const maxPriceInput = document.querySelector("#maxPrice");
+  const pricePresetButtons = [...document.querySelectorAll("[data-price-preset]")];
 
   const categoryMap = new Map(data.categories.map((category) => [category.id, category]));
   const items = data.items.map((item, index) => ({
@@ -52,10 +55,13 @@
   const getResults = () => {
     const query = searchInput.value.trim().toLowerCase();
     const terms = query.split(/\s+/).filter(Boolean);
+    const minPrice = minPriceInput.value === "" ? 0 : Number(minPriceInput.value) * 100;
+    const maxPrice = maxPriceInput.value === "" ? Infinity : Number(maxPriceInput.value) * 100;
     const filtered = items.filter((item) => {
       const categoryMatch = selectedCategory === "all" || item.categoryId === selectedCategory;
       const searchMatch = !terms.length || terms.every((term) => item.search.includes(term));
-      return categoryMatch && searchMatch;
+      const priceMatch = item.price >= minPrice && item.price <= maxPrice;
+      return categoryMatch && searchMatch && priceMatch;
     });
 
     switch (sortSelect.value) {
@@ -71,7 +77,7 @@
     const shown = results.slice(0, visibleCount);
     const categoryName = selectedCategory === "all" ? "all sections" : categoryMap.get(selectedCategory)?.name;
     resultCount.innerHTML = `<strong>${results.length.toLocaleString()}</strong> ${results.length === 1 ? "item" : "items"} in ${escapeHtml(categoryName)}`;
-    clearButton.hidden = selectedCategory === "all" && !searchInput.value;
+    clearButton.hidden = selectedCategory === "all" && !searchInput.value && !minPriceInput.value && !maxPriceInput.value;
     emptyState.hidden = results.length !== 0;
     loadMore.hidden = shown.length >= results.length;
     loadMore.textContent = `Show more items · ${Math.min(120, results.length - shown.length).toLocaleString()} next`;
@@ -89,11 +95,32 @@
     searchTimer = window.setTimeout(() => { visibleCount = 120; render(); }, 40);
   });
   sortSelect.addEventListener("change", () => { visibleCount = 120; render(); });
+  const pricePresets = {
+    "all": ["", ""],
+    "under-5": ["", "5"],
+    "5-10": ["5", "10"],
+    "10-20": ["10", "20"],
+    "20-plus": ["20", ""],
+  };
+  pricePresetButtons.forEach((button) => button.addEventListener("click", () => {
+    [minPriceInput.value, maxPriceInput.value] = pricePresets[button.dataset.pricePreset];
+    pricePresetButtons.forEach((node) => node.classList.toggle("active", node === button));
+    visibleCount = 120;
+    render();
+  }));
+  [minPriceInput, maxPriceInput].forEach((input) => input.addEventListener("input", () => {
+    pricePresetButtons.forEach((button) => button.classList.remove("active"));
+    visibleCount = 120;
+    render();
+  }));
   clearButton.addEventListener("click", () => {
     searchInput.value = "";
+    minPriceInput.value = "";
+    maxPriceInput.value = "";
     selectedCategory = "all";
     visibleCount = 120;
     categoryNav.querySelectorAll("button").forEach((button) => button.classList.toggle("active", button.dataset.category === "all"));
+    pricePresetButtons.forEach((button) => button.classList.toggle("active", button.dataset.pricePreset === "all"));
     render();
     searchInput.focus();
   });
