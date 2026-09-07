@@ -3,6 +3,7 @@ const preview = new URLSearchParams(window.location.search).get("preview") === "
 const PASSWORD_KEY = "john-ta-video-downloader-password";
 const VISITOR_KEY = "john-ta-video-downloader-visitor";
 const REQUEST_TIMEOUT_MS = 10_000;
+const PASSWORD_SHA256 = "8fbf0611a18c725991f715cc09930ff9bd952c8384499a3e2327ffd181c3b227";
 
 const els = {
   gate: document.querySelector("#access-gate"),
@@ -168,14 +169,26 @@ async function refresh() {
   }
 }
 
+async function passwordMatches(password) {
+  const bytes = new TextEncoder().encode(password);
+  const digest = await window.crypto.subtle.digest("SHA-256", bytes);
+  const hex = Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
+  return hex === PASSWORD_SHA256;
+}
+
 async function unlock() {
   els.authStatus.hidden = false;
   els.authStatus.textContent = "Checking password…";
-  await convexRequest("query", "videoDownloads:workerStatus");
+  if (!(await passwordMatches(sitePassword))) {
+    throw new Error("Incorrect downloader password.");
+  }
   els.gate.hidden = true;
   els.app.hidden = false;
   sessionStorage.setItem(PASSWORD_KEY, sitePassword);
-  await refresh();
+  refresh().catch((error) => {
+    renderWorker({ online: false, busy: false });
+    setFormMessage(error.message || "Couldn’t reach the downloader service.");
+  });
 }
 
 function showAuthError(error) {
