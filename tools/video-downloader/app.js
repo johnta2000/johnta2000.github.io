@@ -2,12 +2,14 @@ const CONVEX_URL = "https://rapid-shark-565.convex.cloud";
 const preview = new URLSearchParams(window.location.search).get("preview") === "1";
 const PASSWORD_KEY = "john-ta-video-downloader-password";
 const VISITOR_KEY = "john-ta-video-downloader-visitor";
+const REQUEST_TIMEOUT_MS = 10_000;
 
 const els = {
   gate: document.querySelector("#access-gate"),
   app: document.querySelector("#app"),
   accessForm: document.querySelector("#access-form"),
   accessPassword: document.querySelector("#access-password"),
+  accessSubmit: document.querySelector("#access-submit"),
   authStatus: document.querySelector("#auth-status"),
   lockTool: document.querySelector("#lock-tool"),
   workerStatus: document.querySelector("#worker-status"),
@@ -124,15 +126,26 @@ function renderJobs(jobs) {
 
 async function convexRequest(kind, path, args = {}) {
   if (!sitePassword) throw new Error("Enter the shared password first.");
-  const response = await fetch(`${CONVEX_URL}/api/${kind}`, {
-    method: "POST",
-    cache: "no-store",
-    headers: {
-      "Content-Type": "application/json",
-      "Cache-Control": "no-cache, no-store, max-age=0",
-    },
-    body: JSON.stringify({ path, args: { ...args, password: sitePassword, visitorId } }),
-  });
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  let response;
+  try {
+    response = await fetch(`${CONVEX_URL}/api/${kind}`, {
+      method: "POST",
+      cache: "no-store",
+      signal: controller.signal,
+      headers: {
+        "Content-Type": "application/json",
+        "Cache-Control": "no-cache, no-store, max-age=0",
+      },
+      body: JSON.stringify({ path, args: { ...args, password: sitePassword, visitorId } }),
+    });
+  } catch (error) {
+    if (error?.name === "AbortError") throw new Error("Password check timed out.");
+    throw new Error("Couldn’t reach the downloader service.");
+  } finally {
+    window.clearTimeout(timeout);
+  }
   const result = await response.json();
   if (!response.ok || result.status !== "success") {
     throw new Error(result.errorMessage || result.message || result.code || "The request failed.");
@@ -165,11 +178,16 @@ async function unlock() {
   await refresh();
 }
 
-function showAuthError() {
+function showAuthError(error) {
+  const message = String(error?.message || error || "");
   els.app.hidden = true;
   els.gate.hidden = false;
   els.authStatus.hidden = false;
-  els.authStatus.textContent = "That password didn’t work. Try again.";
+  els.authStatus.textContent = /incorrect downloader password/i.test(message)
+    ? "That password didn’t work. Try again."
+    : message.toLowerCase().includes("timed out")
+      ? "Password check timed out. Try again."
+      : "Couldn’t reach the downloader. Check your connection and try again.";
   els.accessPassword.select();
 }
 
@@ -207,6 +225,8 @@ els.accessForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   sitePassword = els.accessPassword.value;
   els.authStatus.textContent = "Checking password…";
+  els.accessSubmit.disabled = true;
+  els.accessSubmit.textContent = "Checking…";
   try {
     await unlock();
     els.accessPassword.value = "";
@@ -214,7 +234,10 @@ els.accessForm.addEventListener("submit", async (event) => {
     console.error(error);
     sitePassword = "";
     sessionStorage.removeItem(PASSWORD_KEY);
-    showAuthError();
+    showAuthError(error);
+  } finally {
+    els.accessSubmit.disabled = false;
+    els.accessSubmit.textContent = "Unlock";
   }
 });
 
