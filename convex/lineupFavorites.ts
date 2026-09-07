@@ -9,6 +9,25 @@ async function requireIdentity(ctx: any) {
   return identity;
 }
 
+function normalizedEmail(value: unknown) {
+  return typeof value === "string" ? value.trim().toLowerCase() : "";
+}
+
+async function rallyPreferenceTarget(ctx: any, identity: any, eventId: string) {
+  const doc = await ctx.db
+    .query("warRoomState")
+    .withIndex("by_board", (q: any) => q.eq("boardId", `rally:${eventId}`))
+    .unique();
+  const state = doc?.buckets;
+  if (!doc || !state || !Array.isArray(state.members)) return null;
+  const email = normalizedEmail(identity.email);
+  const member = state.members.find((person: any) =>
+    person.clerkSubject === identity.subject ||
+    (email && normalizedEmail(person.email) === email),
+  );
+  return member ? { doc, state, member } : null;
+}
+
 export const getMine = query({
   args: { eventId: v.optional(v.string()) },
   handler: async (ctx, args) => {
@@ -20,9 +39,11 @@ export const getMine = query({
         q.eq("clerkSubject", identity.subject).eq("eventId", eventId),
       )
       .unique();
+    const rallyTarget = row ? null : await rallyPreferenceTarget(ctx, identity, eventId);
+    const rallyArtistIds = rallyTarget?.state?.lineupFavorites?.[rallyTarget.member.id];
 
     return {
-      artistIds: row?.artistIds || [],
+      artistIds: row?.artistIds || (Array.isArray(rallyArtistIds) ? rallyArtistIds : []),
       name: identity.name || identity.nickname || identity.email || "Account",
     };
   },
@@ -53,6 +74,14 @@ export const saveMine = mutation({
         artistIds,
         updatedAt: Date.now(),
       });
+    }
+
+    const rallyTarget = await rallyPreferenceTarget(ctx, identity, eventId);
+    if (rallyTarget) {
+      const state = structuredClone(rallyTarget.state);
+      state.lineupFavorites ||= {};
+      state.lineupFavorites[rallyTarget.member.id] = artistIds;
+      await ctx.db.patch(rallyTarget.doc._id, { buckets: state, updatedAt: Date.now() });
     }
 
     return { artistIds };
