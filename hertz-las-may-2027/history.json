@@ -24,6 +24,44 @@
   "seededFrom": "Reconstructed source-thread CSV; legacy rows predate the durable monitor and may lack fields that were not recorded.",
   "runs": [
     {
+      "id": "2026-09-07T19:16:58.369Z",
+      "checkedAt": "2026-09-07T19:16:58.369Z",
+      "checkedUrl": "https://www.hertz.com/us/en/book/vehicles?pid=LAST11&pdate=2027-05-20T19%3A00%3A00&did=LAST11&ddate=2027-05-24T17%3A00%3A00&CDP=2278478&travelType=LEISURE&ownershipType=CORPORATE&age=25",
+      "itinerary": {
+        "pickupLocation": "Las Vegas - Harry Reid International Airport (LAS)",
+        "pickupAt": "2027-05-20T19:00:00-07:00",
+        "returnLocation": "Las Vegas - Harry Reid International Airport (LAS)",
+        "returnAt": "2027-05-24T17:00:00-07:00",
+        "timezone": "America/Los_Angeles",
+        "rateContext": "CDP 2278478 · leisure · corporate ownership · age 25"
+      },
+      "lowestVisibleDailyRateUsd": null,
+      "vehicle": null,
+      "estimatedTotalUsd": null,
+      "taxesFeesVisibility": "not_visible",
+      "rawEvidenceExcerpt": "",
+      "status": "no_visible_rate",
+      "error": "No visible rendered vehicle-card price matching $N/day was found.",
+      "source": "live_browser",
+      "durationMs": 37943,
+      "pageTitle": "Book",
+      "httpStatus": 200,
+      "diagnostics": {
+        "consoleErrors": [],
+        "pageErrors": [
+          "Unexpected token '<', \"<html styl\"... is not valid JSON"
+        ],
+        "failedRequests": [
+          "POST https://www.google.com/measurement/conversion?random=1788808621967&cv=11&tid=G-J0QWT6D8MS&fst=1788808621967&fmt=8&en=first_visit&gtm=45je6921v874302249z89104224338za20gzb9104224338zd839391016xec&gcs=G111&gcd=13r3r3r3r5l1&dma=0&tag_exp=115938466~115938469~118869188~118897920~118897930~120213116~120385423~120469145~120469153~120914214&u_w=1440&u_h=1100&url=https%3A%2F%2Fwww.hertz.com%2Fus%2Fen%2Fbook%2Fvehicles%3Fpid%3DLAST11%26pdate%3D2027-05-20T19%253A00%253A00%26did%3DLAST11%26ddate%3D2027",
+          "POST https://www.google.com/measurement/conversion?random=1788808621967&cv=11&tid=G-J0QWT6D8MS&fst=1788808621967&fmt=8&en=session_start&gtm=45je6921v874302249z89104224338za20gzb9104224338zd839391016xec&gcs=G111&gcd=13r3r3r3r5l1&dma=0&tag_exp=115938466~115938469~118869188~118897920~118897930~120213116~120385423~120469145~120469153~120914214&u_w=1440&u_h=1100&url=https%3A%2F%2Fwww.hertz.com%2Fus%2Fen%2Fbook%2Fvehicles%3Fpid%3DLAST11%26pdate%3D2027-05-20T19%253A00%253A00%26did%3DLAST11%26ddate%3D20"
+        ]
+      },
+      "validVehicleCardCount": 0,
+      "eligibleVehicleCardCount": 0,
+      "visiblePricedVehicleCardCount": 0,
+      "criteriaVersion": 2
+    },
+    {
       "id": "2026-09-06T23:40:26.000Z",
       "checkedAt": "2026-09-06T23:40:26.000Z",
       "checkedUrl": "https://www.hertz.com/us/en/book/vehicles?CDP=2278478&age=25&ddate=2027-05-24T17%3A00%3A00&did=LAST11&ownershipType=CORPORATE&pdate=2027-05-20T19%3A00%3A00&pid=LAST11&travelType=LEISURE",
@@ -52,102 +90,102 @@
       "eligibleVehicleCardCount": 12,
       "visiblePricedVehicleCardCount": 38,
       "eligibleVehicles": [
-              {
-                      "vehicle": "7 Passenger Std 2WD SUV — Nissan Pathfinder or similar",
-                      "vehicleClass": "7 Passenger Std 2WD SUV",
-                      "passengerCapacity": 7,
-                      "dailyRateUsd": 80,
-                      "estimatedTotalUsd": 455,
-                      "taxesFeesVisibility": "not_visible"
-              },
-              {
-                      "vehicle": "7 Pass Std 4WD/ AWD SUV — Hyundai Santa Fe or similar",
-                      "vehicleClass": "7 Pass Std 4WD/ AWD SUV",
-                      "passengerCapacity": 7,
-                      "dailyRateUsd": 82,
-                      "estimatedTotalUsd": 466,
-                      "taxesFeesVisibility": "not_visible"
-              },
-              {
-                      "vehicle": "Minivan — Chrysler Pacifica or similar",
-                      "vehicleClass": "Minivan",
-                      "passengerCapacity": 7,
-                      "dailyRateUsd": 116,
-                      "estimatedTotalUsd": 645,
-                      "taxesFeesVisibility": "not_visible"
-              },
-              {
-                      "vehicle": "12 Passenger Van — Ford Transit (Extended Length) or similar",
-                      "vehicleClass": "12 Passenger Van",
-                      "passengerCapacity": 12,
-                      "dailyRateUsd": 126,
-                      "estimatedTotalUsd": 697,
-                      "taxesFeesVisibility": "not_visible"
-              },
-              {
-                      "vehicle": "Standard 8 Passenger Van — Kia Carnival or similar",
-                      "vehicleClass": "Standard 8 Passenger Van",
-                      "passengerCapacity": 8,
-                      "dailyRateUsd": 127,
-                      "estimatedTotalUsd": 684,
-                      "taxesFeesVisibility": "not_visible"
-              },
-              {
-                      "vehicle": "Luxury 7 Passenger SUV — Volvo XC90 Hybrid - PRESTIGE or similar",
-                      "vehicleClass": "Luxury 7 Passenger SUV",
-                      "passengerCapacity": 7,
-                      "dailyRateUsd": 128,
-                      "estimatedTotalUsd": 711,
-                      "taxesFeesVisibility": "not_visible"
-              },
-              {
-                      "vehicle": "Large Elite SUV — Jeep Grand Wagoneer or similar",
-                      "vehicleClass": "Large Elite SUV",
-                      "passengerCapacity": 7,
-                      "dailyRateUsd": 128,
-                      "estimatedTotalUsd": 711,
-                      "taxesFeesVisibility": "not_visible"
-              },
-              {
-                      "vehicle": "Elite 7 Passenger SUV — Mercedes GLS 450 Hybrid - PRESTIGE or similar",
-                      "vehicleClass": "Elite 7 Passenger SUV",
-                      "passengerCapacity": 7,
-                      "dailyRateUsd": 128,
-                      "estimatedTotalUsd": 711,
-                      "taxesFeesVisibility": "not_visible"
-              },
-              {
-                      "vehicle": "Large 2WD SUV — Ford Expedition or similar",
-                      "vehicleClass": "Large 2WD SUV",
-                      "passengerCapacity": 7,
-                      "dailyRateUsd": 138,
-                      "estimatedTotalUsd": 762,
-                      "taxesFeesVisibility": "not_visible"
-              },
-              {
-                      "vehicle": "Extra Large 2WD SUV — Chevrolet Suburban or similar",
-                      "vehicleClass": "Extra Large 2WD SUV",
-                      "passengerCapacity": 7,
-                      "dailyRateUsd": 141,
-                      "estimatedTotalUsd": 780,
-                      "taxesFeesVisibility": "not_visible"
-              },
-              {
-                      "vehicle": "4WD/ AWD Large SUV — Ford Expedition or similar",
-                      "vehicleClass": "4WD/ AWD Large SUV",
-                      "passengerCapacity": 7,
-                      "dailyRateUsd": 142,
-                      "estimatedTotalUsd": 784,
-                      "taxesFeesVisibility": "not_visible"
-              },
-              {
-                      "vehicle": "4WD/AWD Prem Xtra CAP SUV — Chevrolet Suburban or similar",
-                      "vehicleClass": "4WD/AWD Prem Xtra CAP SUV",
-                      "passengerCapacity": 7,
-                      "dailyRateUsd": 146,
-                      "estimatedTotalUsd": 802,
-                      "taxesFeesVisibility": "not_visible"
-              }
+        {
+          "vehicle": "7 Passenger Std 2WD SUV — Nissan Pathfinder or similar",
+          "vehicleClass": "7 Passenger Std 2WD SUV",
+          "passengerCapacity": 7,
+          "dailyRateUsd": 80,
+          "estimatedTotalUsd": 455,
+          "taxesFeesVisibility": "not_visible"
+        },
+        {
+          "vehicle": "7 Pass Std 4WD/ AWD SUV — Hyundai Santa Fe or similar",
+          "vehicleClass": "7 Pass Std 4WD/ AWD SUV",
+          "passengerCapacity": 7,
+          "dailyRateUsd": 82,
+          "estimatedTotalUsd": 466,
+          "taxesFeesVisibility": "not_visible"
+        },
+        {
+          "vehicle": "Minivan — Chrysler Pacifica or similar",
+          "vehicleClass": "Minivan",
+          "passengerCapacity": 7,
+          "dailyRateUsd": 116,
+          "estimatedTotalUsd": 645,
+          "taxesFeesVisibility": "not_visible"
+        },
+        {
+          "vehicle": "12 Passenger Van — Ford Transit (Extended Length) or similar",
+          "vehicleClass": "12 Passenger Van",
+          "passengerCapacity": 12,
+          "dailyRateUsd": 126,
+          "estimatedTotalUsd": 697,
+          "taxesFeesVisibility": "not_visible"
+        },
+        {
+          "vehicle": "Standard 8 Passenger Van — Kia Carnival or similar",
+          "vehicleClass": "Standard 8 Passenger Van",
+          "passengerCapacity": 8,
+          "dailyRateUsd": 127,
+          "estimatedTotalUsd": 684,
+          "taxesFeesVisibility": "not_visible"
+        },
+        {
+          "vehicle": "Luxury 7 Passenger SUV — Volvo XC90 Hybrid - PRESTIGE or similar",
+          "vehicleClass": "Luxury 7 Passenger SUV",
+          "passengerCapacity": 7,
+          "dailyRateUsd": 128,
+          "estimatedTotalUsd": 711,
+          "taxesFeesVisibility": "not_visible"
+        },
+        {
+          "vehicle": "Large Elite SUV — Jeep Grand Wagoneer or similar",
+          "vehicleClass": "Large Elite SUV",
+          "passengerCapacity": 7,
+          "dailyRateUsd": 128,
+          "estimatedTotalUsd": 711,
+          "taxesFeesVisibility": "not_visible"
+        },
+        {
+          "vehicle": "Elite 7 Passenger SUV — Mercedes GLS 450 Hybrid - PRESTIGE or similar",
+          "vehicleClass": "Elite 7 Passenger SUV",
+          "passengerCapacity": 7,
+          "dailyRateUsd": 128,
+          "estimatedTotalUsd": 711,
+          "taxesFeesVisibility": "not_visible"
+        },
+        {
+          "vehicle": "Large 2WD SUV — Ford Expedition or similar",
+          "vehicleClass": "Large 2WD SUV",
+          "passengerCapacity": 7,
+          "dailyRateUsd": 138,
+          "estimatedTotalUsd": 762,
+          "taxesFeesVisibility": "not_visible"
+        },
+        {
+          "vehicle": "Extra Large 2WD SUV — Chevrolet Suburban or similar",
+          "vehicleClass": "Extra Large 2WD SUV",
+          "passengerCapacity": 7,
+          "dailyRateUsd": 141,
+          "estimatedTotalUsd": 780,
+          "taxesFeesVisibility": "not_visible"
+        },
+        {
+          "vehicle": "4WD/ AWD Large SUV — Ford Expedition or similar",
+          "vehicleClass": "4WD/ AWD Large SUV",
+          "passengerCapacity": 7,
+          "dailyRateUsd": 142,
+          "estimatedTotalUsd": 784,
+          "taxesFeesVisibility": "not_visible"
+        },
+        {
+          "vehicle": "4WD/AWD Prem Xtra CAP SUV — Chevrolet Suburban or similar",
+          "vehicleClass": "4WD/AWD Prem Xtra CAP SUV",
+          "passengerCapacity": 7,
+          "dailyRateUsd": 146,
+          "estimatedTotalUsd": 802,
+          "taxesFeesVisibility": "not_visible"
+        }
       ],
       "criteriaVersion": 2
     },
