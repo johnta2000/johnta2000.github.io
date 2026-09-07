@@ -9,6 +9,100 @@ type RallyState = Record<string, any>;
 const LOST_LANDS = "lost-lands-2026";
 const EDC = "edc-las-vegas-2027";
 
+const EVENT_TEMPLATE_IDS = ["festival-weekend", "local-show", "blank", "copy-current"] as const;
+
+const EVENT_TEMPLATES: Record<string, {
+  tasks: Array<{ title: string; category: string; daysBefore?: number }>;
+  passes: Array<{ name: string; category: string }>;
+}> = {
+  "festival-weekend": {
+    tasks: [
+      { title: "Confirm festival tickets", category: "Passes", daysBefore: 60 },
+      { title: "Book lodging", category: "Stay", daysBefore: 90 },
+      { title: "Add arrival and departure plans", category: "Travel", daysBefore: 45 },
+      { title: "Plan airport or venue transportation", category: "Travel", daysBefore: 30 },
+      { title: "Build and share a packing checklist", category: "General", daysBefore: 14 },
+      { title: "Choose an emergency meetup point", category: "Crew", daysBefore: 7 },
+      { title: "Share the final plan with the crew", category: "General", daysBefore: 3 },
+    ],
+    passes: [
+      { name: "Festival admission", category: "Pass" },
+      { name: "Early entry", category: "Add-on" },
+      { name: "Shuttle / transportation pass", category: "Shuttle" },
+      { name: "Parking pass", category: "Parking" },
+    ],
+  },
+  "local-show": {
+    tasks: [
+      { title: "Confirm admission tickets", category: "Passes", daysBefore: 21 },
+      { title: "Choose an arrival meetup time and location", category: "Crew", daysBefore: 7 },
+      { title: "Plan rides home", category: "Travel", daysBefore: 5 },
+    ],
+    passes: [
+      { name: "Admission", category: "Pass" },
+      { name: "Parking", category: "Parking" },
+    ],
+  },
+  blank: { tasks: [], passes: [] },
+};
+
+function templateDueDate(startsAt: string, daysBefore?: number) {
+  if (!startsAt || daysBefore === undefined) return "";
+  const date = new Date(`${startsAt}T12:00:00Z`);
+  if (Number.isNaN(date.getTime())) return "";
+  date.setUTCDate(date.getUTCDate() - daysBefore);
+  return date.toISOString().slice(0, 10);
+}
+
+function eventTemplateContent(templateId: string, source: RallyState, startsAt: string) {
+  if (templateId === "copy-current") {
+    const tasks = (source.tasks || []).slice(0, 50).map((task: RallyState, index: number) => ({
+      id: crypto.randomUUID(),
+      title: String(task.title || "").trim(),
+      status: "todo",
+      category: String(task.category || "General"),
+      assigneeId: "",
+      dueDate: "",
+      createdAt: Date.now() + index,
+    })).filter((task: RallyState) => task.title);
+    const passes = (source.passes || []).slice(0, 50).map((pass: RallyState) => ({
+      id: crypto.randomUUID(),
+      name: String(pass.name || "").trim(),
+      category: String(pass.category || "Pass"),
+      ownerId: "",
+      quantity: 1,
+      unitCost: "",
+      totalCost: "",
+      status: "Not purchased",
+      notes: "",
+    })).filter((pass: RallyState) => pass.name);
+    return { tasks, passes };
+  }
+  const template = EVENT_TEMPLATES[templateId] || EVENT_TEMPLATES.blank;
+  return {
+    tasks: template.tasks.map((task, index) => ({
+      id: crypto.randomUUID(),
+      title: task.title,
+      status: "todo",
+      category: task.category,
+      assigneeId: "",
+      dueDate: templateDueDate(startsAt, task.daysBefore),
+      createdAt: Date.now() + index,
+    })),
+    passes: template.passes.map((pass) => ({
+      id: crypto.randomUUID(),
+      name: pass.name,
+      category: pass.category,
+      ownerId: "",
+      quantity: 1,
+      unitCost: "",
+      totalCost: "",
+      status: "Not purchased",
+      notes: "",
+    })),
+  };
+}
+
 function normalizedEmail(value?: string | null) {
   return (value || "").trim().toLowerCase();
 }
@@ -637,7 +731,26 @@ export const act = mutation({
       if (!["admin", "leader"].includes(current.role)) throw new Error("Only an admin can create a rave room.");
       const eventId = String(p.name || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 48);
       if (!eventId || await findDoc(ctx, eventId)) throw new Error("Choose a unique rave-room name.");
-      const created = { ...seedState(EDC, identity.email, identity.subject), id: eventId, leaderId: `${eventId}-admin`, name: p.name, location: p.location, startsAt: p.startsAt, endsAt: p.endsAt, members: [{ ...seedState(EDC, identity.email, identity.subject).members[0], id: `${eventId}-admin`, name: p.adminName || current.name }] };
+      const templateId = String(p.templateId || "festival-weekend");
+      if (!EVENT_TEMPLATE_IDS.includes(templateId as typeof EVENT_TEMPLATE_IDS[number])) throw new Error("Choose a valid event template.");
+      const templateContent = eventTemplateContent(templateId, state, String(p.startsAt || ""));
+      const created = {
+        ...seedState(EDC, identity.email, identity.subject),
+        id: eventId,
+        leaderId: `${eventId}-admin`,
+        name: p.name,
+        location: p.location,
+        startsAt: p.startsAt,
+        endsAt: p.endsAt,
+        createdFromTemplate: templateId,
+        rooms: [],
+        travel: [],
+        cars: [],
+        lineup: [],
+        lineupFavorites: {},
+        ...templateContent,
+        members: [{ ...seedState(EDC, identity.email, identity.subject).members[0], id: `${eventId}-admin`, name: p.adminName || current.name }],
+      };
       await insertState(ctx, created);
       return routeState(created, identity);
     } else {
