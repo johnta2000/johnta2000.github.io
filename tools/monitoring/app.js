@@ -243,6 +243,75 @@ function queryRows(queries = [], mode = "map") {
   </div>`;
 }
 
+function shortHistoryDate(value) {
+  const parsed = new Date(`${value}T12:00:00`);
+  return Number.isFinite(parsed.getTime())
+    ? new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" }).format(parsed)
+    : value;
+}
+
+function positionHistoryMarkup(history = []) {
+  const rows = history
+    .filter((row) => row?.date && (Number.isFinite(row.position) || Number.isFinite(row.exactPosition)))
+    .slice(-7);
+  if (rows.length < 2) {
+    return `
+      <section class="dialog-section">
+        <div class="dialog-section-heading"><div><p class="eyebrow">Search trend</p><h3>Position history</h3></div></div>
+        <p class="empty-state">The daily position chart will appear after at least two days of hourly Search Console data are available.</p>
+      </section>`;
+  }
+
+  const width = 760;
+  const height = 246;
+  const left = 44;
+  const right = 18;
+  const top = 20;
+  const bottom = 42;
+  const plotWidth = width - left - right;
+  const plotHeight = height - top - bottom;
+  const values = rows.flatMap((row) => [row.position, row.exactPosition]).filter(Number.isFinite);
+  const maxPosition = Math.max(3, Math.ceil(Math.max(...values)));
+  const x = (index) => left + (rows.length === 1 ? plotWidth / 2 : index * plotWidth / (rows.length - 1));
+  const y = (value) => top + ((value - 1) / Math.max(1, maxPosition - 1)) * plotHeight;
+  const path = (key) => rows
+    .map((row, index) => ({ index, value: row[key] }))
+    .filter(({ value }) => Number.isFinite(value))
+    .map(({ index, value }, pointIndex) => `${pointIndex ? "L" : "M"}${x(index).toFixed(1)},${y(value).toFixed(1)}`)
+    .join(" ");
+  const tickValues = [...new Set([1, Math.ceil((maxPosition + 1) / 2), maxPosition])].sort((a, b) => a - b);
+  const latest = rows.at(-1);
+
+  return `
+    <section class="dialog-section position-history-section">
+      <div class="dialog-section-heading">
+        <div><p class="eyebrow">Search trend</p><h3>Position history</h3></div>
+        <span class="dialog-note">Last ${rows.length} days · lower is better</span>
+      </div>
+      <figure class="position-chart-card">
+        <div class="position-chart-legend" aria-hidden="true">
+          <span><i class="exact"></i>“paze clover map”</span>
+          <span><i class="core"></i>All 5 core queries</span>
+        </div>
+        <svg class="position-chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="Daily Google Search position for the Paze Clover map over the last ${rows.length} days. Lower values are better.">
+          ${tickValues.map((tick) => `<g class="position-chart-grid"><line x1="${left}" y1="${y(tick).toFixed(1)}" x2="${width - right}" y2="${y(tick).toFixed(1)}"></line><text x="${left - 10}" y="${(y(tick) + 4).toFixed(1)}">${tick}</text></g>`).join("")}
+          <path class="position-chart-line core" d="${path("position")}"></path>
+          <path class="position-chart-line exact" d="${path("exactPosition")}"></path>
+          ${rows.map((row, index) => `
+            <g class="position-chart-points">
+              ${Number.isFinite(row.position) ? `<circle class="core" cx="${x(index).toFixed(1)}" cy="${y(row.position).toFixed(1)}" r="4"><title>${escapeHtml(shortHistoryDate(row.date))}: all core queries position ${row.position.toFixed(2)}</title></circle>` : ""}
+              ${Number.isFinite(row.exactPosition) ? `<circle class="exact" cx="${x(index).toFixed(1)}" cy="${y(row.exactPosition).toFixed(1)}" r="4"><title>${escapeHtml(shortHistoryDate(row.date))}: exact query position ${row.exactPosition.toFixed(2)}</title></circle>` : ""}
+              <text class="position-chart-date" x="${x(index).toFixed(1)}" y="${height - 14}">${escapeHtml(shortHistoryDate(row.date))}${row.partial ? "*" : ""}</text>
+            </g>`).join("")}
+        </svg>
+        <figcaption>
+          <span>Latest: exact <strong>${Number.isFinite(latest.exactPosition) ? latest.exactPosition.toFixed(2) : "—"}</strong> · core <strong>${Number.isFinite(latest.position) ? latest.position.toFixed(2) : "—"}</strong></span>
+          <span>* Latest day is partial and may change as GSC finishes processing.</span>
+        </figcaption>
+      </figure>
+    </section>`;
+}
+
 function rankingDialogMarkup(monitor) {
   const metrics = monitor.metrics ?? {};
   const details = monitor.details ?? {};
@@ -266,6 +335,7 @@ function rankingDialogMarkup(monitor) {
       <div><span>Average position</span><strong>${Number.isFinite(metrics.position) ? metrics.position.toFixed(2) : "—"}</strong><small>${escapeHtml(metricDelta(metrics.position, metrics.previousPosition, { inverse: true }))}</small></div>
       ${fourthMetric}
     </section>
+    ${isBilt ? "" : positionHistoryMarkup(details.positionHistory)}
     <section class="dialog-section">
       <div class="dialog-section-heading">${queryHeading}</div>
       ${queryRows(details.queries, isBilt ? "page" : "map")}

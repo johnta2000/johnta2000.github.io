@@ -8,11 +8,62 @@ import {
   TOOLS_URL,
   aggregateRows,
   assess,
+  dailyPositionHistory,
   parseLivePage,
   periodBounds,
   queryDetails,
   summarizeCore,
 } from "./paze-clover-ranking.mjs";
+
+test("aggregates hourly rankings into a seven-day-friendly position history", () => {
+  const history = dailyPositionHistory([
+    {
+      hour: "2026-09-04T08:00:00-07:00",
+      clicks: 4,
+      impressions: 10,
+      position: 2,
+      primaryQueryMapImpressions: 4,
+      primaryQueryMapPosition: 1,
+    },
+    {
+      hour: "2026-09-04T09:00:00-07:00",
+      clicks: 6,
+      impressions: 30,
+      position: 4,
+      primaryQueryMapImpressions: 6,
+      primaryQueryMapPosition: 2,
+    },
+    {
+      hour: "2026-09-05T08:00:00-07:00",
+      clicks: 3,
+      impressions: 20,
+      position: 1.5,
+      primaryQueryMapImpressions: 5,
+      primaryQueryMapPosition: 1.2,
+    },
+  ]);
+
+  assert.deepEqual(history, [
+    {
+      date: "2026-09-04",
+      clicks: 10,
+      impressions: 40,
+      position: 3.5,
+      exactPosition: 1.6,
+      exactImpressions: 10,
+      partial: false,
+    },
+    {
+      date: "2026-09-05",
+      clicks: 3,
+      impressions: 20,
+      position: 1.5,
+      exactPosition: 1.2,
+      exactImpressions: 5,
+      partial: true,
+    },
+  ]);
+});
 
 test("builds adjacent finalized seven-day periods", () => {
   assert.deepEqual(periodBounds("2026-08-28"), {

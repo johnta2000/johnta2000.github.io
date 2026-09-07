@@ -238,6 +238,47 @@ function hourlyWindows(rows) {
   });
 }
 
+export function dailyPositionHistory(windows) {
+  const grouped = new Map();
+  for (const window of windows) {
+    const date = window.hour?.slice(0, 10);
+    if (!date) continue;
+    if (!grouped.has(date)) {
+      grouped.set(date, {
+        date,
+        clicks: 0,
+        impressions: 0,
+        weightedPosition: 0,
+        exactImpressions: 0,
+        weightedExactPosition: 0,
+      });
+    }
+    const day = grouped.get(date);
+    day.clicks += window.clicks ?? 0;
+    day.impressions += window.impressions ?? 0;
+    if (Number.isFinite(window.position)) {
+      day.weightedPosition += window.position * (window.impressions ?? 0);
+    }
+    day.exactImpressions += window.primaryQueryMapImpressions ?? 0;
+    if (Number.isFinite(window.primaryQueryMapPosition)) {
+      day.weightedExactPosition += window.primaryQueryMapPosition * (window.primaryQueryMapImpressions ?? 0);
+    }
+  }
+
+  const latestDate = [...grouped.keys()].sort().at(-1) ?? null;
+  return [...grouped.values()]
+    .sort((left, right) => left.date.localeCompare(right.date))
+    .map((day) => ({
+      date: day.date,
+      clicks: day.clicks,
+      impressions: day.impressions,
+      position: day.impressions ? round(day.weightedPosition / day.impressions) : null,
+      exactPosition: day.exactImpressions ? round(day.weightedExactPosition / day.exactImpressions) : null,
+      exactImpressions: day.exactImpressions,
+      partial: day.date === latestDate,
+    }));
+}
+
 function latestQualifiedWindowSet(windows, count = 3) {
   const qualified = windows.filter((window) => window.totalImpressions >= 10);
   const latest = qualified.slice(-count);
@@ -345,7 +386,7 @@ async function collect(fetchImpl = fetch) {
     googlePost(SEARCH_ANALYTICS_URL, token, { ...base, ...periods.period }, fetchImpl),
     googlePost(SEARCH_ANALYTICS_URL, token, { ...base, ...periods.previousPeriod }, fetchImpl),
     googlePost(SEARCH_ANALYTICS_URL, token, {
-      startDate: isoDate(addDays(today, -2)), endDate: isoDate(today), dimensions: ["hour", "query", "page"],
+      startDate: isoDate(addDays(today, -6)), endDate: isoDate(today), dimensions: ["hour", "query", "page"],
       dimensionFilterGroups: filters(), dataState: "hourly_all", type: "web", rowLimit: 25_000,
     }, fetchImpl),
     googlePost(INSPECTION_URL, token, { inspectionUrl: MAP_URL, siteUrl: SITE, languageCode: "en-US" }, fetchImpl),
@@ -427,6 +468,7 @@ async function collect(fetchImpl = fetch) {
         mapImpressionShare: latestWindow.mapImpressionShare,
       } : null,
       provisionalWindows: provisionalWindows.slice(-12),
+      positionHistory: dailyPositionHistory(provisionalWindows).slice(-7),
       queries,
       inspection,
       live,

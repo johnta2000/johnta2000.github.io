@@ -47,6 +47,9 @@ test("overview keeps monitor-specific detail inside an accessible dialog", () =>
   assert.match(app, /rankingDialogMarkup/);
   assert.match(app, /bonusDialogMarkup/);
   assert.match(app, /monitorHistory/);
+  assert.match(app, /function positionHistoryMarkup/);
+  assert.match(app, />Position history</);
+  assert.match(app, /Latest day is partial/);
 });
 
 test("reporting cards use the existing Codex monitor identities", () => {
