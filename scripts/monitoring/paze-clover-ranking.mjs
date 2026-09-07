@@ -389,7 +389,8 @@ async function collect(fetchImpl = fetch) {
       startDate: isoDate(addDays(today, -6)), endDate: isoDate(today), dimensions: ["hour", "query", "page"],
       dimensionFilterGroups: filters(), dataState: "hourly_all", type: "web", rowLimit: 25_000,
     }, fetchImpl),
-    googlePost(INSPECTION_URL, token, { inspectionUrl: MAP_URL, siteUrl: SITE, languageCode: "en-US" }, fetchImpl),
+    googlePost(INSPECTION_URL, token, { inspectionUrl: MAP_URL, siteUrl: SITE, languageCode: "en-US" }, fetchImpl)
+      .catch((error) => ({ monitorError: error instanceof Error ? error.message : "URL Inspection unavailable" })),
     fetchImpl(MAP_URL, {
       redirect: "follow", cache: "no-store",
       headers: {
@@ -410,6 +411,7 @@ async function collect(fetchImpl = fetch) {
   const live = parseLivePage(await liveResponse.text(), liveResponse.status);
   const idx = inspectionResponse.inspectionResult?.indexStatusResult ?? {};
   const inspection = {
+    error: inspectionResponse.monitorError ?? null,
     verdict: idx.verdict ?? null,
     indexed: idx.verdict === "PASS" && /indexed/i.test(idx.coverageState ?? ""),
     coverageState: idx.coverageState ?? null,

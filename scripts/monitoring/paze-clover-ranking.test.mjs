@@ -108,6 +108,45 @@ test("ignores empty-state phrases and substrings that only occur in scripts or l
   assert.equal(live.hasInitialSignupCallout, false);
 });
 
+test("does not treat a missing URL Inspection response as a ranking failure", () => {
+  const result = assess({
+    current: {
+      clicks: 90,
+      impressions: 300,
+      position: 1.5,
+      mapClickShare: 90,
+      mapImpressionShare: 60,
+      totalClicks: 100,
+      totalImpressions: 500,
+    },
+    previous: {
+      clicks: 80,
+      impressions: 280,
+      position: 1.7,
+      mapClickShare: 85,
+      mapImpressionShare: 55,
+      totalClicks: 94,
+      totalImpressions: 510,
+    },
+    queries: [],
+    inspection: { error: "Quota exceeded" },
+    live: {
+      httpStatus: 200,
+      canonical: MAP_URL,
+      robots: "none",
+      h1Count: 1,
+      hasMerchantCount: true,
+      hasMerchantSample: true,
+      hasPrematureEmptyState: false,
+      hasInitialSignupCallout: false,
+    },
+    provisionalWindows: [],
+  });
+
+  assert.equal(result.status, "healthy");
+  assert.equal(result.failures.length, 0);
+});
+
 test("watches when impression ownership stays below half but the map has not lost core queries", () => {
   const stableLive = {
     httpStatus: 200,

@@ -344,6 +344,7 @@ function rankingDialogMarkup(monitor) {
       <div class="dialog-section-heading"><div><p class="eyebrow">Technical health</p><h3>Index and live page</h3></div></div>
       <div class="config-table report-facts">
         <div><span>Index verdict</span><strong>${escapeHtml(inspection.verdict ?? (inspection.indexed ? "Indexed" : "Not reported"))}</strong></div>
+        ${inspection.error ? `<div><span>Inspection note</span><strong>${escapeHtml(inspection.error)}</strong></div>` : ""}
         <div><span>Last crawl</span><strong>${escapeHtml(inspection.lastCrawl ? fullDate(inspection.lastCrawl) : "Not reported")}</strong></div>
         <div><span>Fetch / robots</span><strong>${escapeHtml(`${inspection.fetchState ?? "—"} · ${inspection.robots ?? "—"}`)}</strong></div>
         <div><span>Google canonical</span><strong>${escapeHtml(inspection.googleCanonical ?? "Not reported")}</strong></div>
