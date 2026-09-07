@@ -1,5 +1,5 @@
 import { internalMutation, mutation, query } from "./_generated/server";
-import type { MutationCtx, QueryCtx } from "./_generated/server";
+import type { MutationCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
 
@@ -18,31 +18,18 @@ const quality = v.union(
   v.literal("480"),
 );
 
-function allowedEmails() {
-  return new Set(
-    (
-      process.env.DOWNLOADER_ALLOWED_EMAIL
-      || process.env.MONITORING_ALLOWED_EMAIL
-      || process.env.SLEEP_ALLOWED_EMAIL
-      || ""
-    )
-      .split(",")
-      .map((value) => value.trim().toLowerCase())
-      .filter(Boolean),
-  );
+function requireSitePassword(password: string) {
+  const expected = process.env.DOWNLOADER_SITE_PASSWORD;
+  if (!expected || password !== expected) {
+    throw new Error("Incorrect downloader password.");
+  }
 }
 
-async function requireAuthorizedUser(ctx: QueryCtx | MutationCtx) {
-  const identity = await ctx.auth.getUserIdentity();
-  const email = identity?.email?.trim().toLowerCase();
-
-  if (!identity || !email || identity.emailVerified === false) {
-    throw new Error("Sign in with a verified email to use the downloader.");
+function requesterFor(visitorId: string) {
+  if (!/^[a-zA-Z0-9_-]{16,100}$/.test(visitorId)) {
+    throw new Error("This browser session could not be identified. Refresh and try again.");
   }
-  if (!allowedEmails().has(email)) {
-    throw new Error("This email is not authorized for the downloader.");
-  }
-  return { subject: identity.subject, email };
+  return { subject: `shared:${visitorId}`, email: "shared-password" };
 }
 
 function requireWorkerSecret(secret: string) {
@@ -93,12 +80,15 @@ async function touchWorker(
 
 export const requestDownload = mutation({
   args: {
+    password: v.string(),
+    visitorId: v.string(),
     videoUrl: v.string(),
     quality,
     permissionConfirmed: v.boolean(),
   },
   handler: async (ctx, args) => {
-    const user = await requireAuthorizedUser(ctx);
+    requireSitePassword(args.password);
+    const user = requesterFor(args.visitorId);
     if (!args.permissionConfirmed) {
       throw new Error("Confirm that you have permission to download this video.");
     }
@@ -136,9 +126,10 @@ export const requestDownload = mutation({
 });
 
 export const listMine = query({
-  args: {},
-  handler: async (ctx) => {
-    const user = await requireAuthorizedUser(ctx);
+  args: { password: v.string(), visitorId: v.string() },
+  handler: async (ctx, args) => {
+    requireSitePassword(args.password);
+    const user = requesterFor(args.visitorId);
     const now = Date.now();
     const jobs = await ctx.db
       .query("videoDownloads")
@@ -169,9 +160,10 @@ export const listMine = query({
 });
 
 export const workerStatus = query({
-  args: {},
-  handler: async (ctx) => {
-    await requireAuthorizedUser(ctx);
+  args: { password: v.string(), visitorId: v.string() },
+  handler: async (ctx, args) => {
+    requireSitePassword(args.password);
+    requesterFor(args.visitorId);
     const worker = await ctx.db
       .query("videoDownloaderWorkers")
       .withIndex("by_last_seen")

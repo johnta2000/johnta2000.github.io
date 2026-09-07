@@ -1,13 +1,15 @@
 const CONVEX_URL = "https://rapid-shark-565.convex.cloud";
 const preview = new URLSearchParams(window.location.search).get("preview") === "1";
+const PASSWORD_KEY = "john-ta-video-downloader-password";
+const VISITOR_KEY = "john-ta-video-downloader-visitor";
 
 const els = {
   gate: document.querySelector("#access-gate"),
   app: document.querySelector("#app"),
-  clerkSignIn: document.querySelector("#clerk-sign-in"),
+  accessForm: document.querySelector("#access-form"),
+  accessPassword: document.querySelector("#access-password"),
   authStatus: document.querySelector("#auth-status"),
-  authSignOut: document.querySelector("#auth-sign-out"),
-  signOut: document.querySelector("#sign-out"),
+  lockTool: document.querySelector("#lock-tool"),
   workerStatus: document.querySelector("#worker-status"),
   form: document.querySelector("#download-form"),
   videoUrl: document.querySelector("#video-url"),
@@ -21,6 +23,13 @@ const els = {
 
 let workerOnline = false;
 let refreshPromise = null;
+let sitePassword = sessionStorage.getItem(PASSWORD_KEY) || "";
+let visitorId = localStorage.getItem(VISITOR_KEY) || "";
+
+if (!/^[a-zA-Z0-9_-]{16,100}$/.test(visitorId)) {
+  visitorId = window.crypto.randomUUID().replaceAll("-", "");
+  localStorage.setItem(VISITOR_KEY, visitorId);
+}
 
 function escapeHtml(value) {
   return String(value ?? "")
@@ -114,50 +123,25 @@ function renderJobs(jobs) {
 }
 
 async function convexRequest(kind, path, args = {}) {
-  const token = await getConvexToken();
-  if (!token) throw new Error("Not authenticated with Clerk.");
+  if (!sitePassword) throw new Error("Enter the shared password first.");
   const response = await fetch(`${CONVEX_URL}/api/${kind}`, {
     method: "POST",
     cache: "no-store",
     headers: {
       "Content-Type": "application/json",
       "Cache-Control": "no-cache, no-store, max-age=0",
-      Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify({ path, args }),
+    body: JSON.stringify({ path, args: { ...args, password: sitePassword, visitorId } }),
   });
   const result = await response.json();
   if (!response.ok || result.status !== "success") {
-    throw new Error(result.errorMessage || result.message || result.code || "The secure request failed.");
+    throw new Error(result.errorMessage || result.message || result.code || "The request failed.");
   }
   return result.value;
 }
 
-async function getConvexToken() {
-  const session = window.Clerk?.session;
-  if (!session) return null;
-  const sessionToken = await session.getToken();
-  const audience = readJwtPayload(sessionToken)?.aud;
-  if (audience === "convex" || (Array.isArray(audience) && audience.includes("convex"))) return sessionToken;
-  try {
-    return await session.getToken({ template: "convex" });
-  } catch {
-    return sessionToken;
-  }
-}
-
-function readJwtPayload(token) {
-  if (!token) return null;
-  try {
-    const encoded = token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
-    return JSON.parse(decodeURIComponent(escape(atob(encoded))));
-  } catch {
-    return null;
-  }
-}
-
 async function refresh() {
-  if (preview || !window.Clerk?.isSignedIn || els.app.hidden || refreshPromise) return refreshPromise;
+  if (preview || !sitePassword || els.app.hidden || refreshPromise) return refreshPromise;
   refreshPromise = Promise.all([
     convexRequest("query", "videoDownloads:workerStatus"),
     convexRequest("query", "videoDownloads:listMine"),
@@ -173,64 +157,66 @@ async function refresh() {
 
 async function unlock() {
   els.authStatus.hidden = false;
-  els.authStatus.textContent = "Verifying your team access…";
+  els.authStatus.textContent = "Checking password…";
   await convexRequest("query", "videoDownloads:workerStatus");
   els.gate.hidden = true;
   els.app.hidden = false;
+  sessionStorage.setItem(PASSWORD_KEY, sitePassword);
   await refresh();
 }
 
-function showAuthError(error) {
-  const message = String(error?.message || error || "");
+function showAuthError() {
   els.app.hidden = true;
   els.gate.hidden = false;
   els.authStatus.hidden = false;
-  els.authSignOut.hidden = !window.Clerk?.isSignedIn;
-  els.authStatus.textContent = /not authorized/i.test(message)
-    ? "This account is signed in, but it is not approved for this private tool."
-    : "Secure sign-in could not finish. Refresh and try again.";
+  els.authStatus.textContent = "That password didn’t work. Try again.";
+  els.accessPassword.select();
 }
 
-async function initializeClerk() {
+async function initializeAccess() {
   if (preview) {
     els.gate.hidden = true;
     els.app.hidden = false;
     renderWorker({ online: true, busy: false });
     return;
   }
-  try {
-    if (!window.Clerk) throw new Error("Secure sign-in did not load.");
-    await window.Clerk.load({ ui: { ClerkUI: window.__internal_ClerkUICtor } });
-    if (window.Clerk.isSignedIn) return await unlock();
-    els.authStatus.hidden = true;
-    window.Clerk.mountSignIn(els.clerkSignIn, {
-      routing: "hash",
-      withSignUp: true,
-      forceRedirectUrl: window.location.href.split("#")[0],
-      signUpForceRedirectUrl: window.location.href.split("#")[0],
-      appearance: {
-        variables: {
-          colorPrimary: "#ff3f64",
-          colorBackground: "#11141b",
-          colorText: "#f6f7fb",
-          colorInputBackground: "#0c0f15",
-          colorInputText: "#f6f7fb",
-          borderRadius: "10px",
-          fontFamily: "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-        },
-      },
-    });
-  } catch (error) {
-    console.error(error);
-    showAuthError(error);
+  if (sitePassword) {
+    try {
+      await unlock();
+      return;
+    } catch {
+      sitePassword = "";
+      sessionStorage.removeItem(PASSWORD_KEY);
+    }
   }
+  els.authStatus.textContent = "Enter the password to continue.";
+  els.accessPassword.focus();
 }
 
-async function signOut() {
+function lockTool() {
+  sitePassword = "";
+  sessionStorage.removeItem(PASSWORD_KEY);
   els.app.hidden = true;
-  if (window.Clerk?.isSignedIn) await window.Clerk.signOut();
-  window.location.assign(window.location.href.split("#")[0]);
+  els.gate.hidden = false;
+  els.accessPassword.value = "";
+  els.authStatus.textContent = "Enter the password to continue.";
+  els.accessPassword.focus();
 }
+
+els.accessForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  sitePassword = els.accessPassword.value;
+  els.authStatus.textContent = "Checking password…";
+  try {
+    await unlock();
+    els.accessPassword.value = "";
+  } catch (error) {
+    console.error(error);
+    sitePassword = "";
+    sessionStorage.removeItem(PASSWORD_KEY);
+    showAuthError();
+  }
+});
 
 els.form.addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -258,11 +244,10 @@ els.form.addEventListener("submit", async (event) => {
 els.videoUrl.addEventListener("input", updateSubmitState);
 els.permission.addEventListener("change", updateSubmitState);
 els.refreshJobs.addEventListener("click", () => refresh().catch((error) => setFormMessage(error.message)));
-els.signOut.addEventListener("click", signOut);
-els.authSignOut.addEventListener("click", signOut);
+els.lockTool.addEventListener("click", lockTool);
 document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "visible") refresh().catch(() => {});
 });
 window.setInterval(() => refresh().catch(() => {}), 4_000);
 
-initializeClerk();
+initializeAccess();
