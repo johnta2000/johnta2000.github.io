@@ -24,6 +24,44 @@
   "seededFrom": "Reconstructed source-thread CSV; legacy rows predate the durable monitor and may lack fields that were not recorded.",
   "runs": [
     {
+      "id": "2026-09-09T18:44:52.209Z",
+      "checkedAt": "2026-09-09T18:44:52.209Z",
+      "checkedUrl": "https://www.hertz.com/us/en/book/vehicles?pid=LAST11&pdate=2027-05-20T19%3A00%3A00&did=LAST11&ddate=2027-05-24T17%3A00%3A00&CDP=2278478&travelType=LEISURE&ownershipType=CORPORATE&age=25",
+      "itinerary": {
+        "pickupLocation": "Las Vegas - Harry Reid International Airport (LAS)",
+        "pickupAt": "2027-05-20T19:00:00-07:00",
+        "returnLocation": "Las Vegas - Harry Reid International Airport (LAS)",
+        "returnAt": "2027-05-24T17:00:00-07:00",
+        "timezone": "America/Los_Angeles",
+        "rateContext": "CDP 2278478 · leisure · corporate ownership · age 25"
+      },
+      "lowestVisibleDailyRateUsd": null,
+      "vehicle": null,
+      "estimatedTotalUsd": null,
+      "taxesFeesVisibility": "not_visible",
+      "rawEvidenceExcerpt": "",
+      "status": "no_visible_rate",
+      "error": "No visible rendered vehicle-card price matching $N/day was found.",
+      "source": "live_browser",
+      "durationMs": 38177,
+      "pageTitle": "Book",
+      "httpStatus": 200,
+      "diagnostics": {
+        "consoleErrors": [],
+        "pageErrors": [
+          "Unexpected token '<', \"<html styl\"... is not valid JSON"
+        ],
+        "failedRequests": [
+          "POST https://www.google.com/measurement/conversion?random=1788979496081&cv=11&tid=G-J0QWT6D8MS&fst=1788979496081&fmt=8&en=first_visit&gtm=45je6980h2v874302249z89104224338za20gzb9104224338zd839391016xec&gcs=G111&gcd=13r3r3r3r5l1&dma=0&tag_exp=115616986~115938466~115938468~118869188~118897920~118897930~120213116~120385422~120469145~120469153~120914213&u_w=1440&u_h=1100&url=https%3A%2F%2Fwww.hertz.com%2Fus%2Fen%2Fbook%2Fvehicles%3Fpid%3DLAST11%26pdate%3D2027-05-20T19%253A00%253A00%26did%3DLAST11%26",
+          "POST https://www.google.com/measurement/conversion?random=1788979496081&cv=11&tid=G-J0QWT6D8MS&fst=1788979496081&fmt=8&en=session_start&gtm=45je6980h2v874302249z89104224338za20gzb9104224338zd839391016xec&gcs=G111&gcd=13r3r3r3r5l1&dma=0&tag_exp=115616986~115938466~115938468~118869188~118897920~118897930~120213116~120385422~120469145~120469153~120914213&u_w=1440&u_h=1100&url=https%3A%2F%2Fwww.hertz.com%2Fus%2Fen%2Fbook%2Fvehicles%3Fpid%3DLAST11%26pdate%3D2027-05-20T19%253A00%253A00%26did%3DLAST11%"
+        ]
+      },
+      "validVehicleCardCount": 0,
+      "eligibleVehicleCardCount": 0,
+      "visiblePricedVehicleCardCount": 0,
+      "criteriaVersion": 2
+    },
+    {
       "id": "2026-09-08T18:51:11.729Z",
       "checkedAt": "2026-09-08T18:51:11.729Z",
       "checkedUrl": "https://www.hertz.com/us/en/book/vehicles?pid=LAST11&pdate=2027-05-20T19%3A00%3A00&did=LAST11&ddate=2027-05-24T17%3A00%3A00&CDP=2278478&travelType=LEISURE&ownershipType=CORPORATE&age=25",
