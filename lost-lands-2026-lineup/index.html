@@ -244,15 +244,16 @@
       }
 
       .toolbar {
+        position: relative;
+        z-index: 20;
         display: grid;
         grid-template-columns:
-          minmax(220px, 1fr)
-          minmax(134px, 0.4fr)
-          minmax(134px, 0.4fr)
-          minmax(134px, 0.4fr)
-          minmax(150px, 0.46fr)
-          minmax(148px, 0.46fr)
-          auto auto auto;
+          minmax(240px, 1.6fr)
+          minmax(118px, 0.72fr)
+          minmax(138px, 0.86fr)
+          minmax(118px, 0.72fr)
+          minmax(170px, 1fr)
+          auto auto;
         gap: 9px;
         align-items: center;
         margin: 0 0 14px;
@@ -265,7 +266,7 @@
       }
 
       .search-field,
-      .select-field {
+      .filter-trigger {
         width: 100%;
         min-height: 40px;
         padding: 0 12px;
@@ -280,12 +281,220 @@
       }
 
       .search-field:focus,
-      .select-field:focus,
+      .filter-trigger:focus,
       .button:focus,
       .segmented button:focus,
       .favorite-button:focus {
         outline: 3px solid rgba(24, 201, 193, 0.18);
         border-color: var(--teal);
+      }
+
+      .filter-popover {
+        position: relative;
+        min-width: 0;
+      }
+
+      .filter-trigger {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        text-align: left;
+      }
+
+      .filter-trigger:hover,
+      .filter-trigger[aria-expanded="true"] {
+        border-color: rgba(24, 201, 193, 0.72);
+        background: rgba(15, 47, 40, 0.94);
+      }
+
+      .filter-trigger-label {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .filter-caret {
+        color: var(--muted);
+        font-size: 0.72rem;
+      }
+
+      .filter-panel {
+        position: absolute;
+        top: calc(100% + 7px);
+        left: 0;
+        z-index: 35;
+        width: max-content;
+        min-width: 100%;
+        max-width: min(360px, calc(100vw - 32px));
+        padding: 10px;
+        border: 1px solid rgba(160, 225, 197, 0.3);
+        border-radius: 10px;
+        background: #0a1917;
+        box-shadow: 0 22px 48px rgba(0, 0, 0, 0.48);
+      }
+
+      .filter-panel[hidden] {
+        display: none;
+      }
+
+      .filter-panel-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 2px 2px 9px;
+      }
+
+      .filter-panel-head strong {
+        font-size: 0.82rem;
+      }
+
+      .filter-panel-clear {
+        min-height: 28px;
+        padding: 0 7px;
+        border: 0;
+        background: transparent;
+        color: var(--teal);
+        font-size: 0.72rem;
+        font-weight: 850;
+      }
+
+      .filter-options {
+        display: grid;
+        gap: 3px;
+        max-height: 260px;
+        overflow: auto;
+      }
+
+      .filter-option {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        min-height: 34px;
+        padding: 7px 9px;
+        border-radius: 7px;
+        color: var(--text);
+        font-size: 0.82rem;
+        font-weight: 750;
+        white-space: nowrap;
+      }
+
+      .filter-option:hover,
+      .filter-option:has(input:checked) {
+        background: rgba(24, 201, 193, 0.12);
+      }
+
+      .filter-option input {
+        width: 16px;
+        height: 16px;
+        min-height: 16px;
+        margin: 0;
+        accent-color: var(--teal);
+      }
+
+      .time-panel {
+        right: 0;
+        left: auto;
+        width: min(390px, calc(100vw - 32px));
+        padding: 16px;
+      }
+
+      .time-range-copy {
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+        gap: 10px;
+        align-items: end;
+        margin: 5px 0 17px;
+      }
+
+      .time-range-copy label {
+        display: grid;
+        gap: 5px;
+      }
+
+      .time-range-copy label span {
+        color: var(--muted);
+        font-size: 0.7rem;
+        font-weight: 800;
+      }
+
+      .time-range-copy input {
+        width: 100%;
+        min-height: 38px;
+        padding: 0 9px;
+        border: 1px solid rgba(160, 225, 197, 0.28);
+        border-radius: 7px;
+        background: rgba(4, 16, 15, 0.88);
+        color: var(--text);
+        font: inherit;
+        font-size: 0.82rem;
+        font-weight: 800;
+      }
+
+      .time-range-arrow {
+        padding-bottom: 9px;
+        color: var(--muted);
+      }
+
+      .range-control {
+        position: relative;
+        height: 38px;
+        margin: 0 3px 6px;
+      }
+
+      .range-track,
+      .range-fill {
+        position: absolute;
+        top: 17px;
+        right: 0;
+        left: 0;
+        height: 5px;
+        border-radius: 999px;
+      }
+
+      .range-track {
+        background: rgba(181, 201, 187, 0.24);
+      }
+
+      .range-fill {
+        background: linear-gradient(90deg, var(--teal), var(--gold));
+      }
+
+      .range-input {
+        position: absolute;
+        top: 4px;
+        left: 0;
+        width: 100%;
+        min-height: 28px;
+        padding: 0;
+        border: 0;
+        background: transparent;
+        pointer-events: none;
+        appearance: none;
+      }
+
+      .range-input::-webkit-slider-thumb {
+        width: 22px;
+        height: 22px;
+        border: 3px solid #0a1917;
+        border-radius: 50%;
+        background: var(--gold);
+        box-shadow: 0 2px 9px rgba(0, 0, 0, 0.38);
+        cursor: pointer;
+        pointer-events: auto;
+        appearance: none;
+      }
+
+      .range-input::-moz-range-thumb {
+        width: 22px;
+        height: 22px;
+        border: 3px solid #0a1917;
+        border-radius: 50%;
+        background: var(--gold);
+        cursor: pointer;
+        pointer-events: auto;
       }
 
       .segmented {
@@ -345,6 +554,13 @@
         color: var(--muted);
         font-size: 0.9rem;
         font-weight: 700;
+      }
+
+      .schedule-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
       }
 
       .favorite-note {
@@ -498,11 +714,11 @@
       }
 
       col.col-artist {
-        width: 44%;
+        width: 42%;
       }
 
       col.col-type {
-        width: 22%;
+        width: 24%;
       }
 
       col.col-genre {
@@ -659,9 +875,31 @@
       }
 
       .schedule-time {
-        margin-top: 3px;
-        font-size: 0.76rem;
+        color: var(--text);
+        font-size: 1rem;
+        font-weight: 900;
         white-space: nowrap;
+      }
+
+      .schedule-end {
+        display: block;
+        margin-top: 3px;
+        color: var(--muted);
+        font-size: 0.7rem;
+        font-weight: 750;
+        white-space: nowrap;
+      }
+
+      .day-divider td {
+        padding: 9px 14px;
+        border-right: 0;
+        background: rgba(24, 201, 193, 0.1);
+        color: #c9fff5;
+        font-size: 0.72rem;
+        font-weight: 900;
+        letter-spacing: 0.08em;
+        text-align: left !important;
+        text-transform: uppercase;
       }
 
       th:nth-child(2),
@@ -711,13 +949,13 @@
         font-weight: 800;
       }
 
-      @media (max-width: 980px) {
+      @media (max-width: 1180px) {
         .app-page {
           padding: 16px;
         }
 
         .toolbar {
-          grid-template-columns: 1fr 1fr;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
         }
 
         .search-field {
@@ -769,8 +1007,7 @@
           padding: 8px;
         }
 
-        .search-field,
-        .select-field {
+        .search-field {
           grid-column: 1 / -1;
           min-height: 32px;
           padding: 5px 8px;
@@ -782,7 +1019,7 @@
         }
 
         .segmented {
-          display: none;
+          display: grid;
         }
 
         .button {
@@ -837,11 +1074,11 @@
         }
 
         .rally-mode col.col-artist {
-          width: 31% !important;
+          width: 30% !important;
         }
 
         .rally-mode col.col-type {
-          width: 20% !important;
+          width: 22% !important;
         }
 
         .rally-mode col.col-genre {
@@ -897,9 +1134,26 @@
         }
 
         .schedule-time {
-          margin-top: 2px;
-          font-size: 8px;
+          font-size: 10px;
           white-space: normal;
+        }
+
+        .schedule-end {
+          margin-top: 2px;
+          font-size: 7px;
+          white-space: normal;
+        }
+
+        .filter-panel {
+          position: fixed;
+          top: auto;
+          right: 8px;
+          bottom: max(8px, env(safe-area-inset-bottom));
+          left: 8px;
+          width: auto;
+          max-width: none;
+          max-height: min(72dvh, 560px);
+          overflow: auto;
         }
 
         .favorite-button {
@@ -921,7 +1175,7 @@
             <div class="summary" aria-label="Lineup summary">
               <span class="metric" id="artist-count">0 sets</span>
               <span class="metric">September 16-20, 2026</span>
-              <span class="metric">Official set times · EDT</span>
+              <span class="metric" id="schedule-range">Official set times · EDT</span>
             </div>
           </div>
           <button class="account-button standalone-auth" id="account-button" type="button" hidden>
@@ -937,51 +1191,39 @@
             placeholder="Search artists, stages, days, or genres"
             autocomplete="off"
           >
-          <select class="select-field" id="day-filter" aria-label="Day filter">
-            <option value="all">All days</option>
-            <option value="Wednesday">Wednesday</option>
-            <option value="Thursday">Thursday</option>
-            <option value="Friday">Friday</option>
-            <option value="Saturday">Saturday</option>
-            <option value="Sunday">Sunday</option>
-          </select>
-          <select class="select-field" id="stage-filter" aria-label="Stage filter">
-            <option value="all">All stages</option>
-          </select>
-          <select class="select-field" id="billing-filter" aria-label="Type filter">
-            <option value="all">All types</option>
-            <option value="main">Main lineup</option>
-            <option value="support">Support lineup</option>
-          </select>
-          <select class="select-field" id="genre-filter" aria-label="Genre filter">
-            <option value="all">All genres</option>
-          </select>
-          <select class="select-field" id="sort-mode" aria-label="Sort lineup">
-            <option value="poster">Schedule order</option>
-            <option value="artist">Artist A-Z</option>
-            <option value="genre">Genre A-Z</option>
-          </select>
-          <div class="segmented" aria-label="View mode">
-            <button type="button" id="poster-view-button">Poster</button>
-            <button class="is-active" type="button" id="table-view-button">Table</button>
+          <div class="filter-popover" data-filter="days">
+            <button class="filter-trigger" type="button" aria-expanded="false"><span class="filter-trigger-label">All days</span><span class="filter-caret">⌄</span></button>
+            <div class="filter-panel" hidden><div class="filter-panel-head"><strong>Festival days</strong><button class="filter-panel-clear" type="button">Clear</button></div><div class="filter-options" data-options="days"></div></div>
           </div>
-          <button class="button toggle-button" type="button" id="favorites-filter-button" aria-pressed="false">
-            Favorites only
-          </button>
+          <div class="filter-popover" data-filter="stages">
+            <button class="filter-trigger" type="button" aria-expanded="false"><span class="filter-trigger-label">All stages</span><span class="filter-caret">⌄</span></button>
+            <div class="filter-panel" hidden><div class="filter-panel-head"><strong>Stages</strong><button class="filter-panel-clear" type="button">Clear</button></div><div class="filter-options" data-options="stages"></div></div>
+          </div>
+          <div class="filter-popover" data-filter="genres">
+            <button class="filter-trigger" type="button" aria-expanded="false"><span class="filter-trigger-label">All genres</span><span class="filter-caret">⌄</span></button>
+            <div class="filter-panel" hidden><div class="filter-panel-head"><strong>Genres</strong><button class="filter-panel-clear" type="button">Clear</button></div><div class="filter-options" data-options="genres"></div></div>
+          </div>
+          <div class="filter-popover" data-filter="times">
+            <button class="filter-trigger" type="button" aria-expanded="false"><span class="filter-trigger-label">Set start times</span><span class="filter-caret">⌄</span></button>
+            <div class="filter-panel time-panel" hidden>
+              <div class="filter-panel-head"><strong>Set start times</strong><button class="filter-panel-clear" type="button">Reset times</button></div>
+              <div class="time-range-copy"><label><span>From</span><input id="time-min-text" type="text" inputmode="text"></label><span class="time-range-arrow">→</span><label><span>To</span><input id="time-max-text" type="text" inputmode="text"></label></div>
+              <div class="range-control"><div class="range-track"></div><div class="range-fill" id="time-range-fill"></div><input class="range-input" id="time-min" type="range"><input class="range-input" id="time-max" type="range"></div>
+            </div>
+          </div>
+          <button class="button" type="button" id="clear-filters-button">Clear</button>
           <button class="button" type="button" id="share-button">Share</button>
         </section>
 
         <div class="status-bar">
           <span id="result-count">Showing 0 sets</span>
-          <span class="favorite-status">
+          <div class="schedule-actions">
+            <div class="segmented" aria-label="View mode"><button type="button" id="poster-view-button">Poster</button><button class="is-active" type="button" id="table-view-button">Schedule</button></div>
+            <button class="button toggle-button" type="button" id="favorites-filter-button" aria-pressed="false">Favorites only</button>
             <span class="favorite-note" id="favorite-count">0 favorites</span>
-            <button class="text-button" type="button" id="save-favorites-button" hidden>
-              Save as mine
-            </button>
-            <button class="text-button" type="button" id="clear-favorites-button" hidden>
-              Reset mine
-            </button>
-          </span>
+            <button class="text-button" type="button" id="save-favorites-button" hidden>Save as mine</button>
+            <button class="text-button" type="button" id="clear-favorites-button" hidden>Reset mine</button>
+          </div>
         </div>
 
         <section class="content-panel" id="poster-view" aria-label="Poster style lineup" hidden>
@@ -992,16 +1234,16 @@
           <table>
             <colgroup>
               <col class="col-favorite">
-              <col class="col-artist">
               <col class="col-type">
+              <col class="col-artist">
               <col class="col-genre">
               <col class="col-interest rally-only">
             </colgroup>
             <thead>
               <tr>
                 <th aria-label="Favorite"></th>
-                <th>Artist</th>
-                <th>Set time</th>
+                <th>Start → End</th>
+                <th>Artist / Stage</th>
                 <th>Genre</th>
                 <th class="rally-only">Interested</th>
               </tr>
@@ -1320,9 +1562,23 @@
       const lineup = (window.LOST_LANDS_SET_TIMES || []).map((entry, index) => ({
         ...entry,
         time: `${formatClock(entry.start)} – ${formatClock(entry.end)}`,
+        startMinutes: (() => {
+          const [hours, minutes] = entry.start.slice(11, 16).split(":").map(Number);
+          return hours * 60 + minutes + (entry.start.slice(0, 10) > entry.festivalDate ? 24 * 60 : 0);
+        })(),
         notes: entry.timeZone,
         posterIndex: index,
       }));
+
+      const dayOrder = ["Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+      const stageOrder = [...new Set(lineup.map((entry) => entry.stage))];
+      const genreOrder = [...new Set(lineup.map((entry) => entry.genre))].sort((left, right) =>
+        left.localeCompare(right, undefined, { sensitivity: "base" })
+      );
+      const timeBounds = {
+        min: Math.min(...lineup.map((entry) => entry.startMinutes)),
+        max: Math.max(...lineup.map((entry) => entry.startMinutes)),
+      };
 
       const currentIdsByLegacyId = new Map();
       const addPreferenceAlias = (fromId, toId) => {
@@ -1344,24 +1600,27 @@
         accountDialogClose: document.getElementById("account-dialog-close"),
         accountDialogCopy: document.getElementById("account-dialog-copy"),
         accountDialogTitle: document.getElementById("account-dialog-title"),
-        billingFilter: document.getElementById("billing-filter"),
+        clearFiltersButton: document.getElementById("clear-filters-button"),
         clearFavoritesButton: document.getElementById("clear-favorites-button"),
-        dayFilter: document.getElementById("day-filter"),
         favoriteCount: document.getElementById("favorite-count"),
         favoritesFilterButton: document.getElementById("favorites-filter-button"),
-        genreFilter: document.getElementById("genre-filter"),
-        stageFilter: document.getElementById("stage-filter"),
+        filterPopovers: [...document.querySelectorAll(".filter-popover")],
         posterContent: document.getElementById("poster-content"),
         posterView: document.getElementById("poster-view"),
         posterViewButton: document.getElementById("poster-view-button"),
         resultCount: document.getElementById("result-count"),
+        scheduleRange: document.getElementById("schedule-range"),
         saveFavoritesButton: document.getElementById("save-favorites-button"),
         search: document.getElementById("search"),
         shareButton: document.getElementById("share-button"),
-        sortMode: document.getElementById("sort-mode"),
         tableBody: document.getElementById("table-body"),
         tableView: document.getElementById("table-view"),
-        tableViewButton: document.getElementById("table-view-button")
+        tableViewButton: document.getElementById("table-view-button"),
+        timeMax: document.getElementById("time-max"),
+        timeMaxText: document.getElementById("time-max-text"),
+        timeMin: document.getElementById("time-min"),
+        timeMinText: document.getElementById("time-min-text"),
+        timeRangeFill: document.getElementById("time-range-fill"),
       };
 
       const validFavoriteIds = new Set(lineup.map((entry) => entry.id));
@@ -1378,6 +1637,11 @@
       let activeView = "table";
       let favoritesOnly = false;
       let viewingSharedFavorites = false;
+      let selectedDays = new Set();
+      let selectedStages = new Set();
+      let selectedGenres = new Set();
+      let timeMin = timeBounds.min;
+      let timeMax = timeBounds.max;
 
       function normalizeText(value) {
         return value
@@ -1468,35 +1732,21 @@
       function readStateFromUrl() {
         const params = getIncomingParams();
         els.search.value = params.get("q") || "";
-        els.dayFilter.value = params.get("day") || "all";
         const type = params.get("type") || params.get("billing") || "all";
         favoritesOnly = params.get("fav") === "1" || type === "favorites";
-        els.billingFilter.value = type === "favorites" ? "all" : type;
-        els.genreFilter.value = params.get("genre") || "all";
-        els.stageFilter.value = params.get("stage") || "all";
-        els.sortMode.value = params.get("sort") || "poster";
+        selectedDays = new Set((params.get("days") || params.get("day") || "").split(",").filter((value) => dayOrder.includes(value)));
+        selectedStages = new Set((params.get("stages") || params.get("stage") || "").split(",").filter((value) => stageOrder.includes(value)));
+        selectedGenres = new Set((params.get("genres") || params.get("genre") || "").split(",").filter((value) => genreOrder.includes(value)));
+        const incomingMin = Number(params.get("start"));
+        const incomingMax = Number(params.get("end"));
+        timeMin = Number.isFinite(incomingMin) && incomingMin >= timeBounds.min && incomingMin <= timeBounds.max ? incomingMin : timeBounds.min;
+        timeMax = Number.isFinite(incomingMax) && incomingMax >= timeBounds.min && incomingMax <= timeBounds.max ? incomingMax : timeBounds.max;
+        if (timeMin > timeMax) {
+          timeMin = timeBounds.min;
+          timeMax = timeBounds.max;
+        }
         activeView =
           params.get("view") === "poster" && !mobileViewQuery.matches ? "poster" : "table";
-
-        if (![...els.billingFilter.options].some((option) => option.value === els.billingFilter.value)) {
-          els.billingFilter.value = "all";
-        }
-
-        if (![...els.dayFilter.options].some((option) => option.value === els.dayFilter.value)) {
-          els.dayFilter.value = "all";
-        }
-
-        if (![...els.genreFilter.options].some((option) => option.value === els.genreFilter.value)) {
-          els.genreFilter.value = "all";
-        }
-
-        if (![...els.stageFilter.options].some((option) => option.value === els.stageFilter.value)) {
-          els.stageFilter.value = "all";
-        }
-
-        if (![...els.sortMode.options].some((option) => option.value === els.sortMode.value)) {
-          els.sortMode.value = "poster";
-        }
 
         const hasSharedFavorites = params.has("f") || params.has("favorites");
         const sharedFavorites = [
@@ -1514,11 +1764,13 @@
       function writeStateToUrl() {
         const params = new URLSearchParams();
         if (els.search.value.trim()) params.set("q", els.search.value.trim());
-        if (els.dayFilter.value !== "all") params.set("day", els.dayFilter.value);
-        if (els.billingFilter.value !== "all") params.set("type", els.billingFilter.value);
-        if (els.genreFilter.value !== "all") params.set("genre", els.genreFilter.value);
-        if (els.stageFilter.value !== "all") params.set("stage", els.stageFilter.value);
-        if (els.sortMode.value !== "poster") params.set("sort", els.sortMode.value);
+        if (selectedDays.size) params.set("days", [...selectedDays].join(","));
+        if (selectedStages.size) params.set("stages", [...selectedStages].join(","));
+        if (selectedGenres.size) params.set("genres", [...selectedGenres].join(","));
+        if (timeMin !== timeBounds.min || timeMax !== timeBounds.max) {
+          params.set("start", String(timeMin));
+          params.set("end", String(timeMax));
+        }
         if (activeView !== "table" && !mobileViewQuery.matches) params.set("view", activeView);
         if (favoritesOnly) params.set("fav", "1");
         const next = `${window.location.pathname}${rallyManagedFavorites ? "?rally=1" : ""}${params.toString() ? `#${params}` : ""}`;
@@ -1527,39 +1779,21 @@
 
       function getFilteredLineup() {
         const query = normalizeText(els.search.value.trim());
-        const day = els.dayFilter.value;
-        const type = els.billingFilter.value;
-        const genre = els.genreFilter.value;
-        const stage = els.stageFilter.value;
-        const sortMode = els.sortMode.value;
 
         const filtered = lineup.filter((entry) => {
           const matchesQuery =
             !query ||
             normalizeText(`${entry.artist} ${entry.day} ${entry.stage} ${entry.billing} ${entry.genre} ${entry.time}`).includes(query);
-          const matchesDay = day === "all" || entry.day === day;
-          const matchesType = type === "all" || entry.billing.toLowerCase() === type;
-          const matchesGenre = genre === "all" || entry.genre === genre;
-          const matchesStage = stage === "all" || entry.stage === stage;
+          const matchesDay = !selectedDays.size || selectedDays.has(entry.day);
+          const matchesGenre = !selectedGenres.size || selectedGenres.has(entry.genre);
+          const matchesStage = !selectedStages.size || selectedStages.has(entry.stage);
+          const matchesTime = entry.startMinutes >= timeMin && entry.startMinutes <= timeMax;
           const matchesFavorite = !favoritesOnly || favorites.has(entry.id);
 
-          return matchesQuery && matchesDay && matchesType && matchesGenre && matchesStage && matchesFavorite;
+          return matchesQuery && matchesDay && matchesGenre && matchesStage && matchesTime && matchesFavorite;
         });
 
-        return filtered.sort((left, right) => {
-          if (sortMode === "artist") {
-            return left.artist.localeCompare(right.artist, undefined, { sensitivity: "base" });
-          }
-
-          if (sortMode === "genre") {
-            return (
-              left.genre.localeCompare(right.genre, undefined, { sensitivity: "base" }) ||
-              left.artist.localeCompare(right.artist, undefined, { sensitivity: "base" })
-            );
-          }
-
-          return left.posterIndex - right.posterIndex;
-        });
+        return filtered.sort((left, right) => left.posterIndex - right.posterIndex);
       }
 
       function renderPosterGroup(entries, billing) {
@@ -1611,9 +1845,15 @@
           return;
         }
 
+        let renderedDay = "";
         els.tableBody.innerHTML = entries
-          .map(
-            (entry) => `
+          .map((entry) => {
+            const dayEntries = entries.filter((candidate) => candidate.day === entry.day);
+            const dayDivider = renderedDay === entry.day ? "" : `
+              <tr class="day-divider"><td colspan="${rallyManagedFavorites ? 5 : 4}">${escapeHtml(entry.day)} · ${escapeHtml(formatFestivalDate(entry.festivalDate))} · ${dayEntries.length} set${dayEntries.length === 1 ? "" : "s"}</td></tr>
+            `;
+            renderedDay = entry.day;
+            return `${dayDivider}
               <tr>
                 <td>
                   <button
@@ -1623,14 +1863,20 @@
                     aria-label="${favorites.has(entry.id) ? "Remove" : "Add"} ${escapeHtml(entry.artist)} favorite"
                   >★</button>
                 </td>
+                <td class="type-cell"><span class="schedule-time">${escapeHtml(formatClock(entry.start))}</span><span class="schedule-end">to ${escapeHtml(formatClock(entry.end))} · EDT</span></td>
                 <td class="artist-cell">${escapeHtml(entry.artist)}<span class="artist-stage">${escapeHtml(entry.stage)}</span></td>
-                <td class="type-cell"><span class="schedule-day">${escapeHtml(entry.day.slice(0, 3))}</span><span class="schedule-time">${escapeHtml(entry.time)}</span></td>
                 <td class="genre-cell">${escapeHtml(entry.genre)}</td>
                 <td class="rally-only">${renderInterest(entry.id)}</td>
               </tr>
-            `
-          )
+            `;
+          })
           .join("");
+      }
+
+      function formatFestivalDate(value) {
+        const [, month, day] = String(value || "").split("-").map(Number);
+        if (!month || !day) return "Date TBD";
+        return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" }).format(new Date(2026, month - 1, day));
       }
 
       function renderInterest(artistId) {
@@ -1678,6 +1924,7 @@
           favoriteTotal === 1 ? "1 favorite" : `${favoriteTotal} favorites`;
         renderPoster(entries);
         renderTable(entries);
+        updateFilterControls();
         updateViewButtons();
         writeStateToUrl();
       }
@@ -1895,36 +2142,168 @@
         }
       }
 
-      function initGenreFilter() {
-        const genres = [...new Set(lineup.map((entry) => entry.genre))].sort((left, right) =>
-          left.localeCompare(right, undefined, { sensitivity: "base" })
-        );
+      function filterValues(name) {
+        if (name === "days") return dayOrder;
+        if (name === "stages") return stageOrder;
+        return genreOrder;
+      }
 
-        genres.forEach((genre) => {
-          const option = document.createElement("option");
-          option.value = genre;
-          option.textContent = genre;
-          els.genreFilter.append(option);
+      function selectedFilter(name) {
+        if (name === "days") return selectedDays;
+        if (name === "stages") return selectedStages;
+        return selectedGenres;
+      }
+
+      function summarizeFilter(name, selected) {
+        const singular = name === "days" ? "day" : name === "stages" ? "stage" : "genre";
+        if (!selected.size) return `All ${name}`;
+        if (selected.size === 1) return [...selected][0];
+        return `${selected.size} ${singular}s`;
+      }
+
+      function formatFilterTime(value) {
+        const normalized = value % (24 * 60);
+        const hours = Math.floor(normalized / 60);
+        const minutes = normalized % 60;
+        return formatClock(`2026-01-01T${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`);
+      }
+
+      function parseFilterTime(value) {
+        const match = String(value || "").trim().toLowerCase().match(/^(\d{1,2})(?::(\d{2}))?\s*(am|pm)?$/);
+        if (!match) return null;
+        let hours = Number(match[1]);
+        const minutes = Number(match[2] || 0);
+        const meridiem = match[3];
+        if (minutes > 59 || hours > 23) return null;
+        if (meridiem) {
+          if (hours < 1 || hours > 12) return null;
+          if (meridiem === "pm" && hours !== 12) hours += 12;
+          if (meridiem === "am" && hours === 12) hours = 0;
+        }
+        return (hours < 12 ? hours + 24 : hours) * 60 + minutes;
+      }
+
+      function closeFilterPopovers(except = null) {
+        els.filterPopovers.forEach((popover) => {
+          if (popover === except) return;
+          popover.querySelector(".filter-trigger").setAttribute("aria-expanded", "false");
+          popover.querySelector(".filter-panel").hidden = true;
         });
       }
 
-      function initStageFilter() {
-        Object.keys(stageLineups).forEach((stage) => {
-          const option = document.createElement("option");
-          option.value = stage;
-          option.textContent = stage;
-          els.stageFilter.append(option);
+      function updateFilterControls() {
+        els.filterPopovers.forEach((popover) => {
+          const name = popover.dataset.filter;
+          const label = popover.querySelector(".filter-trigger-label");
+          if (name === "times") {
+            const fullRange = timeMin === timeBounds.min && timeMax === timeBounds.max;
+            label.textContent = fullRange ? "Set start times" : `${formatFilterTime(timeMin)} – ${formatFilterTime(timeMax)}`;
+            return;
+          }
+          const selected = selectedFilter(name);
+          label.textContent = summarizeFilter(name, selected);
+          popover.querySelectorAll("input[type=checkbox]").forEach((input) => {
+            input.checked = selected.has(input.value);
+          });
+        });
+
+        els.timeMin.value = String(timeMin);
+        els.timeMax.value = String(timeMax);
+        els.timeMinText.value = formatFilterTime(timeMin);
+        els.timeMaxText.value = formatFilterTime(timeMax);
+        const span = timeBounds.max - timeBounds.min || 1;
+        els.timeRangeFill.style.left = `${((timeMin - timeBounds.min) / span) * 100}%`;
+        els.timeRangeFill.style.right = `${100 - ((timeMax - timeBounds.min) / span) * 100}%`;
+      }
+
+      function setTimeRange(nextMin, nextMax) {
+        timeMin = Math.max(timeBounds.min, Math.min(nextMin, nextMax, timeBounds.max));
+        timeMax = Math.min(timeBounds.max, Math.max(nextMax, timeMin, timeBounds.min));
+        render();
+      }
+
+      function applyTypedTime(input, boundary) {
+        const parsed = parseFilterTime(input.value);
+        if (parsed === null) {
+          updateFilterControls();
+          return;
+        }
+        if (boundary === "min") setTimeRange(Math.min(parsed, timeMax), timeMax);
+        else setTimeRange(timeMin, Math.max(parsed, timeMin));
+      }
+
+      function clearScheduleFilters() {
+        els.search.value = "";
+        selectedDays = new Set();
+        selectedStages = new Set();
+        selectedGenres = new Set();
+        timeMin = timeBounds.min;
+        timeMax = timeBounds.max;
+        favoritesOnly = false;
+        render();
+      }
+
+      function initFilterControls() {
+        els.filterPopovers.forEach((popover) => {
+          const name = popover.dataset.filter;
+          const trigger = popover.querySelector(".filter-trigger");
+          const panel = popover.querySelector(".filter-panel");
+          const clear = popover.querySelector(".filter-panel-clear");
+
+          trigger.addEventListener("click", () => {
+            const opening = panel.hidden;
+            closeFilterPopovers(popover);
+            panel.hidden = !opening;
+            trigger.setAttribute("aria-expanded", String(opening));
+          });
+
+          clear.addEventListener("click", () => {
+            if (name === "times") setTimeRange(timeBounds.min, timeBounds.max);
+            else {
+              selectedFilter(name).clear();
+              render();
+            }
+          });
+
+          if (name === "times") return;
+          const options = popover.querySelector(".filter-options");
+          options.innerHTML = filterValues(name).map((value) => `
+            <label class="filter-option"><input type="checkbox" value="${escapeHtml(value)}"><span>${escapeHtml(value)}</span></label>
+          `).join("");
+          options.addEventListener("change", (event) => {
+            const input = event.target.closest("input[type=checkbox]");
+            if (!input) return;
+            const selected = selectedFilter(name);
+            if (input.checked) selected.add(input.value);
+            else selected.delete(input.value);
+            render();
+          });
+        });
+
+        [els.timeMin, els.timeMax].forEach((input) => {
+          input.min = String(timeBounds.min);
+          input.max = String(timeBounds.max);
+          input.step = "5";
+        });
+        els.timeMin.addEventListener("input", () => setTimeRange(Math.min(Number(els.timeMin.value), timeMax), timeMax));
+        els.timeMax.addEventListener("input", () => setTimeRange(timeMin, Math.max(Number(els.timeMax.value), timeMin)));
+        [[els.timeMinText, "min"], [els.timeMaxText, "max"]].forEach(([input, boundary]) => {
+          input.addEventListener("blur", () => applyTypedTime(input, boundary));
+          input.addEventListener("keydown", (event) => {
+            if (event.key === "Enter") {
+              applyTypedTime(input, boundary);
+              input.blur();
+            }
+          });
         });
       }
 
       function bindEvents() {
-        [els.search, els.dayFilter, els.stageFilter, els.billingFilter, els.genreFilter, els.sortMode].forEach((control) => {
-          control.addEventListener("input", render);
-          control.addEventListener("change", render);
-        });
+        els.search.addEventListener("input", render);
 
         els.posterViewButton.addEventListener("click", () => setView("poster"));
         els.tableViewButton.addEventListener("click", () => setView("table"));
+        els.clearFiltersButton.addEventListener("click", clearScheduleFilters);
         els.favoritesFilterButton.addEventListener("click", toggleFavoritesOnly);
         els.saveFavoritesButton.addEventListener("click", saveFavoritesAsMine);
         els.clearFavoritesButton.addEventListener("click", clearFavorites);
@@ -1933,6 +2312,12 @@
         els.accountDialogClose.addEventListener("click", () => els.accountDialog.close());
         els.accountDialog.addEventListener("click", (event) => {
           if (event.target === els.accountDialog) els.accountDialog.close();
+        });
+        document.addEventListener("pointerdown", (event) => {
+          if (!event.target.closest(".filter-popover")) closeFilterPopovers();
+        }, true);
+        document.addEventListener("keydown", (event) => {
+          if (event.key === "Escape") closeFilterPopovers();
         });
 
         els.tableBody.addEventListener("click", (event) => {
@@ -1992,8 +2377,8 @@
       }
 
       els.artistCount.textContent = `${lineup.length} sets`;
-      initGenreFilter();
-      initStageFilter();
+      els.scheduleRange.textContent = `Starts ${formatFilterTime(timeBounds.min)} – ${formatFilterTime(timeBounds.max)} · EDT`;
+      initFilterControls();
       setCanonicalUrl();
       readStateFromUrl();
       bindEvents();
