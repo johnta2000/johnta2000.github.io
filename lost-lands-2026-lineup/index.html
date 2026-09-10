@@ -368,6 +368,22 @@
         overflow: auto;
       }
 
+      .filter-search {
+        width: 100%;
+        min-height: 36px;
+        margin-bottom: 8px;
+        padding: 0 9px;
+        border: 1px solid rgba(160, 225, 197, 0.28);
+        border-radius: 7px;
+        background: rgba(4, 16, 15, 0.88);
+        color: var(--text);
+        font-size: 0.8rem;
+      }
+
+      .filter-search::placeholder {
+        color: rgba(181, 201, 187, 0.72);
+      }
+
       .filter-option {
         display: flex;
         align-items: center;
@@ -392,6 +408,13 @@
         min-height: 16px;
         margin: 0;
         accent-color: var(--teal);
+      }
+
+      .filter-empty {
+        padding: 12px 9px;
+        color: var(--muted);
+        font-size: 0.78rem;
+        font-weight: 700;
       }
 
       .time-panel {
@@ -710,15 +733,20 @@
       }
 
       col.col-favorite {
-        width: 62px;
+        width: 56px;
       }
 
       col.col-artist {
-        width: 42%;
+        width: 27%;
       }
 
-      col.col-type {
-        width: 24%;
+      col.col-start,
+      col.col-end {
+        width: 13%;
+      }
+
+      col.col-stage {
+        width: 23%;
       }
 
       col.col-genre {
@@ -739,15 +767,20 @@
       }
 
       .rally-mode col.col-artist {
-        width: 31%;
+        width: 22%;
       }
 
-      .rally-mode col.col-type {
-        width: 20%;
+      .rally-mode col.col-start,
+      .rally-mode col.col-end {
+        width: 11%;
+      }
+
+      .rally-mode col.col-stage {
+        width: 18%;
       }
 
       .rally-mode col.col-genre {
-        width: 18%;
+        width: 12%;
       }
 
       .interest-list {
@@ -837,12 +870,22 @@
         background: rgba(55, 211, 139, 0.06);
       }
 
-      .artist-cell {
+      .artist-cell,
+      .stage-cell {
         min-width: 0;
         color: var(--text);
         font-weight: 900;
-        text-align: center;
         text-transform: uppercase;
+      }
+
+      .artist-cell {
+        text-align: left;
+      }
+
+      .stage-cell {
+        color: var(--muted);
+        font-size: 0.78rem;
+        text-align: left;
       }
 
       .artist-stage {
@@ -854,7 +897,7 @@
         letter-spacing: 0.04em;
       }
 
-      .type-cell,
+      .time-cell,
       .genre-cell {
         min-width: 0;
         color: var(--muted);
@@ -904,8 +947,13 @@
 
       th:nth-child(2),
       th:nth-child(3),
-      th:nth-child(4) {
+      th:nth-child(6) {
         text-align: center;
+      }
+
+      th:nth-child(4),
+      th:nth-child(5) {
+        text-align: left;
       }
 
       .favorite-button {
@@ -1057,37 +1105,20 @@
           line-height: 1.1;
         }
 
-        col.col-favorite {
-          width: 9% !important;
-        }
+        col.col-favorite { width: 9% !important; }
+        col.col-start { width: 18% !important; }
+        col.col-end { width: 18% !important; }
+        col.col-artist { width: 31% !important; }
+        col.col-stage { width: 24% !important; }
+        col.col-genre { display: none; }
+        th.genre-column,
+        td.genre-column { display: none; }
 
-        col.col-artist {
-          width: 48% !important;
-        }
-
-        col.col-type {
-          width: 20% !important;
-        }
-
-        col.col-genre {
-          width: 23% !important;
-        }
-
-        .rally-mode col.col-artist {
-          width: 30% !important;
-        }
-
-        .rally-mode col.col-type {
-          width: 22% !important;
-        }
-
-        .rally-mode col.col-genre {
-          width: 12% !important;
-        }
-
-        .rally-mode col.col-interest {
-          width: 28% !important;
-        }
+        .rally-mode col.col-start { width: 14% !important; }
+        .rally-mode col.col-end { width: 14% !important; }
+        .rally-mode col.col-artist { width: 24% !important; }
+        .rally-mode col.col-stage { width: 18% !important; }
+        .rally-mode col.col-interest { width: 21% !important; }
 
         .interest-list {
           gap: 2px;
@@ -1123,7 +1154,8 @@
           line-height: 1.15;
         }
 
-        .type-cell,
+        .time-cell,
+        .stage-cell,
         .genre-cell {
           font-size: 9px;
           line-height: 1.15;
@@ -1193,15 +1225,15 @@
           >
           <div class="filter-popover" data-filter="days">
             <button class="filter-trigger" type="button" aria-expanded="false"><span class="filter-trigger-label">All days</span><span class="filter-caret">⌄</span></button>
-            <div class="filter-panel" hidden><div class="filter-panel-head"><strong>Festival days</strong><button class="filter-panel-clear" type="button">Clear</button></div><div class="filter-options" data-options="days"></div></div>
+            <div class="filter-panel" hidden><div class="filter-panel-head"><strong>Festival days</strong><button class="filter-panel-clear" type="button">Clear</button></div><input class="filter-search" type="search" placeholder="Search days" aria-label="Search days"><div class="filter-options" data-options="days"></div></div>
           </div>
           <div class="filter-popover" data-filter="stages">
             <button class="filter-trigger" type="button" aria-expanded="false"><span class="filter-trigger-label">All stages</span><span class="filter-caret">⌄</span></button>
-            <div class="filter-panel" hidden><div class="filter-panel-head"><strong>Stages</strong><button class="filter-panel-clear" type="button">Clear</button></div><div class="filter-options" data-options="stages"></div></div>
+            <div class="filter-panel" hidden><div class="filter-panel-head"><strong>Stages</strong><button class="filter-panel-clear" type="button">Clear</button></div><input class="filter-search" type="search" placeholder="Search stages" aria-label="Search stages"><div class="filter-options" data-options="stages"></div></div>
           </div>
           <div class="filter-popover" data-filter="genres">
             <button class="filter-trigger" type="button" aria-expanded="false"><span class="filter-trigger-label">All genres</span><span class="filter-caret">⌄</span></button>
-            <div class="filter-panel" hidden><div class="filter-panel-head"><strong>Genres</strong><button class="filter-panel-clear" type="button">Clear</button></div><div class="filter-options" data-options="genres"></div></div>
+            <div class="filter-panel" hidden><div class="filter-panel-head"><strong>Genres</strong><button class="filter-panel-clear" type="button">Clear</button></div><input class="filter-search" type="search" placeholder="Search genres" aria-label="Search genres"><div class="filter-options" data-options="genres"></div></div>
           </div>
           <div class="filter-popover" data-filter="times">
             <button class="filter-trigger" type="button" aria-expanded="false"><span class="filter-trigger-label">Set start times</span><span class="filter-caret">⌄</span></button>
@@ -1234,17 +1266,21 @@
           <table>
             <colgroup>
               <col class="col-favorite">
-              <col class="col-type">
+              <col class="col-start">
+              <col class="col-end">
               <col class="col-artist">
-              <col class="col-genre">
+              <col class="col-stage">
+              <col class="col-genre genre-column">
               <col class="col-interest rally-only">
             </colgroup>
             <thead>
               <tr>
                 <th aria-label="Favorite"></th>
-                <th>Start → End</th>
-                <th>Artist / Stage</th>
-                <th>Genre</th>
+                <th>Start</th>
+                <th>End</th>
+                <th>Artist</th>
+                <th>Stage</th>
+                <th class="genre-column">Genre</th>
                 <th class="rally-only">Interested</th>
               </tr>
             </thead>
@@ -1839,7 +1875,7 @@
         if (!entries.length) {
           els.tableBody.innerHTML = `
             <tr>
-              <td class="empty-state" colspan="${rallyManagedFavorites ? 5 : 4}">No sets match the current filters.</td>
+              <td class="empty-state" colspan="${rallyManagedFavorites ? 7 : 6}">No sets match the current filters.</td>
             </tr>
           `;
           return;
@@ -1850,7 +1886,7 @@
           .map((entry) => {
             const dayEntries = entries.filter((candidate) => candidate.day === entry.day);
             const dayDivider = renderedDay === entry.day ? "" : `
-              <tr class="day-divider"><td colspan="${rallyManagedFavorites ? 5 : 4}">${escapeHtml(entry.day)} · ${escapeHtml(formatFestivalDate(entry.festivalDate))} · ${dayEntries.length} set${dayEntries.length === 1 ? "" : "s"}</td></tr>
+              <tr class="day-divider"><td colspan="${rallyManagedFavorites ? 7 : 6}">${escapeHtml(entry.day)} · ${escapeHtml(formatFestivalDate(entry.festivalDate))} · ${dayEntries.length} set${dayEntries.length === 1 ? "" : "s"}</td></tr>
             `;
             renderedDay = entry.day;
             return `${dayDivider}
@@ -1863,9 +1899,11 @@
                     aria-label="${favorites.has(entry.id) ? "Remove" : "Add"} ${escapeHtml(entry.artist)} favorite"
                   >★</button>
                 </td>
-                <td class="type-cell"><span class="schedule-time">${escapeHtml(formatClock(entry.start))}</span><span class="schedule-end">to ${escapeHtml(formatClock(entry.end))} · EDT</span></td>
-                <td class="artist-cell">${escapeHtml(entry.artist)}<span class="artist-stage">${escapeHtml(entry.stage)}</span></td>
-                <td class="genre-cell">${escapeHtml(entry.genre)}</td>
+                <td class="time-cell"><span class="schedule-time">${escapeHtml(formatClock(entry.start))}</span></td>
+                <td class="time-cell"><span class="schedule-time">${escapeHtml(formatClock(entry.end))}</span></td>
+                <td class="artist-cell">${escapeHtml(entry.artist)}</td>
+                <td class="stage-cell">${escapeHtml(entry.stage)}</td>
+                <td class="genre-cell genre-column">${escapeHtml(entry.genre)}</td>
                 <td class="rally-only">${renderInterest(entry.id)}</td>
               </tr>
             `;
@@ -2258,6 +2296,11 @@
           });
 
           clear.addEventListener("click", () => {
+            const search = popover.querySelector(".filter-search");
+            if (search) {
+              search.value = "";
+              search.dispatchEvent(new Event("input"));
+            }
             if (name === "times") setTimeRange(timeBounds.min, timeBounds.max);
             else {
               selectedFilter(name).clear();
@@ -2270,6 +2313,21 @@
           options.innerHTML = filterValues(name).map((value) => `
             <label class="filter-option"><input type="checkbox" value="${escapeHtml(value)}"><span>${escapeHtml(value)}</span></label>
           `).join("");
+          const search = popover.querySelector(".filter-search");
+          const empty = document.createElement("div");
+          empty.className = "filter-empty";
+          empty.textContent = "No matches";
+          empty.hidden = true;
+          options.after(empty);
+          search.addEventListener("input", () => {
+            const query = normalizeText(search.value.trim());
+            let visible = 0;
+            options.querySelectorAll(".filter-option").forEach((option) => {
+              option.hidden = Boolean(query) && !normalizeText(option.textContent).includes(query);
+              if (!option.hidden) visible += 1;
+            });
+            empty.hidden = visible > 0;
+          });
           options.addEventListener("change", (event) => {
             const input = event.target.closest("input[type=checkbox]");
             if (!input) return;
