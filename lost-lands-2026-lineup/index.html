@@ -453,6 +453,23 @@
           rgba(4, 16, 15, 0.72);
       }
 
+      .artist-chip-copy {
+        display: grid;
+        gap: 2px;
+      }
+
+      .artist-chip-copy strong {
+        font: inherit;
+      }
+
+      .artist-chip-copy small {
+        color: var(--muted);
+        font-size: 0.62rem;
+        font-weight: 750;
+        letter-spacing: 0.02em;
+        text-transform: none;
+      }
+
       .genre-pill {
         padding: 3px 7px;
         border-radius: 999px;
@@ -481,11 +498,11 @@
       }
 
       col.col-artist {
-        width: 50%;
+        width: 44%;
       }
 
       col.col-type {
-        width: 14%;
+        width: 22%;
       }
 
       col.col-genre {
@@ -506,11 +523,11 @@
       }
 
       .rally-mode col.col-artist {
-        width: 35%;
+        width: 31%;
       }
 
       .rally-mode col.col-type {
-        width: 12%;
+        width: 20%;
       }
 
       .rally-mode col.col-genre {
@@ -627,6 +644,24 @@
         color: var(--muted);
         font-weight: 750;
         text-align: center;
+      }
+
+      .schedule-day,
+      .schedule-time {
+        display: block;
+      }
+
+      .schedule-day {
+        color: var(--text);
+        font-size: 0.72rem;
+        font-weight: 900;
+        text-transform: uppercase;
+      }
+
+      .schedule-time {
+        margin-top: 3px;
+        font-size: 0.76rem;
+        white-space: nowrap;
       }
 
       th:nth-child(2),
@@ -790,11 +825,11 @@
         }
 
         col.col-artist {
-          width: 55% !important;
+          width: 48% !important;
         }
 
         col.col-type {
-          width: 13% !important;
+          width: 20% !important;
         }
 
         col.col-genre {
@@ -802,15 +837,15 @@
         }
 
         .rally-mode col.col-artist {
-          width: 34% !important;
+          width: 31% !important;
         }
 
         .rally-mode col.col-type {
-          width: 11% !important;
+          width: 20% !important;
         }
 
         .rally-mode col.col-genre {
-          width: 18% !important;
+          width: 12% !important;
         }
 
         .rally-mode col.col-interest {
@@ -857,6 +892,16 @@
           line-height: 1.15;
         }
 
+        .schedule-day {
+          font-size: 8px;
+        }
+
+        .schedule-time {
+          margin-top: 2px;
+          font-size: 8px;
+          white-space: normal;
+        }
+
         .favorite-button {
           width: 24px;
           min-height: 24px;
@@ -874,9 +919,9 @@
             <p class="eyebrow">Excision Presents</p>
             <h1 id="page-title">Lost Lands 2026 Lineup</h1>
             <div class="summary" aria-label="Lineup summary">
-              <span class="metric" id="artist-count">0 artists</span>
-              <span class="metric">September 18-20, 2026</span>
-              <span class="metric">Set times pending</span>
+              <span class="metric" id="artist-count">0 sets</span>
+              <span class="metric">September 16-20, 2026</span>
+              <span class="metric">Official set times · EDT</span>
             </div>
           </div>
           <button class="account-button standalone-auth" id="account-button" type="button" hidden>
@@ -889,7 +934,7 @@
             class="search-field"
             id="search"
             type="search"
-            placeholder="Search artists, day, type, or genre"
+            placeholder="Search artists, stages, days, or genres"
             autocomplete="off"
           >
           <select class="select-field" id="day-filter" aria-label="Day filter">
@@ -912,7 +957,7 @@
             <option value="all">All genres</option>
           </select>
           <select class="select-field" id="sort-mode" aria-label="Sort lineup">
-            <option value="poster">Poster order</option>
+            <option value="poster">Schedule order</option>
             <option value="artist">Artist A-Z</option>
             <option value="genre">Genre A-Z</option>
           </select>
@@ -927,7 +972,7 @@
         </section>
 
         <div class="status-bar">
-          <span id="result-count">Showing 0 artists</span>
+          <span id="result-count">Showing 0 sets</span>
           <span class="favorite-status">
             <span class="favorite-note" id="favorite-count">0 favorites</span>
             <button class="text-button" type="button" id="save-favorites-button" hidden>
@@ -956,7 +1001,7 @@
               <tr>
                 <th aria-label="Favorite"></th>
                 <th>Artist</th>
-                <th>Day</th>
+                <th>Set time</th>
                 <th>Genre</th>
                 <th class="rally-only">Interested</th>
               </tr>
@@ -980,6 +1025,7 @@
 
     <script defer crossorigin="anonymous" src="https://clerk.john-ta.com/npm/@clerk/ui@1/dist/ui.browser.js"></script>
     <script defer crossorigin="anonymous" data-clerk-publishable-key="pk_live_Y2xlcmsuam9obi10YS5jb20k" src="https://clerk.john-ta.com/npm/@clerk/clerk-js@6/dist/clerk.browser.js"></script>
+    <script src="./set-times.js?v=20260910"></script>
     <script>
       const CONVEX_URL = "https://dashing-heron-837.convex.cloud";
       const LINEUP_EVENT_ID = "lost-lands-2026";
@@ -1264,22 +1310,19 @@
           .forEach((artist) => stageByArtist.set(artist, stage));
       });
 
-      const lineup = Object.entries(lineupByDay).flatMap(([day, value]) =>
-        value.split("|").map((artist) => artist.trim().replace(/\s+/g, " ")).filter(Boolean).map((artist) => {
-          const aliases = preferenceAliases[artist] || [artist];
-          const legacy = aliases.map((alias) => legacyByArtist.get(alias)).find(Boolean);
-          return {
-            id: legacy?.id || `set-${artistSlug(artist)}`,
-            artist,
-            billing: legacy?.billing || (aliases.some((alias) => legacyByArtist.get(alias)?.billing === "Main") ? "Main" : "Support"),
-            genre: genreByArtist[artist] || aliases.map((alias) => genreByArtist[alias]).find(Boolean) || "Bass",
-            day,
-            time: "",
-            stage: stageByArtist.get(artist) || "Stage TBD",
-            notes: ""
-          };
-        })
-      ).map((entry, index) => ({ ...entry, posterIndex: index }));
+      function formatClock(value) {
+        const [hoursValue, minutes] = String(value || "").slice(11, 16).split(":");
+        const hours = Number(hoursValue);
+        if (!Number.isInteger(hours) || !minutes) return "Time TBD";
+        return `${hours % 12 || 12}:${minutes} ${hours >= 12 ? "PM" : "AM"}`;
+      }
+
+      const lineup = (window.LOST_LANDS_SET_TIMES || []).map((entry, index) => ({
+        ...entry,
+        time: `${formatClock(entry.start)} – ${formatClock(entry.end)}`,
+        notes: entry.timeZone,
+        posterIndex: index,
+      }));
 
       const currentIdsByLegacyId = new Map();
       const addPreferenceAlias = (fromId, toId) => {
@@ -1289,10 +1332,7 @@
       };
       lineup.forEach((entry) => {
         addPreferenceAlias(entry.id, entry.id);
-        (preferenceAliases[entry.artist] || [entry.artist]).forEach((alias) => {
-          const legacyId = legacyByArtist.get(alias)?.id;
-          if (legacyId) addPreferenceAlias(legacyId, entry.id);
-        });
+        (entry.legacyIds || []).forEach((legacyId) => addPreferenceAlias(legacyId, entry.id));
       });
       const currentFavoriteIds = (id) => [...(currentIdsByLegacyId.get(id) || [id])];
 
@@ -1496,7 +1536,7 @@
         const filtered = lineup.filter((entry) => {
           const matchesQuery =
             !query ||
-            normalizeText(`${entry.artist} ${entry.day} ${entry.stage} ${entry.billing} ${entry.genre}`).includes(query);
+            normalizeText(`${entry.artist} ${entry.day} ${entry.stage} ${entry.billing} ${entry.genre} ${entry.time}`).includes(query);
           const matchesDay = day === "all" || entry.day === day;
           const matchesType = type === "all" || entry.billing.toLowerCase() === type;
           const matchesGenre = genre === "all" || entry.genre === genre;
@@ -1531,7 +1571,7 @@
             const mainClass = billing === "Main" ? " main" : "";
             return `
               <span class="artist-chip${mainClass}${favoriteClass}">
-                <span>${escapeHtml(entry.artist)}</span>
+                <span class="artist-chip-copy"><strong>${escapeHtml(entry.artist)}</strong><small>${escapeHtml(entry.day.slice(0, 3))} · ${escapeHtml(entry.time)} · ${escapeHtml(entry.stage)}</small></span>
                 <span class="genre-pill">${escapeHtml(entry.genre)}</span>
               </span>
             `;
@@ -1542,7 +1582,7 @@
           <section class="billing-block">
             <div class="block-head">
               <h2>${escapeHtml(billing)} Lineup</h2>
-              <span>${entries.length} artists</span>
+              <span>${entries.length} sets</span>
             </div>
             <div class="artist-cloud">${chips}</div>
           </section>
@@ -1551,7 +1591,7 @@
 
       function renderPoster(entries) {
         if (!entries.length) {
-          els.posterContent.innerHTML = `<div class="empty-state">No artists match the current filters.</div>`;
+          els.posterContent.innerHTML = `<div class="empty-state">No sets match the current filters.</div>`;
           return;
         }
 
@@ -1565,7 +1605,7 @@
         if (!entries.length) {
           els.tableBody.innerHTML = `
             <tr>
-              <td class="empty-state" colspan="${rallyManagedFavorites ? 5 : 4}">No artists match the current filters.</td>
+              <td class="empty-state" colspan="${rallyManagedFavorites ? 5 : 4}">No sets match the current filters.</td>
             </tr>
           `;
           return;
@@ -1584,7 +1624,7 @@
                   >★</button>
                 </td>
                 <td class="artist-cell">${escapeHtml(entry.artist)}<span class="artist-stage">${escapeHtml(entry.stage)}</span></td>
-                <td class="type-cell">${escapeHtml(entry.day.slice(0, 3))}</td>
+                <td class="type-cell"><span class="schedule-day">${escapeHtml(entry.day.slice(0, 3))}</span><span class="schedule-time">${escapeHtml(entry.time)}</span></td>
                 <td class="genre-cell">${escapeHtml(entry.genre)}</td>
                 <td class="rally-only">${renderInterest(entry.id)}</td>
               </tr>
@@ -1633,7 +1673,7 @@
       function render() {
         const entries = getFilteredLineup();
         const favoriteTotal = favorites.size;
-        els.resultCount.textContent = `Showing ${entries.length} of ${lineup.length} artists`;
+        els.resultCount.textContent = `Showing ${entries.length} of ${lineup.length} sets`;
         els.favoriteCount.textContent =
           favoriteTotal === 1 ? "1 favorite" : `${favoriteTotal} favorites`;
         renderPoster(entries);
@@ -1951,7 +1991,7 @@
         mobileViewQuery.addEventListener("change", render);
       }
 
-      els.artistCount.textContent = `${lineup.length} artists`;
+      els.artistCount.textContent = `${lineup.length} sets`;
       initGenreFilter();
       initStageFilter();
       setCanonicalUrl();

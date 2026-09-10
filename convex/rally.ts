@@ -2,6 +2,7 @@ import { action, internalMutation, internalQuery, mutation, query } from "./_gen
 import { internal } from "./_generated/api";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { v } from "convex/values";
+import { LOST_LANDS_SET_TIMES, LOST_LANDS_SET_TIMES_META } from "./lostLandsSetTimes";
 
 type Identity = { subject: string; email?: string | null; name?: string | null; emailVerified?: boolean };
 type RallyState = Record<string, any>;
@@ -267,6 +268,72 @@ export const addUpcomingRaves2026 = internalMutation({
       created.push(event.id);
     }
     return { created, available: events.map((event) => event.id) };
+  },
+});
+
+export const importLostLandsSetTimes2026 = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const doc = await findDoc(ctx, LOST_LANDS);
+    if (!doc?.buckets) throw new Error("Lost Lands 2026 is unavailable.");
+    const state = structuredClone(doc.buckets) as RallyState;
+    const currentIds = new Set<string>(LOST_LANDS_SET_TIMES.map((performance) => performance.id));
+    const replacementIdsByOldId = new Map<string, string[]>();
+
+    LOST_LANDS_SET_TIMES.forEach((performance) => {
+      performance.legacyIds.forEach((oldId) => {
+        const replacementIds = replacementIdsByOldId.get(oldId) || [];
+        if (!replacementIds.includes(performance.id)) replacementIds.push(performance.id);
+        replacementIdsByOldId.set(oldId, replacementIds);
+      });
+    });
+
+    let favoriteReferencesBefore = 0;
+    let favoriteReferencesAfter = 0;
+    let unmappedFavoriteReferences = 0;
+    state.lineupFavorites ||= {};
+    Object.entries(state.lineupFavorites).forEach(([memberId, favoriteIds]) => {
+      const nextIds: string[] = [];
+      (Array.isArray(favoriteIds) ? favoriteIds : []).forEach((favoriteId) => {
+        favoriteReferencesBefore += 1;
+        const replacements = replacementIdsByOldId.get(String(favoriteId));
+        if (replacements?.length) nextIds.push(...replacements);
+        else {
+          nextIds.push(String(favoriteId));
+          if (!currentIds.has(String(favoriteId))) unmappedFavoriteReferences += 1;
+        }
+      });
+      state.lineupFavorites[memberId] = [...new Set(nextIds)];
+      favoriteReferencesAfter += state.lineupFavorites[memberId].length;
+    });
+
+    state.lineup = LOST_LANDS_SET_TIMES.map((performance) => ({
+      id: performance.id,
+      name: performance.artist,
+      artist: performance.artist,
+      billing: performance.billing,
+      genre: performance.genre,
+      day: performance.day,
+      date: performance.festivalDate,
+      start: performance.start,
+      end: performance.end,
+      durationMinutes: performance.durationMinutes,
+      time: performance.appTimeText,
+      stage: performance.stage,
+      timeZone: performance.timeZone,
+      notes: "",
+    }));
+    state.lineupSource = LOST_LANDS_SET_TIMES_META.source;
+    state.lineupSourceLabel = LOST_LANDS_SET_TIMES_META.sourceLabel;
+    state.lineupUpdatedAt = LOST_LANDS_SET_TIMES_META.capturedAt;
+    state.lineupTimeZone = LOST_LANDS_SET_TIMES_META.timeZone;
+    await ctx.db.patch(doc._id, { buckets: state, updatedAt: Date.now() });
+    return {
+      performances: state.lineup.length,
+      favoriteReferencesBefore,
+      favoriteReferencesAfter,
+      unmappedFavoriteReferences,
+    };
   },
 });
 
