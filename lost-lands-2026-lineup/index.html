@@ -1236,6 +1236,79 @@
           font-size: 0.78rem;
         }
       }
+      /* Compact working header shared by the standalone and Rally lineup. */
+      body { background: #081713; }
+      body::before, body::after { display: none; }
+      .app-header {
+        align-items: center;
+        gap: 12px;
+        padding: 4px 0 18px;
+        margin: 0;
+        border: 0;
+        border-radius: 0;
+        background: none;
+        box-shadow: none;
+      }
+      .header-copy { flex: 1; }
+      .app-header h1 {
+        margin: 0;
+        font-size: 26px;
+        line-height: 1.2;
+        font-weight: 750;
+        letter-spacing: -0.035em;
+        text-transform: none;
+        white-space: normal;
+      }
+      .rally-mode .standalone-title { display: none; }
+      .lineup-meta { margin: 6px 0 0; color: #9cb5aa; font-size: 13px; line-height: 1.4; }
+      .lineup-meta span { padding: 0 4px; }
+      .share-action { min-height: 36px; padding: 0 12px; background: transparent; font-weight: 600; }
+      .toolbar {
+        grid-template-columns: minmax(190px, 1fr) minmax(480px, 2fr);
+        gap: 8px;
+        margin: 0 0 14px;
+        padding: 0;
+        border: 0;
+        background: none;
+        box-shadow: none;
+        backdrop-filter: none;
+      }
+      .toolbar .search-field { grid-column: auto; padding: 0 12px; font-size: 14px; }
+      .filter-fields { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+      .filter-trigger { font-size: 13px; font-weight: 500; }
+      .filter-toggle { display: none; }
+      .status-bar { display: flex; flex-direction: column; align-items: stretch; gap: 10px; margin-bottom: 8px; }
+      .schedule-actions { display: flex; align-items: center; gap: 8px; }
+      .segmented { display: flex; padding: 3px; background: #10251e; border: 1px solid #294137; border-radius: 9px; }
+      .segmented button { min-height: 34px; padding: 0 16px; color: #a8beb3; font-size: 14px; font-weight: 600; border-radius: 6px; }
+      .segmented button.is-active { background: #d6f0b6; color: #132117; box-shadow: none; }
+      .schedule-actions .toggle-button { margin-left: auto; background: transparent; border-color: #294137; color: #bdd0c4; font-size: 14px; font-weight: 600; }
+      .schedule-actions .toggle-button[aria-pressed="true"] { background: #263c24; border-color: #d6f0b6; color: #e2f5bf; }
+      .result-summary { display: flex; align-items: center; justify-content: space-between; min-height: 22px; gap: 8px; color: #92ac9e; font-size: 12px; font-weight: 500; }
+      .clear-action { min-height: 24px; padding: 0; border: 0; background: none; color: #bdd8a8; font-size: 12px; font-weight: 500; }
+      .filter-toggle span { border-radius: 5px; padding: 1px 5px; background: #d6f0b6; color: #132117; font-size: 12px; }
+      [hidden] { display: none !important; }
+      @media (max-width: 1000px) {
+        .toolbar { grid-template-columns: minmax(0, 1fr) auto; }
+        .filter-toggle { display: flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 12px; border: 1px solid #365246; background: #10251e; color: #e4eee7; font-size: 14px; font-weight: 600; border-radius: 8px; }
+        .filter-fields { display: none; grid-column: 1 / -1; }
+        .filter-fields.is-open { display: grid; }
+      }
+      @media (max-width: 760px) {
+        .app-page { padding: 14px 10px 10px; }
+        .app-header { padding-bottom: 14px; gap: 8px; flex-wrap: wrap; }
+        .app-header h1 { font-size: 24px; }
+        .lineup-meta { font-size: 12px; margin-top: 4px; }
+        .toolbar { margin-bottom: 10px; }
+        .toolbar .search-field { min-height: 40px; font-size: 14px; }
+        .filter-fields { grid-template-columns: 1fr 1fr; }
+        .filter-trigger { min-height: 38px; }
+        .schedule-actions { gap: 6px; }
+        .segmented { flex: 1; }
+        .segmented button { flex: 1; padding: 0 9px; font-size: 13px; }
+        .schedule-actions .toggle-button { min-height: 42px; padding: 0 10px; font-size: 13px; }
+        .status-bar { gap: 6px; }
+      }
     </style>
   </head>
   <body>
@@ -1243,14 +1316,10 @@
       <div class="shell">
         <section class="app-header" aria-labelledby="page-title">
           <div class="header-copy">
-            <p class="eyebrow">Excision Presents</p>
-            <h1 id="page-title">Lost Lands 2026 Lineup</h1>
-            <div class="summary" aria-label="Lineup summary">
-              <span class="metric" id="artist-count">0 sets</span>
-              <span class="metric">September 16-20, 2026</span>
-              <span class="metric" id="schedule-range">Official set times · EDT</span>
-            </div>
+            <h1 id="page-title"><span class="standalone-title">Lost Lands 2026 </span>Lineup</h1>
+            <p class="lineup-meta">Sep 16–20, 2026 <span>·</span> All times EDT</p>
           </div>
+          <button class="text-button share-action" type="button" id="share-button">Share</button>
           <button class="account-button standalone-auth" id="account-button" type="button" hidden>
             Sign in to sync
           </button>
@@ -1261,9 +1330,12 @@
             class="search-field"
             id="search"
             type="search"
-            placeholder="Search artists, stages, days, or genres"
+            placeholder="Search artists or stages"
+            aria-label="Search artists, stages, days, or genres"
             autocomplete="off"
           >
+          <button class="filter-toggle" id="filter-toggle" type="button" aria-expanded="false" aria-controls="filter-fields">Filters <span id="filter-count" hidden></span></button>
+          <div class="filter-fields" id="filter-fields">
           <div class="filter-popover" data-filter="days">
             <button class="filter-trigger" type="button" aria-expanded="false"><span class="filter-trigger-label">All days</span><span class="filter-caret">⌄</span></button>
             <div class="filter-panel" hidden><div class="filter-panel-head"><strong>Festival days</strong><button class="filter-panel-clear" type="button">Clear</button></div><input class="filter-search" type="search" placeholder="Search days" aria-label="Search days"><div class="filter-options" data-options="days"></div></div>
@@ -1284,18 +1356,16 @@
               <div class="range-control"><div class="range-track"></div><div class="range-fill" id="time-range-fill"></div><input class="range-input" id="time-min" type="range"><input class="range-input" id="time-max" type="range"></div>
             </div>
           </div>
-          <button class="button" type="button" id="clear-filters-button">Clear</button>
-          <button class="button" type="button" id="share-button">Share</button>
+          </div>
         </section>
 
         <div class="status-bar">
-          <span id="result-count">Showing 0 sets</span>
           <div class="schedule-actions">
-            <div class="segmented" aria-label="View mode"><button type="button" id="poster-view-button">Day board</button><button class="is-active" type="button" id="table-view-button">Schedule</button></div>
-            <button class="button toggle-button" type="button" id="favorites-filter-button" aria-pressed="false">Favorites only</button>
-            <span class="favorite-note" id="favorite-count">0 favorites</span>
+            <div class="segmented" aria-label="View mode"><button class="is-active" type="button" id="table-view-button">Schedule</button><button type="button" id="poster-view-button">Day board</button></div>
+            <button class="button toggle-button" type="button" id="favorites-filter-button" aria-pressed="false" aria-label="Show favorites only">★ <span id="favorite-count">0</span></button>
             <button class="text-button" type="button" id="save-favorites-button" hidden>Save as mine</button>
           </div>
+          <div class="result-summary"><span id="result-count" aria-live="polite">0 sets</span><button class="clear-action" type="button" id="clear-filters-button" hidden>Clear filters</button></div>
         </div>
 
         <section class="content-panel" id="poster-view" aria-label="Lineup by day and stage" hidden>
@@ -1669,7 +1739,6 @@
       const currentFavoriteIds = (id) => [...(currentIdsByLegacyId.get(id) || [id])];
 
       const els = {
-        artistCount: document.getElementById("artist-count"),
         accountButton: document.getElementById("account-button"),
         accountContent: document.getElementById("account-content"),
         accountDialog: document.getElementById("account-dialog"),
@@ -1680,11 +1749,13 @@
         favoriteCount: document.getElementById("favorite-count"),
         favoritesFilterButton: document.getElementById("favorites-filter-button"),
         filterPopovers: [...document.querySelectorAll(".filter-popover")],
+        filterToggle: document.getElementById("filter-toggle"),
+        filterCount: document.getElementById("filter-count"),
+        filterFields: document.getElementById("filter-fields"),
         posterContent: document.getElementById("poster-content"),
         posterView: document.getElementById("poster-view"),
         posterViewButton: document.getElementById("poster-view-button"),
         resultCount: document.getElementById("result-count"),
-        scheduleRange: document.getElementById("schedule-range"),
         saveFavoritesButton: document.getElementById("save-favorites-button"),
         search: document.getElementById("search"),
         shareButton: document.getElementById("share-button"),
@@ -2006,9 +2077,9 @@
       function render() {
         const entries = getFilteredLineup();
         const favoriteTotal = favorites.size;
-        els.resultCount.textContent = `Showing ${entries.length} of ${lineup.length} sets`;
-        els.favoriteCount.textContent =
-          favoriteTotal === 1 ? "1 favorite" : `${favoriteTotal} favorites`;
+        els.resultCount.textContent = entries.length === lineup.length ? `${lineup.length} sets` : `${entries.length} of ${lineup.length} sets`;
+        els.favoriteCount.textContent = String(favoriteTotal);
+        els.favoritesFilterButton.setAttribute("aria-label", `Show favorites only (${favoriteTotal} saved)`);
         renderDayBoard(entries);
         renderTable(entries);
         updateFilterControls();
@@ -2269,6 +2340,10 @@
       }
 
       function updateFilterControls() {
+        const activeCount = selectedDays.size + selectedStages.size + selectedGenres.size + Number(timeMin !== timeBounds.min || timeMax !== timeBounds.max);
+        els.filterCount.textContent = String(activeCount);
+        els.filterCount.hidden = !activeCount;
+        els.clearFiltersButton.hidden = !activeCount && !els.search.value.trim() && !favoritesOnly;
         els.filterPopovers.forEach((popover) => {
           const name = popover.dataset.filter;
           const label = popover.querySelector(".filter-trigger-label");
@@ -2397,6 +2472,12 @@
 
       function bindEvents() {
         els.search.addEventListener("input", render);
+        els.filterToggle.addEventListener("click", () => {
+          const expanded = els.filterToggle.getAttribute("aria-expanded") !== "true";
+          els.filterToggle.setAttribute("aria-expanded", String(expanded));
+          els.filterFields.classList.toggle("is-open", expanded);
+          if (!expanded) closeFilterPopovers();
+        });
 
         els.posterViewButton.addEventListener("click", () => setView("board"));
         els.tableViewButton.addEventListener("click", () => setView("table"));
@@ -2474,8 +2555,6 @@
         mobileViewQuery.addEventListener("change", render);
       }
 
-      els.artistCount.textContent = `${lineup.length} sets`;
-      els.scheduleRange.textContent = `Starts ${formatFilterTime(timeBounds.min)} – ${formatFilterTime(timeBounds.max)} · EDT`;
       initFilterControls();
       setCanonicalUrl();
       readStateFromUrl();

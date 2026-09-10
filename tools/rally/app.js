@@ -191,7 +191,7 @@ function renderTasks(){ const map=memberMap(), columns=[["todo","To do"],["doing
 
 function renderLineup(){
   if(data.id===DEFAULT_EVENT){
-    el.page.innerHTML=`<iframe id="lineupFrame" class="lineup-frame" title="Lost Lands 2026 lineup" src="/lost-lands-2026-lineup/?rally=1&v=20260909-board"></iframe>`;
+    el.page.innerHTML=`<iframe id="lineupFrame" class="lineup-frame" title="Lost Lands 2026 lineup" src="/lost-lands-2026-lineup/?rally=1&v=20260910-header"></iframe>`;
     lineupRefreshTimer=setInterval(refreshLineupState,15000);
     return;
   }
