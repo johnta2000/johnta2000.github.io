@@ -622,101 +622,135 @@
         box-shadow: var(--shadow);
       }
 
-      .poster-view {
-        padding: clamp(16px, 2.6vw, 30px);
+      .day-board {
+        display: grid;
+        grid-auto-columns: minmax(270px, 1fr);
+        grid-auto-flow: column;
+        gap: 10px;
+        padding: 10px;
+        overflow-x: auto;
+        overscroll-behavior-inline: contain;
+        scroll-snap-type: inline proximity;
       }
 
-      .billing-block + .billing-block {
-        margin-top: 28px;
-        padding-top: 24px;
-        border-top: 1px solid var(--line);
-      }
-
-      .block-head {
-        display: flex;
-        align-items: baseline;
-        justify-content: space-between;
-        gap: 14px;
-        margin-bottom: 13px;
-      }
-
-      .block-head h2 {
-        margin: 0;
-        color: var(--gold);
-        font-size: 0.86rem;
-        font-weight: 950;
-        letter-spacing: 0.16em;
-        text-transform: uppercase;
-      }
-
-      .block-head span {
-        color: var(--muted);
-        font-size: 0.82rem;
-        font-weight: 800;
-      }
-
-      .artist-cloud {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-      }
-
-      .artist-chip {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        min-height: 34px;
-        padding: 7px 10px;
+      .day-column {
+        min-width: 0;
+        overflow: hidden;
         border: 1px solid rgba(160, 225, 197, 0.18);
         border-radius: 8px;
-        background: rgba(4, 16, 15, 0.56);
-        color: var(--text);
-        font-size: clamp(0.82rem, 1.1vw, 1rem);
-        font-weight: 900;
-        letter-spacing: 0.015em;
+        background: rgba(4, 16, 15, 0.58);
+        scroll-snap-align: start;
+      }
+
+      .day-column-header {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 13px;
+        border-bottom: 1px solid rgba(160, 225, 197, 0.2);
+        background: rgba(7, 24, 21, 0.97);
+      }
+
+      .day-column-header strong {
+        display: block;
+        color: var(--gold);
+        font-size: 0.92rem;
+        font-weight: 950;
+        letter-spacing: 0.08em;
         text-transform: uppercase;
       }
 
-      .artist-chip.main {
-        min-height: 39px;
-        border-color: rgba(246, 137, 59, 0.4);
-        background: rgba(255, 123, 57, 0.12);
-        color: #fff7e8;
-        font-size: clamp(0.95rem, 1.45vw, 1.35rem);
-      }
-
-      .artist-chip.is-favorite {
-        border-color: rgba(246, 207, 101, 0.84);
-        background:
-          linear-gradient(90deg, rgba(246, 207, 101, 0.2), rgba(24, 201, 193, 0.12)),
-          rgba(4, 16, 15, 0.72);
-      }
-
-      .artist-chip-copy {
-        display: grid;
-        gap: 2px;
-      }
-
-      .artist-chip-copy strong {
-        font: inherit;
-      }
-
-      .artist-chip-copy small {
+      .day-column-header small,
+      .day-set-count {
         color: var(--muted);
-        font-size: 0.62rem;
-        font-weight: 750;
-        letter-spacing: 0.02em;
-        text-transform: none;
+        font-size: 0.68rem;
+        font-weight: 800;
+        white-space: nowrap;
       }
 
-      .genre-pill {
-        padding: 3px 7px;
-        border-radius: 999px;
-        background: rgba(24, 201, 193, 0.12);
-        color: #bffef2;
-        font-size: 0.68rem;
+      .day-column-body {
+        display: grid;
+        gap: 9px;
+        padding: 9px;
+      }
+
+      .stage-group {
+        overflow: hidden;
+        border: 1px solid rgba(160, 225, 197, 0.14);
+        border-left: 3px solid var(--stage-color);
+        border-radius: 7px;
+        background: rgba(1, 10, 9, 0.4);
+      }
+
+      .stage-group-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        padding: 7px 8px;
+        background: color-mix(in srgb, var(--stage-color) 14%, transparent);
+        color: #f7fff9;
+        font-size: 0.67rem;
         font-weight: 950;
-        letter-spacing: 0.05em;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+
+      .stage-group-header span:last-child {
+        color: var(--muted);
+        font-size: 0.59rem;
+        letter-spacing: 0;
+      }
+
+      .day-set-list {
+        display: grid;
+      }
+
+      .day-set-card {
+        display: grid;
+        grid-template-columns: 28px minmax(0, 1fr);
+        gap: 7px;
+        align-items: center;
+        padding: 8px;
+        border-top: 1px solid rgba(160, 225, 197, 0.11);
+      }
+
+      .day-set-card:first-child {
+        border-top: 0;
+      }
+
+      .day-set-copy {
+        min-width: 0;
+      }
+
+      .day-set-time {
+        display: block;
+        color: var(--muted);
+        font-size: 0.64rem;
+        font-variant-numeric: tabular-nums;
+        font-weight: 850;
+        white-space: nowrap;
+      }
+
+      .day-set-artist {
+        display: block;
+        margin-top: 2px;
+        overflow: hidden;
+        color: var(--text);
+        font-size: 0.8rem;
+        font-weight: 950;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .day-set-interest {
+        grid-column: 2;
+        min-width: 0;
+        overflow: hidden;
       }
 
       .table-wrap {
@@ -1082,15 +1116,11 @@
           font-size: 12px;
         }
 
-        .block-head {
-          align-items: flex-start;
-          flex-direction: column;
-        }
-
-        .artist-chip,
-        .artist-chip.main {
-          width: 100%;
-          justify-content: space-between;
+        .day-board {
+          grid-auto-columns: minmax(84vw, 1fr);
+          gap: 7px;
+          padding: 7px;
+          scroll-snap-type: inline mandatory;
         }
 
         .table-wrap {
@@ -1105,23 +1135,25 @@
           line-height: 1.1;
         }
 
-        col.col-favorite { width: 9% !important; }
-        col.col-start { width: 18% !important; }
-        col.col-end { width: 18% !important; }
-        col.col-artist { width: 31% !important; }
-        col.col-stage { width: 24% !important; }
+        col.col-favorite { width: 8% !important; }
+        col.col-start { width: 15% !important; }
+        col.col-end { width: 15% !important; }
+        col.col-artist { width: 35% !important; }
+        col.col-stage { width: 27% !important; }
         col.col-genre { display: none; }
         th.genre-column,
         td.genre-column { display: none; }
 
-        .rally-mode col.col-start { width: 14% !important; }
-        .rally-mode col.col-end { width: 14% !important; }
-        .rally-mode col.col-artist { width: 24% !important; }
-        .rally-mode col.col-stage { width: 18% !important; }
+        .rally-mode col.col-start { width: 13% !important; }
+        .rally-mode col.col-end { width: 13% !important; }
+        .rally-mode col.col-artist { width: 25% !important; }
+        .rally-mode col.col-stage { width: 20% !important; }
         .rally-mode col.col-interest { width: 21% !important; }
 
         .interest-list {
+          flex-wrap: nowrap;
           gap: 2px;
+          overflow: hidden;
         }
 
         .interest-person {
@@ -1136,11 +1168,14 @@
           font-size: 6px;
         }
 
+        .interest-person span {
+          display: none;
+        }
+
         th,
         td {
-          padding: 6px 4px;
-          overflow-wrap: anywhere;
-          word-break: normal;
+          padding: 5px 2px;
+          overflow: hidden;
         }
 
         th {
@@ -1150,15 +1185,19 @@
         }
 
         .artist-cell {
-          font-size: 10px;
-          line-height: 1.15;
+          font-size: 8.5px;
+          line-height: 1.1;
+          text-overflow: ellipsis;
+          white-space: nowrap;
         }
 
         .time-cell,
         .stage-cell,
         .genre-cell {
-          font-size: 9px;
-          line-height: 1.15;
+          font-size: 8px;
+          line-height: 1.1;
+          text-overflow: ellipsis;
+          white-space: nowrap;
         }
 
         .schedule-day {
@@ -1166,14 +1205,16 @@
         }
 
         .schedule-time {
-          font-size: 10px;
-          white-space: normal;
+          font-size: 8px;
+          font-variant-numeric: tabular-nums;
+          letter-spacing: -0.02em;
+          white-space: nowrap;
         }
 
         .schedule-end {
           margin-top: 2px;
           font-size: 7px;
-          white-space: normal;
+          white-space: nowrap;
         }
 
         .filter-panel {
@@ -1238,7 +1279,7 @@
           <div class="filter-popover" data-filter="times">
             <button class="filter-trigger" type="button" aria-expanded="false"><span class="filter-trigger-label">Set start times</span><span class="filter-caret">⌄</span></button>
             <div class="filter-panel time-panel" hidden>
-              <div class="filter-panel-head"><strong>Set start times</strong><button class="filter-panel-clear" type="button">Reset times</button></div>
+              <div class="filter-panel-head"><strong>Set start times</strong></div>
               <div class="time-range-copy"><label><span>From</span><input id="time-min-text" type="text" inputmode="text"></label><span class="time-range-arrow">→</span><label><span>To</span><input id="time-max-text" type="text" inputmode="text"></label></div>
               <div class="range-control"><div class="range-track"></div><div class="range-fill" id="time-range-fill"></div><input class="range-input" id="time-min" type="range"><input class="range-input" id="time-max" type="range"></div>
             </div>
@@ -1250,16 +1291,15 @@
         <div class="status-bar">
           <span id="result-count">Showing 0 sets</span>
           <div class="schedule-actions">
-            <div class="segmented" aria-label="View mode"><button type="button" id="poster-view-button">Poster</button><button class="is-active" type="button" id="table-view-button">Schedule</button></div>
+            <div class="segmented" aria-label="View mode"><button type="button" id="poster-view-button">Day board</button><button class="is-active" type="button" id="table-view-button">Schedule</button></div>
             <button class="button toggle-button" type="button" id="favorites-filter-button" aria-pressed="false">Favorites only</button>
             <span class="favorite-note" id="favorite-count">0 favorites</span>
             <button class="text-button" type="button" id="save-favorites-button" hidden>Save as mine</button>
-            <button class="text-button" type="button" id="clear-favorites-button" hidden>Reset mine</button>
           </div>
         </div>
 
-        <section class="content-panel" id="poster-view" aria-label="Poster style lineup" hidden>
-          <div class="poster-view" id="poster-content"></div>
+        <section class="content-panel" id="poster-view" aria-label="Lineup by day and stage" hidden>
+          <div class="day-board" id="poster-content"></div>
         </section>
 
         <section class="content-panel table-wrap" id="table-view" aria-label="Lineup table">
@@ -1637,7 +1677,6 @@
         accountDialogCopy: document.getElementById("account-dialog-copy"),
         accountDialogTitle: document.getElementById("account-dialog-title"),
         clearFiltersButton: document.getElementById("clear-filters-button"),
-        clearFavoritesButton: document.getElementById("clear-favorites-button"),
         favoriteCount: document.getElementById("favorite-count"),
         favoritesFilterButton: document.getElementById("favorites-filter-button"),
         filterPopovers: [...document.querySelectorAll(".filter-popover")],
@@ -1781,8 +1820,7 @@
           timeMin = timeBounds.min;
           timeMax = timeBounds.max;
         }
-        activeView =
-          params.get("view") === "poster" && !mobileViewQuery.matches ? "poster" : "table";
+        activeView = ["board", "poster"].includes(params.get("view")) ? "board" : "table";
 
         const hasSharedFavorites = params.has("f") || params.has("favorites");
         const sharedFavorites = [
@@ -1807,7 +1845,7 @@
           params.set("start", String(timeMin));
           params.set("end", String(timeMax));
         }
-        if (activeView !== "table" && !mobileViewQuery.matches) params.set("view", activeView);
+        if (activeView !== "table") params.set("view", activeView);
         if (favoritesOnly) params.set("fav", "1");
         const next = `${window.location.pathname}${rallyManagedFavorites ? "?rally=1" : ""}${params.toString() ? `#${params}` : ""}`;
         window.history.replaceState({}, "", next);
@@ -1832,43 +1870,57 @@
         return filtered.sort((left, right) => left.posterIndex - right.posterIndex);
       }
 
-      function renderPosterGroup(entries, billing) {
-        if (!entries.length) return "";
-
-        const chips = entries
-          .map((entry) => {
-            const favoriteClass = favorites.has(entry.id) ? " is-favorite" : "";
-            const mainClass = billing === "Main" ? " main" : "";
-            return `
-              <span class="artist-chip${mainClass}${favoriteClass}">
-                <span class="artist-chip-copy"><strong>${escapeHtml(entry.artist)}</strong><small>${escapeHtml(entry.day.slice(0, 3))} · ${escapeHtml(entry.time)} · ${escapeHtml(entry.stage)}</small></span>
-                <span class="genre-pill">${escapeHtml(entry.genre)}</span>
-              </span>
-            `;
-          })
-          .join("");
-
-        return `
-          <section class="billing-block">
-            <div class="block-head">
-              <h2>${escapeHtml(billing)} Lineup</h2>
-              <span>${entries.length} sets</span>
-            </div>
-            <div class="artist-cloud">${chips}</div>
-          </section>
-        `;
-      }
-
-      function renderPoster(entries) {
+      function renderDayBoard(entries) {
         if (!entries.length) {
           els.posterContent.innerHTML = `<div class="empty-state">No sets match the current filters.</div>`;
           return;
         }
 
-        const mainEntries = entries.filter((entry) => entry.billing === "Main");
-        const supportEntries = entries.filter((entry) => entry.billing === "Support");
-        els.posterContent.innerHTML =
-          renderPosterGroup(mainEntries, "Main") + renderPosterGroup(supportEntries, "Support");
+        const stageColors = ["#18c9c1", "#f6893b", "#c6e968", "#d7a8ff", "#ff7ca8", "#76b8ff", "#f6cf65", "#7de0a3"];
+        els.posterContent.innerHTML = dayOrder
+          .filter((day) => entries.some((entry) => entry.day === day))
+          .map((day) => {
+            const dayEntries = entries.filter((entry) => entry.day === day);
+            const date = dayEntries[0]?.festivalDate;
+            const stages = stageOrder.filter((stage) => dayEntries.some((entry) => entry.stage === stage));
+            const stageGroups = stages.map((stage) => {
+              const stageEntries = dayEntries
+                .filter((entry) => entry.stage === stage)
+                .sort((left, right) => left.startMinutes - right.startMinutes || left.artist.localeCompare(right.artist));
+              const color = stageColors[stageOrder.indexOf(stage) % stageColors.length];
+              const cards = stageEntries.map((entry) => `
+                <article class="day-set-card">
+                  <button
+                    class="favorite-button ${favorites.has(entry.id) ? "is-active" : ""}"
+                    type="button"
+                    data-favorite-id="${entry.id}"
+                    aria-label="${favorites.has(entry.id) ? "Remove" : "Add"} ${escapeHtml(entry.artist)} favorite"
+                  >★</button>
+                  <div class="day-set-copy">
+                    <span class="day-set-time">${escapeHtml(formatClock(entry.start))} – ${escapeHtml(formatClock(entry.end))}</span>
+                    <strong class="day-set-artist" title="${escapeHtml(entry.artist)}">${escapeHtml(entry.artist)}</strong>
+                  </div>
+                  ${rallyManagedFavorites ? `<div class="day-set-interest">${renderInterest(entry.id)}</div>` : ""}
+                </article>
+              `).join("");
+              return `
+                <section class="stage-group" style="--stage-color:${color}">
+                  <header class="stage-group-header"><span>${escapeHtml(stage)}</span><span>${stageEntries.length} set${stageEntries.length === 1 ? "" : "s"}</span></header>
+                  <div class="day-set-list">${cards}</div>
+                </section>
+              `;
+            }).join("");
+            return `
+              <section class="day-column">
+                <header class="day-column-header">
+                  <div><strong>${escapeHtml(day)}</strong><small>${escapeHtml(formatFestivalDate(date))}</small></div>
+                  <span class="day-set-count">${dayEntries.length} sets</span>
+                </header>
+                <div class="day-column-body">${stageGroups}</div>
+              </section>
+            `;
+          })
+          .join("");
       }
 
       function renderTable(entries) {
@@ -1937,16 +1989,13 @@
       }
 
       function updateViewButtons() {
-        if (mobileViewQuery.matches) activeView = "table";
-
-        const isPoster = activeView === "poster";
-        els.posterView.hidden = !isPoster;
-        els.tableView.hidden = isPoster;
-        els.posterViewButton.classList.toggle("is-active", isPoster);
-        els.tableViewButton.classList.toggle("is-active", !isPoster);
+        const isBoard = activeView === "board";
+        els.posterView.hidden = !isBoard;
+        els.tableView.hidden = isBoard;
+        els.posterViewButton.classList.toggle("is-active", isBoard);
+        els.tableViewButton.classList.toggle("is-active", !isBoard);
         els.favoritesFilterButton.setAttribute("aria-pressed", String(favoritesOnly));
         els.saveFavoritesButton.hidden = !viewingSharedFavorites || favorites.size === 0;
-        els.clearFavoritesButton.hidden = favorites.size === 0;
         if (!rallyManagedFavorites) {
           els.accountButton.hidden = false;
           els.accountButton.classList.toggle("is-signed-in", Boolean(cloudAccount));
@@ -1960,7 +2009,7 @@
         els.resultCount.textContent = `Showing ${entries.length} of ${lineup.length} sets`;
         els.favoriteCount.textContent =
           favoriteTotal === 1 ? "1 favorite" : `${favoriteTotal} favorites`;
-        renderPoster(entries);
+        renderDayBoard(entries);
         renderTable(entries);
         updateFilterControls();
         updateViewButtons();
@@ -1990,7 +2039,7 @@
       }
 
       function setView(view) {
-        activeView = mobileViewQuery.matches ? "table" : view;
+        activeView = view;
         render();
       }
 
@@ -2007,16 +2056,6 @@
         saveFavorites();
         render();
         showToast(rallyManagedFavorites ? "Saved to your Rally profile." : "Saving to your account…");
-      }
-
-      function clearFavorites() {
-        if (!window.confirm(rallyManagedFavorites ? "Clear your saved Rally favorites?" : "Reset your saved favorites on this device?")) return;
-        favorites = new Set();
-        favoritesOnly = false;
-        viewingSharedFavorites = false;
-        saveFavorites();
-        render();
-        showToast(rallyManagedFavorites ? "Your Rally favorites were cleared." : cloudAccount ? "Your synced favorites were cleared." : "Favorites cleared.");
       }
 
       function showToast(message) {
@@ -2295,7 +2334,7 @@
             trigger.setAttribute("aria-expanded", String(opening));
           });
 
-          clear.addEventListener("click", () => {
+          clear?.addEventListener("click", () => {
             const search = popover.querySelector(".filter-search");
             if (search) {
               search.value = "";
@@ -2359,12 +2398,11 @@
       function bindEvents() {
         els.search.addEventListener("input", render);
 
-        els.posterViewButton.addEventListener("click", () => setView("poster"));
+        els.posterViewButton.addEventListener("click", () => setView("board"));
         els.tableViewButton.addEventListener("click", () => setView("table"));
         els.clearFiltersButton.addEventListener("click", clearScheduleFilters);
         els.favoritesFilterButton.addEventListener("click", toggleFavoritesOnly);
         els.saveFavoritesButton.addEventListener("click", saveFavoritesAsMine);
-        els.clearFavoritesButton.addEventListener("click", clearFavorites);
         els.shareButton.addEventListener("click", shareCurrentView);
         els.accountButton.addEventListener("click", openAccountDialog);
         els.accountDialogClose.addEventListener("click", () => els.accountDialog.close());
@@ -2378,7 +2416,7 @@
           if (event.key === "Escape") closeFilterPopovers();
         });
 
-        els.tableBody.addEventListener("click", (event) => {
+        const handleFavoriteClick = (event) => {
           const button = event.target.closest("[data-favorite-id]");
           if (!button) return;
 
@@ -2398,7 +2436,9 @@
             showToast("Sign in to keep favorites across devices.");
           }
           if (wasViewingSharedFavorites) showToast("Edited list saved as yours.");
-        });
+        };
+        els.tableBody.addEventListener("click", handleFavoriteClick);
+        els.posterContent.addEventListener("click", handleFavoriteClick);
 
         window.addEventListener("popstate", () => {
           readStateFromUrl();
