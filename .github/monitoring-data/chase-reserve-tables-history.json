@@ -3,6 +3,104 @@
   "maxRuns": 180,
   "runs": [
     {
+      "id": "2026-09-11T12:52:56.129Z",
+      "monitorId": "chase-sapphire-reserve-tables",
+      "timestamp": "2026-09-11T12:52:56.129Z",
+      "status": "success",
+      "changed": true,
+      "initialized": false,
+      "confirmed": true,
+      "meaningful": true,
+      "eventType": "restaurant-change",
+      "durationMs": 1175,
+      "count": 135,
+      "previousCount": 135,
+      "cities": [
+        {
+          "id": "atlanta",
+          "name": "Atlanta",
+          "url": "https://www.opentable.com/sapphire-reserve/atlanta",
+          "count": 7,
+          "previousCount": 7,
+          "added": [],
+          "removed": []
+        },
+        {
+          "id": "san-francisco",
+          "name": "San Francisco",
+          "url": "https://www.opentable.com/sapphire-reserve/san-francisco",
+          "count": 30,
+          "previousCount": 30,
+          "added": [],
+          "removed": []
+        },
+        {
+          "id": "los-angeles",
+          "name": "Los Angeles",
+          "url": "https://www.opentable.com/sapphire-reserve/los-angeles",
+          "count": 30,
+          "previousCount": 30,
+          "added": [],
+          "removed": []
+        },
+        {
+          "id": "new-york-city",
+          "name": "New York City",
+          "url": "https://www.opentable.com/sapphire-reserve/new-york-city",
+          "count": 30,
+          "previousCount": 30,
+          "added": [
+            "Razza - Jersey City"
+          ],
+          "removed": [
+            "Maddy Rose at Liberty House"
+          ]
+        },
+        {
+          "id": "chicago",
+          "name": "Chicago",
+          "url": "https://www.opentable.com/sapphire-reserve/chicago",
+          "count": 27,
+          "previousCount": 27,
+          "added": [],
+          "removed": []
+        },
+        {
+          "id": "boston",
+          "name": "Boston",
+          "url": "https://www.opentable.com/sapphire-reserve/boston",
+          "count": 11,
+          "previousCount": 11,
+          "added": [],
+          "removed": []
+        }
+      ],
+      "cache": {
+        "runId": "1789131176129",
+        "requestCount": 12,
+        "crawlIds": [
+          "primary",
+          "confirmation"
+        ],
+        "requestIds": [
+          "1789131176133001",
+          "1789131176209002",
+          "1789131176210003",
+          "1789131176211004",
+          "1789131176212005",
+          "1789131176213006",
+          "1789131176825007",
+          "1789131176825008",
+          "1789131176826009",
+          "1789131176826010",
+          "1789131176827011",
+          "1789131176827012"
+        ]
+      },
+      "summary": "1 restaurants added and 1 removed across six cities.",
+      "error": null
+    },
+    {
       "id": "2026-09-11T04:51:45.600Z",
       "monitorId": "chase-sapphire-reserve-tables",
       "timestamp": "2026-09-11T04:51:45.600Z",

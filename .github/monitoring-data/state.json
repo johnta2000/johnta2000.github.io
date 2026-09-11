@@ -1,9 +1,30 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-09-11T11:27:09.685Z",
+  "generatedAt": "2026-09-11T12:52:56.129Z",
   "overallStatus": "healthy",
-  "latestEventId": "20260909130105-chase-sapphire-reserve-tables-restaurant-change",
+  "latestEventId": "20260911125256-chase-sapphire-reserve-tables-restaurant-change",
   "monitors": [
+    {
+      "id": "bilt-calculator-ranking",
+      "name": "Bilt calculator ranking",
+      "description": "Tracks the Bilt calculator across Search Console query performance, index health, canonical integrity, and live-page checks.",
+      "configured": false,
+      "status": "not_configured",
+      "sourceUrl": "https://www.nextcard.com/tools/bilt-calculator",
+      "cadence": "Every 6 hours via Codex",
+      "config": {
+        "property": "sc-domain:nextcard.com",
+        "page": "https://www.nextcard.com/tools/bilt-calculator",
+        "queries": [
+          "bilt calculator",
+          "bilt 2.0 calculator",
+          "bilt calculator 2.0",
+          "bilt points calculator",
+          "bilt card calculator"
+        ],
+        "compareWindow": "Finalized 7 days vs previous 7 days"
+      }
+    },
     {
       "id": "paze-directory",
       "name": "Paze merchant directory",
@@ -73,27 +94,6 @@
       }
     },
     {
-      "id": "bilt-calculator-ranking",
-      "name": "Bilt calculator ranking",
-      "description": "Tracks the Bilt calculator across Search Console query performance, index health, canonical integrity, and live-page checks.",
-      "configured": false,
-      "status": "not_configured",
-      "sourceUrl": "https://www.nextcard.com/tools/bilt-calculator",
-      "cadence": "Every 6 hours via Codex",
-      "config": {
-        "property": "sc-domain:nextcard.com",
-        "page": "https://www.nextcard.com/tools/bilt-calculator",
-        "queries": [
-          "bilt calculator",
-          "bilt 2.0 calculator",
-          "bilt calculator 2.0",
-          "bilt points calculator",
-          "bilt card calculator"
-        ],
-        "compareWindow": "Finalized 7 days vs previous 7 days"
-      }
-    },
-    {
       "id": "transfer-bonus-discovery",
       "name": "Transfer bonus discovery",
       "description": "Scans official issuer and loyalty-program sources for new transfer bonuses, changed terms, and coverage failures.",
@@ -132,17 +132,17 @@
         "https://www.opentable.com/sapphire-reserve/boston"
       ],
       "cadence": "Every 4 hours",
-      "latestRunAt": "2026-09-11T04:51:45.600Z",
-      "latestSuccessAt": "2026-09-11T04:51:45.600Z",
-      "latestChangeAt": "2026-09-09T13:01:05.949Z",
-      "durationMs": 620,
-      "summary": "No restaurant-list changes across six cities (135 restaurants).",
+      "latestRunAt": "2026-09-11T12:52:56.129Z",
+      "latestSuccessAt": "2026-09-11T12:52:56.129Z",
+      "latestChangeAt": "2026-09-11T12:52:56.129Z",
+      "durationMs": 1175,
+      "summary": "1 restaurants added and 1 removed across six cities.",
       "error": null,
       "metrics": {
         "restaurantCount": 135,
         "cityCount": 6,
-        "addedCount": 0,
-        "removedCount": 0
+        "addedCount": 1,
+        "removedCount": 1
       },
       "details": {
         "cities": [
@@ -261,7 +261,6 @@
               "Joseph Leonard",
               "Kabawa",
               "l'abeille",
-              "Maddy Rose at Liberty House",
               "Manhatta",
               "Momofuku Noodle Bar - East Village",
               "Momofuku Noodle Bar - Uptown",
@@ -270,6 +269,7 @@
               "Parcelle Chinatown",
               "Phoenix Palace",
               "Potluck Club",
+              "Razza - Jersey City",
               "Red Hook Tavern",
               "Sailor",
               "San Sabino",
@@ -280,8 +280,12 @@
               "Una Pizza Napoletana",
               "Union Square Cafe"
             ],
-            "added": [],
-            "removed": []
+            "added": [
+              "Razza - Jersey City"
+            ],
+            "removed": [
+              "Maddy Rose at Liberty House"
+            ]
           },
           {
             "id": "chicago",
@@ -343,18 +347,25 @@
           }
         ],
         "cache": {
-          "runId": "1789102305600",
-          "requestCount": 6,
+          "runId": "1789131176129",
+          "requestCount": 12,
           "crawlIds": [
-            "primary"
+            "primary",
+            "confirmation"
           ],
           "requestIds": [
-            "1789102305603001",
-            "1789102305642002",
-            "1789102305643003",
-            "1789102305645004",
-            "1789102305646005",
-            "1789102305647006"
+            "1789131176133001",
+            "1789131176209002",
+            "1789131176210003",
+            "1789131176211004",
+            "1789131176212005",
+            "1789131176213006",
+            "1789131176825007",
+            "1789131176825008",
+            "1789131176826009",
+            "1789131176826010",
+            "1789131176827011",
+            "1789131176827012"
           ]
         }
       }
