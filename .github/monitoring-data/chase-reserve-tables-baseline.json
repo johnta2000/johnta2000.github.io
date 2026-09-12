@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "monitorId": "chase-sapphire-reserve-tables",
-  "capturedAt": "2026-09-12T04:44:45.754Z",
+  "capturedAt": "2026-09-12T12:13:38.524Z",
   "sources": [
     {
       "id": "atlanta",
@@ -76,6 +76,10 @@
       "url": "https://www.opentable.com/sapphire-reserve/san-francisco",
       "restaurants": [
         {
+          "name": "Allora",
+          "key": "allora"
+        },
+        {
           "name": "Angler San Francisco",
           "key": "angler san francisco"
         },
@@ -94,10 +98,6 @@
         {
           "name": "Californios",
           "key": "californios"
-        },
-        {
-          "name": "Camden Spit and Larder",
-          "key": "camden spit and larder"
         },
         {
           "name": "Chez Noir",
