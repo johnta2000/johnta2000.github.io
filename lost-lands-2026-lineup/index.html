@@ -1342,6 +1342,8 @@
         .rank-day { font-size: 8px; }
       }
     </style>
+    <link rel="stylesheet" href="./mobile.css?v=1">
+    <script defer src="../tools/rally/keyboard.js?v=1"></script>
   </head>
   <body>
     <main class="app-page">
@@ -1357,6 +1359,7 @@
           </button>
         </section>
 
+        <nav id="mobile-days" class="mobile-days" aria-label="Festival day"></nav>
         <section class="toolbar" aria-label="Lineup controls">
           <input
             class="search-field"
@@ -1400,6 +1403,7 @@
           <div class="result-summary"><span id="result-count" aria-live="polite">0 sets</span><button class="popularity-sort group-control" type="button" id="popularity-sort" aria-pressed="false">↓ Most liked</button><button class="clear-action" type="button" id="clear-filters-button" hidden>Clear filters</button></div>
         </div>
 
+        <section id="mobile-schedule" class="mobile-schedule" aria-label="Daily set schedule" hidden></section>
         <section class="content-panel" id="poster-view" aria-label="Lineup by day and stage" hidden>
           <div class="day-board" id="poster-content"></div>
         </section>
@@ -1436,6 +1440,11 @@
       </div>
     </main>
 
+    <dialog id="filters-dialog" class="filters-dialog" aria-labelledby="filters-title">
+      <header><div><h2 id="filters-title">Filter sets</h2><p>Choose stages, genres, or a time range.</p></div><button type="button" id="close-filters" aria-label="Close filters">×</button></header>
+      <div id="mobile-filter-slot"></div>
+      <footer><button type="button" id="apply-filters">Show sets</button></footer>
+    </dialog>
     <dialog class="account-dialog standalone-auth" id="account-dialog">
       <div class="account-dialog-head">
         <div>
@@ -2156,6 +2165,11 @@
         [els.tableViewButton, els.posterViewButton, els.heatViewButton].forEach((button) => button.setAttribute("aria-pressed", String(button.classList.contains("is-active"))));
         els.favoritesFilterButton.setAttribute("aria-pressed", String(favoritesOnly));
         els.saveFavoritesButton.hidden = !viewingSharedFavorites || favorites.size === 0;
+        const mobile = mobileViewQuery.matches;
+        document.getElementById('mobile-schedule').hidden = !mobile;
+        if (mobile) { els.posterView.hidden = true; els.tableView.hidden = true; els.heatView.hidden = true; }
+        els.posterViewButton.textContent = mobile ? 'By stage' : 'Day board';
+        els.heatViewButton.textContent = mobile ? 'Crew picks' : 'Heat map';
         if (!rallyManagedFavorites) {
           els.accountButton.hidden = false;
           els.accountButton.classList.toggle("is-signed-in", Boolean(cloudAccount));
@@ -2164,17 +2178,87 @@
       }
 
       function render() {
+        if (mobileViewQuery.matches) {
+          if (selectedDays.size !== 1) selectedDays = new Set([[...selectedDays][0] || defaultMobileDay()]);
+          renderMobileDays();
+        }
         const entries = getFilteredLineup();
         const favoriteTotal = favorites.size;
         els.resultCount.textContent = entries.length === lineup.length ? `${lineup.length} sets` : `${entries.length} of ${lineup.length} sets`;
         els.favoriteCount.textContent = String(favoriteTotal);
         els.favoritesFilterButton.setAttribute("aria-label", `Show favorites only (${favoriteTotal} saved)`);
-        renderDayBoard(entries);
-        renderTable(entries);
-        if (rallyManagedFavorites) renderHeatMap(entries);
+        if (mobileViewQuery.matches) renderMobileSchedule(entries);
+        else {
+          renderDayBoard(entries);
+          renderTable(entries);
+          if (rallyManagedFavorites) renderHeatMap(entries);
+        }
         updateFilterControls();
         updateViewButtons();
         writeStateToUrl();
+      }
+
+      function defaultMobileDay() {
+        const today = new Intl.DateTimeFormat('en-CA',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+        return lineup.find(entry => entry.festivalDate === today)?.day || 'Friday';
+      }
+      function renderMobileDays() {
+        const days = document.getElementById('mobile-days');
+        const focused = days.contains(document.activeElement) ? document.activeElement?.dataset.day : null;
+        const html = dayOrder.map(day => {
+          const date = lineup.find(entry => entry.day === day)?.festivalDate;
+          return `<button type="button" data-day="${day}" aria-pressed="${selectedDays.has(day)}"><span>${day.slice(0,3)}</span><strong>${date ? Number(date.slice(-2)) : '—'}</strong></button>`;
+        }).join('');
+        if (days.innerHTML !== html) { days.innerHTML = html; if(focused) days.querySelector(`[data-day="${focused}"]`)?.focus({preventScroll:true}); }
+      }
+      function placeMobileFilters() {
+        const dialog = document.getElementById('filters-dialog');
+        if (mobileViewQuery.matches) document.getElementById('mobile-filter-slot').append(els.filterFields);
+        else {
+          if (dialog.open) dialog.close();
+          els.filterToggle.after(els.filterFields);
+        }
+      }
+      function openMobileFilters() {
+        placeMobileFilters(); closeFilterPopovers();
+        document.getElementById('filters-dialog').showModal();
+        els.filterToggle.setAttribute('aria-expanded','true');
+      }
+      function mobileSetCard(entry, maximum = 0, rank = 0) {
+        const people = groupPeople(entry.id), count = people.length;
+        const colors = ['#258579','#c56933','#7864b5','#b45376','#467bbc','#7f873b','#995636'];
+        const stageColor = colors[stageOrder.indexOf(entry.stage) % colors.length] || colors[0];
+        const overnight = entry.start.slice(0,10) > entry.festivalDate ? 'After midnight' : entry.end.slice(0,10) > entry.start.slice(0,10) ? 'Ends next day' : '';
+        return `<article class="set-card${favorites.has(entry.id) ? ' is-favorite' : ''}" style="--stage-color:${stageColor}">
+          <div class="set-card-main"><div class="set-card-copy">
+            <p class="set-time">${rank ? `<span class="set-rank">${rank}</span>` : ''}${escapeHtml(formatClock(entry.start))} <span>–</span> ${escapeHtml(formatClock(entry.end))}</p>
+            <h3>${escapeHtml(entry.artist)}</h3>
+            <p class="set-stage"><i aria-hidden="true"></i>${escapeHtml(entry.stage)}${overnight ? `<span>· ${overnight}</span>` : ''}</p>
+          </div><button class="favorite-button${favorites.has(entry.id) ? ' is-active' : ''}" type="button" data-favorite-id="${escapeHtml(entry.id)}" aria-pressed="${favorites.has(entry.id)}" aria-label="${favorites.has(entry.id)?'Remove':'Add'} ${escapeHtml(entry.artist)} favorite">★</button></div>
+          ${rallyManagedFavorites ? `<div class="set-crew">${count ? `<details><summary><span class="set-avatars" aria-hidden="true">${people.slice(0,3).map(person=>`<i>${escapeHtml(person.initials || person.name.slice(0,1))}</i>`).join('')}</span><span>${count} ${count===1?'person':'people'} interested</span><span class="crew-expand">⌄</span></summary><p>${people.map(person=>escapeHtml(person.name)).join(' · ')}</p></details>` : '<span class="set-no-interest">No crew favorites yet</span>'}${maximum ? `<div class="interest-meter" aria-label="${count} interested; most popular set has ${maximum}"><i style="width:${Math.round(count/maximum*100)}%"></i></div>` : ''}</div>` : ''}
+        </article>`;
+      }
+      function renderMobileSchedule(entries) {
+        const container = document.getElementById('mobile-schedule');
+        let html = '';
+        if (!entries.length) html = '<div class="mobile-empty"><h3>No matching sets</h3><p>Try another day or adjust your filters.</p></div>';
+        else if (activeView === 'heat') {
+          const ranked = entries.filter(entry=>groupPeople(entry.id).length).sort((a,b)=>groupPeople(b.id).length-groupPeople(a.id).length || a.posterIndex-b.posterIndex);
+          const maximum = Math.max(0,...ranked.map(entry=>groupPeople(entry.id).length));
+          html = !groupStateLoaded ? '<div class="mobile-empty">Loading crew favorites…</div>' : ranked.length ? `<p class="mobile-section-note">Your crew’s most-liked sets · ${escapeHtml([...selectedDays][0])}</p>${ranked.map((entry,index)=>mobileSetCard(entry,maximum,index+1)).join('')}` : '<div class="mobile-empty"><h3>No crew picks yet</h3><p>Star a set to start planning this day together.</p></div>';
+        } else if (activeView === 'board') {
+          const closed = new Set([...container.querySelectorAll('details.mobile-stage:not([open])')].map(node=>node.dataset.stage));
+          html = stageOrder.filter(stage=>entries.some(entry=>entry.stage===stage)).map(stage=>{
+            const sets = entries.filter(entry=>entry.stage===stage).sort((a,b)=>a.posterIndex-b.posterIndex);
+            return `<details class="mobile-stage" data-stage="${escapeHtml(stage)}" ${closed.has(stage)?'':'open'}><summary>${escapeHtml(stage)}<span>${sets.length} sets</span></summary><div>${sets.map(entry=>mobileSetCard(entry)).join('')}</div></details>`;
+          }).join('');
+        } else html = entries.map(entry=>mobileSetCard(entry)).join('');
+        if (container.renderedHTML !== html) {
+          const focused = container.contains(document.activeElement) ? document.activeElement?.dataset.favoriteId : null;
+          container.innerHTML = html; container.renderedHTML = html;
+          if (focused) [...container.querySelectorAll('[data-favorite-id]')].find(button=>button.dataset.favoriteId===focused)?.focus({preventScroll:true});
+        }
+        document.getElementById('apply-filters').textContent = `Show ${entries.length} sets`;
       }
 
       function saveFavorites() {
@@ -2430,7 +2514,7 @@
       }
 
       function updateFilterControls() {
-        const activeCount = selectedDays.size + selectedStages.size + selectedGenres.size + Number(timeMin !== timeBounds.min || timeMax !== timeBounds.max);
+        const activeCount = (mobileViewQuery.matches ? 0 : selectedDays.size) + selectedStages.size + selectedGenres.size + Number(timeMin !== timeBounds.min || timeMax !== timeBounds.max);
         els.filterCount.textContent = String(activeCount);
         els.filterCount.hidden = !activeCount;
         els.clearFiltersButton.hidden = !activeCount && !els.search.value.trim() && !favoritesOnly;
@@ -2476,7 +2560,7 @@
 
       function clearScheduleFilters() {
         els.search.value = "";
-        selectedDays = new Set();
+        if (!mobileViewQuery.matches) selectedDays = new Set();
         selectedStages = new Set();
         selectedGenres = new Set();
         timeMin = timeBounds.min;
@@ -2563,6 +2647,7 @@
       function bindEvents() {
         els.search.addEventListener("input", render);
         els.filterToggle.addEventListener("click", () => {
+          if (mobileViewQuery.matches) { openMobileFilters(); return; }
           const expanded = els.filterToggle.getAttribute("aria-expanded") !== "true";
           els.filterToggle.setAttribute("aria-expanded", String(expanded));
           els.filterFields.classList.toggle("is-open", expanded);
@@ -2613,6 +2698,17 @@
         els.tableBody.addEventListener("click", handleFavoriteClick);
         els.posterContent.addEventListener("click", handleFavoriteClick);
         els.heatContent.addEventListener("click", handleFavoriteClick);
+        document.getElementById('mobile-schedule').addEventListener('click', handleFavoriteClick);
+        document.getElementById('mobile-days').addEventListener('click', event => {
+          const button = event.target.closest('[data-day]');
+          if (!button) return;
+          selectedDays = new Set([button.dataset.day]); render();
+        });
+        const filtersDialog = document.getElementById('filters-dialog');
+        document.getElementById('close-filters').onclick = () => filtersDialog.close();
+        document.getElementById('apply-filters').onclick = () => filtersDialog.close();
+        filtersDialog.addEventListener('click', event => { if(event.target === filtersDialog) filtersDialog.close(); });
+        filtersDialog.addEventListener('close', () => { els.filterToggle.setAttribute('aria-expanded','false'); closeFilterPopovers(); els.filterToggle.focus({preventScroll:true}); });
 
         window.addEventListener("popstate", () => {
           readStateFromUrl();
@@ -2646,13 +2742,14 @@
           });
         }
 
-        mobileViewQuery.addEventListener("change", render);
+        mobileViewQuery.addEventListener("change", () => { placeMobileFilters(); render(); });
       }
 
       initFilterControls();
       setCanonicalUrl();
       readStateFromUrl();
       bindEvents();
+      placeMobileFilters();
       render();
       if (rallyManagedFavorites) window.parent.postMessage({ type: "rally-lineup-ready" }, window.location.origin === 'null' ? '*' : window.location.origin);
       else window.addEventListener("load", initializeOptionalAccount, { once: true });

@@ -1,6 +1,6 @@
 // Only Rally assets are handled. No credentials, API responses, or other site pages.
-const CACHE = 'rally-shell-offline-1';
-const ASSETS = ['/tools/rally/', '/tools/rally/app.js', '/tools/rally/offline.js', '/tools/rally/styles.css', '/tools/rally/boot.css', '/lost-lands-2026-lineup/', '/lost-lands-2026-lineup/set-times.js', '/lost-lands-2026-lineup/assets/lost-lands-2026-lineup.jpg'];
+const CACHE = 'rally-shell-offline-2';
+const ASSETS = ['/tools/rally/', '/tools/rally/app.js', '/tools/rally/offline.js', '/tools/rally/keyboard.js', '/tools/rally/styles.css', '/tools/rally/boot.css', '/lost-lands-2026-lineup/', '/lost-lands-2026-lineup/mobile.css', '/lost-lands-2026-lineup/set-times.js', '/lost-lands-2026-lineup/assets/lost-lands-2026-lineup.jpg'];
 self.addEventListener('install', event => event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS))));
 self.addEventListener('activate', event => event.waitUntil((async () => {
   for (const key of await caches.keys()) if (key.startsWith('rally-shell-offline-') && key !== CACHE) await caches.delete(key);

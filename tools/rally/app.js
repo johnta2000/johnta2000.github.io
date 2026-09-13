@@ -51,8 +51,9 @@ function updateOfflineStatus() {
   if (!banner || !data) return;
   const stamp = RallyOffline.savedAt(activeEvent);
   const pending = RallyOffline.pendingCount;
+  banner.title = `${stamp ? 'Last saved ' + new Date(stamp).toLocaleString() + '. ' : ''}${offlineMode ? 'Viewing a saved copy. Favorites sync when you reconnect; other edits require internet.' : 'Trip details are saved on this device.'}`;
   banner.textContent = RallyOffline.storageError ? 'Device storage unavailable — offline saving is not ready.' :
-    `${offlineMode ? 'Offline · Saved copy' : shellSaved && stamp ? 'Available offline' : 'Preparing offline access…'}${stamp ? ' · ' + new Date(stamp).toLocaleString([], {month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}) : ''}${pending ? ` · Favorites awaiting sync (${pending} room${pending === 1 ? '' : 's'})` : ''}${offlineMode ? ' · Other edits need internet' : ''}`;
+    `${offlineMode ? 'Offline · Saved' : shellSaved && stamp ? 'Available offline' : 'Preparing offline access…'}${stamp ? ' · ' + new Date(stamp).toLocaleString([], {month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}) : ''}${pending ? ' · Favorites waiting to sync' : ''}`;
 }
 function setupOffline() {
   const edits = '#topInvite,#accountButton,#newEvent,#addRoom,#addCar,#addFlight,#addPass,#newTicket,#addLineupArtist,[data-room-edit],[data-assign-room],[data-flight-leg],[data-car-edit],[data-pass-edit],[data-lineup-edit],[data-task],[data-invite-member],[data-edit-member],[data-remove-member]';
@@ -63,7 +64,7 @@ function setupOffline() {
   }, true);
   document.addEventListener('dragstart', event => { if (offlineMode) event.preventDefault(); }, true);
   const banner = document.createElement('div'); banner.id = 'offlineStatus'; banner.role = 'status';
-  banner.style.cssText = 'padding:7px 16px;background:#eeefe5;color:#56594c;font-size:11px;line-height:1.5;flex-shrink:0';
+  banner.style.cssText = 'padding:6px 16px;background:#eeefe5;color:#68705e;font-size:12px;line-height:1.5;flex-shrink:0';
   el.page.before(banner);
   new ResizeObserver(() => document.documentElement.style.setProperty('--offline-status-height', `${banner.offsetHeight}px`)).observe(banner);
   window.addEventListener('rally-cache-change', updateOfflineStatus);
@@ -97,7 +98,6 @@ function wireShell() {
   el.signOut.addEventListener("click", signOut);
   el.accountButton.addEventListener("click", () => openProfile(data?.members.find((member) => member.id === data.currentMemberId)));
   el.topInvite.addEventListener("click", () => openInvite());
-  el.newEvent.addEventListener("click", openNewEvent);
 }
 
 function closeMenu() { el.sidebar.classList.remove("open"); el.menuBackdrop.hidden = true; }
@@ -205,7 +205,9 @@ function render() {
   el.eventThumb.textContent = initials(data.name); el.topInvite.hidden = !data.isAdmin;
   el.sideNav.innerHTML = views.filter(([id]) => id !== "lineup" || data.id === DEFAULT_EVENT || data.lineup?.length || data.isAdmin).map(([id,label,icon]) => `<a href="${href(id)}" class="${activeView === id ? "active" : ""}"><span class="nav-icon">${icon}</span>${label}</a>`).join("");
   el.eventMenu.innerHTML = events.map((event) => `<button data-event="${event.id}"><strong>${escapeHtml(event.name)}</strong><small class="event-menu-date">${dateRange(event.startsAt,event.endsAt)}</small><small>${escapeHtml(event.location)}</small></button>`).join("");
-  el.eventMenu.querySelectorAll("button").forEach((button) => button.addEventListener("click", () => navigateTo(new URL(href("home", button.dataset.event), location.href))));
+  el.eventMenu.insertAdjacentHTML("beforeend", '<button id="newEvent" class="new-event-menu-item">＋ New rave room</button>');
+  document.getElementById("newEvent").onclick = () => { el.eventMenu.hidden = true; closeMenu(); openNewEvent(); };
+  el.eventMenu.querySelectorAll("button[data-event]").forEach((button) => button.addEventListener("click", () => navigateTo(new URL(href("home", button.dataset.event), location.href))));
   el.page.className = `page${activeView === "lineup" && data.id === DEFAULT_EVENT ? " lineup" : ""}`;
   const renderer = { home: renderHome, stay: renderStay, crew: renderCrew, travel: renderTravel, passes: renderPasses, tasks: renderTasks, lineup: renderLineup }[activeView] || renderHome;
   renderer();
