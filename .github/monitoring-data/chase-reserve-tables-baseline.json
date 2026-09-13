@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "monitorId": "chase-sapphire-reserve-tables",
-  "capturedAt": "2026-09-13T18:50:45.073Z",
+  "capturedAt": "2026-09-13T22:29:14.789Z",
   "sources": [
     {
       "id": "atlanta",
@@ -459,6 +459,10 @@
         {
           "name": "After",
           "key": "after"
+        },
+        {
+          "name": "Alinea",
+          "key": "alinea"
         },
         {
           "name": "Alla Vita",
