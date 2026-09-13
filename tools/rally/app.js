@@ -21,6 +21,8 @@ let draggedTask = null;
 let lineupSaveTimer = null;
 let lineupRefreshTimer = null;
 let lineupFilters = { search: "", day: "all", stage: "all", favoritesOnly: false };
+let offlineMode = RallyOffline.native || !navigator.onLine;
+let shellSaved = RallyOffline.native || !!window.webkit?.messageHandlers?.rallyOffline;
 
 const el = Object.fromEntries(["accessGate","clerkSignIn","authStatus","authSignOut","rallyApp","sidebar","closeMenu","openMenu","menuBackdrop","eventSwitcher","eventMenu","eventName","eventThumb","mobileEventName","mobileCountdown","sideNav","page","topInvite","accountButton","signOut","newEvent","dialogRoot","toast"].map((id) => [id, document.getElementById(id)]));
 
@@ -31,7 +33,58 @@ async function init() {
   activeView = views.some(([id]) => id === params.get("view")) ? params.get("view") : "home";
   activeEvent = params.get("event") || DEFAULT_EVENT;
   wireShell();
+  setupOffline();
+  if (offlineMode && openSavedRoom()) return;
   await initializeClerk();
+}
+
+function openSavedRoom() {
+  const saved = RallyOffline.room(activeEvent);
+  if (!saved) return false;
+  data = saved; events = RallyOffline.events; offlineMode = true;
+  render(); el.accessGate.hidden = true; el.rallyApp.hidden = false;
+  document.body.classList.remove('booting'); updateOfflineStatus();
+  return true;
+}
+function updateOfflineStatus() {
+  const banner = document.getElementById('offlineStatus');
+  if (!banner || !data) return;
+  const stamp = RallyOffline.savedAt(activeEvent);
+  const pending = RallyOffline.pendingCount;
+  banner.textContent = RallyOffline.storageError ? 'Device storage unavailable — offline saving is not ready.' :
+    `${offlineMode ? 'Offline · Saved copy' : shellSaved && stamp ? 'Available offline' : 'Preparing offline access…'}${stamp ? ' · ' + new Date(stamp).toLocaleString([], {month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}) : ''}${pending ? ` · Favorites awaiting sync (${pending} room${pending === 1 ? '' : 's'})` : ''}${offlineMode ? ' · Other edits need internet' : ''}`;
+}
+function setupOffline() {
+  const edits = '#topInvite,#accountButton,#newEvent,#addRoom,#addCar,#addFlight,#addPass,#newTicket,#addLineupArtist,[data-room-edit],[data-assign-room],[data-flight-leg],[data-car-edit],[data-pass-edit],[data-lineup-edit],[data-task],[data-invite-member],[data-edit-member],[data-remove-member]';
+  document.addEventListener('click', event => {
+    if (offlineMode && event.target.closest(edits)) {
+      event.preventDefault(); event.stopImmediatePropagation(); showToast('This change needs internet. Your saved trip and favorites are available offline.');
+    }
+  }, true);
+  document.addEventListener('dragstart', event => { if (offlineMode) event.preventDefault(); }, true);
+  const banner = document.createElement('div'); banner.id = 'offlineStatus'; banner.role = 'status';
+  banner.style.cssText = 'padding:7px 16px;background:#eeefe5;color:#56594c;font-size:11px;line-height:1.5;flex-shrink:0';
+  el.page.before(banner);
+  new ResizeObserver(() => document.documentElement.style.setProperty('--offline-status-height', `${banner.offsetHeight}px`)).observe(banner);
+  window.addEventListener('rally-cache-change', updateOfflineStatus);
+  window.addEventListener('offline', () => { offlineMode = true; updateOfflineStatus(); });
+  window.addEventListener('online', () => { if (!RallyOffline.native) void reconnect(); });
+  if (!window.webkit?.messageHandlers?.rallyOffline && 'serviceWorker' in navigator && (location.protocol === 'https:' || ['localhost','127.0.0.1'].includes(location.hostname))) {
+    navigator.serviceWorker.register('/rally-sw.js', {scope:'/'}).then(() => navigator.serviceWorker.ready).then(() => { shellSaved = true; updateOfflineStatus(); }).catch(() => { shellSaved = false; updateOfflineStatus(); });
+  }
+  setInterval(() => { if (navigator.onLine && !RallyOffline.native && window.Clerk?.isSignedIn) void syncFavorites(); }, 15000);
+}
+async function reconnect() {
+  if (!window.Clerk?.isSignedIn) return initializeClerk();
+  offlineMode = false;
+  await unlock();
+}
+async function syncFavorites() {
+  try {
+    await RallyOffline.flush(networkConvexCall, window.Clerk?.user?.id);
+    if (data) { data = RallyOffline.room(activeEvent) || data; if(activeView === 'lineup') sendLineupState(); }
+  } catch { /* Durable queue is retried; never claim a remote save on failure. */ }
+  updateOfflineStatus();
 }
 
 function wireShell() {
@@ -95,6 +148,7 @@ async function initializeClerk() {
     if (!window.Clerk) throw new Error("Secure sign-in did not load.");
     await window.Clerk.load({ ui: { ClerkUI: window.__internal_ClerkUICtor } });
     if (window.Clerk.isSignedIn) return unlock();
+    RallyOffline.clear();
     document.body.classList.remove("booting");
     el.rallyApp.hidden = true;
     el.accessGate.hidden = false;
@@ -104,11 +158,13 @@ async function initializeClerk() {
       forceRedirectUrl: location.href.split("#")[0], signUpForceRedirectUrl: location.href.split("#")[0],
       appearance: { variables: { colorPrimary: "#1c1d19", colorBackground: "#fffef9", borderRadius: "9px", fontFamily: "Inter, ui-sans-serif, system-ui" } },
     });
-  } catch (error) { showAuthError(error); }
+  } catch (error) { if (!navigator.onLine && openSavedRoom()) return; showAuthError(error); }
 }
 
 async function unlock() {
   try {
+    RallyOffline.identify(window.Clerk.user.id);
+    offlineMode = false;
     const [room, knownEvents] = await Promise.all([
       convexMutation("rally:bootstrap", { eventId: activeEvent }),
       convexQuery("rally:listEvents", {}),
@@ -119,7 +175,17 @@ async function unlock() {
     el.accessGate.hidden = true;
     el.rallyApp.hidden = false;
     document.body.classList.remove("booting");
-  } catch (error) { showAuthError(error); }
+    updateOfflineStatus();
+    void (async () => {
+      for (const event of events) {
+        try { await convexQuery('rally:get', {eventId:event.id}); } catch { /* Existing saved copies remain available. */ }
+      }
+      await syncFavorites();
+    })();
+  } catch (error) {
+    if ((!navigator.onLine || ['TypeError','TimeoutError','AbortError'].includes(error.name)) && openSavedRoom()) return;
+    showAuthError(error);
+  }
 }
 
 function showAuthError(error) {
@@ -128,16 +194,18 @@ function showAuthError(error) {
   el.authSignOut.onclick = signOut;
 }
 
-async function signOut() { if (window.Clerk?.isSignedIn) await window.Clerk.signOut(); location.assign(BASE_PATH); }
+async function signOut() { if (offlineMode) return showToast('Reconnect to sign out securely.'); if (RallyOffline.pendingCount && !confirm('Sign out and discard favorites that have not synced yet?')) return; RallyOffline.clear(); if (window.Clerk?.isSignedIn) await window.Clerk.signOut(); location.assign(BASE_PATH); }
 
 function render() {
+  RallyOffline.select(activeEvent);
+  updateOfflineStatus();
   clearInterval(lineupRefreshTimer); lineupRefreshTimer = null;
   const days = Math.max(0, Math.ceil((new Date(`${data.startsAt}T12:00:00Z`) - Date.now()) / 86400000));
   el.eventName.textContent = data.name; el.mobileEventName.textContent = data.name; el.mobileCountdown.textContent = `${days} days away`;
   el.eventThumb.textContent = initials(data.name); el.topInvite.hidden = !data.isAdmin;
   el.sideNav.innerHTML = views.filter(([id]) => id !== "lineup" || data.id === DEFAULT_EVENT || data.lineup?.length || data.isAdmin).map(([id,label,icon]) => `<a href="${href(id)}" class="${activeView === id ? "active" : ""}"><span class="nav-icon">${icon}</span>${label}</a>`).join("");
   el.eventMenu.innerHTML = events.map((event) => `<button data-event="${event.id}"><strong>${escapeHtml(event.name)}</strong><small class="event-menu-date">${dateRange(event.startsAt,event.endsAt)}</small><small>${escapeHtml(event.location)}</small></button>`).join("");
-  el.eventMenu.querySelectorAll("button").forEach((button) => button.addEventListener("click", () => navigateTo(new URL(href("home", button.dataset.event), location.origin))));
+  el.eventMenu.querySelectorAll("button").forEach((button) => button.addEventListener("click", () => navigateTo(new URL(href("home", button.dataset.event), location.href))));
   el.page.className = `page${activeView === "lineup" && data.id === DEFAULT_EVENT ? " lineup" : ""}`;
   const renderer = { home: renderHome, stay: renderStay, crew: renderCrew, travel: renderTravel, passes: renderPasses, tasks: renderTasks, lineup: renderLineup }[activeView] || renderHome;
   renderer();
@@ -221,9 +289,23 @@ function renderLineup(){
   document.querySelectorAll("[data-lineup-edit]").forEach((button)=>button.onclick=()=>openLineupArtist(lineup.find((artist)=>artist.id===button.dataset.lineupEdit)));
   document.querySelectorAll("[data-lineup-favorite]").forEach((button)=>button.onclick=async()=>{const id=button.dataset.lineupFavorite;if(favorites.has(id))favorites.delete(id);else favorites.add(id);button.classList.toggle("selected",favorites.has(id));button.setAttribute("aria-pressed",String(favorites.has(id)));try{data=await convexMutation("rally:act",{eventId:activeEvent,action:"save-lineup-favorites",payload:{artistIds:[...favorites]}});renderLineup()}catch(error){showToast(error.message||"Could not save favorite")}});
 }
-function sendLineupState(){const frame=document.getElementById("lineupFrame"),currentMember=data.members.find((member)=>member.id===data.currentMemberId);frame?.contentWindow?.postMessage({type:"rally-lineup-state",artistIds:data.currentLineupFavorites||[],interests:data.lineupInterests||{},currentMember},location.origin)}
+function sendLineupState(){const frame=document.getElementById("lineupFrame"),currentMember=data.members.find((member)=>member.id===data.currentMemberId);frame?.contentWindow?.postMessage({type:"rally-lineup-state",artistIds:data.currentLineupFavorites||[],interests:data.lineupInterests||{},currentMember},location.origin === "null" ? "*" : location.origin)}
 async function refreshLineupState(){if(activeView!=="lineup")return;const eventId=activeEvent;try{const updated=await convexQuery("rally:get",{eventId});if(!updated||activeEvent!==eventId||activeView!=="lineup")return;data=updated;sendLineupState()}catch(error){console.warn("Could not refresh lineup interests",error)}}
-function handleLineupMessage(event){if(event.origin!==location.origin)return;const frame=document.getElementById("lineupFrame");if(!frame||event.source!==frame.contentWindow||!event.data||typeof event.data!=="object")return;if(event.data.type==="rally-lineup-ready"){sendLineupState();return}if(event.data.type!=="rally-lineup-favorites-changed"||!Array.isArray(event.data.artistIds))return;const eventId=activeEvent;const artistIds=[...new Set(event.data.artistIds.filter((id)=>typeof id==="string"))];data.currentLineupFavorites=artistIds;clearTimeout(lineupSaveTimer);lineupSaveTimer=setTimeout(async()=>{try{const updated=await convexMutation("rally:act",{eventId,action:"save-lineup-favorites",payload:{artistIds}});if(activeEvent!==eventId||activeView!=="lineup")return;data=updated;sendLineupState();document.getElementById("lineupFrame")?.contentWindow?.postMessage({type:"rally-lineup-favorites-saved"},location.origin)}catch(error){showToast(error.message||"Could not save lineup favorites")}},350)}
+async function handleLineupMessage(event) {
+  if(event.origin !== location.origin) return;
+  const frame = document.getElementById("lineupFrame");
+  if(!frame || event.source !== frame.contentWindow || !event.data || typeof event.data !== "object") return;
+  if(event.data.type === "rally-lineup-ready") { sendLineupState(); return; }
+  if(event.data.type !== "rally-lineup-favorites-changed" || !Array.isArray(event.data.artistIds)) return;
+  const eventId = activeEvent;
+  const artistIds = [...new Set(event.data.artistIds.filter(id => typeof id === "string"))];
+  try {
+    const updated = await convexMutation("rally:act", {eventId, action:"save-lineup-favorites", payload:{artistIds}});
+    if(activeEvent !== eventId || activeView !== "lineup") return;
+    data = updated; sendLineupState();
+    frame.contentWindow.postMessage({type:"rally-lineup-favorites-saved",offline:RallyOffline.pendingCount>0},location.origin === "null" ? "*" : location.origin);
+  } catch(error) { showToast(error.message || "Could not save lineup favorites"); }
+}
 
 function openDialog(title,description,formHtml,onSubmit,footerHtml=""){ el.dialogRoot.innerHTML=`<div class="dialog-backdrop"><section class="dialog"><button class="dialog-close">×</button><span class="eyebrow">Rally project room</span><h2>${title}</h2><p>${description}</p><form>${formHtml}<div class="dialog-actions${footerHtml?" split":""}"><button class="primary" type="submit">Save</button>${footerHtml}</div></form></section></div>`; const backdrop=el.dialogRoot.firstElementChild, form=backdrop.querySelector("form"); backdrop.querySelector(".dialog-close").onclick=closeDialog; backdrop.onmousedown=(event)=>{if(event.target===backdrop)closeDialog()}; form.onsubmit=async(event)=>{event.preventDefault();const button=form.querySelector("[type=submit]");button.disabled=true;try{await onSubmit(Object.fromEntries(new FormData(form)))}catch(error){showToast(error.message||"Could not save");button.disabled=false}}; }
 function wireDangerButton(id,onDelete){const button=document.getElementById(id);if(!button)return;button.onclick=async()=>{if(button.dataset.confirm!=="true"){button.dataset.confirm="true";button.classList.add("armed");button.textContent="Click again to delete";return}button.disabled=true;try{await onDelete()}catch(error){showToast(error.message||"Could not delete");button.disabled=false}};}
@@ -242,13 +324,36 @@ function openFlight(group){const selected=new Set(group?.memberIds||[data.curren
 function openCar(car){openDialog(car?"Edit rental car":"Add rental car","Keep ground transportation next to the crew’s flights.",`<div class="form-row">${field("Company","company",car?.company||"")}${field("Vehicle","vehicle",car?.vehicle||"")}</div>`+field("Confirmation","confirmation",car?.confirmation||"")+`<div class="form-row">${field("Pickup","pickup",car?.pickup||"","datetime-local")}${field("Drop-off","dropoff",car?.dropoff||"","datetime-local")}</div>`+selectField("Driver","driverId",[["","Unassigned"],...data.members.map((m)=>[m.id,m.name])],car?.driverId||""),async(values)=>{await act("save-car",{...values,id:car?.id||""},car?"Rental car updated":"Rental car added");closeDialog()},car?`<button id="deleteCar" class="danger-button" type="button">Delete car</button>`:"");if(car)wireDangerButton("deleteCar",async()=>{await act("delete-car",{id:car.id},"Rental car deleted");closeDialog()});}
 function openPass(pass){openDialog(pass?"Edit purchase":"Add purchase","Record the original buyer and full cost so ownership and reimbursements stay clear.",field("Pass or shuttle name","name",pass?.name||"")+`<div class="form-row">${selectField("Type","category",[["Pass","Festival pass"],["Shuttle","Shuttle"],["Parking","Parking"],["Add-on","Add-on"]],pass?.category||"Pass")}${field("Quantity","quantity",pass?.quantity||1,"number")}</div>`+selectField("Originally purchased by","ownerId",[["","Unassigned"],...data.members.map((m)=>[m.id,m.name])],pass?.ownerId||"")+`<div class="form-row">${field("Cost per item (USD)","unitCost",pass?.unitCost||"","text",false)}${field("Total paid incl. fees (USD)","totalCost",pass?.totalCost||"","text",false)}</div>`+field("Status","status",pass?.status||`1 / ${data.members.length} secured`)+field("Purchase notes","notes",pass?.notes||"","text",false),async(values)=>{await act("save-pass",{...values,id:pass?.id||""},pass?"Purchase updated":"Purchase added");closeDialog()},pass?`<button id="deletePass" class="danger-button" type="button">Delete purchase</button>`:"");if(pass)wireDangerButton("deletePass",async()=>{await act("delete-pass",{id:pass.id},"Purchase deleted");closeDialog()});}
 function openLineupArtist(artist){openDialog(artist?"Edit artist":"Add artist","Keep lineup announcements useful now and add exact set details later.",field("Artist or set name","name",artist?.name||"")+`<div class="form-row">${field("Day","day",artist?.day||"Day TBD")}${field("Date","date",artist?.date||"","date",false)}</div><div class="form-row">${field("Set time","time",artist?.time||"","time",false)}${field("Stage","stage",artist?.stage||"","text",false)}</div>`+field("Notes","notes",artist?.notes||"","text",false),async(values)=>{await act("save-lineup-artist",{...values,id:artist?.id||""},artist?"Artist updated":"Artist added");closeDialog()},artist?`<button id="deleteLineupArtist" class="danger-button" type="button">Remove artist</button>`:"");if(artist)wireDangerButton("deleteLineupArtist",async()=>{await act("delete-lineup-artist",{id:artist.id},"Artist removed");closeDialog()});}
-function openNewEvent(){const cards=eventTemplates.map((template,index)=>`<label class="event-template-card${index===0?" selected":""}"><input type="radio" name="templateId" value="${template.id}" ${index===0?"checked":""}><span class="template-icon">${template.icon}</span><span class="template-copy"><span class="template-title">${escapeHtml(template.name)}${template.badge?`<em>${escapeHtml(template.badge)}</em>`:""}</span><span>${escapeHtml(template.description)}</span><small>${escapeHtml(template.summary)}</small></span></label>`).join("");openDialog("New rave room","Start with a useful plan. Every starter item can be changed or deleted afterward.",`<fieldset class="template-picker"><legend>Choose a starting point</legend><div class="template-grid">${cards}</div><p id="templatePreview" class="template-preview">${escapeHtml(eventTemplates[0].summary)}</p></fieldset>`+field("Rave name","name")+field("Location","location")+`<div class="form-row">${field("Starts","startsAt","","date")}${field("Ends","endsAt","","date")}</div>`+field("Admin name","adminName",data.members.find((m)=>m.id===data.currentMemberId)?.name||"John"),async(values)=>{const created=await convexMutation("rally:act",{eventId:activeEvent,action:"create-event",payload:values});closeDialog();await navigateTo(new URL(href("home",created.id),location.origin))});el.dialogRoot.querySelector(".dialog").classList.add("new-event-dialog");const form=el.dialogRoot.querySelector("form"),submit=form.querySelector('[type="submit"]'),preview=document.getElementById("templatePreview");submit.textContent="Create room";form.querySelectorAll('[name="templateId"]').forEach((input)=>input.addEventListener("change",()=>{form.querySelectorAll(".event-template-card").forEach((card)=>card.classList.toggle("selected",card.contains(input)));preview.textContent=eventTemplates.find((template)=>template.id===input.value)?.summary||""}))}
+function openNewEvent(){const cards=eventTemplates.map((template,index)=>`<label class="event-template-card${index===0?" selected":""}"><input type="radio" name="templateId" value="${template.id}" ${index===0?"checked":""}><span class="template-icon">${template.icon}</span><span class="template-copy"><span class="template-title">${escapeHtml(template.name)}${template.badge?`<em>${escapeHtml(template.badge)}</em>`:""}</span><span>${escapeHtml(template.description)}</span><small>${escapeHtml(template.summary)}</small></span></label>`).join("");openDialog("New rave room","Start with a useful plan. Every starter item can be changed or deleted afterward.",`<fieldset class="template-picker"><legend>Choose a starting point</legend><div class="template-grid">${cards}</div><p id="templatePreview" class="template-preview">${escapeHtml(eventTemplates[0].summary)}</p></fieldset>`+field("Rave name","name")+field("Location","location")+`<div class="form-row">${field("Starts","startsAt","","date")}${field("Ends","endsAt","","date")}</div>`+field("Admin name","adminName",data.members.find((m)=>m.id===data.currentMemberId)?.name||"John"),async(values)=>{const created=await convexMutation("rally:act",{eventId:activeEvent,action:"create-event",payload:values});closeDialog();await navigateTo(new URL(href("home",created.id),location.href))});el.dialogRoot.querySelector(".dialog").classList.add("new-event-dialog");const form=el.dialogRoot.querySelector("form"),submit=form.querySelector('[type="submit"]'),preview=document.getElementById("templatePreview");submit.textContent="Create room";form.querySelectorAll('[name="templateId"]').forEach((input)=>input.addEventListener("change",()=>{form.querySelectorAll(".event-template-card").forEach((card)=>card.classList.toggle("selected",card.contains(input)));preview.textContent=eventTemplates.find((template)=>template.id===input.value)?.summary||""}))}
 
 async function act(action,payload,message,rerender=true){data=await convexMutation("rally:act",{eventId:activeEvent,action,payload});if(rerender)render();showToast(message);return data;}
 function showToast(message){el.toast.textContent=`✓ ${message}`;el.toast.hidden=false;clearTimeout(el.toast.timer);el.toast.timer=setTimeout(()=>el.toast.hidden=true,2800)}
 
 async function convexQuery(path,args){return convexCall("query",path,args)} async function convexMutation(path,args){return convexCall("mutation",path,args)} async function convexAction(path,args){return convexCall("action",path,args)}
-async function convexCall(kind,path,args){const token=await getConvexToken();if(!token)throw new Error("Not authenticated with Clerk.");const response=await fetch(`${CONVEX_URL}/api/${kind}`,{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${token}`},body:JSON.stringify({path,args})});const result=await response.json();if(!response.ok||result.status!=="success")throw new Error(result.errorMessage||`Convex ${kind} failed`);return result.value}
+async function convexCall(kind, path, args) {
+  if (path === 'rally:act' && args.action === 'save-lineup-favorites') {
+    const room = RallyOffline.queue(args.eventId, args.payload.artistIds);
+    void syncFavorites();
+    return room;
+  }
+  if (offlineMode) {
+    if (path === 'rally:listEvents') return RallyOffline.events;
+    if (path === 'rally:get' || path === 'rally:bootstrap') {
+      const room = RallyOffline.room(args.eventId);
+      if (room) return room;
+      throw new Error('This room is not saved on this device yet. Open it online first.');
+    }
+    throw new Error('You are offline. Trip details are readable and favorites can be saved; other changes need internet.');
+  }
+  const owner = window.Clerk?.user?.id;
+  const value = await networkConvexCall(kind, path, args);
+  if (owner && owner === RallyOffline.userId) {
+    if (path === 'rally:listEvents') RallyOffline.list(value);
+    if (value?.id && Array.isArray(value.members)) return RallyOffline.save(value);
+  }
+  return value;
+}
+async function networkConvexCall(kind,path,args){const token=await getConvexToken();if(!token)throw new Error("Not authenticated with Clerk.");const response=await fetch(`${CONVEX_URL}/api/${kind}`,{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${token}`},body:JSON.stringify({path,args}),signal:AbortSignal.timeout(12000)});const result=await response.json();if(!response.ok||result.status!=="success")throw new Error(result.errorMessage||`Convex ${kind} failed`);return result.value}
 async function getConvexToken(){const session=window.Clerk?.session;if(!session)return null;const sessionToken=await session.getToken();const audience=readJwtPayload(sessionToken)?.aud;if(audience==="convex"||(Array.isArray(audience)&&audience.includes("convex")))return sessionToken;try{return await session.getToken({template:"convex"})}catch{return sessionToken}}
 function readJwtPayload(token){if(!token)return null;try{const encoded=token.split(".")[1].replace(/-/g,"+").replace(/_/g,"/");return JSON.parse(decodeURIComponent(escape(atob(encoded))))}catch{return null}}
 function escapeHtml(value){const span=document.createElement("span");span.textContent=String(value??"");return span.innerHTML} function escapeAttr(value){return escapeHtml(value).replace(/"/g,"&quot;")}

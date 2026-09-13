@@ -2179,7 +2179,7 @@
 
       function saveFavorites() {
         if (rallyManagedFavorites) {
-          window.parent.postMessage({ type: "rally-lineup-favorites-changed", artistIds: [...favorites] }, window.location.origin);
+          window.parent.postMessage({ type: "rally-lineup-favorites-changed", artistIds: [...favorites] }, window.location.origin === 'null' ? '*' : window.location.origin);
           viewingSharedFavorites = false;
           return;
         }
@@ -2642,7 +2642,7 @@
               viewingSharedFavorites = false;
               render();
             }
-            if (event.data.type === "rally-lineup-favorites-saved") showToast("Saved to your Rally profile.");
+            if (event.data.type === "rally-lineup-favorites-saved") showToast(event.data.offline ? "Saved on this device. Will sync when connected." : "Saved to your Rally profile.");
           });
         }
 
@@ -2654,7 +2654,7 @@
       readStateFromUrl();
       bindEvents();
       render();
-      if (rallyManagedFavorites) window.parent.postMessage({ type: "rally-lineup-ready" }, window.location.origin);
+      if (rallyManagedFavorites) window.parent.postMessage({ type: "rally-lineup-ready" }, window.location.origin === 'null' ? '*' : window.location.origin);
       else window.addEventListener("load", initializeOptionalAccount, { once: true });
     </script>
   </body>
