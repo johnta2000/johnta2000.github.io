@@ -1309,6 +1309,38 @@
         .schedule-actions .toggle-button { min-height: 42px; padding: 0 10px; font-size: 13px; }
         .status-bar { gap: 6px; }
       }
+      .group-control { display: none; }
+      .rally-mode .group-control { display: inline-flex; }
+      .popularity-sort { border: 0; padding: 0; background: none; color: #adc4b6; font-size: 12px; align-items: center; gap: 5px; min-height: 28px; }
+      .popularity-sort[aria-pressed="true"] { color: #e0f6a2; }
+      .result-summary { flex-wrap: wrap; }
+      .group-count { display: inline-flex; flex-shrink: 0; align-items: center; border-radius: 5px; padding: 3px 5px; background: #29412a; color: #e0f6a2; font-size: 11px; font-weight: 800; white-space: nowrap; }
+      .rank-day { display: block; font-size: 10px; font-weight: 500; color: #a5bdae; margin-top: 3px; }
+      .heat-legend { display: flex; align-items: center; flex-wrap: wrap; gap: 9px; padding: 14px; color: #bbcebf; font-size: 12px; }
+      .heat-gradient { width: 90px; height: 8px; border-radius: 8px; background: linear-gradient(90deg, #10251e, #d8ed85); }
+      .heat-scroll { overflow: auto; max-height: 75dvh; }
+      .heat-grid { display: grid; grid-template-columns: 105px repeat(var(--heat-days), minmax(220px, 1fr)); align-items: stretch; }
+      .heat-day { position: sticky; top: 0; z-index: 3; padding: 12px; background: #163127; border-bottom: 1px solid #3a5245; font-size: 14px; }
+      .heat-day small { display: block; margin-top: 4px; font-size: 12px; color: #adc4b6; }
+      .heat-stage { position: sticky; left: 0; z-index: 2; padding: 12px 9px; background: #10251e; border-bottom: 1px solid #294137; font-size: 12px; font-weight: 700; }
+      .heat-corner { z-index: 4; left: 0; }
+      .heat-cell { display: flex; flex-direction: column; gap: 7px; padding: 9px; border-left: 1px solid #294137; border-bottom: 1px solid #294137; min-width: 0; }
+      .heat-card { border-radius: 7px; padding: 10px; background: var(--heat-fill); color: var(--heat-text); }
+      .heat-card-head { display: flex; align-items: center; gap: 7px; }
+      .heat-card strong { flex: 1; min-width: 0; font-size: 13px; line-height: 1.35; }
+      .heat-card .favorite-button { flex-shrink: 0; width: 30px; min-height: 32px; font-size: 16px; color: inherit; border-color: currentColor; background: transparent; }
+      .heat-card .favorite-button.is-active { background: #15291d; color: #e5f6a9; }
+      .heat-time { display: block; font-size: 12px; margin: 7px 0; white-space: nowrap; }
+      .heat-card summary { cursor: pointer; font-size: 12px; font-weight: 700; }
+      .heat-names { margin: 7px 0 0; font-size: 12px; line-height: 1.5; }
+      .heat-none { color: #859e8e; font-size: 12px; padding: 10px; }
+      @media (max-width: 760px) {
+        .rally-mode .schedule-actions .segmented button { padding: 0 6px; font-size: 12px; }
+        .heat-grid { grid-template-columns: 78px repeat(var(--heat-days), minmax(210px, 1fr)); }
+        .heat-stage { padding: 12px 6px; font-size: 11px; }
+        .group-count { font-size: 9px; padding: 2px 3px; }
+        .rank-day { font-size: 8px; }
+      }
     </style>
   </head>
   <body>
@@ -1361,17 +1393,21 @@
 
         <div class="status-bar">
           <div class="schedule-actions">
-            <div class="segmented" aria-label="View mode"><button class="is-active" type="button" id="table-view-button">Schedule</button><button type="button" id="poster-view-button">Day board</button></div>
+            <div class="segmented" aria-label="View mode"><button class="is-active" type="button" id="table-view-button">Schedule</button><button type="button" id="poster-view-button">Day board</button><button class="group-control" type="button" id="heat-view-button">Heat map</button></div>
             <button class="button toggle-button" type="button" id="favorites-filter-button" aria-pressed="false" aria-label="Show favorites only">★ <span id="favorite-count">0</span></button>
             <button class="text-button" type="button" id="save-favorites-button" hidden>Save as mine</button>
           </div>
-          <div class="result-summary"><span id="result-count" aria-live="polite">0 sets</span><button class="clear-action" type="button" id="clear-filters-button" hidden>Clear filters</button></div>
+          <div class="result-summary"><span id="result-count" aria-live="polite">0 sets</span><button class="popularity-sort group-control" type="button" id="popularity-sort" aria-pressed="false">↓ Most liked</button><button class="clear-action" type="button" id="clear-filters-button" hidden>Clear filters</button></div>
         </div>
 
         <section class="content-panel" id="poster-view" aria-label="Lineup by day and stage" hidden>
           <div class="day-board" id="poster-content"></div>
         </section>
 
+        <section class="content-panel" id="heat-view" aria-label="Group favorites heat map" hidden>
+          <div class="heat-legend"><span>Group favorites per set</span><span class="heat-gradient" aria-hidden="true"></span><span id="heat-scale"></span></div>
+          <div class="heat-scroll" tabindex="0" aria-label="Scroll days and stages"><div id="heat-content"></div></div>
+        </section>
         <section class="content-panel table-wrap" id="table-view" aria-label="Lineup table">
           <table>
             <colgroup>
@@ -1752,6 +1788,11 @@
         filterToggle: document.getElementById("filter-toggle"),
         filterCount: document.getElementById("filter-count"),
         filterFields: document.getElementById("filter-fields"),
+        popularitySort: document.getElementById("popularity-sort"),
+        heatViewButton: document.getElementById("heat-view-button"),
+        heatView: document.getElementById("heat-view"),
+        heatContent: document.getElementById("heat-content"),
+        heatScale: document.getElementById("heat-scale"),
         posterContent: document.getElementById("poster-content"),
         posterView: document.getElementById("poster-view"),
         posterViewButton: document.getElementById("poster-view-button"),
@@ -1781,6 +1822,8 @@
       let cloudSaveTimer = null;
       let anonymousHintShown = false;
       let activeView = "table";
+      let mostLiked = false;
+      let groupStateLoaded = false;
       let favoritesOnly = false;
       let viewingSharedFavorites = false;
       let selectedDays = new Set();
@@ -1892,6 +1935,8 @@
           timeMax = timeBounds.max;
         }
         activeView = ["board", "poster"].includes(params.get("view")) ? "board" : "table";
+        if (rallyManagedFavorites && params.get("view") === "heat") activeView = "heat";
+        mostLiked = rallyManagedFavorites && params.get("sort") === "popular";
 
         const hasSharedFavorites = params.has("f") || params.has("favorites");
         const sharedFavorites = [
@@ -1917,6 +1962,7 @@
           params.set("end", String(timeMax));
         }
         if (activeView !== "table") params.set("view", activeView);
+        if (mostLiked) params.set("sort", "popular");
         if (favoritesOnly) params.set("fav", "1");
         const next = `${window.location.pathname}${rallyManagedFavorites ? "?rally=1" : ""}${params.toString() ? `#${params}` : ""}`;
         window.history.replaceState({}, "", next);
@@ -1938,7 +1984,45 @@
           return matchesQuery && matchesDay && matchesGenre && matchesStage && matchesTime && matchesFavorite;
         });
 
-        return filtered.sort((left, right) => left.posterIndex - right.posterIndex);
+        return filtered.sort(compareSets);
+      }
+
+      function groupPeople(id) {
+        const people = Array.isArray(lineupInterests[id]) ? lineupInterests[id] : [];
+        return people.filter((person, index) => person?.id && people.findIndex((other) => other?.id === person.id) === index);
+      }
+
+      function compareSets(left, right) {
+        return (mostLiked ? groupPeople(right.id).length - groupPeople(left.id).length : 0) || left.posterIndex - right.posterIndex;
+      }
+
+      function renderHeatMap(entries) {
+        const maximum = Math.max(0, ...lineup.map((entry) => groupPeople(entry.id).length));
+        els.heatScale.textContent = maximum ? `0–${maximum} people · brighter = more liked` : "No group favorites yet";
+        if (!groupStateLoaded || !entries.length) {
+          els.heatContent.innerHTML = `<div class="empty-state">${!groupStateLoaded ? "Loading your crew’s favorites…" : "No sets match the current filters."}</div>`;
+          return;
+        }
+        const days = dayOrder.filter((day) => entries.some((entry) => entry.day === day));
+        const stages = stageOrder.filter((stage) => entries.some((entry) => entry.stage === stage));
+        const headers = days.map((day) => `<header class="heat-day">${escapeHtml(day)}<small>${escapeHtml(formatFestivalDate(entries.find((entry) => entry.day === day).festivalDate))}</small></header>`).join("");
+        const cells = stages.map((stage) => `<div class="heat-stage">${escapeHtml(stage)}</div>${days.map((day) => {
+          const sets = entries.filter((entry) => entry.stage === stage && entry.day === day).sort(compareSets);
+          const cards = sets.map((entry) => {
+            const people = groupPeople(entry.id);
+            const count = people.length;
+            const ratio = maximum ? count / maximum : 0;
+            const fill = count ? `hsl(${145 - ratio * 70} 48% ${23 + ratio * 49}%)` : "#10251e";
+            const ink = ratio > 0.45 ? "#101e14" : "#eff7e9";
+            return `<article class="heat-card" style="--heat-fill:${fill};--heat-text:${ink}">
+              <div class="heat-card-head"><strong>${escapeHtml(entry.artist)}</strong><button class="favorite-button ${favorites.has(entry.id) ? "is-active" : ""}" type="button" data-favorite-id="${escapeHtml(entry.id)}" aria-label="${favorites.has(entry.id) ? "Remove" : "Add"} ${escapeHtml(entry.artist)} favorite">★</button></div>
+              <span class="heat-time">${escapeHtml(formatClock(entry.start))}–${escapeHtml(formatClock(entry.end))}</span>
+              ${count ? `<details><summary>${count} ${count === 1 ? "person" : "people"} interested</summary><p class="heat-names">${people.map((person) => escapeHtml(person.name)).join(", ")}</p></details>` : '<span class="heat-time">0 interested</span>'}
+            </article>`;
+          }).join("");
+          return `<div class="heat-cell">${cards || '<span class="heat-none">No matching sets</span>'}</div>`;
+        }).join("")}`).join("");
+        els.heatContent.innerHTML = `<div class="heat-grid" style="--heat-days:${days.length}"><div class="heat-day heat-corner">Stage</div>${headers}${cells}</div>`;
       }
 
       function renderDayBoard(entries) {
@@ -1957,7 +2041,7 @@
             const stageGroups = stages.map((stage) => {
               const stageEntries = dayEntries
                 .filter((entry) => entry.stage === stage)
-                .sort((left, right) => left.startMinutes - right.startMinutes || left.artist.localeCompare(right.artist));
+                .sort(compareSets);
               const color = stageColors[stageOrder.indexOf(stage) % stageColors.length];
               const cards = stageEntries.map((entry) => `
                 <article class="day-set-card">
@@ -2008,7 +2092,7 @@
         els.tableBody.innerHTML = entries
           .map((entry) => {
             const dayEntries = entries.filter((candidate) => candidate.day === entry.day);
-            const dayDivider = renderedDay === entry.day ? "" : `
+            const dayDivider = mostLiked || renderedDay === entry.day ? "" : `
               <tr class="day-divider"><td colspan="${rallyManagedFavorites ? 7 : 6}">${escapeHtml(entry.day)} · ${escapeHtml(formatFestivalDate(entry.festivalDate))} · ${dayEntries.length} set${dayEntries.length === 1 ? "" : "s"}</td></tr>
             `;
             renderedDay = entry.day;
@@ -2024,7 +2108,7 @@
                 </td>
                 <td class="time-cell"><span class="schedule-time">${escapeHtml(formatClock(entry.start))}</span></td>
                 <td class="time-cell"><span class="schedule-time">${escapeHtml(formatClock(entry.end))}</span></td>
-                <td class="artist-cell">${escapeHtml(entry.artist)}</td>
+                <td class="artist-cell" title="${escapeHtml(entry.artist)}">${escapeHtml(entry.artist)}${mostLiked ? `<small class="rank-day">${escapeHtml(entry.day.slice(0, 3))} · ${escapeHtml(formatFestivalDate(entry.festivalDate))}</small>` : ""}</td>
                 <td class="stage-cell">${escapeHtml(entry.stage)}</td>
                 <td class="genre-cell genre-column">${escapeHtml(entry.genre)}</td>
                 <td class="rally-only">${renderInterest(entry.id)}</td>
@@ -2041,9 +2125,9 @@
       }
 
       function renderInterest(artistId) {
-        const people = Array.isArray(lineupInterests[artistId]) ? lineupInterests[artistId] : [];
+        const people = groupPeople(artistId);
         if (!people.length) return `<span class="interest-empty">—</span>`;
-        return `<div class="interest-list">${people.map((person) => {
+        return `<div class="interest-list"><span class="group-count" title="${people.length} crew members interested">${people.length}</span>${people.map((person) => {
           const allowedColors = new Set(["coral", "sky", "purple", "yellow", "green", "pink", "blue", "orange"]);
           const color = allowedColors.has(person.color) ? person.color : "purple";
           return `<span class="interest-person" title="${escapeHtml(person.name)}"><i class="${color}">${escapeHtml(person.initials)}</i><span>${escapeHtml(person.name)}</span></span>`;
@@ -2062,9 +2146,14 @@
       function updateViewButtons() {
         const isBoard = activeView === "board";
         els.posterView.hidden = !isBoard;
-        els.tableView.hidden = isBoard;
+        els.tableView.hidden = activeView !== "table";
+        els.heatView.hidden = activeView !== "heat";
+        els.heatViewButton.classList.toggle("is-active", activeView === "heat");
+        els.popularitySort.setAttribute("aria-pressed", String(mostLiked));
+        els.popularitySort.textContent = mostLiked ? "↓ Most liked ✓" : "↓ Most liked";
         els.posterViewButton.classList.toggle("is-active", isBoard);
-        els.tableViewButton.classList.toggle("is-active", !isBoard);
+        els.tableViewButton.classList.toggle("is-active", activeView === "table");
+        [els.tableViewButton, els.posterViewButton, els.heatViewButton].forEach((button) => button.setAttribute("aria-pressed", String(button.classList.contains("is-active"))));
         els.favoritesFilterButton.setAttribute("aria-pressed", String(favoritesOnly));
         els.saveFavoritesButton.hidden = !viewingSharedFavorites || favorites.size === 0;
         if (!rallyManagedFavorites) {
@@ -2082,6 +2171,7 @@
         els.favoritesFilterButton.setAttribute("aria-label", `Show favorites only (${favoriteTotal} saved)`);
         renderDayBoard(entries);
         renderTable(entries);
+        if (rallyManagedFavorites) renderHeatMap(entries);
         updateFilterControls();
         updateViewButtons();
         writeStateToUrl();
@@ -2481,6 +2571,8 @@
 
         els.posterViewButton.addEventListener("click", () => setView("board"));
         els.tableViewButton.addEventListener("click", () => setView("table"));
+        els.heatViewButton.addEventListener("click", () => setView("heat"));
+        els.popularitySort.addEventListener("click", () => { mostLiked = !mostLiked; render(); });
         els.clearFiltersButton.addEventListener("click", clearScheduleFilters);
         els.favoritesFilterButton.addEventListener("click", toggleFavoritesOnly);
         els.saveFavoritesButton.addEventListener("click", saveFavoritesAsMine);
@@ -2520,6 +2612,7 @@
         };
         els.tableBody.addEventListener("click", handleFavoriteClick);
         els.posterContent.addEventListener("click", handleFavoriteClick);
+        els.heatContent.addEventListener("click", handleFavoriteClick);
 
         window.addEventListener("popstate", () => {
           readStateFromUrl();
@@ -2530,6 +2623,7 @@
           window.addEventListener("message", (event) => {
             if (event.origin !== window.location.origin || event.source !== window.parent || !event.data || typeof event.data !== "object") return;
             if (event.data.type === "rally-lineup-state" && Array.isArray(event.data.artistIds)) {
+              groupStateLoaded = true;
               favorites = new Set(event.data.artistIds.flatMap(currentFavoriteIds).filter((id) => validFavoriteIds.has(id)));
               lineupInterests = {};
               if (event.data.interests && typeof event.data.interests === "object") {
