@@ -91,7 +91,11 @@
   #mobile-filter-slot .filter-panel-clear {font:13px system-ui;color:#667a4f;}
   #mobile-filter-slot .filter-search,#mobile-filter-slot .time-range-copy input {height:44px;font:16px system-ui;color:#3b472f;background:#f7f8f1;border:1px solid #dce0d0;}
   #mobile-filter-slot .filter-search::placeholder {color:#7c8770;}
-  #mobile-filter-slot .filter-options {max-height:220px;overflow:auto;}
+  #mobile-filter-slot .filter-options {max-height:none;overflow:visible;display:grid;grid-template-columns:1fr 1fr;gap:4px;}
+  #mobile-filter-slot .filter-trigger {display:none;}
+  #mobile-filter-slot .filter-panel {margin:0;border:0;border-bottom:1px solid #dce0d0;border-radius:0;padding:12px 0 20px;}
+  #mobile-filter-slot .filter-option {padding:8px;border-radius:8px;background:#f3f5ec;gap:8px;}
+  #mobile-filter-slot .filter-option:has(input:checked) {background:#e4ecd7;color:#354b24;}
   #mobile-filter-slot .filter-option {min-height:44px;color:#566349;font:14px system-ui;}
   #mobile-filter-slot input[type=checkbox] {accent-color:#627e3e;width:18px;height:18px;}
   #mobile-filter-slot .time-range-copy {color:#627253;font:13px system-ui;}
@@ -99,3 +103,14 @@
   .account-dialog {max-height:calc(var(--rally-viewport-height,100dvh) - 24px);overflow-y:auto;}
   button:focus-visible,summary:focus-visible {outline:2px solid #718e48;outline-offset:3px;}
 }
+.sort-dialog {width:min(360px,calc(100% - 32px));padding:20px;border:1px solid #dce0d0;border-radius:20px;background:#fffef9;color:#283321;box-shadow:0 20px 80px #0003;}
+.sort-dialog::backdrop {background:#17201066;}
+.sort-dialog header {display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.sort-dialog h2 {font:700 20px system-ui;margin:0;}
+.sort-dialog button {cursor:pointer;font-family:system-ui;}
+.sort-dialog header button {width:44px;height:44px;border:0;border-radius:10px;background:#f0f2e9;color:#45513a;font-size:24px;}
+.sort-dialog>button {display:flex;align-items:center;justify-content:space-between;text-align:left;width:100%;padding:14px;border:0;border-radius:12px;background:transparent;color:#45513a;}
+.sort-dialog>button[aria-pressed=true] {background:#e9efde;}
+.sort-dialog strong,.sort-dialog small {display:block;}
+.sort-dialog strong {font-size:15px;}.sort-dialog small {font-size:12px;margin-top:4px;color:#77816b;}
+.popularity-sort {display:inline-flex;}

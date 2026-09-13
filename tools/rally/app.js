@@ -98,6 +98,13 @@ function wireShell() {
   el.signOut.addEventListener("click", signOut);
   el.accountButton.addEventListener("click", () => openProfile(data?.members.find((member) => member.id === data.currentMemberId)));
   el.topInvite.addEventListener("click", () => openInvite());
+  document.getElementById('sidebarSearch').onclick = openProjectSearch;
+  const searchDialog = document.getElementById('projectSearch');
+  searchDialog.querySelector('header button').onclick = () => searchDialog.close();
+  searchDialog.addEventListener('click', event => { if(event.target === searchDialog) searchDialog.close(); });
+  document.getElementById('projectSearchInput').addEventListener('input', renderProjectSearch);
+  document.getElementById('searchResults').addEventListener('click', event => { if(event.target.closest('a')) searchDialog.close(); });
+  document.addEventListener('keydown', event => { if(data && (event.metaKey || event.ctrlKey) && event.key === 'k') { event.preventDefault(); openProjectSearch(); } });
 }
 
 function closeMenu() { el.sidebar.classList.remove("open"); el.menuBackdrop.hidden = true; }
@@ -211,6 +218,68 @@ function render() {
   el.page.className = `page${activeView === "lineup" && data.id === DEFAULT_EVENT ? " lineup" : ""}`;
   const renderer = { home: renderHome, stay: renderStay, crew: renderCrew, travel: renderTravel, passes: renderPasses, tasks: renderTasks, lineup: renderLineup }[activeView] || renderHome;
   renderer();
+  renderMobileNav();
+  focusSearchResult();
+}
+
+function renderMobileNav() {
+  const icons = {home:'<path d="m3 10 9-7 9 7v10H3Z"/><path d="M9 20v-7h6v7"/>',lineup:'<path d="M9 18V5l11-2v13M9 8l11-2"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/>',crew:'<circle cx="9" cy="8" r="3"/><path d="M3 21v-3a6 6 0 0 1 12 0v3M16 5a3 3 0 0 1 0 6M18 15a5 5 0 0 1 3 5"/>',search:'<circle cx="10" cy="10" r="7"/><path d="m15 15 6 6"/>',more:'<path d="M4 6h16M4 12h16M4 18h16"/>'};
+  const icon = id => `<svg viewBox="0 0 24 24" aria-hidden="true">${icons[id]}</svg>`;
+  document.getElementById('mobileNav').innerHTML = [['home','Home'],['lineup','Lineup'],['crew','Crew']].map(([id,label])=>`<a href="${href(id)}" class="${activeView===id?'active':''}" ${activeView===id?'aria-current="page"':''}>${icon(id)}${label}</a>`).join('')+`<button type="button" id="quickSearch">${icon('search')}Search</button><button type="button" id="quickMore" ${!['home','lineup','crew'].includes(activeView)?'aria-current="page"':''}>${icon('more')}More</button>`;
+  document.getElementById('quickSearch').onclick = openProjectSearch;
+  document.getElementById('quickMore').onclick = () => el.openMenu.click();
+}
+
+// Deliberately indexes only data already authorized for the current project.
+// No account-directory lookup, API query, or copy of search terms is stored.
+function projectSearchItems() {
+  const map=memberMap(), items=views.map(([view,title])=>({view,title,detail:'Open section'}));
+  const add=(view,rows,title,detail)=>rows?.forEach(row=>items.push({view,id:row.id,title:title(row),detail:detail(row)}));
+  add('crew',data.members,r=>r.name,r=>[r.email,r.origin,r.role].filter(Boolean).join(' · '));
+  add('stay',data.rooms,r=>r.hotel,r=>[r.roomType,r.confirmation,r.notes,...(r.memberIds||[]).map(id=>map[id]?.name)].filter(Boolean).join(' · '));
+  add('travel',groupedFlights(),r=>`${r.airline} ${r.number}: ${r.origin} → ${r.destination}`,r=>[r.departure,r.confirmation,...r.memberIds.map(id=>map[id]?.name)].filter(Boolean).join(' · '));
+  add('travel',data.cars,r=>`${r.company} · ${r.vehicle}`,r=>[r.pickup,r.dropoff,map[r.driverId]?.name].filter(Boolean).join(' · '));
+  add('passes',data.passes,r=>r.name,r=>[r.category,map[r.ownerId]?.name,r.notes].filter(Boolean).join(' · '));
+  add('tasks',data.tasks,r=>r.title,r=>[r.category,r.status,map[r.assigneeId]?.name,r.description].filter(Boolean).join(' · '));
+  const sets=data.id===DEFAULT_EVENT?(window.LOST_LANDS_SET_TIMES||[]):(data.lineup||[]);
+  sets.forEach(r=>items.push({view:'lineup',id:r.id,title:r.artist||r.name,day:r.day,detail:[r.day,r.stage,r.genre].filter(Boolean).join(' · '),artist:r.artist||r.name}));
+  return items;
+}
+
+function openProjectSearch() {
+  if(!data)return;
+  closeMenu();
+  const dialog=document.getElementById('projectSearch');
+  document.getElementById('searchScope').textContent=`${data.name} · Only this project’s information`;
+  document.getElementById('projectSearchInput').value='';
+  renderProjectSearch();
+  dialog.showModal();
+  document.getElementById('projectSearchInput').focus();
+}
+
+function renderProjectSearch() {
+  const query=document.getElementById('projectSearchInput').value.trim().toLowerCase();
+  const words=query.split(/\s+/).filter(Boolean);
+  const results=projectSearchItems().filter(item=>words.length?words.every(word=>`${item.title} ${item.detail}`.toLowerCase().includes(word)):!item.id);
+  document.getElementById('searchResults').innerHTML=results.slice(0,80).map(item=>{
+    const url=new URL(href(item.view),location.href);
+    if(item.id)url.searchParams.set('focus',item.id);
+    if(item.artist){url.searchParams.set('find',item.artist);if(item.day)url.searchParams.set('day',item.day);}
+    return `<a href="${escapeAttr(url.pathname+url.search)}"><strong>${escapeHtml(item.title)}</strong><small>${escapeHtml(views.find(([id])=>id===item.view)?.[1]||'')} · ${escapeHtml(item.detail||'')}</small></a>`;
+  }).join('')+(results.length>80?'<p>Showing the first 80 matches. Keep typing to narrow your search.</p>':'')||'<p>No matches in this project. Try an artist, person, booking, or task name.</p>';
+}
+
+function focusSearchResult() {
+  const id=new URLSearchParams(location.search).get('focus');
+  if(!id)return;
+  requestAnimationFrame(()=>{
+    const attributes=['data-room-edit','data-edit','data-invite','data-car-edit','data-pass-edit','data-task','data-lineup-edit'];
+    const target=[...el.page.querySelectorAll(attributes.map(a=>`[${a}]`).join(','))].find(node=>attributes.some(a=>node.getAttribute(a)===id));
+    const flight=[...el.page.querySelectorAll('[data-flight-leg]')].find(node=>{const [trip,leg]=node.dataset.flightLeg.split(':').map(Number);return flightItineraries()[trip]?.legs[leg]?.ids.includes(id);});
+    const memberCard=activeView==='crew'?el.page.querySelectorAll('.member-card')[data.members.findIndex(member=>member.id===id)]:null;
+    const card=memberCard||(target||flight)?.closest('article');
+    if(card){card.classList.add('search-highlight');card.scrollIntoView({block:'center'});}
+  });
 }
 
 function href(view, eventId = activeEvent) {
@@ -260,11 +329,16 @@ function renderPasses(){ const map=memberMap(); el.page.innerHTML=heading("Purch
 function renderTasks(){ const map=memberMap(), columns=[["todo","To do"],["doing","In progress"],["done","Done"]]; el.page.innerHTML=heading("Trip operations","Tickets","Drag tickets between columns. Click a ticket to edit or assign it.",`<button id="newTicket" class="primary">＋ New ticket</button>`)+`<div class="kanban">${columns.map(([id,label])=>`<section class="column" data-column="${id}"><header><span>${label}</span><b>${data.tasks.filter((task)=>task.status===id).length}</b></header>${data.tasks.filter((task)=>task.status===id).map((task)=>`<article class="ticket-card" draggable="true" data-task="${task.id}"><h3>${escapeHtml(task.title)}</h3><div class="ticket-meta"><span>${escapeHtml(task.category)}</span><strong>${escapeHtml(map[task.assigneeId]?.name||"Unassigned")}</strong></div></article>`).join("")}</section>`).join("")}</div>`; document.getElementById("newTicket").onclick=()=>openTask(); document.querySelectorAll("[data-task]").forEach((card)=>{ card.onclick=()=>openTask(data.tasks.find((task)=>task.id===card.dataset.task)); card.ondragstart=()=>{draggedTask=card.dataset.task;card.classList.add("dragging")}; card.ondragend=()=>{draggedTask=null;card.classList.remove("dragging")}; }); document.querySelectorAll("[data-column]").forEach((column)=>{ column.ondragover=(event)=>{event.preventDefault();column.classList.add("drop")}; column.ondragleave=()=>column.classList.remove("drop"); column.ondrop=async(event)=>{event.preventDefault();column.classList.remove("drop");if(draggedTask)await act("move-task",{id:draggedTask,status:column.dataset.column},"Ticket moved")}; }); }
 
 function renderLineup(){
+  const searchRoute=new URLSearchParams(location.search);
   if(data.id===DEFAULT_EVENT){
-    el.page.innerHTML=`<iframe id="lineupFrame" class="lineup-frame" title="Lost Lands 2026 lineup" src="/lost-lands-2026-lineup/?rally=1&v=20260913-heat"></iframe>`;
+    const filters=new URLSearchParams();
+    if(searchRoute.get('find'))filters.set('q',searchRoute.get('find'));
+    if(searchRoute.get('day'))filters.set('days',searchRoute.get('day'));
+    el.page.innerHTML=`<iframe id="lineupFrame" class="lineup-frame" title="Lost Lands 2026 lineup" src="/lost-lands-2026-lineup/?rally=1&v=20260913-nav#${escapeAttr(filters.toString())}"></iframe>`;
     lineupRefreshTimer=setInterval(refreshLineupState,15000);
     return;
   }
+  if(searchRoute.has('find'))lineupFilters={search:searchRoute.get('find'),day:'all',stage:'all',favoritesOnly:false};
   const lineup=data.lineup||[],favorites=new Set(data.currentLineupFavorites||[]);
   const days=[...new Set(lineup.map((artist)=>artist.day||"Day TBD"))];
   const stages=[...new Set(lineup.map((artist)=>artist.stage).filter(Boolean))].sort();

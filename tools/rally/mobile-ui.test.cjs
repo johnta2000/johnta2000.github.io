@@ -15,6 +15,8 @@ function context() {
   for(const [start,end] of [['function formatClock(', 'const lineup ='],['function escapeHtml(', 'function getCanonicalUrl('],['function groupPeople(', 'function compareSets('],['function defaultMobileDay(', 'function saveFavorites(']]) {
     vm.runInContext(html.slice(html.indexOf(start),html.indexOf(end)),ctx);
   }
+  ctx.sortMode='time';ctx.mostLiked=false;
+  vm.runInContext(html.slice(html.indexOf('function compareSets('),html.indexOf('function compareSets(')+html.slice(html.indexOf('function compareSets(')).indexOf('\n      }')+8),ctx);
   return {ctx,container};
 }
 test('all lineup scripts parse; app scripts parse',()=>{
@@ -50,6 +52,34 @@ test('single-day schedule, stage grouping, and popularity use the same favorite 
   assert(container.innerHTML.includes('width:100%'));
   assert(!container.innerHTML.includes('<img onerror=x>'));
   assert(container.innerHTML.includes('&lt;img onerror=x&gt;'));
+});
+test('sort supports time, crew popularity, and alphabetical names without changing favorites',()=>{
+  const {ctx}=context(),sets=lineup.filter(x=>x.day==='Friday');
+  const liked=sets.at(-1);
+  ctx.lineupInterests[liked.id]=[{id:'one',name:'Jessi',initials:'J'}];
+  ctx.favorites.add(sets[0].id);
+  ctx.sortMode='popular';ctx.mostLiked=true;
+  assert.equal([...sets].sort(ctx.compareSets)[0].id,liked.id);
+  ctx.sortMode='artist';ctx.mostLiked=false;
+  const alphabetical=[...sets].sort(ctx.compareSets);
+  assert.deepEqual(Array.from(alphabetical,x=>x.artist),Array.from(sets,x=>x.artist).sort((a,b)=>a.localeCompare(b)));
+  ctx.sortMode='time';
+  assert.equal([...sets].reverse().sort(ctx.compareSets)[0].id,sets[0].id);
+  assert.equal(ctx.favorites.size,1);
+});
+test('project search indexes current room only, including offline set times and booking metadata',()=>{
+  const app=fs.readFileSync(path.join(__dirname,'app.js'),'utf8');
+  const data={id:'event-two',members:[{id:'j',name:'Jessi',email:'jessi@example.test'}],rooms:[{id:'r',hotel:'Hyatt',roomType:'Suite',memberIds:['j'],confirmation:'123'}],travel:[],cars:[],passes:[],tasks:[{id:'t',title:'Pack earplugs',assigneeId:'j'}],lineup:[{id:'a',name:'ILLENIUM',day:'Saturday'}]};
+  const ctx={data,DEFAULT_EVENT:'lost-lands-2026',window:{LOST_LANDS_SET_TIMES:lineup},views:[['home','Home']],memberMap:()=>Object.fromEntries(data.members.map(x=>[x.id,x])),groupedFlights:()=>[],events:[{id:'private-event',name:'Not this room'}]};
+  vm.createContext(ctx);
+  vm.runInContext(app.slice(app.indexOf('function projectSearchItems('),app.indexOf('function openProjectSearch(')),ctx);
+  let items=ctx.projectSearchItems();
+  assert(items.some(x=>x.title==='Hyatt'&&x.detail.includes('Jessi')&&x.detail.includes('123')));
+  assert(items.some(x=>x.title==='Pack earplugs'));
+  assert.equal(items.filter(x=>x.view==='lineup').length,1);
+  assert(!JSON.stringify(items).includes('Not this room'));
+  data.id='lost-lands-2026';items=ctx.projectSearchItems();
+  assert.equal(items.filter(x=>x.view==='lineup').length,221);
 });
 test('focus scrolls immediately before input, and responds to keyboard viewport changes',()=>{
   const handlers={},viewportHandlers={},variables={};let calls=0;
