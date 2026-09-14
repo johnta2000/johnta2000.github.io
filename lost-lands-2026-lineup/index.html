@@ -1342,7 +1342,7 @@
         .rank-day { font-size: 8px; }
       }
     </style>
-    <link rel="stylesheet" href="./mobile.css?v=3">
+    <link rel="stylesheet" href="./mobile.css?v=4">
     <script defer src="../tools/rally/keyboard.js?v=1"></script>
   </head>
   <body>
@@ -2731,8 +2731,13 @@
         });
 
         if (rallyManagedFavorites) {
+          const reportOverlay = () => window.parent.postMessage({type:'rally-lineup-overlay',open:Boolean(document.querySelector('dialog[open]'))||Boolean(document.activeElement?.matches('input:not([type=checkbox]):not([type=range]),textarea,[contenteditable=true]'))},window.location.origin==='null'?'*':window.location.origin);
+          new MutationObserver(reportOverlay).observe(document.body,{subtree:true,attributes:true,attributeFilter:['open']});
+          document.addEventListener('focusin',reportOverlay);
+          document.addEventListener('focusout',()=>setTimeout(reportOverlay,0));
           window.addEventListener("message", (event) => {
             if (event.origin !== window.location.origin || event.source !== window.parent || !event.data || typeof event.data !== "object") return;
+            if(event.data.type==='rally-lineup-layout'&&Number.isFinite(event.data.bottomInset))document.documentElement.style.setProperty('--rally-bottom-clearance',`${Math.max(0,Math.min(240,event.data.bottomInset))}px`);
             if (event.data.type === "rally-lineup-state" && Array.isArray(event.data.artistIds)) {
               groupStateLoaded = true;
               favorites = new Set(event.data.artistIds.flatMap(currentFavoriteIds).filter((id) => validFavoriteIds.has(id)));

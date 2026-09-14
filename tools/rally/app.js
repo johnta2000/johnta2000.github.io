@@ -92,6 +92,7 @@ function wireShell() {
   document.addEventListener("click", handleAppLink);
   window.addEventListener("popstate", () => navigateTo(new URL(location.href), { push: false }));
   window.addEventListener("message", handleLineupMessage);
+  window.addEventListener('resize', sendLineupLayout);
   el.openMenu.addEventListener("click", () => { el.sidebar.classList.add("open"); el.menuBackdrop.hidden = false; });
   [el.closeMenu, el.menuBackdrop].forEach((button) => button.addEventListener("click", closeMenu));
   el.eventSwitcher.addEventListener("click", () => { el.eventMenu.hidden = !el.eventMenu.hidden; });
@@ -204,6 +205,7 @@ function showAuthError(error) {
 async function signOut() { if (offlineMode) return showToast('Reconnect to sign out securely.'); if (RallyOffline.pendingCount && !confirm('Sign out and discard favorites that have not synced yet?')) return; RallyOffline.clear(); if (window.Clerk?.isSignedIn) await window.Clerk.signOut(); location.assign(BASE_PATH); }
 
 function render() {
+  document.body.classList.remove('lineup-overlay');
   RallyOffline.select(activeEvent);
   updateOfflineStatus();
   clearInterval(lineupRefreshTimer); lineupRefreshTimer = null;
@@ -225,9 +227,17 @@ function render() {
 function renderMobileNav() {
   const icons = {home:'<path d="m3 10 9-7 9 7v10H3Z"/><path d="M9 20v-7h6v7"/>',lineup:'<path d="M9 18V5l11-2v13M9 8l11-2"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/>',crew:'<circle cx="9" cy="8" r="3"/><path d="M3 21v-3a6 6 0 0 1 12 0v3M16 5a3 3 0 0 1 0 6M18 15a5 5 0 0 1 3 5"/>',search:'<circle cx="10" cy="10" r="7"/><path d="m15 15 6 6"/>',more:'<path d="M4 6h16M4 12h16M4 18h16"/>'};
   const icon = id => `<svg viewBox="0 0 24 24" aria-hidden="true">${icons[id]}</svg>`;
-  document.getElementById('mobileNav').innerHTML = [['home','Home'],['lineup','Lineup'],['crew','Crew']].map(([id,label])=>`<a href="${href(id)}" class="${activeView===id?'active':''}" ${activeView===id?'aria-current="page"':''}>${icon(id)}${label}</a>`).join('')+`<button type="button" id="quickSearch">${icon('search')}Search</button><button type="button" id="quickMore" ${!['home','lineup','crew'].includes(activeView)?'aria-current="page"':''}>${icon('more')}More</button>`;
+  document.getElementById('mobileNav').innerHTML = `<div class="nav-glass-group">${[['home','Home'],['lineup','Lineup'],['crew','Crew']].map(([id,label])=>`<a href="${href(id)}" class="${activeView===id?'active':''}" ${activeView===id?'aria-current="page"':''}>${icon(id)}${label}</a>`).join('')}<button type="button" id="quickMore" ${!['home','lineup','crew'].includes(activeView)?'aria-current="page"':''}>${icon('more')}More</button></div><button type="button" id="quickSearch" aria-label="Search this rave">${icon('search')}</button>`;
   document.getElementById('quickSearch').onclick = openProjectSearch;
   document.getElementById('quickMore').onclick = () => el.openMenu.click();
+  requestAnimationFrame(sendLineupLayout);
+}
+
+function sendLineupLayout() {
+  const nav=document.getElementById('mobileNav'),frame=document.getElementById('lineupFrame');
+  if(!nav||!frame)return;
+  const bottomInset=matchMedia('(max-width:900px)').matches?Math.max(0,innerHeight-nav.getBoundingClientRect().top+16):0;
+  frame.contentWindow?.postMessage({type:'rally-lineup-layout',bottomInset},location.origin==='null'?'*':location.origin);
 }
 
 // Deliberately indexes only data already authorized for the current project.
@@ -371,7 +381,8 @@ async function handleLineupMessage(event) {
   if(event.origin !== location.origin) return;
   const frame = document.getElementById("lineupFrame");
   if(!frame || event.source !== frame.contentWindow || !event.data || typeof event.data !== "object") return;
-  if(event.data.type === "rally-lineup-ready") { sendLineupState(); return; }
+  if(event.data.type === "rally-lineup-ready") { sendLineupState(); sendLineupLayout(); return; }
+  if(event.data.type === 'rally-lineup-overlay') { document.body.classList.toggle('lineup-overlay',event.data.open===true); return; }
   if(event.data.type !== "rally-lineup-favorites-changed" || !Array.isArray(event.data.artistIds)) return;
   const eventId = activeEvent;
   const artistIds = [...new Set(event.data.artistIds.filter(id => typeof id === "string"))];

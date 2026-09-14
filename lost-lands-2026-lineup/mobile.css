@@ -15,6 +15,7 @@
   body::before,body::after { display:none; }
   .app-page { padding:0; }
   .shell { width:100%;max-width:none;padding:14px 16px 28px; }
+  .rally-mode .shell {padding-bottom:var(--rally-bottom-clearance,120px);}
   .app-header { display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:12px;margin:0 0 16px;padding:0;border:0;background:none;box-shadow:none; }
   .app-header .header-copy {grid-column:1 / -1;min-width:0;width:100%;}
   .app-header h1 {color:#20261d;font:750 26px/1.15 system-ui;letter-spacing:-.025em;max-width:none;}
