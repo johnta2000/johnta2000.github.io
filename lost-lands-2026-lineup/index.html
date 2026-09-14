@@ -1342,7 +1342,7 @@
         .rank-day { font-size: 8px; }
       }
     </style>
-    <link rel="stylesheet" href="./mobile.css?v=4">
+    <link rel="stylesheet" href="./mobile.css?v=5">
     <script defer src="../tools/rally/keyboard.js?v=1"></script>
   </head>
   <body>
@@ -1441,7 +1441,7 @@
     </main>
 
     <dialog id="filters-dialog" class="filters-dialog" aria-labelledby="filters-title">
-      <header><div><h2 id="filters-title">Filter sets</h2><p>Choose stages, genres, or a time range.</p></div><button type="button" id="close-filters" aria-label="Close filters">×</button></header>
+      <header><div><h2 id="filters-title">Filter sets</h2><p>Open a category to narrow your lineup.</p></div><button type="button" id="close-filters" aria-label="Close filters">×</button></header>
       <div id="mobile-filter-slot"></div>
       <footer><button type="button" id="apply-filters">Show sets</button></footer>
     </dialog>
@@ -2512,7 +2512,9 @@
         els.filterPopovers.forEach((popover) => {
           if (popover === except) return;
           popover.querySelector(".filter-trigger").setAttribute("aria-expanded", "false");
-          popover.querySelector(".filter-panel").hidden = !mobileViewQuery.matches;
+          popover.querySelector(".filter-panel").hidden = true;
+          const search = popover.querySelector('.filter-search');
+          if (search?.value) { search.value=''; search.dispatchEvent(new Event('input')); }
         });
       }
 
@@ -2526,7 +2528,7 @@
           const label = popover.querySelector(".filter-trigger-label");
           if (name === "times") {
             const fullRange = timeMin === timeBounds.min && timeMax === timeBounds.max;
-            label.textContent = fullRange ? "Set start times" : `${formatFilterTime(timeMin)} – ${formatFilterTime(timeMax)}`;
+            label.textContent = fullRange ? (mobileViewQuery.matches ? "Any start time" : "Set start times") : `${formatFilterTime(timeMin)} – ${formatFilterTime(timeMax)}`;
             return;
           }
           const selected = selectedFilter(name);
@@ -2578,10 +2580,20 @@
           const trigger = popover.querySelector(".filter-trigger");
           const panel = popover.querySelector(".filter-panel");
           const clear = popover.querySelector(".filter-panel-clear");
+          const category = {days:'Days',stages:'Stages',genres:'Genres',times:'Start time'}[name];
+          trigger.id=`filter-trigger-${name}`;
+          panel.id=`filter-panel-${name}`;
+          trigger.setAttribute('aria-controls',panel.id);
+          panel.setAttribute('role','region');
+          panel.setAttribute('aria-labelledby',trigger.id);
+          const label=trigger.querySelector('.filter-trigger-label');
+          const copy=document.createElement('span');copy.className='filter-trigger-copy';
+          const title=document.createElement('strong');title.className='filter-category';title.textContent=category;
+          label.before(copy);copy.append(title,label);
 
           trigger.addEventListener("click", () => {
             const opening = panel.hidden;
-            closeFilterPopovers(popover);
+            closeFilterPopovers(opening ? popover : null);
             panel.hidden = !opening;
             trigger.setAttribute("aria-expanded", String(opening));
           });
@@ -2683,6 +2695,7 @@
           if (event.target === els.accountDialog) els.accountDialog.close();
         });
         document.addEventListener("pointerdown", (event) => {
+          if(mobileViewQuery.matches && event.target.closest('#filters-dialog'))return;
           if (!event.target.closest(".filter-popover")) closeFilterPopovers();
         }, true);
         document.addEventListener("keydown", (event) => {

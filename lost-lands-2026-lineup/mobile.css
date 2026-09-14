@@ -1,5 +1,7 @@
 /* The desktop schedule stays tabular; phones use a single-day card list. */
 .mobile-days,.mobile-schedule { display:none; }
+.filter-category {display:none;}
+.filter-trigger-copy {min-width:0;}
 .filters-dialog:not([open]) { display:none; }
 .filters-dialog { color:#22251f; background:#f7f7f1; border:1px solid #dadcd1; border-radius:20px; padding:0; width:min(560px,calc(100% - 24px)); max-height:calc(var(--rally-viewport-height,100dvh) - 24px); }
 .filters-dialog::backdrop { background:rgba(17,23,17,.5); backdrop-filter:blur(3px); }
@@ -86,15 +88,26 @@
   #mobile-filter-slot {padding:0 20px 16px;}
   #mobile-filter-slot .filter-fields {display:grid;grid-template-columns:1fr;gap:10px;}
   #mobile-filter-slot [data-filter=days] {display:none;}
-  #mobile-filter-slot .filter-trigger {width:100%;min-height:48px;background:#fffef9;border:1px solid #dce0d0;border-radius:10px;color:#404c34;font:600 15px system-ui;}
+  #mobile-filter-slot .filter-trigger {display:flex;width:100%;min-height:72px;padding:14px 16px;background:transparent;border:0;border-radius:14px;color:#404c34;font:600 15px system-ui;text-align:left;}
   #mobile-filter-slot .filter-panel {position:static;width:100%;min-width:0;max-height:none;transform:none;margin:6px 0 0;padding:14px;background:#fffef9;color:#45513a;border:1px solid #dce0d0;border-radius:12px;box-shadow:none;}
   #mobile-filter-slot .filter-panel-head strong {font:650 14px system-ui;color:#404c34;}
   #mobile-filter-slot .filter-panel-clear {font:13px system-ui;color:#667a4f;}
   #mobile-filter-slot .filter-search,#mobile-filter-slot .time-range-copy input {height:44px;font:16px system-ui;color:#3b472f;background:#f7f8f1;border:1px solid #dce0d0;}
   #mobile-filter-slot .filter-search::placeholder {color:#7c8770;}
   #mobile-filter-slot .filter-options {max-height:none;overflow:visible;display:grid;grid-template-columns:1fr 1fr;gap:4px;}
-  #mobile-filter-slot .filter-trigger {display:none;}
-  #mobile-filter-slot .filter-panel {margin:0;border:0;border-bottom:1px solid #dce0d0;border-radius:0;padding:12px 0 20px;}
+  #mobile-filter-slot .filter-popover {border:1px solid #dce0d0;border-radius:14px;background:#fffef9;}
+  #mobile-filter-slot .filter-trigger-copy {display:grid;gap:4px;flex:1;}
+  #mobile-filter-slot .filter-category {display:block;font:650 15px system-ui;color:#303e28;}
+  #mobile-filter-slot .filter-trigger-label {font:400 12px/1.45 system-ui;color:#727c68;white-space:normal;overflow-wrap:anywhere;}
+  #mobile-filter-slot .filter-trigger[aria-expanded=true] {background:#f0f3e8;box-shadow:none;}
+  #mobile-filter-slot .filter-caret {font-size:20px;color:#68785b;transition:transform .15s;}
+  #mobile-filter-slot .filter-trigger[aria-expanded=true] .filter-caret {transform:rotate(180deg);}
+  #mobile-filter-slot .filter-panel {margin:0;border:0;border-radius:0 0 14px 14px;padding:0 12px 14px;}
+  #mobile-filter-slot .filter-panel-head {justify-content:flex-end;min-height:36px;margin:0;}
+  #mobile-filter-slot .filter-panel-head strong {display:none;}
+  #mobile-filter-slot [data-filter=times] .filter-panel-head {display:none;}
+  #mobile-filter-slot [data-filter=times] .filter-panel {padding-top:16px;}
+  #mobile-filter-slot [data-filter=stages] .filter-search {display:none;}
   #mobile-filter-slot .filter-option {padding:8px;border-radius:8px;background:#f3f5ec;gap:8px;}
   #mobile-filter-slot .filter-option:has(input:checked) {background:#e4ecd7;color:#354b24;}
   #mobile-filter-slot .filter-option {min-height:44px;color:#566349;font:14px system-ui;}

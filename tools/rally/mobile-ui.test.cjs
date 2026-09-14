@@ -67,6 +67,24 @@ test('sort supports time, crew popularity, and alphabetical names without changi
   assert.equal([...sets].reverse().sort(ctx.compareSets)[0].id,sets[0].id);
   assert.equal(ctx.favorites.size,1);
 });
+test('closing filter categories hides panels and clears only temporary search text',()=>{
+  const make=()=>{
+    const trigger={expanded:'true',setAttribute(name,value){this.expanded=value;}};
+    const panel={hidden:false};
+    const search={value:'dub',events:0,dispatchEvent(){this.events++;}};
+    const node={querySelector:selector=>({'.filter-trigger':trigger,'.filter-panel':panel,'.filter-search':search})[selector]};
+    return {node,trigger,panel,search};
+  };
+  const stages=make(),genres=make(),ctx={els:{filterPopovers:[stages.node,genres.node]},Event:class{},selectedGenres:new Set(['Dubstep'])};
+  vm.createContext(ctx);
+  vm.runInContext(html.slice(html.indexOf('function closeFilterPopovers('),html.indexOf('function updateFilterControls(')),ctx);
+  ctx.closeFilterPopovers(genres.node);
+  assert.equal(stages.panel.hidden,true);assert.equal(stages.trigger.expanded,'false');assert.equal(stages.search.value,'');
+  assert.equal(genres.panel.hidden,false);assert.equal(genres.search.value,'dub');
+  ctx.closeFilterPopovers();
+  assert.equal(genres.panel.hidden,true);assert.equal(genres.search.value,'');assert.equal(genres.search.events,1);
+  assert(ctx.selectedGenres.has('Dubstep'));
+});
 test('project search indexes current room only, including offline set times and booking metadata',()=>{
   const app=fs.readFileSync(path.join(__dirname,'app.js'),'utf8');
   const data={id:'event-two',members:[{id:'j',name:'Jessi',email:'jessi@example.test'}],rooms:[{id:'r',hotel:'Hyatt',roomType:'Suite',memberIds:['j'],confirmation:'123'}],travel:[],cars:[],passes:[],tasks:[{id:'t',title:'Pack earplugs',assigneeId:'j'}],lineup:[{id:'a',name:'ILLENIUM',day:'Saturday'}]};
