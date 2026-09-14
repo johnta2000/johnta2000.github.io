@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "monitorId": "paze-directory",
   "sourceUrl": "https://www.paze.com/merchant-directory?page=0",
-  "capturedAt": "2026-09-14T14:08:16.324Z",
+  "capturedAt": "2026-09-14T19:24:46.782Z",
   "merchants": [
     {
       "name": "1-800-Flowers",
@@ -123,6 +123,10 @@
     {
       "name": "Whataburger",
       "key": "whataburger"
+    },
+    {
+      "name": "Xsolla",
+      "key": "xsolla"
     },
     {
       "name": "XTRATUF",

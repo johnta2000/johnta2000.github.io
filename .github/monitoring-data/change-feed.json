@@ -1,9 +1,28 @@
 {
   "schemaVersion": 1,
   "feedId": "john-ta-monitoring-changes",
-  "generatedAt": "2026-09-14T15:05:14.367Z",
-  "latestEventId": "20260913222914-chase-sapphire-reserve-tables-restaurant-change",
+  "generatedAt": "2026-09-14T19:24:46.782Z",
+  "latestEventId": "20260914192446-merchant-change",
   "events": [
+    {
+      "id": "20260914192446-merchant-change",
+      "type": "merchant_change",
+      "severity": "change",
+      "monitorId": "paze-directory",
+      "timestamp": "2026-09-14T19:24:46.782Z",
+      "title": "Paze merchant directory changed",
+      "summary": "1 added, 0 removed, 0 renamed.",
+      "count": 33,
+      "diff": {
+        "added": [
+          "Xsolla"
+        ],
+        "removed": [],
+        "renamed": []
+      },
+      "dashboardUrl": "https://john-ta.com/tools/monitoring/",
+      "sourceUrl": "https://www.paze.com/merchant-directory?page=0"
+    },
     {
       "id": "20260913222914-chase-sapphire-reserve-tables-restaurant-change",
       "type": "restaurant_change",
