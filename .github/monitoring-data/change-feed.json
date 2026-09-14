@@ -1,9 +1,28 @@
 {
   "schemaVersion": 1,
   "feedId": "john-ta-monitoring-changes",
-  "generatedAt": "2026-09-14T20:21:04.590Z",
-  "latestEventId": "20260914192446-merchant-change",
+  "generatedAt": "2026-09-14T23:10:03.686Z",
+  "latestEventId": "20260914231003-merchant-change",
   "events": [
+    {
+      "id": "20260914231003-merchant-change",
+      "type": "merchant_change",
+      "severity": "change",
+      "monitorId": "paze-directory",
+      "timestamp": "2026-09-14T23:10:03.686Z",
+      "title": "Paze merchant directory changed",
+      "summary": "1 added, 0 removed, 0 renamed.",
+      "count": 34,
+      "diff": {
+        "added": [
+          "Sonic"
+        ],
+        "removed": [],
+        "renamed": []
+      },
+      "dashboardUrl": "https://john-ta.com/tools/monitoring/",
+      "sourceUrl": "https://www.paze.com/merchant-directory?page=0"
+    },
     {
       "id": "20260914192446-merchant-change",
       "type": "merchant_change",
