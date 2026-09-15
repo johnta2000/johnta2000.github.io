@@ -9,7 +9,8 @@ window.addEventListener("load",initialize);
 async function initialize(){
   if(code.length<32)return showError("This connection link is invalid. Start again from Tranquil settings.");
   try{
-    await window.Clerk.load();
+    if(!window.Clerk || !window.__internal_ClerkUICtor)throw new Error("The sign-in components could not load. Check your connection and reopen Sign in from Tranquil.");
+    await window.Clerk.load({ui:{ClerkUI:window.__internal_ClerkUICtor}});
     if(window.Clerk.user)return connect();
     status.textContent="Sign in with your existing Clerk account.";
     window.Clerk.mountSignIn(signIn,{afterSignInUrl:location.href,afterSignUpUrl:location.href});
@@ -24,7 +25,7 @@ async function connect(){
     const token=await getConvexToken();
     await convexMutation("focus:claimClerkLink",{code},token);
     result.hidden=false;document.getElementById("result-title").textContent="Tranquil is connected";
-    document.getElementById("result-copy").textContent="Return to the extension. Your statistics will appear there automatically; you can close this tab.";
+    document.getElementById("result-copy").textContent="On iPhone, tap Done to return to Tranquil. If it still asks you to sign in, tap ‘I’ve finished signing in’. On desktop, return to the extension.";
     status.textContent="Connection complete.";
   }catch(error){connect.running=false;showError(error.message||"Tranquil could not connect this account.");}
 }
