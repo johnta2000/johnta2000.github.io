@@ -1005,9 +1005,11 @@ function openCommentThread(target, { opener, focusReply = false, anchor } = {}) 
 function activateCommentThread(key) {
   activeCommentKey = key;
   openCommentThreads.forEach((thread, threadKey) => {
+    thread.panel.hidden = key !== threadKey;
     thread.panel.classList.toggle("is-active", key === threadKey);
   });
   renderGlobalComments();
+  scheduleCommentLayout();
 }
 
 function closeCommentThread(key, { restoreFocus = true } = {}) {
@@ -1017,7 +1019,7 @@ function closeCommentThread(key, { restoreFocus = true } = {}) {
   thread.panel.remove();
   openCommentThreads.delete(key);
   if (activeCommentKey === key) {
-    activeCommentKey = [...openCommentThreads.keys()].at(-1) || null;
+    activeCommentKey = null;
   }
   activateCommentThread(activeCommentKey);
   if (restoreFocus) {
@@ -1041,8 +1043,8 @@ function positionCommentThreads() {
     editor.classList.remove("has-comment-draft");
     editor.querySelectorAll(".has-comment-draft").forEach((node) => node.classList.remove("has-comment-draft"));
   });
-  const placed = [];
   openCommentThreads.forEach((thread) => {
+    if (thread.panel.hidden) return;
     const editor = thread.target.personName === els.personName.value ? els[thread.target.fieldName] : null;
     const anchor = thread.anchor?.isConnected ? thread.anchor
       : editor && findCommentTargetBlock(editor, thread.target);
@@ -1060,16 +1062,9 @@ function positionCommentThreads() {
       left = edge.left - width - 16;
     }
     left = Math.max(16, Math.min(left, window.innerWidth - width - 16));
-    let top = Math.max(16, window.scrollY + rect.top - 12);
-    const height = thread.panel.offsetHeight;
-    placed.forEach((other) => {
-      if (left < other.left + width + 12 && left + width + 12 > other.left && top < other.bottom + 12 && top + height + 12 > other.top) {
-        top = other.bottom + 12;
-      }
-    });
+    const top = Math.max(16, window.scrollY + rect.top - 12);
     thread.panel.style.left = `${left + window.scrollX}px`;
     thread.panel.style.top = `${top}px`;
-    placed.push({ left, top, bottom: top + height });
   });
 }
 
