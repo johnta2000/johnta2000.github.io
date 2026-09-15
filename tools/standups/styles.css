@@ -747,10 +747,6 @@ button svg {
   padding: 0;
 }
 
-.rich-editor ul.check-list > li.has-comment-marker {
-  padding-right: 34px;
-}
-
 .rich-editor ul.check-list > li::before {
   left: -40px;
 }
@@ -759,17 +755,17 @@ button svg {
   left: -35px;
 }
 
+.has-comment-draft,
 .has-comment-marker {
   position: relative;
-  padding-right: 34px;
   border-radius: 4px;
-  background: #f3f8f5;
+  background: #fff4c2;
 }
 
 .comment-marker {
-  position: absolute;
-  top: 2px;
-  right: 3px;
+  position: relative;
+  float: right;
+  margin: 2px 0 4px 6px;
   width: 23px;
   height: 20px;
   border: 1px solid var(--accent);
@@ -1020,13 +1016,42 @@ button svg {
 }
 
 .comment-thread-panel {
+  position: absolute;
+  z-index: 30;
   display: grid;
   gap: 12px;
-  border: 1px solid rgba(18, 106, 92, 0.35);
-  border-radius: 6px;
+  width: 320px;
+  max-width: calc(100vw - 32px);
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--line);
+  border-radius: 12px;
   background: #fff;
-  box-shadow: 0 8px 22px rgba(35, 41, 34, 0.08);
-  padding: 12px;
+  box-shadow: 0 4px 10px rgba(35, 41, 34, 0.08), 0 16px 40px rgba(35, 41, 34, 0.16);
+  padding: 16px;
+}
+
+.comment-thread-panel.is-active {
+  z-index: 31;
+  border-color: var(--accent);
+}
+
+@media (max-width: 700px) {
+  .comment-thread-panel {
+    display: none;
+    position: fixed;
+    left: 12px;
+    right: 12px;
+    bottom: max(12px, env(safe-area-inset-bottom));
+    width: auto;
+    max-width: none;
+    max-height: calc(100dvh - 24px);
+  }
+
+  .comment-thread-panel.is-active {
+    display: grid;
+  }
 }
 
 .comment-panel-header {
@@ -1080,7 +1105,10 @@ button svg {
 .comment-panel-highlight {
   margin: 0;
   border-left: 3px solid var(--accent);
-  background: #f3f8f5;
+  background: #fff8db;
+  max-height: 100px;
+  overflow-y: auto;
+  overflow-wrap: anywhere;
   color: #303530;
   font-size: 13px;
   font-weight: 700;
@@ -1141,6 +1169,8 @@ button svg {
 }
 
 .comment-message p {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
   margin: 0;
   color: var(--ink);
   font-size: 13px;

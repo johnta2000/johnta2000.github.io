@@ -33,16 +33,7 @@ const els = {
   commentsCount: document.querySelector("#commentsCount"),
   commentsSummary: document.querySelector("#commentsSummary"),
   commentsOverview: document.querySelector("#commentsOverview"),
-  commentThreadPanel: document.querySelector("#commentThreadPanel"),
-  commentPanelContext: document.querySelector("#commentPanelContext"),
-  commentPanelTitle: document.querySelector("#commentPanelTitle"),
-  commentCloseButton: document.querySelector("#commentCloseButton"),
-  commentHighlight: document.querySelector("#commentHighlight"),
-  commentThread: document.querySelector("#commentThread"),
-  commentReplyForm: document.querySelector("#commentReplyForm"),
-  commentReply: document.querySelector("#commentReply"),
-  commentReplyButton: document.querySelector("#commentReplyButton"),
-  commentReplyStatus: document.querySelector("#commentReplyStatus"),
+  commentThreadTemplate: document.querySelector("#commentThreadTemplate"),
   dailyNotes: document.querySelector("#dailyNotes"),
   dailyNotesDate: document.querySelector("#dailyNotesDate"),
   dailyNotesStatus: document.querySelector("#dailyNotesStatus"),
@@ -72,7 +63,9 @@ let entriesForDate = [];
 let activePrevious = null;
 let standupComments = [];
 let commentsForDate = [];
-let activeCommentTarget = null;
+const openCommentThreads = new Map();
+let activeCommentKey = null;
+let commentLayoutFrame;
 let fathomNotesForDate = [];
 let autosaveTimer;
 let dailyNotesAutosaveTimer;
@@ -98,14 +91,15 @@ function initStandups() {
   els.personName.addEventListener("change", loadPersonContext);
   els.notetakerViewButton.addEventListener("click", openNotetakerModal);
   els.notetakerCloseButton.addEventListener("click", closeNotetakerModal);
-  els.commentCloseButton.addEventListener("click", closeCommentThread);
-  els.commentReplyForm.addEventListener("submit", saveCommentReply);
+  window.addEventListener("resize", scheduleCommentLayout);
+  window.visualViewport?.addEventListener("resize", scheduleCommentLayout);
+  new ResizeObserver(scheduleCommentLayout).observe(els.form);
   els.notetakerModal.addEventListener("click", (event) => {
     if (event.target === els.notetakerModal) closeNotetakerModal();
   });
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape" && !els.notetakerModal.hasAttribute("hidden")) closeNotetakerModal();
-    if (event.key === "Escape" && !els.commentThreadPanel.hasAttribute("hidden")) closeCommentThread();
+    if (event.key === "Escape" && activeCommentKey) closeCommentThread(activeCommentKey);
   });
   els.lockButton.addEventListener("click", signOut);
   els.authSignOut.addEventListener("click", signOut);
@@ -204,6 +198,7 @@ async function unlockApp() {
 }
 
 async function signOut() {
+  closeAllCommentThreads();
   clearTimeout(autosaveTimer);
   clearTimeout(dailyNotesAutosaveTimer);
   if (window.Clerk?.isSignedIn) await window.Clerk.signOut();
@@ -228,7 +223,7 @@ function showAuthError(error) {
 async function handleDateChange() {
   clearTimeout(autosaveTimer);
   await flushDailyNotesAutosave();
-  closeCommentThread();
+  closeAllCommentThreads();
   clearForm();
   clearItemComments();
   updateDateShortcuts();
@@ -253,6 +248,7 @@ async function refreshDailyList() {
 }
 
 async function loadPersonContext() {
+  closeAllCommentThreads();
   const personName = els.personName.value.trim();
   updateTodayHeading();
   if (!personName) return;
@@ -779,6 +775,7 @@ function clearItemComments() {
 }
 
 async function loadCommentsForDate() {
+  const requestedDate = els.date.value;
   els.commentsDate.textContent = formatDate(els.date.value);
   els.commentsSummary.textContent = "Loading comments...";
   els.commentsOverview.replaceChildren();
@@ -788,11 +785,12 @@ async function loadCommentsForDate() {
       TEAM_MEMBERS.map((personName) =>
         convexQuery("standups:listItemComments", {
           teamId: TEAM_ID,
-          standupDate: els.date.value,
+          standupDate: requestedDate,
           personName,
         }),
       ),
     );
+    if (els.date.value !== requestedDate) return;
     commentsForDate = results.flat().sort((a, b) => a.createdAt - b.createdAt);
     const selectedPerson = els.personName.value.trim();
     standupComments = selectedPerson
@@ -801,6 +799,7 @@ async function loadCommentsForDate() {
     renderGlobalComments();
     renderItemComments();
   } catch (error) {
+    if (els.date.value !== requestedDate) return;
     console.error(error);
     commentsForDate = [];
     standupComments = [];
@@ -812,12 +811,15 @@ async function loadCommentsForDate() {
 
 function renderGlobalComments() {
   const groups = groupComments(commentsForDate);
+  const drafts = [...openCommentThreads.values()]
+    .filter((thread) => !groups.some((group) => group.key === thread.target.key))
+    .map((thread) => thread.target);
   els.commentsCount.textContent = String(groups.length);
-  els.commentsCount.setAttribute("aria-label", `${groups.length} commented item${groups.length === 1 ? "" : "s"}`);
+  els.commentsCount.setAttribute("aria-label", `${groups.length} comment thread${groups.length === 1 ? "" : "s"}`);
   els.commentsSummary.textContent = groups.length
-    ? `${groups.length} item${groups.length === 1 ? "" : "s"} discussed across this date's standups.`
+    ? `${groups.length} comment thread${groups.length === 1 ? "" : "s"} across this date's standups.`
     : "No comments for this date yet.";
-  els.commentsOverview.replaceChildren(...groups.map(renderGlobalCommentButton));
+  els.commentsOverview.replaceChildren(...[...drafts, ...groups].map(renderGlobalCommentButton));
 }
 
 function renderGlobalCommentButton(group) {
@@ -830,19 +832,19 @@ function renderGlobalCommentButton(group) {
   button.type = "button";
   button.className = "comment-overview-item";
   marker.className = "comment-overview-marker";
-  marker.textContent = String(group.comments.length);
+  marker.textContent = group.comments.length ? String(group.comments.length) : "＋";
   copy.className = "comment-overview-copy";
   meta.className = "comment-overview-meta";
   meta.textContent = `${group.personName} · ${COMMENT_FIELD_LABELS[group.fieldName] || group.fieldName}`;
   excerpt.className = "comment-overview-excerpt";
-  excerpt.textContent = group.itemText;
+  excerpt.textContent = group.comments[0]?.comment || "New comment";
   copy.append(meta, excerpt);
   button.append(marker, copy);
-  if (activeCommentTarget?.key === group.key) {
+  if (activeCommentKey === group.key) {
     button.classList.add("is-active");
     button.setAttribute("aria-current", "true");
   }
-  button.addEventListener("click", () => openCommentThread(group));
+  button.addEventListener("click", () => openCommentThread(group, { opener: button }));
   return button;
 }
 
@@ -887,7 +889,7 @@ function addCommentMarker(editor, group) {
   marker.addEventListener("click", (event) => {
     event.preventDefault();
     event.stopPropagation();
-    openCommentThread(group);
+    openCommentThread(group, { opener: marker });
   });
   block.classList.add("has-comment-marker");
   block.append(marker);
@@ -899,7 +901,7 @@ function findCommentTargetBlock(editor, group) {
   );
   if (!blocks.length && normalizeItemText(editor.textContent)) blocks.push(editor);
 
-  const exact = blocks.find((block) => hashCommentTarget(block.textContent) === group.itemKey);
+  const exact = blocks.find((block) => hashCommentTarget(block.textContent) === group.itemKey.split(":")[0]);
   if (exact) return exact;
 
   const targetText = normalizeItemText(group.itemText).toLowerCase();
@@ -909,6 +911,7 @@ function findCommentTargetBlock(editor, group) {
 function clearEditorCommentMarkers() {
   personEditors.forEach((editor) => {
     editor.querySelectorAll(".comment-marker").forEach((marker) => marker.remove());
+    editor.classList.remove("has-comment-marker");
     editor.querySelectorAll(".has-comment-marker").forEach((block) => block.classList.remove("has-comment-marker"));
   });
 }
@@ -929,21 +932,17 @@ function addCommentForEditor(source) {
     return;
   }
 
-  const existing = groupComments(standupComments).find(
-    (group) => group.fieldName === editor.id && group.itemKey === target.itemKey,
-  );
-  openCommentThread(
-    existing || {
-      key: `${normalizePersonKey(personName)}:${editor.id}:${target.itemKey}`,
-      personKey: normalizePersonKey(personName),
-      personName,
-      fieldName: editor.id,
-      itemKey: target.itemKey,
-      itemText: target.itemText,
-      comments: [],
-    },
-    { focusReply: true },
-  );
+  // Each new comment gets its own thread; replies reuse that thread's item key.
+  const itemKey = `${target.itemKey}:${crypto.randomUUID()}`;
+  openCommentThread({
+    key: `${normalizePersonKey(personName)}:${editor.id}:${itemKey}`,
+    personKey: normalizePersonKey(personName),
+    personName,
+    fieldName: editor.id,
+    itemKey,
+    itemText: target.itemText,
+    comments: [],
+  }, { opener: editor, focusReply: true, anchor: getCurrentTextBlock() });
 }
 
 async function deleteItemComment(commentId) {
@@ -951,50 +950,140 @@ async function deleteItemComment(commentId) {
     await convexMutation("standups:deleteItemComment", { commentId });
     els.saveStatus.textContent = `Comment removed ${formatTime(Date.now())}`;
     await reloadItemComments();
-    refreshActiveCommentTarget();
+    refreshOpenCommentThreads();
   } catch (error) {
     console.error(error);
     els.saveStatus.textContent = "Comment remove failed.";
   }
 }
 
-function openCommentThread(target, { focusReply = false } = {}) {
-  activeCommentTarget = {
-    ...target,
-    comments: [...(target.comments || [])],
-  };
-  els.commentPanelContext.textContent = `${target.personName} · ${COMMENT_FIELD_LABELS[target.fieldName] || target.fieldName}`;
-  els.commentPanelTitle.textContent = target.comments?.length ? "Comment thread" : "Add a comment";
-  els.commentHighlight.textContent = target.itemText;
-  els.commentReply.value = "";
-  els.commentReplyStatus.textContent = "";
-  renderCommentThread();
-  els.commentThreadPanel.removeAttribute("hidden");
-  renderGlobalComments();
-  window.setTimeout(() => {
-    if (focusReply) els.commentReply.focus();
-  }, 0);
-}
-
-function closeCommentThread() {
-  if (!els.commentThreadPanel) return;
-  els.commentThreadPanel.setAttribute("hidden", "");
-  activeCommentTarget = null;
-  els.commentReply.value = "";
-  els.commentReplyStatus.textContent = "";
-  renderGlobalComments();
-}
-
-function renderCommentThread() {
-  const comments = activeCommentTarget?.comments || [];
-  if (!comments.length) {
-    const empty = document.createElement("p");
-    empty.className = "comment-thread-empty";
-    empty.textContent = "No comments on this item yet.";
-    els.commentThread.replaceChildren(empty);
-    return;
+function openCommentThread(target, { opener, focusReply = false, anchor } = {}) {
+  let thread = openCommentThreads.get(target.key);
+  if (!thread) {
+    const panel = els.commentThreadTemplate.content.firstElementChild.cloneNode(true);
+    const refs = {};
+    const suffix = crypto.randomUUID();
+    [panel, ...panel.querySelectorAll("[id]")].forEach((element) => {
+      refs[element.id] = element;
+      element.id += `-${suffix}`;
+    });
+    panel.setAttribute("aria-labelledby", refs.commentPanelTitle.id);
+    refs.commentReplyLabel.htmlFor = refs.commentReply.id;
+    thread = { target: { ...target }, panel, refs, opener, anchor,
+      date: els.date.value, saving: false };
+    openCommentThreads.set(target.key, thread);
+    refs.commentPanelContext.textContent = `${target.personName} · ${COMMENT_FIELD_LABELS[target.fieldName] || target.fieldName}`;
+    refs.commentHighlight.textContent = target.itemText;
+    refs.commentCloseButton.addEventListener("click", () => closeCommentThread(target.key));
+    refs.commentReplyForm.addEventListener("submit", (event) => saveCommentReply(event, thread));
+    refs.commentReply.addEventListener("input", () => {
+      refs.commentReplyButton.disabled = thread.saving || !refs.commentReply.value.trim();
+    });
+    refs.commentReply.addEventListener("keydown", (event) => {
+      if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
+        event.preventDefault();
+        refs.commentReplyForm.requestSubmit();
+      }
+    });
+    panel.addEventListener("focusin", () => activateCommentThread(target.key));
+    panel.addEventListener("pointerdown", () => activateCommentThread(target.key));
+    els.app.append(panel);
+    thread.observer = new ResizeObserver(scheduleCommentLayout);
+    thread.observer.observe(panel);
+    renderCommentThread(thread);
   }
-  els.commentThread.replaceChildren(...comments.map(renderCommentMessage));
+  activateCommentThread(target.key);
+  positionCommentThreads();
+  if (window.innerWidth > 700) {
+    thread.panel.scrollIntoView({ block: "nearest", inline: "nearest" });
+  }
+  if (focusReply || !thread.panel.contains(document.activeElement)) {
+    thread.refs.commentReply.focus({ preventScroll: true });
+  }
+}
+
+function activateCommentThread(key) {
+  activeCommentKey = key;
+  openCommentThreads.forEach((thread, threadKey) => {
+    thread.panel.classList.toggle("is-active", key === threadKey);
+  });
+  renderGlobalComments();
+}
+
+function closeCommentThread(key, { restoreFocus = true } = {}) {
+  const thread = openCommentThreads.get(key);
+  if (!thread) return;
+  thread.observer.disconnect();
+  thread.panel.remove();
+  openCommentThreads.delete(key);
+  if (activeCommentKey === key) {
+    activeCommentKey = [...openCommentThreads.keys()].at(-1) || null;
+  }
+  activateCommentThread(activeCommentKey);
+  if (restoreFocus) {
+    const next = openCommentThreads.get(activeCommentKey);
+    (next?.refs.commentReply || (thread.opener?.isConnected && thread.opener) || els[thread.target.fieldName])?.focus({ preventScroll: true });
+  }
+  scheduleCommentLayout();
+}
+
+function closeAllCommentThreads() {
+  [...openCommentThreads.keys()].forEach((key) => closeCommentThread(key, { restoreFocus: false }));
+}
+
+function scheduleCommentLayout() {
+  cancelAnimationFrame(commentLayoutFrame);
+  commentLayoutFrame = requestAnimationFrame(positionCommentThreads);
+}
+
+function positionCommentThreads() {
+  personEditors.forEach((editor) => {
+    editor.classList.remove("has-comment-draft");
+    editor.querySelectorAll(".has-comment-draft").forEach((node) => node.classList.remove("has-comment-draft"));
+  });
+  const placed = [];
+  openCommentThreads.forEach((thread) => {
+    const editor = thread.target.personName === els.personName.value ? els[thread.target.fieldName] : null;
+    const anchor = thread.anchor?.isConnected ? thread.anchor
+      : editor && findCommentTargetBlock(editor, thread.target);
+    if (!thread.target.comments.length) anchor?.classList.add("has-comment-draft");
+    if (window.innerWidth <= 700) {
+      thread.panel.style.removeProperty("left");
+      thread.panel.style.removeProperty("top");
+      return;
+    }
+    const rect = (anchor || thread.opener?.isConnected && thread.opener || els.commentsOverview).getBoundingClientRect();
+    const edge = editor?.getBoundingClientRect() || rect;
+    const width = thread.panel.offsetWidth;
+    let left = edge.right + 16;
+    if (left + width > window.innerWidth - 16) {
+      left = edge.left - width - 16;
+    }
+    left = Math.max(16, Math.min(left, window.innerWidth - width - 16));
+    let top = Math.max(16, window.scrollY + rect.top - 12);
+    const height = thread.panel.offsetHeight;
+    placed.forEach((other) => {
+      if (left < other.left + width + 12 && left + width + 12 > other.left && top < other.bottom + 12 && top + height + 12 > other.top) {
+        top = other.bottom + 12;
+      }
+    });
+    thread.panel.style.left = `${left + window.scrollX}px`;
+    thread.panel.style.top = `${top}px`;
+    placed.push({ left, top, bottom: top + height });
+  });
+}
+
+function renderCommentThread(thread) {
+  const { refs, target } = thread;
+  const isNew = !target.comments.length;
+  refs.commentPanelTitle.textContent = isNew ? "New comment" : "Comment thread";
+  refs.commentReplyLabel.textContent = isNew ? "Comment" : "Reply";
+  refs.commentReply.placeholder = isNew ? "Add a comment…" : "Reply to this thread…";
+  refs.commentReplyButton.textContent = thread.saving ? "Saving…" : isNew ? "Comment" : "Reply";
+  refs.commentReplyButton.disabled = thread.saving || !refs.commentReply.value.trim();
+  refs.commentThread.hidden = isNew;
+  refs.commentThread.replaceChildren(...target.comments.map(renderCommentMessage));
+  scheduleCommentLayout();
 }
 
 function renderCommentMessage(comment) {
@@ -1018,46 +1107,52 @@ function renderCommentMessage(comment) {
   return message;
 }
 
-async function saveCommentReply(event) {
+async function saveCommentReply(event, thread) {
   event.preventDefault();
-  const comment = els.commentReply.value.trim();
-  if (!activeCommentTarget || !comment) return;
+  const { refs, target, date } = thread;
+  const comment = refs.commentReply.value.trim();
+  if (!comment || thread.saving) return;
 
-  els.commentReplyButton.disabled = true;
-  els.commentReplyButton.textContent = "Saving";
-  els.commentReplyStatus.textContent = "Saving comment...";
+  thread.saving = true;
+  refs.commentReply.readOnly = true;
+  refs.commentReplyStatus.textContent = "Saving comment…";
+  renderCommentThread(thread);
   try {
     await flushAutosave();
     await convexMutation("standups:saveItemComment", {
       teamId: TEAM_ID,
-      standupDate: els.date.value,
-      personName: activeCommentTarget.personName,
-      fieldName: activeCommentTarget.fieldName,
-      itemKey: activeCommentTarget.itemKey,
-      itemText: activeCommentTarget.itemText,
+      standupDate: date,
+      personName: target.personName,
+      fieldName: target.fieldName,
+      itemKey: target.itemKey,
+      itemText: target.itemText,
       comment,
     });
-    els.saveStatus.textContent = `Comment saved ${formatTime(Date.now())}`;
-    els.commentReply.value = "";
-    await reloadItemComments();
-    refreshActiveCommentTarget();
-    els.commentReplyStatus.textContent = "Comment added";
-    els.commentPanelTitle.textContent = "Comment thread";
-    els.commentReply.focus();
+    refs.commentReply.value = "";
+    if (els.date.value === date) {
+      els.saveStatus.textContent = `Comment saved ${formatTime(Date.now())}`;
+      await reloadItemComments();
+      refreshOpenCommentThreads();
+    }
+    refs.commentReplyStatus.textContent = "Comment added";
   } catch (error) {
     console.error(error);
-    els.commentReplyStatus.textContent = "Comment could not be saved.";
+    refs.commentReplyStatus.textContent = "Comment could not be saved. Try again.";
   } finally {
-    els.commentReplyButton.disabled = false;
-    els.commentReplyButton.textContent = "Add comment";
+    thread.saving = false;
+    refs.commentReply.readOnly = false;
+    renderCommentThread(thread);
   }
 }
 
-function refreshActiveCommentTarget() {
-  if (!activeCommentTarget) return;
-  const refreshed = groupComments(commentsForDate).find((group) => group.key === activeCommentTarget.key);
-  activeCommentTarget = refreshed || { ...activeCommentTarget, comments: [] };
-  renderCommentThread();
+function refreshOpenCommentThreads() {
+  const groups = groupComments(commentsForDate);
+  openCommentThreads.forEach((thread) => {
+    const refreshed = groups.find((group) => group.key === thread.target.key);
+    thread.target = refreshed || { ...thread.target, comments: [] };
+    renderCommentThread(thread);
+  });
+  renderGlobalComments();
 }
 
 function renderPrevious(entry, personName) {
@@ -1529,7 +1624,8 @@ function getCurrentTextBlock() {
 function getCommentTarget(editor) {
   const selection = window.getSelection();
   const selectedText = selection && editorContainsSelection(editor, selection) ? normalizeItemText(selection.toString()) : "";
-  const itemText = selectedText || normalizeItemText(getCurrentTextBlock()?.textContent || "");
+  const block = getCurrentTextBlock();
+  const itemText = selectedText || normalizeItemText(block && editor.contains(block) ? block.textContent : "");
   return {
     itemText,
     itemKey: hashCommentTarget(itemText),
