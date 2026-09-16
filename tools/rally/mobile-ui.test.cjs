@@ -53,18 +53,41 @@ test('desktop day board includes every set exactly once with independent favorit
   assert(output.includes('After midnight'));assert(output.includes('stage-group-header'));
   assert.equal(ctx.favorites.size,1);
 });
-test('heatmap ranks within each day and scales interest consistently without stage matrix gaps',()=>{
+test('heatmap places every set in its day × stage cell with consistent interest shading',()=>{
   const ctx=boardContext(),friday=lineup.filter(x=>x.day==='Friday'),saturday=lineup.filter(x=>x.day==='Saturday');
   ctx.lineupInterests[friday.at(-1).id]=[{id:'a',name:'<script>alert(1)</script>',initials:'A'},{id:'b',name:'Kevin',initials:'KT'}];
   ctx.lineupInterests[saturday[0].id]=[{id:'b',name:'Kevin',initials:'KT'}];
   ctx.renderHeatMap([...friday,...saturday]);const output=ctx.els.heatContent.innerHTML;
-  assert.equal((output.match(/class="day-column"/g)||[]).length,2);
+  assert.equal((output.match(/class="matrix-day"/g)||[]).length,2);
+  assert.equal((output.match(/role="rowheader"/g)||[]).length,new Set([...friday,...saturday].map(x=>x.stage)).size);
   assert.equal((output.match(/data-favorite-id=/g)||[]).length,friday.length+saturday.length);
-  assert(output.indexOf(`data-favorite-id="${friday.at(-1).id}"`)<output.indexOf(`data-favorite-id="${friday[0].id}"`));
+  for(const cell of output.split('<div class="matrix-cell"').slice(1)){
+    const label=cell.match(/aria-label="([^"]+)"/)[1];
+    const ids=[...cell.matchAll(/data-favorite-id="([^"]+)"/g)].map(match=>match[1]);
+    const sets=ids.map(id=>lineup.find(entry=>ctx.escapeHtml(entry.id)===id));
+    assert(sets.every(entry=>label===`${ctx.escapeHtml(entry.day)} · ${ctx.escapeHtml(entry.stage)}`));
+    assert.deepEqual(sets.map(x=>x.posterIndex),sets.map(x=>x.posterIndex).sort((a,b)=>a-b));
+  }
   assert(output.includes('--heat-strength:100%'));assert(output.includes('--heat-strength:50%'));
-  assert(!output.includes('heat-grid'));assert(!output.includes('<script>'));
-  assert(output.includes('&lt;script&gt;'));assert(output.includes('board-set-stage'));
+  assert(output.includes('interest-matrix'));assert(!output.includes('<script>'));
+  assert(output.includes('&lt;script&gt;'));assert(output.includes('matrix-stage'));
   assert(ctx.els.heatScale.textContent.includes('0–2'));
+  assert(!ctx.els.heatScale.textContent.includes('ranked'));
+});
+test('matrix keeps empty intersections, respects filtered days, and keeps single-day columns usable',()=>{
+  const ctx=boardContext();
+  const friday=lineup.find(x=>x.day==='Friday');
+  const saturday=lineup.find(x=>x.day==='Saturday'&&x.stage!==friday.stage);
+  ctx.renderHeatMap([friday,saturday]);
+  let output=ctx.els.heatContent.innerHTML;
+  assert.equal((output.match(/class="matrix-cell"/g)||[]).length,4);
+  assert.equal((output.match(/No matching sets/g)||[]).length,2);
+  assert(!output.includes('Wednesday'));assert(!output.includes('Thursday'));
+  ctx.renderHeatMap([friday]);output=ctx.els.heatContent.innerHTML;
+  assert(output.includes('--matrix-days:1'));assert.equal((output.match(/class="matrix-cell"/g)||[]).length,1);
+  const css=fs.readFileSync(path.join(__dirname,'../../lost-lands-2026-lineup/mobile.css'),'utf8');
+  assert(css.includes('min-width:calc(152px + var(--matrix-days)*290px)'));
+  assert(css.includes('.matrix-corner,.matrix-stage {position:sticky;left:0;'));
 });
 test('desktop boards handle loading, empty filters, and no favorites without inventing interest',()=>{
   const ctx=boardContext();ctx.groupStateLoaded=false;
@@ -106,7 +129,7 @@ test('mobile cards preserve every set and display artist, range, stage, overnigh
     if(entry.start.slice(0,10)>entry.festivalDate) assert(card.includes('After midnight'));
   }
 });
-test('single-day schedule, stage grouping, and popularity use the same favorite IDs',()=>{
+test('mobile heatmap stays stage-grouped and includes unliked sets instead of becoming a ranked list',()=>{
   const {ctx,container}=context();
   const friday=lineup.filter(x=>x.day==='Friday');
   ctx.favorites.add(friday[0].id);
@@ -118,10 +141,18 @@ test('single-day schedule, stage grouping, and popularity use the same favorite 
   ctx.lineupInterests[friday[0].id]=[{id:'one',name:'Jessi',initials:'J'}];
   ctx.lineupInterests[friday[1].id]=[{id:'two',name:'John',initials:'JT'},{id:'three',name:'<img onerror=x>',initials:'X'}];
   ctx.activeView='heat';ctx.renderMobileSchedule(friday);
-  assert(container.innerHTML.indexOf(friday[1].id)<container.innerHTML.indexOf(friday[0].id));
+  assert.equal((container.innerHTML.match(/<article class="set-card/g)||[]).length,friday.length);
+  assert(container.innerHTML.includes('mobile-stage-heat'));
+  assert(!container.innerHTML.includes('set-rank'));
+  assert(container.innerHTML.includes('set-card-heat'));
   assert(container.innerHTML.includes('width:100%'));
   assert(!container.innerHTML.includes('<img onerror=x>'));
   assert(container.innerHTML.includes('&lt;img onerror=x&gt;'));
+  ctx.hiddenLineupDays.add('Wednesday');
+  ctx.lineupInterests[lineup.find(x=>x.day==='Wednesday').id]=Array.from({length:9},(_,i)=>({id:`hidden${i}`,name:'Hidden'}));
+  ctx.renderMobileSchedule(friday);
+  assert(container.innerHTML.includes('0–2 interested'));
+  assert.equal(ctx.favorites.size,1);
 });
 test('sort supports time, crew popularity, and alphabetical names without changing favorites',()=>{
   const {ctx}=context(),sets=lineup.filter(x=>x.day==='Friday');

@@ -208,10 +208,27 @@
   details[open] .board-expand {transform:rotate(180deg);}
   .board-set-crew details p {color:#657554;font-size:13px;line-height:1.7;margin:10px 0 0;}
   .board-no-picks {color:#8b9480;font-size:12px;}
-  .heat-scroll {overflow:visible;max-height:none;}
+  .heat-scroll {overflow-x:auto;max-height:none;overscroll-behavior-inline:contain;border:1px solid #dce1d2;border-radius:14px;background:#f0f2e9;}
+  .interest-matrix {width:100%;min-width:calc(152px + var(--matrix-days)*290px);}
+  .matrix-row {display:grid;grid-template-columns:152px repeat(var(--matrix-days),minmax(0,1fr));}
+  .matrix-row+.matrix-row {border-top:1px solid #dce1d2;}
+  .matrix-header {background:#e9eddf;}
+  .matrix-corner,.matrix-stage {position:sticky;left:0;z-index:1;background:#e9eddf;padding:20px 16px;border-right:1px solid #dce1d2;}
+  .matrix-corner {color:#637052;font-size:13px;font-weight:600;display:flex;align-items:center;}
+  .matrix-day {padding:18px 16px;border-right:1px solid #dce1d2;}
+  .matrix-day strong {display:block;color:#303d25;font-size:18px;line-height:1.4;}
+  .matrix-day span {display:block;color:#687759;font-size:13px;margin-top:4px;}
+  .matrix-stage {display:flex;align-items:flex-start;gap:8px;color:#425234;font-size:14px;line-height:1.5;}
+  .matrix-stage strong {font-weight:650;}
+  .matrix-stage i {width:8px;height:8px;flex-shrink:0;border-radius:50%;background:var(--stage-color);margin-top:7px;}
+  .matrix-cell {display:flex;flex-direction:column;gap:10px;min-width:0;padding:12px;border-right:1px solid #dce1d2;}
+  .matrix-cell:last-child,.matrix-day:last-child {border-right:0;}
+  .matrix-empty {text-align:center;font-size:13px;color:#7b8570;margin:20px 0;}
+  .matrix-cell .board-set {padding:14px;}
+  .matrix-cell .board-set-crew {border-top-color:#566a3520;}
   .heat-legend {padding:0 0 20px;gap:12px;color:#7d8770;font-size:13px;}
   .heat-legend strong {color:#556547;font-size:14px;font-weight:600;margin-right:auto;}
-  .heat-gradient {width:64px;height:6px;background:linear-gradient(90deg,#e8edde,#829c54);}
+  .heat-gradient {width:64px;height:8px;background:linear-gradient(90deg,#fffef9,#d7e2bb);border:1px solid #cad4ba;}
   .board-set-heat {background:color-mix(in srgb,#a5bd73 var(--heat-tint),#fffef9);}
   .board-heat-meter {height:4px;margin-top:12px;background:#e5eadb;overflow:hidden;border-radius:4px;}
   .board-heat-meter i {display:block;width:var(--heat-strength);height:100%;background:#8da860;border-radius:4px;}
@@ -233,6 +250,11 @@
   .account-dialog {box-shadow:0 24px 72px #1f2c2130;}
   .share-action:hover {background:#edf2e3;color:#415432;border-color:#bacba4;}
   button:focus-visible,summary:focus-visible {outline:2px solid #718e48;outline-offset:3px;}
+}
+@media(max-width:760px) {
+  .set-card-heat {background:color-mix(in srgb,#a5bd73 var(--heat-tint),#fffef9);}
+  .set-card-heat .set-crew {border-top-color:#566a3520;}
+  .mobile-stage-heat>summary {padding-top:16px;}
 }
 @media(min-width:761px) and (max-width:1000px) {
   .app-page {padding:24px;}

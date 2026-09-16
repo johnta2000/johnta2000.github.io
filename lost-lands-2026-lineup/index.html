@@ -1342,7 +1342,7 @@
         .rank-day { font-size: 8px; }
       }
     </style>
-    <link rel="stylesheet" href="./mobile.css?v=8">
+    <link rel="stylesheet" href="./mobile.css?v=9">
     <script defer src="../tools/rally/keyboard.js?v=1"></script>
   </head>
   <body>
@@ -1409,8 +1409,8 @@
         </section>
 
         <section class="content-panel" id="heat-view" aria-label="Group favorites heat map" hidden>
-          <div class="heat-legend"><strong>Where the crew is headed</strong><span class="heat-gradient" aria-hidden="true"></span><span id="heat-scale"></span></div>
-          <div class="heat-scroll" tabindex="0" aria-label="Browse crew favorites by day"><div id="heat-content"></div></div>
+          <div class="heat-legend"><strong>Crew interest by day & stage</strong><span class="heat-gradient" aria-hidden="true"></span><span id="heat-scale"></span></div>
+          <div class="heat-scroll" tabindex="0" aria-label="Browse crew interest by day and stage; scroll horizontally for more days"><div id="heat-content"></div></div>
         </section>
         <section class="content-panel table-wrap" id="table-view" aria-label="Lineup table">
           <table>
@@ -2016,16 +2016,23 @@
 
       function renderHeatMap(entries) {
         const maximum = Math.max(0, ...lineup.filter(entry=>!hiddenLineupDays.has(entry.day)).map((entry) => groupPeople(entry.id).length));
-        els.heatScale.textContent = maximum ? `0–${maximum} interested · ranked within each day` : "No group favorites yet";
+        els.heatScale.textContent = maximum ? `0–${maximum} interested · deeper green = more interest` : "No group favorites yet · star a set to get started";
         if (!groupStateLoaded || !entries.length) {
           els.heatContent.innerHTML = `<div class="empty-state">${!groupStateLoaded ? "Loading your crew’s favorites…" : "No sets match the current filters."}</div>`;
           return;
         }
         const days = dayOrder.filter((day) => entries.some((entry) => entry.day === day));
-        els.heatContent.innerHTML = `<div class="crew-board">${days.map(day => {
-          const sets = entries.filter(entry => entry.day === day).sort((a,b) => groupPeople(b.id).length - groupPeople(a.id).length || a.posterIndex - b.posterIndex);
-          return `<section class="day-column">${boardDayHeader(day, sets)}<div class="crew-day-list">${sets.map((entry,index) => boardSetCard(entry, {maximum, rank:index+1})).join('')}</div></section>`;
-        }).join('')}</div>`;
+        const stages = stageOrder.filter(stage => entries.some(entry => entry.stage === stage));
+        els.heatContent.innerHTML = `<div class="interest-matrix" role="table" aria-label="Set interest by stage and festival day" style="--matrix-days:${days.length}">
+          <div class="matrix-row matrix-header" role="row"><div class="matrix-corner" role="columnheader">Stage / Day</div>${days.map(day => {
+            const sets=entries.filter(entry=>entry.day===day);
+            return `<div class="matrix-day" role="columnheader"><strong>${escapeHtml(day)}</strong><span>${escapeHtml(formatFestivalDate(sets[0].festivalDate))} · ${sets.length} sets</span></div>`;
+          }).join('')}</div>
+          ${stages.map(stage => `<div class="matrix-row" role="row"><div class="matrix-stage" role="rowheader" style="--stage-color:${boardStageColor(stage)}"><i aria-hidden="true"></i><strong>${escapeHtml(stage)}</strong></div>${days.map(day=>{
+            const sets=entries.filter(entry=>entry.day===day&&entry.stage===stage).sort(compareSets);
+            return `<div class="matrix-cell" role="cell" aria-label="${escapeHtml(day)} · ${escapeHtml(stage)}">${sets.length?sets.map(entry=>boardSetCard(entry,{maximum,heat:true})).join(''):'<p class="matrix-empty">No matching sets</p>'}</div>`;
+          }).join('')}</div>`).join('')}
+        </div>`;
       }
 
       function boardDayHeader(day, sets) {
@@ -2037,19 +2044,18 @@
         return colors[stageOrder.indexOf(stage) % colors.length] || colors[0];
       }
 
-      function boardSetCard(entry, {maximum = 0, rank = 0} = {}) {
+      function boardSetCard(entry, {maximum = 0, heat = false} = {}) {
         const people = groupPeople(entry.id), count = people.length, saved = favorites.has(entry.id);
         const ratio = maximum ? count / maximum : 0;
         const overnight = entry.start.slice(0,10) > entry.festivalDate ? 'After midnight' : entry.end.slice(0,10) > entry.start.slice(0,10) ? 'Ends next day' : '';
-        return `<article class="board-set${rank ? ' board-set-heat' : ''}" style="--stage-color:${boardStageColor(entry.stage)};--heat-tint:${Math.round(ratio*12)}%;--heat-strength:${Math.round(ratio*100)}%">
+        return `<article class="board-set${heat ? ' board-set-heat' : ''}" style="--stage-color:${boardStageColor(entry.stage)};--heat-tint:${Math.round(ratio*28)}%;--heat-strength:${Math.round(ratio*100)}%">
           <div class="board-set-heading"><div class="board-set-copy">
             <p class="board-set-time">${escapeHtml(formatClock(entry.start))} – ${escapeHtml(formatClock(entry.end))}</p>
             <h3>${escapeHtml(entry.artist)}</h3>
           </div><button class="favorite-button${saved ? ' is-active' : ''}" type="button" data-favorite-id="${escapeHtml(entry.id)}" aria-pressed="${saved}" aria-label="${saved ? 'Remove' : 'Add'} ${escapeHtml(entry.artist)} favorite">★</button></div>
-          ${rank ? `<p class="board-set-stage"><i aria-hidden="true"></i>${escapeHtml(entry.stage)}</p>` : ''}
           ${overnight ? `<span class="board-set-overnight">${overnight}</span>` : ''}
           ${rallyManagedFavorites ? `<div class="board-set-crew">${count ? `<details><summary><span class="board-avatars" aria-hidden="true">${people.slice(0,3).map(person=>`<i>${escapeHtml(person.initials || person.name.slice(0,1))}</i>`).join('')}</span><span><strong>${count}</strong> interested</span><span class="board-expand" aria-hidden="true">⌄</span></summary><p>${people.map(person=>escapeHtml(person.name)).join(' · ')}</p></details>` : `<span class="board-no-picks">${groupStateLoaded ? 'No crew favorites yet' : 'Loading crew favorites…'}</span>`}
-          ${rank ? `<div class="board-heat-meter" role="img" aria-label="${count} interested; most popular set has ${maximum}"><i></i></div>` : ''}</div>` : ''}
+          ${heat ? `<div class="board-heat-meter" role="img" aria-label="${count} interested; most popular set has ${maximum}"><i></i></div>` : ''}</div>` : ''}
         </article>`;
       }
 
@@ -2158,7 +2164,7 @@
         els.tableView.hidden = activeView !== "table";
         els.heatView.hidden = activeView !== "heat";
         els.heatViewButton.classList.toggle("is-active", activeView === "heat");
-        els.popularitySort.hidden = activeView === 'heat';
+        els.popularitySort.hidden = false;
         els.popularitySort.textContent = `Sort: ${{time:'Set time',popular:'Most liked',artist:'Artist A–Z'}[sortMode]} ↓`;
         els.posterViewButton.classList.toggle("is-active", isBoard);
         els.tableViewButton.classList.toggle("is-active", activeView === "table");
@@ -2228,12 +2234,12 @@
         document.getElementById('filters-dialog').showModal();
         els.filterToggle.setAttribute('aria-expanded','true');
       }
-      function mobileSetCard(entry, maximum = 0, rank = 0) {
+      function mobileSetCard(entry, maximum = 0, rank = 0, heat = false) {
         const people = groupPeople(entry.id), count = people.length;
         const colors = ['#258579','#c56933','#7864b5','#b45376','#467bbc','#7f873b','#995636'];
         const stageColor = colors[stageOrder.indexOf(entry.stage) % colors.length] || colors[0];
         const overnight = entry.start.slice(0,10) > entry.festivalDate ? 'After midnight' : entry.end.slice(0,10) > entry.start.slice(0,10) ? 'Ends next day' : '';
-        return `<article class="set-card${favorites.has(entry.id) ? ' is-favorite' : ''}" style="--stage-color:${stageColor}">
+        return `<article class="set-card${favorites.has(entry.id) ? ' is-favorite' : ''}${heat ? ' set-card-heat' : ''}" style="--stage-color:${stageColor};--heat-tint:${maximum ? Math.round(count/maximum*28) : 0}%">
           <div class="set-card-main"><div class="set-card-copy">
             <p class="set-time">${rank ? `<span class="set-rank">${rank}</span>` : ''}${escapeHtml(formatClock(entry.start))} <span>–</span> ${escapeHtml(formatClock(entry.end))}</p>
             <h3>${escapeHtml(entry.artist)}</h3>
@@ -2247,9 +2253,12 @@
         let html = '';
         if (!entries.length) html = '<div class="mobile-empty"><h3>No matching sets</h3><p>Try another day or adjust your filters.</p></div>';
         else if (activeView === 'heat') {
-          const ranked = entries.filter(entry=>groupPeople(entry.id).length).sort((a,b)=>groupPeople(b.id).length-groupPeople(a.id).length || a.posterIndex-b.posterIndex);
-          const maximum = Math.max(0,...ranked.map(entry=>groupPeople(entry.id).length));
-          html = !groupStateLoaded ? '<div class="mobile-empty">Loading crew favorites…</div>' : ranked.length ? `<p class="mobile-section-note">Your crew’s most-liked sets · ${escapeHtml([...selectedDays][0])}</p>${ranked.map((entry,index)=>mobileSetCard(entry,maximum,index+1)).join('')}` : '<div class="mobile-empty"><h3>No crew picks yet</h3><p>Star a set to start planning this day together.</p></div>';
+          const maximum = Math.max(0,...lineup.filter(entry=>!hiddenLineupDays.has(entry.day)).map(entry=>groupPeople(entry.id).length));
+          const closed = new Set([...container.querySelectorAll('details.mobile-stage:not([open])')].map(node=>node.dataset.stage));
+          html = !groupStateLoaded ? '<div class="mobile-empty">Loading crew favorites…</div>' : `<p class="mobile-section-note">${escapeHtml([...selectedDays][0])} · ${maximum ? `0–${maximum} interested · deeper green = more interest` : 'No crew favorites yet. Star a set to get started.'}</p>` + stageOrder.filter(stage=>entries.some(entry=>entry.stage===stage)).map(stage=>{
+            const sets=entries.filter(entry=>entry.stage===stage).sort(compareSets);
+            return `<details class="mobile-stage mobile-stage-heat" data-stage="${escapeHtml(stage)}" ${closed.has(stage)?'':'open'}><summary>${escapeHtml(stage)}<span>${sets.length} sets</span></summary><div>${sets.map(entry=>mobileSetCard(entry,maximum,0,true)).join('')}</div></details>`;
+          }).join('');
         } else if (activeView === 'board') {
           const closed = new Set([...container.querySelectorAll('details.mobile-stage:not([open])')].map(node=>node.dataset.stage));
           html = stageOrder.filter(stage=>entries.some(entry=>entry.stage===stage)).map(stage=>{
