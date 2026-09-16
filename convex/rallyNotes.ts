@@ -1,6 +1,6 @@
 import { ConvexError } from "convex/values";
 
-type Note = { id: string; body: string; authorId: string; authorName: string; createdAt: number; updatedAt: number };
+type Note = { id: string; body: string; section?: string; authorId: string; authorName: string; createdAt: number; updatedAt: number };
 
 // Called only after the room's authenticated membership check in rally:act.
 export function updateNotes(notes: Note[] = [], action: string, payload: any, member: { id: string; name: string; role: string }, now: number, newId: () => string): Note[] {
@@ -15,10 +15,12 @@ export function updateNotes(notes: Note[] = [], action: string, payload: any, me
   }
   if (action === "delete-note") return notes.filter(note => note.id !== payload.id);
   if (!["add-note", "edit-note"].includes(action)) throw new ConvexError("Unknown note action.");
+  const section = payload.section === undefined ? existing?.section || "general" : payload.section;
+  if (!["general", "stay", "crew", "travel", "passes"].includes(section)) throw new ConvexError("Choose General, Stay, Crew, Travel, or Passes for this note.");
   if (!body || body.length > 4000) throw new ConvexError("Write a note between 1 and 4,000 characters.");
   const result = action === "add-note"
-    ? [{ id: newId(), body, authorId: member.id, authorName: member.name, createdAt: now, updatedAt: now }, ...notes]
-    : notes.map(note => note.id === payload.id ? { ...note, body, updatedAt: Math.max(now, note.updatedAt + 1) } : note);
+    ? [{ id: newId(), body, section, authorId: member.id, authorName: member.name, createdAt: now, updatedAt: now }, ...notes]
+    : notes.map(note => note.id === payload.id ? { ...note, body, section, updatedAt: Math.max(now, note.updatedAt + 1) } : note);
   // Room snapshots include notes for offline reading; leave room for the rest of the trip.
   if (new TextEncoder().encode(JSON.stringify(result)).length > 200000) throw new ConvexError("This board is full. Delete older notes before adding more.");
   return result;

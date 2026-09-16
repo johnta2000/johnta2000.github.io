@@ -15,7 +15,7 @@ const create=()=>updateNotes(undefined,'add-note',{body:'Bring earplugs'},author
 test('new posts use server identity, timestamp and ID; existing project notes survive',()=>{
   const notes=create();
   const result=updateNotes(notes,'add-note',{id:'spoof',body:'  Meetup at 6\nHotel lobby  ',authorId:'john',authorName:'Fake',createdAt:0,updatedAt:0},other,200,()=> 'note-2');
-  assert.deepEqual(plain(result[0]),{id:'note-2',body:'Meetup at 6\nHotel lobby',authorId:'kevin',authorName:'Kevin',createdAt:200,updatedAt:200});
+  assert.deepEqual(plain(result[0]),{id:'note-2',body:'Meetup at 6\nHotel lobby',section:'general',authorId:'kevin',authorName:'Kevin',createdAt:200,updatedAt:200});
   assert.deepEqual(plain(result[1]),plain(notes[0]));assert.equal(notes.length,1);
 });
 test('authors edit their own posts; only owners or admins can delete',()=>{
@@ -48,7 +48,8 @@ test('note writes stay behind authenticated project membership and touch only no
 });
 test('board escapes text, uses latest author name, orders newest first and hides forbidden actions',()=>{
   const escapeHtml=v=>String(v).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;');
-  const context={data:{currentMemberId:'jessi',isAdmin:false},memberMap:()=>({jessi:{name:'Jessica'}}),escapeHtml,escapeAttr:escapeHtml,initials:name=>name.slice(0,2),offlineMode:false};
+  const context={data:{currentMemberId:'jessi',isAdmin:false},memberMap:()=>({jessi:{name:'Jessica'}}),escapeHtml,escapeAttr:escapeHtml,initials:name=>name.slice(0,2),offlineMode:false,activeView:'notes',noteSections:{general:'General',stay:'Stay',crew:'Crew',travel:'Travel',passes:'Passes'},href:view=>`?view=${view}`};
+  vm.runInNewContext(app.slice(app.indexOf('function noteSection('),app.indexOf('function noteCards(')),context);
   vm.createContext(context);vm.runInContext(app.slice(app.indexOf('function noteCards('),app.indexOf('function renderNoteList(')),context);
   const notes=[...create(),{...create()[0],id:'newer',authorId:'kevin',authorName:'Kevin',body:'<script>bad()</script>\nline2',createdAt:200,updatedAt:201}];
   let html=context.noteCards(notes);
@@ -58,6 +59,42 @@ test('board escapes text, uses latest author name, orders newest first and hides
   context.data.isAdmin=true;html=context.noteCards(notes);assert(html.includes('data-note-delete="newer"'));assert(!html.includes('data-note-edit="newer"'));
   context.offlineMode=true;assert(context.noteCards(notes).includes('data-note-edit="note-1" disabled'));
   assert(context.noteCards([]).includes('No notes yet'));
+});
+test('notes keep valid sections; legacy notes default to General and old clients cannot drop a section',()=>{
+  const stay=updateNotes([],'add-note',{body:'Hotel check-in at 3',section:'stay'},author,100,()=> 'hotel');
+  assert.equal(stay[0].section,'stay');
+  const edited=updateNotes(stay,'edit-note',{id:'hotel',body:'Check-in at 4',expectedUpdatedAt:100},author,101,()=> 'unused');
+  assert.equal(edited[0].section,'stay');
+  const moved=updateNotes(edited,'edit-note',{id:'hotel',body:'Check-in at 4',section:'general',expectedUpdatedAt:101},author,102,()=> 'unused');
+  assert.equal(moved[0].section,'general');assert.equal(moved[0].id,'hotel');assert.equal(moved[0].createdAt,100);
+  for(const section of ['lineup','tasks','other-project',null,{},['stay']])assert.throws(()=>updateNotes([],'add-note',{body:'Hi',section},author,1,()=>''),/Choose General/);
+  assert.throws(()=>updateNotes(stay,'edit-note',{id:'hotel',body:'Moved',section:'passes',expectedUpdatedAt:100},other,102,()=>''),/own notes/);
+});
+test('section boards isolate related notes while All notes and legacy General preserve everything',()=>{
+  const noteSections={general:'General',stay:'Stay',crew:'Crew',travel:'Travel',passes:'Passes'};
+  const ctx={noteSections};vm.createContext(ctx);
+  vm.runInContext(app.slice(app.indexOf('function noteSection('),app.indexOf('function noteCards(')),ctx);
+  const notes=[{id:'old',body:'Legacy'},{id:'stay',section:'stay'},{id:'travel',section:'travel'}];
+  assert.deepEqual(Array.from(ctx.notesForSection(notes,'stay'),n=>n.id),['stay']);
+  assert.deepEqual(Array.from(ctx.notesForSection(notes,'general'),n=>n.id),['old']);
+  assert.equal(ctx.notesForSection(notes,'all').length,3);
+  assert.equal(ctx.notesForSection(notes,'crew').length,0);
+  vm.runInContext(app.slice(app.indexOf('function notesBoardMarkup('),app.indexOf('function wireNotes(')),ctx);
+  const stay=ctx.notesBoardMarkup('stay');
+  assert(stay.includes('data-section="stay"'));assert(stay.includes('Check-in details'));assert(!stay.includes('name="section"'));
+  assert(ctx.notesBoardMarkup('all').includes('name="section" value="stay"'));
+});
+test('posting from a section captures that project and section, not later navigation',async()=>{
+  const input={value:'Hotel parking is included'},error={hidden:true},fieldset={disabled:false},form={elements:{body:input},querySelector:selector=>selector==='#noteError'?error:fieldset};
+  const refresh={};let sent;
+  const ctx={activeEvent:'lostlands',offlineMode:true,document:{getElementById:id=>id==='noteComposer'?form:refresh},renderNoteList(){},updateNotesConnectivity(){},refreshNotes(){},showToast(){},saveNote:async(...args)=>{sent=args;}};
+  vm.createContext(ctx);vm.runInContext(app.slice(app.indexOf('function wireNotes('),app.indexOf('async function refreshNotes(')),ctx);
+  ctx.wireNotes('stay');ctx.activeEvent='edc';ctx.offlineMode=false;
+  await form.onsubmit({preventDefault(){}});
+  assert.deepEqual(plain(sent),['lostlands','add-note',{body:'Hotel parking is included',section:'stay'}]);
+  assert.equal(input.value,'');assert.equal(fieldset.disabled,false);
+  input.value='Keep this draft';ctx.saveNote=async()=>{throw new Error('No connection');};
+  await form.onsubmit({preventDefault(){}});assert.equal(input.value,'Keep this draft');assert.equal(error.hidden,false);
 });
 test('offline writes and late responses after changing projects cannot alter the current board',async()=>{
   let calls=0;
@@ -70,8 +107,9 @@ test('offline writes and late responses after changing projects cannot alter the
 test('refresh only replaces the list, never the composer; stale refreshes are ignored',async()=>{
   let resolve, renders=0;
   const status={textContent:''};
-  const context={notesRevision:0,activeEvent:'a',activeView:'notes',offlineMode:false,data:{notes:[]},document:{getElementById:()=>status},convexQuery:()=>new Promise(r=>resolve=r),renderNoteList:()=>renders++,focusSearchResult:()=>{}};
+  const context={notesRevision:0,activeEvent:'a',activeView:'stay',offlineMode:false,data:{notes:[]},document:{getElementById:()=>status},convexQuery:()=>new Promise(r=>resolve=r),renderNoteList:()=>renders++,focusSearchResult:()=>{}};
   vm.createContext(context);vm.runInContext(app.slice(app.indexOf('async function refreshNotes('),app.indexOf('async function saveNote(')),context);
   const stale=context.refreshNotes();context.notesRevision++;resolve({notes:create()});await stale;assert.equal(renders,0);
   const fresh=context.refreshNotes();resolve({notes:create()});await fresh;assert.equal(renders,1);assert.equal(context.data.notes.length,1);
+  const navigated=context.refreshNotes();context.activeView='travel';resolve({notes:[]});await navigated;assert.equal(renders,1);assert.equal(context.data.notes.length,1);
 });

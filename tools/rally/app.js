@@ -6,6 +6,7 @@ const views = [
   ["travel", "Travel", "✈"], ["passes", "Passes", "◇"], ["tasks", "Tasks", "✓"], ["lineup", "Lineup", "♫"],
   ["notes", "Notes", "≡"],
 ];
+const noteSections = {general:'General',stay:'Stay',crew:'Crew',travel:'Travel',passes:'Passes'};
 
 const eventTemplates = [
   { id: "festival-weekend", icon: "◉", name: "Festival weekend", badge: "Recommended", description: "A multi-day trip with lodging, travel, passes, packing, and crew checkpoints.", summary: "7 starter tasks · 4 pass categories" },
@@ -71,7 +72,7 @@ function setupOffline() {
   el.page.before(banner);
   new ResizeObserver(() => document.documentElement.style.setProperty('--offline-status-height', `${banner.offsetHeight}px`)).observe(banner);
   window.addEventListener('rally-cache-change', updateOfflineStatus);
-  window.addEventListener('offline', () => { offlineMode = true; updateOfflineStatus(); if(activeView==='notes') updateNotesConnectivity(); });
+  window.addEventListener('offline', () => { offlineMode = true; updateOfflineStatus(); updateNotesConnectivity(); });
   window.addEventListener('online', () => { if (!RallyOffline.native) void reconnect(); });
   if (!window.webkit?.messageHandlers?.rallyOffline && 'serviceWorker' in navigator && (location.protocol === 'https:' || ['localhost','127.0.0.1'].includes(location.hostname))) {
     navigator.serviceWorker.register('/rally-sw.js', {scope:'/'}).then(() => navigator.serviceWorker.ready).then(() => { shellSaved = true; updateOfflineStatus(); }).catch(() => { shellSaved = false; updateOfflineStatus(); });
@@ -291,6 +292,7 @@ function render() {
   el.page.className = `page${activeView === "lineup" && data.id === DEFAULT_EVENT ? " lineup" : ""}`;
   const renderer = { home: renderHome, stay: renderStay, crew: renderCrew, travel: renderTravel, passes: renderPasses, tasks: renderTasks, lineup: renderLineup, notes: renderNotes }[activeView] || renderHome;
   renderer();
+  if (['stay','crew','travel','passes'].includes(activeView)) renderSectionNotes(activeView);
   renderMobileNav();
   focusSearchResult();
 }
@@ -330,7 +332,7 @@ function projectSearchItems() {
   add('travel',data.cars,r=>`${r.company} · ${r.vehicle}`,r=>[r.pickup,r.dropoff,map[r.driverId]?.name].filter(Boolean).join(' · '));
   add('passes',data.passes,r=>r.name,r=>[r.category,map[r.ownerId]?.name,r.notes].filter(Boolean).join(' · '));
   add('tasks',data.tasks,r=>r.title,r=>[r.category,r.status,map[r.assigneeId]?.name,r.description].filter(Boolean).join(' · '));
-  add('notes',data.notes,r=>r.body,r=>map[r.authorId]?.name||r.authorName);
+  (data.notes||[]).forEach(note=>items.push({view:noteSection(note)==='general'?'notes':noteSection(note),id:note.id,title:note.body,detail:`${noteSections[noteSection(note)]} note · ${map[note.authorId]?.name||note.authorName}`}));
   const sets=data.id===DEFAULT_EVENT?(window.LOST_LANDS_SET_TIMES||[]):(data.lineup||[]);
   sets.filter(r=>!(data.lineupHiddenDays||[]).includes(r.day||'Day TBD')).forEach(r=>items.push({view:'lineup',id:r.id,title:r.artist||r.name,day:r.day,detail:[r.day,r.stage,r.genre].filter(Boolean).join(' · '),artist:r.artist||r.name}));
   return items;
@@ -401,6 +403,11 @@ function renderHome() {
   el.page.innerHTML = `<section class="overview-header"><div><span class="eyebrow">${escapeHtml(data.presenter||"Project overview")}</span><h1>${escapeHtml(data.name)}</h1><p>⌖ ${escapeHtml(data.location)} · ${eventDateLine(data)}</p></div><div class="countdown"><strong>${days}</strong><span>days to go</span></div></section><div class="overview-grid">${cards.map(([view,icon,label,strong,small])=>`<a class="overview-tile" href="${href(view)}"><span class="overview-icon">${icon}</span><span><small>${label}</small><strong>${strong}</strong><em>${escapeHtml(small)}</em></span><b>→</b></a>`).join("")}</div><section class="section-card"><header><div><span class="eyebrow">Loose ends</span><h2>Open tickets</h2></div><a class="primary" href="${href("tasks")}">Open board →</a></header><div class="row-list">${data.tasks.filter((task)=>task.status!=="done").slice(0,4).map((task)=>`<div class="row"><strong>${escapeHtml(task.title)}</strong><span>${escapeHtml(memberMap()[task.assigneeId]?.name || "Unassigned")}</span></div>`).join("") || `<div class="empty">Nothing is waiting right now.</div>`}</div></section>`;
 }
 
+function noteSection(note) { return Object.hasOwn(noteSections,note.section) ? note.section : 'general'; }
+function notesForSection(notes, section) { return section==='all' ? notes : notes.filter(note=>noteSection(note)===section); }
+function noteSectionPicker(value='general') {
+  return `<fieldset class="note-section-picker"><legend>Section</legend>${Object.entries(noteSections).map(([id,label])=>`<label><input type="radio" name="section" value="${id}" ${id===value?'checked':''}><span>${label}</span></label>`).join('')}</fieldset>`;
+}
 function noteCards(notes) {
   const map = memberMap();
   return [...notes].sort((a,b)=>b.createdAt-a.createdAt).map(note => {
@@ -408,14 +415,16 @@ function noteCards(notes) {
     const owner = note.authorId === data.currentMemberId;
     const date = new Date(note.createdAt);
     const stamp = date.toLocaleString([], {month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'});
-    return `<article class="note-card" data-note-id="${escapeAttr(note.id)}"><header><span class="note-avatar" aria-hidden="true">${escapeHtml(initials(name))}</span><div><strong>${escapeHtml(name)}</strong><div class="note-date"><time datetime="${date.toISOString()}">${escapeHtml(stamp)}</time>${note.updatedAt>note.createdAt?' · Edited':''}</div></div></header><p class="note-body">${escapeHtml(note.body)}</p>${owner||data.isAdmin?`<footer>${owner?`<button type="button" data-note-edit="${escapeAttr(note.id)}" ${offlineMode?'disabled':''}>Edit</button>`:''}<button type="button" data-note-delete="${escapeAttr(note.id)}" ${offlineMode?'disabled':''}>Delete</button></footer>`:''}</article>`;
+    const section=noteSection(note);
+    const badge=activeView==='notes'?`<a class="note-section-badge" href="${escapeAttr(href(section==='general'?'notes':section))}">${noteSections[section]}</a>`:'';
+    return `<article class="note-card" data-note-id="${escapeAttr(note.id)}"><header><span class="note-avatar" aria-hidden="true">${escapeHtml(initials(name))}</span><div><strong>${escapeHtml(name)}</strong><div class="note-date"><time datetime="${date.toISOString()}">${escapeHtml(stamp)}</time>${note.updatedAt>note.createdAt?' · Edited':''}</div></div>${badge}</header><p class="note-body">${escapeHtml(note.body)}</p>${owner||data.isAdmin?`<footer>${owner?`<button type="button" data-note-edit="${escapeAttr(note.id)}" ${offlineMode?'disabled':''}>Edit</button>`:''}<button type="button" data-note-delete="${escapeAttr(note.id)}" ${offlineMode?'disabled':''}>Delete</button></footer>`:''}</article>`;
   }).join('') || '<div class="notes-empty"><h2>No notes yet</h2><p>Share a meetup spot, a reminder, or anything the crew should know.</p></div>';
 }
 
 function renderNoteList() {
   const list = document.getElementById('notesList');
   if (!list) return;
-  list.innerHTML = noteCards(data.notes || []);
+  list.innerHTML = noteCards(notesForSection(data.notes || [], list.dataset.section||'all'));
   list.querySelectorAll('[data-note-edit]').forEach(button => button.onclick=()=>openEditNote(data.notes.find(note=>note.id===button.dataset.noteEdit)));
   list.querySelectorAll('[data-note-delete]').forEach(button => button.onclick=()=>{
     if(offlineMode)return showToast('Reconnect to delete notes.');
@@ -436,9 +445,22 @@ function updateNotesConnectivity() {
 }
 
 function renderNotes() {
+  el.page.innerHTML=heading('Shared with your crew','All notes','Notes from Stay, Crew, Travel, and Passes, plus general updates.', '<button id="refreshNotes" class="secondary" type="button">Refresh</button>')+notesBoardMarkup('all');
+  wireNotes('all');
+}
+
+function renderSectionNotes(section) {
+  el.page.insertAdjacentHTML('beforeend',`<section class="section-notes" aria-label="${noteSections[section]} notes"><header class="section-notes-heading"><div><h2>${noteSections[section]} notes</h2><p>Shared details for the crew.</p></div><button id="refreshNotes" class="secondary" type="button">Refresh notes</button></header>${notesBoardMarkup(section)}</section>`);
+  wireNotes(section);
+}
+
+function notesBoardMarkup(section) {
+  const placeholder={stay:'Check-in details, parking, room reminders…',crew:'Meetup plans, contact details, crew reminders…',travel:'Airport pickup, baggage, flight reminders…',passes:'Shuttle pickup, ticket transfers, entry reminders…'}[section]||'Meetup spot, useful link, last-minute reminder…';
+  return `<div class="notes-board"><form id="noteComposer" class="note-composer"><fieldset>${section==='all'?noteSectionPicker():''}<label for="noteBody">${section==='all'?'Leave a note':`Leave a ${noteSections[section].toLowerCase()} note`}</label><textarea id="noteBody" name="body" rows="3" maxlength="4000" required placeholder="${placeholder}"></textarea><div class="note-composer-footer"><small>Visible to everyone in this project</small><button class="primary" type="submit">Post note</button></div></fieldset><p id="noteError" class="note-error" role="alert" hidden></p></form><p id="notesStatus" class="notes-status" role="status"></p><section id="notesList" data-section="${section}" aria-label="Shared notes"></section></div>`;
+}
+
+function wireNotes(section) {
   const eventId=activeEvent;
-  el.page.innerHTML=heading('Shared with your crew','Notes','A place for the details that don’t fit anywhere else.', '<button id="refreshNotes" class="secondary" type="button">Refresh</button>')+
-    `<div class="notes-board"><form id="noteComposer" class="note-composer"><fieldset><label for="noteBody">Leave a note</label><textarea id="noteBody" name="body" rows="3" maxlength="4000" required placeholder="Meetup spot, useful link, last-minute reminder…"></textarea><div class="note-composer-footer"><small>Visible to everyone in this project</small><button class="primary" type="submit">Post note</button></div></fieldset><p id="noteError" class="note-error" role="alert" hidden></p></form><p id="notesStatus" class="notes-status" role="status"></p><section id="notesList" aria-label="Shared notes"></section></div>`;
   renderNoteList(); updateNotesConnectivity();
   const form=document.getElementById('noteComposer');
   form.onsubmit=async event=>{
@@ -447,7 +469,7 @@ function renderNotes() {
     if(offlineMode)return showToast('Reconnect to post your note.');
     if(!input.value.trim())return input.focus();
     fieldset.disabled=true; error.hidden=true;
-    try { await saveNote(eventId,'add-note',{body:input.value}); input.value=''; showToast('Note posted'); }
+    try { await saveNote(eventId,'add-note',{body:input.value,section:section==='all'?form.elements.section.value:section}); input.value=''; showToast('Note posted'); }
     catch(reason){error.textContent=reason.message||'Could not post. Your draft is still here.';error.hidden=false;}
     finally {fieldset.disabled=offlineMode;}
   };
@@ -456,16 +478,16 @@ function renderNotes() {
 }
 
 async function refreshNotes() {
-  const eventId=activeEvent, revision=++notesRevision, status=document.getElementById('notesStatus');
+  const eventId=activeEvent, view=activeView, revision=++notesRevision, status=document.getElementById('notesStatus');
   if(offlineMode||!status)return;
   status.textContent='Refreshing notes…';
   try {
     const room=await convexQuery('rally:get',{eventId});
-    if(revision!==notesRevision||eventId!==activeEvent||activeView!=='notes')return;
+    if(revision!==notesRevision||eventId!==activeEvent||activeView!==view)return;
     data.notes=room.notes||[]; renderNoteList(); focusSearchResult();
     status.textContent='Up to date · Newest notes first';
   } catch(error) {
-    if(revision===notesRevision&&eventId===activeEvent&&activeView==='notes')status.textContent='Could not refresh. Showing saved notes; try again when connected.';
+    if(revision===notesRevision&&eventId===activeEvent&&activeView===view)status.textContent='Could not refresh. Showing saved notes; try again when connected.';
   }
 }
 
@@ -477,15 +499,15 @@ async function saveNote(eventId,action,payload) {
   ++notesRevision;
   if(owner===window.Clerk?.user?.id&&eventId===activeEvent){
     data=room;
-    if(activeView==='notes'){renderNoteList();document.getElementById('notesStatus').textContent='Saved · Newest notes first';}
+    if(document.getElementById('notesList')){renderNoteList();document.getElementById('notesStatus').textContent='Saved · Newest notes first';}
   }
 }
 
 function openEditNote(note) {
   if(!note||offlineMode)return;
   const eventId=activeEvent;
-  openDialog('Edit note','Changes are visible to everyone in this project.',`<label class="field">Note<textarea class="note-edit-body" name="body" rows="7" maxlength="4000" required>${escapeHtml(note.body)}</textarea></label>`,async values=>{
-    await saveNote(eventId,'edit-note',{id:note.id,body:values.body,expectedUpdatedAt:note.updatedAt});closeDialog();showToast('Note updated');
+  openDialog('Edit note','Changes are visible to everyone in this project.',noteSectionPicker(noteSection(note))+`<label class="field">Note<textarea class="note-edit-body" name="body" rows="7" maxlength="4000" required>${escapeHtml(note.body)}</textarea></label>`,async values=>{
+    await saveNote(eventId,'edit-note',{id:note.id,body:values.body,section:values.section,expectedUpdatedAt:note.updatedAt});closeDialog();showToast('Note updated');
   });
 }
 

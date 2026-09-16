@@ -11,7 +11,7 @@ const room = (ids=['a']) => ({id:'festival',members:[{id:'me',name:'John'},{id:'
 const plain = v => JSON.parse(JSON.stringify(v));
 test('shared notes survive cold reload and stay isolated by project and account',()=>{
   const {cache,storage}=setup();cache.identify('user1');
-  const notes=[{id:'note1',body:'Meet in the lobby',authorId:'other',authorName:'Jessi',createdAt:100,updatedAt:100}];
+  const notes=[{id:'note1',body:'Meet in the lobby',section:'stay',authorId:'other',authorName:'Jessi',createdAt:100,updatedAt:100}];
   cache.save({...room(),notes});cache.save({...room(),id:'another-festival',notes:[]});
   const loaded=setup(storage).cache;
   assert.deepEqual(plain(loaded.room('festival').notes),notes);
