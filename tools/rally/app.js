@@ -329,7 +329,7 @@ function projectSearchItems() {
   add('passes',data.passes,r=>r.name,r=>[r.category,map[r.ownerId]?.name,r.notes].filter(Boolean).join(' · '));
   add('tasks',data.tasks,r=>r.title,r=>[r.category,r.status,map[r.assigneeId]?.name,r.description].filter(Boolean).join(' · '));
   const sets=data.id===DEFAULT_EVENT?(window.LOST_LANDS_SET_TIMES||[]):(data.lineup||[]);
-  sets.forEach(r=>items.push({view:'lineup',id:r.id,title:r.artist||r.name,day:r.day,detail:[r.day,r.stage,r.genre].filter(Boolean).join(' · '),artist:r.artist||r.name}));
+  sets.filter(r=>!(data.lineupHiddenDays||[]).includes(r.day||'Day TBD')).forEach(r=>items.push({view:'lineup',id:r.id,title:r.artist||r.name,day:r.day,detail:[r.day,r.stage,r.genre].filter(Boolean).join(' · '),artist:r.artist||r.name}));
   return items;
 }
 
@@ -426,10 +426,11 @@ function renderLineup(){
     return;
   }
   if(searchRoute.has('find'))lineupFilters={search:searchRoute.get('find'),day:'all',stage:'all',favoritesOnly:false};
-  const lineup=data.lineup||[],favorites=new Set(data.currentLineupFavorites||[]);
+  const lineup=(data.lineup||[]).filter(artist=>!(data.lineupHiddenDays||[]).includes(artist.day||'Day TBD')),favorites=new Set(data.currentLineupFavorites||[]);
   const days=[...new Set(lineup.map((artist)=>artist.day||"Day TBD"))];
+  if (!days.includes(lineupFilters.day)) lineupFilters.day='all';
   const stages=[...new Set(lineup.map((artist)=>artist.stage).filter(Boolean))].sort();
-  const action=`<div class="lineup-heading-actions">${data.lineupSource?`<a class="secondary" href="${escapeAttr(data.lineupSource)}" target="_blank" rel="noopener">Source ↗</a>`:""}${data.isAdmin?`<button id="addLineupArtist" class="primary">＋ Add artist</button>`:""}</div>`;
+  const action=`<div class="lineup-heading-actions">${data.lineupSource?`<a class="secondary" href="${escapeAttr(data.lineupSource)}" target="_blank" rel="noopener">Source ↗</a>`:""}${data.isAdmin?`<button id="manageLineupDays" class="secondary">Manage days</button><button id="addLineupArtist" class="primary">＋ Add artist</button>`:""}</div>`;
   const matches=lineup.filter((artist)=>{
     const haystack=`${artist.name} ${artist.day||""} ${artist.stage||""} ${artist.notes||""}`.toLowerCase();
     return (!lineupFilters.search||haystack.includes(lineupFilters.search.toLowerCase()))
@@ -449,16 +450,38 @@ function renderLineup(){
   document.getElementById("lineupDay").addEventListener("change",(event)=>{lineupFilters.day=event.target.value;renderLineup()});
   document.getElementById("lineupStage").addEventListener("change",(event)=>{lineupFilters.stage=event.target.value;renderLineup()});
   document.getElementById("lineupFavorites").addEventListener("click",()=>{lineupFilters.favoritesOnly=!lineupFilters.favoritesOnly;renderLineup()});
+  if(data.isAdmin)document.getElementById('manageLineupDays').onclick=openLineupDays;
   document.querySelectorAll("[data-lineup-edit]").forEach((button)=>button.onclick=()=>openLineupArtist(lineup.find((artist)=>artist.id===button.dataset.lineupEdit)));
   document.querySelectorAll("[data-lineup-favorite]").forEach((button)=>button.onclick=async()=>{const id=button.dataset.lineupFavorite;if(favorites.has(id))favorites.delete(id);else favorites.add(id);button.classList.toggle("selected",favorites.has(id));button.setAttribute("aria-pressed",String(favorites.has(id)));try{data=await convexMutation("rally:act",{eventId:activeEvent,action:"save-lineup-favorites",payload:{artistIds:[...favorites]}});renderLineup()}catch(error){showToast(error.message||"Could not save favorite")}});
 }
-function sendLineupState(){const frame=document.getElementById("lineupFrame"),currentMember=data.members.find((member)=>member.id===data.currentMemberId);frame?.contentWindow?.postMessage({type:"rally-lineup-state",artistIds:data.currentLineupFavorites||[],interests:data.lineupInterests||{},currentMember},location.origin === "null" ? "*" : location.origin)}
+function sendLineupState(){const frame=document.getElementById("lineupFrame"),currentMember=data.members.find((member)=>member.id===data.currentMemberId);frame?.contentWindow?.postMessage({type:"rally-lineup-state",artistIds:data.currentLineupFavorites||[],interests:data.lineupInterests||{},currentMember,hiddenDays:data.lineupHiddenDays||[],canManageDays:data.isAdmin&&!offlineMode},location.origin === "null" ? "*" : location.origin)}
 async function refreshLineupState(){if(activeView!=="lineup")return;const eventId=activeEvent;try{const updated=await convexQuery("rally:get",{eventId});if(!updated||activeEvent!==eventId||activeView!=="lineup")return;data=updated;sendLineupState()}catch(error){console.warn("Could not refresh lineup interests",error)}}
+function openLineupDays() {
+  if (!data?.isAdmin) return;
+  if (offlineMode) return showToast('Reconnect to change project settings.');
+  const eventId = activeEvent;
+  const catalog = data.id === DEFAULT_EVENT ? window.LOST_LANDS_SET_TIMES || data.lineup || [] : data.lineup || [];
+  const days = [...new Set(catalog.map(entry => entry.day || 'Day TBD'))];
+  if (!days.length) return showToast('Add a lineup before managing days.');
+  const hidden = new Set(data.lineupHiddenDays || []);
+  openDialog('Manage lineup days','Checked days appear for everyone in this project. Hidden sets and saved favorites are kept, so you can restore them anytime.',
+    `<div class="lineup-day-settings">${days.map((day,index)=>`<label><input type="checkbox" name="day${index}" ${hidden.has(day)?'':'checked'}><span>${escapeHtml(day)}</span><small>${catalog.filter(entry=>(entry.day||'Day TBD')===day).length} sets</small></label>`).join('')}</div>`,
+    async values => {
+      const hiddenDays = days.filter((day,index)=>!values[`day${index}`]);
+      if (hiddenDays.length === days.length) throw new Error('Keep at least one lineup day visible.');
+      const updated = await convexMutation('rally:act',{eventId,action:'save-lineup-days',payload:{hiddenDays}});
+      closeDialog();
+      if (activeEvent === eventId) { data=updated; if(data.id===DEFAULT_EVENT)sendLineupState();else render(); }
+      showToast('Lineup days updated for everyone');
+    });
+}
+
 async function handleLineupMessage(event) {
   if(event.origin !== location.origin) return;
   const frame = document.getElementById("lineupFrame");
   if(!frame || event.source !== frame.contentWindow || !event.data || typeof event.data !== "object") return;
   if(event.data.type === "rally-lineup-ready") { sendLineupState(); sendLineupLayout(); return; }
+  if(event.data.type === 'rally-lineup-manage-days') { openLineupDays(); return; }
   if(event.data.type === 'rally-lineup-overlay') { document.body.classList.toggle('lineup-overlay',event.data.open===true); return; }
   if(event.data.type !== "rally-lineup-favorites-changed" || !Array.isArray(event.data.artistIds)) return;
   const eventId = activeEvent;

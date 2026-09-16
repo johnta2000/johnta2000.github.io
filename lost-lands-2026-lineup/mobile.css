@@ -28,7 +28,7 @@
   .rally-mode .app-header {grid-template-columns:minmax(0,1fr) auto;}
   .rally-mode .app-header .header-copy {grid-column:1;}
   .rally-mode .app-header .share-action {grid-column:2;}
-  .mobile-days {display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;margin:0 0 14px;}
+  .mobile-days {display:grid;grid-template-columns:repeat(var(--day-count,5),minmax(0,1fr));gap:6px;margin:0 0 14px;}
   .mobile-days button {padding:8px 0;min-height:60px;border:1px solid #dfe1d5;border-radius:12px;background:transparent;color:#777c6d;font-family:system-ui;cursor:pointer;}
   .mobile-days span,.mobile-days strong {display:block;}
   .mobile-days span {font-size:12px;line-height:1.4;font-weight:550;}
@@ -128,6 +128,8 @@
 .sort-dialog strong,.sort-dialog small {display:block;}
 .sort-dialog strong {font-size:15px;}.sort-dialog small {font-size:12px;margin-top:4px;color:#77816b;}
 .popularity-sort {display:inline-flex;}
+.manage-days {min-height:36px;padding:6px 10px;border:1px solid #d7decd;border-radius:8px;background:transparent;color:#62734e;font:500 12px system-ui;cursor:pointer;}
+.manage-days:hover {background:#e9efdf;}
 
 /* Desktop working surface: shared with the phone palette, not the festival poster. */
 @media(min-width:761px) {

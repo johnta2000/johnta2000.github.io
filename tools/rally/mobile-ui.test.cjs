@@ -74,6 +74,8 @@ function context() {
   const button={textContent:''};
   const ctx={lineup,stageOrder:[...new Set(lineup.map(x=>x.stage))],dayOrder:['Wednesday','Thursday','Friday','Saturday','Sunday'],favorites:new Set(),lineupInterests:{},rallyManagedFavorites:true,groupStateLoaded:true,selectedDays:new Set(['Friday']),activeView:'table',document:{activeElement:null,getElementById:id=>id==='mobile-schedule'?container:button},Intl,Date};
   vm.createContext(ctx);
+  ctx.hiddenLineupDays=new Set();
+  ctx.visibleLineupDays=()=>ctx.dayOrder.filter(day=>!ctx.hiddenLineupDays.has(day));
   for(const [start,end] of [['function formatClock(', 'const lineup ='],['function escapeHtml(', 'function getCanonicalUrl('],['function groupPeople(', 'function compareSets('],['function defaultMobileDay(', 'function saveFavorites(']]) {
     vm.runInContext(html.slice(html.indexOf(start),html.indexOf(end)),ctx);
   }

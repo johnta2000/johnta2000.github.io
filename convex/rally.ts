@@ -10,6 +10,15 @@ type RallyState = Record<string, any>;
 const LOST_LANDS = "lost-lands-2026";
 const EDC = "edc-las-vegas-2027";
 
+function validateHiddenLineupDays(value: unknown, available: string[]): string[] {
+  if (!Array.isArray(value) || value.some(day => typeof day !== "string" || !available.includes(day))) {
+    throw new Error("Choose days from this project's lineup.");
+  }
+  const days = [...new Set(value)] as string[];
+  if (available.length && available.every(day => days.includes(day))) throw new Error("Keep at least one lineup day visible.");
+  return days;
+}
+
 const EVENT_TEMPLATE_IDS = ["festival-weekend", "local-show", "blank", "copy-current"] as const;
 
 const EVENT_TEMPLATES: Record<string, {
@@ -757,6 +766,11 @@ export const act = mutation({
     } else if (args.action === "delete-pass") {
       if (!state.passes.some((item: RallyState) => item.id === p.id)) throw new Error("That pass no longer exists.");
       state.passes = state.passes.filter((item: RallyState) => item.id !== p.id);
+    } else if (args.action === "save-lineup-days") {
+      if (!["admin", "leader"].includes(current.role)) throw new Error("Only an admin can manage lineup days.");
+      const lineup = state.id === LOST_LANDS ? LOST_LANDS_SET_TIMES : (state.lineup || []);
+      const available = [...new Set<string>(lineup.map((entry: RallyState) => entry.day || "Day TBD"))];
+      state.lineupHiddenDays = validateHiddenLineupDays(p.hiddenDays, available);
     } else if (args.action === "save-lineup-artist") {
       if (!["admin", "leader"].includes(current.role)) throw new Error("Only an admin can edit the lineup.");
       state.lineup ||= [];
