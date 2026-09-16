@@ -9,6 +9,15 @@ function setup(storage = new Map()) {
 }
 const room = (ids=['a']) => ({id:'festival',members:[{id:'me',name:'John'},{id:'other',name:'Jessi'}],currentMemberId:'me',currentLineupFavorites:ids,lineupInterests:{a:[{id:'me'},{id:'other'}]}});
 const plain = v => JSON.parse(JSON.stringify(v));
+test('shared notes survive cold reload and stay isolated by project and account',()=>{
+  const {cache,storage}=setup();cache.identify('user1');
+  const notes=[{id:'note1',body:'Meet in the lobby',authorId:'other',authorName:'Jessi',createdAt:100,updatedAt:100}];
+  cache.save({...room(),notes});cache.save({...room(),id:'another-festival',notes:[]});
+  const loaded=setup(storage).cache;
+  assert.deepEqual(plain(loaded.room('festival').notes),notes);
+  assert.equal(loaded.room('another-festival').notes.length,0);
+  loaded.identify('user2');assert.equal(loaded.room('festival'),null);
+});
 test('snapshots and queued favorites survive a cold reload, scoped by account', () => {
   const {cache,storage}=setup(); cache.identify('user1'); cache.save(room()); cache.queue('festival',['b']);
   const loaded=setup(storage).cache;

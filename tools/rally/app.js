@@ -4,6 +4,7 @@ const DEFAULT_EVENT = "lost-lands-2026";
 const views = [
   ["home", "Home", "⌂"], ["stay", "Stay", "▣"], ["crew", "Crew", "●"],
   ["travel", "Travel", "✈"], ["passes", "Passes", "◇"], ["tasks", "Tasks", "✓"], ["lineup", "Lineup", "♫"],
+  ["notes", "Notes", "≡"],
 ];
 
 const eventTemplates = [
@@ -24,6 +25,7 @@ let lineupRefreshTimer = null;
 let lineupFilters = { search: "", day: "all", stage: "all", favoritesOnly: false };
 let offlineMode = RallyOffline.native || !navigator.onLine;
 let shellSaved = RallyOffline.native || !!window.webkit?.messageHandlers?.rallyOffline;
+let notesRevision = 0;
 
 const el = Object.fromEntries(["accessGate","clerkSignIn","authStatus","authSignOut","rallyApp","sidebar","closeMenu","openMenu","menuBackdrop","eventSwitcher","eventMenu","eventName","eventThumb","mobileEventName","mobileCountdown","sideNav","page","topInvite","accountButton","signOut","newEvent","dialogRoot","toast"].map((id) => [id, document.getElementById(id)]));
 
@@ -69,7 +71,7 @@ function setupOffline() {
   el.page.before(banner);
   new ResizeObserver(() => document.documentElement.style.setProperty('--offline-status-height', `${banner.offsetHeight}px`)).observe(banner);
   window.addEventListener('rally-cache-change', updateOfflineStatus);
-  window.addEventListener('offline', () => { offlineMode = true; updateOfflineStatus(); });
+  window.addEventListener('offline', () => { offlineMode = true; updateOfflineStatus(); if(activeView==='notes') updateNotesConnectivity(); });
   window.addEventListener('online', () => { if (!RallyOffline.native) void reconnect(); });
   if (!window.webkit?.messageHandlers?.rallyOffline && 'serviceWorker' in navigator && (location.protocol === 'https:' || ['localhost','127.0.0.1'].includes(location.hostname))) {
     navigator.serviceWorker.register('/rally-sw.js', {scope:'/'}).then(() => navigator.serviceWorker.ready).then(() => { shellSaved = true; updateOfflineStatus(); }).catch(() => { shellSaved = false; updateOfflineStatus(); });
@@ -287,7 +289,7 @@ function render() {
   document.getElementById("newEvent").onclick = () => { el.eventMenu.hidden = true; closeMenu(); openNewEvent(); };
   el.eventMenu.querySelectorAll("button[data-event]").forEach((button) => button.addEventListener("click", () => navigateTo(new URL(href("home", button.dataset.event), location.href))));
   el.page.className = `page${activeView === "lineup" && data.id === DEFAULT_EVENT ? " lineup" : ""}`;
-  const renderer = { home: renderHome, stay: renderStay, crew: renderCrew, travel: renderTravel, passes: renderPasses, tasks: renderTasks, lineup: renderLineup }[activeView] || renderHome;
+  const renderer = { home: renderHome, stay: renderStay, crew: renderCrew, travel: renderTravel, passes: renderPasses, tasks: renderTasks, lineup: renderLineup, notes: renderNotes }[activeView] || renderHome;
   renderer();
   renderMobileNav();
   focusSearchResult();
@@ -328,6 +330,7 @@ function projectSearchItems() {
   add('travel',data.cars,r=>`${r.company} · ${r.vehicle}`,r=>[r.pickup,r.dropoff,map[r.driverId]?.name].filter(Boolean).join(' · '));
   add('passes',data.passes,r=>r.name,r=>[r.category,map[r.ownerId]?.name,r.notes].filter(Boolean).join(' · '));
   add('tasks',data.tasks,r=>r.title,r=>[r.category,r.status,map[r.assigneeId]?.name,r.description].filter(Boolean).join(' · '));
+  add('notes',data.notes,r=>r.body,r=>map[r.authorId]?.name||r.authorName);
   const sets=data.id===DEFAULT_EVENT?(window.LOST_LANDS_SET_TIMES||[]):(data.lineup||[]);
   sets.filter(r=>!(data.lineupHiddenDays||[]).includes(r.day||'Day TBD')).forEach(r=>items.push({view:'lineup',id:r.id,title:r.artist||r.name,day:r.day,detail:[r.day,r.stage,r.genre].filter(Boolean).join(' · '),artist:r.artist||r.name}));
   return items;
@@ -360,7 +363,7 @@ function focusSearchResult() {
   const id=new URLSearchParams(location.search).get('focus');
   if(!id)return;
   requestAnimationFrame(()=>{
-    const attributes=['data-room-edit','data-edit','data-invite','data-car-edit','data-pass-edit','data-task','data-lineup-edit'];
+    const attributes=['data-room-edit','data-edit','data-invite','data-car-edit','data-pass-edit','data-task','data-lineup-edit','data-note-id'];
     const target=[...el.page.querySelectorAll(attributes.map(a=>`[${a}]`).join(','))].find(node=>attributes.some(a=>node.getAttribute(a)===id));
     const flight=[...el.page.querySelectorAll('[data-flight-leg]')].find(node=>{const [trip,leg]=node.dataset.flightLeg.split(':').map(Number);return flightItineraries()[trip]?.legs[leg]?.ids.includes(id);});
     const memberCard=activeView==='crew'?el.page.querySelectorAll('.member-card')[data.members.findIndex(member=>member.id===id)]:null;
@@ -392,9 +395,98 @@ function renderHome() {
     ["travel","✈","Travel",`${new Set(data.travel.map((trip)=>trip.memberId)).size} of ${data.members.length} linked`,`${data.travel.length} flight legs · ${data.cars.length} cars`],
     ["passes","◇","Passes",`${data.passes.length} types tracked`,"Tickets, shuttles, and add-ons"],
     ["tasks","✓","Tasks",`${data.tasks.filter((task)=>task.status!=="done").length} open`,"Loose ends, owners, and status"],
+    ["notes","≡","Notes",`${(data.notes||[]).length} shared notes`,"Tidbits and updates from the crew"],
   ];
   if (data.id === DEFAULT_EVENT || data.lineup?.length || data.isAdmin) cards.splice(4,0,["lineup","♫","Lineup",data.lineup?.length?`${data.lineup.length} performances`:"Lineup not added yet","Save favorites and see who else is interested"]);
   el.page.innerHTML = `<section class="overview-header"><div><span class="eyebrow">${escapeHtml(data.presenter||"Project overview")}</span><h1>${escapeHtml(data.name)}</h1><p>⌖ ${escapeHtml(data.location)} · ${eventDateLine(data)}</p></div><div class="countdown"><strong>${days}</strong><span>days to go</span></div></section><div class="overview-grid">${cards.map(([view,icon,label,strong,small])=>`<a class="overview-tile" href="${href(view)}"><span class="overview-icon">${icon}</span><span><small>${label}</small><strong>${strong}</strong><em>${escapeHtml(small)}</em></span><b>→</b></a>`).join("")}</div><section class="section-card"><header><div><span class="eyebrow">Loose ends</span><h2>Open tickets</h2></div><a class="primary" href="${href("tasks")}">Open board →</a></header><div class="row-list">${data.tasks.filter((task)=>task.status!=="done").slice(0,4).map((task)=>`<div class="row"><strong>${escapeHtml(task.title)}</strong><span>${escapeHtml(memberMap()[task.assigneeId]?.name || "Unassigned")}</span></div>`).join("") || `<div class="empty">Nothing is waiting right now.</div>`}</div></section>`;
+}
+
+function noteCards(notes) {
+  const map = memberMap();
+  return [...notes].sort((a,b)=>b.createdAt-a.createdAt).map(note => {
+    const name = map[note.authorId]?.name || note.authorName || 'Former member';
+    const owner = note.authorId === data.currentMemberId;
+    const date = new Date(note.createdAt);
+    const stamp = date.toLocaleString([], {month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'});
+    return `<article class="note-card" data-note-id="${escapeAttr(note.id)}"><header><span class="note-avatar" aria-hidden="true">${escapeHtml(initials(name))}</span><div><strong>${escapeHtml(name)}</strong><div class="note-date"><time datetime="${date.toISOString()}">${escapeHtml(stamp)}</time>${note.updatedAt>note.createdAt?' · Edited':''}</div></div></header><p class="note-body">${escapeHtml(note.body)}</p>${owner||data.isAdmin?`<footer>${owner?`<button type="button" data-note-edit="${escapeAttr(note.id)}" ${offlineMode?'disabled':''}>Edit</button>`:''}<button type="button" data-note-delete="${escapeAttr(note.id)}" ${offlineMode?'disabled':''}>Delete</button></footer>`:''}</article>`;
+  }).join('') || '<div class="notes-empty"><h2>No notes yet</h2><p>Share a meetup spot, a reminder, or anything the crew should know.</p></div>';
+}
+
+function renderNoteList() {
+  const list = document.getElementById('notesList');
+  if (!list) return;
+  list.innerHTML = noteCards(data.notes || []);
+  list.querySelectorAll('[data-note-edit]').forEach(button => button.onclick=()=>openEditNote(data.notes.find(note=>note.id===button.dataset.noteEdit)));
+  list.querySelectorAll('[data-note-delete]').forEach(button => button.onclick=()=>{
+    if(offlineMode)return showToast('Reconnect to delete notes.');
+    const note=data.notes.find(note=>note.id===button.dataset.noteDelete), eventId=activeEvent;
+    openDangerDialog('Delete this note?', 'This removes the note for everyone in this project.', 'Delete note', async()=>{
+      await saveNote(eventId,'delete-note',{id:note.id,expectedUpdatedAt:note.updatedAt}); closeDialog(); showToast('Note deleted');
+    });
+  });
+}
+
+function updateNotesConnectivity() {
+  const form=document.getElementById('noteComposer');
+  if(!form)return;
+  form.querySelector('fieldset').disabled=offlineMode;
+  document.getElementById('refreshNotes').disabled=offlineMode;
+  document.getElementById('notesStatus').textContent=offlineMode?'Offline · Saved notes. Reconnect to post or refresh.':'';
+  document.querySelectorAll('[data-note-edit],[data-note-delete]').forEach(button=>button.disabled=offlineMode);
+}
+
+function renderNotes() {
+  const eventId=activeEvent;
+  el.page.innerHTML=heading('Shared with your crew','Notes','A place for the details that don’t fit anywhere else.', '<button id="refreshNotes" class="secondary" type="button">Refresh</button>')+
+    `<div class="notes-board"><form id="noteComposer" class="note-composer"><fieldset><label for="noteBody">Leave a note</label><textarea id="noteBody" name="body" rows="3" maxlength="4000" required placeholder="Meetup spot, useful link, last-minute reminder…"></textarea><div class="note-composer-footer"><small>Visible to everyone in this project</small><button class="primary" type="submit">Post note</button></div></fieldset><p id="noteError" class="note-error" role="alert" hidden></p></form><p id="notesStatus" class="notes-status" role="status"></p><section id="notesList" aria-label="Shared notes"></section></div>`;
+  renderNoteList(); updateNotesConnectivity();
+  const form=document.getElementById('noteComposer');
+  form.onsubmit=async event=>{
+    event.preventDefault();
+    const input=form.elements.body, error=form.querySelector('#noteError'), fieldset=form.querySelector('fieldset');
+    if(offlineMode)return showToast('Reconnect to post your note.');
+    if(!input.value.trim())return input.focus();
+    fieldset.disabled=true; error.hidden=true;
+    try { await saveNote(eventId,'add-note',{body:input.value}); input.value=''; showToast('Note posted'); }
+    catch(reason){error.textContent=reason.message||'Could not post. Your draft is still here.';error.hidden=false;}
+    finally {fieldset.disabled=offlineMode;}
+  };
+  document.getElementById('refreshNotes').onclick=refreshNotes;
+  if(!offlineMode)void refreshNotes();
+}
+
+async function refreshNotes() {
+  const eventId=activeEvent, revision=++notesRevision, status=document.getElementById('notesStatus');
+  if(offlineMode||!status)return;
+  status.textContent='Refreshing notes…';
+  try {
+    const room=await convexQuery('rally:get',{eventId});
+    if(revision!==notesRevision||eventId!==activeEvent||activeView!=='notes')return;
+    data.notes=room.notes||[]; renderNoteList(); focusSearchResult();
+    status.textContent='Up to date · Newest notes first';
+  } catch(error) {
+    if(revision===notesRevision&&eventId===activeEvent&&activeView==='notes')status.textContent='Could not refresh. Showing saved notes; try again when connected.';
+  }
+}
+
+async function saveNote(eventId,action,payload) {
+  if(offlineMode)throw new Error('Reconnect to change notes.');
+  const owner=window.Clerk?.user?.id;
+  ++notesRevision;
+  const room=await convexMutation('rally:act',{eventId,action,payload});
+  ++notesRevision;
+  if(owner===window.Clerk?.user?.id&&eventId===activeEvent){
+    data=room;
+    if(activeView==='notes'){renderNoteList();document.getElementById('notesStatus').textContent='Saved · Newest notes first';}
+  }
+}
+
+function openEditNote(note) {
+  if(!note||offlineMode)return;
+  const eventId=activeEvent;
+  openDialog('Edit note','Changes are visible to everyone in this project.',`<label class="field">Note<textarea class="note-edit-body" name="body" rows="7" maxlength="4000" required>${escapeHtml(note.body)}</textarea></label>`,async values=>{
+    await saveNote(eventId,'edit-note',{id:note.id,body:values.body,expectedUpdatedAt:note.updatedAt});closeDialog();showToast('Note updated');
+  });
 }
 
 function renderCrew() {
@@ -540,7 +632,7 @@ async function convexCall(kind, path, args) {
   }
   return value;
 }
-async function networkConvexCall(kind,path,args){const token=await getConvexToken();if(!token)throw new Error("Not authenticated with Clerk.");const response=await fetch(`${CONVEX_URL}/api/${kind}`,{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${token}`},body:JSON.stringify({path,args}),signal:AbortSignal.timeout(12000)});const result=await response.json();if(!response.ok||result.status!=="success")throw new Error(result.errorMessage||`Convex ${kind} failed`);return result.value}
+async function networkConvexCall(kind,path,args){const token=await getConvexToken();if(!token)throw new Error("Not authenticated with Clerk.");const response=await fetch(`${CONVEX_URL}/api/${kind}`,{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${token}`},body:JSON.stringify({path,args}),signal:AbortSignal.timeout(12000)});const result=await response.json();if(!response.ok||result.status!=="success")throw new Error(typeof result.errorData==='string'?result.errorData:result.errorMessage||`Convex ${kind} failed`);return result.value}
 async function getConvexToken(){const session=window.Clerk?.session;if(!session)return null;const sessionToken=await session.getToken();const audience=readJwtPayload(sessionToken)?.aud;if(audience==="convex"||(Array.isArray(audience)&&audience.includes("convex")))return sessionToken;try{return await session.getToken({template:"convex"})}catch{return sessionToken}}
 function readJwtPayload(token){if(!token)return null;try{const encoded=token.split(".")[1].replace(/-/g,"+").replace(/_/g,"/");return JSON.parse(decodeURIComponent(escape(atob(encoded))))}catch{return null}}
 function escapeHtml(value){const span=document.createElement("span");span.textContent=String(value??"");return span.innerHTML} function escapeAttr(value){return escapeHtml(value).replace(/"/g,"&quot;")}

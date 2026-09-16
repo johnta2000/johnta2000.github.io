@@ -3,6 +3,7 @@ import { internal } from "./_generated/api";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { v } from "convex/values";
 import { LOST_LANDS_SET_TIMES, LOST_LANDS_SET_TIMES_META } from "./lostLandsSetTimes";
+import { updateNotes } from "./rallyNotes";
 
 type Identity = { subject: string; email?: string | null; name?: string | null; emailVerified?: boolean };
 type RallyState = Record<string, any>;
@@ -695,7 +696,9 @@ export const act = mutation({
     const p = args.payload || {};
     const id = () => crypto.randomUUID();
 
-    if (args.action === "invite-member") {
+    if (["add-note", "edit-note", "delete-note"].includes(args.action)) {
+      state.notes = updateNotes(state.notes, args.action, p, current, Date.now(), id);
+    } else if (args.action === "invite-member") {
       if (!["admin", "leader"].includes(current.role)) throw new Error("Only an admin can invite crew.");
       const member = state.members.find((person: RallyState) => person.id === p.memberId);
       const email = normalizedEmail(p.email);

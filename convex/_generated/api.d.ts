@@ -14,6 +14,7 @@ import type * as lineupFavorites from "../lineupFavorites.js";
 import type * as lostLandsSetTimes from "../lostLandsSetTimes.js";
 import type * as monitoring from "../monitoring.js";
 import type * as rally from "../rally.js";
+import type * as rallyNotes from "../rallyNotes.js";
 import type * as sleep from "../sleep.js";
 import type * as standups from "../standups.js";
 import type * as videoDownloads from "../videoDownloads.js";
@@ -35,6 +36,7 @@ declare const fullApi: ApiFromModules<{
   lostLandsSetTimes: typeof lostLandsSetTimes;
   monitoring: typeof monitoring;
   rally: typeof rally;
+  rallyNotes: typeof rallyNotes;
   sleep: typeof sleep;
   standups: typeof standups;
   videoDownloads: typeof videoDownloads;
