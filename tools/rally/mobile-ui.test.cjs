@@ -7,6 +7,27 @@ const html=fs.readFileSync(path.join(__dirname,'../../lost-lands-2026-lineup/ind
 const dataset={window:{}};
 vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../../lost-lands-2026-lineup/set-times.js'),'utf8'),dataset);
 const lineup=dataset.window.LOST_LANDS_SET_TIMES.map((entry,index)=>({...entry,posterIndex:index}));
+test('canonical set favorites never expand into other Secret Takeover slots',()=>{
+  const ctx={lineup};vm.createContext(ctx);
+  vm.runInContext(html.slice(html.indexOf('const currentIdsByLegacyId ='),html.indexOf('const els ='))+'\nthis.mapFavorite=currentFavoriteIds;',ctx);
+  for(const set of lineup) assert.deepEqual(Array.from(ctx.mapFavorite(set.id)),[set.id]);
+  const takeovers=lineup.filter(set=>set.artist==='SECRET TAKEOVER');
+  assert(takeovers.length>1);
+  const original=takeovers.find(set=>set.id==='set-secret-takeover');assert(original);
+  const other=takeovers.find(set=>set.day!==original.day);assert(other);
+  let favorites=new Set([original.id,other.id,lineup[0].id]);
+  favorites.delete(other.id);
+  favorites=new Set(JSON.parse(JSON.stringify([...favorites])).flatMap(ctx.mapFavorite));
+  assert(favorites.has(original.id));assert(!favorites.has(other.id));assert(favorites.has(lineup[0].id));
+  favorites.delete(original.id);
+  assert(![...favorites].flatMap(ctx.mapFavorite).some(id=>takeovers.some(set=>set.id===id)));
+});
+test('obsolete artist aliases still migrate without dropping existing exact preferences',()=>{
+  const ctx={lineup:[{id:'set-a',legacyIds:['old-artist']},{id:'set-b',legacyIds:['old-artist']}]};vm.createContext(ctx);
+  vm.runInContext(html.slice(html.indexOf('const currentIdsByLegacyId ='),html.indexOf('const els ='))+'\nthis.mapFavorite=currentFavoriteIds;',ctx);
+  assert.deepEqual(Array.from(ctx.mapFavorite('old-artist')),['set-a','set-b']);
+  assert.deepEqual(Array.from(ctx.mapFavorite('set-b')),['set-b']);
+});
 function context() {
   const container={innerHTML:'',contains:()=>false,querySelectorAll:()=>[]};
   const button={textContent:''};

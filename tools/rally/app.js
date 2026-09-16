@@ -17,6 +17,7 @@ let data = null;
 let events = [];
 let activeView = "home";
 let activeEvent = DEFAULT_EVENT;
+let unlockPending = null;
 let draggedTask = null;
 let lineupSaveTimer = null;
 let lineupRefreshTimer = null;
@@ -143,7 +144,7 @@ async function navigateTo(url, { push = true } = {}) {
       data = await convexMutation("rally:bootstrap", { eventId: activeEvent });
       events = await convexQuery("rally:listEvents", {});
     } catch (error) {
-      showToast(error.message || "Could not open that rave room");
+      showAuthError(error);
       return;
     }
   }
@@ -160,7 +161,12 @@ async function initializeClerk() {
     document.body.classList.remove("booting");
     el.rallyApp.hidden = true;
     el.accessGate.hidden = false;
+    el.accessGate.classList.remove('auth-recovery');
+    el.clerkSignIn.hidden = false;
+    document.getElementById('authTitle').hidden = true;
+    document.getElementById('authOptions').hidden = true;
     el.authStatus.hidden = true;
+    el.authSignOut.hidden = true;
     window.Clerk.mountSignIn(el.clerkSignIn, {
       routing: "hash", withSignUp: true,
       forceRedirectUrl: location.href.split("#")[0], signUpForceRedirectUrl: location.href.split("#")[0],
@@ -169,16 +175,37 @@ async function initializeClerk() {
   } catch (error) { if (!navigator.onLine && openSavedRoom()) return; showAuthError(error); }
 }
 
-async function unlock() {
+function unlock() {
+  if (unlockPending) return unlockPending;
+  unlockPending = openAuthorizedRoom().finally(() => { unlockPending = null; });
+  return unlockPending;
+}
+
+async function openAuthorizedRoom() {
   try {
-    RallyOffline.identify(window.Clerk.user.id);
+    const owner = window.Clerk.user.id;
+    RallyOffline.identify(owner);
     offlineMode = false;
-    const [room, knownEvents] = await Promise.all([
-      convexMutation("rally:bootstrap", { eventId: activeEvent }),
-      convexQuery("rally:listEvents", {}),
-    ]);
+    // Resolve membership before opening a room. A generic landing URL must not
+    // require membership in Lost Lands, and authorization errors are redacted
+    // by Convex in production, so matching their error text isn't reliable.
+    const knownEvents = await convexQuery("rally:listEvents", {});
+    if (window.Clerk.user?.id !== owner) return;
+    events = knownEvents;
+    if (!events.some(event => event.id === activeEvent)) {
+      if (!new URLSearchParams(location.search).has('event') && events.length) {
+        activeEvent = events[0].id;
+        const url = new URL(location.href);
+        url.searchParams.set('event', activeEvent);
+        history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`);
+      } else {
+        showRoomAccess();
+        return;
+      }
+    }
+    const room = await convexMutation("rally:bootstrap", { eventId: activeEvent });
+    if (window.Clerk.user?.id !== owner) return;
     data = room;
-    events = knownEvents.length ? knownEvents : await convexQuery("rally:listEvents", {});
     render();
     el.accessGate.hidden = true;
     el.rallyApp.hidden = false;
@@ -196,10 +223,51 @@ async function unlock() {
   }
 }
 
-function showAuthError(error) {
-  console.error(error); document.body.classList.remove("booting"); el.accessGate.hidden = false; el.rallyApp.hidden = true; el.authStatus.hidden = false; el.authSignOut.hidden = !window.Clerk?.isSignedIn;
-  el.authStatus.textContent = /not been invited/i.test(String(error?.message || error)) ? "This email has not been invited to this Rally room." : "Secure sign-in could not finish. Refresh and try again.";
+function showRoomAccess() {
+  showAuthRecovery('Choose your rave room', events.length
+    ? 'This account does not have access to the linked project. You can open one of your rooms below, or ask its admin to invite this email.'
+    : 'No rave rooms are linked to this account yet. Ask the project admin to invite the email shown below, or sign in with your invited email.');
+}
+
+function showAuthRecovery(title, message) {
+  document.body.classList.remove('booting');
+  el.accessGate.hidden = false; el.rallyApp.hidden = true;
+  el.accessGate.classList.add('auth-recovery');
+  el.clerkSignIn.hidden = true;
+  const heading = document.getElementById('authTitle');
+  heading.hidden = false; heading.textContent = title;
+  const email = window.Clerk?.user?.primaryEmailAddress?.emailAddress;
+  el.authStatus.hidden = false;
+  el.authStatus.textContent = `${email ? `Signed in as ${email}. ` : ''}${message}`;
+  const options = document.getElementById('authOptions');
+  options.replaceChildren(); options.hidden = false;
+  if (window.Clerk?.isSignedIn) for (const event of events) {
+    const button = document.createElement('button');
+    button.className = 'secondary'; button.textContent = `Open ${event.name}`;
+    button.onclick = () => {
+      if (unlockPending) return;
+      activeEvent = event.id;
+      const url = new URL(location.href);
+      url.searchParams.set('event', event.id);
+      history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`);
+      void unlock();
+    };
+    options.append(button);
+  }
+  const retry = document.createElement('button');
+  retry.className = 'secondary'; retry.textContent = 'Try again';
+  retry.onclick = () => window.Clerk?.isSignedIn ? unlock() : location.reload();
+  options.append(retry);
+  el.authSignOut.hidden = !window.Clerk?.isSignedIn;
   el.authSignOut.onclick = signOut;
+}
+
+function showAuthError(error) {
+  console.error(error);
+  const signedIn = window.Clerk?.isSignedIn;
+  showAuthRecovery(signedIn ? 'Your room could not load' : 'Sign-in could not load', signedIn
+    ? 'You are signed in, but Rally could not load this project. Try again, or open another room below.'
+    : 'Secure sign-in is unavailable right now. Check your connection and try again.');
 }
 
 async function signOut() { if (offlineMode) return showToast('Reconnect to sign out securely.'); if (RallyOffline.pendingCount && !confirm('Sign out and discard favorites that have not synced yet?')) return; RallyOffline.clear(); if (window.Clerk?.isSignedIn) await window.Clerk.signOut(); location.assign(BASE_PATH); }
@@ -212,6 +280,7 @@ function render() {
   const days = Math.max(0, Math.ceil((new Date(`${data.startsAt}T12:00:00Z`) - Date.now()) / 86400000));
   el.eventName.textContent = data.name; el.mobileEventName.textContent = data.name; el.mobileCountdown.textContent = `${days} days away`;
   el.eventThumb.textContent = initials(data.name); el.topInvite.hidden = !data.isAdmin;
+  renderAccountButton();
   el.sideNav.innerHTML = views.filter(([id]) => id !== "lineup" || data.id === DEFAULT_EVENT || data.lineup?.length || data.isAdmin).map(([id,label,icon]) => `<a href="${href(id)}" class="${activeView === id ? "active" : ""}"><span class="nav-icon">${icon}</span>${label}</a>`).join("");
   el.eventMenu.innerHTML = events.map((event) => `<button data-event="${event.id}"><strong>${escapeHtml(event.name)}</strong><small class="event-menu-date">${dateRange(event.startsAt,event.endsAt)}</small><small>${escapeHtml(event.location)}</small></button>`).join("");
   el.eventMenu.insertAdjacentHTML("beforeend", '<button id="newEvent" class="new-event-menu-item">＋ New rave room</button>');
@@ -222,6 +291,14 @@ function render() {
   renderer();
   renderMobileNav();
   focusSearchResult();
+}
+
+function renderAccountButton() {
+  const member = data.members.find(person => person.id === data.currentMemberId);
+  const name = member?.name || window.Clerk?.user?.fullName || 'Your profile';
+  el.accountButton.textContent = member?.name ? initials(member.name) : window.Clerk?.user?.fullName ? initials(name) : '?';
+  el.accountButton.title = name;
+  el.accountButton.setAttribute('aria-label', `Edit ${name} profile`);
 }
 
 function renderMobileNav() {

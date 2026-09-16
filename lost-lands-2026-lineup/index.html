@@ -1781,7 +1781,11 @@
         addPreferenceAlias(entry.id, entry.id);
         (entry.legacyIds || []).forEach((legacyId) => addPreferenceAlias(legacyId, entry.id));
       });
-      const currentFavoriteIds = (id) => [...(currentIdsByLegacyId.get(id) || [id])];
+      // An exact set ID always means that one performance. Historical artist
+      // aliases may fan out only when they are no longer a current set ID.
+      // Otherwise "set-secret-takeover" re-selects every slot on each reload.
+      const canonicalFavoriteIds = new Set(lineup.map((entry) => entry.id));
+      const currentFavoriteIds = (id) => canonicalFavoriteIds.has(id) ? [id] : [...(currentIdsByLegacyId.get(id) || [id])];
 
       const els = {
         accountButton: document.getElementById("account-button"),

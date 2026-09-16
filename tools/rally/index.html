@@ -101,6 +101,13 @@
       @media(prefers-reduced-transparency:reduce){
         .nav-glass-group,.bottom-nav #quickSearch{background:#fffef9;backdrop-filter:none;-webkit-backdrop-filter:none}
       }
+      .auth-recovery .access-card>h1,.auth-recovery .access-card>p:not(.auth-status){display:none}
+      .auth-recovery{overflow-y:auto}
+      #authTitle{font-size:1.8rem;letter-spacing:-.04em}
+      .auth-recovery .auth-status{font-size:.95rem;overflow-wrap:anywhere}
+      #authOptions{display:grid;gap:10px;margin:20px auto;max-width:360px}
+      #authOptions[hidden]{display:none}
+      #authOptions button{min-height:44px;height:auto;padding:12px;text-align:center;white-space:normal}
     </style>
   </head>
   <body class="booting">
@@ -111,7 +118,9 @@
         <h1>Everyone on the<br><em>same wavelength.</em></h1>
         <p>Rooms, flights, passes, people, and loose ends—together in one place.</p>
         <div id="clerkSignIn"></div>
-        <p id="authStatus" class="auth-status">Loading secure sign-in…</p>
+        <h2 id="authTitle" hidden></h2>
+        <p id="authStatus" class="auth-status" role="status">Loading secure sign-in…</p>
+        <div id="authOptions" hidden></div>
         <button id="authSignOut" class="text-button" hidden>Use a different email</button>
       </div>
     </section>
@@ -126,7 +135,7 @@
       </aside>
       <button id="menuBackdrop" class="menu-backdrop" hidden aria-label="Close menu"></button>
       <main class="main-column">
-        <header class="topbar"><button id="openMenu" class="icon-button">☰</button><div class="mobile-event"><strong id="mobileEventName"></strong><small id="mobileCountdown"></small></div><span></span><button id="topInvite" class="secondary">＋ Invite crew</button><button id="accountButton" class="avatar">JT</button></header>
+        <header class="topbar"><button id="openMenu" class="icon-button">☰</button><div class="mobile-event"><strong id="mobileEventName"></strong><small id="mobileCountdown"></small></div><span></span><button id="topInvite" class="secondary">＋ Invite crew</button><button id="accountButton" class="avatar" aria-label="Your profile">?</button></header>
         <div id="page" class="page"><section class="boot-heading"><i></i><b></b><span></span></section><div class="boot-grid"><article></article><article></article><article></article><article></article><article></article><article></article></div></div>
       </main>
       <nav id="mobileNav" class="bottom-nav" aria-label="Quick navigation"></nav>
@@ -140,6 +149,6 @@
     <script defer crossorigin="anonymous" data-clerk-publishable-key="pk_live_Y2xlcmsuam9obi10YS5jb20k" src="https://clerk.john-ta.com/npm/@clerk/clerk-js@6/dist/clerk.browser.js"></script>
     <script defer src="./offline.js?v=1"></script>
     <script defer src="../../lost-lands-2026-lineup/set-times.js"></script>
-    <script defer src="./app.js?v=25"></script>
+    <script defer src="./app.js?v=26"></script>
   </body>
 </html>
