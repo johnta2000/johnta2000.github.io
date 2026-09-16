@@ -28,6 +28,47 @@ test('obsolete artist aliases still migrate without dropping existing exact pref
   assert.deepEqual(Array.from(ctx.mapFavorite('old-artist')),['set-a','set-b']);
   assert.deepEqual(Array.from(ctx.mapFavorite('set-b')),['set-b']);
 });
+function boardContext() {
+  const {ctx}=context();
+  ctx.els={heatContent:{innerHTML:''},posterContent:{innerHTML:''},heatScale:{textContent:''}};
+  ctx.formatFestivalDate=date=>date;
+  vm.runInContext(html.slice(html.indexOf('function renderHeatMap('),html.indexOf('function renderTable(')),ctx);
+  return ctx;
+}
+test('desktop day board includes every set exactly once with independent favorites and crew details',()=>{
+  const ctx=boardContext();ctx.favorites.add(lineup[0].id);
+  ctx.lineupInterests[lineup[0].id]=[{id:'j',name:'Jessi',initials:'J'}];
+  ctx.renderDayBoard(lineup);
+  const output=ctx.els.posterContent.innerHTML;
+  assert.equal((output.match(/class="day-column"/g)||[]).length,5);
+  assert.equal((output.match(/data-favorite-id=/g)||[]).length,lineup.length);
+  for(const set of lineup) assert.equal(output.split(`data-favorite-id="${ctx.escapeHtml(set.id)}"`).length,2);
+  assert(output.includes('aria-pressed="true"'));assert(output.includes('Jessi'));
+  assert(output.includes('After midnight'));assert(output.includes('stage-group-header'));
+  assert.equal(ctx.favorites.size,1);
+});
+test('heatmap ranks within each day and scales interest consistently without stage matrix gaps',()=>{
+  const ctx=boardContext(),friday=lineup.filter(x=>x.day==='Friday'),saturday=lineup.filter(x=>x.day==='Saturday');
+  ctx.lineupInterests[friday.at(-1).id]=[{id:'a',name:'<script>alert(1)</script>',initials:'A'},{id:'b',name:'Kevin',initials:'KT'}];
+  ctx.lineupInterests[saturday[0].id]=[{id:'b',name:'Kevin',initials:'KT'}];
+  ctx.renderHeatMap([...friday,...saturday]);const output=ctx.els.heatContent.innerHTML;
+  assert.equal((output.match(/class="day-column"/g)||[]).length,2);
+  assert.equal((output.match(/data-favorite-id=/g)||[]).length,friday.length+saturday.length);
+  assert(output.indexOf(`data-favorite-id="${friday.at(-1).id}"`)<output.indexOf(`data-favorite-id="${friday[0].id}"`));
+  assert(output.includes('--heat-strength:100%'));assert(output.includes('--heat-strength:50%'));
+  assert(!output.includes('heat-grid'));assert(!output.includes('<script>'));
+  assert(output.includes('&lt;script&gt;'));assert(output.includes('board-set-stage'));
+  assert(ctx.els.heatScale.textContent.includes('0–2'));
+});
+test('desktop boards handle loading, empty filters, and no favorites without inventing interest',()=>{
+  const ctx=boardContext();ctx.groupStateLoaded=false;
+  ctx.renderHeatMap(lineup);assert(ctx.els.heatContent.innerHTML.includes('Loading'));
+  ctx.groupStateLoaded=true;ctx.renderHeatMap([]);assert(ctx.els.heatContent.innerHTML.includes('No sets match'));
+  ctx.renderDayBoard([]);assert(ctx.els.posterContent.innerHTML.includes('No sets match'));
+  ctx.renderHeatMap(lineup.slice(0,2));assert(ctx.els.heatContent.innerHTML.includes('--heat-strength:0%'));
+  assert(!ctx.els.heatContent.innerHTML.includes('NaN'));assert(ctx.els.heatScale.textContent.includes('No group favorites'));
+  ctx.rallyManagedFavorites=false;assert(!ctx.boardSetCard(lineup[0]).includes('board-set-crew'));
+});
 function context() {
   const container={innerHTML:'',contains:()=>false,querySelectorAll:()=>[]};
   const button={textContent:''};

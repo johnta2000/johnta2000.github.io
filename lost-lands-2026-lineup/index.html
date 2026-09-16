@@ -1342,7 +1342,7 @@
         .rank-day { font-size: 8px; }
       }
     </style>
-    <link rel="stylesheet" href="./mobile.css?v=5">
+    <link rel="stylesheet" href="./mobile.css?v=6">
     <script defer src="../tools/rally/keyboard.js?v=1"></script>
   </head>
   <body>
@@ -1409,8 +1409,8 @@
         </section>
 
         <section class="content-panel" id="heat-view" aria-label="Group favorites heat map" hidden>
-          <div class="heat-legend"><span>Group favorites per set</span><span class="heat-gradient" aria-hidden="true"></span><span id="heat-scale"></span></div>
-          <div class="heat-scroll" tabindex="0" aria-label="Scroll days and stages"><div id="heat-content"></div></div>
+          <div class="heat-legend"><strong>Where the crew is headed</strong><span class="heat-gradient" aria-hidden="true"></span><span id="heat-scale"></span></div>
+          <div class="heat-scroll" tabindex="0" aria-label="Browse crew favorites by day"><div id="heat-content"></div></div>
         </section>
         <section class="content-panel table-wrap" id="table-view" aria-label="Lineup table">
           <table>
@@ -2013,31 +2013,41 @@
 
       function renderHeatMap(entries) {
         const maximum = Math.max(0, ...lineup.map((entry) => groupPeople(entry.id).length));
-        els.heatScale.textContent = maximum ? `0–${maximum} people · brighter = more liked` : "No group favorites yet";
+        els.heatScale.textContent = maximum ? `0–${maximum} interested · ranked within each day` : "No group favorites yet";
         if (!groupStateLoaded || !entries.length) {
           els.heatContent.innerHTML = `<div class="empty-state">${!groupStateLoaded ? "Loading your crew’s favorites…" : "No sets match the current filters."}</div>`;
           return;
         }
         const days = dayOrder.filter((day) => entries.some((entry) => entry.day === day));
-        const stages = stageOrder.filter((stage) => entries.some((entry) => entry.stage === stage));
-        const headers = days.map((day) => `<header class="heat-day">${escapeHtml(day)}<small>${escapeHtml(formatFestivalDate(entries.find((entry) => entry.day === day).festivalDate))}</small></header>`).join("");
-        const cells = stages.map((stage) => `<div class="heat-stage">${escapeHtml(stage)}</div>${days.map((day) => {
-          const sets = entries.filter((entry) => entry.stage === stage && entry.day === day).sort(compareSets);
-          const cards = sets.map((entry) => {
-            const people = groupPeople(entry.id);
-            const count = people.length;
-            const ratio = maximum ? count / maximum : 0;
-            const fill = count ? `hsl(${145 - ratio * 70} 48% ${23 + ratio * 49}%)` : "#10251e";
-            const ink = ratio > 0.45 ? "#101e14" : "#eff7e9";
-            return `<article class="heat-card" style="--heat-fill:${fill};--heat-text:${ink}">
-              <div class="heat-card-head"><strong>${escapeHtml(entry.artist)}</strong><button class="favorite-button ${favorites.has(entry.id) ? "is-active" : ""}" type="button" data-favorite-id="${escapeHtml(entry.id)}" aria-label="${favorites.has(entry.id) ? "Remove" : "Add"} ${escapeHtml(entry.artist)} favorite">★</button></div>
-              <span class="heat-time">${escapeHtml(formatClock(entry.start))}–${escapeHtml(formatClock(entry.end))}</span>
-              ${count ? `<details><summary>${count} ${count === 1 ? "person" : "people"} interested</summary><p class="heat-names">${people.map((person) => escapeHtml(person.name)).join(", ")}</p></details>` : '<span class="heat-time">0 interested</span>'}
-            </article>`;
-          }).join("");
-          return `<div class="heat-cell">${cards || '<span class="heat-none">No matching sets</span>'}</div>`;
-        }).join("")}`).join("");
-        els.heatContent.innerHTML = `<div class="heat-grid" style="--heat-days:${days.length}"><div class="heat-day heat-corner">Stage</div>${headers}${cells}</div>`;
+        els.heatContent.innerHTML = `<div class="crew-board">${days.map(day => {
+          const sets = entries.filter(entry => entry.day === day).sort((a,b) => groupPeople(b.id).length - groupPeople(a.id).length || a.posterIndex - b.posterIndex);
+          return `<section class="day-column">${boardDayHeader(day, sets)}<div class="crew-day-list">${sets.map((entry,index) => boardSetCard(entry, {maximum, rank:index+1})).join('')}</div></section>`;
+        }).join('')}</div>`;
+      }
+
+      function boardDayHeader(day, sets) {
+        return `<header class="day-column-header"><div><strong>${escapeHtml(day)}</strong><small>${escapeHtml(formatFestivalDate(sets[0].festivalDate))}</small></div><span class="day-set-count">${sets.length} sets</span></header>`;
+      }
+
+      function boardStageColor(stage) {
+        const colors = ['#258579','#c56933','#7864b5','#b45376','#467bbc','#7f873b','#995636'];
+        return colors[stageOrder.indexOf(stage) % colors.length] || colors[0];
+      }
+
+      function boardSetCard(entry, {maximum = 0, rank = 0} = {}) {
+        const people = groupPeople(entry.id), count = people.length, saved = favorites.has(entry.id);
+        const ratio = maximum ? count / maximum : 0;
+        const overnight = entry.start.slice(0,10) > entry.festivalDate ? 'After midnight' : entry.end.slice(0,10) > entry.start.slice(0,10) ? 'Ends next day' : '';
+        return `<article class="board-set${rank ? ' board-set-heat' : ''}" style="--stage-color:${boardStageColor(entry.stage)};--heat-tint:${Math.round(ratio*12)}%;--heat-strength:${Math.round(ratio*100)}%">
+          <div class="board-set-heading"><div class="board-set-copy">
+            <p class="board-set-time">${escapeHtml(formatClock(entry.start))} – ${escapeHtml(formatClock(entry.end))}</p>
+            <h3>${escapeHtml(entry.artist)}</h3>
+          </div><button class="favorite-button${saved ? ' is-active' : ''}" type="button" data-favorite-id="${escapeHtml(entry.id)}" aria-pressed="${saved}" aria-label="${saved ? 'Remove' : 'Add'} ${escapeHtml(entry.artist)} favorite">★</button></div>
+          ${rank ? `<p class="board-set-stage"><i aria-hidden="true"></i>${escapeHtml(entry.stage)}</p>` : ''}
+          ${overnight ? `<span class="board-set-overnight">${overnight}</span>` : ''}
+          ${rallyManagedFavorites ? `<div class="board-set-crew">${count ? `<details><summary><span class="board-avatars" aria-hidden="true">${people.slice(0,3).map(person=>`<i>${escapeHtml(person.initials || person.name.slice(0,1))}</i>`).join('')}</span><span><strong>${count}</strong> interested</span><span class="board-expand" aria-hidden="true">⌄</span></summary><p>${people.map(person=>escapeHtml(person.name)).join(' · ')}</p></details>` : `<span class="board-no-picks">${groupStateLoaded ? 'No crew favorites yet' : 'Loading crew favorites…'}</span>`}
+          ${rank ? `<div class="board-heat-meter" role="img" aria-label="${count} interested; most popular set has ${maximum}"><i></i></div>` : ''}</div>` : ''}
+        </article>`;
       }
 
       function renderDayBoard(entries) {
@@ -2046,33 +2056,17 @@
           return;
         }
 
-        const stageColors = ["#18c9c1", "#f6893b", "#c6e968", "#d7a8ff", "#ff7ca8", "#76b8ff", "#f6cf65", "#7de0a3"];
         els.posterContent.innerHTML = dayOrder
           .filter((day) => entries.some((entry) => entry.day === day))
           .map((day) => {
             const dayEntries = entries.filter((entry) => entry.day === day);
-            const date = dayEntries[0]?.festivalDate;
             const stages = stageOrder.filter((stage) => dayEntries.some((entry) => entry.stage === stage));
             const stageGroups = stages.map((stage) => {
               const stageEntries = dayEntries
                 .filter((entry) => entry.stage === stage)
                 .sort(compareSets);
-              const color = stageColors[stageOrder.indexOf(stage) % stageColors.length];
-              const cards = stageEntries.map((entry) => `
-                <article class="day-set-card">
-                  <button
-                    class="favorite-button ${favorites.has(entry.id) ? "is-active" : ""}"
-                    type="button"
-                    data-favorite-id="${entry.id}"
-                    aria-label="${favorites.has(entry.id) ? "Remove" : "Add"} ${escapeHtml(entry.artist)} favorite"
-                  >★</button>
-                  <div class="day-set-copy">
-                    <span class="day-set-time">${escapeHtml(formatClock(entry.start))} – ${escapeHtml(formatClock(entry.end))}</span>
-                    <strong class="day-set-artist" title="${escapeHtml(entry.artist)}">${escapeHtml(entry.artist)}</strong>
-                  </div>
-                  ${rallyManagedFavorites ? `<div class="day-set-interest">${renderInterest(entry.id)}</div>` : ""}
-                </article>
-              `).join("");
+              const color = boardStageColor(stage);
+              const cards = stageEntries.map(entry => boardSetCard(entry)).join('');
               return `
                 <section class="stage-group" style="--stage-color:${color}">
                   <header class="stage-group-header"><span>${escapeHtml(stage)}</span><span>${stageEntries.length} set${stageEntries.length === 1 ? "" : "s"}</span></header>
@@ -2082,10 +2076,7 @@
             }).join("");
             return `
               <section class="day-column">
-                <header class="day-column-header">
-                  <div><strong>${escapeHtml(day)}</strong><small>${escapeHtml(formatFestivalDate(date))}</small></div>
-                  <span class="day-set-count">${dayEntries.length} sets</span>
-                </header>
+                ${boardDayHeader(day, dayEntries)}
                 <div class="day-column-body">${stageGroups}</div>
               </section>
             `;
