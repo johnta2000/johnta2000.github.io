@@ -1037,7 +1037,7 @@ button svg {
   border-color: var(--accent);
 }
 
-@media (max-width: 700px) {
+@media (max-width: 760px) {
   .comment-thread-panel {
     display: none;
     position: fixed;
@@ -1542,53 +1542,252 @@ button svg {
   font-size: 12px;
 }
 
-@media (min-width: 761px) {
-  .app-shell {
-    min-width: 1180px;
+/* Keep the desktop comparison, but let smaller screens reflow naturally. */
+@media (max-width: 1100px) {
+  .topbar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+    gap: 16px;
   }
-}
 
-@media (max-width: 760px) {
-  .workspace,
-  .compare-grid {
-    grid-template-columns: 1fr;
+  .topbar > div:first-child {
+    grid-column: 1 / -1;
+    min-width: 0;
+  }
+
+  .date-control {
+    min-width: 0;
+    max-width: 320px;
+  }
+
+  .date-control input {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .workspace {
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .daily-list {
     position: static;
   }
-}
 
-@media (max-width: 640px) {
-  .app-shell {
-    width: min(100vw - 20px, 1320px);
-    padding: 16px 0;
-  }
-
-  .topbar,
-  .form-actions {
-    align-items: stretch;
+  .editor-toolbar {
+    flex-wrap: wrap;
   }
 
   .form-actions {
     flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
   }
 
   .date-jump {
-    justify-content: stretch;
+    justify-content: flex-start;
     overflow-x: auto;
   }
 
-  .identity-row {
-    align-items: stretch;
-    flex-direction: column;
+  .date-jump button {
+    flex-shrink: 0;
+    min-height: 44px;
   }
 
+  .save-status {
+    white-space: normal;
+  }
+
+  body {
+    padding-bottom: 120px;
+  }
+}
+
+@media (max-width: 760px) {
+  body {
+    padding-bottom: calc(124px + env(safe-area-inset-bottom));
+  }
+
+  .app-shell {
+    width: calc(100% - 24px);
+    padding: 16px 0;
+  }
+
+  .topbar {
+    gap: 14px 12px;
+    padding: 0 0 18px;
+  }
+
+  .topbar h1 {
+    font-size: clamp(28px, 7vw, 36px);
+    line-height: 1.12;
+    overflow-wrap: normal;
+  }
+
+  .topbar .eyebrow {
+    font-size: 11px;
+  }
+
+  .lock-button {
+    min-height: 44px;
+    padding-inline: 14px;
+    white-space: nowrap;
+  }
+
+  .entry-form,
+  .daily-list {
+    min-width: 0;
+    padding: 14px;
+    box-shadow: 0 6px 20px rgba(35, 41, 34, 0.05);
+  }
+
+  .compare-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 24px;
+  }
+
+  .today-panel {
+    order: -1;
+  }
+
+  .previous-content {
+    margin-top: 0;
+  }
+
+  .previous-content.empty-state {
+    min-height: 0;
+  }
+
+  .identity-row,
   .name-field {
     width: 100%;
+    min-width: 0;
   }
 
-  h1 {
-    font-size: 34px;
+  input,
+  select,
+  .rich-editor,
+  .comment-reply-form textarea {
+    font-size: 16px;
+  }
+
+  input,
+  select {
+    min-height: 44px;
+  }
+
+  .rich-editor {
+    min-width: 0;
+    min-height: 144px;
+    overflow-wrap: anywhere;
+    scroll-margin-block: 16px 140px;
+  }
+
+  .editor-toolbar {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 4px;
+    padding: 5px;
+  }
+
+  .editor-toolbar button {
+    width: 100%;
+    min-width: 0;
+    min-height: 44px;
+    font-size: 16px;
+    touch-action: manipulation;
+  }
+
+  .editor-toolbar .comment-editor-button {
+    grid-column: span 3;
+    min-width: 0;
+    font-size: 13px;
+  }
+
+  .editor-toolbar .copy-editor-button {
+    grid-column: 4 / 6;
+    min-width: 0;
+    margin: 0;
+    font-size: 13px;
+  }
+
+  .comment-marker {
+    width: 36px;
+    height: 36px;
+  }
+
+  .comment-panel-close,
+  .comment-message-header button,
+  .modal-close-button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .comment-panel-header {
+    position: sticky;
+    top: -16px;
+    z-index: 2;
+    background: #fff;
+    padding-top: 4px;
+  }
+
+  .comment-panel-highlight {
+    max-height: 72px;
+  }
+
+  .comment-thread {
+    max-height: 180px;
+  }
+
+  .comment-reply-form textarea {
+    min-height: 88px;
+    resize: none;
+  }
+
+  .form-actions {
+    left: 8px;
+    right: 8px;
+    bottom: max(8px, env(safe-area-inset-bottom));
+    width: auto;
+    transform: none;
+    padding: 8px;
+  }
+
+  .date-jump {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 4px;
+    overflow: visible;
+  }
+
+  .date-jump button,
+  .date-jump .date-jump-compact {
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 4px;
+    padding: 5px 2px;
+    border-radius: 8px;
+  }
+
+  .date-jump span {
+    font-size: 10px;
+  }
+
+  .date-jump strong {
+    font-size: 12px;
+  }
+
+  .is-keyboard-open .form-actions {
+    display: none;
+  }
+
+  .modal-backdrop {
+    padding: 12px;
+  }
+
+  .modal-header {
+    top: -12px;
+    padding: 14px;
   }
 }

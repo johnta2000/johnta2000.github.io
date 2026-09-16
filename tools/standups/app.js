@@ -59,6 +59,7 @@ const els = {
 
 const personEditors = [els.yesterday, els.today, els.blockers, els.notes];
 const allEditors = [...personEditors, els.dailyNotes];
+const savedEditorSelections = new WeakMap();
 let entriesForDate = [];
 let activePrevious = null;
 let standupComments = [];
@@ -93,6 +94,7 @@ function initStandups() {
   els.notetakerCloseButton.addEventListener("click", closeNotetakerModal);
   window.addEventListener("resize", scheduleCommentLayout);
   window.visualViewport?.addEventListener("resize", scheduleCommentLayout);
+  window.visualViewport?.addEventListener("scroll", scheduleCommentLayout);
   new ResizeObserver(scheduleCommentLayout).observe(els.form);
   els.notetakerModal.addEventListener("click", (event) => {
     if (event.target === els.notetakerModal) closeNotetakerModal();
@@ -107,8 +109,13 @@ function initStandups() {
   document.querySelectorAll("[data-date-jump]").forEach((button) => {
     button.addEventListener("click", () => jumpToRelativeDate(Number(button.dataset.dateJump)));
   });
+  document.addEventListener("selectionchange", rememberEditorSelection);
   document.querySelectorAll(".editor-toolbar button").forEach((button) => {
-    button.addEventListener("pointerdown", (event) => event.preventDefault());
+    button.addEventListener("pointerdown", (event) => {
+      rememberEditorSelection();
+      // Cancelling touch pointerdown suppresses Safari's synthesized click.
+      if (event.pointerType === "mouse") event.preventDefault();
+    });
   });
   document.querySelectorAll("[data-command]").forEach((button) => {
     button.addEventListener("click", () => runEditorCommand(button));
@@ -189,7 +196,9 @@ async function unlockApp() {
     const viewer = await convexQuery("standups:verify", {});
     els.accessGate.setAttribute("hidden", "");
     els.app.removeAttribute("hidden");
-    els.lockButton.textContent = viewer.email ? `Sign out ${viewer.email}` : "Sign out";
+    els.lockButton.textContent = "Sign out";
+    els.lockButton.title = viewer.email ? `Signed in as ${viewer.email}` : "Sign out";
+    els.lockButton.setAttribute("aria-label", viewer.email ? `Sign out ${viewer.email}` : "Sign out");
     initStandups();
   } catch (error) {
     console.error(error);
@@ -925,6 +934,7 @@ function addCommentForEditor(source) {
     return;
   }
 
+  if (source !== editor) restoreEditorSelection(editor);
   const target = getCommentTarget(editor);
   if (!target.itemText) {
     els.saveStatus.textContent = "Put your cursor in an item before commenting.";
@@ -994,7 +1004,7 @@ function openCommentThread(target, { opener, focusReply = false, anchor } = {}) 
   }
   activateCommentThread(target.key);
   positionCommentThreads();
-  if (window.innerWidth > 700) {
+  if (window.innerWidth > 760) {
     thread.panel.scrollIntoView({ block: "nearest", inline: "nearest" });
   }
   if (focusReply || !thread.panel.contains(document.activeElement)) {
@@ -1039,6 +1049,9 @@ function scheduleCommentLayout() {
 }
 
 function positionCommentThreads() {
+  const viewport = window.visualViewport;
+  document.body.classList.toggle("is-keyboard-open", window.innerWidth <= 760 &&
+    Boolean(viewport && window.innerHeight - viewport.height > 120));
   personEditors.forEach((editor) => {
     editor.classList.remove("has-comment-draft");
     editor.querySelectorAll(".has-comment-draft").forEach((node) => node.classList.remove("has-comment-draft"));
@@ -1049,11 +1062,16 @@ function positionCommentThreads() {
     const anchor = thread.anchor?.isConnected ? thread.anchor
       : editor && findCommentTargetBlock(editor, thread.target);
     if (!thread.target.comments.length) anchor?.classList.add("has-comment-draft");
-    if (window.innerWidth <= 700) {
+    if (window.innerWidth <= 760) {
       thread.panel.style.removeProperty("left");
-      thread.panel.style.removeProperty("top");
+      const visibleHeight = viewport?.height || window.innerHeight;
+      thread.panel.style.maxHeight = `${Math.max(120, visibleHeight - 24)}px`;
+      thread.panel.style.bottom = "auto";
+      thread.panel.style.top = `${(viewport?.offsetTop || 0) + Math.max(12, visibleHeight - thread.panel.offsetHeight - 12)}px`;
       return;
     }
+    thread.panel.style.removeProperty("max-height");
+    thread.panel.style.removeProperty("bottom");
     const rect = (anchor || thread.opener?.isConnected && thread.opener || els.commentsOverview).getBoundingClientRect();
     const edge = editor?.getBoundingClientRect() || rect;
     const width = thread.panel.offsetWidth;
@@ -1409,9 +1427,24 @@ function updateTodayHeading() {
   els.todayTitle.textContent = personName ? `${personName}'s updates` : "Select a person";
 }
 
+function rememberEditorSelection() {
+  const selection = window.getSelection();
+  const editor = allEditors.find((candidate) => editorContainsSelection(candidate, selection));
+  if (editor) savedEditorSelections.set(editor, selection.getRangeAt(0).cloneRange());
+}
+
+function restoreEditorSelection(editor) {
+  const range = savedEditorSelections.get(editor)?.cloneRange();
+  editor.focus({ preventScroll: true });
+  if (!range || !editor.contains(range.commonAncestorContainer)) return;
+  const selection = window.getSelection();
+  selection.removeAllRanges();
+  selection.addRange(range);
+}
+
 function runEditorCommand(button) {
   const editor = button.closest(".rich-field").querySelector(".rich-editor");
-  editor.focus();
+  restoreEditorSelection(editor);
   applyEditorCommand(button.dataset.command);
   queueEditorAutosave(editor);
 }
@@ -1677,6 +1710,7 @@ function getEditorText(editor) {
 }
 
 function setEditorHtml(editor, html) {
+  savedEditorSelections.delete(editor);
   editor.innerHTML = sanitizeRichText(html);
   normalizeChecklists(editor);
   editor.classList.remove("is-invalid");
