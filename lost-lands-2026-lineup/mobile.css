@@ -1,4 +1,10 @@
 /* The desktop schedule stays tabular; phones use a single-day card list. */
+.segmented button:not(.group-control), .rally-mode .segmented .group-control {
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  line-height:1.2;
+}
 .mobile-days,.mobile-schedule { display:none; }
 .filter-category {display:none;}
 .filter-trigger-copy {min-width:0;}

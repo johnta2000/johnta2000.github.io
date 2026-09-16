@@ -7,6 +7,12 @@ const html=fs.readFileSync(path.join(__dirname,'../../lost-lands-2026-lineup/ind
 const dataset={window:{}};
 vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../../lost-lands-2026-lineup/set-times.js'),'utf8'),dataset);
 const lineup=dataset.window.LOST_LANDS_SET_TIMES.map((entry,index)=>({...entry,posterIndex:index}));
+test('all lineup view tabs share vertical and horizontal label centering',()=>{
+  const css=fs.readFileSync(path.join(__dirname,'../../lost-lands-2026-lineup/mobile.css'),'utf8');
+  const shared=css.match(/\.segmented button:not\(\.group-control\), \.rally-mode \.segmented \.group-control\s*\{([^}]+)\}/)?.[1];
+  assert(shared);
+  for(const declaration of ['display:inline-flex','align-items:center','justify-content:center','line-height:1.2']) assert(shared.includes(declaration));
+});
 test('canonical set favorites never expand into other Secret Takeover slots',()=>{
   const ctx={lineup};vm.createContext(ctx);
   vm.runInContext(html.slice(html.indexOf('const currentIdsByLegacyId ='),html.indexOf('const els ='))+'\nthis.mapFavorite=currentFavoriteIds;',ctx);
