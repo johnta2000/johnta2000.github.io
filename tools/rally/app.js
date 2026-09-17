@@ -458,7 +458,10 @@ function hotelLocation(room) {
   const address=hotelAddress(room),query=[room.hotel,address||data.location].filter(Boolean).join(', ');
   if(!query)return '';
   const url='https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(query);
-  return `<div class="hotel-location">${address?`<p>${escapeHtml(address)}</p>`:''}<a href="${escapeAttr(url)}" target="_blank" rel="noopener noreferrer" class="hotel-map-link">📍 Open in Google Maps ↗</a></div>`;
+  const apple='https://maps.apple.com/?q='+encodeURIComponent(query);
+  const googleIcon='<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#34a853" d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7Z"/><path fill="#4285f4" d="M12 2a7 7 0 0 0-7 7l7 4 7-4a7 7 0 0 0-7-7Z"/><path fill="#fbbc04" d="m5 9 7 4-4 5C6.5 15.5 5 12 5 9Z"/><path fill="#ea4335" d="M12 2v11l7-4a7 7 0 0 0-7-7Z"/><circle cx="12" cy="9" r="2.5" fill="white"/></svg>';
+  const appleIcon='<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="2" width="20" height="20" rx="5" fill="#e5efdf"/><path d="M3 16 21 7M8 2l4 20" stroke="white" stroke-width="5"/><path d="M3 16 21 7" stroke="#f4cf58" stroke-width="2"/><path d="m14 6 5 12-5-3-5 3Z" fill="#2785ed" stroke="white" stroke-width="1.2"/></svg>';
+  return `<div class="hotel-location">${address?`<span>${escapeHtml(address)}</span>`:''}<div class="hotel-map-actions"><a href="${escapeAttr(url)}" target="_blank" rel="noopener noreferrer" class="hotel-map-link" aria-label="Open hotel in Google Maps" title="Google Maps">${googleIcon}</a><a href="${escapeAttr(apple)}" target="_blank" rel="noopener noreferrer" class="hotel-map-link" aria-label="Open hotel in Apple Maps" title="Apple Maps">${appleIcon}</a></div></div>`;
 }
 function noteSection(note) { return Object.hasOwn(noteSections,note.section) ? note.section : 'general'; }
 function notesForSection(notes, section) { return notes.filter(note=>noteSection(note)===(Object.hasOwn(noteSections,section)?section:'general')); }
