@@ -1,6 +1,7 @@
 {
   "scripts": {
     "build:lineup": "node scripts/build-native-lineup.mjs",
+    "build:notes": "node scripts/build-note-rich-text.mjs",
     "test:rally": "node --test tools/rally/*.test.cjs",
     "convex:dev": "convex dev",
     "convex:deploy": "convex deploy",

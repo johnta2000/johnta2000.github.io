@@ -2,11 +2,11 @@ const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const vm=require('node:vm');
-const {transformSync}=require('esbuild');
+const {buildSync}=require('esbuild');
 const backend=fs.readFileSync(__dirname+'/../../convex/rally.ts','utf8');
 const app=fs.readFileSync(__dirname+'/app.js','utf8');
-const moduleContext={module:{exports:{}},require,TextEncoder};
-vm.runInNewContext(transformSync(fs.readFileSync(__dirname+'/../../convex/rallyNotes.ts','utf8'),{loader:'ts',format:'cjs'}).code,moduleContext);
+const moduleContext={module:{exports:{}},require,TextEncoder,URL};
+vm.runInNewContext(buildSync({entryPoints:[__dirname+'/../../convex/rallyNotes.ts'],bundle:true,write:false,platform:'node',format:'cjs',external:['convex/values']}).outputFiles[0].text,moduleContext);
 const {updateNotes}=moduleContext.module.exports;
 const author={id:'jessi',name:'Jessi',role:'member'}, other={id:'kevin',name:'Kevin',role:'member'}, admin={id:'john',name:'John',role:'admin'};
 const plain=value=>JSON.parse(JSON.stringify(value));
@@ -87,7 +87,7 @@ test('section boards isolate related notes while All notes and legacy General pr
 test('posting from a section captures that project and section, not later navigation',async()=>{
   const input={value:'Hotel parking is included'},error={hidden:true},fieldset={disabled:false},form={elements:{body:input},querySelector:selector=>selector==='#noteError'?error:fieldset};
   const refresh={};let sent;
-  const ctx={activeEvent:'lostlands',offlineMode:true,document:{getElementById:id=>id==='noteComposer'?form:refresh},renderNoteList(){},updateNotesConnectivity(){},refreshNotes(){},showToast(){},saveNote:async(...args)=>{sent=args;}};
+  const ctx={window:{RallyNoteEditor:{mount(){}}},activeEvent:'lostlands',offlineMode:true,document:{getElementById:id=>id==='noteComposer'?form:refresh},renderNoteList(){},updateNotesConnectivity(){},refreshNotes(){},showToast(){},saveNote:async(...args)=>{sent=args;}};
   vm.createContext(ctx);vm.runInContext(app.slice(app.indexOf('function wireNotes('),app.indexOf('async function refreshNotes(')),ctx);
   ctx.wireNotes('stay');ctx.activeEvent='edc';ctx.offlineMode=false;
   await form.onsubmit({preventDefault(){}});

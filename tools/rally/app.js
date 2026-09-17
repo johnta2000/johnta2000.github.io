@@ -465,7 +465,7 @@ function noteCards(notes) {
     const stamp = date.toLocaleString([], {month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'});
     const section=noteSection(note);
     const badge=activeView==='notes'?`<a class="note-section-badge" href="${escapeAttr(href(section==='general'?'notes':section))}">${noteSections[section]}</a>`:'';
-    return `<article class="note-card" data-note-id="${escapeAttr(note.id)}"><header><span class="note-avatar" aria-hidden="true">${escapeHtml(initials(name))}</span><div><strong>${escapeHtml(name)}</strong><div class="note-date"><time datetime="${date.toISOString()}">${escapeHtml(stamp)}</time>${note.updatedAt>note.createdAt?' · Edited':''}</div></div>${badge}</header><p class="note-body">${escapeHtml(note.body)}</p>${owner||data.isAdmin?`<footer>${owner?`<button type="button" data-note-edit="${escapeAttr(note.id)}" ${offlineMode?'disabled':''}>Edit</button>`:''}<button type="button" data-note-delete="${escapeAttr(note.id)}" ${offlineMode?'disabled':''}>Delete</button></footer>`:''}</article>`;
+    return `<article class="note-card" data-note-id="${escapeAttr(note.id)}"><header><span class="note-avatar" aria-hidden="true">${escapeHtml(initials(name))}</span><div><strong>${escapeHtml(name)}</strong><div class="note-date"><time datetime="${date.toISOString()}">${escapeHtml(stamp)}</time>${note.updatedAt>note.createdAt?' · Edited':''}</div></div>${badge}</header><div class="note-body">${note.richText?window.RallyNoteEditor.render(note):escapeHtml(note.body)}</div>${owner||data.isAdmin?`<footer>${owner?`<button type="button" data-note-edit="${escapeAttr(note.id)}" ${offlineMode?'disabled':''}>Edit</button>`:''}<button type="button" data-note-delete="${escapeAttr(note.id)}" ${offlineMode?'disabled':''}>Delete</button></footer>`:''}</article>`;
   }).join('') || '<div class="notes-empty"><h2>No notes yet</h2><p>Share a meetup spot, a reminder, or anything the crew should know.</p></div>';
 }
 
@@ -487,6 +487,7 @@ function updateNotesConnectivity() {
   const form=document.getElementById('noteComposer');
   if(!form)return;
   form.querySelector('fieldset').disabled=offlineMode;
+  form.elements.body.richEditor?.setDisabled(offlineMode);
   document.getElementById('refreshNotes').disabled=offlineMode;
   document.getElementById('notesStatus').textContent=offlineMode?'Offline · Saved notes. Reconnect to post or refresh.':'';
   document.querySelectorAll('[data-note-edit],[data-note-delete]').forEach(button=>button.disabled=offlineMode);
@@ -509,17 +510,19 @@ function notesBoardMarkup(section) {
 
 function wireNotes(section) {
   const eventId=activeEvent;
-  renderNoteList(); updateNotesConnectivity();
   const form=document.getElementById('noteComposer');
+  window.RallyNoteEditor.mount(form.elements.body);
+  renderNoteList(); updateNotesConnectivity();
   form.onsubmit=async event=>{
     event.preventDefault();
     const input=form.elements.body, error=form.querySelector('#noteError'), fieldset=form.querySelector('fieldset');
     if(offlineMode)return showToast('Reconnect to post your note.');
-    if(!input.value.trim())return input.focus();
+    if(!input.value.trim())return input.richEditor?input.richEditor.focus():input.focus();
     fieldset.disabled=true; error.hidden=true;
-    try { await saveNote(eventId,'add-note',{body:input.value,section:section==='all'?form.elements.section.value:section}); input.value=''; showToast('Note posted'); }
+    input.richEditor?.setDisabled(true);
+    try { await saveNote(eventId,'add-note',{...(input.richEditor?input.richEditor.getValue():{body:input.value}),section:section==='all'?form.elements.section.value:section}); input.value=''; input.richEditor?.clear(); showToast('Note posted'); }
     catch(reason){error.textContent=reason.message||'Could not post. Your draft is still here.';error.hidden=false;}
-    finally {fieldset.disabled=offlineMode;}
+    finally {fieldset.disabled=offlineMode;input.richEditor?.setDisabled(offlineMode);}
   };
   document.getElementById('refreshNotes').onclick=refreshNotes;
   if(!offlineMode)void refreshNotes();
@@ -554,9 +557,13 @@ async function saveNote(eventId,action,payload) {
 function openEditNote(note) {
   if(!note||offlineMode)return;
   const eventId=activeEvent;
-  openDialog('Edit note','Changes are visible to everyone in this project.',noteSectionPicker(noteSection(note))+`<label class="field">Note<textarea class="note-edit-body" name="body" rows="7" maxlength="4000" required>${escapeHtml(note.body)}</textarea></label>`,async values=>{
-    await saveNote(eventId,'edit-note',{id:note.id,body:values.body,section:values.section,expectedUpdatedAt:note.updatedAt});closeDialog();showToast('Note updated');
+  let editor;
+  openDialog('Edit note','Changes are visible to everyone in this project.',noteSectionPicker(noteSection(note))+`<div class="field"><span>Note</span><textarea class="note-edit-body" name="body" rows="7" maxlength="4000" required>${escapeHtml(note.body)}</textarea></div>`,async values=>{
+    const content=editor.getValue();editor.setDisabled(true);
+    try{await saveNote(eventId,'edit-note',{id:note.id,...content,section:values.section,expectedUpdatedAt:note.updatedAt});closeDialog();showToast('Note updated');}
+    finally{editor.setDisabled(false);}
   });
+  editor=window.RallyNoteEditor.mount(el.dialogRoot.querySelector('[name="body"]'),note);
 }
 
 function renderCrew() {
