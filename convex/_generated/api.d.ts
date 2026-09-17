@@ -12,6 +12,7 @@ import type * as crons from "../crons.js";
 import type * as http from "../http.js";
 import type * as lineupFavorites from "../lineupFavorites.js";
 import type * as lostLandsSetTimes from "../lostLandsSetTimes.js";
+import type * as meetupTiming from "../meetupTiming.js";
 import type * as monitoring from "../monitoring.js";
 import type * as rally from "../rally.js";
 import type * as rallyMeetups from "../rallyMeetups.js";
@@ -35,6 +36,7 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   lineupFavorites: typeof lineupFavorites;
   lostLandsSetTimes: typeof lostLandsSetTimes;
+  meetupTiming: typeof meetupTiming;
   monitoring: typeof monitoring;
   rally: typeof rally;
   rallyMeetups: typeof rallyMeetups;

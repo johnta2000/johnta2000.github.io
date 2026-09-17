@@ -309,7 +309,10 @@ function renderAccountButton() {
 function renderMobileNav() {
   const icons = {home:'<path d="m3 10 9-7 9 7v10H3Z"/><path d="M9 20v-7h6v7"/>',lineup:'<path d="M9 18V5l11-2v13M9 8l11-2"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/>',crew:'<circle cx="9" cy="8" r="3"/><path d="M3 21v-3a6 6 0 0 1 12 0v3M16 5a3 3 0 0 1 0 6M18 15a5 5 0 0 1 3 5"/>',search:'<circle cx="10" cy="10" r="7"/><path d="m15 15 6 6"/>',more:'<path d="M4 6h16M4 12h16M4 18h16"/>'};
   const icon = id => `<svg viewBox="0 0 24 24" aria-hidden="true">${icons[id]}</svg>`;
-  document.getElementById('mobileNav').innerHTML = `<div class="nav-glass-group">${[['home','Home'],['lineup','Lineup'],['crew','Crew']].map(([id,label])=>`<a href="${href(id)}" class="${activeView===id?'active':''}" ${activeView===id?'aria-current="page"':''}>${icon(id)}${label}</a>`).join('')}<button type="button" id="quickMore" ${!['home','lineup','crew'].includes(activeView)?'aria-current="page"':''}>${icon('more')}More</button></div><button type="button" id="quickSearch" aria-label="Search this rave">${icon('search')}</button>`;
+  icons.meetups='<path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="3"/>';
+  const tabs=[['home','Home'],['lineup','Lineup'],...(data.id===DEFAULT_EVENT?[['meetups','Meetups']]:[['notes','Notes']])];
+  icons.notes='<path d="M5 3h14v18H5ZM8 7h8M8 11h8M8 15h5"/>';
+  document.getElementById('mobileNav').innerHTML = `<div class="nav-glass-group">${tabs.map(([id,label])=>`<a href="${href(id)}" class="${activeView===id?'active':''}" ${activeView===id?'aria-current="page"':''}>${icon(id)}${label}</a>`).join('')}<button type="button" id="quickMore" ${!tabs.some(([id])=>id===activeView)?'aria-current="page"':''}>${icon('more')}More</button></div><button type="button" id="quickSearch" aria-label="Search this rave">${icon('search')}</button>`;
   document.getElementById('quickSearch').onclick = openProjectSearch;
   document.getElementById('quickMore').onclick = () => el.openMenu.click();
   requestAnimationFrame(sendLineupLayout);
@@ -333,7 +336,7 @@ function projectSearchItems() {
   add('travel',data.cars,r=>`${r.company} · ${r.vehicle}`,r=>[r.pickup,r.dropoff,map[r.driverId]?.name].filter(Boolean).join(' · '));
   add('passes',data.passes,r=>r.name,r=>[r.category,map[r.ownerId]?.name,r.notes].filter(Boolean).join(' · '));
   add('tasks',data.tasks,r=>r.title,r=>[r.category,r.status,map[r.assigneeId]?.name,r.description].filter(Boolean).join(' · '));
-  if(data.id===DEFAULT_EVENT)add('meetups',data.meetups,r=>r.title,r=>[r.spot,r.when,r.instructions,r.status].filter(Boolean).join(' · '));
+  if(data.id===DEFAULT_EVENT)add('meetups',data.meetups,r=>r.title,r=>[r.spot,r.when,r.instructions,r.status,r.timing?.label].filter(Boolean).join(' · '));
   (data.notes||[]).forEach(note=>items.push({view:noteSection(note)==='general'?'notes':noteSection(note),id:note.id,title:note.body,detail:`${noteSections[noteSection(note)]} note · ${map[note.authorId]?.name||note.authorName}`}));
   const sets=data.id===DEFAULT_EVENT?(window.LOST_LANDS_SET_TIMES||[]):(data.lineup||[]);
   sets.filter(r=>!(data.lineupHiddenDays||[]).includes(r.day||'Day TBD')).forEach(r=>items.push({view:'lineup',id:r.id,title:r.artist||r.name,day:r.day,detail:[r.day,r.stage,r.genre].filter(Boolean).join(' · '),artist:r.artist||r.name}));
@@ -408,6 +411,7 @@ function renderHome() {
 
 function renderMeetups() {
   const eventId=activeEvent,owner=window.Clerk?.user?.id;
+  let revision=0;
   const mount={};el.page.meetupMount=mount;
   const sameAccount=()=>owner===window.Clerk?.user?.id;
   const accept=room=>{
@@ -416,9 +420,14 @@ function renderMeetups() {
     return room;
   };
   window.RallyMeetups.mount({root:el.page,room:data,offline:()=>offlineMode||!navigator.onLine,toast:showToast,
-    query:async()=>accept(await convexQuery('rally:get',{eventId})),
+    query:async()=>{
+      const requested=revision,room=await networkConvexCall('query','rally:get',{eventId});
+      if(requested!==revision||!sameAccount())throw new Error('A newer meetup change is already being saved.');
+      return accept(owner===RallyOffline.userId?RallyOffline.save(room):room);
+    },
     mutate:async(action,payload)=>{
       if(!sameAccount())throw new Error('Your account changed. Reopen the project.');
+      revision++;
       return accept(await convexMutation('rally:act',{eventId,action,payload}));
     },
   });

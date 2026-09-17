@@ -1,9 +1,12 @@
 import { ConvexError } from "convex/values";
+import { LOST_LANDS_SET_TIMES } from "./lostLandsSetTimes";
+import { resolveMeetupTiming } from "./meetupTiming";
 
 type Meetup = {
   id: string; title: string; spot: string; instructions: string; when: string;
   mapId: string; x: number; y: number; timeZone: string; status: string;
   authorId: string; authorName: string; goingIds: string[]; createdAt: number; updatedAt: number;
+  timing?: ReturnType<typeof resolveMeetupTiming>["timing"] | null;
 };
 type Member = {id: string; name: string; role: string};
 
@@ -28,11 +31,17 @@ export function updateMeetups(meetups: Meetup[] = [], eventId: string, action: s
     return value.trim();
   };
   const title = text(p.title, 100, true), spot = text(p.spot, 160, true), instructions = text(p.instructions ?? "", 1200, false);
-  if (typeof p.when !== "string" || !/^2026-09-(16|17|18|19|20|21)T([01]\d|2[0-3]):[0-5]\d$/.test(p.when)) throw new ConvexError("Choose a time between September 16 and 21, 2026 (Eastern time).");
+  let when=p.when,timing=existing?.timing??null;
+  if(p.timing===null)timing=null;
+  else if(p.timing!==undefined){
+    try{({when,timing}=resolveMeetupTiming(p.timing,LOST_LANDS_SET_TIMES));}
+    catch(error){throw new ConvexError(error instanceof Error?error.message:"Choose a valid set time.");}
+  }else if(timing && when!==existing?.when)throw new ConvexError("This meetup is linked to a set. Refresh Rally before changing its time.");
+  if (typeof when !== "string" || !/^2026-09-(16|17|18|19|20|21)T([01]\d|2[0-3]):[0-5]\d$/.test(when)) throw new ConvexError("Choose a time between September 16 and 21, 2026 (Eastern time).");
   if (![p.x,p.y].every(n => typeof n === "number" && Number.isFinite(n) && n >= 0 && n <= 1)) throw new ConvexError("Choose a meeting spot on the map.");
   const status = p.status ?? "planned";
   if (!["planned","cancelled"].includes(status)) throw new ConvexError("Choose planned or cancelled.");
-  const details = {title, spot, instructions, when:p.when, x:p.x, y:p.y, mapId:"lost-lands-2026", timeZone:"America/New_York", status};
+  const details = {title, spot, instructions, when, timing, x:p.x, y:p.y, mapId:"lost-lands-2026", timeZone:"America/New_York", status};
   const result = existing
     ? meetups.map(meetup => meetup.id === existing.id ? {...meetup,...details,updatedAt:Math.max(now,meetup.updatedAt+1)} : meetup)
     : [...meetups,{id:newId(),...details,authorId:member.id,authorName:member.name,goingIds:[member.id],createdAt:now,updatedAt:now}];

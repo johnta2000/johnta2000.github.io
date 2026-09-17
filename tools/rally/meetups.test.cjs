@@ -2,11 +2,11 @@ const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const vm=require('node:vm');
-const {transformSync}=require('esbuild');
+const {transformSync,buildSync}=require('esbuild');
 const read=path=>fs.readFileSync(__dirname+'/'+path,'utf8');
 const plain=value=>JSON.parse(JSON.stringify(value));
 const server={module:{exports:{}},require,TextEncoder};
-vm.runInNewContext(transformSync(read('../../convex/rallyMeetups.ts'),{loader:'ts',format:'cjs'}).code,server);
+vm.runInNewContext(buildSync({entryPoints:[__dirname+'/../../convex/rallyMeetups.ts'],bundle:true,platform:'node',format:'cjs',packages:'external',write:false}).outputFiles[0].text,server);
 const {updateMeetups}=server.module.exports;
 const author={id:'jessi',name:'Jessi',role:'member'},other={id:'kevin',name:'Kevin',role:'member'},admin={id:'john',name:'John',role:'admin'};
 const eventId='lost-lands-2026';
@@ -14,6 +14,7 @@ const details={title:'Meet before Excision',spot:'Entrance merch booth',instruct
 const run=(rows,action,payload,member=author,now=100,id='meetup1')=>updateMeetups(rows,eventId,action,payload,member,now,()=>id);
 const create=()=>run(undefined,'add-meetup',details);
 const ui={window:{},Intl,Date};
+vm.runInNewContext(read('meetup-timing.js'),ui);
 vm.runInNewContext(read('meetups.js'),ui);
 const {coordinates,timeLabel,cards,MAP,LANDMARKS}=ui.window.RallyMeetups;
 
@@ -127,4 +128,105 @@ test('late meetup responses do not replace another room or another account',asyn
  resolve({id:eventId,meetups:create()});await pending;assert.equal(context.data.id,'edc');
  context.window.Clerk.user.id='u2';
  await assert.rejects(captured.mutate('add-meetup',details),/account changed/);
+});
+
+const scheduleContext={window:{}};
+vm.runInNewContext(read('../../lost-lands-2026-lineup/set-times.js'),scheduleContext);
+const officialSets=scheduleContext.window.LOST_LANDS_SET_TIMES;
+const timingContext={module:{exports:{}},require};
+vm.runInNewContext(transformSync(read('../../convex/meetupTiming.ts'),{loader:'ts',format:'cjs'}).code,timingContext);
+const resolveTiming=timingContext.module.exports.resolveMeetupTiming;
+const sampleSets=[
+ {id:'one',artist:'Artist A',stage:'Stage A',day:'Friday',festivalDate:'2026-09-18',start:'2026-09-18T23:00',end:'2026-09-19T00:00'},
+ {id:'two',artist:'Artist B',stage:'Stage B',day:'Friday',festivalDate:'2026-09-18',start:'2026-09-19T00:30',end:'2026-09-19T01:30'},
+ {id:'overlap',artist:'Artist C',stage:'Stage C',day:'Friday',festivalDate:'2026-09-18',start:'2026-09-18T23:30',end:'2026-09-19T00:30'},
+ {id:'other-day',artist:'Artist D',stage:'Stage A',day:'Saturday',festivalDate:'2026-09-19',start:'2026-09-19T23:00',end:'2026-09-20T00:00'},
+];
+test('before, after and between use festival wall-clock time and handle midnight',()=>{
+ assert.equal(resolveTiming({mode:'before',setId:'one',minutes:15},sampleSets).when,'2026-09-18T22:45');
+ assert.equal(resolveTiming({mode:'after',setId:'one',minutes:10},sampleSets).when,'2026-09-19T00:10');
+ const result=resolveTiming({mode:'between',setId:'one',nextSetId:'two',minutes:5},sampleSets);
+ assert.equal(result.when,'2026-09-19T00:05');
+ assert.equal(result.timing.label,'Between Artist A and Artist B');
+ assert.equal(result.timing.sets.length,2);
+ assert.equal(result.timing.sets[1].stage,'Stage B');
+});
+test('between rejects overlaps, reversed order, different festival days and offsets past the next set',()=>{
+ for(const choice of [
+  {mode:'between',setId:'one',nextSetId:'overlap',minutes:0},
+  {mode:'between',setId:'two',nextSetId:'one',minutes:0},
+  {mode:'between',setId:'one',nextSetId:'other-day',minutes:0},
+  {mode:'between',setId:'one',nextSetId:'one',minutes:0},
+  {mode:'between',setId:'one',nextSetId:'two',minutes:31},
+  {mode:'before',setId:'one',minutes:-1},
+  {mode:'after',setId:'one',minutes:121},
+  {mode:'before',setId:'unknown',minutes:15},
+ ])assert.throws(()=>resolveTiming(choice,sampleSets));
+ assert.deepEqual(plain(ui.RallyMeetupTiming.availableNextSets('one',sampleSets)).map(s=>s.id),['two']);
+});
+test('generated browser timing stays identical to server timing for every performance',()=>{
+ for(const set of officialSets)for(const mode of ['before','after']){
+  const choice={mode,setId:set.id,minutes:15};
+  assert.deepEqual(plain(ui.RallyMeetupTiming.resolveMeetupTiming(choice,officialSets)),plain(resolveTiming(choice,officialSets)));
+ }
+});
+test('backend derives linked time and context from official set IDs, not user-submitted labels or timestamps',()=>{
+ const set=officialSets.find(s=>s.artist==='EXCISION');
+ assert(set);
+ const rows=run([],'add-meetup',{...details,when:'WRONG',timing:{mode:'before',setId:set.id,minutes:15,label:'Forged',sets:[{artist:'Fake'}]}});
+ const expected=resolveTiming({mode:'before',setId:set.id,minutes:15},officialSets);
+ assert.equal(rows[0].when,expected.when);assert.equal(rows[0].timing.label,expected.timing.label);
+ assert.equal(rows[0].timing.sets[0].artist,set.artist);
+ assert.throws(()=>run([],'add-meetup',{...details,timing:{mode:'before',setId:'fake',minutes:15}}),/Choose a set/);
+ const edited=run(rows,'edit-meetup',{...details,when:rows[0].when,id:'meetup1',expectedUpdatedAt:100},author,200);
+ assert.equal(edited[0].timing.setId,set.id); // Older clients preserve the relationship.
+ assert.throws(()=>run(rows,'edit-meetup',{...details,when:'2026-09-19T18:00',id:'meetup1',expectedUpdatedAt:100}),/linked to a set/);
+ const custom=run(rows,'edit-meetup',{...details,timing:null,id:'meetup1',expectedUpdatedAt:100},author,200);
+ assert.equal(custom[0].timing,null);assert.equal(custom[0].when,details.when);
+});
+test('repeated secret takeover names are linked to the exact performance, not every matching artist',()=>{
+ const repeats=officialSets.filter(s=>s.artist==='SECRET TAKEOVER');
+ assert(repeats.length>1);
+ const rows=run([],'add-meetup',{...details,timing:{mode:'before',setId:repeats[1].id,minutes:10}});
+ assert.equal(rows[0].timing.setId,repeats[1].id);
+ assert.equal(rows[0].timing.sets[0].start,repeats[1].start);
+ assert.equal(rows[0].timing.sets.length,1);
+});
+test('linked cards expose the precise Lineup links and keep context in the offline snapshot',()=>{
+ const set=officialSets[0],rows=run([],'add-meetup',{...details,timing:{mode:'before',setId:set.id,minutes:15}});
+ const html=cards({id:eventId,members:[author],currentMemberId:author.id,meetups:rows},null,true);
+ assert(html.includes('view=lineup'));assert(html.includes('focus='+encodeURIComponent(set.id)));
+ assert(html.includes('day='+encodeURIComponent(set.day)));assert(html.includes('15 min before'));
+ assert.equal(plain(rows)[0].timing.sets[0].stage,set.stage);
+});
+test('Lineup is a primary bottom tab and Crew remains in More, without duplicate Lineup tabs',()=>{
+ const app=read('app.js'),nav={};
+ const ctx={data:{id:eventId},DEFAULT_EVENT:eventId,activeView:'crew',document:{getElementById:()=>nav},href:view=>'?view='+view,openProjectSearch(){},requestAnimationFrame(){},sendLineupLayout(){}};
+ vm.runInNewContext(app.slice(app.indexOf('function renderMobileNav('),app.indexOf('function sendLineupLayout(')),ctx);
+ ctx.renderMobileNav();
+ assert.equal((nav.innerHTML.match(/href="\?view=lineup"/g)||[]).length,1);
+ assert(nav.innerHTML.includes('href="?view=meetups"'));assert(!nav.innerHTML.includes('href="?view=crew"'));
+ assert(nav.innerHTML.includes('id="quickMore" aria-current="page"'));
+});
+test('a refresh started before a write cannot overwrite newer meetups or their offline snapshot',async()=>{
+ let captured,resolveRead,saves=0;
+ const app=read('app.js'),ctx={activeEvent:eventId,activeView:'meetups',data:{id:eventId},offlineMode:false,navigator:{onLine:true},el:{page:{}},showToast(){},updateOfflineStatus(){},window:{Clerk:{user:{id:'u1'}},RallyMeetups:{mount:c=>captured=c}},RallyOffline:{userId:'u1',save:r=>{saves++;return r;}},networkConvexCall:()=>new Promise(r=>resolveRead=r),convexMutation:async()=>({id:eventId,meetups:create()})};
+ vm.runInNewContext(app.slice(app.indexOf('function renderMeetups('),app.indexOf('function noteSection(')),ctx);
+ ctx.renderMeetups();
+ const query=captured.query();await captured.mutate('add-meetup',details);
+ resolveRead({id:eventId,meetups:[]});
+ await assert.rejects(query,/newer meetup/);assert.equal(ctx.data.meetups.length,1);assert.equal(saves,0);
+});
+test('mobile editor avoids automatic keyboard focus and accidental pin placement while scrolling',()=>{
+ const source=read('meetups.js');
+ assert(source.includes('data-close autofocus'));assert(!source.includes('input name="title" autofocus'));
+ assert(source.includes('down=placing&&event.isPrimary'));assert(source.includes("placement(false)"));
+ const select=source.slice(source.indexOf('function select('),source.indexOf('function draw('));
+ assert(!select.includes('draw()'));assert(select.includes("classList.toggle('selected'"));
+ assert(source.includes('meetup-editor-scroll'));assert(source.includes('meetup-editor-actions'));
+ assert(source.includes('data-confirm-delete'));assert(!source.includes("confirm('Delete"));
+ assert(source.includes("document.body.style.overflow=previousOverflow"));
+ const html=read('index.html');
+ assert(html.indexOf('./meetup-timing.js')<html.indexOf('./meetups.js'));
+ assert(read('../../rally-sw.js').includes('/tools/rally/meetup-timing.js'));
 });
