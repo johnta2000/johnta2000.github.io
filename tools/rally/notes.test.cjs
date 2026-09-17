@@ -11,6 +11,15 @@ const {updateNotes}=moduleContext.module.exports;
 const author={id:'jessi',name:'Jessi',role:'member'}, other={id:'kevin',name:'Kevin',role:'member'}, admin={id:'john',name:'John',role:'admin'};
 const plain=value=>JSON.parse(JSON.stringify(value));
 const create=()=>updateNotes(undefined,'add-note',{body:'Bring earplugs'},author,100,()=> 'note-1');
+test('hotel maps include verified address, honor custom addresses and encode destinations',()=>{
+ const escapeHtml=v=>String(v).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('"','&quot;');
+ const ctx={data:{location:'Columbus, OH'},escapeHtml,escapeAttr:escapeHtml};
+ vm.runInNewContext(app.slice(app.indexOf('function hotelAddress('),app.indexOf('function noteSection(')),ctx);
+ assert.equal(ctx.hotelAddress({hotel:'Hyatt Regency Columbus'}),'350 North High Street, Columbus, OH 43215');
+ assert.equal(ctx.hotelAddress({hotel:'Hyatt Regency Columbus',address:'Custom address'}),'Custom address');
+ const html=ctx.hotelLocation({hotel:'Hotel & Suites',address:'123 Main St'});
+ assert(html.includes('Hotel%20%26%20Suites%2C%20123%20Main%20St'));assert(html.includes('target="_blank"'));assert(html.includes('123 Main St'));
+});
 test('members react as themselves, retries are idempotent and removing preserves others',()=>{
  const react=(notes,who,active,emoji='👍')=>updateNotes(notes,'react-note',{id:'note-1',emoji,active,memberId:'spoof'},who,999,()=> '');
  let notes=react(create(),other,true);notes=react(notes,other,true);notes=react(notes,author,true);

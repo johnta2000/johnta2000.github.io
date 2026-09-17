@@ -725,8 +725,9 @@ export const act = mutation({
       if (!state.tasks.some((item: RallyState) => item.id === p.id)) throw new Error("That ticket no longer exists.");
       state.tasks = state.tasks.filter((item: RallyState) => item.id !== p.id);
     } else if (args.action === "save-room") {
+      if(p.address!==undefined&&(typeof p.address!=='string'||p.address.length>500))throw new Error('Enter a hotel address under 500 characters.');
       const room = state.rooms.find((item: RallyState) => item.id === p.id);
-      const record = { hotel: p.hotel, roomType: p.roomType, confirmation: p.confirmation, checkIn: p.checkIn, checkOut: p.checkOut, capacity: Number(p.capacity) || 1, bathrooms: Math.max(1, Number(p.bathrooms) || 1), totalCost: String(p.totalCost || "").trim(), notes: String(p.notes || "").trim() };
+const record = { hotel: p.hotel, ...(p.address!==undefined?{address:p.address.trim()}:{}), roomType: p.roomType, confirmation: p.confirmation, checkIn: p.checkIn, checkOut: p.checkOut, capacity: Number(p.capacity) || 1, bathrooms: Math.max(1, Number(p.bathrooms) || 1), totalCost: String(p.totalCost || "").trim(), notes: String(p.notes || "").trim() };
       if (room) Object.assign(room, record); else state.rooms.push({ id: id(), ...record, memberIds: [] });
     } else if (args.action === "delete-room") {
       if (!state.rooms.some((item: RallyState) => item.id === p.id)) throw new Error("That room no longer exists.");

@@ -15,6 +15,7 @@
 .rich-note-link{display:flex;gap:6px;align-items:end;padding:10px;border-bottom:1px solid #e1e5d8}.rich-note-link[hidden]{display:none}
 .rich-note-link label{flex:1;min-width:0;font-size:13px}.rich-note-link input{display:block;width:100%;min-width:0;padding:10px;border:1px solid #cfd5c3;border-radius:7px;font-size:16px}
 .note-body{white-space:pre-wrap;overflow-wrap:anywhere}
+.hotel-location{margin:12px 0 18px;padding:12px 14px;background:#f1f3e9;border-radius:10px}.hotel-location p{margin:0 0 6px;color:#414c37;font-size:14px;line-height:1.5;overflow-wrap:anywhere}.hotel-map-link{display:inline-flex;align-items:center;min-height:44px;color:#344b21;font-weight:700;text-decoration:underline;text-underline-offset:3px}
 .note-reactions{display:flex;flex-wrap:wrap;gap:6px;margin-top:16px}
 .note-reactions button{display:inline-flex;align-items:center;justify-content:center;gap:5px;min-width:44px;min-height:40px;padding:6px 10px;border:1px solid #dde2d4;border-radius:20px;background:#f7f8f2;font-size:18px;cursor:pointer}
 .note-reactions button span{font-size:12px;font-weight:700;color:#45543a}
