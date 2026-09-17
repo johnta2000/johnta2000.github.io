@@ -1,9 +1,30 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-09-17T13:31:45.120Z",
+  "generatedAt": "2026-09-17T13:35:55.831Z",
   "overallStatus": "healthy",
-  "latestEventId": "20260914231003-merchant-change",
+  "latestEventId": "20260917133555-chase-sapphire-reserve-tables-restaurant-change",
   "monitors": [
+    {
+      "id": "bilt-calculator-ranking",
+      "name": "Bilt calculator ranking",
+      "description": "Tracks the Bilt calculator across Search Console query performance, index health, canonical integrity, and live-page checks.",
+      "configured": false,
+      "status": "not_configured",
+      "sourceUrl": "https://www.nextcard.com/tools/bilt-calculator",
+      "cadence": "Every 6 hours via Codex",
+      "config": {
+        "property": "sc-domain:nextcard.com",
+        "page": "https://www.nextcard.com/tools/bilt-calculator",
+        "queries": [
+          "bilt calculator",
+          "bilt 2.0 calculator",
+          "bilt calculator 2.0",
+          "bilt points calculator",
+          "bilt card calculator"
+        ],
+        "compareWindow": "Finalized 7 days vs previous 7 days"
+      }
+    },
     {
       "id": "paze-directory",
       "name": "Paze merchant directory",
@@ -73,27 +94,6 @@
       }
     },
     {
-      "id": "bilt-calculator-ranking",
-      "name": "Bilt calculator ranking",
-      "description": "Tracks the Bilt calculator across Search Console query performance, index health, canonical integrity, and live-page checks.",
-      "configured": false,
-      "status": "not_configured",
-      "sourceUrl": "https://www.nextcard.com/tools/bilt-calculator",
-      "cadence": "Every 6 hours via Codex",
-      "config": {
-        "property": "sc-domain:nextcard.com",
-        "page": "https://www.nextcard.com/tools/bilt-calculator",
-        "queries": [
-          "bilt calculator",
-          "bilt 2.0 calculator",
-          "bilt calculator 2.0",
-          "bilt points calculator",
-          "bilt card calculator"
-        ],
-        "compareWindow": "Finalized 7 days vs previous 7 days"
-      }
-    },
-    {
       "id": "transfer-bonus-discovery",
       "name": "Transfer bonus discovery",
       "description": "Scans official issuer and loyalty-program sources for new transfer bonuses, changed terms, and coverage failures.",
@@ -132,17 +132,17 @@
         "https://www.opentable.com/sapphire-reserve/boston"
       ],
       "cadence": "Every 4 hours",
-      "latestRunAt": "2026-09-17T05:01:01.528Z",
-      "latestSuccessAt": "2026-09-17T05:01:01.528Z",
-      "latestChangeAt": "2026-09-13T22:29:14.789Z",
-      "durationMs": 5748,
-      "summary": "No restaurant-list changes across six cities (136 restaurants).",
+      "latestRunAt": "2026-09-17T13:35:55.831Z",
+      "latestSuccessAt": "2026-09-17T13:35:55.831Z",
+      "latestChangeAt": "2026-09-17T13:35:55.831Z",
+      "durationMs": 1563,
+      "summary": "1 restaurants added and 1 removed across six cities.",
       "error": null,
       "metrics": {
         "restaurantCount": 136,
         "cityCount": 6,
-        "addedCount": 0,
-        "removedCount": 0
+        "addedCount": 1,
+        "removedCount": 1
       },
       "details": {
         "cities": [
@@ -262,6 +262,7 @@
               "Kabawa",
               "l'abeille",
               "Manhatta",
+              "Mitsuru",
               "Momofuku Noodle Bar - East Village",
               "Momofuku Noodle Bar - Uptown",
               "Muku",
@@ -269,7 +270,6 @@
               "Parcelle Chinatown",
               "Phoenix Palace",
               "Potluck Club",
-              "Razza - Jersey City",
               "Red Hook Tavern",
               "Sailor",
               "San Sabino",
@@ -280,8 +280,12 @@
               "Una Pizza Napoletana",
               "Union Square Cafe"
             ],
-            "added": [],
-            "removed": []
+            "added": [
+              "Mitsuru"
+            ],
+            "removed": [
+              "Razza - Jersey City"
+            ]
           },
           {
             "id": "chicago",
@@ -344,18 +348,25 @@
           }
         ],
         "cache": {
-          "runId": "1789621261528",
-          "requestCount": 6,
+          "runId": "1789652155831",
+          "requestCount": 12,
           "crawlIds": [
-            "primary"
+            "primary",
+            "confirmation"
           ],
           "requestIds": [
-            "1789621261532001",
-            "1789621261573002",
-            "1789621261574003",
-            "1789621261575004",
-            "1789621261576005",
-            "1789621261577006"
+            "1789652155836001",
+            "1789652155874002",
+            "1789652155876003",
+            "1789652155877004",
+            "1789652155877005",
+            "1789652155879006",
+            "1789652156833007",
+            "1789652156833008",
+            "1789652156834009",
+            "1789652156835010",
+            "1789652156835011",
+            "1789652156835012"
           ]
         }
       }

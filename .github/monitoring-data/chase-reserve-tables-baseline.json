@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "monitorId": "chase-sapphire-reserve-tables",
-  "capturedAt": "2026-09-17T05:01:01.528Z",
+  "capturedAt": "2026-09-17T13:35:55.831Z",
   "sources": [
     {
       "id": "atlanta",
@@ -382,6 +382,10 @@
           "key": "manhatta"
         },
         {
+          "name": "Mitsuru",
+          "key": "mitsuru"
+        },
+        {
           "name": "Momofuku Noodle Bar - East Village",
           "key": "momofuku noodle bar east village"
         },
@@ -408,10 +412,6 @@
         {
           "name": "Potluck Club",
           "key": "potluck club"
-        },
-        {
-          "name": "Razza - Jersey City",
-          "key": "razza jersey city"
         },
         {
           "name": "Red Hook Tavern",
