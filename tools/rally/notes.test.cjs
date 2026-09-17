@@ -70,19 +70,21 @@ test('notes keep valid sections; legacy notes default to General and old clients
   for(const section of ['lineup','tasks','other-project',null,{},['stay']])assert.throws(()=>updateNotes([],'add-note',{body:'Hi',section},author,1,()=>''),/Choose General/);
   assert.throws(()=>updateNotes(stay,'edit-note',{id:'hotel',body:'Moved',section:'passes',expectedUpdatedAt:100},other,102,()=>''),/own notes/);
 });
-test('section boards isolate related notes while All notes and legacy General preserve everything',()=>{
+test('section boards isolate notes and General only includes general or legacy notes',()=>{
   const noteSections={general:'General',stay:'Stay',crew:'Crew',travel:'Travel',passes:'Passes'};
   const ctx={noteSections};vm.createContext(ctx);
   vm.runInContext(app.slice(app.indexOf('function noteSection('),app.indexOf('function noteCards(')),ctx);
   const notes=[{id:'old',body:'Legacy'},{id:'stay',section:'stay'},{id:'travel',section:'travel'}];
   assert.deepEqual(Array.from(ctx.notesForSection(notes,'stay'),n=>n.id),['stay']);
   assert.deepEqual(Array.from(ctx.notesForSection(notes,'general'),n=>n.id),['old']);
-  assert.equal(ctx.notesForSection(notes,'all').length,3);
+  assert.deepEqual(Array.from(ctx.notesForSection(notes,'all'),n=>n.id),['old']);
   assert.equal(ctx.notesForSection(notes,'crew').length,0);
   vm.runInContext(app.slice(app.indexOf('function notesBoardMarkup('),app.indexOf('function wireNotes(')),ctx);
   const stay=ctx.notesBoardMarkup('stay');
   assert(stay.includes('data-section="stay"'));assert(stay.includes('Check-in details'));assert(!stay.includes('name="section"'));
-  assert(ctx.notesBoardMarkup('all').includes('name="section" value="stay"'));
+  assert(!ctx.notesBoardMarkup('general').includes('name="section"'));
+  assert(!app.includes('noteSectionPicker('));
+  assert(app.includes('section:noteSection(note),expectedUpdatedAt:note.updatedAt'));
 });
 test('posting from a section captures that project and section, not later navigation',async()=>{
   const input={value:'Hotel parking is included'},error={hidden:true},fieldset={disabled:false},form={elements:{body:input},querySelector:selector=>selector==='#noteError'?error:fieldset};

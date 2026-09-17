@@ -452,10 +452,7 @@ function renderMeetups() {
 }
 
 function noteSection(note) { return Object.hasOwn(noteSections,note.section) ? note.section : 'general'; }
-function notesForSection(notes, section) { return section==='all' ? notes : notes.filter(note=>noteSection(note)===section); }
-function noteSectionPicker(value='general') {
-  return `<fieldset class="note-section-picker"><legend>Section</legend>${Object.entries(noteSections).map(([id,label])=>`<label><input type="radio" name="section" value="${id}" ${id===value?'checked':''}><span>${label}</span></label>`).join('')}</fieldset>`;
-}
+function notesForSection(notes, section) { return notes.filter(note=>noteSection(note)===(Object.hasOwn(noteSections,section)?section:'general')); }
 function noteCards(notes) {
   const map = memberMap();
   return [...notes].sort((a,b)=>b.createdAt-a.createdAt).map(note => {
@@ -472,7 +469,7 @@ function noteCards(notes) {
 function renderNoteList() {
   const list = document.getElementById('notesList');
   if (!list) return;
-  list.innerHTML = noteCards(notesForSection(data.notes || [], list.dataset.section||'all'));
+  list.innerHTML = noteCards(notesForSection(data.notes || [], list.dataset.section||'general'));
   list.querySelectorAll('[data-note-edit]').forEach(button => button.onclick=()=>openEditNote(data.notes.find(note=>note.id===button.dataset.noteEdit)));
   list.querySelectorAll('[data-note-delete]').forEach(button => button.onclick=()=>{
     if(offlineMode)return showToast('Reconnect to delete notes.');
@@ -494,8 +491,8 @@ function updateNotesConnectivity() {
 }
 
 function renderNotes() {
-  el.page.innerHTML=heading('Shared with your crew','All notes','Notes from Stay, Crew, Travel, and Passes, plus general updates.', '<button id="refreshNotes" class="secondary" type="button">Refresh</button>')+notesBoardMarkup('all');
-  wireNotes('all');
+  el.page.innerHTML=heading('Shared with your crew','General notes','Project-wide updates. Hotel notes live in Stay; other details stay in their own section.', '<button id="refreshNotes" class="secondary" type="button">Refresh</button>')+notesBoardMarkup('general');
+  wireNotes('general');
 }
 
 function renderSectionNotes(section) {
@@ -505,7 +502,7 @@ function renderSectionNotes(section) {
 
 function notesBoardMarkup(section) {
   const placeholder={stay:'Check-in details, parking, room reminders…',crew:'Meetup plans, contact details, crew reminders…',travel:'Airport pickup, baggage, flight reminders…',passes:'Shuttle pickup, ticket transfers, entry reminders…'}[section]||'Meetup spot, useful link, last-minute reminder…';
-  return `<div class="notes-board"><form id="noteComposer" class="note-composer"><fieldset>${section==='all'?noteSectionPicker():''}<label for="noteBody">${section==='all'?'Leave a note':`Leave a ${noteSections[section].toLowerCase()} note`}</label><textarea id="noteBody" name="body" rows="3" maxlength="4000" required placeholder="${placeholder}"></textarea><div class="note-composer-footer"><small>Visible to everyone in this project</small><button class="primary" type="submit">Post note</button></div></fieldset><p id="noteError" class="note-error" role="alert" hidden></p></form><p id="notesStatus" class="notes-status" role="status"></p><section id="notesList" data-section="${section}" aria-label="Shared notes"></section></div>`;
+return `<div class="notes-board"><form id="noteComposer" class="note-composer"><fieldset><label for="noteBody">${`Leave a ${noteSections[section].toLowerCase()} note`}</label><textarea id="noteBody" name="body" rows="3" maxlength="4000" required placeholder="${placeholder}"></textarea><div class="note-composer-footer"><small>Visible to everyone in this project</small><button class="primary" type="submit">Post note</button></div></fieldset><p id="noteError" class="note-error" role="alert" hidden></p></form><p id="notesStatus" class="notes-status" role="status"></p><section id="notesList" data-section="${section}" aria-label="Shared notes"></section></div>`;
 }
 
 function wireNotes(section) {
@@ -520,7 +517,7 @@ function wireNotes(section) {
     if(!input.value.trim())return input.richEditor?input.richEditor.focus():input.focus();
     fieldset.disabled=true; error.hidden=true;
     input.richEditor?.setDisabled(true);
-    try { await saveNote(eventId,'add-note',{...(input.richEditor?input.richEditor.getValue():{body:input.value}),section:section==='all'?form.elements.section.value:section}); input.value=''; input.richEditor?.clear(); showToast('Note posted'); }
+    try { await saveNote(eventId,'add-note',{...(input.richEditor?input.richEditor.getValue():{body:input.value}),section}); input.value=''; input.richEditor?.clear(); showToast('Note posted'); }
     catch(reason){error.textContent=reason.message||'Could not post. Your draft is still here.';error.hidden=false;}
     finally {fieldset.disabled=offlineMode;input.richEditor?.setDisabled(offlineMode);}
   };
@@ -558,9 +555,9 @@ function openEditNote(note) {
   if(!note||offlineMode)return;
   const eventId=activeEvent;
   let editor;
-  openDialog('Edit note','Changes are visible to everyone in this project.',noteSectionPicker(noteSection(note))+`<div class="field"><span>Note</span><textarea class="note-edit-body" name="body" rows="7" maxlength="4000" required>${escapeHtml(note.body)}</textarea></div>`,async values=>{
+  openDialog(`Edit ${noteSections[noteSection(note)].toLowerCase()} note`,`Shared with your crew in ${noteSections[noteSection(note)]} only.`,`<div class="field"><span>Note</span><textarea class="note-edit-body" name="body" rows="7" maxlength="4000" required>${escapeHtml(note.body)}</textarea></div>`,async values=>{
     const content=editor.getValue();editor.setDisabled(true);
-    try{await saveNote(eventId,'edit-note',{id:note.id,...content,section:values.section,expectedUpdatedAt:note.updatedAt});closeDialog();showToast('Note updated');}
+    try{await saveNote(eventId,'edit-note',{id:note.id,...content,section:noteSection(note),expectedUpdatedAt:note.updatedAt});closeDialog();showToast('Note updated');}
     finally{editor.setDisabled(false);}
   });
   editor=window.RallyNoteEditor.mount(el.dialogRoot.querySelector('[name="body"]'),note);
