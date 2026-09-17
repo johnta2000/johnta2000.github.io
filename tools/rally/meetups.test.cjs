@@ -230,3 +230,74 @@ test('mobile editor avoids automatic keyboard focus and accidental pin placement
  assert(html.indexOf('./meetup-timing.js')<html.indexOf('./meetups.js'));
  assert(read('../../rally-sw.js').includes('/tools/rally/meetup-timing.js'));
 });
+
+test('next meetup advances in festival time, skips cancellations and preserves past plans',()=>{
+ const {upcomingMeetups,eventNow}=ui.window.RallyMeetups;
+ const rows=[
+  {...create()[0],id:'late',when:'2026-09-19T00:15'},
+  {...create()[0],id:'cancelled',when:'2026-09-18T23:55',status:'cancelled'},
+  {...create()[0],id:'early',when:'2026-09-18T23:50'},
+ ];
+ const original=plain(rows);
+ assert.deepEqual(plain(upcomingMeetups(rows,'2026-09-18T23:49')).map(m=>m.id),['early']);
+ assert.deepEqual(plain(upcomingMeetups(rows,'2026-09-18T23:50')).map(m=>m.id),['early']);
+ assert.deepEqual(plain(upcomingMeetups(rows,'2026-09-18T23:51')).map(m=>m.id),['late']);
+ assert.equal(upcomingMeetups(rows,'2026-09-19T00:16').length,0);
+ assert.deepEqual(plain(rows),original);
+ assert.equal(eventNow(new Date('2026-09-19T03:51:00Z')),'2026-09-18T23:51');
+ assert.equal(eventNow(new Date('2026-09-19T04:15:00Z')),'2026-09-19T00:15');
+});
+test('simultaneous next meetups are both highlighted; empty and all-cancelled plans have no bright pin',()=>{
+ const {upcomingMeetups,upcomingMarkup}=ui.window.RallyMeetups;
+ const rows=[...create(),{...create()[0],id:'other'}];
+ assert.equal(upcomingMeetups(rows,'2026-09-18T17:59').length,2);
+ assert.equal(upcomingMeetups([],'2026-09-18T17:59').length,0);
+ assert.equal(upcomingMeetups(rows.map(m=>({...m,status:'cancelled'})),'2026-09-18T17:59').length,0);
+ assert(upcomingMarkup({meetups:rows},'2026-09-18T18:01').includes('No more upcoming'));
+ rows[0].title='<script>bad()</script>';
+ const html=upcomingMarkup({meetups:rows},'2026-09-18T17:59');
+ assert(html.includes('&lt;script&gt;'));assert(!html.includes('<script>'));
+ assert.equal((html.match(/data-meetup-detail=/g)||[]).length,2);
+});
+test('time ticks only update highlighting and badges, without rerendering cards or moving focus',()=>{
+ let now='2026-09-18T17:59',wires=0;
+ const rows=[...create(),{...create()[0],id:'later',when:'2026-09-18T18:30'}];
+ const makeNode=id=>{
+  const classes=new Set(),badge={},attrs={};
+  return {dataset:{meetupId:id,mapPin:id},classes,badge,attrs,classList:{toggle:(name,on)=>on?classes.add(name):classes.delete(name)},querySelector:()=>badge,setAttribute:(key,value)=>attrs[key]=value};
+ };
+ const cards=rows.map(m=>makeNode(m.id)),pins=rows.map(m=>makeNode(m.id)),banner={};
+ const host={querySelector:()=>banner,querySelectorAll:selector=>selector==='[data-map-pin]'?pins:cards};
+ const ctx={room:{meetups:rows},current:()=>true,host,details:null,lastMinute:'',nextSignature:'',eventNow:()=>now,wireActions:()=>wires++,...ui.window.RallyMeetups};
+ ctx.eventNow=()=>now;
+ const source=read('meetups.js');
+ vm.runInNewContext(source.slice(source.indexOf('function updateClock('),source.indexOf('function resumeClock(')),ctx);
+ ctx.updateClock();assert(pins[0].classes.has('next-up'));assert(!pins[1].classes.has('next-up'));assert.equal(cards[0].badge.textContent,'Next up');
+ now='2026-09-18T18:01';ctx.updateClock();
+ assert(!pins[0].classes.has('next-up'));assert(pins[0].classes.has('past'));assert(pins[1].classes.has('next-up'));assert.equal(cards[0].badge.textContent,'Past');
+ assert(pins[1].attrs['aria-label'].includes('Next up'));assert.equal(wires,2);
+ ctx.updateClock();assert.equal(wires,2);
+});
+test('detail rendering scopes to the clicked pin while retaining original map number and authorized actions',()=>{
+ const room={id:eventId,members:[author,other],currentMemberId:other.id,isAdmin:false,meetups:[...create(),{...create()[0],id:'second',title:'Second meetup',instructions:'Find the blue totem',when:'2026-09-18T19:00'}]};
+ const html=cards(room,'second',true,'2026-09-18T18:30','second');
+ assert(html.includes('Second meetup'));assert(html.includes('Find the blue totem'));
+ assert(html.includes('meetup-number">2</span>'));assert(html.includes('Jessi'));
+ assert(!html.includes('data-meetup-id="meetup1"'));assert(!html.includes('data-meetup-edit'));
+ assert(html.includes('disabled'));assert(html.includes('data-meetup-copy'));assert(!html.includes('data-meetup-detail'));
+ room.currentMemberId=author.id;assert(cards(room,'second',false,'2026-09-18T18:30','second').includes('data-meetup-edit'));
+});
+test('the main map stays open, pin taps open an accessible modal, and the clock is cleaned up on navigation',()=>{
+ const source=read('meetups.js'),css=read('meetups.css');
+ assert(source.includes('<section class="meetup-map-panel" aria-label="Festival map">'));
+ assert(!source.includes("querySelector('.meetup-map-panel').open=false"));
+ assert(source.includes("button.onclick=()=>openDetails(button.dataset.mapPin)"));
+ assert(source.includes("dialog.setAttribute('aria-labelledby','meetupDetailTitle')"));
+ assert(source.includes('data-detail-close autofocus'));
+ assert(source.includes("closeDetails(false);openEditor(meetup)"));
+ assert(source.includes('clearInterval(clockTimer)'));assert(source.includes("document.removeEventListener('visibilitychange',resumeClock)"));
+ assert(source.includes('clockTimer=setInterval(resumeClock,10000)'));
+ assert(source.includes("document.addEventListener('visibilitychange',resumeClock)"));
+ assert(css.includes('.meetup-pin.selected:not(.next-up)'));
+ assert(css.includes('.meetup-pin.next-up::after'));assert(css.includes('content:"NEXT"'));
+});

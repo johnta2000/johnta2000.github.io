@@ -12,14 +12,26 @@
   let cleanup = () => {};
   const esc = value => String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const coordinates = (x,y,rect) => ({x:Math.max(0,Math.min(1,(x-rect.left)/rect.width)),y:Math.max(0,Math.min(1,(y-rect.top)/rect.height))});
-  const eventNow = () => {
-    const p=Object.fromEntries(new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(new Date()).map(part=>[part.type,part.value]));
+  const eventNow = (date=new Date()) => {
+    const p=Object.fromEntries(new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(date).map(part=>[part.type,part.value]));
     return `${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}`;
   };
   function timeLabel(when) {
     const [date,time]=when.split('T'),[hour,minute]=time.split(':').map(Number);
     const day=new Intl.DateTimeFormat('en-US',{timeZone:'UTC',weekday:'short',month:'short',day:'numeric'}).format(new Date(`${date}T12:00:00Z`));
     return `${day} · ${hour%12||12}:${String(minute).padStart(2,'0')} ${hour>=12?'PM':'AM'} EDT`;
+  }
+  function upcomingMeetups(meetups=[],now=eventNow()) {
+    const future=meetups.filter(meetup=>meetup.status==='planned'&&meetup.when>=now).sort((a,b)=>a.when.localeCompare(b.when));
+    return future.filter(meetup=>meetup.when===future[0].when);
+  }
+  function meetupPhase(meetup,nextIds,now) {
+    return meetup.status==='cancelled'?'Cancelled':meetup.when<now?'Past':nextIds.has(meetup.id)?'Next up':'';
+  }
+  function upcomingMarkup(room,now=eventNow()) {
+    const next=upcomingMeetups(room.meetups,now);
+    if(!next.length)return `<p class="meetup-next-empty">${room.meetups?.length?'No more upcoming meetups. Past plans are still available below.':'Add a meetup to light up the next meeting spot.'}</p>`;
+    return `<p class="meetup-next-label">Next up · ${esc(timeLabel(next[0].when))}</p>${next.map(meetup=>`<button type="button" data-meetup-detail="${esc(meetup.id)}"><span class="meetup-number">${room.meetups.indexOf(meetup)+1}</span><span><strong>${esc(meetup.title)}</strong><small>${esc(meetup.spot)}</small></span><span aria-hidden="true">↗</span></button>`).join('')}`;
   }
   const meetupUrl = (eventId,id) => `/tools/rally/?view=meetups&event=${encodeURIComponent(eventId)}&focus=${encodeURIComponent(id)}`;
   function linkedSetMarkup(meetup,eventId){
@@ -58,76 +70,161 @@
       });
     }
   }
-  function cards(room,selected,offline) {
+  function cards(room,selected,offline,now=eventNow(),onlyId=null) {
     const members=Object.fromEntries(room.members.map(member=>[member.id,member]));
-    const plans=[...(room.meetups||[])].sort((a,b)=>(a.status==='cancelled')-(b.status==='cancelled')||a.when.localeCompare(b.when));
+    const nextIds=new Set(upcomingMeetups(room.meetups,now).map(meetup=>meetup.id));
+    const plans=[...(room.meetups||[])].filter(meetup=>!onlyId||meetup.id===onlyId).sort((a,b)=>(a.status==='cancelled')-(b.status==='cancelled')||a.when.localeCompare(b.when));
     return plans.map(meetup=>{
       const own=meetup.authorId===room.currentMemberId,canEdit=own||room.isAdmin,joined=meetup.goingIds.includes(room.currentMemberId),cancelled=meetup.status==='cancelled';
       const people=meetup.goingIds.filter(id=>members[id]).map(id=>members[id].name);
       const number=(room.meetups||[]).indexOf(meetup)+1;
-      return `<article class="meetup-card${selected===meetup.id?' selected':''}${cancelled?' cancelled':''}" data-meetup-id="${esc(meetup.id)}"><header><span class="meetup-number">${number}</span><div><p class="meetup-time">${esc(timeLabel(meetup.when))}</p><h3>${esc(meetup.title)}</h3></div>${cancelled?'<span class="meetup-status">Cancelled</span>':meetup.when<eventNow()?'<span class="meetup-status">Past</span>':''}</header>${linkedSetMarkup(meetup,room.id)}<p class="meetup-spot">⌖ ${esc(meetup.spot)}</p>${meetup.instructions?`<p class="meetup-instructions">${esc(meetup.instructions)}</p>`:''}<p class="meetup-organizer">Organized by ${esc(members[meetup.authorId]?.name||meetup.authorName)}</p><p class="meetup-going"><strong>${people.length} joining</strong>${people.length?` · ${people.map(esc).join(', ')}`:''}</p><footer><button type="button" data-meetup-map="${esc(meetup.id)}">Show pin</button><a href="${meetupUrl(room.id,meetup.id)}" data-meetup-copy="${esc(meetup.id)}">Copy link</a>${!cancelled?`<button type="button" data-meetup-join="${esc(meetup.id)}" aria-pressed="${joined}" ${offline?'disabled':''}>${joined?'✓ Joining':'I’m joining'}</button>`:''}${canEdit?`<button type="button" data-meetup-edit="${esc(meetup.id)}" ${offline?'disabled':''}>Edit</button>`:''}</footer></article>`;
+      const phase=meetupPhase(meetup,nextIds,now);
+      return `<article class="meetup-card${selected===meetup.id?' selected':''}${cancelled?' cancelled':''}${phase==='Next up'?' next-up':''}${phase==='Past'?' past':''}" data-meetup-id="${esc(meetup.id)}"><header><span class="meetup-number">${number}</span><div><p class="meetup-time">${esc(timeLabel(meetup.when))}</p><h3>${onlyId?esc(meetup.title):`<button class="meetup-title-button" type="button" data-meetup-detail="${esc(meetup.id)}">${esc(meetup.title)}</button>`}</h3></div><span class="meetup-status" data-meetup-phase ${phase?'':'hidden'}>${phase}</span></header>${linkedSetMarkup(meetup,room.id)}<p class="meetup-spot">⌖ ${esc(meetup.spot)}</p>${meetup.instructions?`<p class="meetup-instructions">${esc(meetup.instructions)}</p>`:''}<p class="meetup-organizer">Organized by ${esc(members[meetup.authorId]?.name||meetup.authorName)}</p><p class="meetup-going"><strong>${people.length} joining</strong>${people.length?` · ${people.map(esc).join(', ')}`:''}</p><footer>${onlyId?'':`<button type="button" data-meetup-detail="${esc(meetup.id)}">Details</button>`}<button type="button" data-meetup-map="${esc(meetup.id)}">Show pin</button><a href="${meetupUrl(room.id,meetup.id)}" data-meetup-copy="${esc(meetup.id)}">Copy link</a>${!cancelled?`<button type="button" data-meetup-join="${esc(meetup.id)}" aria-pressed="${joined}" ${offline?'disabled':''}>${joined?'✓ Joining':'I’m joining'}</button>`:''}${canEdit?`<button type="button" data-meetup-edit="${esc(meetup.id)}" ${offline?'disabled':''}>Edit</button>`:''}</footer></article>`;
     }).join('')||'<div class="meetups-empty"><h2>Pick a spot. Find your crew.</h2><p>Create your first meetup with a map pin, a time, and a landmark everyone can recognize.</p></div>';
   }
   function mount(ctx) {
     cleanup();
     let room=ctx.room,selected=new URLSearchParams(location.search).get('focus'),editor=null,alive=true,busy=false,refreshing=false,revision=0;
+    let details=null,detailsId=null,releaseDetails=()=>{},clockTimer=null,lastMinute='',nextSignature='';
     const host=ctx.root,eventId=room.id;
     const current=()=>alive&&host.querySelector('#meetupList');
-    cleanup=()=>{alive=false;editor?.close();window.removeEventListener('offline',connectivity);window.removeEventListener('online',connectivity);};
-    host.innerHTML=`<header class="page-heading"><div><span class="eyebrow">Find your crew</span><h1>Meetups</h1><p>A place, a time, and a plan. All times are Eastern.</p></div><button class="primary" id="newMeetup">＋ New meetup</button></header><div class="meetups-layout"><details class="meetup-map-panel" open><summary>Festival map <span>Explore meeting spots</span></summary>${mapMarkup()}</details><section class="meetups-plans"><div class="meetups-list-heading"><h2>The plan</h2><button type="button" id="refreshMeetups">Refresh</button></div><p id="meetupSync" class="meetup-sync" role="status"></p><div id="meetupList"></div></section></div>`;
+    cleanup=()=>{alive=false;clearInterval(clockTimer);closeDetails(false);editor?.close();window.removeEventListener('offline',connectivity);window.removeEventListener('online',connectivity);window.removeEventListener('focus',resumeClock);document.removeEventListener('visibilitychange',resumeClock);};
+    host.innerHTML=`<header class="page-heading"><div><span class="eyebrow">Find your crew</span><h1>Meetups</h1><p>A place, a time, and a plan. All times are Eastern.</p></div><button class="primary" id="newMeetup">＋ New meetup</button></header><div class="meetups-layout"><section class="meetup-map-panel" aria-label="Festival map"><div id="meetupNext" class="meetup-next" role="status" aria-live="polite"></div>${mapMarkup()}</section><section class="meetups-plans"><div class="meetups-list-heading"><h2>The plan</h2><button type="button" id="refreshMeetups">Refresh</button></div><p id="meetupSync" class="meetup-sync" role="status"></p><div id="meetupList"></div></section></div>`;
     if(eventId!=='lost-lands-2026'){host.innerHTML='<div class="empty">Meetups with a festival map are available in the Lost Lands 2026 project.</div>';return;}
     setupMap(host.querySelector('.meetup-map'));
-    if(matchMedia('(max-width:760px)').matches)host.querySelector('.meetup-map-panel').open=false;
     function connectivity(){
       if(!current())return;
       host.querySelector('#newMeetup').disabled=ctx.offline()||busy;host.querySelector('#refreshMeetups').disabled=ctx.offline()||busy||refreshing;
       host.querySelectorAll('[data-meetup-join],[data-meetup-edit]').forEach(button=>button.disabled=ctx.offline()||busy);
+      details?.querySelectorAll('[data-meetup-join],[data-meetup-edit]').forEach(button=>button.disabled=ctx.offline()||busy);
+      if(details)details.querySelector('.meetup-detail-offline').hidden=!ctx.offline();
       host.querySelector('#meetupSync').textContent=ctx.offline()?'Offline · Saved plans only. Changes and joining need internet.':'Refresh for the latest plan. This is not live location or a notification service.';
       if(editor)editor.querySelector('[type="submit"]').disabled=ctx.offline()||busy;
     }
     window.addEventListener('offline',connectivity);
     window.addEventListener('online',connectivity);
-    function select(id,fromMap=false){
+    function select(id,showMap=true){
       selected=id;
       host.querySelectorAll('[data-meetup-id]').forEach(card=>card.classList.toggle('selected',card.dataset.meetupId===id));
       host.querySelectorAll('[data-map-pin]').forEach(pin=>{pin.classList.toggle('selected',pin.dataset.mapPin===id);pin.hidden=pin.classList.contains('cancelled')&&pin.dataset.mapPin!==id;});
       const meetup=(room.meetups||[]).find(item=>item.id===id);if(!meetup)return;
-      host.querySelector('.meetup-map-panel').open=true;
+      if(!showMap)return;
       const viewport=host.querySelector('.map-viewport'),stage=host.querySelector('.map-stage');
       viewport.scrollLeft=meetup.x*stage.clientWidth-viewport.clientWidth/2;viewport.scrollTop=meetup.y*stage.clientHeight-viewport.clientHeight/2;
-      const target=fromMap?[...host.querySelectorAll('[data-meetup-id]')].find(node=>node.dataset.meetupId===id):host.querySelector('.meetup-map-panel');
-      target?.scrollIntoView({block:'nearest',behavior:'instant'});
+      host.querySelector('.meetup-map-panel').scrollIntoView({block:'nearest',behavior:'instant'});
     }
     function draw(){
       if(!current())return;
-      const focused=document.activeElement?.closest('[data-meetup-id]'),focusedId=focused?.dataset.meetupId;
+      const focused=host.contains(document.activeElement)?document.activeElement?.closest('[data-meetup-id]'):null,focusedId=focused?.dataset.meetupId;
       const focusedAction=focused?['data-meetup-join','data-meetup-edit','data-meetup-map','data-meetup-copy'].find(attr=>document.activeElement.hasAttribute(attr)):null;
       const beforeTop=focused?.getBoundingClientRect().top;
       host.querySelector('#meetupList').innerHTML=cards(room,selected,ctx.offline());
       host.querySelector('.map-pins').innerHTML=(room.meetups||[]).map((meetup,index)=>`<button class="meetup-pin${selected===meetup.id?' selected':''}${meetup.status==='cancelled'?' cancelled':''}" ${meetup.status==='cancelled'&&selected!==meetup.id?'hidden':''} type="button" data-map-pin="${esc(meetup.id)}" style="left:${meetup.x*100}%;top:${meetup.y*100}%" aria-label="${esc(meetup.title)} at ${esc(meetup.spot)}">${index+1}</button>`).join('');
-      host.querySelectorAll('[data-map-pin]').forEach(button=>button.onclick=()=>select(button.dataset.mapPin,true));
-      host.querySelectorAll('[data-meetup-map]').forEach(button=>button.onclick=()=>select(button.dataset.meetupMap));
-      host.querySelectorAll('[data-meetup-edit]').forEach(button=>button.onclick=()=>openEditor((room.meetups||[]).find(item=>item.id===button.dataset.meetupEdit)));
-      host.querySelectorAll('[data-meetup-join]').forEach(button=>button.onclick=async()=>{
-        const meetup=room.meetups.find(item=>item.id===button.dataset.meetupJoin);
-        try{await mutate('join-meetup',{id:meetup.id,going:!meetup.goingIds.includes(room.currentMemberId)});}catch(error){ctx.toast(error.message);}
-      });
-      host.querySelectorAll('[data-meetup-copy]').forEach(link=>link.onclick=async event=>{
-        if(event.metaKey||event.ctrlKey||event.shiftKey||event.altKey||event.button!==0)return;
-        event.preventDefault();const url=`https://www.john-ta.com${meetupUrl(eventId,link.dataset.meetupCopy)}`;
-        try{await navigator.clipboard.writeText(url);ctx.toast('Meetup link copied. Only project members can open it.');}
-        catch{
-          const footer=link.parentElement,input=footer.querySelector('.meetup-copy-input')||document.createElement('input');
-          input.className='meetup-copy-input';input.value=url;input.readOnly=true;input.setAttribute('aria-label','Meetup link. Only project members can open it.');
-          footer.append(input);input.focus();input.select();ctx.toast('Select and copy this link to share with your crew.');
-        }
-      });
+      wireActions(host);
+      if(details)renderDetails();
+      updateClock(true);
       connectivity();
       if(focusedId&&focusedAction){
         const replacement=[...host.querySelectorAll('[data-meetup-id]')].find(card=>card.dataset.meetupId===focusedId);
         replacement?.querySelector('['+focusedAction+']')?.focus({preventScroll:true});
         if(replacement)window.scrollBy(0,replacement.getBoundingClientRect().top-beforeTop);
       }
+    }
+    function notice(message){
+      if(details)details.querySelector('.meetup-detail-feedback').textContent=message;
+      else ctx.toast(message);
+    }
+    function wireActions(root){
+      root.querySelectorAll('[data-meetup-detail]').forEach(button=>button.onclick=()=>openDetails(button.dataset.meetupDetail));
+      root.querySelectorAll('[data-map-pin]').forEach(button=>button.onclick=()=>openDetails(button.dataset.mapPin));
+      root.querySelectorAll('[data-meetup-map]').forEach(button=>button.onclick=()=>{closeDetails(false);select(button.dataset.meetupMap);});
+      root.querySelectorAll('[data-meetup-edit]').forEach(button=>button.onclick=()=>{const meetup=(room.meetups||[]).find(item=>item.id===button.dataset.meetupEdit);closeDetails(false);openEditor(meetup);});
+      root.querySelectorAll('[data-meetup-join]').forEach(button=>button.onclick=async()=>{
+        const meetup=room.meetups.find(item=>item.id===button.dataset.meetupJoin);
+        try{await mutate('join-meetup',{id:meetup.id,going:!meetup.goingIds.includes(room.currentMemberId)});}catch(error){notice(error.message);}
+      });
+      root.querySelectorAll('[data-meetup-copy]').forEach(link=>link.onclick=async event=>{
+        if(event.metaKey||event.ctrlKey||event.shiftKey||event.altKey||event.button!==0)return;
+        event.preventDefault();const url=`https://www.john-ta.com${meetupUrl(eventId,link.dataset.meetupCopy)}`;
+        try{await navigator.clipboard.writeText(url);notice('Meetup link copied. Only project members can open it.');}
+        catch{
+          const footer=link.parentElement,input=footer.querySelector('.meetup-copy-input')||document.createElement('input');
+          input.className='meetup-copy-input';input.value=url;input.readOnly=true;input.setAttribute('aria-label','Meetup link. Only project members can open it.');
+          footer.append(input);input.focus();input.select();notice('Select and copy this link to share with your crew.');
+        }
+      });
+    }
+    function updateClock(force=false){
+      if(!current())return;
+      const now=eventNow();
+      if(!force&&now===lastMinute)return;
+      lastMinute=now;
+      const next=upcomingMeetups(room.meetups,now),nextIds=new Set(next.map(meetup=>meetup.id));
+      const signature=JSON.stringify(next.map(meetup=>[meetup.id,meetup.when,meetup.title,meetup.spot]))+':'+(room.meetups||[]).length;
+      if(force||signature!==nextSignature){
+        nextSignature=signature;
+        const banner=host.querySelector('#meetupNext');banner.innerHTML=upcomingMarkup(room,now);wireActions(banner);
+      }
+      for(const root of [host,details].filter(Boolean)){
+        root.querySelectorAll('[data-meetup-id]').forEach(card=>{
+          const meetup=(room.meetups||[]).find(item=>item.id===card.dataset.meetupId);if(!meetup)return;
+          const phase=meetupPhase(meetup,nextIds,now),badge=card.querySelector('[data-meetup-phase]');
+          card.classList.toggle('next-up',phase==='Next up');card.classList.toggle('past',phase==='Past');
+          if(badge){badge.textContent=phase;badge.hidden=!phase;}
+        });
+      }
+      host.querySelectorAll('[data-map-pin]').forEach(pin=>{
+        const meetup=(room.meetups||[]).find(item=>item.id===pin.dataset.mapPin);if(!meetup)return;
+        const phase=meetupPhase(meetup,nextIds,now);
+        pin.classList.toggle('next-up',phase==='Next up');pin.classList.toggle('past',phase==='Past');
+        pin.setAttribute('aria-label',[phase,meetup.title,meetup.spot,timeLabel(meetup.when),'Open meetup details'].filter(Boolean).join(' · '));
+      });
+    }
+    function resumeClock(){if(!document.hidden)updateClock();}
+    function closeDetails(restoreFocus=true){
+      const dialog=details;if(!dialog)return;
+      const release=releaseDetails;details=null;detailsId=null;
+      dialog.close();release(restoreFocus);dialog.remove();
+    }
+    function renderDetails(){
+      if(!details)return;
+      if(!(room.meetups||[]).some(meetup=>meetup.id===detailsId)){closeDetails();ctx.toast('This meetup is no longer available.');return;}
+      const body=details.querySelector('.meetup-detail-body'),scroll=body.scrollTop;
+      const active=document.activeElement,action=['data-meetup-join','data-meetup-copy','data-meetup-edit','data-meetup-map'].find(attr=>details.contains(active)&&active.hasAttribute(attr));
+      body.innerHTML=cards(room,selected,ctx.offline(),eventNow(),detailsId);
+      body.scrollTop=scroll;wireActions(body);
+      if(action)body.querySelector('['+action+']')?.focus({preventScroll:true});
+      connectivity();
+    }
+    function openDetails(id){
+      if(editor||!(room.meetups||[]).some(meetup=>meetup.id===id))return;
+      if(details){detailsId=id;select(id,false);renderDetails();return;}
+      const trigger=document.activeElement,previousOverflow=document.body.style.overflow;
+      const dialog=document.createElement('dialog');
+      details=dialog;detailsId=id;select(id,false);
+      dialog.className='meetup-detail-dialog';dialog.setAttribute('aria-labelledby','meetupDetailTitle');
+      dialog.innerHTML='<header><div><span class="eyebrow">Lost Lands 2026</span><h2 id="meetupDetailTitle">Meetup details</h2></div><button type="button" data-detail-close autofocus aria-label="Close meetup details">×</button></header><p class="meetup-detail-offline" hidden>Offline · Saved details. Changes need internet.</p><div class="meetup-detail-body"></div><p class="meetup-detail-feedback" role="status"></p>';
+      let released=false;
+      releaseDetails=restore=>{
+        if(released)return;released=true;
+        document.body.style.overflow=previousOverflow;
+        if(details===dialog){details=null;detailsId=null;}
+        dialog.remove();
+        if(restore&&current()){
+          const fallback=[...host.querySelectorAll('[data-map-pin]')].find(pin=>pin.dataset.mapPin===id&&!pin.hidden)||host.querySelector('#newMeetup');
+          (trigger?.isConnected?trigger:fallback)?.focus({preventScroll:true});
+        }
+      };
+      const release=releaseDetails;
+      dialog.querySelector('[data-detail-close]').onclick=()=>closeDetails();
+      dialog.addEventListener('close',()=>release(true),{once:true});
+      dialog.addEventListener('click',event=>{
+        if(event.target!==dialog)return;
+        const box=dialog.getBoundingClientRect();
+        if(event.clientX<box.left||event.clientX>box.right||event.clientY<box.top||event.clientY>box.bottom)closeDetails();
+      });
+      document.body.style.overflow='hidden';
+      document.body.append(dialog);renderDetails();dialog.showModal();
     }
     async function mutate(action,payload){
       if(ctx.offline())throw new Error('Reconnect to change this meetup.');
@@ -284,7 +381,9 @@
       }
     }
     host.querySelector('#newMeetup').onclick=()=>openEditor();host.querySelector('#refreshMeetups').onclick=refresh;
-    draw();if(selected)select(selected,true);if(!ctx.offline())void refresh();
+    draw();if(selected)openDetails(selected);if(!ctx.offline())void refresh();
+    clockTimer=setInterval(resumeClock,10000);
+    window.addEventListener('focus',resumeClock);document.addEventListener('visibilitychange',resumeClock);
   }
-  window.RallyMeetups={mount,unmount:()=>cleanup(),coordinates,timeLabel,cards,mapMarkup,LANDMARKS,MAP};
+  window.RallyMeetups={mount,unmount:()=>cleanup(),coordinates,timeLabel,eventNow,upcomingMeetups,meetupPhase,upcomingMarkup,cards,mapMarkup,LANDMARKS,MAP};
 })();

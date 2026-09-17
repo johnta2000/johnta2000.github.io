@@ -142,3 +142,45 @@
  .set-picker-results{max-height:240px;max-height:32svh}
  .meetup-dialog .map-viewport{max-height:36svh}
 }
+
+/* Selection is an outline; only the next scheduled meetup gets the bright fill. */
+.meetup-pin.selected:not(.next-up){background:#293c22;color:white;outline:3px solid white;outline-offset:3px}
+.meetup-pin.past,.meetup-pin.past.selected{background:#666d64;color:#fff;border-color:#e6e9df;box-shadow:0 2px 7px #0005}
+.meetup-pin.next-up,.meetup-pin.next-up.selected{background:#dfff52;color:#1c2914;border-color:#fff;outline:4px solid #dfff5266;outline-offset:2px;box-shadow:0 0 0 9px #dfff5233,0 4px 18px #0007;z-index:3}
+.meetup-pin.next-up::after{content:"NEXT";position:absolute;bottom:calc(100% + 7px);padding:4px 6px;border-radius:5px;background:#dfff52;color:#253218;font:800 10px/1.1 system-ui;letter-spacing:.06em;pointer-events:none}
+.meetup-card.next-up{border-color:#98ad60;box-shadow:0 0 0 2px #dfff5233}
+.meetup-card.past:not(.selected){background:#f0f1ea;border-color:#e0e3d7}
+.meetup-card.next-up .meetup-status{background:#dfff52;color:#293c22}
+.meetup-title-button{padding:0;border:0;background:none;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.meetup-title-button:hover{text-decoration:underline}
+.meetup-next{margin-bottom:14px;border:1px solid #c7d59c;border-radius:14px;background:#f0f6df;padding:16px}
+.meetup-next-label{margin:0 0 10px;color:#435634;font-size:13px;font-weight:700;line-height:1.5}
+.meetup-next>button{display:flex;align-items:center;gap:12px;min-height:48px;width:100%;border:0;padding:8px 0;background:none;color:#2d3d22;text-align:left;font-family:inherit;cursor:pointer}
+.meetup-next>button>span:nth-child(2){flex:1;min-width:0;overflow-wrap:anywhere}
+.meetup-next strong{display:block;font-size:17px;line-height:1.4}
+.meetup-next small{display:block;margin-top:3px;font-size:14px;line-height:1.5;color:#647551}
+.meetup-next .meetup-number{background:#dfff52;color:#2d3d22}
+.meetup-next-empty{margin:0;font-size:14px;line-height:1.6;color:#62734f}
+.meetup-detail-dialog{position:fixed;inset:0;width:min(560px,calc(100vw - 24px));height:fit-content;max-height:calc(var(--rally-viewport-height,100dvh) - 32px);margin:auto;border:1px solid #d4dcc7;border-radius:22px;padding:0;background:#fffefa;color:#283521;overflow:hidden;font-family:inherit}
+.meetup-detail-dialog[open]{display:flex;flex-direction:column}
+.meetup-detail-dialog::backdrop{background:#14201999;backdrop-filter:blur(5px)}
+.meetup-detail-dialog>header{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:20px 24px;border-bottom:1px solid #e4e8da;flex-shrink:0}
+.meetup-detail-dialog h2{margin:0;font-size:22px;letter-spacing:-.5px}
+.meetup-detail-dialog [data-detail-close]{width:44px;height:44px;flex-shrink:0;border:0;border-radius:50%;background:#ecf0e3;color:#35462b;font-size:26px;cursor:pointer}
+.meetup-detail-body{padding:24px;overflow:auto;min-height:0;overscroll-behavior:contain}
+.meetup-detail-body .meetup-card{border:0;padding:0;box-shadow:none;background:transparent}
+.meetup-detail-body .meetup-card h3{font-size:26px}
+.meetup-detail-body .meetup-spot{font-size:17px}
+.meetup-detail-body .meetup-instructions{font-size:16px;line-height:1.65}
+.meetup-detail-body .meetup-going{font-size:14px}
+.meetup-detail-body .meetup-card>footer button,.meetup-detail-body .meetup-card>footer a{font-size:14px}
+.meetup-detail-feedback{padding:0 24px max(16px,env(safe-area-inset-bottom));margin:0;color:#4e633e;font-size:14px;line-height:1.5}
+.meetup-detail-feedback:empty{padding-bottom:max(8px,env(safe-area-inset-bottom))}
+.meetup-detail-offline{margin:0;padding:12px 24px;background:#f1f3e9;color:#6a765a;font-size:13px;line-height:1.5}
+.meetup-detail-dialog :focus-visible,.meetup-title-button:focus-visible{outline:3px solid #718f47;outline-offset:3px}
+@media(max-width:760px){
+ .meetup-map-panel{padding:0;border:0;background:none}
+ .meetup-detail-dialog{inset:auto 8px max(8px,env(safe-area-inset-bottom));margin:0;width:calc(100vw - 16px);max-height:calc(var(--rally-viewport-height,100dvh) - 24px);border-radius:22px}
+ .meetup-detail-dialog>header{padding:16px}.meetup-detail-body{padding:18px}
+ .meetup-detail-feedback{padding-left:18px;padding-right:18px}.meetup-detail-body .meetup-card h3{font-size:23px}
+}
