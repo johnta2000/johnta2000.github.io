@@ -1,5 +1,5 @@
 // Only Rally assets are handled. No credentials, API responses, or other site pages.
-const CACHE = 'rally-shell-offline-5';
+const CACHE = 'rally-shell-offline-6';
 const ASSETS = ['/tools/rally/', '/tools/rally/app.js', '/tools/rally/offline.js', '/tools/rally/keyboard.js', '/tools/rally/styles.css', '/tools/rally/boot.css', '/lost-lands-2026-lineup/', '/lost-lands-2026-lineup/mobile.css', '/lost-lands-2026-lineup/set-times.js', '/lost-lands-2026-lineup/assets/lost-lands-2026-lineup.jpg'];
 ASSETS.push('/tools/rally/meetup-timing.js', '/tools/rally/meetups.js', '/tools/rally/meetups.css', '/tools/rally/assets/lost-lands-2026-map.png');
 self.addEventListener('install', event => event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS)).then(() => self.skipWaiting())));

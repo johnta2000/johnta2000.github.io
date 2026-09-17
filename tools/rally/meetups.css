@@ -1,4 +1,7 @@
 /* Supplied map stays intact; pins use normalized image coordinates. */
+.page-heading.meetups-heading{display:flex;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:18px}
+.meetups-heading .primary{width:auto;min-height:44px;white-space:nowrap}
+@media(max-width:760px){.page-heading.meetups-heading h1{font-size:1.8rem}.meetups-heading .primary{font-size:.875rem;padding:0 14px}}
 .meetups-layout{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(320px,1fr);gap:28px;align-items:start}
 .meetup-map-panel,.meetups-plans,.meetup-editor-layout>div{min-width:0}
 .meetup-map{background:#fffefa;border:1px solid #dedfd4;border-radius:20px;overflow:hidden}
@@ -160,7 +163,7 @@
 .meetup-next strong{display:block;font-size:17px;line-height:1.4}
 .meetup-next small{display:block;margin-top:3px;font-size:14px;line-height:1.5;color:#647551}
 .meetup-next .meetup-number{background:#dfff52;color:#2d3d22}
-.meetup-next-empty{margin:0;font-size:14px;line-height:1.6;color:#62734f}
+.meetup-next[hidden]{display:none}
 .meetup-detail-dialog{position:fixed;inset:0;width:min(560px,calc(100vw - 24px));height:fit-content;max-height:calc(var(--rally-viewport-height,100dvh) - 32px);margin:auto;border:1px solid #d4dcc7;border-radius:22px;padding:0;background:#fffefa;color:#283521;overflow:hidden;font-family:inherit}
 .meetup-detail-dialog[open]{display:flex;flex-direction:column}
 .meetup-detail-dialog::backdrop{background:#14201999;backdrop-filter:blur(5px)}

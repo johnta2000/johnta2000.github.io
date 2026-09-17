@@ -253,7 +253,9 @@ test('simultaneous next meetups are both highlighted; empty and all-cancelled pl
  assert.equal(upcomingMeetups(rows,'2026-09-18T17:59').length,2);
  assert.equal(upcomingMeetups([],'2026-09-18T17:59').length,0);
  assert.equal(upcomingMeetups(rows.map(m=>({...m,status:'cancelled'})),'2026-09-18T17:59').length,0);
- assert(upcomingMarkup({meetups:rows},'2026-09-18T18:01').includes('No more upcoming'));
+ assert.equal(upcomingMarkup({meetups:rows},'2026-09-18T18:01'),'');
+ assert.equal(upcomingMarkup({meetups:[]},'2026-09-18T17:59'),'');
+ assert.equal(upcomingMarkup({meetups:rows.map(m=>({...m,status:'cancelled'}))},'2026-09-18T17:59'),'');
  rows[0].title='<script>bad()</script>';
  const html=upcomingMarkup({meetups:rows},'2026-09-18T17:59');
  assert(html.includes('&lt;script&gt;'));assert(!html.includes('<script>'));
@@ -277,6 +279,16 @@ test('time ticks only update highlighting and badges, without rerendering cards 
  assert(!pins[0].classes.has('next-up'));assert(pins[0].classes.has('past'));assert(pins[1].classes.has('next-up'));assert.equal(cards[0].badge.textContent,'Past');
  assert(pins[1].attrs['aria-label'].includes('Next up'));assert.equal(wires,2);
  ctx.updateClock();assert.equal(wires,2);
+ assert.equal(banner.hidden,false);
+ now='2026-09-18T18:31';ctx.updateClock();assert.equal(banner.hidden,true);assert.equal(banner.innerHTML,'');
+});
+test('meetups header keeps the primary action without redundant introductory copy',()=>{
+ const source=read('meetups.js'),css=read('meetups.css');
+ assert(source.includes('class="page-heading meetups-heading"><h1>Meetups</h1>'));
+ assert(!source.includes('A place, a time, and a plan.'));
+ assert(!source.includes('Add a meetup to light up'));
+ assert(css.includes('.meetup-next[hidden]{display:none}'));
+ assert(css.includes('.meetups-heading .primary{width:auto;min-height:44px;'));
 });
 test('detail rendering scopes to the clicked pin while retaining original map number and authorized actions',()=>{
  const room={id:eventId,members:[author,other],currentMemberId:other.id,isAdmin:false,meetups:[...create(),{...create()[0],id:'second',title:'Second meetup',instructions:'Find the blue totem',when:'2026-09-18T19:00'}]};

@@ -30,7 +30,7 @@
   }
   function upcomingMarkup(room,now=eventNow()) {
     const next=upcomingMeetups(room.meetups,now);
-    if(!next.length)return `<p class="meetup-next-empty">${room.meetups?.length?'No more upcoming meetups. Past plans are still available below.':'Add a meetup to light up the next meeting spot.'}</p>`;
+    if(!next.length)return '';
     return `<p class="meetup-next-label">Next up · ${esc(timeLabel(next[0].when))}</p>${next.map(meetup=>`<button type="button" data-meetup-detail="${esc(meetup.id)}"><span class="meetup-number">${room.meetups.indexOf(meetup)+1}</span><span><strong>${esc(meetup.title)}</strong><small>${esc(meetup.spot)}</small></span><span aria-hidden="true">↗</span></button>`).join('')}`;
   }
   const meetupUrl = (eventId,id) => `/tools/rally/?view=meetups&event=${encodeURIComponent(eventId)}&focus=${encodeURIComponent(id)}`;
@@ -89,7 +89,7 @@
     const host=ctx.root,eventId=room.id;
     const current=()=>alive&&host.querySelector('#meetupList');
     cleanup=()=>{alive=false;clearInterval(clockTimer);closeDetails(false);editor?.close();window.removeEventListener('offline',connectivity);window.removeEventListener('online',connectivity);window.removeEventListener('focus',resumeClock);document.removeEventListener('visibilitychange',resumeClock);};
-    host.innerHTML=`<header class="page-heading"><div><span class="eyebrow">Find your crew</span><h1>Meetups</h1><p>A place, a time, and a plan. All times are Eastern.</p></div><button class="primary" id="newMeetup">＋ New meetup</button></header><div class="meetups-layout"><section class="meetup-map-panel" aria-label="Festival map"><div id="meetupNext" class="meetup-next" role="status" aria-live="polite"></div>${mapMarkup()}</section><section class="meetups-plans"><div class="meetups-list-heading"><h2>The plan</h2><button type="button" id="refreshMeetups">Refresh</button></div><p id="meetupSync" class="meetup-sync" role="status"></p><div id="meetupList"></div></section></div>`;
+    host.innerHTML=`<header class="page-heading meetups-heading"><h1>Meetups</h1><button class="primary" id="newMeetup">＋ New meetup</button></header><div class="meetups-layout"><section class="meetup-map-panel" aria-label="Festival map"><div id="meetupNext" class="meetup-next" role="status" aria-live="polite" hidden></div>${mapMarkup()}</section><section class="meetups-plans"><div class="meetups-list-heading"><h2>The plan</h2><button type="button" id="refreshMeetups">Refresh</button></div><p id="meetupSync" class="meetup-sync" role="status"></p><div id="meetupList"></div></section></div>`;
     if(eventId!=='lost-lands-2026'){host.innerHTML='<div class="empty">Meetups with a festival map are available in the Lost Lands 2026 project.</div>';return;}
     setupMap(host.querySelector('.meetup-map'));
     function connectivity(){
@@ -163,7 +163,7 @@
       const signature=JSON.stringify(next.map(meetup=>[meetup.id,meetup.when,meetup.title,meetup.spot]))+':'+(room.meetups||[]).length;
       if(force||signature!==nextSignature){
         nextSignature=signature;
-        const banner=host.querySelector('#meetupNext');banner.innerHTML=upcomingMarkup(room,now);wireActions(banner);
+        const banner=host.querySelector('#meetupNext');banner.innerHTML=upcomingMarkup(room,now);banner.hidden=!next.length;wireActions(banner);
       }
       for(const root of [host,details].filter(Boolean)){
         root.querySelectorAll('[data-meetup-id]').forEach(card=>{
