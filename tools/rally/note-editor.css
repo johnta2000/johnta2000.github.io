@@ -4,6 +4,8 @@
 .rich-note-toolbar button,.rich-note-link button{min-height:40px;min-width:40px;padding:6px 10px;border:0;border-radius:7px;background:transparent;color:#37482b;font-family:inherit;font-size:14px;font-weight:600;line-height:1.2;cursor:pointer}
 .rich-note-toolbar button:hover,.rich-note-toolbar button:focus-visible{background:#dfe7d3}
 .rich-note-toolbar button:disabled{opacity:.45;cursor:default}
+.rich-note-toolbar button{display:inline-flex;align-items:center;justify-content:center;width:40px;padding:6px;flex-shrink:0}
+.rich-note-toolbar button svg{display:block;pointer-events:none}
 .rich-note-input{min-height:135px;max-height:40dvh;overflow:auto;padding:14px;outline:0;line-height:1.6;overflow-wrap:anywhere;white-space:pre-wrap;scroll-margin:90px 0}
 .rich-note-input:empty::before{content:attr(data-placeholder);color:#828a78;pointer-events:none}
 .rich-note-input p,.note-body p{margin:0 0 .65em}.rich-note-input p:last-child,.note-body p:last-child{margin-bottom:0}

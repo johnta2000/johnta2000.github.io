@@ -26,7 +26,9 @@
   }
   function mount(input,note={body:input.value}){
     const box=document.createElement('div');box.className='rich-note-editor';
-    const commands=[['bold','Bold','<b>B</b>'],['italic','Italic','<i>I</i>'],['underline','Underline','<u>U</u>'],['insertUnorderedList','Bullet list','• List'],['insertOrderedList','Numbered list','1. List'],['link','Add link','Link'],['unlink','Remove link','Unlink']];
+    const svg=paths=>`<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths}</svg>`;
+    const mod=/Mac|iPhone|iPad/.test(navigator.platform)?'⌘':'Ctrl+';
+const commands=[['bold',`Bold (${mod}B)`,'<b>B</b>'],['italic',`Italic (${mod}I)`,'<i>I</i>'],['underline',`Underline (${mod}U)`,'<u>U</u>'],['insertUnorderedList',`Bulleted list (${mod}Shift+8)`,svg('<path d="M9 6h12M9 12h12M9 18h12"/><circle cx="3" cy="6" r="1"/><circle cx="3" cy="12" r="1"/><circle cx="3" cy="18" r="1"/>')],['insertOrderedList',`Numbered list (${mod}Shift+7)`,svg('<path d="M10 6h11M10 12h11M10 18h11M3 3h1v5M3 8h2M2 12c0-2 4-2 4 0 0 1-4 3-4 5h4"/>')],['link',`Insert link (${mod}K)`,svg('<path d="m10 13 4-4m-6 6-1 1a4 4 0 0 1-6-6l4-4a4 4 0 0 1 6 0m2 2 1-1a4 4 0 0 1 6 6l-4 4a4 4 0 0 1-6 0"/>')],['unlink','Remove link',svg('<path d="m3 3 18 18M8 16l-1 1a4 4 0 0 1-6-6l3-3m9 0 1-1a4 4 0 0 1 6 6l-1 1M10 13l2-2"/>')]];
 box.innerHTML=`<div class="rich-note-toolbar" role="group" aria-label="Note formatting">${commands.map(([command,label,icon])=>`<button type="button" data-command="${command}" aria-label="${label}" title="${label}">${icon}</button>`).join('')}</div><div class="rich-note-link" hidden><label>Link URL<input type="text" inputmode="url" placeholder="https://…" aria-label="Link URL"></label><button type="button" data-link-apply>Add</button><button type="button" data-link-cancel>Cancel</button></div><div class="rich-note-input" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Note" data-placeholder="${escape(input.placeholder||'Write a note…')}"></div><p class="rich-note-feedback" role="status"></p>`;
     input.hidden=true;input.required=false;input.after(box);
     const editor=box.querySelector('.rich-note-input'),feedback=box.querySelector('.rich-note-feedback'),linkRow=box.querySelector('.rich-note-link'),linkInput=linkRow.querySelector('input');
@@ -38,6 +40,13 @@ box.innerHTML=`<div class="rich-note-toolbar" role="group" aria-label="Note form
     function sync(){try{const nodes=model.normalizeRichText(fromDOM(editor));input.value=model.richTextPlain(nodes).trim();feedback.textContent=input.value.length>4000?'Keep notes under 4,000 characters.':'';}catch(error){feedback.textContent=error.message;}}
     function command(name,value){if(disabled)return;restore();document.execCommand(name,false,value);remember();sync();}
     editor.addEventListener('input',()=>{remember();sync();});
+    editor.addEventListener('keydown',event=>{
+      if(disabled||event.isComposing||event.altKey||!(event.metaKey||event.ctrlKey))return;
+      const key=event.key.toLowerCase();
+      const action=event.shiftKey?({Digit7:'insertOrderedList',Digit8:'insertUnorderedList'}[event.code]):({b:'bold',i:'italic',u:'underline',k:'link'}[key]);
+      if(!action)return;
+      event.preventDefault();remember();box.querySelector(`[data-command="${action}"]`).click();
+    });
     editor.addEventListener('keyup',remember);editor.addEventListener('mouseup',remember);editor.addEventListener('touchend',remember);
     box.querySelector('.rich-note-toolbar').addEventListener('pointerdown',event=>{if(event.target.closest('button')){remember();event.preventDefault();}});
     box.querySelectorAll('[data-command]').forEach(button=>button.onclick=()=>{

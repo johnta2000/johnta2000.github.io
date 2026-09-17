@@ -9,6 +9,20 @@ const ctx={module:{exports:{}},require,TextEncoder,URL};
 vm.runInNewContext(buildSync({entryPoints:[__dirname+'/../../convex/rallyNotes.ts'],write:false,bundle:true,platform:'node',format:'cjs',external:['convex/values']}).outputFiles[0].text,ctx);
 const {updateNotes}=ctx.module.exports;
 const member={id:'john',name:'John',role:'member'};
+test('icon toolbar keeps accessible names and supports formatting shortcuts',()=>{
+ const ui=setup();try{
+  const commands=[];ui.w.document.execCommand=command=>commands.push(command);
+  for(const [key,code,shiftKey,expected] of [['b','KeyB',false,'bold'],['i','KeyI',false,'italic'],['u','KeyU',false,'underline'],['&','Digit7',true,'insertOrderedList'],['*','Digit8',true,'insertUnorderedList']]){
+   const event=new ui.w.KeyboardEvent('keydown',{key,code,shiftKey,ctrlKey:true,bubbles:true,cancelable:true});
+   ui.editor.element.dispatchEvent(event);assert(event.defaultPrevented);assert.equal(commands.at(-1),expected);
+  }
+  ui.editor.element.dispatchEvent(new ui.w.KeyboardEvent('keydown',{key:'k',metaKey:true,bubbles:true,cancelable:true}));
+  assert.equal(ui.w.document.querySelector('.rich-note-link').hidden,false);
+  for(const command of ['insertUnorderedList','insertOrderedList','link','unlink']){
+   const button=ui.w.document.querySelector(`[data-command="${command}"]`);assert(button.querySelector('svg'));assert(button.getAttribute('aria-label'));assert.equal(button.textContent,'');
+  }
+ }finally{ui.w.close();}
+});
 const richText=[{type:'p',children:[{type:'strong',children:[{type:'text',text:'Room 1'}]}]},{type:'ul',children:[{type:'li',children:[{type:'em',children:[{type:'text',text:'Breakfast included'}]}]},{type:'li',children:[{type:'a',href:'https://example.com/hotel',children:[{type:'text',text:'Hotel details'}]}]}]}];
 function setup(note={body:'First line\n\nSecond line'}){
  const dom=new JSDOM('<!doctype html><form><label for="body">Note</label><textarea id="body" name="body" required></textarea></form>',{url:'https://www.john-ta.com',runScripts:'outside-only'});
