@@ -4,7 +4,7 @@ const DEFAULT_EVENT = "lost-lands-2026";
 const views = [
   ["home", "Home", "⌂"], ["stay", "Stay", "▣"], ["crew", "Crew", "●"],
   ["travel", "Travel", "✈"], ["passes", "Passes", "◇"], ["tasks", "Tasks", "✓"], ["lineup", "Lineup", "♫"],
-  ["notes", "Notes", "≡"],
+  ["meetups", "Meetups", "⌖"], ["notes", "Notes", "≡"],
 ];
 const noteSections = {general:'General',stay:'Stay',crew:'Crew',travel:'Travel',passes:'Passes'};
 
@@ -276,6 +276,7 @@ function showAuthError(error) {
 async function signOut() { if (offlineMode) return showToast('Reconnect to sign out securely.'); if (RallyOffline.pendingCount && !confirm('Sign out and discard favorites that have not synced yet?')) return; RallyOffline.clear(); if (window.Clerk?.isSignedIn) await window.Clerk.signOut(); location.assign(BASE_PATH); }
 
 function render() {
+  window.RallyMeetups?.unmount();
   document.body.classList.remove('lineup-overlay');
   RallyOffline.select(activeEvent);
   updateOfflineStatus();
@@ -284,13 +285,13 @@ function render() {
   el.eventName.textContent = data.name; el.mobileEventName.textContent = data.name; el.mobileCountdown.textContent = `${days} days away`;
   el.eventThumb.textContent = initials(data.name); el.topInvite.hidden = !data.isAdmin;
   renderAccountButton();
-  el.sideNav.innerHTML = views.filter(([id]) => id !== "lineup" || data.id === DEFAULT_EVENT || data.lineup?.length || data.isAdmin).map(([id,label,icon]) => `<a href="${href(id)}" class="${activeView === id ? "active" : ""}"><span class="nav-icon">${icon}</span>${label}</a>`).join("");
+  el.sideNav.innerHTML = views.filter(([id]) => (id !== 'meetups' || data.id === DEFAULT_EVENT) && (id !== "lineup" || data.id === DEFAULT_EVENT || data.lineup?.length || data.isAdmin)).map(([id,label,icon]) => `<a href="${href(id)}" class="${activeView === id ? "active" : ""}"><span class="nav-icon">${icon}</span>${label}</a>`).join("");
   el.eventMenu.innerHTML = events.map((event) => `<button data-event="${event.id}"><strong>${escapeHtml(event.name)}</strong><small class="event-menu-date">${dateRange(event.startsAt,event.endsAt)}</small><small>${escapeHtml(event.location)}</small></button>`).join("");
   el.eventMenu.insertAdjacentHTML("beforeend", '<button id="newEvent" class="new-event-menu-item">＋ New rave room</button>');
   document.getElementById("newEvent").onclick = () => { el.eventMenu.hidden = true; closeMenu(); openNewEvent(); };
   el.eventMenu.querySelectorAll("button[data-event]").forEach((button) => button.addEventListener("click", () => navigateTo(new URL(href("home", button.dataset.event), location.href))));
   el.page.className = `page${activeView === "lineup" && data.id === DEFAULT_EVENT ? " lineup" : ""}`;
-  const renderer = { home: renderHome, stay: renderStay, crew: renderCrew, travel: renderTravel, passes: renderPasses, tasks: renderTasks, lineup: renderLineup, notes: renderNotes }[activeView] || renderHome;
+  const renderer = { home: renderHome, stay: renderStay, crew: renderCrew, travel: renderTravel, passes: renderPasses, tasks: renderTasks, lineup: renderLineup, notes: renderNotes, meetups: renderMeetups }[activeView] || renderHome;
   renderer();
   if (['stay','crew','travel','passes'].includes(activeView)) renderSectionNotes(activeView);
   renderMobileNav();
@@ -324,7 +325,7 @@ function sendLineupLayout() {
 // Deliberately indexes only data already authorized for the current project.
 // No account-directory lookup, API query, or copy of search terms is stored.
 function projectSearchItems() {
-  const map=memberMap(), items=views.map(([view,title])=>({view,title,detail:'Open section'}));
+  const map=memberMap(), items=views.filter(([view])=>view!=='meetups'||data.id===DEFAULT_EVENT).map(([view,title])=>({view,title,detail:'Open section'}));
   const add=(view,rows,title,detail)=>rows?.forEach(row=>items.push({view,id:row.id,title:title(row),detail:detail(row)}));
   add('crew',data.members,r=>r.name,r=>[r.email,r.origin,r.role].filter(Boolean).join(' · '));
   add('stay',data.rooms,r=>r.hotel,r=>[r.roomType,r.confirmation,r.notes,...(r.memberIds||[]).map(id=>map[id]?.name)].filter(Boolean).join(' · '));
@@ -332,6 +333,7 @@ function projectSearchItems() {
   add('travel',data.cars,r=>`${r.company} · ${r.vehicle}`,r=>[r.pickup,r.dropoff,map[r.driverId]?.name].filter(Boolean).join(' · '));
   add('passes',data.passes,r=>r.name,r=>[r.category,map[r.ownerId]?.name,r.notes].filter(Boolean).join(' · '));
   add('tasks',data.tasks,r=>r.title,r=>[r.category,r.status,map[r.assigneeId]?.name,r.description].filter(Boolean).join(' · '));
+  if(data.id===DEFAULT_EVENT)add('meetups',data.meetups,r=>r.title,r=>[r.spot,r.when,r.instructions,r.status].filter(Boolean).join(' · '));
   (data.notes||[]).forEach(note=>items.push({view:noteSection(note)==='general'?'notes':noteSection(note),id:note.id,title:note.body,detail:`${noteSections[noteSection(note)]} note · ${map[note.authorId]?.name||note.authorName}`}));
   const sets=data.id===DEFAULT_EVENT?(window.LOST_LANDS_SET_TIMES||[]):(data.lineup||[]);
   sets.filter(r=>!(data.lineupHiddenDays||[]).includes(r.day||'Day TBD')).forEach(r=>items.push({view:'lineup',id:r.id,title:r.artist||r.name,day:r.day,detail:[r.day,r.stage,r.genre].filter(Boolean).join(' · '),artist:r.artist||r.name}));
@@ -365,7 +367,7 @@ function focusSearchResult() {
   const id=new URLSearchParams(location.search).get('focus');
   if(!id)return;
   requestAnimationFrame(()=>{
-    const attributes=['data-room-edit','data-edit','data-invite','data-car-edit','data-pass-edit','data-task','data-lineup-edit','data-note-id'];
+    const attributes=['data-room-edit','data-edit','data-invite','data-car-edit','data-pass-edit','data-task','data-lineup-edit','data-note-id','data-meetup-id'];
     const target=[...el.page.querySelectorAll(attributes.map(a=>`[${a}]`).join(','))].find(node=>attributes.some(a=>node.getAttribute(a)===id));
     const flight=[...el.page.querySelectorAll('[data-flight-leg]')].find(node=>{const [trip,leg]=node.dataset.flightLeg.split(':').map(Number);return flightItineraries()[trip]?.legs[leg]?.ids.includes(id);});
     const memberCard=activeView==='crew'?el.page.querySelectorAll('.member-card')[data.members.findIndex(member=>member.id===id)]:null;
@@ -400,7 +402,26 @@ function renderHome() {
     ["notes","≡","Notes",`${(data.notes||[]).length} shared notes`,"Tidbits and updates from the crew"],
   ];
   if (data.id === DEFAULT_EVENT || data.lineup?.length || data.isAdmin) cards.splice(4,0,["lineup","♫","Lineup",data.lineup?.length?`${data.lineup.length} performances`:"Lineup not added yet","Save favorites and see who else is interested"]);
+  if(data.id===DEFAULT_EVENT)cards.splice(5,0,['meetups','⌖','Meetups',`${(data.meetups||[]).filter(m=>m.status==='planned').length} planned`,'Festival map and shared meeting spots']);
   el.page.innerHTML = `<section class="overview-header"><div><span class="eyebrow">${escapeHtml(data.presenter||"Project overview")}</span><h1>${escapeHtml(data.name)}</h1><p>⌖ ${escapeHtml(data.location)} · ${eventDateLine(data)}</p></div><div class="countdown"><strong>${days}</strong><span>days to go</span></div></section><div class="overview-grid">${cards.map(([view,icon,label,strong,small])=>`<a class="overview-tile" href="${href(view)}"><span class="overview-icon">${icon}</span><span><small>${label}</small><strong>${strong}</strong><em>${escapeHtml(small)}</em></span><b>→</b></a>`).join("")}</div><section class="section-card"><header><div><span class="eyebrow">Loose ends</span><h2>Open tickets</h2></div><a class="primary" href="${href("tasks")}">Open board →</a></header><div class="row-list">${data.tasks.filter((task)=>task.status!=="done").slice(0,4).map((task)=>`<div class="row"><strong>${escapeHtml(task.title)}</strong><span>${escapeHtml(memberMap()[task.assigneeId]?.name || "Unassigned")}</span></div>`).join("") || `<div class="empty">Nothing is waiting right now.</div>`}</div></section>`;
+}
+
+function renderMeetups() {
+  const eventId=activeEvent,owner=window.Clerk?.user?.id;
+  const mount={};el.page.meetupMount=mount;
+  const sameAccount=()=>owner===window.Clerk?.user?.id;
+  const accept=room=>{
+    if(!sameAccount())throw new Error('Your account changed. Reopen the project.');
+    if(activeEvent===eventId&&activeView==='meetups'&&el.page.meetupMount===mount){data=room;updateOfflineStatus();}
+    return room;
+  };
+  window.RallyMeetups.mount({root:el.page,room:data,offline:()=>offlineMode||!navigator.onLine,toast:showToast,
+    query:async()=>accept(await convexQuery('rally:get',{eventId})),
+    mutate:async(action,payload)=>{
+      if(!sameAccount())throw new Error('Your account changed. Reopen the project.');
+      return accept(await convexMutation('rally:act',{eventId,action,payload}));
+    },
+  });
 }
 
 function noteSection(note) { return Object.hasOwn(noteSections,note.section) ? note.section : 'general'; }

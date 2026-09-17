@@ -4,6 +4,7 @@ import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { v } from "convex/values";
 import { LOST_LANDS_SET_TIMES, LOST_LANDS_SET_TIMES_META } from "./lostLandsSetTimes";
 import { updateNotes } from "./rallyNotes";
+import { updateMeetups } from "./rallyMeetups";
 
 type Identity = { subject: string; email?: string | null; name?: string | null; emailVerified?: boolean };
 type RallyState = Record<string, any>;
@@ -696,7 +697,9 @@ export const act = mutation({
     const p = args.payload || {};
     const id = () => crypto.randomUUID();
 
-    if (["add-note", "edit-note", "delete-note"].includes(args.action)) {
+    if (["add-meetup", "edit-meetup", "delete-meetup", "join-meetup"].includes(args.action)) {
+      state.meetups = updateMeetups(state.meetups, state.id, args.action, p, current, Date.now(), id);
+    } else if (["add-note", "edit-note", "delete-note"].includes(args.action)) {
       state.notes = updateNotes(state.notes, args.action, p, current, Date.now(), id);
     } else if (args.action === "invite-member") {
       if (!["admin", "leader"].includes(current.role)) throw new Error("Only an admin can invite crew.");
@@ -807,6 +810,7 @@ export const act = mutation({
       state.tasks.forEach((task: RallyState) => { if (task.assigneeId === p.id) task.assigneeId = ""; });
       state.passes.forEach((pass: RallyState) => { if (pass.ownerId === p.id) pass.ownerId = ""; });
       if (state.lineupFavorites) delete state.lineupFavorites[p.id];
+      state.meetups?.forEach((meetup: RallyState) => { meetup.goingIds = meetup.goingIds.filter((memberId: string) => memberId !== p.id); });
     } else if (args.action === "save-lineup-favorites") {
       const artistIds = [...new Set((Array.isArray(p.artistIds) ? p.artistIds : []).map(String).filter((value) => value.length > 0 && value.length <= 160))].slice(0, 500);
       state.lineupFavorites ||= {};
