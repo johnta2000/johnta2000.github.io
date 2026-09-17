@@ -5,7 +5,7 @@ const path=require('node:path');
 const vm=require('node:vm');
 const {transformSync}=require('esbuild');
 const backend=fs.readFileSync(path.join(__dirname,'../../convex/rally.ts'),'utf8');
-const html=fs.readFileSync(path.join(__dirname,'../../lost-lands-2026-lineup/index.html'),'utf8');
+const html=fs.readFileSync(path.join(__dirname,'../../lost-lands-2026-lineup/index.html'),'utf8')+'\n'+fs.readFileSync(path.join(__dirname,'../../lost-lands-2026-lineup/controller.js'),'utf8');
 const dataset={window:{}};
 vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../../lost-lands-2026-lineup/set-times.js'),'utf8'),dataset);
 const lineup=dataset.window.LOST_LANDS_SET_TIMES.map(entry=>({...entry,startMinutes:100}));
@@ -48,6 +48,7 @@ test('project-hidden days are excluded from filters, while stars survive hiding 
 test('mobile day tabs adapt to visible days and a hidden-day URL falls back safely',()=>{
   const days={innerHTML:'',contains:()=>false,style:{setProperty(k,v){this[k]=v;}}};
   const ctx={lineup,dayOrder:['Wednesday','Thursday','Friday','Saturday','Sunday'],hiddenLineupDays:new Set(['Wednesday','Thursday']),selectedDays:new Set(['Wednesday']),mobileViewQuery:{matches:true},document:{getElementById:()=>days,activeElement:null},escapeHtml:value=>value};
+  ctx.root=ctx.document;
   vm.createContext(ctx);
   vm.runInContext(html.slice(html.indexOf('function visibleLineupDays('),html.indexOf('const stageOrder =')),ctx);
   vm.runInContext(html.slice(html.indexOf('function defaultMobileDay('),html.indexOf('function placeMobileFilters(')),ctx);

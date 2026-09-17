@@ -6,7 +6,8 @@
   function reveal() {
     const viewport = window.visualViewport;
     document.documentElement?.style.setProperty('--rally-viewport-height', `${viewport?.height || innerHeight}px`);
-    const input = document.activeElement;
+    let input = document.activeElement;
+    while(input?.shadowRoot?.activeElement)input=input.shadowRoot.activeElement;
     if (!editable(input)) return;
     const box = input.getBoundingClientRect();
     const top = (viewport?.offsetTop || 0) + 16;
@@ -15,7 +16,7 @@
   }
   window.RallyKeyboard = {reveal};
   document.addEventListener('focusin', event => {
-    if (!editable(event.target)) return;
+    if (!editable(event.composedPath?.()[0] || event.target)) return;
     reveal(); requestAnimationFrame(reveal);
     clearTimeout(timer); timer = setTimeout(reveal, 350);
   });

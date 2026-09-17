@@ -95,7 +95,6 @@ async function syncFavorites() {
 function wireShell() {
   document.addEventListener("click", handleAppLink);
   window.addEventListener("popstate", () => navigateTo(new URL(location.href), { push: false }));
-  window.addEventListener("message", handleLineupMessage);
   window.addEventListener('resize', sendLineupLayout);
   el.openMenu.addEventListener("click", () => { el.sidebar.classList.add("open"); el.menuBackdrop.hidden = false; });
   [el.closeMenu, el.menuBackdrop].forEach((button) => button.addEventListener("click", closeMenu));
@@ -140,6 +139,9 @@ async function navigateTo(url, { push = true } = {}) {
   const eventChanged = route.eventId !== activeEvent;
   activeView = route.view;
   if (eventChanged) {
+    window.RallyLineup?.destroy();
+    document.getElementById('lineupView').hidden=true;
+    el.page.hidden=false;
     activeEvent = route.eventId;
     el.page.className = "page";
     el.page.innerHTML = `<div class="empty">Opening ${escapeHtml(events.find((event) => event.id === activeEvent)?.name || "rave room")}…</div>`;
@@ -161,6 +163,7 @@ async function initializeClerk() {
     await window.Clerk.load({ ui: { ClerkUI: window.__internal_ClerkUICtor } });
     if (window.Clerk.isSignedIn) return unlock();
     RallyOffline.clear();
+    window.RallyLineup?.destroy();
     document.body.classList.remove("booting");
     el.rallyApp.hidden = true;
     el.accessGate.hidden = false;
@@ -276,6 +279,7 @@ function showAuthError(error) {
 async function signOut() { if (offlineMode) return showToast('Reconnect to sign out securely.'); if (RallyOffline.pendingCount && !confirm('Sign out and discard favorites that have not synced yet?')) return; RallyOffline.clear(); if (window.Clerk?.isSignedIn) await window.Clerk.signOut(); location.assign(BASE_PATH); }
 
 function render() {
+  window.RallyLineup?.hide();
   window.RallyMeetups?.unmount();
   document.body.classList.remove('lineup-overlay');
   RallyOffline.select(activeEvent);
@@ -290,7 +294,10 @@ function render() {
   el.eventMenu.insertAdjacentHTML("beforeend", '<button id="newEvent" class="new-event-menu-item">＋ New rave room</button>');
   document.getElementById("newEvent").onclick = () => { el.eventMenu.hidden = true; closeMenu(); openNewEvent(); };
   el.eventMenu.querySelectorAll("button[data-event]").forEach((button) => button.addEventListener("click", () => navigateTo(new URL(href("home", button.dataset.event), location.href))));
-  el.page.className = `page${activeView === "lineup" && data.id === DEFAULT_EVENT ? " lineup" : ""}`;
+  const nativeLineup=activeView==='lineup'&&data.id===DEFAULT_EVENT;
+  el.page.className = 'page';
+  el.page.hidden=nativeLineup;
+  document.getElementById('lineupView').hidden=!nativeLineup;
   const renderer = { home: renderHome, stay: renderStay, crew: renderCrew, travel: renderTravel, passes: renderPasses, tasks: renderTasks, lineup: renderLineup, notes: renderNotes, meetups: renderMeetups }[activeView] || renderHome;
   renderer();
   if (['stay','crew','travel','passes'].includes(activeView)) renderSectionNotes(activeView);
@@ -312,17 +319,28 @@ function renderMobileNav() {
   icons.meetups='<path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="3"/>';
   const tabs=[['home','Home'],['lineup','Lineup'],...(data.id===DEFAULT_EVENT?[['meetups','Meetups']]:[['notes','Notes']])];
   icons.notes='<path d="M5 3h14v18H5ZM8 7h8M8 11h8M8 15h5"/>';
-  document.getElementById('mobileNav').innerHTML = `<div class="nav-glass-group">${tabs.map(([id,label])=>`<a href="${href(id)}" class="${activeView===id?'active':''}" ${activeView===id?'aria-current="page"':''}>${icon(id)}${label}</a>`).join('')}<button type="button" id="quickMore" ${!tabs.some(([id])=>id===activeView)?'aria-current="page"':''}>${icon('more')}More</button></div><button type="button" id="quickSearch" aria-label="Search this rave">${icon('search')}</button>`;
-  document.getElementById('quickSearch').onclick = openProjectSearch;
-  document.getElementById('quickMore').onclick = () => el.openMenu.click();
+  const nav=document.getElementById('mobileNav');
+  if(nav.dataset.eventId!==data.id){
+    nav.dataset.eventId=data.id;
+    nav.innerHTML = `<div class="nav-glass-group">${tabs.map(([id,label])=>`<a data-nav-view="${id}" href="${href(id)}" class="${activeView===id?'active':''}" ${activeView===id?'aria-current="page"':''}>${icon(id)}${label}</a>`).join('')}<button type="button" id="quickMore" ${!tabs.some(([id])=>id===activeView)?'aria-current="page"':''}>${icon('more')}More</button></div><button type="button" id="quickSearch" aria-label="Search this rave">${icon('search')}</button>`;
+    document.getElementById('quickSearch').onclick = openProjectSearch;
+    document.getElementById('quickMore').onclick = () => el.openMenu.click();
+  }
+  nav.querySelectorAll('[data-nav-view]').forEach(link=>{
+    const active=link.dataset.navView===activeView;
+    link.classList.toggle('active',active);
+    if(active)link.setAttribute('aria-current','page');else link.removeAttribute('aria-current');
+  });
+  const more=document.getElementById('quickMore');
+  if(!tabs.some(([id])=>id===activeView))more.setAttribute('aria-current','page');else more.removeAttribute('aria-current');
   requestAnimationFrame(sendLineupLayout);
 }
 
 function sendLineupLayout() {
-  const nav=document.getElementById('mobileNav'),frame=document.getElementById('lineupFrame');
-  if(!nav||!frame)return;
+  const nav=document.getElementById('mobileNav');
+  if(!nav||activeView!=='lineup')return;
   const bottomInset=matchMedia('(max-width:900px)').matches?Math.max(0,innerHeight-nav.getBoundingClientRect().top+16):0;
-  frame.contentWindow?.postMessage({type:'rally-lineup-layout',bottomInset},location.origin==='null'?'*':location.origin);
+  window.RallyLineup?.receive({type:'rally-lineup-layout',bottomInset});
 }
 
 // Deliberately indexes only data already authorized for the current project.
@@ -562,10 +580,21 @@ function renderTasks(){ const map=memberMap(), columns=[["todo","To do"],["doing
 function renderLineup(){
   const searchRoute=new URLSearchParams(location.search);
   if(data.id===DEFAULT_EVENT){
-    const filters=new URLSearchParams();
+    const filters=new URLSearchParams(location.hash.slice(1));
     if(searchRoute.get('find'))filters.set('q',searchRoute.get('find'));
     if(searchRoute.get('day'))filters.set('days',searchRoute.get('day'));
-    el.page.innerHTML=`<iframe id="lineupFrame" class="lineup-frame" title="Lost Lands 2026 lineup" src="/lost-lands-2026-lineup/?rally=1&v=20260913-nav#${escapeAttr(filters.toString())}"></iframe>`;
+    window.RallyLineup.show({
+      container:document.getElementById('lineupView'),key:`${data.id}:${data.currentMemberId}`,
+      state:lineupState(),params:filters.size?filters.toString():null,
+      shareUrl:`https://www.john-ta.com${href('lineup')}`,
+      onEvent:handleLineupEvent,
+      onParams(params){
+        if(activeView!=='lineup'||activeEvent!==DEFAULT_EVENT)return;
+        const url=new URL(location.href);url.hash=params.toString();
+        url.searchParams.delete('find');url.searchParams.delete('day');
+        history.replaceState({},'',url.pathname+url.search+url.hash);
+      }
+    });
     lineupRefreshTimer=setInterval(refreshLineupState,15000);
     return;
   }
@@ -598,7 +627,8 @@ function renderLineup(){
   document.querySelectorAll("[data-lineup-edit]").forEach((button)=>button.onclick=()=>openLineupArtist(lineup.find((artist)=>artist.id===button.dataset.lineupEdit)));
   document.querySelectorAll("[data-lineup-favorite]").forEach((button)=>button.onclick=async()=>{const id=button.dataset.lineupFavorite;if(favorites.has(id))favorites.delete(id);else favorites.add(id);button.classList.toggle("selected",favorites.has(id));button.setAttribute("aria-pressed",String(favorites.has(id)));try{data=await convexMutation("rally:act",{eventId:activeEvent,action:"save-lineup-favorites",payload:{artistIds:[...favorites]}});renderLineup()}catch(error){showToast(error.message||"Could not save favorite")}});
 }
-function sendLineupState(){const frame=document.getElementById("lineupFrame"),currentMember=data.members.find((member)=>member.id===data.currentMemberId);frame?.contentWindow?.postMessage({type:"rally-lineup-state",artistIds:data.currentLineupFavorites||[],interests:data.lineupInterests||{},currentMember,hiddenDays:data.lineupHiddenDays||[],canManageDays:data.isAdmin&&!offlineMode},location.origin === "null" ? "*" : location.origin)}
+function lineupState(){const currentMember=data.members.find((member)=>member.id===data.currentMemberId);return {type:"rally-lineup-state",artistIds:data.currentLineupFavorites||[],interests:data.lineupInterests||{},currentMember,hiddenDays:data.lineupHiddenDays||[],canManageDays:data.isAdmin&&!offlineMode};}
+function sendLineupState(){window.RallyLineup?.receive(lineupState());}
 async function refreshLineupState(){if(activeView!=="lineup")return;const eventId=activeEvent;try{const updated=await convexQuery("rally:get",{eventId});if(!updated||activeEvent!==eventId||activeView!=="lineup")return;data=updated;sendLineupState()}catch(error){console.warn("Could not refresh lineup interests",error)}}
 function openLineupDays() {
   if (!data?.isAdmin) return;
@@ -620,21 +650,22 @@ function openLineupDays() {
     });
 }
 
-async function handleLineupMessage(event) {
-  if(event.origin !== location.origin) return;
-  const frame = document.getElementById("lineupFrame");
-  if(!frame || event.source !== frame.contentWindow || !event.data || typeof event.data !== "object") return;
+async function handleLineupEvent(message) {
+  if(activeEvent!==DEFAULT_EVENT||activeView!=='lineup'||!message)return;
+  const event={data:message};
   if(event.data.type === "rally-lineup-ready") { sendLineupState(); sendLineupLayout(); return; }
   if(event.data.type === 'rally-lineup-manage-days') { openLineupDays(); return; }
   if(event.data.type === 'rally-lineup-overlay') { document.body.classList.toggle('lineup-overlay',event.data.open===true); return; }
   if(event.data.type !== "rally-lineup-favorites-changed" || !Array.isArray(event.data.artistIds)) return;
   const eventId = activeEvent;
+  const memberId = data.currentMemberId;
   const artistIds = [...new Set(event.data.artistIds.filter(id => typeof id === "string"))];
   try {
     const updated = await convexMutation("rally:act", {eventId, action:"save-lineup-favorites", payload:{artistIds}});
-    if(activeEvent !== eventId || activeView !== "lineup") return;
-    data = updated; sendLineupState();
-    frame.contentWindow.postMessage({type:"rally-lineup-favorites-saved",offline:RallyOffline.pendingCount>0},location.origin === "null" ? "*" : location.origin);
+    if(activeEvent !== eventId || data.currentMemberId !== memberId) return;
+    data = updated;
+    if(activeView==='lineup')sendLineupState();
+    window.RallyLineup?.receive({type:"rally-lineup-favorites-saved",offline:RallyOffline.pendingCount>0});
   } catch(error) { showToast(error.message || "Could not save lineup favorites"); }
 }
 

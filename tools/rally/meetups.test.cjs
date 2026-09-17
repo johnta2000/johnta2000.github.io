@@ -200,7 +200,7 @@ test('linked cards expose the precise Lineup links and keep context in the offli
  assert.equal(plain(rows)[0].timing.sets[0].stage,set.stage);
 });
 test('Lineup is a primary bottom tab and Crew remains in More, without duplicate Lineup tabs',()=>{
- const app=read('app.js'),nav={};
+ const app=read('app.js'),nav={dataset:{},querySelectorAll:()=>[],setAttribute(){},removeAttribute(){}};
  const ctx={data:{id:eventId},DEFAULT_EVENT:eventId,activeView:'crew',document:{getElementById:()=>nav},href:view=>'?view='+view,openProjectSearch(){},requestAnimationFrame(){},sendLineupLayout(){}};
  vm.runInNewContext(app.slice(app.indexOf('function renderMobileNav('),app.indexOf('function sendLineupLayout(')),ctx);
  ctx.renderMobileNav();

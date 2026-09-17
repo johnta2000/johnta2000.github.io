@@ -74,6 +74,7 @@
       .project-search>p{font-size:13px;color:var(--muted);margin:4px 0 16px}.project-search input{width:100%;height:48px;padding:12px;border:1px solid var(--line);border-radius:12px;font-size:16px;background:white;color:var(--ink)}
       .search-results{display:grid;gap:6px;margin-top:12px;max-height:52dvh;overflow:auto}.search-results a{display:block;padding:12px;border-radius:10px;text-decoration:none;color:var(--ink);background:#f4f4ed}.search-results a:hover,.search-results a:focus-visible{background:#e9eddd}.search-results strong,.search-results small{display:block}.search-results strong{font-size:14px;line-height:1.4}.search-results small{font-size:12px;color:#767b6b;margin-top:4px;line-height:1.4}.search-results p{font-size:14px;color:var(--muted)}
       .search-highlight{outline:3px solid #9bb667;outline-offset:4px;scroll-margin:90px}
+      #lineupView{height:calc(100dvh - 65px - var(--offline-status-height,0px));background:var(--paper)}
       @media(max-width:900px){
         :root{--rally-safe-top:env(safe-area-inset-top,0px);--rally-safe-bottom:env(safe-area-inset-bottom,0px);--rally-nav-height:64px;--rally-nav-clearance:calc(var(--rally-nav-height) + var(--rally-safe-bottom) + 28px)}
         html,body{background:var(--paper)}
@@ -81,8 +82,7 @@
         .topbar{height:calc(65px + var(--rally-safe-top));padding-top:var(--rally-safe-top);padding-left:max(12px,env(safe-area-inset-left));padding-right:max(12px,env(safe-area-inset-right))}
         .sidebar{padding-top:calc(20px + var(--rally-safe-top));padding-bottom:calc(20px + var(--rally-safe-bottom))}
         .page:not(.lineup){padding-bottom:var(--rally-nav-clearance)}
-        .page.lineup{height:calc(100dvh - 65px - var(--rally-safe-top) - var(--offline-status-height,0px))}
-        .lineup-frame{display:block}
+        #lineupView{height:calc(100dvh - 65px - var(--rally-safe-top) - var(--offline-status-height,0px))}
         .bottom-nav{inset:auto max(12px,env(safe-area-inset-right)) calc(10px + var(--rally-safe-bottom)) max(12px,env(safe-area-inset-left));height:var(--rally-nav-height);padding:0;display:flex;gap:10px;border:0;background:none;backdrop-filter:none;-webkit-backdrop-filter:none;pointer-events:none}
         .nav-glass-group,#quickSearch{background:rgba(255,254,249,.76);border:1px solid rgba(255,255,255,.9);box-shadow:0 6px 24px #2028191a,inset 0 1px 1px #fff;backdrop-filter:blur(22px) saturate(160%);-webkit-backdrop-filter:blur(22px) saturate(160%);pointer-events:auto}
         .nav-glass-group{flex:1;min-width:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));padding:4px;border-radius:40px}
@@ -143,6 +143,7 @@
       <main class="main-column">
         <header class="topbar"><button id="openMenu" class="icon-button">☰</button><div class="mobile-event"><strong id="mobileEventName"></strong><small id="mobileCountdown"></small></div><span></span><button id="topInvite" class="secondary">＋ Invite crew</button><button id="accountButton" class="avatar" aria-label="Your profile">?</button></header>
         <div id="page" class="page"><section class="boot-heading"><i></i><b></b><span></span></section><div class="boot-grid"><article></article><article></article><article></article><article></article><article></article><article></article></div></div>
+        <section id="lineupView" class="page lineup" aria-label="Lineup" hidden></section>
       </main>
       <nav id="mobileNav" class="bottom-nav" aria-label="Quick navigation"></nav>
     </div>
@@ -150,13 +151,16 @@
     <div id="dialogRoot"></div>
     <div id="toast" class="toast" hidden></div>
 
-    <script defer src="./keyboard.js?v=1"></script>
+    <script defer src="./keyboard.js?v=2"></script>
     <script defer crossorigin="anonymous" src="https://clerk.john-ta.com/npm/@clerk/ui@1/dist/ui.browser.js"></script>
     <script defer crossorigin="anonymous" data-clerk-publishable-key="pk_live_Y2xlcmsuam9obi10YS5jb20k" src="https://clerk.john-ta.com/npm/@clerk/clerk-js@6/dist/clerk.browser.js"></script>
     <script defer src="./offline.js?v=1"></script>
     <script defer src="../../lost-lands-2026-lineup/set-times.js"></script>
+    <script defer src="../../lost-lands-2026-lineup/controller.js?v=1"></script>
+    <script defer src="./lineup-template.js?v=1"></script>
+    <script defer src="./lineup.js?v=1"></script>
     <script defer src="./meetup-timing.js?v=1"></script>
     <script defer src="./meetups.js?v=4"></script>
-    <script defer src="./app.js?v=31"></script>
+    <script defer src="./app.js?v=32"></script>
   </body>
 </html>

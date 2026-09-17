@@ -3,7 +3,7 @@ const assert=require('node:assert/strict');
 const vm=require('node:vm');
 const fs=require('node:fs');
 const path=require('node:path');
-const html=fs.readFileSync(path.join(__dirname,'../../lost-lands-2026-lineup/index.html'),'utf8');
+const html=fs.readFileSync(path.join(__dirname,'../../lost-lands-2026-lineup/index.html'),'utf8')+'\n'+fs.readFileSync(path.join(__dirname,'../../lost-lands-2026-lineup/controller.js'),'utf8');
 const dataset={window:{}};
 vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../../lost-lands-2026-lineup/set-times.js'),'utf8'),dataset);
 const lineup=dataset.window.LOST_LANDS_SET_TIMES.map((entry,index)=>({...entry,posterIndex:index}));
@@ -103,19 +103,21 @@ function context() {
   const button={textContent:''};
   const ctx={lineup,stageOrder:[...new Set(lineup.map(x=>x.stage))],dayOrder:['Wednesday','Thursday','Friday','Saturday','Sunday'],favorites:new Set(),lineupInterests:{},rallyManagedFavorites:true,groupStateLoaded:true,selectedDays:new Set(['Friday']),activeView:'table',document:{activeElement:null,getElementById:id=>id==='mobile-schedule'?container:button},Intl,Date};
   vm.createContext(ctx);
+  ctx.root=ctx.document;
   ctx.hiddenLineupDays=new Set();
   ctx.visibleLineupDays=()=>ctx.dayOrder.filter(day=>!ctx.hiddenLineupDays.has(day));
   for(const [start,end] of [['function formatClock(', 'const lineup ='],['function escapeHtml(', 'function getCanonicalUrl('],['function groupPeople(', 'function compareSets('],['function defaultMobileDay(', 'function saveFavorites(']]) {
     vm.runInContext(html.slice(html.indexOf(start),html.indexOf(end)),ctx);
   }
   ctx.sortMode='time';ctx.mostLiked=false;
-  vm.runInContext(html.slice(html.indexOf('function compareSets('),html.indexOf('function compareSets(')+html.slice(html.indexOf('function compareSets(')).indexOf('\n      }')+8),ctx);
+  vm.runInContext(html.slice(html.indexOf('function compareSets('),html.indexOf('function renderHeatMap(')),ctx);
   return {ctx,container};
 }
 test('all lineup scripts parse; app scripts parse',()=>{
   for(const match of html.matchAll(/<script>([\s\S]*?)<\/script>/g)) new vm.Script(match[1]);
   new vm.Script(fs.readFileSync(path.join(__dirname,'app.js'),'utf8'));
   new vm.Script(fs.readFileSync(path.join(__dirname,'keyboard.js'),'utf8'));
+  new vm.Script(fs.readFileSync(path.join(__dirname,'../../lost-lands-2026-lineup/controller.js'),'utf8'));
 });
 test('mobile cards preserve every set and display artist, range, stage, overnight context',()=>{
   const {ctx}=context();
