@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-09-17T07:44:07.029Z",
+  "generatedAt": "2026-09-17T13:31:45.120Z",
   "overallStatus": "healthy",
   "latestEventId": "20260914231003-merchant-change",
   "monitors": [
@@ -14,10 +14,10 @@
       "cadence": "Hourly",
       "expectedCount": 33,
       "currentCount": 34,
-      "latestRunAt": "2026-09-17T07:44:07.029Z",
-      "latestSuccessAt": "2026-09-17T07:44:07.029Z",
+      "latestRunAt": "2026-09-17T13:31:45.120Z",
+      "latestSuccessAt": "2026-09-17T13:31:45.120Z",
       "latestChangeAt": "2026-09-14T23:10:03.686Z",
-      "durationMs": 2248,
+      "durationMs": 2273,
       "summary": "No merchant changes across 3 pages.",
       "error": null,
       "pagination": {
@@ -36,15 +36,15 @@
         "renamed": []
       },
       "cache": {
-        "runId": "1789631047029",
+        "runId": "1789651905120",
         "requestCount": 3,
         "crawlIds": [
           "primary"
         ],
         "requestIds": [
-          "1789631047031001",
-          "1789631047961002",
-          "1789631048646003"
+          "1789651905123001",
+          "1789651906036002",
+          "1789651906733003"
         ]
       }
     },
