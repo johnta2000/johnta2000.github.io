@@ -699,7 +699,7 @@ export const act = mutation({
 
     if (["add-meetup", "edit-meetup", "delete-meetup", "join-meetup"].includes(args.action)) {
       state.meetups = updateMeetups(state.meetups, state.id, args.action, p, current, Date.now(), id);
-    } else if (["add-note", "edit-note", "delete-note"].includes(args.action)) {
+    } else if (["add-note", "edit-note", "delete-note", "react-note"].includes(args.action)) {
       state.notes = updateNotes(state.notes, args.action, p, current, Date.now(), id);
     } else if (args.action === "invite-member") {
       if (!["admin", "leader"].includes(current.role)) throw new Error("Only an admin can invite crew.");

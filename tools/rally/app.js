@@ -453,6 +453,16 @@ function renderMeetups() {
 
 function noteSection(note) { return Object.hasOwn(noteSections,note.section) ? note.section : 'general'; }
 function notesForSection(notes, section) { return notes.filter(note=>noteSection(note)===(Object.hasOwn(noteSections,section)?section:'general')); }
+function noteReactions(note) {
+  const map=memberMap();
+  const buttons=['👍','❤️','😂','🔥','👀','✅'].map(emoji=>{
+    const ids=note.reactions?.[emoji]||[],mine=ids.includes(data.currentMemberId);
+    const names=ids.map(id=>map[id]?.name||'Former member').join(', ');
+    return `<button type="button" data-note-react="${escapeAttr(note.id)}" data-emoji="${emoji}" aria-pressed="${mine}" aria-label="${escapeAttr(`${emoji}${names?': '+names:' — React'}`)}" title="${escapeAttr(names||'React')}" ${offlineMode?'disabled':''}>${emoji}${ids.length?` <span>${ids.length}</span>`:''}</button>`;
+  }).join('');
+  const people=Object.entries(note.reactions||{}).filter(([,ids])=>ids.length).map(([emoji,ids])=>`<p>${escapeHtml(emoji)} ${escapeHtml(ids.map(id=>map[id]?.name||'Former member').join(', '))}</p>`).join('');
+  return `<div class="note-reactions" role="group" aria-label="Reactions">${buttons}</div>${people?`<details class="note-reaction-people"><summary>Who reacted</summary>${people}</details>`:''}`;
+}
 function noteCards(notes) {
   const map = memberMap();
   return [...notes].sort((a,b)=>b.createdAt-a.createdAt).map(note => {
@@ -462,7 +472,7 @@ function noteCards(notes) {
     const stamp = date.toLocaleString([], {month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'});
     const section=noteSection(note);
     const badge=activeView==='notes'?`<a class="note-section-badge" href="${escapeAttr(href(section==='general'?'notes':section))}">${noteSections[section]}</a>`:'';
-    return `<article class="note-card" data-note-id="${escapeAttr(note.id)}"><header><span class="note-avatar" aria-hidden="true">${escapeHtml(initials(name))}</span><div><strong>${escapeHtml(name)}</strong><div class="note-date"><time datetime="${date.toISOString()}">${escapeHtml(stamp)}</time>${note.updatedAt>note.createdAt?' · Edited':''}</div></div>${badge}</header><div class="note-body">${note.richText?window.RallyNoteEditor.render(note):escapeHtml(note.body)}</div>${owner||data.isAdmin?`<footer>${owner?`<button type="button" data-note-edit="${escapeAttr(note.id)}" ${offlineMode?'disabled':''}>Edit</button>`:''}<button type="button" data-note-delete="${escapeAttr(note.id)}" ${offlineMode?'disabled':''}>Delete</button></footer>`:''}</article>`;
+return `<article class="note-card" data-note-id="${escapeAttr(note.id)}"><header><span class="note-avatar" aria-hidden="true">${escapeHtml(initials(name))}</span><div><strong>${escapeHtml(name)}</strong><div class="note-date"><time datetime="${date.toISOString()}">${escapeHtml(stamp)}</time>${note.updatedAt>note.createdAt?' · Edited':''}</div></div>${badge}</header><div class="note-body">${note.richText?window.RallyNoteEditor.render(note):escapeHtml(note.body)}</div>${noteReactions(note)}${owner||data.isAdmin?`<footer>${owner?`<button type="button" data-note-edit="${escapeAttr(note.id)}" ${offlineMode?'disabled':''}>Edit</button>`:''}<button type="button" data-note-delete="${escapeAttr(note.id)}" ${offlineMode?'disabled':''}>Delete</button></footer>`:''}</article>`;
   }).join('') || '<div class="notes-empty"><h2>No notes yet</h2><p>Share a meetup spot, a reminder, or anything the crew should know.</p></div>';
 }
 
@@ -470,6 +480,13 @@ function renderNoteList() {
   const list = document.getElementById('notesList');
   if (!list) return;
   list.innerHTML = noteCards(notesForSection(data.notes || [], list.dataset.section||'general'));
+  list.querySelectorAll('[data-note-react]').forEach(button=>button.onclick=async()=>{
+    if(offlineMode)return showToast('Reconnect to react.');
+    button.disabled=true;
+    try{await saveNote(activeEvent,'react-note',{id:button.dataset.noteReact,emoji:button.dataset.emoji,active:button.getAttribute('aria-pressed')!=='true'});}
+    catch(error){showToast(error.message||'Could not save reaction.');}
+    finally{button.disabled=offlineMode;}
+  });
   list.querySelectorAll('[data-note-edit]').forEach(button => button.onclick=()=>openEditNote(data.notes.find(note=>note.id===button.dataset.noteEdit)));
   list.querySelectorAll('[data-note-delete]').forEach(button => button.onclick=()=>{
     if(offlineMode)return showToast('Reconnect to delete notes.');
@@ -487,7 +504,7 @@ function updateNotesConnectivity() {
   form.elements.body.richEditor?.setDisabled(offlineMode);
   document.getElementById('refreshNotes').disabled=offlineMode;
   document.getElementById('notesStatus').textContent=offlineMode?'Offline · Saved notes. Reconnect to post or refresh.':'';
-  document.querySelectorAll('[data-note-edit],[data-note-delete]').forEach(button=>button.disabled=offlineMode);
+  document.querySelectorAll('[data-note-edit],[data-note-delete],[data-note-react]').forEach(button=>button.disabled=offlineMode);
 }
 
 function renderNotes() {

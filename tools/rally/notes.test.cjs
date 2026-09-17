@@ -11,6 +11,16 @@ const {updateNotes}=moduleContext.module.exports;
 const author={id:'jessi',name:'Jessi',role:'member'}, other={id:'kevin',name:'Kevin',role:'member'}, admin={id:'john',name:'John',role:'admin'};
 const plain=value=>JSON.parse(JSON.stringify(value));
 const create=()=>updateNotes(undefined,'add-note',{body:'Bring earplugs'},author,100,()=> 'note-1');
+test('members react as themselves, retries are idempotent and removing preserves others',()=>{
+ const react=(notes,who,active,emoji='👍')=>updateNotes(notes,'react-note',{id:'note-1',emoji,active,memberId:'spoof'},who,999,()=> '');
+ let notes=react(create(),other,true);notes=react(notes,other,true);notes=react(notes,author,true);
+ assert.deepEqual(plain(notes[0].reactions),{'👍':['kevin','jessi']});assert.equal(notes[0].updatedAt,100);
+ notes=react(notes,other,false);assert.deepEqual(plain(notes[0].reactions),{'👍':['jessi']});
+ notes=updateNotes(notes,'edit-note',{id:'note-1',body:'Updated',expectedUpdatedAt:100},author,101,()=> '');
+ assert.deepEqual(plain(notes[0].reactions),{'👍':['jessi']});
+ assert.throws(()=>react(notes,other,true,'bad'),/supported/);
+ assert.throws(()=>react([],other,true),/no longer/);
+});
 
 test('new posts use server identity, timestamp and ID; existing project notes survive',()=>{
   const notes=create();
