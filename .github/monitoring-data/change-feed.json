@@ -1,9 +1,41 @@
 {
   "schemaVersion": 1,
   "feedId": "john-ta-monitoring-changes",
-  "generatedAt": "2026-09-17T18:17:24.626Z",
-  "latestEventId": "20260917133555-chase-sapphire-reserve-tables-restaurant-change",
+  "generatedAt": "2026-09-17T19:46:15.791Z",
+  "latestEventId": "20260917194615-chase-sapphire-reserve-tables-restaurant-change",
   "events": [
+    {
+      "id": "20260917194615-chase-sapphire-reserve-tables-restaurant-change",
+      "type": "restaurant_change",
+      "severity": "change",
+      "monitorId": "chase-sapphire-reserve-tables",
+      "timestamp": "2026-09-17T19:46:15.791Z",
+      "title": "Chase Sapphire Reserve Exclusive Tables changed",
+      "summary": "1 restaurants added and 0 removed across six cities.",
+      "count": 137,
+      "cities": [
+        {
+          "id": "chicago",
+          "name": "Chicago",
+          "url": "https://www.opentable.com/sapphire-reserve/chicago",
+          "count": 29,
+          "previousCount": 28,
+          "added": [
+            "Port Union"
+          ],
+          "removed": []
+        }
+      ],
+      "dashboardUrl": "https://john-ta.com/tools/monitoring/",
+      "sourceUrls": [
+        "https://www.opentable.com/sapphire-reserve/atlanta",
+        "https://www.opentable.com/sapphire-reserve/san-francisco",
+        "https://www.opentable.com/sapphire-reserve/los-angeles",
+        "https://www.opentable.com/sapphire-reserve/new-york-city",
+        "https://www.opentable.com/sapphire-reserve/chicago",
+        "https://www.opentable.com/sapphire-reserve/boston"
+      ]
+    },
     {
       "id": "20260917133555-chase-sapphire-reserve-tables-restaurant-change",
       "type": "restaurant_change",

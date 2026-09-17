@@ -1,9 +1,30 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-09-17T18:17:24.626Z",
+  "generatedAt": "2026-09-17T19:46:15.791Z",
   "overallStatus": "healthy",
-  "latestEventId": "20260917133555-chase-sapphire-reserve-tables-restaurant-change",
+  "latestEventId": "20260917194615-chase-sapphire-reserve-tables-restaurant-change",
   "monitors": [
+    {
+      "id": "bilt-calculator-ranking",
+      "name": "Bilt calculator ranking",
+      "description": "Tracks the Bilt calculator across Search Console query performance, index health, canonical integrity, and live-page checks.",
+      "configured": false,
+      "status": "not_configured",
+      "sourceUrl": "https://www.nextcard.com/tools/bilt-calculator",
+      "cadence": "Every 6 hours via Codex",
+      "config": {
+        "property": "sc-domain:nextcard.com",
+        "page": "https://www.nextcard.com/tools/bilt-calculator",
+        "queries": [
+          "bilt calculator",
+          "bilt 2.0 calculator",
+          "bilt calculator 2.0",
+          "bilt points calculator",
+          "bilt card calculator"
+        ],
+        "compareWindow": "Finalized 7 days vs previous 7 days"
+      }
+    },
     {
       "id": "paze-directory",
       "name": "Paze merchant directory",
@@ -73,27 +94,6 @@
       }
     },
     {
-      "id": "bilt-calculator-ranking",
-      "name": "Bilt calculator ranking",
-      "description": "Tracks the Bilt calculator across Search Console query performance, index health, canonical integrity, and live-page checks.",
-      "configured": false,
-      "status": "not_configured",
-      "sourceUrl": "https://www.nextcard.com/tools/bilt-calculator",
-      "cadence": "Every 6 hours via Codex",
-      "config": {
-        "property": "sc-domain:nextcard.com",
-        "page": "https://www.nextcard.com/tools/bilt-calculator",
-        "queries": [
-          "bilt calculator",
-          "bilt 2.0 calculator",
-          "bilt calculator 2.0",
-          "bilt points calculator",
-          "bilt card calculator"
-        ],
-        "compareWindow": "Finalized 7 days vs previous 7 days"
-      }
-    },
-    {
       "id": "transfer-bonus-discovery",
       "name": "Transfer bonus discovery",
       "description": "Scans official issuer and loyalty-program sources for new transfer bonuses, changed terms, and coverage failures.",
@@ -132,17 +132,17 @@
         "https://www.opentable.com/sapphire-reserve/boston"
       ],
       "cadence": "Every 4 hours",
-      "latestRunAt": "2026-09-17T13:35:55.831Z",
-      "latestSuccessAt": "2026-09-17T13:35:55.831Z",
-      "latestChangeAt": "2026-09-17T13:35:55.831Z",
-      "durationMs": 1563,
-      "summary": "1 restaurants added and 1 removed across six cities.",
+      "latestRunAt": "2026-09-17T19:46:15.791Z",
+      "latestSuccessAt": "2026-09-17T19:46:15.791Z",
+      "latestChangeAt": "2026-09-17T19:46:15.791Z",
+      "durationMs": 2386,
+      "summary": "1 restaurants added and 0 removed across six cities.",
       "error": null,
       "metrics": {
-        "restaurantCount": 136,
+        "restaurantCount": 137,
         "cityCount": 6,
         "addedCount": 1,
-        "removedCount": 1
+        "removedCount": 0
       },
       "details": {
         "cities": [
@@ -280,18 +280,14 @@
               "Una Pizza Napoletana",
               "Union Square Cafe"
             ],
-            "added": [
-              "Mitsuru"
-            ],
-            "removed": [
-              "Razza - Jersey City"
-            ]
+            "added": [],
+            "removed": []
           },
           {
             "id": "chicago",
             "name": "Chicago",
             "url": "https://www.opentable.com/sapphire-reserve/chicago",
-            "count": 28,
+            "count": 29,
             "restaurants": [
               "After",
               "Alinea",
@@ -319,10 +315,13 @@
               "Obelix",
               "PERILLA korean steakhouse",
               "PIZZ'AMICI",
+              "Port Union",
               "Prime & Provisions Steakhouse",
               "Sepia"
             ],
-            "added": [],
+            "added": [
+              "Port Union"
+            ],
             "removed": []
           },
           {
@@ -348,25 +347,25 @@
           }
         ],
         "cache": {
-          "runId": "1789652155831",
+          "runId": "1789674375791",
           "requestCount": 12,
           "crawlIds": [
             "primary",
             "confirmation"
           ],
           "requestIds": [
-            "1789652155836001",
-            "1789652155874002",
-            "1789652155876003",
-            "1789652155877004",
-            "1789652155877005",
-            "1789652155879006",
-            "1789652156833007",
-            "1789652156833008",
-            "1789652156834009",
-            "1789652156835010",
-            "1789652156835011",
-            "1789652156835012"
+            "1789674375796001",
+            "1789674375833002",
+            "1789674375835003",
+            "1789674375835004",
+            "1789674375836005",
+            "1789674375837006",
+            "1789674377129007",
+            "1789674377130008",
+            "1789674377130009",
+            "1789674377131010",
+            "1789674377131011",
+            "1789674377131012"
           ]
         }
       }

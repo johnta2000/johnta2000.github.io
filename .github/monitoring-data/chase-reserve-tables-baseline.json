@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "monitorId": "chase-sapphire-reserve-tables",
-  "capturedAt": "2026-09-17T13:35:55.831Z",
+  "capturedAt": "2026-09-17T19:46:15.791Z",
   "sources": [
     {
       "id": "atlanta",
@@ -559,6 +559,10 @@
         {
           "name": "PIZZ'AMICI",
           "key": "pizz amici"
+        },
+        {
+          "name": "Port Union",
+          "key": "port union"
         },
         {
           "name": "Prime & Provisions Steakhouse",
