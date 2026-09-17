@@ -464,12 +464,13 @@ function noteSection(note) { return Object.hasOwn(noteSections,note.section) ? n
 function notesForSection(notes, section) { return notes.filter(note=>noteSection(note)===(Object.hasOwn(noteSections,section)?section:'general')); }
 function noteReactions(note) {
   const map=memberMap();
-  const buttons=['👍','❤️','😂','🔥','👀','✅'].map(emoji=>{
-    const ids=note.reactions?.[emoji]||[],mine=ids.includes(data.currentMemberId);
+  const reactionTypes={like:'👍',heart:'❤️',laugh:'😂',fire:'🔥',eyes:'👀',check:'✅'};
+  const buttons=Object.entries(reactionTypes).map(([key,emoji])=>{
+    const ids=note.reactions?.[key]||[],mine=ids.includes(data.currentMemberId);
     const names=ids.map(id=>map[id]?.name||'Former member').join(', ');
     return `<button type="button" data-note-react="${escapeAttr(note.id)}" data-emoji="${emoji}" aria-pressed="${mine}" aria-label="${escapeAttr(`${emoji}${names?': '+names:' — React'}`)}" title="${escapeAttr(names||'React')}" ${offlineMode?'disabled':''}>${emoji}${ids.length?` <span>${ids.length}</span>`:''}</button>`;
   }).join('');
-  const people=Object.entries(note.reactions||{}).filter(([,ids])=>ids.length).map(([emoji,ids])=>`<p>${escapeHtml(emoji)} ${escapeHtml(ids.map(id=>map[id]?.name||'Former member').join(', '))}</p>`).join('');
+  const people=Object.entries(note.reactions||{}).filter(([key,ids])=>reactionTypes[key]&&ids.length).map(([key,ids])=>`<p>${reactionTypes[key]} ${escapeHtml(ids.map(id=>map[id]?.name||'Former member').join(', '))}</p>`).join('');
   return `<div class="note-reactions" role="group" aria-label="Reactions">${buttons}</div>${people?`<details class="note-reaction-people"><summary>Who reacted</summary>${people}</details>`:''}`;
 }
 function noteCards(notes) {

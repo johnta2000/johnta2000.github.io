@@ -10,10 +10,11 @@ export function updateNotes(notes: Note[] = [], action: string, payload: any, me
   if(action==='react-note'){
     if(!existing)throw new ConvexError('This note no longer exists. Refresh the board.');
     if(!['👍','❤️','😂','🔥','👀','✅'].includes(payload.emoji)||typeof payload.active!=='boolean')throw new ConvexError('Choose a supported reaction.');
+    const key=['like','heart','laugh','fire','eyes','check'][['👍','❤️','😂','🔥','👀','✅'].indexOf(payload.emoji)];
     const reactions={...existing.reactions};
-    const people=(reactions[payload.emoji]||[]).filter(id=>id!==member.id);
+    const people=(reactions[key]||[]).filter(id=>id!==member.id);
     if(payload.active)people.push(member.id);
-    if(people.length)reactions[payload.emoji]=people;else delete reactions[payload.emoji];
+    if(people.length)reactions[key]=people;else delete reactions[key];
     const result=notes.map(note=>note.id===existing.id?{...note,reactions}:note);
     if(new TextEncoder().encode(JSON.stringify(result)).length>200000)throw new ConvexError('This board is full.');
     return result;
