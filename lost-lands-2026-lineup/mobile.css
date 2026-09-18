@@ -272,3 +272,12 @@
 .timeline-set{position:absolute;height:76px;text-align:left;border:1px solid #cfd8c0;border-left:3px solid #809b58;border-radius:8px;background:#fffef9;color:#293d22;padding:7px 10px;overflow:auto;cursor:pointer}
 .timeline-set strong,.timeline-set span,.timeline-set small{display:block}.timeline-set strong{font:700 14px system-ui;white-space:nowrap}.timeline-set span{font:12px/1.6 system-ui;white-space:nowrap}.timeline-set small{font:12px system-ui;color:#65784e}.timeline-set.is-active{background:#e8f0d9;border-color:#90aa69}
 @media(max-width:760px){.set-meta{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}.set-meta .set-stage{margin:0;font-size:11px}.set-meta .set-time{margin:0;white-space:nowrap;font-size:12px}.set-card h3{margin-top:4px}.set-card .favorite-button{font-size:17px;border:0;background:transparent;flex-basis:36px;width:36px;border-radius:50%}.set-card .favorite-button.is-active{background:transparent;color:#53742c}.set-overnight{font-size:11px;color:#7c8670}.segmented{flex-wrap:wrap}}
+.likes-filter{flex-shrink:0}
+@media(max-width:760px){
+  .schedule-actions{display:flex;flex-direction:column;gap:8px;min-width:0;width:100%}
+  .schedule-actions>.segmented{flex:none;width:100%;box-sizing:border-box;display:flex;flex-wrap:nowrap;min-width:0}
+  .schedule-actions>.segmented>button{flex:1 1 0;min-width:0;min-height:44px;padding:0 4px;white-space:normal;overflow-wrap:anywhere;line-height:1.25}
+  .schedule-actions>#favorites-filter-button[hidden]{display:none!important}
+  .schedule-actions>.likes-filter>button{font-size:13px}
+  .result-summary{flex-wrap:wrap;min-width:0}
+}
