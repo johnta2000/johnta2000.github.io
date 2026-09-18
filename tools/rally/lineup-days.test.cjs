@@ -49,6 +49,7 @@ test('mobile day tabs adapt to visible days and a hidden-day URL falls back safe
   const days={innerHTML:'',contains:()=>false,style:{setProperty(k,v){this[k]=v;}}};
   const ctx={lineup,dayOrder:['Wednesday','Thursday','Friday','Saturday','Sunday'],hiddenLineupDays:new Set(['Wednesday','Thursday']),selectedDays:new Set(['Wednesday']),mobileViewQuery:{matches:true},document:{getElementById:()=>days,activeElement:null},escapeHtml:value=>value};
   ctx.root=ctx.document;
+  ctx.easternNow=()=> '2026-09-18T17:00';
   vm.createContext(ctx);
   vm.runInContext(html.slice(html.indexOf('function visibleLineupDays('),html.indexOf('const stageOrder =')),ctx);
   vm.runInContext(html.slice(html.indexOf('function defaultMobileDay('),html.indexOf('function placeMobileFilters(')),ctx);

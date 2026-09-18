@@ -39,6 +39,18 @@ test('Eastern 5 PM marker dims ended sets but preserves favorites and active set
   tynan.querySelector('button').click();assert(ctx.events.some(e=>e.type==='rally-lineup-favorites-changed'));
  }finally{ctx.w.close();}
 });
+test('timeline initially opens at Eastern now and preserves manual scrolling on updates',()=>{
+ const ctx=setup(true,'2026-09-18T21:00:00Z');try{
+  ctx.root.getElementById('timeline-view-button').click();
+  const view=ctx.root.getElementById('timeline-view');
+  assert(view.querySelector('.timeline-scroll').scrollLeft>0);
+  view.querySelector('.timeline-scroll').scrollLeft=123;
+  view.querySelector('[data-favorite-id]').click();
+  assert.equal(view.querySelector('.timeline-scroll').scrollLeft,123);
+  ctx.root.querySelector('[data-day="Saturday"]').click();
+  assert.equal(view.querySelector('.timeline-scroll').scrollLeft,0);
+ }finally{ctx.w.close();}
+});
 test('timeline aligns sets, preserves horizontal position on favorites, and follows day filters',()=>{
  const ctx=setup();try{
   ctx.root.getElementById('timeline-view-button').click();

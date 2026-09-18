@@ -788,11 +788,15 @@ function render() {
   }
   updateFilterControls();
   updateViewButtons();
+  root.querySelectorAll('.timeline-scroll[data-initial-scroll]').forEach(el=>{el.scrollLeft=Number(el.dataset.initialScroll);delete el.dataset.initialScroll;});
   writeStateToUrl();
   updateScheduleProgress();
 }
 
 function defaultMobileDay() {
+  const now=easternNow();
+  const playing=lineup.find(entry=>entry.start<=now&&entry.end>now&&!hiddenLineupDays.has(entry.day));
+  if(playing)return playing.day;
   const today = new Intl.DateTimeFormat('en-CA',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
   return lineup.find(entry => entry.festivalDate === today && !hiddenLineupDays.has(entry.day))?.day || (visibleLineupDays().includes('Friday') ? 'Friday' : visibleLineupDays()[0]);
 }
@@ -836,7 +840,7 @@ function mobileSetCard(entry, maximum = 0, rank = 0, heat = false) {
 }
 function renderTimeline(entries) {
   const container=root.getElementById('timeline-view');
-  const scrolls=[...container.querySelectorAll('.timeline-scroll')].map(el=>el.scrollLeft);
+  const scrolls=new Map([...container.querySelectorAll('.timeline-scroll')].map(el=>[el.dataset.window,el.scrollLeft]));
   const minutes=value=>Date.parse(value+'Z')/60000;
   container.innerHTML=dayOrder.filter(day=>entries.some(entry=>entry.day===day)).map(day=>{
     const sets=entries.filter(entry=>entry.day===day);
@@ -853,7 +857,13 @@ return `<section class="timeline-day"><h3>${escapeHtml(day)}</h3><div class="tim
       return `<div class="timeline-lane" style="height:${42+laneEnds.length*84}px"><h4>${escapeHtml(stage)}</h4>${cards}</div>`;
     }).join('')}</div></div></section>`;
   }).join('')||'<p class="mobile-empty">No matching sets. Try another day or adjust your filters.</p>';
-  container.querySelectorAll('.timeline-scroll').forEach((el,i)=>el.scrollLeft=scrolls[i]||0);
+  container.querySelectorAll('.timeline-scroll').forEach(el=>{
+    const marker=el.querySelector('.timeline-now'),start=Number(marker.dataset.start),end=Number(marker.dataset.end);
+    const key=`${start}:${end}`;el.dataset.window=key;
+    const now=minutes(easternNow());
+    const initial=now>=start&&now<=end?Math.max(0,(now-start)*4-60):0;
+    el.dataset.initialScroll=String(scrolls.has(key)?scrolls.get(key):initial);
+  });
 }
 function renderMobileSchedule(entries) {
   const container = root.getElementById('mobile-schedule');
