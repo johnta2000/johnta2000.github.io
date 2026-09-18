@@ -260,3 +260,14 @@
   .app-page {padding:24px;}
   .filter-toggle {background:#fffef9;border-color:#d9ddcf;color:#45543a;border-radius:10px;}
 }
+/* Compact mobile metadata and a shared, horizontally scrollable set timeline. */
+.timeline-day>h3{font:700 16px system-ui;margin:16px 0 10px;color:#34452b}
+.timeline-scroll{overflow:auto;max-width:100%;border:1px solid #dce1d2;border-radius:12px;background:#fafbf5;max-height:72vh;overscroll-behavior-x:contain}
+.timeline-track{position:relative;padding:0 12px;box-sizing:content-box}
+.timeline-ruler{position:sticky;top:0;height:38px;background:#eef1e7;z-index:3;border-bottom:1px solid #dce1d2}
+.timeline-ruler span{position:absolute;top:10px;white-space:nowrap;font:600 12px system-ui;color:#526344}
+.timeline-lane{position:relative;border-bottom:1px solid #dce1d2;background:repeating-linear-gradient(90deg,transparent 0,transparent 119px,#dce1d2 119px,#dce1d2 120px)}
+.timeline-lane h4{position:sticky;left:0;display:table;margin:0;padding:10px 8px;background:#fafbf5;color:#465738;font:700 13px system-ui;z-index:2}
+.timeline-set{position:absolute;height:76px;text-align:left;border:1px solid #cfd8c0;border-left:3px solid #809b58;border-radius:8px;background:#fffef9;color:#293d22;padding:7px 10px;overflow:auto;cursor:pointer}
+.timeline-set strong,.timeline-set span,.timeline-set small{display:block}.timeline-set strong{font:700 14px system-ui;white-space:nowrap}.timeline-set span{font:12px/1.6 system-ui;white-space:nowrap}.timeline-set small{font:12px system-ui;color:#65784e}.timeline-set.is-active{background:#e8f0d9;border-color:#90aa69}
+@media(max-width:760px){.set-meta{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}.set-meta .set-stage{margin:0;font-size:11px}.set-meta .set-time{margin:0;white-space:nowrap;font-size:12px}.set-card h3{margin-top:4px}.set-card .favorite-button{font-size:17px;border:0;background:transparent;flex-basis:36px;width:36px;border-radius:50%}.set-card .favorite-button.is-active{background:transparent;color:#53742c}.set-overnight{font-size:11px;color:#7c8670}.segmented{flex-wrap:wrap}}

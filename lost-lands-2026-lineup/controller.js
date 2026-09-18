@@ -500,6 +500,7 @@ function readStateFromUrl() {
   }
   activeView = ["board", "poster"].includes(params.get("view")) ? "board" : "table";
   if (rallyManagedFavorites && params.get("view") === "heat") activeView = "heat";
+  if (params.get('view') === 'timeline') activeView = 'timeline';
   mostLiked = rallyManagedFavorites && params.get("sort") === "popular";
   sortMode = mostLiked ? 'popular' : params.get('sort') === 'artist' ? 'artist' : 'time';
 
@@ -709,6 +710,9 @@ function updateCurrentMemberInterest(artistId) {
 }
 
 function updateViewButtons() {
+  root.getElementById('timeline-view').hidden=activeView!=='timeline';
+  root.getElementById('timeline-view-button').classList.toggle('is-active',activeView==='timeline');
+  root.getElementById('timeline-view-button').setAttribute('aria-pressed',String(activeView==='timeline'));
   const isBoard = activeView === "board";
   els.posterView.hidden = !isBoard;
   els.tableView.hidden = activeView !== "table";
@@ -722,7 +726,7 @@ function updateViewButtons() {
   els.favoritesFilterButton.setAttribute("aria-pressed", String(favoritesOnly));
   els.saveFavoritesButton.hidden = !viewingSharedFavorites || favorites.size === 0;
   const mobile = mobileViewQuery.matches;
-  root.getElementById('mobile-schedule').hidden = !mobile;
+  root.getElementById('mobile-schedule').hidden = !mobile || activeView==='timeline';
   if (mobile) { els.posterView.hidden = true; els.tableView.hidden = true; els.heatView.hidden = true; }
   els.posterViewButton.textContent = mobile ? 'By stage' : 'Day board';
   els.heatViewButton.textContent = 'Heat map';
@@ -740,6 +744,7 @@ function render() {
     renderMobileDays();
   }
   const entries = getFilteredLineup();
+  if(activeView==='timeline')renderTimeline(entries);
   const available = lineup.filter(entry=>!hiddenLineupDays.has(entry.day));
   const favoriteTotal = available.filter(entry=>favorites.has(entry.id)).length;
   els.resultCount.textContent = entries.length === available.length ? `${available.length} sets` : `${entries.length} of ${available.length} sets`;
@@ -791,12 +796,33 @@ function mobileSetCard(entry, maximum = 0, rank = 0, heat = false) {
   const overnight = entry.start.slice(0,10) > entry.festivalDate ? 'After midnight' : entry.end.slice(0,10) > entry.start.slice(0,10) ? 'Ends next day' : '';
   return `<article class="set-card${favorites.has(entry.id) ? ' is-favorite' : ''}${heat ? ' set-card-heat' : ''}" style="--stage-color:${stageColor};--heat-tint:${maximum ? Math.round(count/maximum*28) : 0}%">
     <div class="set-card-main"><div class="set-card-copy">
-      <p class="set-time">${rank ? `<span class="set-rank">${rank}</span>` : ''}${escapeHtml(formatClock(entry.start))} <span>–</span> ${escapeHtml(formatClock(entry.end))}</p>
+      <div class="set-meta"><p class="set-time">${rank ? `<span class="set-rank">${rank}</span>` : ''}${escapeHtml(formatClock(entry.start))} <span>–</span> ${escapeHtml(formatClock(entry.end))}</p><span class="set-stage"><i aria-hidden="true"></i>${escapeHtml(entry.stage)}</span></div>
       <h3>${escapeHtml(entry.artist)}</h3>
-      <p class="set-stage"><i aria-hidden="true"></i>${escapeHtml(entry.stage)}${overnight ? `<span>· ${overnight}</span>` : ''}</p>
+      ${overnight ? `<small class="set-overnight">${overnight}</small>` : ''}
     </div><button class="favorite-button${favorites.has(entry.id) ? ' is-active' : ''}" type="button" data-favorite-id="${escapeHtml(entry.id)}" aria-pressed="${favorites.has(entry.id)}" aria-label="${favorites.has(entry.id)?'Remove':'Add'} ${escapeHtml(entry.artist)} favorite">★</button></div>
     ${rallyManagedFavorites ? `<div class="set-crew">${count ? `<details><summary><span class="set-avatars" aria-hidden="true">${people.slice(0,3).map(person=>`<i>${escapeHtml(person.initials || person.name.slice(0,1))}</i>`).join('')}</span><span>${count} ${count===1?'person':'people'} interested</span><span class="crew-expand">⌄</span></summary><p>${people.map(person=>escapeHtml(person.name)).join(' · ')}</p></details>` : '<span class="set-no-interest">No crew favorites yet</span>'}${maximum ? `<div class="interest-meter" aria-label="${count} interested; most popular set has ${maximum}"><i style="width:${Math.round(count/maximum*100)}%"></i></div>` : ''}</div>` : ''}
   </article>`;
+}
+function renderTimeline(entries) {
+  const container=root.getElementById('timeline-view');
+  const scrolls=[...container.querySelectorAll('.timeline-scroll')].map(el=>el.scrollLeft);
+  const minutes=value=>Date.parse(value+'Z')/60000;
+  container.innerHTML=dayOrder.filter(day=>entries.some(entry=>entry.day===day)).map(day=>{
+    const sets=entries.filter(entry=>entry.day===day);
+    const start=Math.floor(Math.min(...sets.map(e=>minutes(e.start)))/30)*30;
+    const end=Math.ceil(Math.max(...sets.map(e=>minutes(e.end)))/30)*30;
+    const scale=4,width=(end-start)*scale;
+    const ticks=[];for(let t=start;t<=end;t+=30)ticks.push(`<span style="left:${(t-start)*scale}px">${escapeHtml(formatClock(new Date(t*60000).toISOString().slice(0,16)))}</span>`);
+    return `<section class="timeline-day"><h3>${escapeHtml(day)}</h3><div class="timeline-scroll" tabindex="0" aria-label="${escapeHtml(day)} set times. Scroll horizontally to explore."><div class="timeline-track" style="width:${width+100}px"><div class="timeline-ruler">${ticks.join('')}</div>${stageOrder.filter(stage=>sets.some(e=>e.stage===stage)).map(stage=>{
+      const laneEnds=[];
+      const cards=sets.filter(e=>e.stage===stage).sort((a,b)=>a.start.localeCompare(b.start)).map(e=>{
+        const from=minutes(e.start),to=minutes(e.end);let lane=laneEnds.findIndex(end=>end<=from);if(lane<0)lane=laneEnds.length;laneEnds[lane]=to;
+        return `<button type="button" class="timeline-set${favorites.has(e.id)?' is-active':''}" data-favorite-id="${escapeHtml(e.id)}" aria-pressed="${favorites.has(e.id)}" aria-label="${escapeHtml(e.artist+' · '+formatClock(e.start)+' to '+formatClock(e.end)+' · Toggle favorite')}" style="left:${(from-start)*scale}px;width:${Math.max(20,(to-from)*scale-4)}px;top:${38+lane*84}px"><strong>${escapeHtml(e.artist)}</strong><span>${escapeHtml(formatClock(e.start))} – ${escapeHtml(formatClock(e.end))}</span><small>${favorites.has(e.id)?'★ Saved':'☆ Favorite'}</small></button>`;
+      }).join('');
+      return `<div class="timeline-lane" style="height:${42+laneEnds.length*84}px"><h4>${escapeHtml(stage)}</h4>${cards}</div>`;
+    }).join('')}</div></div></section>`;
+  }).join('')||'<p class="mobile-empty">No matching sets. Try another day or adjust your filters.</p>';
+  container.querySelectorAll('.timeline-scroll').forEach((el,i)=>el.scrollLeft=scrolls[i]||0);
 }
 function renderMobileSchedule(entries) {
   const container = root.getElementById('mobile-schedule');
@@ -1237,6 +1263,8 @@ function bindEvents() {
   els.posterViewButton.addEventListener("click", () => setView("board"));
   els.tableViewButton.addEventListener("click", () => setView("table"));
   els.heatViewButton.addEventListener("click", () => setView("heat"));
+  const timelineButton=document.createElement('button');timelineButton.id='timeline-view-button';timelineButton.type='button';timelineButton.textContent='Timeline';els.heatViewButton.after(timelineButton);timelineButton.onclick=()=>setView('timeline');
+  const timeline=document.createElement('section');timeline.id='timeline-view';timeline.hidden=true;timeline.setAttribute('aria-label','Set time timeline');els.tableView.after(timeline);
   els.popularitySort.addEventListener("click", () => {
     const dialog = document.createElement('dialog');
     dialog.className = 'sort-dialog';
@@ -1292,6 +1320,7 @@ function bindEvents() {
   els.posterContent.addEventListener("click", handleFavoriteClick);
   els.heatContent.addEventListener("click", handleFavoriteClick);
   root.getElementById('mobile-schedule').addEventListener('click', handleFavoriteClick);
+  timeline.addEventListener('click',handleFavoriteClick);
   root.getElementById('mobile-days').addEventListener('click', event => {
     const button = event.target.closest('[data-day]');
     if (!button) return;

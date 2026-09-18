@@ -29,6 +29,21 @@ test('native mobile lineup runs directly in Rally with day filters and isolated 
     assert(!ctx.w.document.documentElement.classList.contains('rally-mode'));
   } finally{ctx.dom.window.close();}
 });
+test('timeline aligns sets, preserves horizontal position on favorites, and follows day filters',()=>{
+ const ctx=setup();try{
+  ctx.root.getElementById('timeline-view-button').click();
+  const view=ctx.root.getElementById('timeline-view');assert.equal(view.hidden,false);assert.equal(ctx.root.getElementById('mobile-schedule').hidden,true);
+  assert(view.querySelector('.timeline-ruler'));assert(view.querySelectorAll('.timeline-lane').length>1);
+  const scroll=view.querySelector('.timeline-scroll');scroll.scrollLeft=480;
+  const set=view.querySelector('[data-favorite-id]'),id=set.dataset.favoriteId;set.click();
+  assert(ctx.events.some(e=>e.type==='rally-lineup-favorites-changed'&&e.artistIds.includes(id)));
+  assert.equal(view.querySelector('.timeline-scroll').scrollLeft,480);
+  assert(ctx.routes.at(-1).includes('view=timeline'));
+  ctx.root.querySelector('[data-day="Saturday"]').click();assert.equal(view.querySelector('h3').textContent,'Saturday');
+  ctx.root.getElementById('table-view-button').click();assert.equal(view.hidden,true);
+  assert(ctx.root.querySelector('.set-meta .set-time'));assert(ctx.root.querySelector('.set-meta .set-stage'));
+ }finally{ctx.w.close();}
+});
 test('switching away and back preserves the same component, day, search, and scroll',()=>{
   const ctx=setup();try{
     ctx.root.querySelector('[data-day="Saturday"]').click();
