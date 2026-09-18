@@ -4,9 +4,10 @@ const fs=require('node:fs');
 const path=require('node:path');
 const {JSDOM}=require('jsdom');
 const read=file=>fs.readFileSync(path.join(__dirname,file),'utf8');
-function setup(mobile=true){
+function setup(mobile=true,now=null){
   const dom=new JSDOM('<!doctype html><body><button id="outside">Home</button><section id="lineupView"></section>',{url:'https://www.john-ta.com/tools/rally/?view=lineup&event=lost-lands-2026',runScripts:'outside-only',pretendToBeVisual:true});
   const w=dom.window,events=[],routes=[];
+  if(now){const NativeDate=w.Date;w.Date=class extends NativeDate{constructor(...args){super(...(args.length?args:[now]));}static now(){return new NativeDate(now).getTime();}};}
   w.matchMedia=()=>({matches:mobile,addEventListener(){},removeEventListener(){}});
   w.HTMLElement.prototype.scrollIntoView=function(){};
   w.HTMLDialogElement.prototype.showModal=function(){this.setAttribute('open','');};
@@ -28,6 +29,15 @@ test('native mobile lineup runs directly in Rally with day filters and isolated 
     assert.equal(ctx.w.document.querySelector('style'),null);
     assert(!ctx.w.document.documentElement.classList.contains('rally-mode'));
   } finally{ctx.dom.window.close();}
+});
+test('Eastern 5 PM marker dims ended sets but preserves favorites and active sets',()=>{
+ const ctx=setup(true,'2026-09-18T21:00:00Z');try{
+  const marker=ctx.root.querySelector('.schedule-now');assert(marker.textContent.includes('5:00 PM ET'));
+  const cards=[...ctx.root.querySelectorAll('#mobile-schedule .set-card')];
+  const tynan=cards.find(el=>el.querySelector('h3').textContent==='TYNAN');assert(tynan.classList.contains('set-ended'));
+  assert(cards.some(el=>el.classList.contains('set-live')));
+  tynan.querySelector('button').click();assert(ctx.events.some(e=>e.type==='rally-lineup-favorites-changed'));
+ }finally{ctx.w.close();}
 });
 test('timeline aligns sets, preserves horizontal position on favorites, and follows day filters',()=>{
  const ctx=setup();try{

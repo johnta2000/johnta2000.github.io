@@ -136,14 +136,14 @@ test('mobile heatmap stays stage-grouped and includes unliked sets instead of be
   const friday=lineup.filter(x=>x.day==='Friday');
   ctx.favorites.add(friday[0].id);
   ctx.renderMobileSchedule(friday);
-  assert.equal((container.innerHTML.match(/<article class="set-card/g)||[]).length,friday.length);
+  assert.equal((container.innerHTML.match(/<article[^>]*class="set-card/g)||[]).length,friday.length);
   assert(container.innerHTML.includes('aria-pressed="true"'));
   ctx.activeView='board';ctx.renderMobileSchedule(friday);
-  assert.equal((container.innerHTML.match(/<article class="set-card/g)||[]).length,friday.length);
+  assert.equal((container.innerHTML.match(/<article[^>]*class="set-card/g)||[]).length,friday.length);
   ctx.lineupInterests[friday[0].id]=[{id:'one',name:'Jessi',initials:'J'}];
   ctx.lineupInterests[friday[1].id]=[{id:'two',name:'John',initials:'JT'},{id:'three',name:'<img onerror=x>',initials:'X'}];
   ctx.activeView='heat';ctx.renderMobileSchedule(friday);
-  assert.equal((container.innerHTML.match(/<article class="set-card/g)||[]).length,friday.length);
+  assert.equal((container.innerHTML.match(/<article[^>]*class="set-card/g)||[]).length,friday.length);
   assert(container.innerHTML.includes('mobile-stage-heat'));
   assert(!container.innerHTML.includes('set-rank'));
   assert(container.innerHTML.includes('set-card-heat'));

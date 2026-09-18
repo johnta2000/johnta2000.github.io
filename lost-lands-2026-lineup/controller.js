@@ -643,6 +643,36 @@ function renderDayBoard(entries) {
     .join("");
 }
 
+function easternNow() {
+  const parts=Object.fromEntries(new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(new Date()).map(part=>[part.type,part.value]));
+  return `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}`;
+}
+function updateScheduleProgress() {
+  const now=easternNow();
+  root.querySelectorAll('[data-set-start]').forEach(node=>{
+    node.classList.toggle('set-ended',node.dataset.setEnd<=now);
+    node.classList.toggle('set-live',node.dataset.setStart<=now&&node.dataset.setEnd>now);
+  });
+  root.querySelectorAll('.schedule-now').forEach(node=>node.remove());
+  if(activeView==='table'&&sortMode==='time'){
+    const parent=mobileViewQuery.matches?root.getElementById('mobile-schedule'):els.tableBody;
+    const rows=[...parent.querySelectorAll('[data-set-start]')];
+    // Use the festival-day window, including its after-midnight sets.
+    const dates=[...new Set(rows.map(node=>node.dataset.festivalDate))];
+    const relevant=dates.some(date=>now>=date+'T00:00'&&now<new Date(Date.parse(date+'T00:00Z')+28*3600000).toISOString().slice(0,16));
+    if(rows.length&&relevant){
+      const marker=document.createElement(mobileViewQuery.matches?'div':'tr');marker.className='schedule-now';
+      const label=`Now · ${formatClock(now)} ET · ended sets are dimmed`;
+      marker.innerHTML=mobileViewQuery.matches?`<span>${label}</span>`:`<td colspan="${rallyManagedFavorites?7:6}">${label}</td>`;
+      const next=rows.find(node=>node.dataset.setEnd>now);
+      if(next)next.before(marker);else parent.append(marker);
+    }
+  }
+  root.querySelectorAll('.timeline-now').forEach(node=>{
+    const minute=Date.parse(now+'Z')/60000,start=Number(node.dataset.start),end=Number(node.dataset.end);
+    node.hidden=minute<start||minute>end;node.style.left=((minute-start)*4)+'px';node.title=`Now · ${formatClock(now)} ET`;
+  });
+}
 function renderTable(entries) {
   if (!entries.length) {
     els.tableBody.innerHTML = `
@@ -662,7 +692,7 @@ function renderTable(entries) {
       `;
       renderedDay = entry.day;
       return `${dayDivider}
-        <tr>
+        <tr data-set-start="${entry.start}" data-set-end="${entry.end}" data-festival-date="${entry.festivalDate}">
           <td>
             <button
               class="favorite-button ${favorites.has(entry.id) ? "is-active" : ""}"
@@ -759,6 +789,7 @@ function render() {
   updateFilterControls();
   updateViewButtons();
   writeStateToUrl();
+  updateScheduleProgress();
 }
 
 function defaultMobileDay() {
@@ -794,7 +825,7 @@ function mobileSetCard(entry, maximum = 0, rank = 0, heat = false) {
   const colors = ['#258579','#c56933','#7864b5','#b45376','#467bbc','#7f873b','#995636'];
   const stageColor = colors[stageOrder.indexOf(entry.stage) % colors.length] || colors[0];
   const overnight = entry.start.slice(0,10) > entry.festivalDate ? 'After midnight' : entry.end.slice(0,10) > entry.start.slice(0,10) ? 'Ends next day' : '';
-  return `<article class="set-card${favorites.has(entry.id) ? ' is-favorite' : ''}${heat ? ' set-card-heat' : ''}" style="--stage-color:${stageColor};--heat-tint:${maximum ? Math.round(count/maximum*28) : 0}%">
+  return `<article data-set-start="${entry.start}" data-set-end="${entry.end}" data-festival-date="${entry.festivalDate}" class="set-card${favorites.has(entry.id) ? ' is-favorite' : ''}${heat ? ' set-card-heat' : ''}" style="--stage-color:${stageColor};--heat-tint:${maximum ? Math.round(count/maximum*28) : 0}%">
     <div class="set-card-main"><div class="set-card-copy">
       <div class="set-meta"><p class="set-time">${rank ? `<span class="set-rank">${rank}</span>` : ''}${escapeHtml(formatClock(entry.start))} <span>–</span> ${escapeHtml(formatClock(entry.end))}</p><span class="set-stage"><i aria-hidden="true"></i>${escapeHtml(entry.stage)}</span></div>
       <h3>${escapeHtml(entry.artist)}</h3>
@@ -813,7 +844,7 @@ function renderTimeline(entries) {
     const end=Math.ceil(Math.max(...sets.map(e=>minutes(e.end)))/30)*30;
     const scale=4,width=(end-start)*scale;
     const ticks=[];for(let t=start;t<=end;t+=30)ticks.push(`<span style="left:${(t-start)*scale}px">${escapeHtml(formatClock(new Date(t*60000).toISOString().slice(0,16)))}</span>`);
-    return `<section class="timeline-day"><h3>${escapeHtml(day)}</h3><div class="timeline-scroll" tabindex="0" aria-label="${escapeHtml(day)} set times. Scroll horizontally to explore."><div class="timeline-track" style="width:${width+100}px"><div class="timeline-ruler">${ticks.join('')}</div>${stageOrder.filter(stage=>sets.some(e=>e.stage===stage)).map(stage=>{
+return `<section class="timeline-day"><h3>${escapeHtml(day)}</h3><div class="timeline-scroll" tabindex="0" aria-label="${escapeHtml(day)} set times. Scroll horizontally to explore."><div class="timeline-track" style="width:${width+100}px"><div class="timeline-now" data-start="${start}" data-end="${end}" hidden aria-label="Current Eastern time"></div><div class="timeline-ruler">${ticks.join('')}</div>${stageOrder.filter(stage=>sets.some(e=>e.stage===stage)).map(stage=>{
       const laneEnds=[];
       const cards=sets.filter(e=>e.stage===stage).sort((a,b)=>a.start.localeCompare(b.start)).map(e=>{
         const from=minutes(e.start),to=minutes(e.end);let lane=laneEnds.findIndex(end=>end<=from);if(lane<0)lane=laneEnds.length;laneEnds[lane]=to;
@@ -1383,12 +1414,14 @@ readStateFromUrl();
 bindEvents();
 placeMobileFilters();
 render();
+const progressTimer=window.setInterval(()=>{if(!integration||integration.isActive())updateScheduleProgress();},60000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&(!integration||integration.isActive()))updateScheduleProgress();},{signal:lifetime.signal});
 if (rallyManagedFavorites) sendToRally({ type: "rally-lineup-ready" });
 else window.addEventListener("load", initializeOptionalAccount, { once: true });
 return {
   receive: message => receive({data:message}),
   route(params) { integration.params=params; readStateFromUrl(); render(); },
   suspend() { root.querySelectorAll('dialog[open]').forEach(dialog=>dialog.close()); root.activeElement?.blur(); closeFilterPopovers(); },
-  destroy() { lifetime.abort(); overlayObserver?.disconnect(); window.clearTimeout(cloudSaveTimer); }
+  destroy() { lifetime.abort(); overlayObserver?.disconnect(); window.clearTimeout(cloudSaveTimer); window.clearInterval(progressTimer); }
 };
 };
