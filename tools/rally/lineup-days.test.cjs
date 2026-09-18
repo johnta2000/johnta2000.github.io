@@ -36,7 +36,7 @@ test('day settings reject invalid values and hiding every day',()=>{
   const ctx=server('admin',['Wednesday','Wednesday']);ctx.save();assert.equal(ctx.state.lineupHiddenDays.length,1);
 });
 test('project-hidden days are excluded from filters, while stars survive hiding and restoring',()=>{
-  const ctx={lineup,hiddenLineupDays:new Set(['Wednesday','Thursday']),selectedDays:new Set(),selectedStages:new Set(),selectedGenres:new Set(),timeMin:0,timeMax:3000,favoritesOnly:false,favorites:new Set([lineup[0].id]),els:{search:{value:''}},normalizeText:value=>value.toLowerCase(),compareSets:()=>0};
+const ctx={lineup,hiddenLineupDays:new Set(['Wednesday','Thursday']),selectedDays:new Set(),selectedStages:new Set(),selectedGenres:new Set(),timeMin:0,timeMax:3000,crewLikesOnly:false,favoritesOnly:false,favorites:new Set([lineup[0].id]),els:{search:{value:''}},normalizeText:value=>value.toLowerCase(),compareSets:()=>0};
   vm.createContext(ctx);
   vm.runInContext(html.slice(html.indexOf('function getFilteredLineup('),html.indexOf('function groupPeople(')),ctx);
   const visible=ctx.getFilteredLineup();assert(visible.length>0);

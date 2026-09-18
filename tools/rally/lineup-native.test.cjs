@@ -30,6 +30,16 @@ test('native mobile lineup runs directly in Rally with day filters and isolated 
     assert(!ctx.w.document.documentElement.classList.contains('rally-mode'));
   } finally{ctx.dom.window.close();}
 });
+test('likes filter separates personal and crew picks and follows every view',()=>{
+ const ctx=setup();try{
+  const cards=[...ctx.root.querySelectorAll('#mobile-schedule [data-favorite-id]')];const mine=cards[0].dataset.favoriteId,other=cards[1].dataset.favoriteId;
+  ctx.w.RallyLineup.receive({...ctx.state,artistIds:[mine],interests:{[mine]:[{id:'john',name:'John'}],[other]:[{id:'jessi',name:'Jessi'}]}});
+  ctx.root.querySelector('[data-likes-filter="mine"]').click();assert.equal(ctx.root.querySelectorAll('#mobile-schedule .set-card').length,1);
+  ctx.root.querySelector('[data-likes-filter="crew"]').click();assert.equal(ctx.root.querySelectorAll('#mobile-schedule .set-card').length,2);assert(ctx.routes.at(-1).includes('likes=crew'));
+  ctx.root.getElementById('timeline-view-button').click();assert.equal(ctx.root.querySelectorAll('.timeline-set').length,2);
+  ctx.root.querySelector('[data-likes-filter="all"]').click();assert(ctx.root.querySelectorAll('.timeline-set').length>2);
+ }finally{ctx.w.close();}
+});
 test('Eastern 5 PM marker dims ended sets but preserves favorites and active sets',()=>{
  const ctx=setup(true,'2026-09-18T21:00:00Z');try{
   const marker=ctx.root.querySelector('.schedule-now');assert(marker.textContent.includes('5:00 PM ET'));

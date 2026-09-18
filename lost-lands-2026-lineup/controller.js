@@ -387,6 +387,7 @@ let mostLiked = false;
 let sortMode = 'time';
 let groupStateLoaded = false;
 let favoritesOnly = false;
+let crewLikesOnly = false;
 let viewingSharedFavorites = false;
 let selectedDays = new Set();
 let selectedStages = new Set();
@@ -487,6 +488,8 @@ function readStateFromUrl() {
   els.search.value = params.get("q") || "";
   const type = params.get("type") || params.get("billing") || "all";
   favoritesOnly = params.get("fav") === "1" || type === "favorites";
+  crewLikesOnly = rallyManagedFavorites && params.get('likes')==='crew';
+  if(crewLikesOnly)favoritesOnly=false;
   selectedDays = new Set((params.get("days") || params.get("day") || "").split(",").filter((value) => dayOrder.includes(value)));
   selectedStages = new Set((params.get("stages") || params.get("stage") || "").split(",").filter((value) => stageOrder.includes(value)));
   selectedGenres = new Set((params.get("genres") || params.get("genre") || "").split(",").filter((value) => genreOrder.includes(value)));
@@ -530,6 +533,7 @@ function writeStateToUrl() {
   if (activeView !== "table") params.set("view", activeView);
   if (sortMode !== 'time') params.set("sort", sortMode);
   if (favoritesOnly) params.set("fav", "1");
+  if (crewLikesOnly) params.set('likes','crew');
   if (integration) { integration.params=params.toString(); integration.onParams(params); return; }
   const next = `${window.location.pathname}${rallyManagedFavorites ? "?rally=1" : ""}${params.toString() ? `#${params}` : ""}`;
   window.history.replaceState({}, "", next);
@@ -547,7 +551,7 @@ function getFilteredLineup() {
     const matchesGenre = !selectedGenres.size || selectedGenres.has(entry.genre);
     const matchesStage = !selectedStages.size || selectedStages.has(entry.stage);
     const matchesTime = entry.startMinutes >= timeMin && entry.startMinutes <= timeMax;
-    const matchesFavorite = !favoritesOnly || favorites.has(entry.id);
+    const matchesFavorite = crewLikesOnly ? groupPeople(entry.id).length>0 : !favoritesOnly || favorites.has(entry.id);
 
     return matchesQuery && matchesDay && matchesGenre && matchesStage && matchesTime && matchesFavorite;
   });
@@ -754,6 +758,7 @@ function updateViewButtons() {
   els.tableViewButton.classList.toggle("is-active", activeView === "table");
   [els.tableViewButton, els.posterViewButton, els.heatViewButton].forEach((button) => button.setAttribute("aria-pressed", String(button.classList.contains("is-active"))));
   els.favoritesFilterButton.setAttribute("aria-pressed", String(favoritesOnly));
+  root.querySelectorAll('[data-likes-filter]').forEach(button=>{const selected=button.dataset.likesFilter===(crewLikesOnly?'crew':favoritesOnly?'mine':'all');button.classList.toggle('is-active',selected);button.setAttribute('aria-pressed',String(selected));});
   els.saveFavoritesButton.hidden = !viewingSharedFavorites || favorites.size === 0;
   const mobile = mobileViewQuery.matches;
   root.getElementById('mobile-schedule').hidden = !mobile || activeView==='timeline';
@@ -1154,7 +1159,7 @@ function updateFilterControls() {
   const activeCount = (mobileViewQuery.matches ? 0 : selectedDays.size) + selectedStages.size + selectedGenres.size + Number(timeMin !== timeBounds.min || timeMax !== timeBounds.max);
   els.filterCount.textContent = String(activeCount);
   els.filterCount.hidden = !activeCount;
-  els.clearFiltersButton.hidden = !activeCount && !els.search.value.trim() && !favoritesOnly;
+  els.clearFiltersButton.hidden = !activeCount && !els.search.value.trim() && !favoritesOnly && !crewLikesOnly;
   els.filterPopovers.forEach((popover) => {
     const name = popover.dataset.filter;
     const label = popover.querySelector(".filter-trigger-label");
@@ -1203,6 +1208,7 @@ function clearScheduleFilters() {
   timeMin = timeBounds.min;
   timeMax = timeBounds.max;
   favoritesOnly = false;
+  crewLikesOnly = false;
   render();
 }
 
@@ -1321,6 +1327,11 @@ function bindEvents() {
   });
   els.clearFiltersButton.addEventListener("click", clearScheduleFilters);
   els.favoritesFilterButton.addEventListener("click", toggleFavoritesOnly);
+  els.favoritesFilterButton.hidden=true;
+  const likes=document.createElement('div');likes.className='likes-filter segmented';likes.setAttribute('role','group');likes.setAttribute('aria-label','Filter by likes');
+  likes.innerHTML=[['all','All sets'],['mine','My likes'],...(rallyManagedFavorites?[['crew','Crew likes']]:[])].map(([value,label])=>`<button type="button" data-likes-filter="${value}" aria-pressed="false">${label}</button>`).join('');
+  els.favoritesFilterButton.after(likes);
+  likes.querySelectorAll('button').forEach(button=>button.onclick=()=>{favoritesOnly=button.dataset.likesFilter==='mine';crewLikesOnly=button.dataset.likesFilter==='crew';render();});
   els.saveFavoritesButton.addEventListener("click", saveFavoritesAsMine);
   els.shareButton.addEventListener("click", shareCurrentView);
   els.accountButton.addEventListener("click", openAccountDialog);
