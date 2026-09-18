@@ -473,8 +473,8 @@ function noteReactions(note) {
     const names=ids.map(id=>map[id]?.name||'Former member').join(', ');
     return `<button type="button" data-note-react="${escapeAttr(note.id)}" data-emoji="${emoji}" aria-pressed="${mine}" aria-label="${escapeAttr(`${emoji}${names?': '+names:' — React'}`)}" title="${escapeAttr(names||'React')}" ${offlineMode?'disabled':''}>${emoji}${ids.length?` <span>${ids.length}</span>`:''}</button>`;
   }).join('');
-  const people=Object.entries(note.reactions||{}).filter(([key,ids])=>reactionTypes[key]&&ids.length).map(([key,ids])=>`<p>${reactionTypes[key]} ${escapeHtml(ids.map(id=>map[id]?.name||'Former member').join(', '))}</p>`).join('');
-  return `<div class="note-reactions" role="group" aria-label="Reactions">${buttons}</div>${people?`<details class="note-reaction-people"><summary>Who reacted</summary>${people}</details>`:''}`;
+  const used=Object.entries(note.reactions||{}).filter(([key,ids])=>reactionTypes[key]&&ids.length).map(([key,ids])=>`<details class="reaction-count"><summary aria-label="${escapeAttr(reactionTypes[key]+' · '+ids.length+' reactions')}" class="${ids.includes(data.currentMemberId)?'mine':''}">${reactionTypes[key]} <span>${ids.length}</span></summary><div class="reaction-names">${ids.map(id=>`<p>${escapeHtml(map[id]?.name||'Former member')}</p>`).join('')}</div></details>`).join('');
+  return `<div class="note-tapbacks">${used}<details class="reaction-picker"><summary aria-label="React to note" title="React"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M21 12a9 9 0 1 1-9-9M18 2v6m-3-3h6M8 14s1 3 4 3 4-3 4-3"/><circle cx="8" cy="10" r=".6"/><circle cx="14" cy="10" r=".6"/></svg></summary><div class="note-reactions" role="group" aria-label="Choose a reaction">${buttons}</div></details></div>`;
 }
 function noteCards(notes) {
   const map = memberMap();
@@ -493,6 +493,11 @@ function renderNoteList() {
   const list = document.getElementById('notesList');
   if (!list) return;
   list.innerHTML = noteCards(notesForSection(data.notes || [], list.dataset.section||'general'));
+  list.querySelectorAll('.note-tapbacks details').forEach(detail=>{
+    detail.addEventListener('toggle',()=>{if(detail.open)list.querySelectorAll('.note-tapbacks details[open]').forEach(other=>{if(other!==detail)other.open=false;});});
+    detail.addEventListener('keydown',event=>{if(event.key==='Escape'){detail.open=false;detail.querySelector('summary').focus();}});
+    detail.addEventListener('focusout',()=>setTimeout(()=>{if(!detail.contains(document.activeElement))detail.open=false;},0));
+  });
   list.querySelectorAll('[data-note-react]').forEach(button=>button.onclick=async()=>{
     if(offlineMode)return showToast('Reconnect to react.');
     button.disabled=true;

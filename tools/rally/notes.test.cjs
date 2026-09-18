@@ -16,7 +16,8 @@ test('every reaction serializes as a valid Convex database value',()=>{
  let notes=create();
  for(const emoji of ['👍','❤️','😂','🔥','👀','✅'])notes=updateNotes(notes,'react-note',{id:'note-1',emoji,active:true},other,200,()=> '');
  assert.doesNotThrow(()=>convexToJson(plain(notes)));
- assert.deepEqual(Object.keys(notes[0].reactions),['like','heart','laugh','fire','eyes','check']);
+ assert.deepEqual(Object.keys(notes[0].reactions),['check']);
+ assert.deepEqual(plain(notes[0].reactions.check),['kevin']);
 });
 test('hotel maps include verified address, honor custom addresses and encode destinations',()=>{
  const escapeHtml=v=>String(v).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('"','&quot;');

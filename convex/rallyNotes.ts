@@ -12,6 +12,10 @@ export function updateNotes(notes: Note[] = [], action: string, payload: any, me
     if(!['👍','❤️','😂','🔥','👀','✅'].includes(payload.emoji)||typeof payload.active!=='boolean')throw new ConvexError('Choose a supported reaction.');
     const key=['like','heart','laugh','fire','eyes','check'][['👍','❤️','😂','🔥','👀','✅'].indexOf(payload.emoji)];
     const reactions={...existing.reactions};
+    if(payload.active)for(const type of Object.keys(reactions)){
+      reactions[type]=reactions[type].filter(id=>id!==member.id);
+      if(!reactions[type].length)delete reactions[type];
+    }
     const people=(reactions[key]||[]).filter(id=>id!==member.id);
     if(payload.active)people.push(member.id);
     if(people.length)reactions[key]=people;else delete reactions[key];
