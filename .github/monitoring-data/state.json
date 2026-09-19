@@ -1,9 +1,30 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-09-19T11:04:53.389Z",
+  "generatedAt": "2026-09-19T12:34:03.506Z",
   "overallStatus": "healthy",
-  "latestEventId": "20260917194615-chase-sapphire-reserve-tables-restaurant-change",
+  "latestEventId": "20260919123403-chase-sapphire-reserve-tables-restaurant-change",
   "monitors": [
+    {
+      "id": "bilt-calculator-ranking",
+      "name": "Bilt calculator ranking",
+      "description": "Tracks the Bilt calculator across Search Console query performance, index health, canonical integrity, and live-page checks.",
+      "configured": false,
+      "status": "not_configured",
+      "sourceUrl": "https://www.nextcard.com/tools/bilt-calculator",
+      "cadence": "Every 6 hours via Codex",
+      "config": {
+        "property": "sc-domain:nextcard.com",
+        "page": "https://www.nextcard.com/tools/bilt-calculator",
+        "queries": [
+          "bilt calculator",
+          "bilt 2.0 calculator",
+          "bilt calculator 2.0",
+          "bilt points calculator",
+          "bilt card calculator"
+        ],
+        "compareWindow": "Finalized 7 days vs previous 7 days"
+      }
+    },
     {
       "id": "paze-directory",
       "name": "Paze merchant directory",
@@ -73,27 +94,6 @@
       }
     },
     {
-      "id": "bilt-calculator-ranking",
-      "name": "Bilt calculator ranking",
-      "description": "Tracks the Bilt calculator across Search Console query performance, index health, canonical integrity, and live-page checks.",
-      "configured": false,
-      "status": "not_configured",
-      "sourceUrl": "https://www.nextcard.com/tools/bilt-calculator",
-      "cadence": "Every 6 hours via Codex",
-      "config": {
-        "property": "sc-domain:nextcard.com",
-        "page": "https://www.nextcard.com/tools/bilt-calculator",
-        "queries": [
-          "bilt calculator",
-          "bilt 2.0 calculator",
-          "bilt calculator 2.0",
-          "bilt points calculator",
-          "bilt card calculator"
-        ],
-        "compareWindow": "Finalized 7 days vs previous 7 days"
-      }
-    },
-    {
       "id": "transfer-bonus-discovery",
       "name": "Transfer bonus discovery",
       "description": "Scans official issuer and loyalty-program sources for new transfer bonuses, changed terms, and coverage failures.",
@@ -132,17 +132,17 @@
         "https://www.opentable.com/sapphire-reserve/boston"
       ],
       "cadence": "Every 4 hours",
-      "latestRunAt": "2026-09-19T04:45:43.976Z",
-      "latestSuccessAt": "2026-09-19T04:45:43.976Z",
-      "latestChangeAt": "2026-09-17T19:46:15.791Z",
-      "durationMs": 778,
-      "summary": "No restaurant-list changes across six cities (137 restaurants).",
+      "latestRunAt": "2026-09-19T12:34:03.506Z",
+      "latestSuccessAt": "2026-09-19T12:34:03.506Z",
+      "latestChangeAt": "2026-09-19T12:34:03.506Z",
+      "durationMs": 1281,
+      "summary": "1 restaurants added and 1 removed across six cities.",
       "error": null,
       "metrics": {
         "restaurantCount": 137,
         "cityCount": 6,
-        "addedCount": 0,
-        "removedCount": 0
+        "addedCount": 1,
+        "removedCount": 1
       },
       "details": {
         "cities": [
@@ -169,12 +169,12 @@
             "url": "https://www.opentable.com/sapphire-reserve/san-francisco",
             "count": 30,
             "restaurants": [
-              "Allora",
               "Angler San Francisco",
               "Aziza",
               "Bodega SF",
               "Burdell",
               "Californios",
+              "Camden Spit and Larder",
               "Chez Noir",
               "Commis",
               "Dalida",
@@ -200,8 +200,12 @@
               "The Happy Crane",
               "The Progress"
             ],
-            "added": [],
-            "removed": []
+            "added": [
+              "Camden Spit and Larder"
+            ],
+            "removed": [
+              "Allora"
+            ]
           },
           {
             "id": "los-angeles",
@@ -345,18 +349,25 @@
           }
         ],
         "cache": {
-          "runId": "1789793143976",
-          "requestCount": 6,
+          "runId": "1789821243506",
+          "requestCount": 12,
           "crawlIds": [
-            "primary"
+            "primary",
+            "confirmation"
           ],
           "requestIds": [
-            "1789793143980001",
-            "1789793144011002",
-            "1789793144012003",
-            "1789793144013004",
-            "1789793144014005",
-            "1789793144015006"
+            "1789821243510001",
+            "1789821243550002",
+            "1789821243551003",
+            "1789821243552004",
+            "1789821243553005",
+            "1789821243554006",
+            "1789821244235007",
+            "1789821244236008",
+            "1789821244236009",
+            "1789821244237010",
+            "1789821244237011",
+            "1789821244237012"
           ]
         }
       }
