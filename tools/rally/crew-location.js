@@ -70,7 +70,7 @@
       try{
         await revoke();
         const delta=latest&&lastUploadedPosition?offset(lastUploadedPosition,latest):null;
-        if(session&&latest&&Date.now()-latest.observedAt<120000&&Date.now()-lastSent>=30000&&(!delta||Math.hypot(delta.x,delta.y)>=25)){
+        if(session&&latest&&Date.now()-latest.observedAt<120000&&Date.now()-lastSent>=60000&&(!delta||Math.hypot(delta.x,delta.y)>=25)){
           const position=latest;
           const sentSession=session;await ctx.mutate('update',sentSession,latest);lastSent=Date.now();
           lastUploadedPosition=position;
