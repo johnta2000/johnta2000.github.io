@@ -61,3 +61,20 @@ test('sharing requires explicit click and stop revokes the same session',async()
  s.ctx.root.querySelector('[data-stop]').click();await tick();assert.equal(s.calls[1].op,'stop');assert.equal(s.calls[0].id,s.calls[1].id);
  s.dom.window.RallyCrewLocation.unmount();s.dom.window.close();
 });
+test('navigation and pagehide keep shared location; remount reuses the same session',async()=>{
+ const s=setup(),api=s.dom.window.RallyCrewLocation;api.mount(s.ctx);await tick();
+ s.ctx.root.querySelector('[data-share]').click();await tick();
+ api.unmount();assert.equal(s.calls.filter(c=>c.op==='stop').length,0);
+ s.dom.window.dispatchEvent(new s.dom.window.Event('pagehide'));assert.equal(s.calls.filter(c=>c.op==='stop').length,0);assert.ok(s.cleared()>0);
+ const root=s.dom.window.document.createElement('div');api.mount({...s.ctx,root});await tick();
+ assert.equal(s.calls.filter(c=>c.op==='start').length,1);assert.equal(root.querySelector('[data-stop]').hidden,false);
+ root.querySelector('[data-stop]').click();await tick();assert.equal(s.calls.filter(c=>c.op==='stop').length,1);
+ api.clearCache();s.dom.window.close();
+});
+test('cold reload restores only valid same-account consent without starting a new server session',async()=>{
+ const s=setup(),w=s.dom.window;Object.defineProperty(w.document,'hidden',{value:false,configurable:true});
+ w.localStorage.setItem('rally-crew-position:user:event:session',JSON.stringify({id:'saved',expiresAt:Date.now()+100000}));
+ w.RallyCrewLocation.mount(s.ctx);await tick();assert.equal(s.ctx.root.querySelector('[data-stop]').hidden,false);assert.equal(s.calls.length,0);
+ assert.equal(w.RallyCrewLocation.hasSession('other','event'),false);
+ w.RallyCrewLocation.clearCache();await tick();assert.equal(s.calls[0].id,'saved');assert.equal(s.calls[0].op,'stop');assert.equal(w.RallyCrewLocation.hasSession('user','event'),false);w.close();
+});

@@ -301,6 +301,7 @@ function render() {
   document.getElementById('lineupView').hidden=!nativeLineup;
   const renderer = { home: renderHome, stay: renderStay, crew: renderCrew, travel: renderTravel, passes: renderPasses, tasks: renderTasks, lineup: renderLineup, notes: renderNotes, meetups: renderMeetups }[activeView] || renderHome;
   renderer();
+  if(activeView!=='meetups')resumeCrewLocation();
   if (['stay','crew','travel','passes'].includes(activeView)) renderSectionNotes(activeView);
   renderMobileNav();
   focusSearchResult();
@@ -455,6 +456,16 @@ function renderMeetups() {
   window.RallyCrewLocation.mount({root:locationRoot,room:data,owner:owner||RallyOffline.userId,
     query:()=>{if(!sameAccount())throw new Error('Account changed');return networkConvexCall('query','rally:crewLocations',{eventId});},
     mutate:(operation,sessionId,position)=>{if(!sameAccount())throw new Error('Account changed');return networkConvexCall('mutation','rally:shareCrewLocation',{eventId,operation,sessionId,...(position?{position}:{})});}
+  });
+}
+
+function resumeCrewLocation(){
+  const owner=window.Clerk?.user?.id||RallyOffline.userId,eventId=activeEvent;
+  window.RallyCrewLocation?.checkOwner(owner);
+  if(!window.RallyCrewLocation?.hasSession(owner,eventId))return;
+  window.RallyCrewLocation.mount({root:document.createElement('div'),room:data,owner,
+    query:()=>{if(owner!==(window.Clerk?.user?.id||RallyOffline.userId))throw new Error('Account changed');return networkConvexCall('query','rally:crewLocations',{eventId});},
+    mutate:(operation,sessionId,position)=>{if(owner!==(window.Clerk?.user?.id||RallyOffline.userId))throw new Error('Account changed');return networkConvexCall('mutation','rally:shareCrewLocation',{eventId,operation,sessionId,...(position?{position}:{})});}
   });
 }
 
