@@ -27,7 +27,7 @@ test('server endpoints enforce membership, self ownership, session revocation an
  const api=mod.module.exports;let row=null,identity={subject:'u',email:'me@example.com',emailVerified:true},scheduled=0;
  const room={members:[{id:'me',clerkSubject:'u',email:'me@example.com',name:'Me'}]};
  const ctx={auth:{getUserIdentity:async()=>identity},scheduler:{runAfter:async()=>scheduled++},db:{
-  query:table=>({withIndex(){return this;},unique:async()=>table==='warRoomState'?{buckets:room}:row,collect:async()=>row?[row]:[]}),
+  query:table=>({withIndex(){return this;},unique:async()=>table==='warRoomState'?{buckets:room}:row,collect:async()=>table==='rallyNativeTracking'?[]:row?[row]:[]}),
   insert:async(table,value)=>{row={_id:'row',...value};return 'row';},delete:async()=>{row=null;},patch:async(id,value)=>Object.assign(row,value),get:async()=>row
  }};
  const args={eventId:'event',sessionId:'session',operation:'start'};

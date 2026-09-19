@@ -2,6 +2,11 @@ import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
 export default defineSchema({
+  rallyNativeTracking: defineTable({
+    eventId:v.string(),memberId:v.string(),subject:v.string(),tokenHash:v.string(),
+    startedAt:v.number(),expiresAt:v.number(),
+    points:v.array(v.object({latitude:v.number(),longitude:v.number(),accuracy:v.number(),observedAt:v.number()})),
+  }).index('by_token',['tokenHash']).index('by_member',['eventId','memberId']).index('by_event',['eventId']),
   rallyLocations: defineTable({
     eventId:v.string(), memberId:v.string(), sessionId:v.string(), expiresAt:v.number(),
     position:v.optional(v.object({latitude:v.number(),longitude:v.number(),accuracy:v.number(),observedAt:v.number()})),

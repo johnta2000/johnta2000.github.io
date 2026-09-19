@@ -5,7 +5,7 @@ import { v } from "convex/values";
 import { LOST_LANDS_SET_TIMES, LOST_LANDS_SET_TIMES_META } from "./lostLandsSetTimes";
 import { updateNotes } from "./rallyNotes";
 import { updateMeetups } from "./rallyMeetups";
-import { locationFix } from './rallyLocationRules';
+import { locationFix, mergeTrail } from './rallyLocationRules';
 
 type Identity = { subject: string; email?: string | null; name?: string | null; emailVerified?: boolean };
 type RallyState = Record<string, any>;
@@ -580,7 +580,46 @@ export const crewLocations = query({
     const room=doc?.buckets as RallyState;
     if(!room||!memberFor(room,identity))throw new Error('Join this crew to view locations.');
     const rows=await ctx.db.query('rallyLocations').withIndex('by_event',q=>q.eq('eventId',eventId)).collect();
-    return rows.filter(row=>row.expiresAt>Date.now()&&row.position&&room.members.some((m:RallyState)=>m.id===row.memberId)).map(row=>({memberId:row.memberId,expiresAt:row.expiresAt,...row.position}));
+    const native=await ctx.db.query('rallyNativeTracking').withIndex('by_event',q=>q.eq('eventId',eventId)).collect();
+    const live=rows.filter(row=>row.expiresAt>Date.now()&&row.position&&room.members.some((m:RallyState)=>m.id===row.memberId)).map(row=>({memberId:row.memberId,expiresAt:row.expiresAt,...row.position}));
+    const trails=native.filter(row=>row.expiresAt>Date.now()&&room.members.some((m:RallyState)=>m.id===row.memberId)).map(row=>({memberId:row.memberId,expiresAt:row.expiresAt,trail:row.points.filter(p=>p.observedAt>Date.now()-30*60000)})).filter(row=>row.trail.length).map(row=>({...row,...row.trail[row.trail.length-1]}));
+    return [...new Map([...live,...trails].sort((a,b)=>(a.observedAt||0)-(b.observedAt||0)).map(row=>[row.memberId,row])).values()];
+  }
+});
+
+async function trackingHash(token:string){
+  return [...new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(token)))].map(n=>n.toString(16).padStart(2,'0')).join('');
+}
+export const startNativeTracking=mutation({
+  args:{eventId:v.string()},handler:async(ctx,{eventId})=>{
+    const identity=await requireIdentity(ctx),doc=await findDoc(ctx,eventId),room=doc?.buckets as RallyState;
+    const member=room&&memberFor(room,identity);if(!member)throw new Error('Join this crew before sharing.');
+    const previous=await ctx.db.query('rallyNativeTracking').withIndex('by_member',q=>q.eq('eventId',eventId).eq('memberId',member.id)).collect();
+    for(const row of previous)await ctx.db.delete(row._id);
+    const token=crypto.randomUUID()+crypto.randomUUID(),startedAt=Date.now(),expiresAt=startedAt+30*60000;
+    const id=await ctx.db.insert('rallyNativeTracking',{eventId,memberId:member.id,subject:identity.subject,tokenHash:await trackingHash(token),startedAt,expiresAt,points:[]});
+    await ctx.scheduler.runAfter(30*60000,internal.rally.expireNativeTracking,{id});
+    return {token,eventId,memberId:member.id,ownerId:identity.subject,eventName:room.name,expiresAt};
+  }
+});
+export const expireNativeTracking=internalMutation({
+  args:{id:v.id('rallyNativeTracking')},handler:async(ctx,{id})=>{const row=await ctx.db.get(id);if(row&&row.expiresAt<=Date.now())await ctx.db.delete(id);}
+});
+// A short-lived, hashed capability permits only upload/revoke for its one owner and room.
+// It cannot read crew locations, create sessions, renew itself, or access other Rally data.
+export const uploadNativeTracking=mutation({
+  args:{token:v.string(),stop:v.optional(v.boolean()),points:v.optional(v.array(v.any()))},handler:async(ctx,args)=>{
+    if(args.token.length!==72)return {active:false};
+    const hash=await trackingHash(args.token);
+    const row=await ctx.db.query('rallyNativeTracking').withIndex('by_token',q=>q.eq('tokenHash',hash)).unique();
+    if(!row)return {active:false};
+    const doc=await findDoc(ctx,row.eventId),room=doc?.buckets as RallyState;
+    if(args.stop||row.expiresAt<=Date.now()||!room?.members.some((m:RallyState)=>m.id===row.memberId&&m.clerkSubject===row.subject)){
+      await ctx.db.delete(row._id);return {active:false};
+    }
+    const points=mergeTrail(row.points,args.points||[],Date.now(),row.startedAt);
+    await ctx.db.patch(row._id,{points});
+    return {active:true,expiresAt:row.expiresAt};
   }
 });
 export const expireCrewLocation = internalMutation({
