@@ -2,6 +2,10 @@ import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
 export default defineSchema({
+  rallyLocations: defineTable({
+    eventId:v.string(), memberId:v.string(), sessionId:v.string(), expiresAt:v.number(),
+    position:v.optional(v.object({latitude:v.number(),longitude:v.number(),accuracy:v.number(),observedAt:v.number()})),
+  }).index('by_event',['eventId']).index('by_member',['eventId','memberId']),
   warRoomState: defineTable({
     boardId: v.string(),
     completed: v.any(),

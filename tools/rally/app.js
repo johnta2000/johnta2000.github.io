@@ -276,7 +276,7 @@ function showAuthError(error) {
     : 'Secure sign-in is unavailable right now. Check your connection and try again.');
 }
 
-async function signOut() { if (offlineMode) return showToast('Reconnect to sign out securely.'); if (RallyOffline.pendingCount && !confirm('Sign out and discard favorites that have not synced yet?')) return; RallyOffline.clear(); if (window.Clerk?.isSignedIn) await window.Clerk.signOut(); location.assign(BASE_PATH); }
+async function signOut() { if (offlineMode) return showToast('Reconnect to sign out securely.'); if (RallyOffline.pendingCount && !confirm('Sign out and discard favorites that have not synced yet?')) return; window.RallyCrewLocation?.clearCache(); RallyOffline.clear(); if (window.Clerk?.isSignedIn) await window.Clerk.signOut(); location.assign(BASE_PATH); }
 
 function render() {
   window.RallyLineup?.hide();
@@ -294,6 +294,7 @@ function render() {
   el.eventMenu.insertAdjacentHTML("beforeend", '<button id="newEvent" class="new-event-menu-item">＋ New rave room</button>');
   document.getElementById("newEvent").onclick = () => { el.eventMenu.hidden = true; closeMenu(); openNewEvent(); };
   el.eventMenu.querySelectorAll("button[data-event]").forEach((button) => button.addEventListener("click", () => navigateTo(new URL(href("home", button.dataset.event), location.href))));
+  window.RallyCrewLocation?.unmount();
   const nativeLineup=activeView==='lineup'&&data.id===DEFAULT_EVENT;
   el.page.className = 'page';
   el.page.hidden=nativeLineup;
@@ -448,6 +449,12 @@ function renderMeetups() {
       revision++;
       return accept(await convexMutation('rally:act',{eventId,action,payload}));
     },
+  });
+  if(!window.RallyCrewLocation)return;
+  const locationRoot=document.createElement('div');el.page.querySelector('.meetups-plans').prepend(locationRoot);
+  window.RallyCrewLocation.mount({root:locationRoot,room:data,owner:owner||RallyOffline.userId,
+    query:()=>{if(!sameAccount())throw new Error('Account changed');return networkConvexCall('query','rally:crewLocations',{eventId});},
+    mutate:(operation,sessionId,position)=>{if(!sameAccount())throw new Error('Account changed');return networkConvexCall('mutation','rally:shareCrewLocation',{eventId,operation,sessionId,...(position?{position}:{})});}
   });
 }
 

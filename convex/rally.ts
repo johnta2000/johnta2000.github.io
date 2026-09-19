@@ -5,6 +5,7 @@ import { v } from "convex/values";
 import { LOST_LANDS_SET_TIMES, LOST_LANDS_SET_TIMES_META } from "./lostLandsSetTimes";
 import { updateNotes } from "./rallyNotes";
 import { updateMeetups } from "./rallyMeetups";
+import { locationFix } from './rallyLocationRules';
 
 type Identity = { subject: string; email?: string | null; name?: string | null; emailVerified?: boolean };
 type RallyState = Record<string, any>;
@@ -569,6 +570,45 @@ export const get = query({
     if (!doc?.buckets) return null;
     return routeState(doc.buckets as RallyState, identity);
   },
+});
+
+// Location is deliberately separate from room snapshots, exports and history.
+export const crewLocations = query({
+  args:{eventId:v.string()},
+  handler:async(ctx,{eventId})=>{
+    const identity=await requireIdentity(ctx),doc=await findDoc(ctx,eventId);
+    const room=doc?.buckets as RallyState;
+    if(!room||!memberFor(room,identity))throw new Error('Join this crew to view locations.');
+    const rows=await ctx.db.query('rallyLocations').withIndex('by_event',q=>q.eq('eventId',eventId)).collect();
+    return rows.filter(row=>row.expiresAt>Date.now()&&row.position&&room.members.some((m:RallyState)=>m.id===row.memberId)).map(row=>({memberId:row.memberId,expiresAt:row.expiresAt,...row.position}));
+  }
+});
+export const expireCrewLocation = internalMutation({
+  args:{id:v.id('rallyLocations')},handler:async(ctx,{id})=>{
+    const row=await ctx.db.get(id);if(row&&row.expiresAt<=Date.now())await ctx.db.delete(id);
+  }
+});
+export const shareCrewLocation = mutation({
+  args:{eventId:v.string(),operation:v.union(v.literal('start'),v.literal('update'),v.literal('stop')),sessionId:v.string(),position:v.optional(v.any())},
+  handler:async(ctx,args)=>{
+    const identity=await requireIdentity(ctx),doc=await findDoc(ctx,args.eventId),room=doc?.buckets as RallyState;
+    const member=room&&memberFor(room,identity);if(!member)throw new Error('Join this crew to share a location.');
+    if(!args.sessionId||args.sessionId.length>100)throw new Error('Invalid sharing session.');
+    const row=await ctx.db.query('rallyLocations').withIndex('by_member',q=>q.eq('eventId',args.eventId).eq('memberId',member.id)).unique();
+    if(args.operation==='stop') {if(row?.sessionId===args.sessionId)await ctx.db.delete(row._id);return null;}
+    const now=Date.now();
+    if(args.operation==='start'){
+      if(row)await ctx.db.delete(row._id);
+      const expiresAt=now+30*60000;
+      const id=await ctx.db.insert('rallyLocations',{eventId:args.eventId,memberId:member.id,sessionId:args.sessionId,expiresAt});
+      await ctx.scheduler.runAfter(30*60000,internal.rally.expireCrewLocation,{id});
+      return {expiresAt};
+    }
+    if(!row||row.sessionId!==args.sessionId||row.expiresAt<=now)throw new Error('Sharing ended. Start a new session.');
+    const position=locationFix(args.position,now);
+    if(!row.position||position.observedAt>row.position.observedAt)await ctx.db.patch(row._id,{position});
+    return {expiresAt:row.expiresAt};
+  }
 });
 
 export const listEvents = query({

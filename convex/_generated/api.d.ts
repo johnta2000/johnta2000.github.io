@@ -16,6 +16,7 @@ import type * as meetupTiming from "../meetupTiming.js";
 import type * as monitoring from "../monitoring.js";
 import type * as noteRichText from "../noteRichText.js";
 import type * as rally from "../rally.js";
+import type * as rallyLocationRules from "../rallyLocationRules.js";
 import type * as rallyMeetups from "../rallyMeetups.js";
 import type * as rallyNotes from "../rallyNotes.js";
 import type * as sleep from "../sleep.js";
@@ -41,6 +42,7 @@ declare const fullApi: ApiFromModules<{
   monitoring: typeof monitoring;
   noteRichText: typeof noteRichText;
   rally: typeof rally;
+  rallyLocationRules: typeof rallyLocationRules;
   rallyMeetups: typeof rallyMeetups;
   rallyNotes: typeof rallyNotes;
   sleep: typeof sleep;
