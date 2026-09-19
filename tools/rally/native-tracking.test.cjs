@@ -4,6 +4,13 @@ const crypto=require('node:crypto').webcrypto;
 const sandbox={module:{exports:{}},require,TextEncoder,structuredClone,crypto};
 vm.runInNewContext(buildSync({entryPoints:[__dirname+'/../../convex/rally.ts'],bundle:true,platform:'node',format:'cjs',packages:'external',write:false}).outputFiles[0].text,sandbox);
 const api=sandbox.module.exports;
+test('Lost Lands windows are only Sep 18–20 nights, 7 PM–2 AM Eastern, end-exclusive',()=>{
+ const rules={module:{exports:{}},require};vm.runInNewContext(buildSync({entryPoints:[__dirname+'/../../convex/rallyLocationRules.ts'],bundle:true,platform:'node',format:'cjs',write:false}).outputFiles[0].text,rules);
+ const {sharingWindow,LOST_LANDS_SHARING_WINDOWS:windows}=rules.module.exports;
+ assert.equal(windows.length,3);
+ for(const w of windows){assert.equal(w.end-w.start,7*3600000);assert.equal(sharingWindow('lost-lands-2026',w.start-1),undefined);assert.ok(sharingWindow('lost-lands-2026',w.start));assert.ok(sharingWindow('lost-lands-2026',w.end-1));assert.equal(sharingWindow('lost-lands-2026',w.end),undefined);}
+ assert.equal(sharingWindow('lost-lands-2026',Date.parse('2026-09-21T23:00Z')),undefined);
+});
 function setup(){
  let identity={subject:'u',email:'a@example.com'},rows=[],seq=0;
  const room={name:'Festival',members:[{id:'me',clerkSubject:'u',email:'a@example.com'}]};

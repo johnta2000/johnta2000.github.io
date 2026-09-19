@@ -5,7 +5,7 @@ import { v } from "convex/values";
 import { LOST_LANDS_SET_TIMES, LOST_LANDS_SET_TIMES_META } from "./lostLandsSetTimes";
 import { updateNotes } from "./rallyNotes";
 import { updateMeetups } from "./rallyMeetups";
-import { locationFix, mergeTrail } from './rallyLocationRules';
+import { locationFix, mergeTrail, sharingWindow, LOST_LANDS_SHARING_WINDOWS } from './rallyLocationRules';
 
 type Identity = { subject: string; email?: string | null; name?: string | null; emailVerified?: boolean };
 type RallyState = Record<string, any>;
@@ -579,11 +579,13 @@ export const crewLocations = query({
     const identity=await requireIdentity(ctx),doc=await findDoc(ctx,eventId);
     const room=doc?.buckets as RallyState;
     if(!room||!memberFor(room,identity))throw new Error('Join this crew to view locations.');
+    const window=sharingWindow(eventId,Date.now());
+    if(eventId===LOST_LANDS&&!window)return [];
     const rows=await ctx.db.query('rallyLocations').withIndex('by_event',q=>q.eq('eventId',eventId)).collect();
     const native=await ctx.db.query('rallyNativeTracking').withIndex('by_event',q=>q.eq('eventId',eventId)).collect();
     const live=rows.filter(row=>row.expiresAt>Date.now()&&row.position&&room.members.some((m:RallyState)=>m.id===row.memberId)).map(row=>({memberId:row.memberId,expiresAt:row.expiresAt,...row.position}));
     const trails=native.filter(row=>row.expiresAt>Date.now()&&room.members.some((m:RallyState)=>m.id===row.memberId)).map(row=>({memberId:row.memberId,expiresAt:row.expiresAt,trail:row.points.filter(p=>p.observedAt>Date.now()-30*60000)})).filter(row=>row.trail.length).map(row=>({...row,...row.trail[row.trail.length-1]}));
-    return [...new Map([...live,...trails].sort((a,b)=>(a.observedAt||0)-(b.observedAt||0)).map(row=>[row.memberId,row])).values()];
+    return [...new Map([...live,...trails].filter(row=>!window||(row.observedAt||0)>=window.start).sort((a,b)=>(a.observedAt||0)-(b.observedAt||0)).map(row=>[row.memberId,row])).values()].map(row=>({...row,expiresAt:Math.min(row.expiresAt,window?.end??Infinity)}));
   }
 });
 
@@ -596,15 +598,18 @@ export const startNativeTracking=mutation({
     const member=room&&memberFor(room,identity);if(!member)throw new Error('Join this crew before sharing.');
     const previous=await ctx.db.query('rallyNativeTracking').withIndex('by_member',q=>q.eq('eventId',eventId).eq('memberId',member.id)).collect();
     for(const row of previous)await ctx.db.delete(row._id);
-    const token=crypto.randomUUID()+crypto.randomUUID(),startedAt=Date.now(),expiresAt=startedAt+30*60000;
+    const token=crypto.randomUUID()+crypto.randomUUID(),startedAt=Date.now(),expiresAt=eventId===LOST_LANDS?LOST_LANDS_SHARING_WINDOWS[2].end:startedAt+30*60000;
+    if(expiresAt<=startedAt)throw new Error('Lost Lands weekend location sharing has ended.');
     const id=await ctx.db.insert('rallyNativeTracking',{eventId,memberId:member.id,subject:identity.subject,tokenHash:await trackingHash(token),startedAt,expiresAt,points:[]});
-    await ctx.scheduler.runAfter(30*60000,internal.rally.expireNativeTracking,{id});
+    await ctx.scheduler.runAfter(expiresAt-startedAt,internal.rally.expireNativeTracking,{id});
+    if(eventId===LOST_LANDS)for(const window of LOST_LANDS_SHARING_WINDOWS)if(window.end>startedAt)await ctx.scheduler.runAfter(window.end-startedAt,internal.rally.clearNativeTrail,{id});
     return {token,eventId,memberId:member.id,ownerId:identity.subject,eventName:room.name,expiresAt};
   }
 });
 export const expireNativeTracking=internalMutation({
   args:{id:v.id('rallyNativeTracking')},handler:async(ctx,{id})=>{const row=await ctx.db.get(id);if(row&&row.expiresAt<=Date.now())await ctx.db.delete(id);}
 });
+export const clearNativeTrail=internalMutation({args:{id:v.id('rallyNativeTracking')},handler:async(ctx,{id})=>{if(await ctx.db.get(id))await ctx.db.patch(id,{points:[]});}});
 // A short-lived, hashed capability permits only upload/revoke for its one owner and room.
 // It cannot read crew locations, create sessions, renew itself, or access other Rally data.
 export const uploadNativeTracking=mutation({
@@ -617,7 +622,9 @@ export const uploadNativeTracking=mutation({
     if(args.stop||row.expiresAt<=Date.now()||!room?.members.some((m:RallyState)=>m.id===row.memberId&&m.clerkSubject===row.subject)){
       await ctx.db.delete(row._id);return {active:false};
     }
-    const points=mergeTrail(row.points,args.points||[],Date.now(),row.startedAt);
+    const window=sharingWindow(row.eventId,Date.now());
+    if(row.eventId===LOST_LANDS&&!window){await ctx.db.patch(row._id,{points:[]});return {active:true,expiresAt:row.expiresAt};}
+    const points=mergeTrail(row.points,args.points||[],Date.now(),Math.max(row.startedAt,window?.start??0));
     await ctx.db.patch(row._id,{points});
     return {active:true,expiresAt:row.expiresAt};
   }
@@ -637,13 +644,16 @@ export const shareCrewLocation = mutation({
     if(args.operation==='stop') {if(row?.sessionId===args.sessionId)await ctx.db.delete(row._id);return null;}
     const now=Date.now();
     if(args.operation==='start'){
+      const window=sharingWindow(args.eventId,now);
+      if(args.eventId===LOST_LANDS&&!window)throw new Error('Lost Lands sharing is available September 18–20, 7 PM–2 AM Eastern only.');
       if(row)await ctx.db.delete(row._id);
-      const expiresAt=now+30*60000;
+      const expiresAt=window?.end??now+30*60000;
       const id=await ctx.db.insert('rallyLocations',{eventId:args.eventId,memberId:member.id,sessionId:args.sessionId,expiresAt});
-      await ctx.scheduler.runAfter(30*60000,internal.rally.expireCrewLocation,{id});
+      await ctx.scheduler.runAfter(expiresAt-now,internal.rally.expireCrewLocation,{id});
       return {expiresAt};
     }
     if(!row||row.sessionId!==args.sessionId||row.expiresAt<=now)throw new Error('Sharing ended. Start a new session.');
+    if(args.eventId===LOST_LANDS&&!sharingWindow(args.eventId,now))throw new Error('Outside Lost Lands sharing hours.');
     const position=locationFix(args.position,now);
     if(!row.position||position.observedAt>row.position.observedAt)await ctx.db.patch(row._id,{position});
     return {expiresAt:row.expiresAt};

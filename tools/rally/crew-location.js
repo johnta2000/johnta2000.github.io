@@ -20,6 +20,10 @@
     try{rows=fresh(JSON.parse(localStorage.getItem(key)||'[]'));}catch{}
     const names=Object.fromEntries(ctx.room.members.map(m=>[m.id,m.name]));
     host.innerHTML=`<section class="crew-location"><header><h2>Find your crew</h2><span data-mode></span></header><p>Opt in to share GPS with this crew for 30 minutes while this screen is open. Updates pause in the background. Saved locations expire after 30 minutes; they may be wrong if someone has moved.</p><div class="crew-location-actions"><button type="button" data-locate>Find my position</button><button type="button" data-share>Share for 30 min</button><button type="button" data-stop hidden>Stop sharing</button></div><p role="status" data-status></p><div data-plot></div><ol data-people></ol><p class="crew-location-footnote">No signal? Only previously received locations are available. No Bluetooth relay or offline messaging. This diagram is north-up, not the festival map or walking directions.</p></section>`;
+    if(ctx.room.id==='lost-lands-2026'){
+      host.querySelector('.crew-location > p').textContent='Lost Lands: September 18–20 only, 7 PM–2 AM Eastern each night. Opt in while this screen is open; browser updates pause in the background. Locations may be stale if someone has moved.';
+      host.querySelector('[data-share]').textContent='Share until 2 AM ET';
+    }
     function draw(){
       if(!alive)return;
       rows=fresh(rows).filter(p=>names[p.memberId]);
@@ -35,6 +39,7 @@
         return `<li><strong>${esc(p.name)}</strong><span>${age(p.observedAt)} · ±${Math.round(p.accuracy)} m${meters===null?'':` · about ${meters} m away`}</span><a href="https://www.google.com/maps/search/?api=1&query=${p.latitude},${p.longitude}" target="_blank" rel="noopener noreferrer">Open saved position ↗</a></li>`;
       }).join('')||'<li>No saved crew positions yet. Friends must opt in on this screen.</li>';
     }
+    let lastUploadedPosition=null;
     function cache(){try{localStorage.setItem(key,JSON.stringify(fresh(rows)));}catch{}}
     function clearWatch(){if(watch!==null)navigator.geolocation?.clearWatch(watch);watch=null;latest=null;}
     async function revoke(){
@@ -44,13 +49,14 @@
     function stop(){
       clearWatch();wantsPosition=false;const old=session;session=null;expiresAt=0;
       if(old){try{localStorage.setItem(stopKey,old);}catch{};void revoke().catch(()=>{});}
-      message='Stopped on this device. If offline, removal waits for reconnection; saved copies expire within 30 minutes.';draw();
+      message='Stopped on this device. If offline, removal waits for reconnection; saved copies expire at their sharing cutoff.';draw();
     }
     function locate(){
       if(!navigator.geolocation){message='Location is unavailable in this browser.';draw();return;}
       clearWatch();wantsPosition=true;
       watch=navigator.geolocation.watchPosition(p=>{
         if(!alive)return;
+        if(session&&Date.now()>=expiresAt){stop();return;}
         own={latitude:p.coords.latitude,longitude:p.coords.longitude,accuracy:p.coords.accuracy,observedAt:p.timestamp};
         if(!valid(own))return;
         latest=own;message=session?'Sharing while this screen is open. Updates retry when service returns.':'Your position is only on this device. It has not been shared.';draw();void sync();
@@ -63,8 +69,11 @@
       busy=true;
       try{
         await revoke();
-        if(session&&latest&&Date.now()-latest.observedAt<120000&&Date.now()-lastSent>=20000){
+        const delta=latest&&lastUploadedPosition?offset(lastUploadedPosition,latest):null;
+        if(session&&latest&&Date.now()-latest.observedAt<120000&&Date.now()-lastSent>=30000&&(!delta||Math.hypot(delta.x,delta.y)>=25)){
+          const position=latest;
           const sentSession=session;await ctx.mutate('update',sentSession,latest);lastSent=Date.now();
+          lastUploadedPosition=position;
           if(sentSession!==session){try{localStorage.setItem(stopKey,sentSession);}catch{};await revoke();}
         }
         const result=await ctx.query();
@@ -79,7 +88,7 @@
       try{
         await revoke();const result=await ctx.mutate('start',id);
         if(!alive){try{localStorage.setItem(stopKey,id);}catch{};await revoke();return;}
-        session=id;expiresAt=result.expiresAt;lastSent=0;locate();
+        session=id;expiresAt=result.expiresAt;lastSent=0;lastUploadedPosition=null;locate();
       }catch{message='Could not start sharing. Reconnect and try again.';}
       finally{starting=false;draw();}
     };
