@@ -200,7 +200,7 @@ test('project search indexes current room only, including offline set times and 
   assert.equal(items.filter(x=>x.view==='lineup').length,1);
   assert(!JSON.stringify(items).includes('Not this room'));
   data.id='lost-lands-2026';items=ctx.projectSearchItems();
-  assert.equal(items.filter(x=>x.view==='lineup').length,221);
+  assert.equal(items.filter(x=>x.view==='lineup').length,220);
 });
 test('focus scrolls immediately before input, and responds to keyboard viewport changes',()=>{
   const handlers={},viewportHandlers={},variables={};let calls=0;

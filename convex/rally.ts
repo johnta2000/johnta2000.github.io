@@ -284,8 +284,8 @@ export const addUpcomingRaves2026 = internalMutation({
 });
 
 export const importLostLandsSetTimes2026 = internalMutation({
-  args: {},
-  handler: async (ctx) => {
+  args: { preserveFavorites: v.optional(v.boolean()) },
+  handler: async (ctx, args) => {
     const doc = await findDoc(ctx, LOST_LANDS);
     if (!doc?.buckets) throw new Error("Lost Lands 2026 is unavailable.");
     const state = structuredClone(doc.buckets) as RallyState;
@@ -308,6 +308,7 @@ export const importLostLandsSetTimes2026 = internalMutation({
       const nextIds: string[] = [];
       (Array.isArray(favoriteIds) ? favoriteIds : []).forEach((favoriteId) => {
         favoriteReferencesBefore += 1;
+        if (args.preserveFavorites) { nextIds.push(String(favoriteId)); return; }
         const replacements = replacementIdsByOldId.get(String(favoriteId));
         if (replacements?.length) nextIds.push(...replacements);
         else {
@@ -315,7 +316,7 @@ export const importLostLandsSetTimes2026 = internalMutation({
           if (!currentIds.has(String(favoriteId))) unmappedFavoriteReferences += 1;
         }
       });
-      state.lineupFavorites[memberId] = [...new Set(nextIds)];
+      if (!args.preserveFavorites) state.lineupFavorites[memberId] = [...new Set(nextIds)];
       favoriteReferencesAfter += state.lineupFavorites[memberId].length;
     });
 
