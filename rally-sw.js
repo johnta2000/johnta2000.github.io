@@ -1,10 +1,11 @@
 // Only Rally assets are handled. No credentials, API responses, or other site pages.
-const CACHE = 'rally-shell-offline-26';
+const CACHE = 'rally-shell-offline-27';
 const ASSETS = ['/tools/rally/', '/tools/rally/app.js', '/tools/rally/offline.js', '/tools/rally/keyboard.js', '/tools/rally/styles.css', '/tools/rally/boot.css', '/lost-lands-2026-lineup/', '/lost-lands-2026-lineup/mobile.css', '/lost-lands-2026-lineup/set-times.js', '/lost-lands-2026-lineup/assets/lost-lands-2026-lineup.jpg'];
 ASSETS.push('/tools/rally/meetup-timing.js', '/tools/rally/meetups.js', '/tools/rally/meetups.css', '/tools/rally/assets/lost-lands-2026-map.png');
 ASSETS.push('/tools/rally/lineup.js','/tools/rally/lineup-template.js','/lost-lands-2026-lineup/controller.js');
 ASSETS.push('/tools/rally/note-rich-text.js','/tools/rally/note-editor.js','/tools/rally/note-editor.css');
 ASSETS.push('/tools/rally/crew-location.js','/tools/rally/crew-location.css');
+ASSETS.push('/tools/rally/mascot.js','/tools/rally/assets/dancing-dino.png','/tools/rally/assets/dancing-dino.gif');
 self.addEventListener('install', event => event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS)).then(() => self.skipWaiting())));
 self.addEventListener('activate', event => event.waitUntil((async () => {
   for (const key of await caches.keys()) if (key.startsWith('rally-shell-offline-') && key !== CACHE) await caches.delete(key);

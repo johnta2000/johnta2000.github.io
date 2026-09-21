@@ -36,6 +36,7 @@ test('obsolete artist aliases still migrate without dropping existing exact pref
 });
 function boardContext() {
   const {ctx}=context();
+  vm.runInContext(html.match(/const dinoEmpty = .*;/)[0],ctx);
   ctx.els={heatContent:{innerHTML:''},posterContent:{innerHTML:''},heatScale:{textContent:''}};
   ctx.formatFestivalDate=date=>date;
   vm.runInContext(html.slice(html.indexOf('function renderHeatMap('),html.indexOf('function renderTable(')),ctx);
@@ -92,8 +93,8 @@ test('matrix keeps empty intersections, respects filtered days, and keeps single
 test('desktop boards handle loading, empty filters, and no favorites without inventing interest',()=>{
   const ctx=boardContext();ctx.groupStateLoaded=false;
   ctx.renderHeatMap(lineup);assert(ctx.els.heatContent.innerHTML.includes('Loading'));
-  ctx.groupStateLoaded=true;ctx.renderHeatMap([]);assert(ctx.els.heatContent.innerHTML.includes('No sets match'));
-  ctx.renderDayBoard([]);assert(ctx.els.posterContent.innerHTML.includes('No sets match'));
+  ctx.groupStateLoaded=true;ctx.renderHeatMap([]);assert(ctx.els.heatContent.innerHTML.includes('No dinosaurs spotted'));
+  ctx.renderDayBoard([]);assert(ctx.els.posterContent.innerHTML.includes('No dinosaurs spotted'));
   ctx.renderHeatMap(lineup.slice(0,2));assert(ctx.els.heatContent.innerHTML.includes('--heat-strength:0%'));
   assert(!ctx.els.heatContent.innerHTML.includes('NaN'));assert(ctx.els.heatScale.textContent.includes('No group favorites'));
   ctx.rallyManagedFavorites=false;assert(!ctx.boardSetCard(lineup[0]).includes('board-set-crew'));

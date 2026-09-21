@@ -58,6 +58,7 @@ function updateOfflineStatus() {
   banner.title = `${stamp ? 'Last saved ' + new Date(stamp).toLocaleString() + '. ' : ''}${offlineMode ? 'Viewing a saved copy. Favorites sync when you reconnect; other edits require internet.' : 'Trip details are saved on this device.'}`;
   banner.textContent = RallyOffline.storageError ? 'Device storage unavailable — offline saving is not ready.' :
     `${offlineMode ? 'Offline · Saved' : shellSaved && stamp ? 'Available offline' : 'Preparing offline access…'}${stamp ? ' · ' + new Date(stamp).toLocaleString([], {month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}) : ''}${pending ? ' · Favorites waiting to sync' : ''}`;
+  if(data.id===DEFAULT_EVENT && shellSaved && stamp && !RallyOffline.storageError && !offlineMode) window.RallyDino?.ready(banner);
 }
 function setupOffline() {
   const edits = '#topInvite,#accountButton,#newEvent,#addRoom,#addCar,#addFlight,#addPass,#newTicket,#addLineupArtist,[data-room-edit],[data-assign-room],[data-flight-leg],[data-car-edit],[data-pass-edit],[data-lineup-edit],[data-task],[data-invite-member],[data-edit-member],[data-remove-member]';
@@ -427,6 +428,7 @@ function renderHome() {
   if (data.id === DEFAULT_EVENT || data.lineup?.length || data.isAdmin) cards.splice(4,0,["lineup","♫","Lineup",data.lineup?.length?`${data.lineup.length} performances`:"Lineup not added yet","Save favorites and see who else is interested"]);
   if(data.id===DEFAULT_EVENT)cards.splice(5,0,['meetups','⌖','Meetups',`${(data.meetups||[]).filter(m=>m.status==='planned').length} planned`,'Festival map and shared meeting spots']);
   el.page.innerHTML = `<section class="overview-header"><div><span class="eyebrow">${escapeHtml(data.presenter||"Project overview")}</span><h1>${escapeHtml(data.name)}</h1><p>⌖ ${escapeHtml(data.location)} · ${eventDateLine(data)}</p></div><div class="countdown"><strong>${days}</strong><span>days to go</span></div></section><div class="overview-grid">${cards.map(([view,icon,label,strong,small])=>`<a class="overview-tile" href="${href(view)}"><span class="overview-icon">${icon}</span><span><small>${label}</small><strong>${strong}</strong><em>${escapeHtml(small)}</em></span><b>→</b></a>`).join("")}</div><section class="section-card"><header><div><span class="eyebrow">Loose ends</span><h2>Open tickets</h2></div><a class="primary" href="${href("tasks")}">Open board →</a></header><div class="row-list">${data.tasks.filter((task)=>task.status!=="done").slice(0,4).map((task)=>`<div class="row"><strong>${escapeHtml(task.title)}</strong><span>${escapeHtml(memberMap()[task.assigneeId]?.name || "Unassigned")}</span></div>`).join("") || `<div class="empty">Nothing is waiting right now.</div>`}</div></section>`;
+  if(data.id===DEFAULT_EVENT)window.RallyDino?.home(el.page);
 }
 
 function renderMeetups() {

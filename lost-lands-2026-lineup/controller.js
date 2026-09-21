@@ -2,6 +2,7 @@
 window.createLostLandsLineup = function(root=document, integration=null) {
 const surface = root.host || document.documentElement;
 const container = root === document ? document.body : root;
+const dinoEmpty = '<img src="/tools/rally/assets/dancing-dino.png" alt="" width="56" height="56" style="display:block;margin:0 auto 8px;border-radius:12px">No dinosaurs spotted. Try different filters.';
 const lifetime = new AbortController();
 let overlayObserver;
 let receive = () => {};
@@ -572,7 +573,7 @@ function renderHeatMap(entries) {
   const maximum = Math.max(0, ...lineup.filter(entry=>!hiddenLineupDays.has(entry.day)).map((entry) => groupPeople(entry.id).length));
   els.heatScale.textContent = maximum ? `0–${maximum} interested · deeper green = more interest` : "No group favorites yet · star a set to get started";
   if (!groupStateLoaded || !entries.length) {
-    els.heatContent.innerHTML = `<div class="empty-state">${!groupStateLoaded ? "Loading your crew’s favorites…" : "No sets match the current filters."}</div>`;
+    els.heatContent.innerHTML = `<div class="empty-state">${!groupStateLoaded ? "Loading your crew’s favorites…" : dinoEmpty}</div>`;
     return;
   }
   const days = dayOrder.filter((day) => entries.some((entry) => entry.day === day));
@@ -615,7 +616,7 @@ function boardSetCard(entry, {maximum = 0, heat = false} = {}) {
 
 function renderDayBoard(entries) {
   if (!entries.length) {
-    els.posterContent.innerHTML = `<div class="empty-state">No sets match the current filters.</div>`;
+    els.posterContent.innerHTML = `<div class="empty-state">${dinoEmpty}</div>`;
     return;
   }
 
@@ -681,7 +682,7 @@ function renderTable(entries) {
   if (!entries.length) {
     els.tableBody.innerHTML = `
       <tr>
-        <td class="empty-state" colspan="${rallyManagedFavorites ? 7 : 6}">No sets match the current filters.</td>
+        <td class="empty-state" colspan="${rallyManagedFavorites ? 7 : 6}">${dinoEmpty}</td>
       </tr>
     `;
     return;
@@ -861,7 +862,7 @@ return `<section class="timeline-day"><h3>${escapeHtml(day)}</h3><div class="tim
       }).join('');
       return `<div class="timeline-lane" style="height:${42+laneEnds.length*84}px"><h4>${escapeHtml(stage)}</h4>${cards}</div>`;
     }).join('')}</div></div></section>`;
-  }).join('')||'<p class="mobile-empty">No matching sets. Try another day or adjust your filters.</p>';
+  }).join('')||`<p class="mobile-empty">${dinoEmpty}</p>`;
   container.querySelectorAll('.timeline-scroll').forEach(el=>{
     const marker=el.querySelector('.timeline-now'),start=Number(marker.dataset.start),end=Number(marker.dataset.end);
     const key=`${start}:${end}`;el.dataset.window=key;
@@ -873,7 +874,7 @@ return `<section class="timeline-day"><h3>${escapeHtml(day)}</h3><div class="tim
 function renderMobileSchedule(entries) {
   const container = root.getElementById('mobile-schedule');
   let html = '';
-  if (!entries.length) html = '<div class="mobile-empty"><h3>No matching sets</h3><p>Try another day or adjust your filters.</p></div>';
+  if (!entries.length) html = `<div class="mobile-empty">${dinoEmpty}</div>`;
   else if (activeView === 'heat') {
     const maximum = Math.max(0,...lineup.filter(entry=>!hiddenLineupDays.has(entry.day)).map(entry=>groupPeople(entry.id).length));
     const closed = new Set([...container.querySelectorAll('details.mobile-stage:not([open])')].map(node=>node.dataset.stage));
