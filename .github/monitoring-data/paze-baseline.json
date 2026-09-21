@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "monitorId": "paze-directory",
   "sourceUrl": "https://www.paze.com/merchant-directory?page=0",
-  "capturedAt": "2026-09-21T14:14:35.775Z",
+  "capturedAt": "2026-09-21T19:33:08.571Z",
   "merchants": [
     {
       "name": "1-800-Flowers",
@@ -11,6 +11,10 @@
     {
       "name": "Banter by Piercing Pagoda",
       "key": "banter by piercing pagoda"
+    },
+    {
+      "name": "Bloomingdale's",
+      "key": "bloomingdale s"
     },
     {
       "name": "Broadway.com",

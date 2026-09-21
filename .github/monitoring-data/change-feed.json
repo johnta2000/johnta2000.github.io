@@ -1,9 +1,28 @@
 {
   "schemaVersion": 1,
   "feedId": "john-ta-monitoring-changes",
-  "generatedAt": "2026-09-21T15:10:23.217Z",
-  "latestEventId": "20260919123403-chase-sapphire-reserve-tables-restaurant-change",
+  "generatedAt": "2026-09-21T19:33:08.571Z",
+  "latestEventId": "20260921193308-merchant-change",
   "events": [
+    {
+      "id": "20260921193308-merchant-change",
+      "type": "merchant_change",
+      "severity": "change",
+      "monitorId": "paze-directory",
+      "timestamp": "2026-09-21T19:33:08.571Z",
+      "title": "Paze merchant directory changed",
+      "summary": "1 added, 0 removed, 0 renamed.",
+      "count": 35,
+      "diff": {
+        "added": [
+          "Bloomingdale's"
+        ],
+        "removed": [],
+        "renamed": []
+      },
+      "dashboardUrl": "https://john-ta.com/tools/monitoring/",
+      "sourceUrl": "https://www.paze.com/merchant-directory?page=0"
+    },
     {
       "id": "20260919123403-chase-sapphire-reserve-tables-restaurant-change",
       "type": "restaurant_change",
