@@ -1,9 +1,30 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-09-22T18:57:17.415Z",
+  "generatedAt": "2026-09-22T19:47:08.543Z",
   "overallStatus": "healthy",
-  "latestEventId": "20260921193308-merchant-change",
+  "latestEventId": "20260922194708-chase-sapphire-reserve-tables-restaurant-change",
   "monitors": [
+    {
+      "id": "bilt-calculator-ranking",
+      "name": "Bilt calculator ranking",
+      "description": "Tracks the Bilt calculator across Search Console query performance, index health, canonical integrity, and live-page checks.",
+      "configured": false,
+      "status": "not_configured",
+      "sourceUrl": "https://www.nextcard.com/tools/bilt-calculator",
+      "cadence": "Every 6 hours via Codex",
+      "config": {
+        "property": "sc-domain:nextcard.com",
+        "page": "https://www.nextcard.com/tools/bilt-calculator",
+        "queries": [
+          "bilt calculator",
+          "bilt 2.0 calculator",
+          "bilt calculator 2.0",
+          "bilt points calculator",
+          "bilt card calculator"
+        ],
+        "compareWindow": "Finalized 7 days vs previous 7 days"
+      }
+    },
     {
       "id": "paze-directory",
       "name": "Paze merchant directory",
@@ -73,27 +94,6 @@
       }
     },
     {
-      "id": "bilt-calculator-ranking",
-      "name": "Bilt calculator ranking",
-      "description": "Tracks the Bilt calculator across Search Console query performance, index health, canonical integrity, and live-page checks.",
-      "configured": false,
-      "status": "not_configured",
-      "sourceUrl": "https://www.nextcard.com/tools/bilt-calculator",
-      "cadence": "Every 6 hours via Codex",
-      "config": {
-        "property": "sc-domain:nextcard.com",
-        "page": "https://www.nextcard.com/tools/bilt-calculator",
-        "queries": [
-          "bilt calculator",
-          "bilt 2.0 calculator",
-          "bilt calculator 2.0",
-          "bilt points calculator",
-          "bilt card calculator"
-        ],
-        "compareWindow": "Finalized 7 days vs previous 7 days"
-      }
-    },
-    {
       "id": "transfer-bonus-discovery",
       "name": "Transfer bonus discovery",
       "description": "Scans official issuer and loyalty-program sources for new transfer bonuses, changed terms, and coverage failures.",
@@ -132,17 +132,17 @@
         "https://www.opentable.com/sapphire-reserve/boston"
       ],
       "cadence": "Every 4 hours",
-      "latestRunAt": "2026-09-22T13:29:05.861Z",
-      "latestSuccessAt": "2026-09-22T13:29:05.861Z",
-      "latestChangeAt": "2026-09-19T12:34:03.506Z",
-      "durationMs": 801,
-      "summary": "No restaurant-list changes across six cities (137 restaurants).",
+      "latestRunAt": "2026-09-22T19:47:08.543Z",
+      "latestSuccessAt": "2026-09-22T19:47:08.543Z",
+      "latestChangeAt": "2026-09-22T19:47:08.543Z",
+      "durationMs": 986,
+      "summary": "0 restaurants added and 1 removed across six cities.",
       "error": null,
       "metrics": {
-        "restaurantCount": 137,
+        "restaurantCount": 136,
         "cityCount": 6,
         "addedCount": 0,
-        "removedCount": 0
+        "removedCount": 1
       },
       "details": {
         "cities": [
@@ -287,7 +287,7 @@
             "id": "chicago",
             "name": "Chicago",
             "url": "https://www.opentable.com/sapphire-reserve/chicago",
-            "count": 29,
+            "count": 28,
             "restaurants": [
               "After",
               "Alinea",
@@ -315,12 +315,13 @@
               "Obelix",
               "PERILLA korean steakhouse",
               "PIZZ'AMICI",
-              "Port Union",
               "Prime & Provisions Steakhouse",
               "Sepia"
             ],
             "added": [],
-            "removed": []
+            "removed": [
+              "Port Union"
+            ]
           },
           {
             "id": "boston",
@@ -345,18 +346,25 @@
           }
         ],
         "cache": {
-          "runId": "1790083745861",
-          "requestCount": 6,
+          "runId": "1790106428543",
+          "requestCount": 12,
           "crawlIds": [
-            "primary"
+            "primary",
+            "confirmation"
           ],
           "requestIds": [
-            "1790083745866001",
-            "1790083745906002",
-            "1790083745907003",
-            "1790083745908004",
-            "1790083745909005",
-            "1790083745910006"
+            "1790106428549001",
+            "1790106428589002",
+            "1790106428590003",
+            "1790106428591004",
+            "1790106428592005",
+            "1790106428593006",
+            "1790106429088007",
+            "1790106429088008",
+            "1790106429089009",
+            "1790106429090010",
+            "1790106429091011",
+            "1790106429091012"
           ]
         }
       }
