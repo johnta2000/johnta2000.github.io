@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "monitorId": "chase-sapphire-reserve-tables",
-  "capturedAt": "2026-09-23T04:53:58.940Z",
+  "capturedAt": "2026-09-23T13:43:06.118Z",
   "sources": [
     {
       "id": "atlanta",
@@ -378,12 +378,12 @@
           "key": "l abeille"
         },
         {
-          "name": "Manhatta",
-          "key": "manhatta"
+          "name": "Maddy Rose at Liberty House",
+          "key": "maddy rose at liberty house"
         },
         {
-          "name": "Mitsuru",
-          "key": "mitsuru"
+          "name": "Manhatta",
+          "key": "manhatta"
         },
         {
           "name": "Momofuku Noodle Bar - East Village",
