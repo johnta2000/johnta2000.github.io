@@ -432,6 +432,28 @@ export const addNitehartsLineup2026 = internalMutation({
   },
 });
 
+// Planning estimate only. Keep exact IDs and every saved preference untouched.
+export const estimateNitehartsRunningOrder2026 = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const doc = await findDoc(ctx, "niteharts-festival-2026");
+    if (!doc?.buckets) throw new Error("Niteharts Festival 2026 is unavailable.");
+    const state = structuredClone(doc.buckets) as RallyState;
+    const order = [
+      "fri-yaego", "fri-frost-children", "fri-devault", "fri-jane-remover", "fri-porter-robinson", "fri-isoxo",
+      "sat-kimj", "sat-daine", "sat-flava-d", "sat-lyny", "sat-thaiboy-swedm", "sat-2hollis", "sat-isoknock",
+      "sun-control-freak", "sun-underscores", "sun-nitepunk", "sun-hamdi", "sun-rl-grime", "sun-dj-snake", "sun-knock2-borne",
+    ];
+    const ranks = new Map(order.map((id, index) => [id, index + 1]));
+    state.lineup = (state.lineup || []).map((set: RallyState) => ranks.has(set.id)
+      ? { ...set, estimatedOrder: ranks.get(set.id) } : set);
+    state.lineupOrderNote = "Estimated running order · earlier → later. Not official set times; support slots are tentative.";
+    await ctx.db.patch(doc._id, { buckets: state, updatedAt: Date.now() });
+    return { performances: state.lineup.length, ranked: state.lineup.filter((set: RallyState) => ranks.has(set.id)).length,
+      favoritesPreserved: JSON.stringify(state.lineupFavorites) === JSON.stringify((doc.buckets as RallyState).lineupFavorites) };
+  },
+});
+
 export const addNitehartsHotels2026 = internalMutation({
   args: {},
   handler: async (ctx) => {

@@ -103,6 +103,7 @@ function context() {
   const container={innerHTML:'',contains:()=>false,querySelectorAll:()=>[]};
   const button={textContent:''};
   const ctx={lineup,stageOrder:[...new Set(lineup.map(x=>x.stage))],dayOrder:['Wednesday','Thursday','Friday','Saturday','Sunday'],favorites:new Set(),lineupInterests:{},rallyManagedFavorites:true,groupStateLoaded:true,selectedDays:new Set(['Friday']),activeView:'table',document:{activeElement:null,getElementById:id=>id==='mobile-schedule'?container:button},Intl,Date};
+  ctx.eventConfig=null;
   vm.createContext(ctx);
   ctx.root=ctx.document;
   ctx.hiddenLineupDays=new Set();
@@ -111,6 +112,7 @@ function context() {
     vm.runInContext(html.slice(html.indexOf(start),html.indexOf(end)),ctx);
   }
   ctx.sortMode='time';ctx.mostLiked=false;
+  vm.runInContext(html.match(/function timeLabel\(entry\)\{[^\n]+/)[0],ctx);
   vm.runInContext(html.slice(html.indexOf('function compareSets('),html.indexOf('function renderHeatMap(')),ctx);
   return {ctx,container};
 }

@@ -4,7 +4,7 @@ const fs=require('node:fs');
 const path=require('node:path');
 const {JSDOM}=require('jsdom');
 const read=file=>fs.readFileSync(path.join(__dirname,file),'utf8');
-function setup(mobile=true,now=null){
+function setup(mobile=true,now=null,event=null){
   const dom=new JSDOM('<!doctype html><body><button id="outside">Home</button><section id="lineupView"></section>',{url:'https://www.john-ta.com/tools/rally/?view=lineup&event=lost-lands-2026',runScripts:'outside-only',pretendToBeVisual:true});
   const w=dom.window,events=[],routes=[];
   if(now){const NativeDate=w.Date;w.Date=class extends NativeDate{constructor(...args){super(...(args.length?args:[now]));}static now(){return new NativeDate(now).getTime();}};}
@@ -15,10 +15,56 @@ function setup(mobile=true,now=null){
   for(const file of ['../../lost-lands-2026-lineup/set-times.js','../../lost-lands-2026-lineup/controller.js','lineup-template.js','lineup.js'])w.eval(read(file));
   const container=w.document.getElementById('lineupView');
   const state={type:'rally-lineup-state',artistIds:[],interests:{},currentMember:{id:'john',name:'John'},hiddenDays:['Wednesday','Thursday'],canManageDays:true};
-  const options={container,key:'lost-lands-2026:john',state,params:'days=Friday',shareUrl:'https://www.john-ta.com/tools/rally/?view=lineup&event=lost-lands-2026',onEvent:message=>events.push(message),onParams:params=>routes.push(params.toString())};
+  const options={container,event,key:(event?.id||'lost-lands-2026')+':john',state,params:'days=Friday',shareUrl:'https://www.john-ta.com/tools/rally/?view=lineup&event='+(event?.id||'lost-lands-2026'),onEvent:message=>events.push(message),onParams:params=>routes.push(params.toString())};
   w.RallyLineup.show(options);
   return {dom,w,events,routes,container,state,options,element:container.firstElementChild,root:container.firstElementChild.shadowRoot};
 }
+const niteharts={id:'niteharts-festival-2026',name:'Niteharts',startsAt:'2026-10-09',endsAt:'2026-10-11',timeZone:'America/Los_Angeles',lineup:[
+ {id:'sat-isoknock',name:'ISOKNOCK',day:'Saturday',date:'2026-10-10',estimatedOrder:3},
+ {id:'sat-2hollis',name:'2hollis',day:'Saturday',date:'2026-10-10',estimatedOrder:2},
+ {id:'fri-isoxo',name:'ISOxo',day:'Friday',date:'2026-10-09',estimatedOrder:1},
+]};
+test('untimed events share mobile filters, likes and estimated order without fabricated timelines',()=>{
+ const ctx=setup(true,null,niteharts);try{
+  ctx.root.querySelector('[data-day="Saturday"]').click();
+  assert.deepEqual([...ctx.root.querySelectorAll('#mobile-schedule h3')].map(x=>x.textContent),['2hollis','ISOKNOCK']);
+  assert(ctx.root.textContent.includes('Estimated running order'));
+  assert(ctx.root.getElementById('timeline-view-button').hidden);
+  assert(ctx.root.querySelector('[data-filter="times"]').hidden);
+  assert(!ctx.root.textContent.includes('Sep 16'));
+  assert(!ctx.root.querySelector('.schedule-now'));
+  ctx.w.RallyLineup.receive({...ctx.state,artistIds:['sat-2hollis','removed-set'],interests:{'sat-isoknock':[{id:'friend',name:'Friend'}]}});
+  ctx.root.querySelector('[data-likes-filter="mine"]').click();assert.equal(ctx.root.querySelectorAll('#mobile-schedule .set-card').length,1);
+  ctx.root.querySelector('[data-likes-filter="crew"]').click();assert(ctx.root.getElementById('mobile-schedule').textContent.includes('ISOKNOCK'));
+  ctx.root.querySelector('#mobile-schedule [data-favorite-id]').click();
+  const change=ctx.events.filter(x=>x.type==='rally-lineup-favorites-changed').at(-1);
+  assert(change.artistIds.includes('sat-2hollis'));assert(change.artistIds.includes('sat-isoknock'));assert(change.artistIds.includes('removed-set'));
+  assert(ctx.root.getElementById('filter-toggle').hidden,'Do not offer an empty filter sheet before stages or times are announced');
+  ctx.root.getElementById('heat-view-button').click();assert(ctx.root.querySelector('.mobile-stage-heat'));
+ }finally{ctx.w.close();}
+});
+test('every event gets day board, heat matrix, admin edits and event-isolated favorites',()=>{
+ const ctx=setup(false,null,niteharts);try{
+  ctx.w.RallyLineup.show({...ctx.options,params:'view=board'});
+  assert.equal(ctx.root.querySelectorAll('.day-column').length,2);
+  ctx.root.getElementById('heat-view-button').click();assert(ctx.root.querySelector('.interest-matrix'));
+  ctx.root.querySelector('[data-add]').click();assert(ctx.events.some(e=>e.type==='rally-lineup-add'));
+  ctx.root.querySelector('[data-edit]').click();ctx.root.querySelector('[data-edit-id="sat-2hollis"]').click();assert(ctx.events.some(e=>e.type==='rally-lineup-edit'&&e.id==='sat-2hollis'));
+  ctx.w.RallyLineup.show({...ctx.options,key:'different:john',event:{...niteharts,id:'different',lineup:[]},params:'view=timeline'});
+  const fresh=ctx.container.firstElementChild.shadowRoot;assert.equal(fresh.querySelectorAll('[data-favorite-id]').length,0);assert(fresh.getElementById('timeline-view').hidden);assert(!fresh.textContent.includes('ISOKNOCK'));
+ }finally{ctx.w.close();}
+});
+test('generic timed events use event timezone, actual times and refresh changed catalogs',()=>{
+ const event={...niteharts,lineup:[{id:'a',name:'Early',date:'2026-10-09',day:'Friday',start:'2026-10-09T16:00',end:'2026-10-09T17:00',stage:'Main'},{id:'b',name:'Late',date:'2026-10-09',day:'Friday',start:'2026-10-09T17:00',end:'2026-10-09T18:00',stage:'Main'}]};
+ const ctx=setup(true,'2026-10-10T00:30:00Z',event);try{
+  assert(ctx.root.querySelector('.schedule-now').textContent.includes('5:30 PM PT'));
+  assert(!ctx.root.getElementById('timeline-view-button').hidden);
+  ctx.root.getElementById('timeline-view-button').click();assert.equal(ctx.root.querySelectorAll('.timeline-set').length,2);
+  ctx.w.RallyLineup.show({...ctx.options,event:{...event,lineup:[...event.lineup,{id:'c',name:'Added',day:'Friday'}]},params:null});
+  assert.notEqual(ctx.container.firstElementChild,ctx.element);
+  assert(ctx.container.firstElementChild.shadowRoot.textContent.includes('Added'));
+ }finally{ctx.w.close();}
+});
 test('native mobile lineup runs directly in Rally with day filters and isolated styles',()=>{
   const ctx=setup();try{
     assert.equal(ctx.w.document.querySelectorAll('iframe').length,0);

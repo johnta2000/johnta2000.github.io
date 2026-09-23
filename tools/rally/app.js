@@ -23,7 +23,6 @@ let unlockPending = null;
 let draggedTask = null;
 let lineupSaveTimer = null;
 let lineupRefreshTimer = null;
-let lineupFilters = { search: "", day: "all", stage: "all", favoritesOnly: false };
 let offlineMode = RallyOffline.native || !navigator.onLine;
 let shellSaved = RallyOffline.native || !!window.webkit?.messageHandlers?.rallyOffline;
 let notesRevision = 0;
@@ -303,7 +302,7 @@ function render() {
   el.sideNav.innerHTML = views.filter(([id]) => (id !== 'meetups' || data.id === DEFAULT_EVENT) && (id !== "lineup" || data.id === DEFAULT_EVENT || data.lineup?.length || data.isAdmin)).map(([id,label,icon]) => `<a href="${href(id)}" class="${activeView === id ? "active" : ""}"><span class="nav-icon">${icon}</span>${label}</a>`).join("");
   renderEventMenu();
   window.RallyCrewLocation?.unmount();
-  const nativeLineup=activeView==='lineup'&&data.id===DEFAULT_EVENT;
+  const nativeLineup=activeView==='lineup';
   el.page.className = 'page';
   el.page.hidden=nativeLineup;
   document.getElementById('lineupView').hidden=!nativeLineup;
@@ -648,57 +647,28 @@ function renderTasks(){ const map=memberMap(), columns=[["todo","To do"],["doing
 
 function renderLineup(){
   const searchRoute=new URLSearchParams(location.search);
-  if(data.id===DEFAULT_EVENT){
-    const filters=new URLSearchParams(location.hash.slice(1));
-    if(searchRoute.get('find'))filters.set('q',searchRoute.get('find'));
-    if(searchRoute.get('day'))filters.set('days',searchRoute.get('day'));
-    window.RallyLineup.show({
-      container:document.getElementById('lineupView'),key:`${data.id}:${data.currentMemberId}`,
-      state:lineupState(),params:filters.size?filters.toString():null,
-      shareUrl:`https://www.john-ta.com${href('lineup')}`,
-      onEvent:handleLineupEvent,
-      onParams(params){
-        if(activeView!=='lineup'||activeEvent!==DEFAULT_EVENT)return;
-        const url=new URL(location.href);url.hash=params.toString();
-        url.searchParams.delete('find');url.searchParams.delete('day');
-        history.replaceState({},'',url.pathname+url.search+url.hash);
-      }
-    });
-    lineupRefreshTimer=setInterval(refreshLineupState,15000);
-    return;
-  }
-  if(searchRoute.has('find'))lineupFilters={search:searchRoute.get('find'),day:'all',stage:'all',favoritesOnly:false};
-  const lineup=(data.lineup||[]).filter(artist=>!(data.lineupHiddenDays||[]).includes(artist.day||'Day TBD')),favorites=new Set(data.currentLineupFavorites||[]);
-  const days=[...new Set(lineup.map((artist)=>artist.day||"Day TBD"))];
-  if (!days.includes(lineupFilters.day)) lineupFilters.day='all';
-  const stages=[...new Set(lineup.map((artist)=>artist.stage).filter(Boolean))].sort();
-  const action=`<div class="lineup-heading-actions">${data.lineupSource?`<a class="secondary" href="${escapeAttr(data.lineupSource)}" target="_blank" rel="noopener">Source ↗</a>`:""}${data.isAdmin?`<button id="manageLineupDays" class="secondary">Manage days</button><button id="addLineupArtist" class="primary">＋ Add artist</button>`:""}</div>`;
-  const matches=lineup.filter((artist)=>{
-    const haystack=`${artist.name} ${artist.day||""} ${artist.stage||""} ${artist.notes||""}`.toLowerCase();
-    return (!lineupFilters.search||haystack.includes(lineupFilters.search.toLowerCase()))
-      &&(lineupFilters.day==="all"||(artist.day||"Day TBD")===lineupFilters.day)
-      &&(lineupFilters.stage==="all"||artist.stage===lineupFilters.stage)
-      &&(!lineupFilters.favoritesOnly||favorites.has(artist.id));
+  const filters=new URLSearchParams(location.hash.slice(1));
+  if(searchRoute.get('find'))filters.set('q',searchRoute.get('find'));
+  if(searchRoute.get('day'))filters.set('days',searchRoute.get('day'));
+  window.RallyLineup.show({
+    container:document.getElementById('lineupView'),key:`${data.id}:${data.currentMemberId}`,
+    state:lineupState(),params:filters.size?filters.toString():null,
+    event:{id:data.id,name:data.name,startsAt:data.startsAt,endsAt:data.endsAt,timeZone:RallyEvents.zoneFor(data)||'UTC',lineup:data.id===DEFAULT_EVENT?window.LOST_LANDS_SET_TIMES||data.lineup||[]:data.lineup||[],orderNote:data.lineupOrderNote||'',source:data.lineupSource||''},
+    shareUrl:`https://www.john-ta.com${href('lineup')}`,
+    onEvent:handleLineupEvent,
+    onParams(params){
+      if(activeView!=='lineup')return;
+      const url=new URL(location.href);url.hash=params.toString();
+      url.searchParams.delete('find');url.searchParams.delete('day');
+      history.replaceState({},'',url.pathname+url.search+url.hash);
+    }
   });
-  const visibleDays=days.filter((day)=>matches.some((artist)=>(artist.day||"Day TBD")===day));
-  el.page.innerHTML=heading("Shared festival schedule","Lineup","Favorite artists, see who else is interested, and add day, stage, and set-time details as they are announced.",action)
-    +`<div class="lineup-toolbar"><label class="search">⌕ <input id="lineupSearch" value="${escapeAttr(lineupFilters.search)}" placeholder="Search artists or notes"></label><select id="lineupDay"><option value="all">All days</option>${days.map((day)=>`<option value="${escapeAttr(day)}" ${lineupFilters.day===day?"selected":""}>${escapeHtml(day)}</option>`).join("")}</select><select id="lineupStage"><option value="all">All stages</option>${stages.map((stage)=>`<option value="${escapeAttr(stage)}" ${lineupFilters.stage===stage?"selected":""}>${escapeHtml(stage)}</option>`).join("")}</select><button id="lineupFavorites" class="secondary${lineupFilters.favoritesOnly?" selected":""}" aria-pressed="${lineupFilters.favoritesOnly}">★ My favorites</button></div>`
-    +`<div class="lineup-results"><strong>${matches.length}</strong> of ${lineup.length} performances</div>`
-    +`<div class="festival-days">${visibleDays.map((day)=>{const entries=matches.filter((artist)=>(artist.day||"Day TBD")===day);const dated=entries.find((artist)=>artist.date)?.date;const dateLabel=dated?new Intl.DateTimeFormat("en-US",{month:"long",day:"numeric",timeZone:"UTC"}).format(new Date(`${dated}T12:00:00Z`)):"Schedule pending";return `<section class="festival-day"><header><div><span class="eyebrow">${escapeHtml(day)}</span><h2>${escapeHtml(dateLabel)}</h2></div><small>${entries.length} ${entries.length===1?"performance":"performances"}</small></header><div>${entries.map((artist)=>{const interested=data.lineupInterests?.[artist.id]||[],details=[artist.time,artist.stage].filter(Boolean).join(" · ");return `<article class="festival-artist"><button data-lineup-favorite="${escapeAttr(artist.id)}" class="artist-star${favorites.has(artist.id)?" selected":""}" aria-label="Favorite ${escapeAttr(artist.name)}" aria-pressed="${favorites.has(artist.id)}">★</button><div class="festival-artist-name"><strong>${escapeHtml(artist.name)}</strong>${details?`<small>${escapeHtml(details)}</small>`:""}${artist.notes?`<small>${escapeHtml(artist.notes)}</small>`:""}</div><div class="artist-interest">${interested.length?interested.map((person)=>`<span class="traveler-chip"><i class="avatar-${person.color||"purple"}">${escapeHtml(person.initials)}</i>${escapeHtml(person.name)}</span>`).join(""):`<small>No one yet</small>`}</div>${data.isAdmin?`<button class="lineup-edit" data-lineup-edit="${escapeAttr(artist.id)}" aria-label="Edit ${escapeAttr(artist.name)}">•••</button>`:""}</article>`}).join("")}</div></section>`}).join("")}</div>`
-    +(lineup.length&&!matches.length?`<div class="empty">No performances match those filters.</div>`:!lineup.length?`<div class="empty">No lineup has been added yet.${data.isAdmin?" Add the first artist when announcements begin.":""}</div>`:"")
-    +`<p class="lineup-source-note">${data.lineupUpdatedAt?`Lineup updated ${escapeHtml(data.lineupUpdatedAt)}. `:""}Times, stages, and day assignments may change.</p>`;
-  document.getElementById("addLineupArtist")?.addEventListener("click",()=>openLineupArtist());
-  document.getElementById("lineupSearch").addEventListener("input",(event)=>{lineupFilters.search=event.target.value;renderLineup();document.getElementById("lineupSearch")?.focus()});
-  document.getElementById("lineupDay").addEventListener("change",(event)=>{lineupFilters.day=event.target.value;renderLineup()});
-  document.getElementById("lineupStage").addEventListener("change",(event)=>{lineupFilters.stage=event.target.value;renderLineup()});
-  document.getElementById("lineupFavorites").addEventListener("click",()=>{lineupFilters.favoritesOnly=!lineupFilters.favoritesOnly;renderLineup()});
-  if(data.isAdmin)document.getElementById('manageLineupDays').onclick=openLineupDays;
-  document.querySelectorAll("[data-lineup-edit]").forEach((button)=>button.onclick=()=>openLineupArtist(lineup.find((artist)=>artist.id===button.dataset.lineupEdit)));
-  document.querySelectorAll("[data-lineup-favorite]").forEach((button)=>button.onclick=async()=>{const id=button.dataset.lineupFavorite;if(favorites.has(id))favorites.delete(id);else favorites.add(id);button.classList.toggle("selected",favorites.has(id));button.setAttribute("aria-pressed",String(favorites.has(id)));try{data=await convexMutation("rally:act",{eventId:activeEvent,action:"save-lineup-favorites",payload:{artistIds:[...favorites]}});renderLineup()}catch(error){showToast(error.message||"Could not save favorite")}});
+  lineupRefreshTimer=setInterval(refreshLineupState,15000);
+  return;
 }
 function lineupState(){const currentMember=data.members.find((member)=>member.id===data.currentMemberId);return {type:"rally-lineup-state",reviewMode:RallyEvents.lifecycle(data).finished||RallyEvents.lifecycle(data).past,artistIds:data.currentLineupFavorites||[],interests:data.lineupInterests||{},currentMember,hiddenDays:data.lineupHiddenDays||[],canManageDays:data.isAdmin&&!offlineMode};}
 function sendLineupState(){window.RallyLineup?.receive(lineupState());}
-async function refreshLineupState(){if(activeView!=="lineup")return;const eventId=activeEvent;try{const updated=await convexQuery("rally:get",{eventId});if(!updated||activeEvent!==eventId||activeView!=="lineup")return;data=updated;sendLineupState()}catch(error){console.warn("Could not refresh lineup interests",error)}}
+async function refreshLineupState(){if(activeView!=="lineup")return;const eventId=activeEvent;try{const updated=await convexQuery("rally:get",{eventId});if(!updated||activeEvent!==eventId||activeView!=="lineup")return;const changed=JSON.stringify(data.lineup)!==JSON.stringify(updated.lineup);data=updated;if(changed&&data.id!==DEFAULT_EVENT){clearInterval(lineupRefreshTimer);renderLineup();}else sendLineupState()}catch(error){console.warn("Could not refresh lineup interests",error)}}
 function openLineupDays() {
   if (!data?.isAdmin) return;
   if (offlineMode) return showToast('Reconnect to change project settings.');
@@ -720,10 +690,12 @@ function openLineupDays() {
 }
 
 async function handleLineupEvent(message) {
-  if(activeEvent!==DEFAULT_EVENT||activeView!=='lineup'||!message)return;
+  if(activeView!=='lineup'||!message)return;
   const event={data:message};
   if(event.data.type === "rally-lineup-ready") { sendLineupState(); sendLineupLayout(); return; }
   if(event.data.type === 'rally-lineup-manage-days') { openLineupDays(); return; }
+  if(event.data.type === 'rally-lineup-add') { if(data.isAdmin&&!offlineMode)openLineupArtist(); return; }
+  if(event.data.type === 'rally-lineup-edit') { if(data.isAdmin&&!offlineMode)openLineupArtist((data.lineup||[]).find(set=>set.id===event.data.id)); return; }
   if(event.data.type === 'rally-lineup-overlay') { document.body.classList.toggle('lineup-overlay',event.data.open===true); return; }
   if(event.data.type !== "rally-lineup-favorites-changed" || !Array.isArray(event.data.artistIds)) return;
   const eventId = activeEvent;

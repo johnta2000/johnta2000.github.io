@@ -2,13 +2,16 @@
 window.createLostLandsLineup = function(root=document, integration=null) {
 const surface = root.host || document.documentElement;
 const container = root === document ? document.body : root;
-const dinoEmpty = '<img src="/tools/rally/assets/dancing-dino.png" alt="" width="56" height="56" style="display:block;margin:0 auto 8px;border-radius:12px">No dinosaurs spotted. Try different filters.';
+const eventConfig=integration?.event;
+const eventZone=eventConfig?.timeZone||'America/New_York';
+const zoneLabel=eventZone==='America/New_York'?'ET':eventZone==='America/Los_Angeles'?'PT':eventZone==='America/Denver'?'MT':eventZone;
+const dinoEmpty = !eventConfig||eventConfig.id==='lost-lands-2026' ? '<img src="/tools/rally/assets/dancing-dino.png" alt="" width="56" height="56" style="display:block;margin:0 auto 8px;border-radius:12px">No dinosaurs spotted. Try different filters.' : 'No matching sets. Try different filters.';
 const lifetime = new AbortController();
 let overlayObserver;
 let receive = () => {};
 const sendToRally = message => integration ? integration.onEvent(message) : window.parent.postMessage(message, location.origin === "null" ? "*" : location.origin);
 const CONVEX_URL = "https://dashing-heron-837.convex.cloud";
-const LINEUP_EVENT_ID = "lost-lands-2026";
+const LINEUP_EVENT_ID = eventConfig?.id||"lost-lands-2026";
 const legacyMainLineup = `
   ADVENTURE CLUB | ÆON:MODE | ALLEYCVT | ARMNHMR | ATLIENS | AUDIOFREQ
   | BARELY ALIVE | BEAR GRILLZ | BENDA | BLOSSOM | BOOGIE T | BORGORE | BOU
@@ -297,28 +300,59 @@ function formatClock(value) {
   return `${hours % 12 || 12}:${minutes} ${hours >= 12 ? "PM" : "AM"}`;
 }
 
-const lineup = (window.LOST_LANDS_SET_TIMES || []).map((entry, index) => ({
-  ...entry,
-  time: `${formatClock(entry.start)} – ${formatClock(entry.end)}`,
-  startMinutes: (() => {
-    const [hours, minutes] = entry.start.slice(11, 16).split(":").map(Number);
-    return hours * 60 + minutes + (entry.start.slice(0, 10) > entry.festivalDate ? 24 * 60 : 0);
-  })(),
-  notes: entry.timeZone,
-  posterIndex: index,
-}));
-
-const dayOrder = ["Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+// The same controller serves every event. Missing times stay missing: an
+// estimated running order must never create pretend clock times or durations.
+const lineup = (eventConfig?.lineup || window.LOST_LANDS_SET_TIMES || []).map((entry,index)=>{
+  const festivalDate=entry.festivalDate||entry.date||'';
+  const start=entry.start||(/^\d{2}:\d{2}$/.test(entry.time||'')&&festivalDate?`${festivalDate}T${entry.time}`:'');
+  const end=entry.end||'';
+  const [hours,minutes]=start.slice(11,16).split(':').map(Number);
+  return {...entry,artist:entry.artist||entry.name||'Unnamed artist',day:entry.day||'Day TBD',festivalDate,start,end,
+    stage:entry.stage||'Stage TBA',genre:entry.genre||'',billing:entry.billing||'',notes:entry.notes||'',
+    time:start?`${formatClock(start)}${end?' – '+formatClock(end):' · End TBA'}`:'Time TBA',
+    startMinutes:start?hours*60+minutes+(start.slice(0,10)>festivalDate?1440:0):null,posterIndex:index};
+});
+const timedLineup=lineup.filter(entry=>entry.start&&entry.end);
+const hasTimes=lineup.some(entry=>entry.start);
+const hasTimeline=timedLineup.length>0;
+const hasEstimate=lineup.some(entry=>Number.isFinite(entry.estimatedOrder));
+const dayOrder = [...new Set([...lineup].sort((a,b)=>a.festivalDate.localeCompare(b.festivalDate)).map(entry=>entry.day))];
 let hiddenLineupDays = new Set();
 function visibleLineupDays() { return dayOrder.filter(day => !hiddenLineupDays.has(day)); }
 const stageOrder = [...new Set(lineup.map((entry) => entry.stage))];
-const genreOrder = [...new Set(lineup.map((entry) => entry.genre))].sort((left, right) =>
+const genreOrder = [...new Set(lineup.map((entry) => entry.genre).filter(Boolean))].sort((left, right) =>
   left.localeCompare(right, undefined, { sensitivity: "base" })
 );
+const hasStages=stageOrder.some(stage=>stage!=='Stage TBA');
+const hasGenres=genreOrder.length>0;
 const timeBounds = {
-  min: Math.min(...lineup.map((entry) => entry.startMinutes)),
-  max: Math.max(...lineup.map((entry) => entry.startMinutes)),
+  min: hasTimes?Math.min(...lineup.filter(entry=>entry.start).map(entry=>entry.startMinutes)):0,
+  max: hasTimes?Math.max(...lineup.filter(entry=>entry.start).map(entry=>entry.startMinutes)):1440,
 };
+const runningOrderLabel=hasEstimate&&!hasTimes?'Estimated order':hasTimes?'Set time':'Lineup order';
+function timeLabel(entry){return entry.start?`${formatClock(entry.start)}${entry.end?' – '+formatClock(entry.end):' · End TBA'}`:'Time TBA';}
+if(eventConfig){
+  root.getElementById('page-title').textContent='Lineup';
+  const dates=[eventConfig.startsAt,eventConfig.endsAt].filter(Boolean).map(formatFestivalDate);
+  root.querySelector('.lineup-meta').textContent=`${[...new Set(dates)].join(' – ')}${hasTimes?' · All times '+zoneLabel:' · Set times TBA'}`;
+  if(hasEstimate){const note=document.createElement('p');note.className='mobile-section-note';note.textContent=eventConfig.orderNote||'Estimated running order · earlier → later. Not official set times.';root.querySelector('.app-header').after(note);}
+}
+root.querySelector('[data-filter="times"]').hidden=!hasTimes;
+root.querySelector('[data-filter="genres"]').hidden=!genreOrder.length;
+root.querySelector('[data-filter="stages"]').hidden=stageOrder.every(stage=>stage==='Stage TBA');
+const adaptiveStyle=document.createElement('style');
+adaptiveStyle.textContent=`.set-note{font-size:12px;color:var(--muted);font-weight:400;margin:6px 0;white-space:normal}.lineup-admin-actions{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}.lineup-editor-search{width:100%;padding:12px;margin-bottom:8px}.lineup-editor-list{max-height:50dvh;overflow:auto}.lineup-editor-list button{width:100%;text-align:left;padding:12px}.lineup-editor-list small{display:block;color:var(--muted)}`;
+container.append(adaptiveStyle);
+adaptiveStyle.textContent+=`.lineup-admin-actions button{background:#fffef9;color:#47533d;border:1px solid #d9ddcf;border-radius:8px;min-height:36px;padding:6px 10px}.toolbar.no-extra-filters{grid-template-columns:minmax(0,1fr)}.app-header .text-button{font-size:12px}.lineup-editor-list button{color:var(--text);background:var(--panel);border:1px solid var(--line);border-radius:8px;margin:4px 0}`;
+if(!hasTimes)root.querySelector('#table-view thead th:nth-child(2)').textContent='Time';
+// Remove unavailable columns instead of leaving blank cells or duplicated TBA.
+const tableHeaders=[...root.querySelectorAll('#table-view thead th')];
+if(!hasTimes){tableHeaders[2].remove();root.querySelector('.col-end')?.remove();}
+if(!hasStages){tableHeaders[4].remove();root.querySelector('.col-stage')?.remove();}
+if(!hasGenres){tableHeaders[5].remove();root.querySelector('.col-genre')?.remove();}
+if(eventConfig?.source&&/^https?:\/\//.test(eventConfig.source)){
+  const source=document.createElement('a');source.className='text-button';source.textContent='Official lineup ↗';source.href=eventConfig.source;source.target='_blank';source.rel='noopener';root.querySelector('.header-copy').append(source);
+}
 
 const currentIdsByLegacyId = new Map();
 const addPreferenceAlias = (fromId, toId) => {
@@ -376,8 +410,10 @@ const validFavoriteIds = new Set(lineup.map((entry) => entry.id));
 const lineupById = new Map(lineup.map((entry) => [entry.id, entry]));
 const mobileViewQuery = window.matchMedia("(max-width: 760px)");
 const rallyManagedFavorites = Boolean(integration) || window.parent !== window && new URLSearchParams(window.location.search).get("rally") === "1";
+const tableColumnCount=3+Number(hasTimes)+Number(hasStages)+Number(hasGenres)+Number(rallyManagedFavorites);
 surface.classList.toggle("rally-mode", rallyManagedFavorites);
 let favorites = new Set();
+let unavailableFavoriteIds=[];
 let lineupInterests = {};
 let currentRallyMember = null;
 let cloudAccount = null;
@@ -494,8 +530,8 @@ function readStateFromUrl() {
   selectedDays = new Set((params.get("days") || params.get("day") || "").split(",").filter((value) => dayOrder.includes(value)));
   selectedStages = new Set((params.get("stages") || params.get("stage") || "").split(",").filter((value) => stageOrder.includes(value)));
   selectedGenres = new Set((params.get("genres") || params.get("genre") || "").split(",").filter((value) => genreOrder.includes(value)));
-  const incomingMin = Number(params.get("start"));
-  const incomingMax = Number(params.get("end"));
+  const incomingMin = params.has('start')?Number(params.get("start")):NaN;
+  const incomingMax = params.has('end')?Number(params.get("end")):NaN;
   timeMin = Number.isFinite(incomingMin) && incomingMin >= timeBounds.min && incomingMin <= timeBounds.max ? incomingMin : timeBounds.min;
   timeMax = Number.isFinite(incomingMax) && incomingMax >= timeBounds.min && incomingMax <= timeBounds.max ? incomingMax : timeBounds.max;
   if (timeMin > timeMax) {
@@ -504,7 +540,7 @@ function readStateFromUrl() {
   }
   activeView = ["board", "poster"].includes(params.get("view")) ? "board" : "table";
   if (rallyManagedFavorites && params.get("view") === "heat") activeView = "heat";
-  if (params.get('view') === 'timeline') activeView = 'timeline';
+  if (hasTimeline && params.get('view') === 'timeline') activeView = 'timeline';
   mostLiked = rallyManagedFavorites && params.get("sort") === "popular";
   sortMode = mostLiked ? 'popular' : params.get('sort') === 'artist' ? 'artist' : 'time';
 
@@ -547,11 +583,11 @@ function getFilteredLineup() {
     if (hiddenLineupDays.has(entry.day)) return false;
     const matchesQuery =
       !query ||
-      normalizeText(`${entry.artist} ${entry.day} ${entry.stage} ${entry.billing} ${entry.genre} ${entry.time}`).includes(query);
+      normalizeText(`${entry.artist} ${entry.day} ${entry.stage} ${entry.billing} ${entry.genre} ${entry.time} ${entry.notes}`).includes(query);
     const matchesDay = !selectedDays.size || selectedDays.has(entry.day);
     const matchesGenre = !selectedGenres.size || selectedGenres.has(entry.genre);
     const matchesStage = !selectedStages.size || selectedStages.has(entry.stage);
-    const matchesTime = entry.startMinutes >= timeMin && entry.startMinutes <= timeMax;
+    const matchesTime = !entry.start ? timeMin===timeBounds.min&&timeMax===timeBounds.max : entry.startMinutes >= timeMin && entry.startMinutes <= timeMax;
     const matchesFavorite = crewLikesOnly ? groupPeople(entry.id).length>0 : !favoritesOnly || favorites.has(entry.id);
 
     return matchesQuery && matchesDay && matchesGenre && matchesStage && matchesTime && matchesFavorite;
@@ -566,7 +602,11 @@ function groupPeople(id) {
 }
 
 function compareSets(left, right) {
-  return (mostLiked ? groupPeople(right.id).length - groupPeople(left.id).length : sortMode === 'artist' ? left.artist.localeCompare(right.artist) : 0) || left.posterIndex - right.posterIndex;
+  return (mostLiked ? groupPeople(right.id).length - groupPeople(left.id).length : sortMode === 'artist' ? left.artist.localeCompare(right.artist) : 0)
+    || dayOrder.indexOf(left.day)-dayOrder.indexOf(right.day)
+    || (left.start&&right.start?left.start.localeCompare(right.start):left.start?-1:right.start?1:0)
+    || (left.estimatedOrder??left.posterIndex)-(right.estimatedOrder??right.posterIndex)
+    || left.posterIndex-right.posterIndex;
 }
 
 function renderHeatMap(entries) {
@@ -605,8 +645,9 @@ function boardSetCard(entry, {maximum = 0, heat = false} = {}) {
   const overnight = entry.start.slice(0,10) > entry.festivalDate ? 'After midnight' : entry.end.slice(0,10) > entry.start.slice(0,10) ? 'Ends next day' : '';
   return `<article class="board-set${heat ? ' board-set-heat' : ''}" style="--stage-color:${boardStageColor(entry.stage)};--heat-tint:${Math.round(ratio*28)}%;--heat-strength:${Math.round(ratio*100)}%">
     <div class="board-set-heading"><div class="board-set-copy">
-      <p class="board-set-time">${escapeHtml(formatClock(entry.start))} – ${escapeHtml(formatClock(entry.end))}</p>
+      <p class="board-set-time">${escapeHtml(timeLabel(entry))}</p>
       <h3>${escapeHtml(entry.artist)}</h3>
+      ${entry.notes?`<p class="set-note">${escapeHtml(entry.notes)}</p>`:''}
     </div><button class="favorite-button${saved ? ' is-active' : ''}" type="button" data-favorite-id="${escapeHtml(entry.id)}" aria-pressed="${saved}" aria-label="${saved ? 'Remove' : 'Add'} ${escapeHtml(entry.artist)} favorite">★</button></div>
     ${overnight ? `<span class="board-set-overnight">${overnight}</span>` : ''}
     ${rallyManagedFavorites ? `<div class="board-set-crew">${count ? `<details><summary><span class="board-avatars" aria-hidden="true">${people.slice(0,3).map(person=>`<i>${escapeHtml(person.initials || person.name.slice(0,1))}</i>`).join('')}</span><span><strong>${count}</strong> interested</span><span class="board-expand" aria-hidden="true">⌄</span></summary><p>${people.map(person=>escapeHtml(person.name)).join(' · ')}</p></details>` : `<span class="board-no-picks">${groupStateLoaded ? 'No crew favorites yet' : 'Loading crew favorites…'}</span>`}
@@ -649,11 +690,11 @@ function renderDayBoard(entries) {
 }
 
 function easternNow() {
-  const parts=Object.fromEntries(new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(new Date()).map(part=>[part.type,part.value]));
+  const parts=Object.fromEntries(new Intl.DateTimeFormat('en-US',{timeZone:eventZone,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(new Date()).map(part=>[part.type,part.value]));
   return `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}`;
 }
 let forcedReview=false;
-function reviewMode(){return forcedReview || easternNow() >= lineup.reduce((latest,set)=>set.end>latest?set.end:latest,'');}
+function reviewMode(){return forcedReview || !hasTimeline || easternNow() >= timedLineup.reduce((latest,set)=>set.end>latest?set.end:latest,'');}
 function updateScheduleProgress() {
   if (reviewMode()) {
     root.querySelectorAll('[data-set-start]').forEach(node=>node.classList.remove('set-ended','set-live'));
@@ -663,34 +704,35 @@ function updateScheduleProgress() {
   }
   const now=easternNow();
   root.querySelectorAll('[data-set-start]').forEach(node=>{
+    if(!node.dataset.setStart||!node.dataset.setEnd)return;
     node.classList.toggle('set-ended',node.dataset.setEnd<=now);
     node.classList.toggle('set-live',node.dataset.setStart<=now&&node.dataset.setEnd>now);
   });
   root.querySelectorAll('.schedule-now').forEach(node=>node.remove());
   if(activeView==='table'&&sortMode==='time'){
     const parent=mobileViewQuery.matches?root.getElementById('mobile-schedule'):els.tableBody;
-    const rows=[...parent.querySelectorAll('[data-set-start]')];
+      const rows=[...parent.querySelectorAll('[data-set-start]')].filter(node=>node.dataset.setStart&&node.dataset.setEnd);
     // Use the festival-day window, including its after-midnight sets.
     const dates=[...new Set(rows.map(node=>node.dataset.festivalDate))];
     const relevant=dates.some(date=>now>=date+'T00:00'&&now<new Date(Date.parse(date+'T00:00Z')+28*3600000).toISOString().slice(0,16));
     if(rows.length&&relevant){
       const marker=document.createElement(mobileViewQuery.matches?'div':'tr');marker.className='schedule-now';
-      const label=`Now · ${formatClock(now)} ET · ended sets are dimmed`;
-      marker.innerHTML=mobileViewQuery.matches?`<span>${label}</span>`:`<td colspan="${rallyManagedFavorites?7:6}">${label}</td>`;
+      const label=`Now · ${formatClock(now)} ${zoneLabel} · ended sets are dimmed`;
+      marker.innerHTML=mobileViewQuery.matches?`<span>${label}</span>`:`<td colspan="${tableColumnCount}">${label}</td>`;
       const next=rows.find(node=>node.dataset.setEnd>now);
       if(next)next.before(marker);else parent.append(marker);
     }
   }
   root.querySelectorAll('.timeline-now').forEach(node=>{
     const minute=Date.parse(now+'Z')/60000,start=Number(node.dataset.start),end=Number(node.dataset.end);
-    node.hidden=minute<start||minute>end;node.style.left=((minute-start)*4)+'px';node.title=`Now · ${formatClock(now)} ET`;
+    node.hidden=minute<start||minute>end;node.style.left=((minute-start)*4)+'px';node.title=`Now · ${formatClock(now)} ${zoneLabel}`;
   });
 }
 function renderTable(entries) {
   if (!entries.length) {
     els.tableBody.innerHTML = `
       <tr>
-        <td class="empty-state" colspan="${rallyManagedFavorites ? 7 : 6}">${dinoEmpty}</td>
+        <td class="empty-state" colspan="${tableColumnCount}">${dinoEmpty}</td>
       </tr>
     `;
     return;
@@ -701,7 +743,7 @@ function renderTable(entries) {
     .map((entry) => {
       const dayEntries = entries.filter((candidate) => candidate.day === entry.day);
       const dayDivider = sortMode !== 'time' || renderedDay === entry.day ? "" : `
-        <tr class="day-divider"><td colspan="${rallyManagedFavorites ? 7 : 6}">${escapeHtml(entry.day)} · ${escapeHtml(formatFestivalDate(entry.festivalDate))} · ${dayEntries.length} set${dayEntries.length === 1 ? "" : "s"}</td></tr>
+        <tr class="day-divider"><td colspan="${tableColumnCount}">${escapeHtml(entry.day)} · ${escapeHtml(formatFestivalDate(entry.festivalDate))} · ${dayEntries.length} set${dayEntries.length === 1 ? "" : "s"}</td></tr>
       `;
       renderedDay = entry.day;
       return `${dayDivider}
@@ -716,10 +758,10 @@ function renderTable(entries) {
             >★</button>
           </td>
           <td class="time-cell"><span class="schedule-time">${escapeHtml(formatClock(entry.start))}</span></td>
-          <td class="time-cell"><span class="schedule-time">${escapeHtml(formatClock(entry.end))}</span></td>
-          <td class="artist-cell" title="${escapeHtml(entry.artist)}">${escapeHtml(entry.artist)}${mostLiked ? `<small class="rank-day">${escapeHtml(entry.day.slice(0, 3))} · ${escapeHtml(formatFestivalDate(entry.festivalDate))}</small>` : ""}</td>
-          <td class="stage-cell">${escapeHtml(entry.stage)}</td>
-          <td class="genre-cell genre-column">${escapeHtml(entry.genre)}</td>
+          ${hasTimes?`<td class="time-cell"><span class="schedule-time">${escapeHtml(formatClock(entry.end))}</span></td>`:''}
+          <td class="artist-cell" title="${escapeHtml(entry.artist)}">${escapeHtml(entry.artist)}${entry.notes?`<p class="set-note">${escapeHtml(entry.notes)}</p>`:''}${mostLiked ? `<small class="rank-day">${escapeHtml(entry.day.slice(0, 3))} · ${escapeHtml(formatFestivalDate(entry.festivalDate))}</small>` : ""}</td>
+          ${hasStages?`<td class="stage-cell">${escapeHtml(entry.stage)}</td>`:''}
+          ${hasGenres?`<td class="genre-cell genre-column">${escapeHtml(entry.genre)}</td>`:''}
           <td class="rally-only">${renderInterest(entry.id)}</td>
         </tr>
       `;
@@ -730,7 +772,7 @@ function renderTable(entries) {
 function formatFestivalDate(value) {
   const [, month, day] = String(value || "").split("-").map(Number);
   if (!month || !day) return "Date TBD";
-  return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" }).format(new Date(2026, month - 1, day));
+  return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" }).format(new Date(Number(String(value).slice(0,4)), month - 1, day));
 }
 
 function renderInterest(artistId) {
@@ -762,7 +804,7 @@ function updateViewButtons() {
   els.heatView.hidden = activeView !== "heat";
   els.heatViewButton.classList.toggle("is-active", activeView === "heat");
   els.popularitySort.hidden = false;
-  els.popularitySort.textContent = `Sort: ${{time:'Set time',popular:'Most liked',artist:'Artist A–Z'}[sortMode]} ↓`;
+  els.popularitySort.textContent = `Sort: ${{time:runningOrderLabel,popular:'Most liked',artist:'Artist A–Z'}[sortMode]} ↓`;
   els.posterViewButton.classList.toggle("is-active", isBoard);
   els.tableViewButton.classList.toggle("is-active", activeView === "table");
   [els.tableViewButton, els.posterViewButton, els.heatViewButton].forEach((button) => button.setAttribute("aria-pressed", String(button.classList.contains("is-active"))));
@@ -811,8 +853,8 @@ function defaultMobileDay() {
   const now=easternNow();
   const playing=lineup.find(entry=>entry.start<=now&&entry.end>now&&!hiddenLineupDays.has(entry.day));
   if(playing)return playing.day;
-  const today = new Intl.DateTimeFormat('en-CA',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
-  return lineup.find(entry => entry.festivalDate === today && !hiddenLineupDays.has(entry.day))?.day || (visibleLineupDays().includes('Friday') ? 'Friday' : visibleLineupDays()[0]);
+  const today = now.slice(0,10);
+  return lineup.find(entry => entry.festivalDate === today && !hiddenLineupDays.has(entry.day))?.day || visibleLineupDays()[0];
 }
 function renderMobileDays() {
   const days = root.getElementById('mobile-days');
@@ -820,11 +862,14 @@ function renderMobileDays() {
   days.style.setProperty('--day-count', String(visibleLineupDays().length));
   const html = visibleLineupDays().map(day => {
     const date = lineup.find(entry => entry.day === day)?.festivalDate;
-    return `<button type="button" data-day="${day}" aria-pressed="${selectedDays.has(day)}"><span>${day.slice(0,3)}</span><strong>${date ? Number(date.slice(-2)) : '—'}</strong></button>`;
+    return `<button type="button" data-day="${escapeHtml(day)}" aria-pressed="${selectedDays.has(day)}"><span>${escapeHtml(day.slice(0,3))}</span><strong>${date ? Number(date.slice(-2)) : '—'}</strong></button>`;
   }).join('');
   if (days.innerHTML !== html) { days.innerHTML = html; if(focused) days.querySelector(`[data-day="${focused}"]`)?.focus({preventScroll:true}); }
 }
 function placeMobileFilters() {
+  const noExtraFilters=mobileViewQuery.matches&&!hasTimes&&!hasGenres&&!hasStages;
+  els.filterToggle.hidden=noExtraFilters;
+  root.querySelector('.toolbar').classList.toggle('no-extra-filters',noExtraFilters);
   const dialog = root.getElementById('filters-dialog');
   if (mobileViewQuery.matches) root.getElementById('mobile-filter-slot').append(els.filterFields);
   else {
@@ -845,14 +890,16 @@ function mobileSetCard(entry, maximum = 0, rank = 0, heat = false) {
   const overnight = entry.start.slice(0,10) > entry.festivalDate ? 'After midnight' : entry.end.slice(0,10) > entry.start.slice(0,10) ? 'Ends next day' : '';
   return `<article data-set-start="${entry.start}" data-set-end="${entry.end}" data-festival-date="${entry.festivalDate}" class="set-card${favorites.has(entry.id) ? ' is-favorite' : ''}${heat ? ' set-card-heat' : ''}" style="--stage-color:${stageColor};--heat-tint:${maximum ? Math.round(count/maximum*28) : 0}%">
     <div class="set-card-main"><div class="set-card-copy">
-      <div class="set-meta"><p class="set-time">${rank ? `<span class="set-rank">${rank}</span>` : ''}${escapeHtml(formatClock(entry.start))} <span>–</span> ${escapeHtml(formatClock(entry.end))}</p><span class="set-stage"><i aria-hidden="true"></i>${escapeHtml(entry.stage)}</span></div>
+      <div class="set-meta"><p class="set-time">${rank ? `<span class="set-rank">${rank}</span>` : ''}${escapeHtml(timeLabel(entry))}</p>${entry.stage==='Stage TBA'?'':`<span class="set-stage"><i aria-hidden="true"></i>${escapeHtml(entry.stage)}</span>`}</div>
       <h3>${escapeHtml(entry.artist)}</h3>
+      ${entry.notes?`<p class="set-note">${escapeHtml(entry.notes)}</p>`:''}
       ${overnight ? `<small class="set-overnight">${overnight}</small>` : ''}
     </div><button class="favorite-button${favorites.has(entry.id) ? ' is-active' : ''}" type="button" data-favorite-id="${escapeHtml(entry.id)}" aria-pressed="${favorites.has(entry.id)}" aria-label="${favorites.has(entry.id)?'Remove':'Add'} ${escapeHtml(entry.artist)} favorite">★</button></div>
     ${rallyManagedFavorites ? `<div class="set-crew">${count ? `<details><summary><span class="set-avatars" aria-hidden="true">${people.slice(0,3).map(person=>`<i>${escapeHtml(person.initials || person.name.slice(0,1))}</i>`).join('')}</span><span>${count} ${count===1?'person':'people'} interested</span><span class="crew-expand">⌄</span></summary><p>${people.map(person=>escapeHtml(person.name)).join(' · ')}</p></details>` : '<span class="set-no-interest">No crew favorites yet</span>'}${maximum ? `<div class="interest-meter" aria-label="${count} interested; most popular set has ${maximum}"><i style="width:${Math.round(count/maximum*100)}%"></i></div>` : ''}</div>` : ''}
   </article>`;
 }
 function renderTimeline(entries) {
+  entries=entries.filter(entry=>entry.start&&entry.end);
   const container=root.getElementById('timeline-view');
   const scrolls=new Map([...container.querySelectorAll('.timeline-scroll')].map(el=>[el.dataset.window,el.scrollLeft]));
   const minutes=value=>Date.parse(value+'Z')/60000;
@@ -907,7 +954,7 @@ function renderMobileSchedule(entries) {
 
 function saveFavorites() {
   if (rallyManagedFavorites) {
-    sendToRally({ type: "rally-lineup-favorites-changed", artistIds: [...favorites] });
+    sendToRally({ type: "rally-lineup-favorites-changed", artistIds: [...new Set([...favorites,...unavailableFavoriteIds])] });
     viewingSharedFavorites = false;
     return;
   }
@@ -928,7 +975,7 @@ function saveFavorites() {
 }
 
 function setView(view) {
-  activeView = view;
+  activeView = view==='timeline'&&!hasTimeline?'table':view;
   render();
 }
 
@@ -1319,13 +1366,13 @@ function bindEvents() {
   els.posterViewButton.addEventListener("click", () => setView("board"));
   els.tableViewButton.addEventListener("click", () => setView("table"));
   els.heatViewButton.addEventListener("click", () => setView("heat"));
-  const timelineButton=document.createElement('button');timelineButton.id='timeline-view-button';timelineButton.type='button';timelineButton.textContent='Timeline';els.heatViewButton.after(timelineButton);timelineButton.onclick=()=>setView('timeline');
+  const timelineButton=document.createElement('button');timelineButton.id='timeline-view-button';timelineButton.type='button';timelineButton.textContent='Timeline';timelineButton.hidden=!hasTimeline;els.heatViewButton.after(timelineButton);timelineButton.onclick=()=>setView('timeline');
   const timeline=document.createElement('section');timeline.id='timeline-view';timeline.hidden=true;timeline.setAttribute('aria-label','Set time timeline');els.tableView.after(timeline);
   els.popularitySort.addEventListener("click", () => {
     const dialog = document.createElement('dialog');
     dialog.className = 'sort-dialog';
     dialog.setAttribute('aria-label', 'Sort sets');
-    const options = [['time','Set time','Earliest sets first'],['popular','Most liked','Your crew’s favorites first'],['artist','Artist A–Z','Alphabetical by artist']].filter(([id])=>id!=='popular'||rallyManagedFavorites);
+    const options = [['time',runningOrderLabel,hasEstimate&&!hasTimes?'Predicted earlier → later; not official':'Earliest known sets first; untimed sets follow'],['popular','Most liked','Your crew’s favorites first'],['artist','Artist A–Z','Alphabetical by artist']].filter(([id])=>id!=='popular'||rallyManagedFavorites);
     dialog.innerHTML = `<header><h2>Sort sets</h2><button type="button" aria-label="Close sort">×</button></header>${options.map(([id,label,description])=>`<button type="button" data-sort="${id}" aria-pressed="${sortMode===id}"><span><strong>${label}</strong><small>${description}</small></span><b>${sortMode===id?'✓':''}</b></button>`).join('')}`;
     container.append(dialog);
     dialog.querySelector('header button').onclick=()=>dialog.close();
@@ -1399,6 +1446,19 @@ function bindEvents() {
   }, {signal:lifetime.signal});
 
   if (rallyManagedFavorites) {
+    const admin=document.createElement('div');admin.className='lineup-admin-actions';admin.hidden=true;
+    admin.innerHTML='<button type="button" class="text-button" data-add>＋ Add artist</button><button type="button" class="text-button" data-edit>Edit lineup</button>';
+    root.querySelector('.status-bar').after(admin);
+    admin.querySelector('[data-add]').onclick=()=>sendToRally({type:'rally-lineup-add'});
+    admin.querySelector('[data-edit]').onclick=()=>{
+      const dialog=document.createElement('dialog');dialog.className='sort-dialog';dialog.setAttribute('aria-label','Edit lineup');
+      dialog.innerHTML='<header><h2>Edit lineup</h2><button type="button" aria-label="Close">×</button></header><input type="search" class="lineup-editor-search" aria-label="Find artist to edit" placeholder="Find artist"><div class="lineup-editor-list"></div>';
+      const input=dialog.querySelector('input'),list=dialog.querySelector('.lineup-editor-list');
+      const draw=()=>{list.innerHTML=lineup.filter(entry=>normalizeText(entry.artist).includes(normalizeText(input.value))).map(entry=>`<button type="button" data-edit-id="${escapeHtml(entry.id)}">${escapeHtml(entry.artist)}<small>${escapeHtml(entry.day)} · ${escapeHtml(timeLabel(entry))}</small></button>`).join('');};
+      input.oninput=draw;draw();dialog.querySelector('header button').onclick=()=>dialog.close();
+      list.onclick=event=>{const button=event.target.closest('[data-edit-id]');if(button){const id=button.dataset.editId;dialog.close();sendToRally({type:'rally-lineup-edit',id});}};
+      dialog.addEventListener('close',()=>dialog.remove());container.append(dialog);dialog.showModal();
+    };
     root.getElementById('manage-days').onclick = () => sendToRally({type:'rally-lineup-manage-days'});
     const reportOverlay = () => sendToRally({type:'rally-lineup-overlay',open:Boolean(root.querySelector('dialog[open]'))||Boolean(root.activeElement?.matches('input:not([type=checkbox]):not([type=range]),textarea,[contenteditable=true]'))});
     overlayObserver = new MutationObserver(reportOverlay);
@@ -1412,8 +1472,10 @@ function bindEvents() {
         forcedReview=event.data.reviewMode===true;
         hiddenLineupDays = new Set((Array.isArray(event.data.hiddenDays) ? event.data.hiddenDays : []).filter(day=>dayOrder.includes(day)));
         root.getElementById('manage-days').hidden = event.data.canManageDays !== true;
+        admin.hidden=event.data.canManageDays!==true||LINEUP_EVENT_ID==='lost-lands-2026';
         groupStateLoaded = true;
         favorites = new Set(event.data.artistIds.flatMap(currentFavoriteIds).filter((id) => validFavoriteIds.has(id)));
+        unavailableFavoriteIds=event.data.artistIds.filter(id=>!currentFavoriteIds(id).some(current=>validFavoriteIds.has(current)));
         lineupInterests = {};
         if (event.data.interests && typeof event.data.interests === "object") {
           Object.entries(event.data.interests).forEach(([artistId, people]) => {

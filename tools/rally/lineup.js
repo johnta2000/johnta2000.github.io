@@ -6,8 +6,9 @@
     if(!instance)return;
     instance.controller.suspend();instance.controller.destroy();instance.element.remove();instance=null;
   }
-  function show({container,key,state,params,onEvent,onParams,shareUrl}){
-    if(instance&&instance.key!==key)destroy();
+  function show({container,key,state,params,onEvent,onParams,shareUrl,event}){
+    const catalogSignature=JSON.stringify(event||null);
+    if(instance&&(instance.key!==key||instance.catalogSignature!==catalogSignature))destroy();
     if(!instance){
       const element=document.createElement('rally-lineup');
       element.setAttribute('aria-label','Festival lineup');
@@ -16,9 +17,9 @@
       root.append(style);
       const template=document.createElement('template');template.innerHTML=RallyLineupTemplate.markup;
       root.append(template.content.cloneNode(true));container.append(element);
-      const integration={params:params||'',shareUrl,isActive:()=>!container.hidden,onEvent,onParams};
+      const integration={params:params||'',shareUrl,event,isActive:()=>!container.hidden,onEvent,onParams};
       const controller=createLostLandsLineup(root,integration);
-      instance={key,element,controller,integration,stateSignature:'',scroll:0};
+      instance={key,catalogSignature,element,controller,integration,stateSignature:'',scroll:0};
     } else if(params!==null&&params!==undefined&&params!==instance.integration.params){
       instance.controller.route(params);instance.scroll=0;
     }
