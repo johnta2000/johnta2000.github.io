@@ -652,7 +652,15 @@ function easternNow() {
   const parts=Object.fromEntries(new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(new Date()).map(part=>[part.type,part.value]));
   return `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}`;
 }
+let forcedReview=false;
+function reviewMode(){return forcedReview || easternNow() >= lineup.reduce((latest,set)=>set.end>latest?set.end:latest,'');}
 function updateScheduleProgress() {
+  if (reviewMode()) {
+    root.querySelectorAll('[data-set-start]').forEach(node=>node.classList.remove('set-ended','set-live'));
+    root.querySelectorAll('.schedule-now').forEach(node=>node.remove());
+    root.querySelectorAll('.timeline-now').forEach(node=>{node.hidden=true;});
+    return;
+  }
   const now=easternNow();
   root.querySelectorAll('[data-set-start]').forEach(node=>{
     node.classList.toggle('set-ended',node.dataset.setEnd<=now);
@@ -867,7 +875,7 @@ return `<section class="timeline-day"><h3>${escapeHtml(day)}</h3><div class="tim
     const marker=el.querySelector('.timeline-now'),start=Number(marker.dataset.start),end=Number(marker.dataset.end);
     const key=`${start}:${end}`;el.dataset.window=key;
     const now=minutes(easternNow());
-    const initial=now>=start&&now<=end?Math.max(0,(now-start)*4-60):0;
+    const initial=!reviewMode()&&now>=start&&now<=end?Math.max(0,(now-start)*4-60):0;
     el.dataset.initialScroll=String(scrolls.has(key)?scrolls.get(key):initial);
   });
 }
@@ -1401,6 +1409,7 @@ function bindEvents() {
       if ((!integration && (event.origin !== window.location.origin || event.source !== window.parent)) || !event.data || typeof event.data !== "object") return;
       if(event.data.type==='rally-lineup-layout'&&Number.isFinite(event.data.bottomInset))surface.style.setProperty('--rally-bottom-clearance',`${Math.max(0,Math.min(240,event.data.bottomInset))}px`);
       if (event.data.type === "rally-lineup-state" && Array.isArray(event.data.artistIds)) {
+        forcedReview=event.data.reviewMode===true;
         hiddenLineupDays = new Set((Array.isArray(event.data.hiddenDays) ? event.data.hiddenDays : []).filter(day=>dayOrder.includes(day)));
         root.getElementById('manage-days').hidden = event.data.canManageDays !== true;
         groupStateLoaded = true;

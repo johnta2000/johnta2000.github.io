@@ -1,0 +1,3 @@
+.event-group-label{display:block;padding:10px 12px;color:#bfc3b2;font-size:11px}
+.past-raves{border-top:1px solid #45483c;margin-top:8px}.past-raves summary{padding:14px 12px;cursor:pointer;font-size:13px;color:#eee}.past-raves summary span{float:right;color:#bfc3b2}.event-menu{max-height:65dvh;overflow:auto}
+.event-history-banner{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 16px;background:#eeefe5;color:#59614d;font-size:12px;flex-shrink:0}.event-history-banner button{min-height:36px;white-space:nowrap;font-size:12px}

@@ -4,6 +4,7 @@ import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { v } from "convex/values";
 import { LOST_LANDS_SET_TIMES, LOST_LANDS_SET_TIMES_META } from "./lostLandsSetTimes";
 import { updateNotes } from "./rallyNotes";
+import { lifecycle, configureLifecycle } from './rallyEventLifecycle';
 import { updateMeetups } from "./rallyMeetups";
 import { locationFix, mergeTrail, sharingWindow, LOST_LANDS_SHARING_WINDOWS } from './rallyLocationRules';
 
@@ -150,6 +151,7 @@ function routeState(state: RallyState, identity: Identity) {
   });
   return {
     ...sharedState,
+    eventEndAt: lifecycle(state).endAt,
     members: state.members.map(({ clerkSubject: _clerkSubject, ...person }: RallyState) => person),
     currentMemberId: member.id,
     currentLineupFavorites: Array.isArray(lineupFavorites[member.id]) ? lineupFavorites[member.id] : [],
@@ -668,7 +670,7 @@ export const listEvents = query({
     const docs = await ctx.db.query("warRoomState").collect();
     return docs.filter((doc) => doc.boardId.startsWith("rally:") && doc.buckets && memberFor(doc.buckets as RallyState, identity)).map((doc) => {
       const state = doc.buckets as RallyState;
-      return { id: state.id, name: state.name, location: state.location, startsAt: state.startsAt, endsAt: state.endsAt };
+      return { id: state.id, name: state.name, location: state.location, startsAt: state.startsAt, endsAt: state.endsAt, eventTimeZone: lifecycle(state).timeZone, eventEndAt: lifecycle(state).endAt, eventVisibility: state.eventVisibility };
     }).sort((a, b) => a.startsAt.localeCompare(b.startsAt));
   },
 });
@@ -787,7 +789,9 @@ export const act = mutation({
     const p = args.payload || {};
     const id = () => crypto.randomUUID();
 
-    if (["add-meetup", "edit-meetup", "delete-meetup", "join-meetup"].includes(args.action)) {
+    if (args.action === 'configure-event-history') {
+      configureLifecycle(state,p,current);
+    } else if (["add-meetup", "edit-meetup", "delete-meetup", "join-meetup"].includes(args.action)) {
       state.meetups = updateMeetups(state.meetups, state.id, args.action, p, current, Date.now(), id);
     } else if (["add-note", "edit-note", "delete-note", "react-note"].includes(args.action)) {
       state.notes = updateNotes(state.notes, args.action, p, current, Date.now(), id);
@@ -913,6 +917,8 @@ const record = { hotel: p.hotel, ...(p.address!==undefined?{address:p.address.tr
       const templateId = String(p.templateId || "festival-weekend");
       if (!EVENT_TEMPLATE_IDS.includes(templateId as typeof EVENT_TEMPLATE_IDS[number])) throw new Error("Choose a valid event template.");
       const templateContent = eventTemplateContent(templateId, state, String(p.startsAt || ""));
+      const eventTimeZone=String(p.eventTimeZone||'America/Los_Angeles');
+      try { new Intl.DateTimeFormat('en-US',{timeZone:eventTimeZone}).format(); } catch { throw new Error('Choose a valid event timezone.'); }
       const created = {
         ...seedState(EDC, identity.email, identity.subject),
         id: eventId,
@@ -921,6 +927,8 @@ const record = { hotel: p.hotel, ...(p.address!==undefined?{address:p.address.tr
         location: p.location,
         startsAt: p.startsAt,
         endsAt: p.endsAt,
+        eventTimeZone,
+        eventVisibility: 'auto',
         createdFromTemplate: templateId,
         rooms: [],
         travel: [],

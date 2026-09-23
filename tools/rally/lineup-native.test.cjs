@@ -154,7 +154,7 @@ test('Rally tab navigation preserves the native lineup and routes meetup set lin
     w.HTMLElement.prototype.scrollIntoView=function(){};
     w.RallyOffline={native:true,select(){},pendingCount:0};
     w.fetch=()=>{throw Error('Unexpected network load while changing tabs');};
-    for(const file of ['../../lost-lands-2026-lineup/set-times.js','../../lost-lands-2026-lineup/controller.js','lineup-template.js','lineup.js','meetups.js'])w.eval(read(file));
+    for(const file of ['../../lost-lands-2026-lineup/set-times.js','../../lost-lands-2026-lineup/controller.js','lineup-template.js','lineup.js','meetups.js','event-lifecycle.js','event-history.js'])w.eval(read(file));
     w.fixture={id:'lost-lands-2026',name:'Lost Lands',location:'Ohio',startsAt:'2026-09-18',endsAt:'2026-09-20',currentMemberId:'john',members:[{id:'john',name:'John'}],isAdmin:true,lineupHiddenDays:['Wednesday','Thursday'],currentLineupFavorites:[],lineupInterests:{},rooms:[],travel:[],cars:[],tasks:[],passes:[],meetups:[],notes:[]};
     w.eval(read('app.js').replace('\ninit();','')+'\ndata=window.fixture;events=[data];activeView="lineup";wireShell();render();window.testNavigate=navigateTo;');
     const element=w.document.querySelector('rally-lineup'),root=element.shadowRoot;
