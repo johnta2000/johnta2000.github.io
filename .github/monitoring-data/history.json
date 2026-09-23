@@ -3,6 +3,53 @@
   "maxRuns": 336,
   "runs": [
     {
+      "id": "2026-09-23T17:07:02.179Z",
+      "monitorId": "paze-directory",
+      "timestamp": "2026-09-23T17:07:02.179Z",
+      "status": "success",
+      "changed": true,
+      "initialized": false,
+      "confirmed": true,
+      "durationMs": 4066,
+      "count": 36,
+      "previousCount": 35,
+      "pagination": {
+        "complete": true,
+        "pagesFetched": 3,
+        "pageCounts": [
+          12,
+          12,
+          12
+        ],
+        "finalPage": 2
+      },
+      "diff": {
+        "added": [
+          "Sephora"
+        ],
+        "removed": [],
+        "renamed": []
+      },
+      "cache": {
+        "runId": "1790183222179",
+        "requestCount": 6,
+        "crawlIds": [
+          "primary",
+          "confirmation"
+        ],
+        "requestIds": [
+          "1790183222182001",
+          "1790183222960002",
+          "1790183223647003",
+          "1790183224275004",
+          "1790183224910005",
+          "1790183225601006"
+        ]
+      },
+      "summary": "1 added, 0 removed, 0 renamed.",
+      "error": null
+    },
+    {
       "id": "2026-09-23T11:43:21.989Z",
       "monitorId": "paze-directory",
       "timestamp": "2026-09-23T11:43:21.989Z",
