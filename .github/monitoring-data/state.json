@@ -1,30 +1,9 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-09-23T04:53:58.940Z",
+  "generatedAt": "2026-09-23T06:01:57.227Z",
   "overallStatus": "healthy",
   "latestEventId": "20260922194708-chase-sapphire-reserve-tables-restaurant-change",
   "monitors": [
-    {
-      "id": "bilt-calculator-ranking",
-      "name": "Bilt calculator ranking",
-      "description": "Tracks the Bilt calculator across Search Console query performance, index health, canonical integrity, and live-page checks.",
-      "configured": false,
-      "status": "not_configured",
-      "sourceUrl": "https://www.nextcard.com/tools/bilt-calculator",
-      "cadence": "Every 6 hours via Codex",
-      "config": {
-        "property": "sc-domain:nextcard.com",
-        "page": "https://www.nextcard.com/tools/bilt-calculator",
-        "queries": [
-          "bilt calculator",
-          "bilt 2.0 calculator",
-          "bilt calculator 2.0",
-          "bilt points calculator",
-          "bilt card calculator"
-        ],
-        "compareWindow": "Finalized 7 days vs previous 7 days"
-      }
-    },
     {
       "id": "paze-directory",
       "name": "Paze merchant directory",
@@ -35,10 +14,10 @@
       "cadence": "Hourly",
       "expectedCount": 33,
       "currentCount": 35,
-      "latestRunAt": "2026-09-23T00:39:32.102Z",
-      "latestSuccessAt": "2026-09-23T00:39:32.102Z",
+      "latestRunAt": "2026-09-23T06:01:57.227Z",
+      "latestSuccessAt": "2026-09-23T06:01:57.227Z",
       "latestChangeAt": "2026-09-21T19:33:08.571Z",
-      "durationMs": 1892,
+      "durationMs": 1807,
       "summary": "No merchant changes across 3 pages.",
       "error": null,
       "pagination": {
@@ -57,15 +36,15 @@
         "renamed": []
       },
       "cache": {
-        "runId": "1790123972102",
+        "runId": "1790143317227",
         "requestCount": 3,
         "crawlIds": [
           "primary"
         ],
         "requestIds": [
-          "1790123972105001",
-          "1790123972881002",
-          "1790123973453003"
+          "1790143317229001",
+          "1790143317873002",
+          "1790143318344003"
         ]
       }
     },
@@ -91,6 +70,27 @@
           "/tools",
           "dining guide"
         ]
+      }
+    },
+    {
+      "id": "bilt-calculator-ranking",
+      "name": "Bilt calculator ranking",
+      "description": "Tracks the Bilt calculator across Search Console query performance, index health, canonical integrity, and live-page checks.",
+      "configured": false,
+      "status": "not_configured",
+      "sourceUrl": "https://www.nextcard.com/tools/bilt-calculator",
+      "cadence": "Every 6 hours via Codex",
+      "config": {
+        "property": "sc-domain:nextcard.com",
+        "page": "https://www.nextcard.com/tools/bilt-calculator",
+        "queries": [
+          "bilt calculator",
+          "bilt 2.0 calculator",
+          "bilt calculator 2.0",
+          "bilt points calculator",
+          "bilt card calculator"
+        ],
+        "compareWindow": "Finalized 7 days vs previous 7 days"
       }
     },
     {
