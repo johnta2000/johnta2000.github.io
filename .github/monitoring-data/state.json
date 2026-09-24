@@ -1,9 +1,30 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-09-24T04:57:10.932Z",
+  "generatedAt": "2026-09-24T05:03:37.131Z",
   "overallStatus": "healthy",
   "latestEventId": "20260923170702-merchant-change",
   "monitors": [
+    {
+      "id": "bilt-calculator-ranking",
+      "name": "Bilt calculator ranking",
+      "description": "Tracks the Bilt calculator across Search Console query performance, index health, canonical integrity, and live-page checks.",
+      "configured": false,
+      "status": "not_configured",
+      "sourceUrl": "https://www.nextcard.com/tools/bilt-calculator",
+      "cadence": "Every 6 hours via Codex",
+      "config": {
+        "property": "sc-domain:nextcard.com",
+        "page": "https://www.nextcard.com/tools/bilt-calculator",
+        "queries": [
+          "bilt calculator",
+          "bilt 2.0 calculator",
+          "bilt calculator 2.0",
+          "bilt points calculator",
+          "bilt card calculator"
+        ],
+        "compareWindow": "Finalized 7 days vs previous 7 days"
+      }
+    },
     {
       "id": "paze-directory",
       "name": "Paze merchant directory",
@@ -73,27 +94,6 @@
       }
     },
     {
-      "id": "bilt-calculator-ranking",
-      "name": "Bilt calculator ranking",
-      "description": "Tracks the Bilt calculator across Search Console query performance, index health, canonical integrity, and live-page checks.",
-      "configured": false,
-      "status": "not_configured",
-      "sourceUrl": "https://www.nextcard.com/tools/bilt-calculator",
-      "cadence": "Every 6 hours via Codex",
-      "config": {
-        "property": "sc-domain:nextcard.com",
-        "page": "https://www.nextcard.com/tools/bilt-calculator",
-        "queries": [
-          "bilt calculator",
-          "bilt 2.0 calculator",
-          "bilt calculator 2.0",
-          "bilt points calculator",
-          "bilt card calculator"
-        ],
-        "compareWindow": "Finalized 7 days vs previous 7 days"
-      }
-    },
-    {
       "id": "transfer-bonus-discovery",
       "name": "Transfer bonus discovery",
       "description": "Scans official issuer and loyalty-program sources for new transfer bonuses, changed terms, and coverage failures.",
@@ -132,10 +132,10 @@
         "https://www.opentable.com/sapphire-reserve/boston"
       ],
       "cadence": "Every 4 hours",
-      "latestRunAt": "2026-09-23T23:00:05.822Z",
-      "latestSuccessAt": "2026-09-23T23:00:05.822Z",
+      "latestRunAt": "2026-09-24T05:03:37.131Z",
+      "latestSuccessAt": "2026-09-24T05:03:37.131Z",
       "latestChangeAt": "2026-09-23T13:43:06.118Z",
-      "durationMs": 789,
+      "durationMs": 620,
       "summary": "No restaurant-list changes across six cities (136 restaurants).",
       "error": null,
       "metrics": {
@@ -344,18 +344,18 @@
           }
         ],
         "cache": {
-          "runId": "1790204405822",
+          "runId": "1790226217131",
           "requestCount": 6,
           "crawlIds": [
             "primary"
           ],
           "requestIds": [
-            "1790204405827001",
-            "1790204405865002",
-            "1790204405866003",
-            "1790204405867004",
-            "1790204405868005",
-            "1790204405869006"
+            "1790226217135001",
+            "1790226217175002",
+            "1790226217176003",
+            "1790226217177004",
+            "1790226217178005",
+            "1790226217179006"
           ]
         }
       }
