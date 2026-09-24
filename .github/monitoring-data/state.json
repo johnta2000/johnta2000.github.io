@@ -1,9 +1,30 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-09-24T10:05:21.093Z",
+  "generatedAt": "2026-09-24T13:37:10.972Z",
   "overallStatus": "healthy",
-  "latestEventId": "20260923170702-merchant-change",
+  "latestEventId": "20260924133710-chase-sapphire-reserve-tables-restaurant-change",
   "monitors": [
+    {
+      "id": "bilt-calculator-ranking",
+      "name": "Bilt calculator ranking",
+      "description": "Tracks the Bilt calculator across Search Console query performance, index health, canonical integrity, and live-page checks.",
+      "configured": false,
+      "status": "not_configured",
+      "sourceUrl": "https://www.nextcard.com/tools/bilt-calculator",
+      "cadence": "Every 6 hours via Codex",
+      "config": {
+        "property": "sc-domain:nextcard.com",
+        "page": "https://www.nextcard.com/tools/bilt-calculator",
+        "queries": [
+          "bilt calculator",
+          "bilt 2.0 calculator",
+          "bilt calculator 2.0",
+          "bilt points calculator",
+          "bilt card calculator"
+        ],
+        "compareWindow": "Finalized 7 days vs previous 7 days"
+      }
+    },
     {
       "id": "paze-directory",
       "name": "Paze merchant directory",
@@ -73,27 +94,6 @@
       }
     },
     {
-      "id": "bilt-calculator-ranking",
-      "name": "Bilt calculator ranking",
-      "description": "Tracks the Bilt calculator across Search Console query performance, index health, canonical integrity, and live-page checks.",
-      "configured": false,
-      "status": "not_configured",
-      "sourceUrl": "https://www.nextcard.com/tools/bilt-calculator",
-      "cadence": "Every 6 hours via Codex",
-      "config": {
-        "property": "sc-domain:nextcard.com",
-        "page": "https://www.nextcard.com/tools/bilt-calculator",
-        "queries": [
-          "bilt calculator",
-          "bilt 2.0 calculator",
-          "bilt calculator 2.0",
-          "bilt points calculator",
-          "bilt card calculator"
-        ],
-        "compareWindow": "Finalized 7 days vs previous 7 days"
-      }
-    },
-    {
       "id": "transfer-bonus-discovery",
       "name": "Transfer bonus discovery",
       "description": "Scans official issuer and loyalty-program sources for new transfer bonuses, changed terms, and coverage failures.",
@@ -132,17 +132,17 @@
         "https://www.opentable.com/sapphire-reserve/boston"
       ],
       "cadence": "Every 4 hours",
-      "latestRunAt": "2026-09-24T05:03:37.131Z",
-      "latestSuccessAt": "2026-09-24T05:03:37.131Z",
-      "latestChangeAt": "2026-09-23T13:43:06.118Z",
-      "durationMs": 620,
-      "summary": "No restaurant-list changes across six cities (136 restaurants).",
+      "latestRunAt": "2026-09-24T13:37:10.972Z",
+      "latestSuccessAt": "2026-09-24T13:37:10.972Z",
+      "latestChangeAt": "2026-09-24T13:37:10.972Z",
+      "durationMs": 3241,
+      "summary": "1 restaurants added and 1 removed across six cities.",
       "error": null,
       "metrics": {
         "restaurantCount": 136,
         "cityCount": 6,
-        "addedCount": 0,
-        "removedCount": 0
+        "addedCount": 1,
+        "removedCount": 1
       },
       "details": {
         "cities": [
@@ -261,8 +261,8 @@
               "Joseph Leonard",
               "Kabawa",
               "l'abeille",
-              "Maddy Rose at Liberty House",
               "Manhatta",
+              "Mitsuru",
               "Momofuku Noodle Bar - East Village",
               "Momofuku Noodle Bar - Uptown",
               "Muku",
@@ -280,8 +280,12 @@
               "Una Pizza Napoletana",
               "Union Square Cafe"
             ],
-            "added": [],
-            "removed": []
+            "added": [
+              "Mitsuru"
+            ],
+            "removed": [
+              "Maddy Rose at Liberty House"
+            ]
           },
           {
             "id": "chicago",
@@ -344,18 +348,25 @@
           }
         ],
         "cache": {
-          "runId": "1790226217131",
-          "requestCount": 6,
+          "runId": "1790257030972",
+          "requestCount": 12,
           "crawlIds": [
-            "primary"
+            "primary",
+            "confirmation"
           ],
           "requestIds": [
-            "1790226217135001",
-            "1790226217175002",
-            "1790226217176003",
-            "1790226217177004",
-            "1790226217178005",
-            "1790226217179006"
+            "1790257030977001",
+            "1790257031015002",
+            "1790257031016003",
+            "1790257031017004",
+            "1790257031018005",
+            "1790257031019006",
+            "1790257032540007",
+            "1790257032541008",
+            "1790257032541009",
+            "1790257032542010",
+            "1790257032542011",
+            "1790257032542012"
           ]
         }
       }
