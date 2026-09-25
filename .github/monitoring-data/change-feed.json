@@ -1,9 +1,27 @@
 {
   "schemaVersion": 1,
   "feedId": "john-ta-monitoring-changes",
-  "generatedAt": "2026-09-25T22:24:30.419Z",
-  "latestEventId": "20260925200342-chase-sapphire-reserve-tables-failure",
+  "generatedAt": "2026-09-25T23:21:00.004Z",
+  "latestEventId": "20260925232100-chase-sapphire-reserve-tables-recovery",
   "events": [
+    {
+      "id": "20260925232100-chase-sapphire-reserve-tables-recovery",
+      "type": "monitor_recovery",
+      "severity": "recovery",
+      "monitorId": "chase-sapphire-reserve-tables",
+      "timestamp": "2026-09-25T23:21:00.004Z",
+      "title": "Chase Exclusive Tables monitor recovered",
+      "summary": "No restaurant-list changes across six cities (136 restaurants).",
+      "dashboardUrl": "https://john-ta.com/tools/monitoring/",
+      "sourceUrls": [
+        "https://www.opentable.com/sapphire-reserve/atlanta",
+        "https://www.opentable.com/sapphire-reserve/san-francisco",
+        "https://www.opentable.com/sapphire-reserve/los-angeles",
+        "https://www.opentable.com/sapphire-reserve/new-york-city",
+        "https://www.opentable.com/sapphire-reserve/chicago",
+        "https://www.opentable.com/sapphire-reserve/boston"
+      ]
+    },
     {
       "id": "20260925200342-chase-sapphire-reserve-tables-failure",
       "type": "monitor_failure",
