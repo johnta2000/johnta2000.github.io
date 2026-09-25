@@ -1,9 +1,30 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-09-25T18:40:08.969Z",
-  "overallStatus": "healthy",
-  "latestEventId": "20260924133710-chase-sapphire-reserve-tables-restaurant-change",
+  "generatedAt": "2026-09-25T20:03:42.816Z",
+  "overallStatus": "attention",
+  "latestEventId": "20260925200342-chase-sapphire-reserve-tables-failure",
   "monitors": [
+    {
+      "id": "bilt-calculator-ranking",
+      "name": "Bilt calculator ranking",
+      "description": "Tracks the Bilt calculator across Search Console query performance, index health, canonical integrity, and live-page checks.",
+      "configured": false,
+      "status": "not_configured",
+      "sourceUrl": "https://www.nextcard.com/tools/bilt-calculator",
+      "cadence": "Every 6 hours via Codex",
+      "config": {
+        "property": "sc-domain:nextcard.com",
+        "page": "https://www.nextcard.com/tools/bilt-calculator",
+        "queries": [
+          "bilt calculator",
+          "bilt 2.0 calculator",
+          "bilt calculator 2.0",
+          "bilt points calculator",
+          "bilt card calculator"
+        ],
+        "compareWindow": "Finalized 7 days vs previous 7 days"
+      }
+    },
     {
       "id": "paze-directory",
       "name": "Paze merchant directory",
@@ -73,27 +94,6 @@
       }
     },
     {
-      "id": "bilt-calculator-ranking",
-      "name": "Bilt calculator ranking",
-      "description": "Tracks the Bilt calculator across Search Console query performance, index health, canonical integrity, and live-page checks.",
-      "configured": false,
-      "status": "not_configured",
-      "sourceUrl": "https://www.nextcard.com/tools/bilt-calculator",
-      "cadence": "Every 6 hours via Codex",
-      "config": {
-        "property": "sc-domain:nextcard.com",
-        "page": "https://www.nextcard.com/tools/bilt-calculator",
-        "queries": [
-          "bilt calculator",
-          "bilt 2.0 calculator",
-          "bilt calculator 2.0",
-          "bilt points calculator",
-          "bilt card calculator"
-        ],
-        "compareWindow": "Finalized 7 days vs previous 7 days"
-      }
-    },
-    {
       "id": "transfer-bonus-discovery",
       "name": "Transfer bonus discovery",
       "description": "Scans official issuer and loyalty-program sources for new transfer bonuses, changed terms, and coverage failures.",
@@ -121,7 +121,7 @@
       "name": "Chase Sapphire Reserve Exclusive Tables",
       "description": "Tracks restaurant-list membership across six OpenTable Sapphire Reserve Exclusive Tables markets.",
       "configured": true,
-      "status": "healthy",
+      "status": "error",
       "sourceUrl": "https://www.opentable.com/sapphire-reserve/atlanta",
       "sourceUrls": [
         "https://www.opentable.com/sapphire-reserve/atlanta",
@@ -132,12 +132,12 @@
         "https://www.opentable.com/sapphire-reserve/boston"
       ],
       "cadence": "Every 4 hours",
-      "latestRunAt": "2026-09-25T13:56:45.535Z",
+      "latestRunAt": "2026-09-25T20:03:42.816Z",
       "latestSuccessAt": "2026-09-25T13:56:45.535Z",
       "latestChangeAt": "2026-09-24T13:37:10.972Z",
-      "durationMs": 803,
-      "summary": "No restaurant-list changes across six cities (136 restaurants).",
-      "error": null,
+      "durationMs": 3409,
+      "summary": "The six-city crawl was incomplete; the last successful restaurant baseline was preserved.",
+      "error": "Chicago: HTTP 404 Not Found",
       "metrics": {
         "restaurantCount": 136,
         "cityCount": 6,
@@ -344,18 +344,22 @@
           }
         ],
         "cache": {
-          "runId": "1790344605535",
-          "requestCount": 6,
+          "runId": "1790366622816",
+          "requestCount": 10,
           "crawlIds": [
             "primary"
           ],
           "requestIds": [
-            "1790344605540001",
-            "1790344605580002",
-            "1790344605581003",
-            "1790344605582004",
-            "1790344605583005",
-            "1790344605584006"
+            "1790366622819001",
+            "1790366622967002",
+            "1790366622968003",
+            "1790366622969004",
+            "1790366622970005",
+            "1790366622971006",
+            "1790366624228007",
+            "1790366624254008",
+            "1790366624274009",
+            "1790366625985010"
           ]
         }
       }

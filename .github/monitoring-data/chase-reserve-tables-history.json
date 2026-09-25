@@ -3,6 +3,42 @@
   "maxRuns": 180,
   "runs": [
     {
+      "id": "2026-09-25T20:03:42.816Z",
+      "monitorId": "chase-sapphire-reserve-tables",
+      "timestamp": "2026-09-25T20:03:42.816Z",
+      "status": "error",
+      "changed": false,
+      "initialized": false,
+      "confirmed": false,
+      "meaningful": true,
+      "eventType": "fetch-failure",
+      "durationMs": 3409,
+      "count": null,
+      "previousCount": 136,
+      "cities": [],
+      "cache": {
+        "runId": "1790366622816",
+        "requestCount": 10,
+        "crawlIds": [
+          "primary"
+        ],
+        "requestIds": [
+          "1790366622819001",
+          "1790366622967002",
+          "1790366622968003",
+          "1790366622969004",
+          "1790366622970005",
+          "1790366622971006",
+          "1790366624228007",
+          "1790366624254008",
+          "1790366624274009",
+          "1790366625985010"
+        ]
+      },
+      "summary": "The six-city crawl was incomplete; the last successful restaurant baseline was preserved.",
+      "error": "Chicago: HTTP 404 Not Found"
+    },
+    {
       "id": "2026-09-25T13:56:45.535Z",
       "monitorId": "chase-sapphire-reserve-tables",
       "timestamp": "2026-09-25T13:56:45.535Z",

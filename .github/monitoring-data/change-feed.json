@@ -1,9 +1,27 @@
 {
   "schemaVersion": 1,
   "feedId": "john-ta-monitoring-changes",
-  "generatedAt": "2026-09-25T18:40:08.969Z",
-  "latestEventId": "20260924133710-chase-sapphire-reserve-tables-restaurant-change",
+  "generatedAt": "2026-09-25T20:03:42.816Z",
+  "latestEventId": "20260925200342-chase-sapphire-reserve-tables-failure",
   "events": [
+    {
+      "id": "20260925200342-chase-sapphire-reserve-tables-failure",
+      "type": "monitor_failure",
+      "severity": "error",
+      "monitorId": "chase-sapphire-reserve-tables",
+      "timestamp": "2026-09-25T20:03:42.816Z",
+      "title": "Chase Exclusive Tables monitor failed",
+      "summary": "Chicago: HTTP 404 Not Found",
+      "dashboardUrl": "https://john-ta.com/tools/monitoring/",
+      "sourceUrls": [
+        "https://www.opentable.com/sapphire-reserve/atlanta",
+        "https://www.opentable.com/sapphire-reserve/san-francisco",
+        "https://www.opentable.com/sapphire-reserve/los-angeles",
+        "https://www.opentable.com/sapphire-reserve/new-york-city",
+        "https://www.opentable.com/sapphire-reserve/chicago",
+        "https://www.opentable.com/sapphire-reserve/boston"
+      ]
+    },
     {
       "id": "20260924133710-chase-sapphire-reserve-tables-restaurant-change",
       "type": "restaurant_change",
