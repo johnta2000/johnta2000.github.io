@@ -194,7 +194,7 @@ export function correctHistoricalCounts(history, baseline) {
   let knownSnapshot = false;
   for (const run of [...history.runs].sort((a, b) => String(b.timestamp).localeCompare(String(a.timestamp)))) {
     if (run.timestamp === baseline.capturedAt) knownSnapshot = true;
-    if (run.collectionVersion === COLLECTION_VERSION && !run.countUnit) {
+    if (run.collectionVersion === COLLECTION_VERSION && run.countUnit !== "unique-restaurants") {
       run.countUnit = "market-listings";
       if (knownSnapshot && run.status !== "error") {
         run.listingCount = run.count;
