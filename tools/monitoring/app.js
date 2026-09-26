@@ -409,7 +409,7 @@ function chaseRunMarkup(run) {
     <details class="run ${failure ? "failure" : run.changed ? "change" : "stable"}"${prominent ? " open" : ""}>
       <summary>
         <span class="run-title"><strong>${escapeHtml(run.summary)}</strong><span>${escapeHtml(fullDate(run.timestamp))}</span></span>
-        <span class="run-meta">${number(run.count)} restaurants</span>
+        <span class="run-meta">${number(run.count)} ${run.countUnit === "market-listings" ? "market listings (legacy)" : "restaurants"}</span>
         <span class="run-meta">${duration(run.durationMs)}</span>
         <span class="badge ${failure ? "error" : run.changed ? "change" : "success"}">${legacy ? "Unverified" : failure ? "Failed" : run.initialized ? "Baseline" : run.changed ? "Change" : "Stable"}</span>
       </summary>
@@ -430,7 +430,7 @@ function chaseDialogMarkup(monitor) {
     <div class="dialog-meta"><p>${escapeHtml(monitor.description)}</p><div><span>${escapeHtml(monitor.cadence)}</span><span>${number(metrics.cityCount)} OpenTable markets</span></div></div>
     ${statusBanner(monitor)}
     <section class="dialog-metrics" aria-label="Chase Exclusive Tables monitor summary">
-      <div><span>Restaurant listings</span><strong>${number(metrics.restaurantCount)}</strong><small>${number(metrics.uniqueRestaurantCount)} unique restaurants; markets may overlap</small></div>
+      <div><span>Restaurants</span><strong>${number(metrics.uniqueRestaurantCount ?? metrics.restaurantCount)}</strong><small>Unique restaurants across all markets</small></div>
       <div><span>Cities</span><strong>${number(metrics.cityCount)}</strong><small>All required on every crawl</small></div>
       <div><span>Latest additions</span><strong>${number(metrics.addedCount)}</strong><small>Confirmed membership changes</small></div>
       <div><span>Latest removals</span><strong>${number(metrics.removedCount)}</strong><small>Never inferred from partial data</small></div>

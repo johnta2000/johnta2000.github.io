@@ -181,6 +181,32 @@ export function needsRebaseline(baseline, sources = CITY_SOURCES) {
     || sources.some(source => !baseline.cities.some(city => city.id === source.id && city.metroId === source.metroId));
 }
 
+export function restaurantTotals(cities, previous = cities) {
+  const keys = new Set(cities.flatMap(city => city.restaurants.map(r => r.key)));
+  const before = new Set(previous.flatMap(city => city.restaurants.map(r => r.key)));
+  return { count: keys.size, previousCount: before.size,
+    listingCount: cities.reduce((sum, city) => sum + city.restaurants.length, 0),
+    addedCount: [...keys].filter(key => !before.has(key)).length,
+    removedCount: [...before].filter(key => !keys.has(key)).length };
+}
+
+export function correctHistoricalCounts(history, baseline) {
+  for (const run of history.runs) {
+    if (run.collectionVersion === COLLECTION_VERSION && !run.countUnit) {
+      run.countUnit = "market-listings";
+      if (run.timestamp === baseline.capturedAt) {
+        run.listingCount = run.count;
+        run.count = restaurantTotals(baseline.cities).count;
+        run.countUnit = "unique-restaurants";
+        if (run.initialized || !run.changed) run.previousCount = run.count;
+        else run.previousCount = null; // Old overlapping totals cannot establish a unique prior count.
+        if (run.initialized) run.summary = `Established a complete ${baseline.cities.length}-market baseline of ${run.count} unique restaurants.`;
+        else if (!run.changed) run.summary = `No restaurant-list changes across ${baseline.cities.length} markets (${run.count} unique restaurants).`;
+      }
+    }
+  }
+}
+
 export function markLegacyClaims(history, feed) {
   for (const run of history.runs) {
     if (run.changed && run.collectionVersion !== COLLECTION_VERSION) {
@@ -256,8 +282,8 @@ function eventId(timestamp, type) {
 function createState({ previousState, run, baseline, feed }) {
   const previousMonitors = Array.isArray(previousState?.monitors) ? previousState.monitors : [];
   const previousMonitor = previousMonitors.find(({ id }) => id === MONITOR_ID) ?? {};
-  const addedCount = run.cities.reduce((sum, city) => sum + city.added.length, 0);
-  const removedCount = run.cities.reduce((sum, city) => sum + city.removed.length, 0);
+  const addedCount = run.addedCount ?? 0;
+  const removedCount = run.removedCount ?? 0;
   const monitor = {
     id: MONITOR_ID,
     name: "Chase Sapphire Reserve Exclusive Tables",
@@ -274,8 +300,9 @@ function createState({ previousState, run, baseline, feed }) {
     summary: run.summary,
     error: run.error,
     metrics: {
-      restaurantCount: baseline.cities.reduce((sum, city) => sum + city.restaurants.length, 0),
-      uniqueRestaurantCount: new Set(baseline.cities.flatMap(city => city.restaurants.map(r => r.key))).size,
+      restaurantCount: restaurantTotals(baseline.cities).count,
+      uniqueRestaurantCount: restaurantTotals(baseline.cities).count,
+      listingCount: restaurantTotals(baseline.cities).listingCount,
       cityCount: baseline.cities.length,
       addedCount,
       removedCount,
@@ -390,17 +417,13 @@ export async function runMonitor({ fetchImpl = fetch, now = () => new Date(), da
       sources,
       cities: first.cities,
     };
-    const totalCount = first.cities.reduce((sum, city) => sum + city.restaurants.length, 0);
-    const previousCount = initialized
-      ? totalCount
-      : baseline.cities.reduce((sum, city) => sum + city.restaurants.length, 0);
-    const addedCount = cities.reduce((sum, city) => sum + city.added.length, 0);
-    const removedCount = cities.reduce((sum, city) => sum + city.removed.length, 0);
+    const totals = restaurantTotals(first.cities, initialized ? first.cities : baseline.cities);
+    const { count: totalCount, previousCount, addedCount, removedCount } = totals;
     const summary = initialized
-      ? `Established a complete ${sources.length}-market baseline of ${totalCount} restaurant listings; coverage corrections are not membership changes.`
+      ? `Established a complete ${sources.length}-market baseline of ${totalCount} unique restaurants; coverage corrections are not membership changes.`
       : changed
-        ? `${addedCount} restaurants added and ${removedCount} removed across ${sources.length} markets.`
-        : `No restaurant-list changes across ${sources.length} markets (${totalCount} restaurant listings).`;
+        ? `${addedCount} unique restaurants added and ${removedCount} removed; market lists changed across ${sources.length} markets.`
+        : `No restaurant-list changes across ${sources.length} markets (${totalCount} unique restaurants).`;
 
     run = {
       id: timestamp,
@@ -415,6 +438,10 @@ export async function runMonitor({ fetchImpl = fetch, now = () => new Date(), da
       eventType: changed ? "restaurant-change" : "status",
       durationMs: Math.round(performance.now() - started),
       count: totalCount,
+      countUnit: "unique-restaurants",
+      listingCount: totals.listingCount,
+      addedCount,
+      removedCount,
       previousCount,
       cities,
       cache: freshness.snapshot(),
@@ -434,7 +461,8 @@ export async function runMonitor({ fetchImpl = fetch, now = () => new Date(), da
       eventType: "fetch-failure",
       durationMs: Math.round(performance.now() - started),
       count: null,
-      previousCount: baseline.cities.reduce((sum, city) => sum + city.restaurants.length, 0) || null,
+      previousCount: restaurantTotals(baseline.cities).count,
+      countUnit: "unique-restaurants",
       cities: [],
       cache: freshness.snapshot(),
       summary: "The full-market crawl was incomplete; the last successful restaurant baseline was preserved.",
@@ -443,6 +471,7 @@ export async function runMonitor({ fetchImpl = fetch, now = () => new Date(), da
   }
 
   let event = null;
+  correctHistoricalCounts(history, baseline);
   if (run.status === "success" && run.initialized) markLegacyClaims(history, feed);
   if (run.changed) {
     event = {
@@ -455,6 +484,7 @@ export async function runMonitor({ fetchImpl = fetch, now = () => new Date(), da
       title: "Chase Sapphire Reserve Exclusive Tables changed",
       summary: run.summary,
       count: run.count,
+      countUnit: run.countUnit,
       cities: run.cities.filter((city) => city.added.length || city.removed.length),
       dashboardUrl: "https://john-ta.com/tools/monitoring/",
       sourceUrls: CITY_SOURCES.map(({ url }) => url),

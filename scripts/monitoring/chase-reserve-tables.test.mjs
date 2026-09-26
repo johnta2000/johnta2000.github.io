@@ -15,6 +15,8 @@ import {
   CITY_SOURCES,
   runMonitor,
   markLegacyClaims,
+  restaurantTotals,
+  correctHistoricalCounts,
 } from "./chase-reserve-tables.mjs";
 import { mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -25,6 +27,21 @@ const page = (names, overrides = {}) => `<h1>Exclusive Tables</h1><script id="pr
   metroId: 8, isLoading: false, activeTab: "reservations", pageNumber: 1, limit: 30,
   totalRestaurantCount: names.length, restaurants: names.map((name, index) => ({ restaurantId: index + 1, name })), ...overrides,
 } } } })}</script>`;
+
+test("headline and change totals count each restaurant ID once across overlapping markets", () => {
+  const a = { key: "opentable:1", name: "Shared restaurant" };
+  const b = { key: "opentable:2", name: "Second" };
+  const previous = [{ restaurants: [a] }, { restaurants: [a] }];
+  const current = [{ restaurants: [a, b] }, { restaurants: [a, b] }];
+  assert.deepEqual(restaurantTotals(current, previous), { count: 2, previousCount: 1, listingCount: 4, addedCount: 1, removedCount: 0 });
+  assert.equal(restaurantTotals([{ restaurants: [a] }], previous).removedCount, 0);
+  const history = { runs: [{ collectionVersion: 2, timestamp: "baseline", initialized: true, count: 4, previousCount: 4 }] };
+  correctHistoricalCounts(history, { capturedAt: "baseline", cities: current });
+  assert.equal(history.runs[0].count, 2);
+  assert.equal(history.runs[0].previousCount, 2);
+  assert.equal(history.runs[0].countUnit, "unique-restaurants");
+  assert.match(history.runs[0].summary, /2 unique restaurants/);
+});
 
 test("normalizes restaurant names and HTML entities", () => {
   assert.equal(cleanName(" O&#x27; by  Claude &amp; Co. "), "O' by Claude & Co.");
