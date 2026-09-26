@@ -30,7 +30,7 @@ test("public page does not reference repository JSON", () => {
 
 test("dashboard assets and authenticated snapshot refresh cannot remain stale", () => {
   assert.match(html, /styles\.css\?v=20260902\.2/);
-  assert.match(html, /app\.js\?v=20260902\.2/);
+  assert.match(html, /app\.js\?v=20260926\.1/);
   assert.match(html, /id="refresh-button"/);
   assert.match(app, /function refreshDashboard/);
   assert.match(app, /visibilitychange/);
@@ -66,7 +66,7 @@ test("hourly workflow syncs with a secret and stores history outside the Pages p
   assert.match(workflow, /git add \.github\/monitoring-data/);
 });
 
-test("Chase Exclusive Tables runs every four hours with complete, fresh six-city crawls", () => {
+test("Chase Exclusive Tables runs every four hours with complete, fresh market crawls", () => {
   assert.match(chaseWorkflow, /cron: "23 \*\/4 \* \* \*"/);
   assert.match(chaseWorkflow, /MONITORING_INGEST_SECRET/);
   assert.match(chaseWorkflow, /group: monitoring-data-writer/);

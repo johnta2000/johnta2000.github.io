@@ -15,7 +15,7 @@ concurrency:
 jobs:
   collect:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
       - name: Check out site
         uses: actions/checkout@v4
@@ -30,7 +30,7 @@ jobs:
       - name: Test collector
         run: node --test scripts/monitoring/chase-reserve-tables.test.mjs
 
-      - name: Collect six OpenTable city lists
+      - name: Collect all pages across 52 OpenTable markets
         id: collect
         continue-on-error: true
         env:

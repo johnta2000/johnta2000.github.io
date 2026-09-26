@@ -4,6 +4,9 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { performance } from "node:perf_hooks";
+import { CITY_SOURCES } from "./chase-reserve-sources.mjs";
+export { CITY_SOURCES };
+export const COLLECTION_VERSION = 2;
 
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(SCRIPT_DIR, "../..");
@@ -12,15 +15,6 @@ const CONVEX_URL = process.env.CONVEX_URL || "https://rapid-shark-565.convex.clo
 const MONITOR_ID = "chase-sapphire-reserve-tables";
 const HISTORY_LIMIT = 180;
 const FEED_LIMIT = 100;
-
-export const CITY_SOURCES = [
-  { id: "atlanta", name: "Atlanta", url: "https://www.opentable.com/sapphire-reserve/atlanta" },
-  { id: "san-francisco", name: "San Francisco", url: "https://www.opentable.com/sapphire-reserve/san-francisco" },
-  { id: "los-angeles", name: "Los Angeles", url: "https://www.opentable.com/sapphire-reserve/los-angeles" },
-  { id: "new-york-city", name: "New York City", url: "https://www.opentable.com/sapphire-reserve/new-york-city" },
-  { id: "chicago", name: "Chicago", url: "https://www.opentable.com/sapphire-reserve/chicago" },
-  { id: "boston", name: "Boston", url: "https://www.opentable.com/sapphire-reserve/boston" },
-];
 
 const paths = {
   baseline: resolve(DATA_DIR, "chase-reserve-tables-baseline.json"),
@@ -63,25 +57,31 @@ export function restaurantKey(value) {
     .replace(/\s+/g, " ");
 }
 
-export function parseCityPage(html, city) {
+export function parseCityPage(html, city, expectedPage = 1) {
   if (!/<h1[^>]*>[\s\S]*?Exclusive Tables[\s\S]*?<\/h1>/i.test(html)) {
     throw new Error(`${city.name} did not contain the Exclusive Tables heading.`);
   }
 
-  const restaurants = [...html.matchAll(/<h3\b[^>]*>([\s\S]*?)<\/h3>/gi)]
-    .map((match) => cleanName(match[1]))
-    .filter(Boolean)
-    .map((name) => ({ name, key: restaurantKey(name) }));
-  const unique = [...new Map(restaurants.map((restaurant) => [restaurant.key, restaurant])).values()];
-
-  if (!unique.length || unique.length > 60) {
-    throw new Error(`${city.name} returned an implausible restaurant count of ${unique.length}.`);
+  const script = html.match(/<script\b[^>]*\bid="primary-window-vars"[^>]*>([\s\S]*?)<\/script>/i);
+  const data = script && JSON.parse(script[1]).windowVariables?.__INITIAL_STATE__?.chaseDiningProgramLanding;
+  if (!data || data.isLoading !== false || data.activeTab !== "reservations"
+    || data.metroId !== city.metroId || data.pageNumber !== expectedPage
+    || !Number.isInteger(data.totalRestaurantCount) || data.totalRestaurantCount < 0 || data.totalRestaurantCount > 2000
+    || !Number.isInteger(data.limit) || data.limit < 1 || data.limit > 200
+    || !Array.isArray(data.restaurants)) {
+    throw new Error(`${city.name}: missing or invalid city/pagination metadata for page ${expectedPage}.`);
   }
-  if (unique.length !== restaurants.length) {
-    throw new Error(`${city.name} contained duplicate normalized restaurant headings.`);
+  const restaurants = data.restaurants.map(({ restaurantId, name }) => {
+    if (!Number.isInteger(restaurantId) || restaurantId <= 0 || typeof name !== "string" || !cleanName(name)) {
+      throw new Error(`${city.name}: invalid restaurant identity on page ${expectedPage}.`);
+    }
+    return { id: String(restaurantId), name: cleanName(name), key: `opentable:${restaurantId}` };
+  });
+  const expectedCount = Math.max(0, Math.min(data.limit, data.totalRestaurantCount - (expectedPage - 1) * data.limit));
+  if (restaurants.length !== expectedCount || new Set(restaurants.map(r => r.key)).size !== restaurants.length) {
+    throw new Error(`${city.name}: incomplete or duplicate restaurants on page ${expectedPage}.`);
   }
-
-  return unique.sort((a, b) => a.key.localeCompare(b.key));
+  return { restaurants, total: data.totalRestaurantCount, pageNumber: data.pageNumber, limit: data.limit };
 }
 
 export function createFreshnessContext({ now = Date.now, runId = String(now()) } = {}) {
@@ -108,6 +108,7 @@ export function createFreshnessContext({ now = Date.now, runId = String(now()) }
 
 export async function fetchWithRetry(city, fetchImpl, {
   attempts = 3,
+  pageNumber = 1,
   crawlId = "primary",
   freshness = createFreshnessContext(),
   wait = (delay) => new Promise((done) => setTimeout(done, delay)),
@@ -116,6 +117,7 @@ export async function fetchWithRetry(city, fetchImpl, {
   for (let attempt = 1; attempt <= attempts; attempt += 1) {
     try {
       const url = new URL(city.url);
+      url.searchParams.set("pageNumber", String(pageNumber));
       url.searchParams.set("_monitor_ts", freshness.next({ crawlId, cityId: city.id, attempt }));
       const response = await fetchImpl(url, {
         cache: "no-store",
@@ -130,7 +132,7 @@ export async function fetchWithRetry(city, fetchImpl, {
         signal: AbortSignal.timeout(25_000),
       });
       if (!response.ok) throw new Error(`HTTP ${response.status} ${response.statusText}`);
-      return parseCityPage(await response.text(), city);
+      return parseCityPage(await response.text(), city, pageNumber);
     } catch (error) {
       lastError = error;
       if (attempt < attempts) await wait(750 * attempt);
@@ -144,11 +146,62 @@ export async function collectCities(fetchImpl = fetch, {
   freshness = createFreshnessContext(),
   sources = CITY_SOURCES,
 } = {}) {
-  const cities = await Promise.all(sources.map(async (city) => ({
-    ...city,
-    restaurants: await fetchWithRetry(city, fetchImpl, { crawlId, freshness }),
-  })));
+  // Bound concurrency as coverage grows. A failure anywhere preserves the entire baseline.
+  const cities = new Array(sources.length);
+  let cursor = 0;
+  const results = await Promise.allSettled(Array.from({ length: Math.min(4, sources.length) }, async () => {
+    while (cursor < sources.length) {
+      const index = cursor++;
+      const city = sources[index];
+      const first = await fetchWithRetry(city, fetchImpl, { crawlId, freshness });
+      const restaurants = [...first.restaurants];
+      const pageCount = Math.max(1, Math.ceil(first.total / first.limit));
+      for (let pageNumber = 2; pageNumber <= pageCount; pageNumber++) {
+        const page = await fetchWithRetry(city, fetchImpl, { crawlId, freshness, pageNumber });
+        if (page.total !== first.total || page.limit !== first.limit) {
+          throw new Error(`${city.name}: pagination totals changed during collection.`);
+        }
+        restaurants.push(...page.restaurants);
+      }
+      if (new Set(restaurants.map(r => r.key)).size !== first.total) {
+        throw new Error(`${city.name}: pagination overlap or missing restaurants; refusing partial list.`);
+      }
+      cities[index] = { ...city, restaurants: restaurants.sort((a, b) => a.key.localeCompare(b.key)),
+        completeness: { total: first.total, pages: pageCount, complete: true } };
+    }
+  }));
+  const failures = results.filter(result => result.status === "rejected");
+  if (failures.length) throw new Error(failures.map(result => result.reason.message).join("; "));
   return { cities, cache: freshness.snapshot() };
+}
+
+export function needsRebaseline(baseline, sources = CITY_SOURCES) {
+  return baseline.collectionVersion !== COLLECTION_VERSION
+    || baseline.cities.length !== sources.length
+    || sources.some(source => !baseline.cities.some(city => city.id === source.id && city.metroId === source.metroId));
+}
+
+export function markLegacyClaims(history, feed) {
+  for (const run of history.runs) {
+    if (run.changed && run.collectionVersion !== COLLECTION_VERSION) {
+      run.legacyClaim = { summary: run.summary, cities: run.cities };
+      run.changed = false;
+      run.confirmed = false;
+      run.meaningful = false;
+      run.eventType = "legacy-unverified";
+      run.summary = "Unverified historical change: the old collector did not read all pages.";
+    }
+  }
+  for (const event of feed.events) {
+    if (event.monitorId === MONITOR_ID && event.type === "restaurant_change" && event.collectionVersion !== COLLECTION_VERSION) {
+      event.legacyClaim = { summary: event.summary, cities: event.cities };
+      event.type = "monitor_correction";
+      event.severity = "info";
+      event.title = "Historical Chase list alert is unverified";
+      event.summary = "This alert came from an incomplete list. A corrected baseline replaces it; it is not evidence of a restaurant joining or leaving.";
+      event.cities = [];
+    }
+  }
 }
 
 export function diffCities(previous = [], current = []) {
@@ -208,7 +261,7 @@ function createState({ previousState, run, baseline, feed }) {
   const monitor = {
     id: MONITOR_ID,
     name: "Chase Sapphire Reserve Exclusive Tables",
-    description: "Tracks restaurant-list membership across six OpenTable Sapphire Reserve Exclusive Tables markets.",
+    description: `Tracks complete restaurant lists across ${CITY_SOURCES.length} OpenTable Sapphire Reserve Exclusive Tables markets.`,
     configured: true,
     status: run.status === "success" ? "healthy" : "error",
     sourceUrl: CITY_SOURCES[0].url,
@@ -216,12 +269,13 @@ function createState({ previousState, run, baseline, feed }) {
     cadence: "Every 4 hours",
     latestRunAt: run.timestamp,
     latestSuccessAt: run.status === "success" ? run.timestamp : previousMonitor.latestSuccessAt ?? null,
-    latestChangeAt: run.changed ? run.timestamp : previousMonitor.latestChangeAt ?? null,
+    latestChangeAt: run.initialized ? null : run.changed ? run.timestamp : previousMonitor.latestChangeAt ?? null,
     durationMs: run.durationMs,
     summary: run.summary,
     error: run.error,
     metrics: {
       restaurantCount: baseline.cities.reduce((sum, city) => sum + city.restaurants.length, 0),
+      uniqueRestaurantCount: new Set(baseline.cities.flatMap(city => city.restaurants.map(r => r.key))).size,
       cityCount: baseline.cities.length,
       addedCount,
       removedCount,
@@ -240,6 +294,7 @@ function createState({ previousState, run, baseline, feed }) {
         };
       }),
       cache: run.cache,
+      collectionVersion: baseline.collectionVersion ?? 1,
     },
   };
 
@@ -281,7 +336,9 @@ async function publishToConvex(snapshot) {
   return result.value;
 }
 
-export async function runMonitor({ fetchImpl = fetch, now = () => new Date() } = {}) {
+export async function runMonitor({ fetchImpl = fetch, now = () => new Date(), dataPaths = paths,
+  sources = CITY_SOURCES, publish = publishToConvex } = {}) {
+  const paths = dataPaths;
   const started = performance.now();
   const startedAt = now();
   const timestamp = startedAt.toISOString();
@@ -309,16 +366,16 @@ export async function runMonitor({ fetchImpl = fetch, now = () => new Date() } =
   let run;
 
   try {
-    const first = await collectCities(fetchImpl, { crawlId: "primary", freshness });
-    const initialized = !baseline.cities.length;
+    const first = await collectCities(fetchImpl, { crawlId: "primary", freshness, sources });
+    const initialized = needsRebaseline(baseline, sources);
     const cities = initialized
       ? first.cities.map((city) => ({ id: city.id, name: city.name, url: city.url, count: city.restaurants.length, previousCount: city.restaurants.length, added: [], removed: [] }))
       : diffCities(baseline.cities, first.cities);
     const changed = !initialized && hasChanges(cities);
     let confirmed = !changed;
 
-    if (changed) {
-      const confirmation = await collectCities(fetchImpl, { crawlId: "confirmation", freshness });
+    if (changed || initialized) {
+      const confirmation = await collectCities(fetchImpl, { crawlId: "confirmation", freshness, sources });
       if (!sameCities(first.cities, confirmation.cities)) {
         throw new Error("A potential restaurant-list change was not reproduced by the confirmation crawl.");
       }
@@ -327,9 +384,10 @@ export async function runMonitor({ fetchImpl = fetch, now = () => new Date() } =
 
     nextBaseline = {
       schemaVersion: 1,
+      collectionVersion: COLLECTION_VERSION,
       monitorId: MONITOR_ID,
       capturedAt: timestamp,
-      sources: CITY_SOURCES,
+      sources,
       cities: first.cities,
     };
     const totalCount = first.cities.reduce((sum, city) => sum + city.restaurants.length, 0);
@@ -339,16 +397,17 @@ export async function runMonitor({ fetchImpl = fetch, now = () => new Date() } =
     const addedCount = cities.reduce((sum, city) => sum + city.added.length, 0);
     const removedCount = cities.reduce((sum, city) => sum + city.removed.length, 0);
     const summary = initialized
-      ? `Validated the initial six-city baseline of ${totalCount} restaurants.`
+      ? `Established a complete ${sources.length}-market baseline of ${totalCount} restaurant listings; coverage corrections are not membership changes.`
       : changed
-        ? `${addedCount} restaurants added and ${removedCount} removed across six cities.`
-        : `No restaurant-list changes across six cities (${totalCount} restaurants).`;
+        ? `${addedCount} restaurants added and ${removedCount} removed across ${sources.length} markets.`
+        : `No restaurant-list changes across ${sources.length} markets (${totalCount} restaurant listings).`;
 
     run = {
       id: timestamp,
       monitorId: MONITOR_ID,
       timestamp,
       status: "success",
+      collectionVersion: COLLECTION_VERSION,
       changed,
       initialized,
       confirmed,
@@ -378,16 +437,18 @@ export async function runMonitor({ fetchImpl = fetch, now = () => new Date() } =
       previousCount: baseline.cities.reduce((sum, city) => sum + city.restaurants.length, 0) || null,
       cities: [],
       cache: freshness.snapshot(),
-      summary: "The six-city crawl was incomplete; the last successful restaurant baseline was preserved.",
+      summary: "The full-market crawl was incomplete; the last successful restaurant baseline was preserved.",
       error: error instanceof Error ? error.message : String(error),
     };
   }
 
   let event = null;
+  if (run.status === "success" && run.initialized) markLegacyClaims(history, feed);
   if (run.changed) {
     event = {
       id: eventId(timestamp, "restaurant-change"),
       type: "restaurant_change",
+      collectionVersion: COLLECTION_VERSION,
       severity: "change",
       monitorId: MONITOR_ID,
       timestamp,
@@ -440,7 +501,7 @@ export async function runMonitor({ fetchImpl = fetch, now = () => new Date() } =
   ]);
 
   try {
-    await publishToConvex({
+    await publish({
       state,
       history: pazeHistory,
       baseline: pazeBaseline,

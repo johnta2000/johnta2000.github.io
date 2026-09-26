@@ -402,15 +402,16 @@ function chaseCityMarkup(city) {
 
 function chaseRunMarkup(run) {
   const failure = run.status === "error" || run.status === "failure";
+  const legacy = run.eventType === "legacy-unverified";
   const prominent = failure || run.changed;
-  const cityChanges = (run.cities ?? []).filter((city) => city.added?.length || city.removed?.length);
+  const cityChanges = legacy ? [] : (run.cities ?? []).filter((city) => city.added?.length || city.removed?.length);
   return `
     <details class="run ${failure ? "failure" : run.changed ? "change" : "stable"}"${prominent ? " open" : ""}>
       <summary>
         <span class="run-title"><strong>${escapeHtml(run.summary)}</strong><span>${escapeHtml(fullDate(run.timestamp))}</span></span>
         <span class="run-meta">${number(run.count)} restaurants</span>
         <span class="run-meta">${duration(run.durationMs)}</span>
-        <span class="badge ${failure ? "error" : run.changed ? "change" : "success"}">${failure ? "Failed" : run.changed ? "Change" : "Stable"}</span>
+        <span class="badge ${failure ? "error" : run.changed ? "change" : "success"}">${legacy ? "Unverified" : failure ? "Failed" : run.initialized ? "Baseline" : run.changed ? "Change" : "Stable"}</span>
       </summary>
       <div class="run-body">
         <div class="run-facts"><span>${number(run.cache?.requestCount)} fresh requests</span><span>Freshness ID: ${escapeHtml(run.cache?.runId ?? "legacy")}</span><span>Confirmation: ${run.confirmed ? "complete" : "not required/incomplete"}</span></div>
@@ -426,22 +427,22 @@ function chaseDialogMarkup(monitor) {
   const latestRun = history[0];
   const latestChange = history.find((run) => run.changed);
   return `
-    <div class="dialog-meta"><p>${escapeHtml(monitor.description)}</p><div><span>${escapeHtml(monitor.cadence)}</span><span>Six OpenTable markets</span></div></div>
+    <div class="dialog-meta"><p>${escapeHtml(monitor.description)}</p><div><span>${escapeHtml(monitor.cadence)}</span><span>${number(metrics.cityCount)} OpenTable markets</span></div></div>
     ${statusBanner(monitor)}
     <section class="dialog-metrics" aria-label="Chase Exclusive Tables monitor summary">
-      <div><span>Restaurants</span><strong>${number(metrics.restaurantCount)}</strong><small>Current validated baseline</small></div>
+      <div><span>Restaurant listings</span><strong>${number(metrics.restaurantCount)}</strong><small>${number(metrics.uniqueRestaurantCount)} unique restaurants; markets may overlap</small></div>
       <div><span>Cities</span><strong>${number(metrics.cityCount)}</strong><small>All required on every crawl</small></div>
       <div><span>Latest additions</span><strong>${number(metrics.addedCount)}</strong><small>Confirmed membership changes</small></div>
       <div><span>Latest removals</span><strong>${number(metrics.removedCount)}</strong><small>Never inferred from partial data</small></div>
     </section>
     <div class="cache-proof"><div><span>Freshness ID</span><code>${escapeHtml(latestRun?.cache?.runId ?? details.cache?.runId ?? "Pending next run")}</code></div><p>${number(latestRun?.cache?.requestCount ?? details.cache?.requestCount)} unique no-store requests · ${escapeHtml((latestRun?.cache?.crawlIds ?? details.cache?.crawlIds ?? []).join(" + ") || "legacy run")}</p></div>
     <section class="dialog-section">
-      <div class="dialog-section-heading"><div><p class="eyebrow">Six-city baseline</p><h3>Current restaurant lists</h3></div><span class="dialog-note">Last change ${escapeHtml(latestChange ? relativeTime(latestChange.timestamp) : "not recorded")}</span></div>
+      <div class="dialog-section-heading"><div><p class="eyebrow">Complete market baseline</p><h3>Current restaurant lists</h3></div><span class="dialog-note">Last change ${escapeHtml(latestChange ? relativeTime(latestChange.timestamp) : "not recorded")}</span></div>
       <div class="city-lists">${(details.cities ?? []).map(chaseCityMarkup).join("")}</div>
     </section>
     <section class="dialog-section">
       <div class="dialog-section-heading"><div><p class="eyebrow">Repository history</p><h3>Recent checks</h3></div><span class="dialog-note">Stable runs are collapsed</span></div>
-      <div class="run-history">${history.length ? history.map(chaseRunMarkup).join("") : `<p class="empty-state">The first six-city run is pending.</p>`}</div>
+      <div class="run-history">${history.length ? history.map(chaseRunMarkup).join("") : `<p class="empty-state">The first complete-market run is pending.</p>`}</div>
     </section>`;
 }
 
