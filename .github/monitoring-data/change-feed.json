@@ -1,33 +1,19 @@
 {
   "schemaVersion": 1,
   "feedId": "john-ta-monitoring-changes",
-  "generatedAt": "2026-09-26T17:13:24.078Z",
+  "generatedAt": "2026-09-26T19:01:26.075Z",
   "latestEventId": "20260926131326-chase-sapphire-reserve-tables-restaurant-change",
   "events": [
     {
       "id": "20260926131326-chase-sapphire-reserve-tables-restaurant-change",
-      "type": "restaurant_change",
-      "severity": "change",
+      "type": "monitor_correction",
+      "severity": "info",
       "monitorId": "chase-sapphire-reserve-tables",
       "timestamp": "2026-09-26T13:13:26.702Z",
-      "title": "Chase Sapphire Reserve Exclusive Tables changed",
-      "summary": "1 restaurants added and 1 removed across six cities.",
+      "title": "Historical Chase list alert is unverified",
+      "summary": "This alert came from an incomplete list. A corrected baseline replaces it; it is not evidence of a restaurant joining or leaving.",
       "count": 136,
-      "cities": [
-        {
-          "id": "new-york-city",
-          "name": "New York City",
-          "url": "https://www.opentable.com/sapphire-reserve/new-york-city",
-          "count": 30,
-          "previousCount": 30,
-          "added": [
-            "Blu on the Hudson"
-          ],
-          "removed": [
-            "Mitsuru"
-          ]
-        }
-      ],
+      "cities": [],
       "dashboardUrl": "https://john-ta.com/tools/monitoring/",
       "sourceUrls": [
         "https://www.opentable.com/sapphire-reserve/atlanta",
@@ -36,7 +22,25 @@
         "https://www.opentable.com/sapphire-reserve/new-york-city",
         "https://www.opentable.com/sapphire-reserve/chicago",
         "https://www.opentable.com/sapphire-reserve/boston"
-      ]
+      ],
+      "legacyClaim": {
+        "summary": "1 restaurants added and 1 removed across six cities.",
+        "cities": [
+          {
+            "id": "new-york-city",
+            "name": "New York City",
+            "url": "https://www.opentable.com/sapphire-reserve/new-york-city",
+            "count": 30,
+            "previousCount": 30,
+            "added": [
+              "Blu on the Hudson"
+            ],
+            "removed": [
+              "Mitsuru"
+            ]
+          }
+        ]
+      }
     },
     {
       "id": "20260925232100-chase-sapphire-reserve-tables-recovery",
@@ -76,28 +80,14 @@
     },
     {
       "id": "20260924133710-chase-sapphire-reserve-tables-restaurant-change",
-      "type": "restaurant_change",
-      "severity": "change",
+      "type": "monitor_correction",
+      "severity": "info",
       "monitorId": "chase-sapphire-reserve-tables",
       "timestamp": "2026-09-24T13:37:10.972Z",
-      "title": "Chase Sapphire Reserve Exclusive Tables changed",
-      "summary": "1 restaurants added and 1 removed across six cities.",
+      "title": "Historical Chase list alert is unverified",
+      "summary": "This alert came from an incomplete list. A corrected baseline replaces it; it is not evidence of a restaurant joining or leaving.",
       "count": 136,
-      "cities": [
-        {
-          "id": "new-york-city",
-          "name": "New York City",
-          "url": "https://www.opentable.com/sapphire-reserve/new-york-city",
-          "count": 30,
-          "previousCount": 30,
-          "added": [
-            "Mitsuru"
-          ],
-          "removed": [
-            "Maddy Rose at Liberty House"
-          ]
-        }
-      ],
+      "cities": [],
       "dashboardUrl": "https://john-ta.com/tools/monitoring/",
       "sourceUrls": [
         "https://www.opentable.com/sapphire-reserve/atlanta",
@@ -106,7 +96,25 @@
         "https://www.opentable.com/sapphire-reserve/new-york-city",
         "https://www.opentable.com/sapphire-reserve/chicago",
         "https://www.opentable.com/sapphire-reserve/boston"
-      ]
+      ],
+      "legacyClaim": {
+        "summary": "1 restaurants added and 1 removed across six cities.",
+        "cities": [
+          {
+            "id": "new-york-city",
+            "name": "New York City",
+            "url": "https://www.opentable.com/sapphire-reserve/new-york-city",
+            "count": 30,
+            "previousCount": 30,
+            "added": [
+              "Mitsuru"
+            ],
+            "removed": [
+              "Maddy Rose at Liberty House"
+            ]
+          }
+        ]
+      }
     },
     {
       "id": "20260923170702-merchant-change",
@@ -129,28 +137,14 @@
     },
     {
       "id": "20260923134306-chase-sapphire-reserve-tables-restaurant-change",
-      "type": "restaurant_change",
-      "severity": "change",
+      "type": "monitor_correction",
+      "severity": "info",
       "monitorId": "chase-sapphire-reserve-tables",
       "timestamp": "2026-09-23T13:43:06.118Z",
-      "title": "Chase Sapphire Reserve Exclusive Tables changed",
-      "summary": "1 restaurants added and 1 removed across six cities.",
+      "title": "Historical Chase list alert is unverified",
+      "summary": "This alert came from an incomplete list. A corrected baseline replaces it; it is not evidence of a restaurant joining or leaving.",
       "count": 136,
-      "cities": [
-        {
-          "id": "new-york-city",
-          "name": "New York City",
-          "url": "https://www.opentable.com/sapphire-reserve/new-york-city",
-          "count": 30,
-          "previousCount": 30,
-          "added": [
-            "Maddy Rose at Liberty House"
-          ],
-          "removed": [
-            "Mitsuru"
-          ]
-        }
-      ],
+      "cities": [],
       "dashboardUrl": "https://john-ta.com/tools/monitoring/",
       "sourceUrls": [
         "https://www.opentable.com/sapphire-reserve/atlanta",
@@ -159,30 +153,36 @@
         "https://www.opentable.com/sapphire-reserve/new-york-city",
         "https://www.opentable.com/sapphire-reserve/chicago",
         "https://www.opentable.com/sapphire-reserve/boston"
-      ]
+      ],
+      "legacyClaim": {
+        "summary": "1 restaurants added and 1 removed across six cities.",
+        "cities": [
+          {
+            "id": "new-york-city",
+            "name": "New York City",
+            "url": "https://www.opentable.com/sapphire-reserve/new-york-city",
+            "count": 30,
+            "previousCount": 30,
+            "added": [
+              "Maddy Rose at Liberty House"
+            ],
+            "removed": [
+              "Mitsuru"
+            ]
+          }
+        ]
+      }
     },
     {
       "id": "20260922194708-chase-sapphire-reserve-tables-restaurant-change",
-      "type": "restaurant_change",
-      "severity": "change",
+      "type": "monitor_correction",
+      "severity": "info",
       "monitorId": "chase-sapphire-reserve-tables",
       "timestamp": "2026-09-22T19:47:08.543Z",
-      "title": "Chase Sapphire Reserve Exclusive Tables changed",
-      "summary": "0 restaurants added and 1 removed across six cities.",
+      "title": "Historical Chase list alert is unverified",
+      "summary": "This alert came from an incomplete list. A corrected baseline replaces it; it is not evidence of a restaurant joining or leaving.",
       "count": 136,
-      "cities": [
-        {
-          "id": "chicago",
-          "name": "Chicago",
-          "url": "https://www.opentable.com/sapphire-reserve/chicago",
-          "count": 28,
-          "previousCount": 29,
-          "added": [],
-          "removed": [
-            "Port Union"
-          ]
-        }
-      ],
+      "cities": [],
       "dashboardUrl": "https://john-ta.com/tools/monitoring/",
       "sourceUrls": [
         "https://www.opentable.com/sapphire-reserve/atlanta",
@@ -191,7 +191,23 @@
         "https://www.opentable.com/sapphire-reserve/new-york-city",
         "https://www.opentable.com/sapphire-reserve/chicago",
         "https://www.opentable.com/sapphire-reserve/boston"
-      ]
+      ],
+      "legacyClaim": {
+        "summary": "0 restaurants added and 1 removed across six cities.",
+        "cities": [
+          {
+            "id": "chicago",
+            "name": "Chicago",
+            "url": "https://www.opentable.com/sapphire-reserve/chicago",
+            "count": 28,
+            "previousCount": 29,
+            "added": [],
+            "removed": [
+              "Port Union"
+            ]
+          }
+        ]
+      }
     },
     {
       "id": "20260921193308-merchant-change",
@@ -214,28 +230,14 @@
     },
     {
       "id": "20260919123403-chase-sapphire-reserve-tables-restaurant-change",
-      "type": "restaurant_change",
-      "severity": "change",
+      "type": "monitor_correction",
+      "severity": "info",
       "monitorId": "chase-sapphire-reserve-tables",
       "timestamp": "2026-09-19T12:34:03.506Z",
-      "title": "Chase Sapphire Reserve Exclusive Tables changed",
-      "summary": "1 restaurants added and 1 removed across six cities.",
+      "title": "Historical Chase list alert is unverified",
+      "summary": "This alert came from an incomplete list. A corrected baseline replaces it; it is not evidence of a restaurant joining or leaving.",
       "count": 137,
-      "cities": [
-        {
-          "id": "san-francisco",
-          "name": "San Francisco",
-          "url": "https://www.opentable.com/sapphire-reserve/san-francisco",
-          "count": 30,
-          "previousCount": 30,
-          "added": [
-            "Camden Spit and Larder"
-          ],
-          "removed": [
-            "Allora"
-          ]
-        }
-      ],
+      "cities": [],
       "dashboardUrl": "https://john-ta.com/tools/monitoring/",
       "sourceUrls": [
         "https://www.opentable.com/sapphire-reserve/atlanta",
@@ -244,30 +246,36 @@
         "https://www.opentable.com/sapphire-reserve/new-york-city",
         "https://www.opentable.com/sapphire-reserve/chicago",
         "https://www.opentable.com/sapphire-reserve/boston"
-      ]
+      ],
+      "legacyClaim": {
+        "summary": "1 restaurants added and 1 removed across six cities.",
+        "cities": [
+          {
+            "id": "san-francisco",
+            "name": "San Francisco",
+            "url": "https://www.opentable.com/sapphire-reserve/san-francisco",
+            "count": 30,
+            "previousCount": 30,
+            "added": [
+              "Camden Spit and Larder"
+            ],
+            "removed": [
+              "Allora"
+            ]
+          }
+        ]
+      }
     },
     {
       "id": "20260917194615-chase-sapphire-reserve-tables-restaurant-change",
-      "type": "restaurant_change",
-      "severity": "change",
+      "type": "monitor_correction",
+      "severity": "info",
       "monitorId": "chase-sapphire-reserve-tables",
       "timestamp": "2026-09-17T19:46:15.791Z",
-      "title": "Chase Sapphire Reserve Exclusive Tables changed",
-      "summary": "1 restaurants added and 0 removed across six cities.",
+      "title": "Historical Chase list alert is unverified",
+      "summary": "This alert came from an incomplete list. A corrected baseline replaces it; it is not evidence of a restaurant joining or leaving.",
       "count": 137,
-      "cities": [
-        {
-          "id": "chicago",
-          "name": "Chicago",
-          "url": "https://www.opentable.com/sapphire-reserve/chicago",
-          "count": 29,
-          "previousCount": 28,
-          "added": [
-            "Port Union"
-          ],
-          "removed": []
-        }
-      ],
+      "cities": [],
       "dashboardUrl": "https://john-ta.com/tools/monitoring/",
       "sourceUrls": [
         "https://www.opentable.com/sapphire-reserve/atlanta",
@@ -276,32 +284,34 @@
         "https://www.opentable.com/sapphire-reserve/new-york-city",
         "https://www.opentable.com/sapphire-reserve/chicago",
         "https://www.opentable.com/sapphire-reserve/boston"
-      ]
+      ],
+      "legacyClaim": {
+        "summary": "1 restaurants added and 0 removed across six cities.",
+        "cities": [
+          {
+            "id": "chicago",
+            "name": "Chicago",
+            "url": "https://www.opentable.com/sapphire-reserve/chicago",
+            "count": 29,
+            "previousCount": 28,
+            "added": [
+              "Port Union"
+            ],
+            "removed": []
+          }
+        ]
+      }
     },
     {
       "id": "20260917133555-chase-sapphire-reserve-tables-restaurant-change",
-      "type": "restaurant_change",
-      "severity": "change",
+      "type": "monitor_correction",
+      "severity": "info",
       "monitorId": "chase-sapphire-reserve-tables",
       "timestamp": "2026-09-17T13:35:55.831Z",
-      "title": "Chase Sapphire Reserve Exclusive Tables changed",
-      "summary": "1 restaurants added and 1 removed across six cities.",
+      "title": "Historical Chase list alert is unverified",
+      "summary": "This alert came from an incomplete list. A corrected baseline replaces it; it is not evidence of a restaurant joining or leaving.",
       "count": 136,
-      "cities": [
-        {
-          "id": "new-york-city",
-          "name": "New York City",
-          "url": "https://www.opentable.com/sapphire-reserve/new-york-city",
-          "count": 30,
-          "previousCount": 30,
-          "added": [
-            "Mitsuru"
-          ],
-          "removed": [
-            "Razza - Jersey City"
-          ]
-        }
-      ],
+      "cities": [],
       "dashboardUrl": "https://john-ta.com/tools/monitoring/",
       "sourceUrls": [
         "https://www.opentable.com/sapphire-reserve/atlanta",
@@ -310,7 +320,25 @@
         "https://www.opentable.com/sapphire-reserve/new-york-city",
         "https://www.opentable.com/sapphire-reserve/chicago",
         "https://www.opentable.com/sapphire-reserve/boston"
-      ]
+      ],
+      "legacyClaim": {
+        "summary": "1 restaurants added and 1 removed across six cities.",
+        "cities": [
+          {
+            "id": "new-york-city",
+            "name": "New York City",
+            "url": "https://www.opentable.com/sapphire-reserve/new-york-city",
+            "count": 30,
+            "previousCount": 30,
+            "added": [
+              "Mitsuru"
+            ],
+            "removed": [
+              "Razza - Jersey City"
+            ]
+          }
+        ]
+      }
     },
     {
       "id": "20260914231003-merchant-change",
@@ -352,26 +380,14 @@
     },
     {
       "id": "20260913222914-chase-sapphire-reserve-tables-restaurant-change",
-      "type": "restaurant_change",
-      "severity": "change",
+      "type": "monitor_correction",
+      "severity": "info",
       "monitorId": "chase-sapphire-reserve-tables",
       "timestamp": "2026-09-13T22:29:14.789Z",
-      "title": "Chase Sapphire Reserve Exclusive Tables changed",
-      "summary": "1 restaurants added and 0 removed across six cities.",
+      "title": "Historical Chase list alert is unverified",
+      "summary": "This alert came from an incomplete list. A corrected baseline replaces it; it is not evidence of a restaurant joining or leaving.",
       "count": 136,
-      "cities": [
-        {
-          "id": "chicago",
-          "name": "Chicago",
-          "url": "https://www.opentable.com/sapphire-reserve/chicago",
-          "count": 28,
-          "previousCount": 27,
-          "added": [
-            "Alinea"
-          ],
-          "removed": []
-        }
-      ],
+      "cities": [],
       "dashboardUrl": "https://john-ta.com/tools/monitoring/",
       "sourceUrls": [
         "https://www.opentable.com/sapphire-reserve/atlanta",
@@ -380,32 +396,34 @@
         "https://www.opentable.com/sapphire-reserve/new-york-city",
         "https://www.opentable.com/sapphire-reserve/chicago",
         "https://www.opentable.com/sapphire-reserve/boston"
-      ]
+      ],
+      "legacyClaim": {
+        "summary": "1 restaurants added and 0 removed across six cities.",
+        "cities": [
+          {
+            "id": "chicago",
+            "name": "Chicago",
+            "url": "https://www.opentable.com/sapphire-reserve/chicago",
+            "count": 28,
+            "previousCount": 27,
+            "added": [
+              "Alinea"
+            ],
+            "removed": []
+          }
+        ]
+      }
     },
     {
       "id": "20260912121338-chase-sapphire-reserve-tables-restaurant-change",
-      "type": "restaurant_change",
-      "severity": "change",
+      "type": "monitor_correction",
+      "severity": "info",
       "monitorId": "chase-sapphire-reserve-tables",
       "timestamp": "2026-09-12T12:13:38.524Z",
-      "title": "Chase Sapphire Reserve Exclusive Tables changed",
-      "summary": "1 restaurants added and 1 removed across six cities.",
+      "title": "Historical Chase list alert is unverified",
+      "summary": "This alert came from an incomplete list. A corrected baseline replaces it; it is not evidence of a restaurant joining or leaving.",
       "count": 135,
-      "cities": [
-        {
-          "id": "san-francisco",
-          "name": "San Francisco",
-          "url": "https://www.opentable.com/sapphire-reserve/san-francisco",
-          "count": 30,
-          "previousCount": 30,
-          "added": [
-            "Allora"
-          ],
-          "removed": [
-            "Camden Spit and Larder"
-          ]
-        }
-      ],
+      "cities": [],
       "dashboardUrl": "https://john-ta.com/tools/monitoring/",
       "sourceUrls": [
         "https://www.opentable.com/sapphire-reserve/atlanta",
@@ -414,32 +432,36 @@
         "https://www.opentable.com/sapphire-reserve/new-york-city",
         "https://www.opentable.com/sapphire-reserve/chicago",
         "https://www.opentable.com/sapphire-reserve/boston"
-      ]
+      ],
+      "legacyClaim": {
+        "summary": "1 restaurants added and 1 removed across six cities.",
+        "cities": [
+          {
+            "id": "san-francisco",
+            "name": "San Francisco",
+            "url": "https://www.opentable.com/sapphire-reserve/san-francisco",
+            "count": 30,
+            "previousCount": 30,
+            "added": [
+              "Allora"
+            ],
+            "removed": [
+              "Camden Spit and Larder"
+            ]
+          }
+        ]
+      }
     },
     {
       "id": "20260911125256-chase-sapphire-reserve-tables-restaurant-change",
-      "type": "restaurant_change",
-      "severity": "change",
+      "type": "monitor_correction",
+      "severity": "info",
       "monitorId": "chase-sapphire-reserve-tables",
       "timestamp": "2026-09-11T12:52:56.129Z",
-      "title": "Chase Sapphire Reserve Exclusive Tables changed",
-      "summary": "1 restaurants added and 1 removed across six cities.",
+      "title": "Historical Chase list alert is unverified",
+      "summary": "This alert came from an incomplete list. A corrected baseline replaces it; it is not evidence of a restaurant joining or leaving.",
       "count": 135,
-      "cities": [
-        {
-          "id": "new-york-city",
-          "name": "New York City",
-          "url": "https://www.opentable.com/sapphire-reserve/new-york-city",
-          "count": 30,
-          "previousCount": 30,
-          "added": [
-            "Razza - Jersey City"
-          ],
-          "removed": [
-            "Maddy Rose at Liberty House"
-          ]
-        }
-      ],
+      "cities": [],
       "dashboardUrl": "https://john-ta.com/tools/monitoring/",
       "sourceUrls": [
         "https://www.opentable.com/sapphire-reserve/atlanta",
@@ -448,32 +470,36 @@
         "https://www.opentable.com/sapphire-reserve/new-york-city",
         "https://www.opentable.com/sapphire-reserve/chicago",
         "https://www.opentable.com/sapphire-reserve/boston"
-      ]
+      ],
+      "legacyClaim": {
+        "summary": "1 restaurants added and 1 removed across six cities.",
+        "cities": [
+          {
+            "id": "new-york-city",
+            "name": "New York City",
+            "url": "https://www.opentable.com/sapphire-reserve/new-york-city",
+            "count": 30,
+            "previousCount": 30,
+            "added": [
+              "Razza - Jersey City"
+            ],
+            "removed": [
+              "Maddy Rose at Liberty House"
+            ]
+          }
+        ]
+      }
     },
     {
       "id": "20260909130105-chase-sapphire-reserve-tables-restaurant-change",
-      "type": "restaurant_change",
-      "severity": "change",
+      "type": "monitor_correction",
+      "severity": "info",
       "monitorId": "chase-sapphire-reserve-tables",
       "timestamp": "2026-09-09T13:01:05.949Z",
-      "title": "Chase Sapphire Reserve Exclusive Tables changed",
-      "summary": "1 restaurants added and 1 removed across six cities.",
+      "title": "Historical Chase list alert is unverified",
+      "summary": "This alert came from an incomplete list. A corrected baseline replaces it; it is not evidence of a restaurant joining or leaving.",
       "count": 135,
-      "cities": [
-        {
-          "id": "new-york-city",
-          "name": "New York City",
-          "url": "https://www.opentable.com/sapphire-reserve/new-york-city",
-          "count": 30,
-          "previousCount": 30,
-          "added": [
-            "Maddy Rose at Liberty House"
-          ],
-          "removed": [
-            "Razza - Jersey City"
-          ]
-        }
-      ],
+      "cities": [],
       "dashboardUrl": "https://john-ta.com/tools/monitoring/",
       "sourceUrls": [
         "https://www.opentable.com/sapphire-reserve/atlanta",
@@ -482,7 +508,25 @@
         "https://www.opentable.com/sapphire-reserve/new-york-city",
         "https://www.opentable.com/sapphire-reserve/chicago",
         "https://www.opentable.com/sapphire-reserve/boston"
-      ]
+      ],
+      "legacyClaim": {
+        "summary": "1 restaurants added and 1 removed across six cities.",
+        "cities": [
+          {
+            "id": "new-york-city",
+            "name": "New York City",
+            "url": "https://www.opentable.com/sapphire-reserve/new-york-city",
+            "count": 30,
+            "previousCount": 30,
+            "added": [
+              "Maddy Rose at Liberty House"
+            ],
+            "removed": [
+              "Razza - Jersey City"
+            ]
+          }
+        ]
+      }
     },
     {
       "id": "20260907203635-merchant-change",
@@ -505,28 +549,14 @@
     },
     {
       "id": "20260906121137-chase-sapphire-reserve-tables-restaurant-change",
-      "type": "restaurant_change",
-      "severity": "change",
+      "type": "monitor_correction",
+      "severity": "info",
       "monitorId": "chase-sapphire-reserve-tables",
       "timestamp": "2026-09-06T12:11:37.279Z",
-      "title": "Chase Sapphire Reserve Exclusive Tables changed",
-      "summary": "1 restaurants added and 1 removed across six cities.",
+      "title": "Historical Chase list alert is unverified",
+      "summary": "This alert came from an incomplete list. A corrected baseline replaces it; it is not evidence of a restaurant joining or leaving.",
       "count": 135,
-      "cities": [
-        {
-          "id": "new-york-city",
-          "name": "New York City",
-          "url": "https://www.opentable.com/sapphire-reserve/new-york-city",
-          "count": 30,
-          "previousCount": 30,
-          "added": [
-            "Razza - Jersey City"
-          ],
-          "removed": [
-            "Maddy Rose at Liberty House"
-          ]
-        }
-      ],
+      "cities": [],
       "dashboardUrl": "https://john-ta.com/tools/monitoring/",
       "sourceUrls": [
         "https://www.opentable.com/sapphire-reserve/atlanta",
@@ -535,32 +565,36 @@
         "https://www.opentable.com/sapphire-reserve/new-york-city",
         "https://www.opentable.com/sapphire-reserve/chicago",
         "https://www.opentable.com/sapphire-reserve/boston"
-      ]
+      ],
+      "legacyClaim": {
+        "summary": "1 restaurants added and 1 removed across six cities.",
+        "cities": [
+          {
+            "id": "new-york-city",
+            "name": "New York City",
+            "url": "https://www.opentable.com/sapphire-reserve/new-york-city",
+            "count": 30,
+            "previousCount": 30,
+            "added": [
+              "Razza - Jersey City"
+            ],
+            "removed": [
+              "Maddy Rose at Liberty House"
+            ]
+          }
+        ]
+      }
     },
     {
       "id": "20260902192538-chase-sapphire-reserve-tables-restaurant-change",
-      "type": "restaurant_change",
-      "severity": "change",
+      "type": "monitor_correction",
+      "severity": "info",
       "monitorId": "chase-sapphire-reserve-tables",
       "timestamp": "2026-09-02T19:25:38.456Z",
-      "title": "Chase Sapphire Reserve Exclusive Tables changed",
-      "summary": "1 restaurants added and 1 removed across six cities.",
+      "title": "Historical Chase list alert is unverified",
+      "summary": "This alert came from an incomplete list. A corrected baseline replaces it; it is not evidence of a restaurant joining or leaving.",
       "count": 135,
-      "cities": [
-        {
-          "id": "san-francisco",
-          "name": "San Francisco",
-          "url": "https://www.opentable.com/sapphire-reserve/san-francisco",
-          "count": 30,
-          "previousCount": 30,
-          "added": [
-            "Saison Wine Bar et Salon"
-          ],
-          "removed": [
-            "Saison Cellar & Wine Bar - San Francisco"
-          ]
-        }
-      ],
+      "cities": [],
       "dashboardUrl": "https://john-ta.com/tools/monitoring/",
       "sourceUrls": [
         "https://www.opentable.com/sapphire-reserve/atlanta",
@@ -569,7 +603,25 @@
         "https://www.opentable.com/sapphire-reserve/new-york-city",
         "https://www.opentable.com/sapphire-reserve/chicago",
         "https://www.opentable.com/sapphire-reserve/boston"
-      ]
+      ],
+      "legacyClaim": {
+        "summary": "1 restaurants added and 1 removed across six cities.",
+        "cities": [
+          {
+            "id": "san-francisco",
+            "name": "San Francisco",
+            "url": "https://www.opentable.com/sapphire-reserve/san-francisco",
+            "count": 30,
+            "previousCount": 30,
+            "added": [
+              "Saison Wine Bar et Salon"
+            ],
+            "removed": [
+              "Saison Cellar & Wine Bar - San Francisco"
+            ]
+          }
+        ]
+      }
     },
     {
       "id": "20260831193506-recovery",

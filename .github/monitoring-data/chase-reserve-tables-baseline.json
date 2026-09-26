@@ -1,625 +1,3381 @@
 {
   "schemaVersion": 1,
+  "collectionVersion": 2,
   "monitorId": "chase-sapphire-reserve-tables",
-  "capturedAt": "2026-09-26T13:13:26.702Z",
+  "capturedAt": "2026-09-26T19:01:26.075Z",
   "sources": [
     {
       "id": "atlanta",
       "name": "Atlanta",
+      "metroId": 16,
       "url": "https://www.opentable.com/sapphire-reserve/atlanta"
     },
     {
-      "id": "san-francisco",
-      "name": "San Francisco",
-      "url": "https://www.opentable.com/sapphire-reserve/san-francisco"
+      "id": "austin",
+      "name": "Austin",
+      "metroId": 33,
+      "url": "https://www.opentable.com/sapphire-reserve/austin"
     },
     {
-      "id": "los-angeles",
-      "name": "Los Angeles",
-      "url": "https://www.opentable.com/sapphire-reserve/los-angeles"
+      "id": "baltimore",
+      "name": "Baltimore",
+      "metroId": 18,
+      "url": "https://www.opentable.com/sapphire-reserve-exclusive-tables?metroId=18"
     },
     {
-      "id": "new-york-city",
-      "name": "New York City",
-      "url": "https://www.opentable.com/sapphire-reserve/new-york-city"
+      "id": "central-coast",
+      "name": "Central Coast",
+      "metroId": 80,
+      "url": "https://www.opentable.com/sapphire-reserve-exclusive-tables?metroId=80"
+    },
+    {
+      "id": "charleston",
+      "name": "Charleston",
+      "metroId": 3781,
+      "url": "https://www.opentable.com/sapphire-reserve/charleston"
+    },
+    {
+      "id": "charlotte",
+      "name": "Charlotte",
+      "metroId": 31,
+      "url": "https://www.opentable.com/sapphire-reserve-exclusive-tables?metroId=31"
     },
     {
       "id": "chicago",
       "name": "Chicago",
+      "metroId": 3,
       "url": "https://www.opentable.com/sapphire-reserve/chicago"
     },
     {
+      "id": "cincinnati",
+      "name": "Cincinnati",
+      "metroId": 90,
+      "url": "https://www.opentable.com/sapphire-reserve-exclusive-tables?metroId=90"
+    },
+    {
+      "id": "cleveland",
+      "name": "Cleveland",
+      "metroId": 52,
+      "url": "https://www.opentable.com/sapphire-reserve-exclusive-tables?metroId=52"
+    },
+    {
+      "id": "columbus",
+      "name": "Columbus",
+      "metroId": 94,
+      "url": "https://www.opentable.com/sapphire-reserve-exclusive-tables?metroId=94"
+    },
+    {
+      "id": "connecticut",
+      "name": "Connecticut",
+      "metroId": 3572,
+      "url": "https://www.opentable.com/sapphire-reserve-exclusive-tables?metroId=3572"
+    },
+    {
+      "id": "dallas",
+      "name": "Dallas",
+      "metroId": 20,
+      "url": "https://www.opentable.com/sapphire-reserve/dallas"
+    },
+    {
+      "id": "denver",
+      "name": "Denver",
+      "metroId": 5,
+      "url": "https://www.opentable.com/sapphire-reserve/denver"
+    },
+    {
+      "id": "detroit",
+      "name": "Detroit",
+      "metroId": 38,
+      "url": "https://www.opentable.com/sapphire-reserve/detroit"
+    },
+    {
       "id": "boston",
-      "name": "Boston",
+      "name": "Greater Boston",
+      "metroId": 7,
       "url": "https://www.opentable.com/sapphire-reserve/boston"
+    },
+    {
+      "id": "greenville",
+      "name": "Greenville",
+      "metroId": 3670,
+      "url": "https://www.opentable.com/sapphire-reserve-exclusive-tables?metroId=3670"
+    },
+    {
+      "id": "hawaii",
+      "name": "Hawaii",
+      "metroId": 34,
+      "url": "https://www.opentable.com/sapphire-reserve/hawaii"
+    },
+    {
+      "id": "houston",
+      "name": "Houston",
+      "metroId": 12,
+      "url": "https://www.opentable.com/sapphire-reserve/houston"
+    },
+    {
+      "id": "jacksonville",
+      "name": "Jacksonville",
+      "metroId": 83,
+      "url": "https://www.opentable.com/sapphire-reserve-exclusive-tables?metroId=83"
+    },
+    {
+      "id": "kansas-city",
+      "name": "Kansas City",
+      "metroId": 87,
+      "url": "https://www.opentable.com/sapphire-reserve-exclusive-tables?metroId=87"
+    },
+    {
+      "id": "las-vegas",
+      "name": "Las Vegas",
+      "metroId": 10,
+      "url": "https://www.opentable.com/sapphire-reserve/las-vegas"
+    },
+    {
+      "id": "los-angeles",
+      "name": "Los Angeles",
+      "metroId": 6,
+      "url": "https://www.opentable.com/sapphire-reserve/los-angeles"
+    },
+    {
+      "id": "maine",
+      "name": "Maine",
+      "metroId": 3569,
+      "url": "https://www.opentable.com/sapphire-reserve-exclusive-tables?metroId=3569"
+    },
+    {
+      "id": "miami",
+      "name": "Miami",
+      "metroId": 17,
+      "url": "https://www.opentable.com/sapphire-reserve/miami"
+    },
+    {
+      "id": "minneapolis",
+      "name": "Minneapolis",
+      "metroId": 46,
+      "url": "https://www.opentable.com/sapphire-reserve/minneapolis"
+    },
+    {
+      "id": "naples",
+      "name": "Naples",
+      "metroId": 86,
+      "url": "https://www.opentable.com/sapphire-reserve-exclusive-tables?metroId=86"
+    },
+    {
+      "id": "nashville",
+      "name": "Nashville",
+      "metroId": 30,
+      "url": "https://www.opentable.com/sapphire-reserve/nashville"
+    },
+    {
+      "id": "new-jersey",
+      "name": "New Jersey",
+      "metroId": 3578,
+      "url": "https://www.opentable.com/sapphire-reserve-exclusive-tables?metroId=3578"
+    },
+    {
+      "id": "new-orleans",
+      "name": "New Orleans",
+      "metroId": 14,
+      "url": "https://www.opentable.com/sapphire-reserve/new-orleans"
+    },
+    {
+      "id": "new-york-city",
+      "name": "New York City",
+      "metroId": 8,
+      "url": "https://www.opentable.com/sapphire-reserve/new-york-city"
+    },
+    {
+      "id": "oklahoma",
+      "name": "Oklahoma",
+      "metroId": 36,
+      "url": "https://www.opentable.com/sapphire-reserve-exclusive-tables?metroId=36"
+    },
+    {
+      "id": "orlando",
+      "name": "Orlando",
+      "metroId": 28,
+      "url": "https://www.opentable.com/sapphire-reserve-exclusive-tables?metroId=28"
+    },
+    {
+      "id": "philadelphia",
+      "name": "Philadelphia",
+      "metroId": 13,
+      "url": "https://www.opentable.com/sapphire-reserve/philadelphia"
+    },
+    {
+      "id": "phoenix",
+      "name": "Phoenix",
+      "metroId": 50,
+      "url": "https://www.opentable.com/sapphire-reserve/phoenix"
+    },
+    {
+      "id": "pittsburgh",
+      "name": "Pittsburgh",
+      "metroId": 62,
+      "url": "https://www.opentable.com/sapphire-reserve-exclusive-tables?metroId=62"
+    },
+    {
+      "id": "portland",
+      "name": "Portland",
+      "metroId": 11,
+      "url": "https://www.opentable.com/sapphire-reserve/portland"
+    },
+    {
+      "id": "raleigh",
+      "name": "Raleigh",
+      "metroId": 22,
+      "url": "https://www.opentable.com/sapphire-reserve-exclusive-tables?metroId=22"
+    },
+    {
+      "id": "rhode-island",
+      "name": "Rhode Island",
+      "metroId": 3568,
+      "url": "https://www.opentable.com/sapphire-reserve-exclusive-tables?metroId=3568"
+    },
+    {
+      "id": "richmond",
+      "name": "Richmond",
+      "metroId": 92,
+      "url": "https://www.opentable.com/sapphire-reserve-exclusive-tables?metroId=92"
+    },
+    {
+      "id": "sacramento",
+      "name": "Sacramento",
+      "metroId": 35,
+      "url": "https://www.opentable.com/sapphire-reserve-exclusive-tables?metroId=35"
+    },
+    {
+      "id": "san-antonio",
+      "name": "San Antonio",
+      "metroId": 19,
+      "url": "https://www.opentable.com/sapphire-reserve/san-antonio"
+    },
+    {
+      "id": "san-diego",
+      "name": "San Diego",
+      "metroId": 15,
+      "url": "https://www.opentable.com/sapphire-reserve/san-diego"
+    },
+    {
+      "id": "san-francisco",
+      "name": "San Francisco",
+      "metroId": 4,
+      "url": "https://www.opentable.com/sapphire-reserve/san-francisco"
+    },
+    {
+      "id": "santa-fe-albuquerque",
+      "name": "Santa Fe / Albuquerque",
+      "metroId": 3741,
+      "url": "https://www.opentable.com/sapphire-reserve/santa-fe-albuquerque"
+    },
+    {
+      "id": "seattle",
+      "name": "Seattle",
+      "metroId": 2,
+      "url": "https://www.opentable.com/sapphire-reserve/seattle"
+    },
+    {
+      "id": "st-louis",
+      "name": "St. Louis",
+      "metroId": 48,
+      "url": "https://www.opentable.com/sapphire-reserve-exclusive-tables?metroId=48"
+    },
+    {
+      "id": "tampa",
+      "name": "Tampa",
+      "metroId": 84,
+      "url": "https://www.opentable.com/sapphire-reserve-exclusive-tables?metroId=84"
+    },
+    {
+      "id": "tulsa",
+      "name": "Tulsa",
+      "metroId": 430,
+      "url": "https://www.opentable.com/sapphire-reserve-exclusive-tables?metroId=430"
+    },
+    {
+      "id": "utah",
+      "name": "Utah",
+      "metroId": 21,
+      "url": "https://www.opentable.com/sapphire-reserve-exclusive-tables?metroId=21"
+    },
+    {
+      "id": "washington-dc",
+      "name": "Washington DC",
+      "metroId": 9,
+      "url": "https://www.opentable.com/sapphire-reserve/washington-dc"
+    },
+    {
+      "id": "west-palm-beach",
+      "name": "West Palm Beach",
+      "metroId": 3483,
+      "url": "https://www.opentable.com/sapphire-reserve-exclusive-tables?metroId=3483"
+    },
+    {
+      "id": "milwaukee",
+      "name": "Wisconsin",
+      "metroId": 26,
+      "url": "https://www.opentable.com/sapphire-reserve/milwaukee"
     }
   ],
   "cities": [
     {
       "id": "atlanta",
       "name": "Atlanta",
+      "metroId": 16,
       "url": "https://www.opentable.com/sapphire-reserve/atlanta",
       "restaurants": [
         {
+          "id": "1016",
           "name": "Canoe",
-          "key": "canoe"
+          "key": "opentable:1016"
         },
         {
-          "name": "Füm",
-          "key": "f m"
-        },
-        {
-          "name": "Lazy Betty",
-          "key": "lazy betty"
-        },
-        {
-          "name": "Little Sparrow",
-          "key": "little sparrow"
-        },
-        {
-          "name": "Marcel",
-          "key": "marcel"
-        },
-        {
+          "id": "1146940",
           "name": "Mujō",
-          "key": "muj"
+          "key": "opentable:1146940"
         },
         {
+          "id": "1194124",
+          "name": "Lazy Betty",
+          "key": "opentable:1194124"
+        },
+        {
+          "id": "1243138",
+          "name": "Little Sparrow",
+          "key": "opentable:1243138"
+        },
+        {
+          "id": "1447969",
+          "name": "Füm",
+          "key": "opentable:1447969"
+        },
+        {
+          "id": "1467913",
           "name": "Rabbit Ears",
-          "key": "rabbit ears"
+          "key": "opentable:1467913"
+        },
+        {
+          "id": "267223",
+          "name": "Marcel",
+          "key": "opentable:267223"
         }
-      ]
+      ],
+      "completeness": {
+        "total": 7,
+        "pages": 1,
+        "complete": true
+      }
     },
     {
-      "id": "san-francisco",
-      "name": "San Francisco",
-      "url": "https://www.opentable.com/sapphire-reserve/san-francisco",
+      "id": "austin",
+      "name": "Austin",
+      "metroId": 33,
+      "url": "https://www.opentable.com/sapphire-reserve/austin",
       "restaurants": [
         {
-          "name": "Angler San Francisco",
-          "key": "angler san francisco"
+          "id": "1017895",
+          "name": "Suerte",
+          "key": "opentable:1017895"
         },
         {
-          "name": "Aziza",
-          "key": "aziza"
+          "id": "1031956",
+          "name": "Hestia",
+          "key": "opentable:1031956"
         },
         {
-          "name": "Bodega SF",
-          "key": "bodega sf"
+          "id": "1076002",
+          "name": "Nixta Taqueria - Austin",
+          "key": "opentable:1076002"
         },
         {
-          "name": "Burdell",
-          "key": "burdell"
+          "id": "1131643",
+          "name": "Comedor",
+          "key": "opentable:1131643"
         },
         {
-          "name": "Californios",
-          "key": "californios"
+          "id": "1201576",
+          "name": "Canje",
+          "key": "opentable:1201576"
         },
         {
-          "name": "Camden Spit and Larder",
-          "key": "camden spit and larder"
+          "id": "1263979",
+          "name": "Este",
+          "key": "opentable:1263979"
         },
         {
-          "name": "Chez Noir",
-          "key": "chez noir"
+          "id": "1362343",
+          "name": "Birdie's (Limited Reservations - Walk-in Always Available)",
+          "key": "opentable:1362343"
         },
         {
-          "name": "Commis",
-          "key": "commis"
+          "id": "1430638",
+          "name": "Le Calamar",
+          "key": "opentable:1430638"
         },
         {
-          "name": "Dalida",
-          "key": "dalida"
+          "id": "190567",
+          "name": "Emmer & Rye",
+          "key": "opentable:190567"
         },
         {
-          "name": "Ernest",
-          "key": "ernest"
+          "id": "214576",
+          "name": "Red Ash Italia",
+          "key": "opentable:214576"
         },
         {
-          "name": "Frances",
-          "key": "frances"
-        },
-        {
-          "name": "Gary Danko",
-          "key": "gary danko"
-        },
-        {
-          "name": "Hilda and Jesse",
-          "key": "hilda and jesse"
-        },
-        {
-          "name": "House of Prime Rib",
-          "key": "house of prime rib"
-        },
-        {
-          "name": "Maria Isabel",
-          "key": "maria isabel"
-        },
-        {
-          "name": "Niku Steakhouse",
-          "key": "niku steakhouse"
-        },
-        {
-          "name": "Nisei",
-          "key": "nisei"
-        },
-        {
-          "name": "O' by Claude Le Tohic",
-          "key": "o by claude le tohic"
-        },
-        {
-          "name": "Omakase",
-          "key": "omakase"
-        },
-        {
-          "name": "Popoca",
-          "key": "popoca"
-        },
-        {
-          "name": "PRESS Restaurant",
-          "key": "press restaurant"
-        },
-        {
-          "name": "Rich Table",
-          "key": "rich table"
-        },
-        {
-          "name": "Saison",
-          "key": "saison"
-        },
-        {
-          "name": "Saison Wine Bar et Salon",
-          "key": "saison wine bar et salon"
-        },
-        {
-          "name": "Selby's",
-          "key": "selby s"
-        },
-        {
-          "name": "SingleThread Restaurant & Inn",
-          "key": "singlethread restaurant and inn"
-        },
-        {
-          "name": "State Bird Provisions",
-          "key": "state bird provisions"
-        },
-        {
-          "name": "The Anchovy Bar",
-          "key": "the anchovy bar"
-        },
-        {
-          "name": "The Happy Crane",
-          "key": "the happy crane"
-        },
-        {
-          "name": "The Progress",
-          "key": "the progress"
+          "id": "985267",
+          "name": "Kemuri Tatsu-ya",
+          "key": "opentable:985267"
         }
-      ]
+      ],
+      "completeness": {
+        "total": 11,
+        "pages": 1,
+        "complete": true
+      }
     },
     {
-      "id": "los-angeles",
-      "name": "Los Angeles",
-      "url": "https://www.opentable.com/sapphire-reserve/los-angeles",
+      "id": "baltimore",
+      "name": "Baltimore",
+      "metroId": 18,
+      "url": "https://www.opentable.com/sapphire-reserve-exclusive-tables?metroId=18",
       "restaurants": [
         {
-          "name": "Amiga Amore",
-          "key": "amiga amore"
+          "id": "1085224",
+          "name": "Xiquet by Danny Lledó",
+          "key": "opentable:1085224"
         },
         {
-          "name": "Anajak Thai Cuisine",
-          "key": "anajak thai cuisine"
+          "id": "1125733",
+          "name": "Queen's English",
+          "key": "opentable:1125733"
         },
         {
-          "name": "Antico Nuovo",
-          "key": "antico nuovo"
+          "id": "1126906",
+          "name": "Jônt",
+          "key": "opentable:1126906"
         },
         {
-          "name": "Baroo",
-          "key": "baroo"
+          "id": "1145458",
+          "name": "Dauphine's",
+          "key": "opentable:1145458"
         },
         {
-          "name": "Barra Santos",
-          "key": "barra santos"
+          "id": "1203007",
+          "name": "The Duck and the Peach",
+          "key": "opentable:1203007"
         },
         {
-          "name": "Bavel",
-          "key": "bavel"
+          "id": "1243099",
+          "name": "Amazonia",
+          "key": "opentable:1243099"
         },
         {
-          "name": "Bestia",
-          "key": "bestia"
+          "id": "1254943",
+          "name": "MARTA",
+          "key": "opentable:1254943"
         },
         {
-          "name": "Camélia",
-          "key": "cam lia"
+          "id": "1263940",
+          "name": "Naja Mediterranean",
+          "key": "opentable:1263940"
         },
         {
-          "name": "chi SPACCA",
-          "key": "chi spacca"
+          "id": "1294048",
+          "name": "The Ruxton",
+          "key": "opentable:1294048"
         },
         {
-          "name": "Citrin",
-          "key": "citrin"
+          "id": "1328176",
+          "name": "Moon Rabbit by Kevin Tien",
+          "key": "opentable:1328176"
         },
         {
-          "name": "Delilah - Los Angeles",
-          "key": "delilah los angeles"
+          "id": "1363879",
+          "name": "Causa",
+          "key": "opentable:1363879"
         },
         {
-          "name": "Dunsmoor",
-          "key": "dunsmoor"
+          "id": "1382911",
+          "name": "El Taller del Xiquet",
+          "key": "opentable:1382911"
         },
         {
-          "name": "Found Oyster",
-          "key": "found oyster"
+          "id": "1393801",
+          "name": "Chai Pani",
+          "key": "opentable:1393801"
         },
         {
-          "name": "Gwen",
-          "key": "gwen"
+          "id": "1417888",
+          "name": "Elmina",
+          "key": "opentable:1417888"
         },
         {
-          "name": "Harriet's",
-          "key": "harriet s"
+          "id": "1478707",
+          "name": "Rye Bunny",
+          "key": "opentable:1478707"
         },
         {
-          "name": "Hermon's",
-          "key": "hermon s"
+          "id": "152956",
+          "name": "Azumi",
+          "key": "opentable:152956"
         },
         {
-          "name": "Kato",
-          "key": "kato"
+          "id": "169819",
+          "name": "Centrolina",
+          "key": "opentable:169819"
         },
         {
-          "name": "La Dolce Vita",
-          "key": "la dolce vita"
+          "id": "2069",
+          "name": "Old Ebbitt Grill",
+          "key": "opentable:2069"
         },
         {
-          "name": "Loreto",
-          "key": "loreto"
+          "id": "252517",
+          "name": "Thip Khao",
+          "key": "opentable:252517"
         },
         {
-          "name": "Majordōmo",
-          "key": "majord mo"
-        },
-        {
-          "name": "Meteora",
-          "key": "meteora"
-        },
-        {
-          "name": "Osteria Mozza",
-          "key": "osteria mozza"
-        },
-        {
-          "name": "Petit Trois Le Valley",
-          "key": "petit trois le valley"
-        },
-        {
-          "name": "Queen's Raw Bar & Grill",
-          "key": "queen s raw bar and grill"
-        },
-        {
-          "name": "Rasarumah",
-          "key": "rasarumah"
-        },
-        {
-          "name": "Republique",
-          "key": "republique"
-        },
-        {
-          "name": "Steak 48 - Beverly Hills",
-          "key": "steak 48 beverly hills"
-        },
-        {
-          "name": "Super Peach",
-          "key": "super peach"
-        },
-        {
-          "name": "The Nice Guy",
-          "key": "the nice guy"
-        },
-        {
-          "name": "Vespertine",
-          "key": "vespertine"
+          "id": "992542",
+          "name": "Bresca",
+          "key": "opentable:992542"
         }
-      ]
+      ],
+      "completeness": {
+        "total": 20,
+        "pages": 1,
+        "complete": true
+      }
     },
     {
-      "id": "new-york-city",
-      "name": "New York City",
-      "url": "https://www.opentable.com/sapphire-reserve/new-york-city",
+      "id": "central-coast",
+      "name": "Central Coast",
+      "metroId": 80,
+      "url": "https://www.opentable.com/sapphire-reserve-exclusive-tables?metroId=80",
       "restaurants": [
         {
-          "name": "Altro Paradiso",
-          "key": "altro paradiso"
-        },
-        {
-          "name": "Bar Kabawa",
-          "key": "bar kabawa"
-        },
-        {
-          "name": "Blu on the Hudson",
-          "key": "blu on the hudson"
-        },
-        {
-          "name": "Casa Mono",
-          "key": "casa mono"
-        },
-        {
-          "name": "Ci Siamo",
-          "key": "ci siamo"
-        },
-        {
-          "name": "Don Angie",
-          "key": "don angie"
-        },
-        {
-          "name": "Estela",
-          "key": "estela"
-        },
-        {
-          "name": "Fairfax",
-          "key": "fairfax"
-        },
-        {
-          "name": "Hawksmoor NYC",
-          "key": "hawksmoor nyc"
-        },
-        {
-          "name": "Jeffrey's Grocery",
-          "key": "jeffrey s grocery"
-        },
-        {
-          "name": "Joseph Leonard",
-          "key": "joseph leonard"
-        },
-        {
-          "name": "Kabawa",
-          "key": "kabawa"
-        },
-        {
-          "name": "l'abeille",
-          "key": "l abeille"
-        },
-        {
-          "name": "Manhatta",
-          "key": "manhatta"
-        },
-        {
-          "name": "Momofuku Noodle Bar - East Village",
-          "key": "momofuku noodle bar east village"
-        },
-        {
-          "name": "Momofuku Noodle Bar - Uptown",
-          "key": "momofuku noodle bar uptown"
-        },
-        {
-          "name": "Muku",
-          "key": "muku"
-        },
-        {
-          "name": "Musaafer - New York",
-          "key": "musaafer new york"
-        },
-        {
-          "name": "Parcelle Chinatown",
-          "key": "parcelle chinatown"
-        },
-        {
-          "name": "Phoenix Palace",
-          "key": "phoenix palace"
-        },
-        {
-          "name": "Potluck Club",
-          "key": "potluck club"
-        },
-        {
-          "name": "Red Hook Tavern",
-          "key": "red hook tavern"
-        },
-        {
-          "name": "Sailor",
-          "key": "sailor"
-        },
-        {
-          "name": "San Sabino",
-          "key": "san sabino"
-        },
-        {
-          "name": "Sunn's",
-          "key": "sunn s"
-        },
-        {
-          "name": "The Dining Room at Gramercy Tavern",
-          "key": "the dining room at gramercy tavern"
-        },
-        {
-          "name": "The Tavern at Gramercy Tavern",
-          "key": "the tavern at gramercy tavern"
-        },
-        {
-          "name": "Tolo",
-          "key": "tolo"
-        },
-        {
-          "name": "Una Pizza Napoletana",
-          "key": "una pizza napoletana"
-        },
-        {
-          "name": "Union Square Cafe",
-          "key": "union square cafe"
+          "id": "1142419",
+          "name": "Bell's",
+          "key": "opentable:1142419"
         }
-      ]
+      ],
+      "completeness": {
+        "total": 1,
+        "pages": 1,
+        "complete": true
+      }
+    },
+    {
+      "id": "charleston",
+      "name": "Charleston",
+      "metroId": 3781,
+      "url": "https://www.opentable.com/sapphire-reserve/charleston",
+      "restaurants": [
+        {
+          "id": "1080685",
+          "name": "Tempest",
+          "key": "opentable:1080685"
+        },
+        {
+          "id": "1186804",
+          "name": "Southbound",
+          "key": "opentable:1186804"
+        },
+        {
+          "id": "1202641",
+          "name": "Ma'am Saab",
+          "key": "opentable:1202641"
+        },
+        {
+          "id": "4574",
+          "name": "Oak Steakhouse - Charleston",
+          "key": "opentable:4574"
+        }
+      ],
+      "completeness": {
+        "total": 4,
+        "pages": 1,
+        "complete": true
+      }
+    },
+    {
+      "id": "charlotte",
+      "name": "Charlotte",
+      "metroId": 31,
+      "url": "https://www.opentable.com/sapphire-reserve-exclusive-tables?metroId=31",
+      "restaurants": [
+        {
+          "id": "1175428",
+          "name": "La Belle Helene",
+          "key": "opentable:1175428"
+        },
+        {
+          "id": "36331",
+          "name": "Fin & Fino - Birkdale Village",
+          "key": "opentable:36331"
+        },
+        {
+          "id": "459310",
+          "name": "The Goodyear House",
+          "key": "opentable:459310"
+        },
+        {
+          "id": "45982",
+          "name": "Customshop",
+          "key": "opentable:45982"
+        },
+        {
+          "id": "994744",
+          "name": "Fin & Fino - Uptown Charlotte",
+          "key": "opentable:994744"
+        }
+      ],
+      "completeness": {
+        "total": 5,
+        "pages": 1,
+        "complete": true
+      }
     },
     {
       "id": "chicago",
       "name": "Chicago",
+      "metroId": 3,
       "url": "https://www.opentable.com/sapphire-reserve/chicago",
       "restaurants": [
         {
-          "name": "After",
-          "key": "after"
-        },
-        {
-          "name": "Alinea",
-          "key": "alinea"
-        },
-        {
-          "name": "Alla Vita",
-          "key": "alla vita"
-        },
-        {
+          "id": "1034299",
           "name": "Anelya",
-          "key": "anelya"
+          "key": "opentable:1034299"
         },
         {
-          "name": "avec River North",
-          "key": "avec river north"
-        },
-        {
-          "name": "avec West Loop",
-          "key": "avec west loop"
-        },
-        {
-          "name": "Boka",
-          "key": "boka"
-        },
-        {
-          "name": "Brasero",
-          "key": "brasero"
-        },
-        {
-          "name": "Cariño",
-          "key": "cari o"
-        },
-        {
-          "name": "Chicago Cut Steakhouse",
-          "key": "chicago cut steakhouse"
-        },
-        {
-          "name": "Daisies Chicago",
-          "key": "daisies chicago"
-        },
-        {
-          "name": "Elske",
-          "key": "elske"
-        },
-        {
-          "name": "Ever",
-          "key": "ever"
-        },
-        {
-          "name": "Fioretta",
-          "key": "fioretta"
-        },
-        {
-          "name": "Gingie",
-          "key": "gingie"
-        },
-        {
-          "name": "Hawksmoor Chicago",
-          "key": "hawksmoor chicago"
-        },
-        {
+          "id": "1094179",
           "name": "Kasama",
-          "key": "kasama"
+          "key": "opentable:1094179"
         },
         {
-          "name": "Lula Cafe",
-          "key": "lula cafe"
+          "id": "110383",
+          "name": "avec West Loop",
+          "key": "opentable:110383"
         },
         {
-          "name": "Mariscos San Pedro",
-          "key": "mariscos san pedro"
+          "id": "1124866",
+          "name": "Ever",
+          "key": "opentable:1124866"
         },
         {
-          "name": "Mirra",
-          "key": "mirra"
+          "id": "1173529",
+          "name": "Alla Vita",
+          "key": "opentable:1173529"
         },
         {
-          "name": "Momotaro",
-          "key": "momotaro"
+          "id": "1178452",
+          "name": "avec River North",
+          "key": "opentable:1178452"
         },
         {
-          "name": "Mott Street",
-          "key": "mott street"
-        },
-        {
-          "name": "NORIKO",
-          "key": "noriko"
-        },
-        {
+          "id": "1242919",
           "name": "Obelix",
-          "key": "obelix"
+          "key": "opentable:1242919"
         },
         {
+          "id": "1254556",
+          "name": "Fioretta",
+          "key": "opentable:1254556"
+        },
+        {
+          "id": "1327507",
+          "name": "Brasero",
+          "key": "opentable:1327507"
+        },
+        {
+          "id": "1329796",
           "name": "PERILLA korean steakhouse",
-          "key": "perilla korean steakhouse"
+          "key": "opentable:1329796"
         },
         {
-          "name": "PIZZ'AMICI",
-          "key": "pizz amici"
+          "id": "1333864",
+          "name": "After",
+          "key": "opentable:1333864"
         },
         {
-          "name": "Prime & Provisions Steakhouse",
-          "key": "prime and provisions steakhouse"
+          "id": "1336225",
+          "name": "Cariño",
+          "key": "opentable:1336225"
         },
         {
+          "id": "13429",
           "name": "Sepia",
-          "key": "sepia"
+          "key": "opentable:13429"
+        },
+        {
+          "id": "1342963",
+          "name": "Hawksmoor Chicago",
+          "key": "opentable:1342963"
+        },
+        {
+          "id": "1374934",
+          "name": "Mirra",
+          "key": "opentable:1374934"
+        },
+        {
+          "id": "1379245",
+          "name": "Mariscos San Pedro",
+          "key": "opentable:1379245"
+        },
+        {
+          "id": "1384651",
+          "name": "NORIKO",
+          "key": "opentable:1384651"
+        },
+        {
+          "id": "1401511",
+          "name": "PIZZ'AMICI",
+          "key": "opentable:1401511"
+        },
+        {
+          "id": "1486714",
+          "name": "Gingie",
+          "key": "opentable:1486714"
+        },
+        {
+          "id": "150529",
+          "name": "Momotaro",
+          "key": "opentable:150529"
+        },
+        {
+          "id": "160909",
+          "name": "Prime & Provisions Steakhouse",
+          "key": "opentable:160909"
+        },
+        {
+          "id": "211456",
+          "name": "Mott Street",
+          "key": "opentable:211456"
+        },
+        {
+          "id": "2581",
+          "name": "Boka",
+          "key": "opentable:2581"
+        },
+        {
+          "id": "342505",
+          "name": "Elske",
+          "key": "opentable:342505"
+        },
+        {
+          "id": "47026",
+          "name": "Chicago Cut Steakhouse",
+          "key": "opentable:47026"
+        },
+        {
+          "id": "5982",
+          "name": "Alinea",
+          "key": "opentable:5982"
+        },
+        {
+          "id": "73804",
+          "name": "Lula Cafe",
+          "key": "opentable:73804"
+        },
+        {
+          "id": "985999",
+          "name": "Daisies Chicago",
+          "key": "opentable:985999"
         }
-      ]
+      ],
+      "completeness": {
+        "total": 28,
+        "pages": 1,
+        "complete": true
+      }
+    },
+    {
+      "id": "cincinnati",
+      "name": "Cincinnati",
+      "metroId": 90,
+      "url": "https://www.opentable.com/sapphire-reserve-exclusive-tables?metroId=90",
+      "restaurants": [
+        {
+          "id": "174625",
+          "name": "Mita's Restaurant",
+          "key": "opentable:174625"
+        }
+      ],
+      "completeness": {
+        "total": 1,
+        "pages": 1,
+        "complete": true
+      }
+    },
+    {
+      "id": "cleveland",
+      "name": "Cleveland",
+      "metroId": 52,
+      "url": "https://www.opentable.com/sapphire-reserve-exclusive-tables?metroId=52",
+      "restaurants": [
+        {
+          "id": "113230",
+          "name": "Edwins Restaurant",
+          "key": "opentable:113230"
+        },
+        {
+          "id": "1262269",
+          "name": "Cordelia - Cleveland",
+          "key": "opentable:1262269"
+        },
+        {
+          "id": "37129",
+          "name": "DANTE",
+          "key": "opentable:37129"
+        },
+        {
+          "id": "730174",
+          "name": "GINKO",
+          "key": "opentable:730174"
+        }
+      ],
+      "completeness": {
+        "total": 4,
+        "pages": 1,
+        "complete": true
+      }
+    },
+    {
+      "id": "columbus",
+      "name": "Columbus",
+      "metroId": 94,
+      "url": "https://www.opentable.com/sapphire-reserve-exclusive-tables?metroId=94",
+      "restaurants": [
+        {
+          "id": "1308352",
+          "name": "Cento - German Village",
+          "key": "opentable:1308352"
+        },
+        {
+          "id": "1355707",
+          "name": "Del Mar - Easton",
+          "key": "opentable:1355707"
+        },
+        {
+          "id": "1359466",
+          "name": "Butcher & Rose",
+          "key": "opentable:1359466"
+        },
+        {
+          "id": "35398",
+          "name": "Tucci's - Dublin",
+          "key": "opentable:35398"
+        }
+      ],
+      "completeness": {
+        "total": 4,
+        "pages": 1,
+        "complete": true
+      }
+    },
+    {
+      "id": "connecticut",
+      "name": "Connecticut",
+      "metroId": 3572,
+      "url": "https://www.opentable.com/sapphire-reserve-exclusive-tables?metroId=3572",
+      "restaurants": [
+        {
+          "id": "15679",
+          "name": "The North Fork Table & Inn",
+          "key": "opentable:15679"
+        },
+        {
+          "id": "234631",
+          "name": "Sag Harbor Tavern",
+          "key": "opentable:234631"
+        }
+      ],
+      "completeness": {
+        "total": 2,
+        "pages": 1,
+        "complete": true
+      }
+    },
+    {
+      "id": "dallas",
+      "name": "Dallas",
+      "metroId": 20,
+      "url": "https://www.opentable.com/sapphire-reserve/dallas",
+      "restaurants": [
+        {
+          "id": "1028692",
+          "name": "The Charles",
+          "key": "opentable:1028692"
+        },
+        {
+          "id": "1082074",
+          "name": "Encina",
+          "key": "opentable:1082074"
+        },
+        {
+          "id": "1206154",
+          "name": "Sister",
+          "key": "opentable:1206154"
+        },
+        {
+          "id": "1287916",
+          "name": "El Carlos Elegante",
+          "key": "opentable:1287916"
+        },
+        {
+          "id": "1311778",
+          "name": "Mister Charles",
+          "key": "opentable:1311778"
+        },
+        {
+          "id": "1344892",
+          "name": "Delilah - Dallas",
+          "key": "opentable:1344892"
+        },
+        {
+          "id": "1352134",
+          "name": "Mamani",
+          "key": "opentable:1352134"
+        },
+        {
+          "id": "1363519",
+          "name": "MĀBO",
+          "key": "opentable:1363519"
+        },
+        {
+          "id": "1386199",
+          "name": "Tei-An",
+          "key": "opentable:1386199"
+        },
+        {
+          "id": "26161",
+          "name": "Nick & Sam's Steakhouse",
+          "key": "opentable:26161"
+        },
+        {
+          "id": "264862",
+          "name": "Town Hearth",
+          "key": "opentable:264862"
+        }
+      ],
+      "completeness": {
+        "total": 11,
+        "pages": 1,
+        "complete": true
+      }
+    },
+    {
+      "id": "denver",
+      "name": "Denver",
+      "metroId": 5,
+      "url": "https://www.opentable.com/sapphire-reserve/denver",
+      "restaurants": [
+        {
+          "id": "1032190",
+          "name": "Ash'Kara",
+          "key": "opentable:1032190"
+        },
+        {
+          "id": "1055374",
+          "name": "BRUTØ",
+          "key": "opentable:1055374"
+        },
+        {
+          "id": "1121020",
+          "name": "Rootstalk",
+          "key": "opentable:1121020"
+        },
+        {
+          "id": "1254562",
+          "name": "A5 Steakhouse",
+          "key": "opentable:1254562"
+        },
+        {
+          "id": "1295056",
+          "name": "KUMOYA",
+          "key": "opentable:1295056"
+        },
+        {
+          "id": "1351888",
+          "name": "Xiquita",
+          "key": "opentable:1351888"
+        },
+        {
+          "id": "1356574",
+          "name": "Alma Fonda Fina",
+          "key": "opentable:1356574"
+        },
+        {
+          "id": "1362967",
+          "name": "Osteria Alberico",
+          "key": "opentable:1362967"
+        },
+        {
+          "id": "1366918",
+          "name": "Pizzeria Alberico",
+          "key": "opentable:1366918"
+        },
+        {
+          "id": "1380001",
+          "name": "Cozobi Fonda Fina",
+          "key": "opentable:1380001"
+        },
+        {
+          "id": "1393783",
+          "name": "Mezcaleria Alma",
+          "key": "opentable:1393783"
+        },
+        {
+          "id": "1410958",
+          "name": "Alteno",
+          "key": "opentable:1410958"
+        },
+        {
+          "id": "349867",
+          "name": "Four by Brother Luck",
+          "key": "opentable:349867"
+        },
+        {
+          "id": "3591",
+          "name": "Rioja",
+          "key": "opentable:3591"
+        },
+        {
+          "id": "3961",
+          "name": "Frasca Food and Wine",
+          "key": "opentable:3961"
+        },
+        {
+          "id": "443986",
+          "name": "El Five",
+          "key": "opentable:443986"
+        },
+        {
+          "id": "647245",
+          "name": "Tavernetta Denver",
+          "key": "opentable:647245"
+        }
+      ],
+      "completeness": {
+        "total": 17,
+        "pages": 1,
+        "complete": true
+      }
+    },
+    {
+      "id": "detroit",
+      "name": "Detroit",
+      "metroId": 38,
+      "url": "https://www.opentable.com/sapphire-reserve/detroit",
+      "restaurants": [
+        {
+          "id": "1270135",
+          "name": "Ladder 4 Wine Bar",
+          "key": "opentable:1270135"
+        },
+        {
+          "id": "1280422",
+          "name": "BARDA",
+          "key": "opentable:1280422"
+        },
+        {
+          "id": "1281100",
+          "name": "Bar Pigalle",
+          "key": "opentable:1281100"
+        },
+        {
+          "id": "1492291",
+          "name": "Pine Hall",
+          "key": "opentable:1492291"
+        },
+        {
+          "id": "348049",
+          "name": "Standby",
+          "key": "opentable:348049"
+        }
+      ],
+      "completeness": {
+        "total": 5,
+        "pages": 1,
+        "complete": true
+      }
     },
     {
       "id": "boston",
-      "name": "Boston",
+      "name": "Greater Boston",
+      "metroId": 7,
       "url": "https://www.opentable.com/sapphire-reserve/boston",
       "restaurants": [
         {
-          "name": "Bar Volpe",
-          "key": "bar volpe"
-        },
-        {
-          "name": "Celeste",
-          "key": "celeste"
-        },
-        {
-          "name": "Comfort Kitchen",
-          "key": "comfort kitchen"
-        },
-        {
-          "name": "Fox & The Knife",
-          "key": "fox and the knife"
-        },
-        {
-          "name": "Grill 23 & Bar",
-          "key": "grill 23 and bar"
-        },
-        {
-          "name": "Harvest",
-          "key": "harvest"
-        },
-        {
+          "id": "1081357",
           "name": "Krasi",
-          "key": "krasi"
+          "key": "opentable:1081357"
         },
         {
+          "id": "1182802",
+          "name": "Celeste",
+          "key": "opentable:1182802"
+        },
+        {
+          "id": "1186147",
+          "name": "Fox & The Knife",
+          "key": "opentable:1186147"
+        },
+        {
+          "id": "1235005",
           "name": "La Royal",
-          "key": "la royal"
+          "key": "opentable:1235005"
         },
         {
+          "id": "1239685",
+          "name": "Bar Volpe",
+          "key": "opentable:1239685"
+        },
+        {
+          "id": "1267699",
           "name": "Mahaniyom",
-          "key": "mahaniyom"
+          "key": "opentable:1267699"
         },
         {
+          "id": "1277473",
+          "name": "Comfort Kitchen",
+          "key": "opentable:1277473"
+        },
+        {
+          "id": "1281943",
           "name": "Umbria",
-          "key": "umbria"
+          "key": "opentable:1281943"
         },
         {
+          "id": "145852",
           "name": "Uni",
-          "key": "uni"
+          "key": "opentable:145852"
+        },
+        {
+          "id": "3324",
+          "name": "Harvest",
+          "key": "opentable:3324"
+        },
+        {
+          "id": "3325",
+          "name": "Grill 23 & Bar",
+          "key": "opentable:3325"
         }
-      ]
+      ],
+      "completeness": {
+        "total": 11,
+        "pages": 1,
+        "complete": true
+      }
+    },
+    {
+      "id": "greenville",
+      "name": "Greenville",
+      "metroId": 3670,
+      "url": "https://www.opentable.com/sapphire-reserve-exclusive-tables?metroId=3670",
+      "restaurants": [
+        {
+          "id": "1179502",
+          "name": "CAMP",
+          "key": "opentable:1179502"
+        },
+        {
+          "id": "1219888",
+          "name": "O-Ku - Greenville",
+          "key": "opentable:1219888"
+        },
+        {
+          "id": "15505",
+          "name": "The Lazy Goat",
+          "key": "opentable:15505"
+        },
+        {
+          "id": "5523",
+          "name": "Soby's",
+          "key": "opentable:5523"
+        }
+      ],
+      "completeness": {
+        "total": 4,
+        "pages": 1,
+        "complete": true
+      }
+    },
+    {
+      "id": "hawaii",
+      "name": "Hawaii",
+      "metroId": 34,
+      "url": "https://www.opentable.com/sapphire-reserve/hawaii",
+      "restaurants": [
+        {
+          "id": "1025950",
+          "name": "PARIS.HAWAII",
+          "key": "opentable:1025950"
+        },
+        {
+          "id": "1028296",
+          "name": "Lineage Maui",
+          "key": "opentable:1028296"
+        },
+        {
+          "id": "113182",
+          "name": "MW Restaurant",
+          "key": "opentable:113182"
+        },
+        {
+          "id": "1202191",
+          "name": "MĀZE",
+          "key": "opentable:1202191"
+        },
+        {
+          "id": "191104",
+          "name": "The Pig and the Lady",
+          "key": "opentable:191104"
+        },
+        {
+          "id": "992686",
+          "name": "Senia",
+          "key": "opentable:992686"
+        }
+      ],
+      "completeness": {
+        "total": 6,
+        "pages": 1,
+        "complete": true
+      }
+    },
+    {
+      "id": "houston",
+      "name": "Houston",
+      "metroId": 12,
+      "url": "https://www.opentable.com/sapphire-reserve/houston",
+      "restaurants": [
+        {
+          "id": "1044355",
+          "name": "Musaafer - Houston",
+          "key": "opentable:1044355"
+        },
+        {
+          "id": "1094611",
+          "name": "Bludorn",
+          "key": "opentable:1094611"
+        },
+        {
+          "id": "1125094",
+          "name": "Rosie Cannonball",
+          "key": "opentable:1125094"
+        },
+        {
+          "id": "1183306",
+          "name": "Street To Kitchen",
+          "key": "opentable:1183306"
+        },
+        {
+          "id": "1250380",
+          "name": "JŪN",
+          "key": "opentable:1250380"
+        },
+        {
+          "id": "1285744",
+          "name": "Turner's Cut",
+          "key": "opentable:1285744"
+        },
+        {
+          "id": "1287517",
+          "name": "March",
+          "key": "opentable:1287517"
+        },
+        {
+          "id": "12943",
+          "name": "Kiran's",
+          "key": "opentable:12943"
+        },
+        {
+          "id": "1343998",
+          "name": "Bar Bludorn - Memorial",
+          "key": "opentable:1343998"
+        },
+        {
+          "id": "1346272",
+          "name": "ChopnBlok",
+          "key": "opentable:1346272"
+        },
+        {
+          "id": "1349077",
+          "name": "Maximo",
+          "key": "opentable:1349077"
+        },
+        {
+          "id": "1362895",
+          "name": "Agnes and Sherman",
+          "key": "opentable:1362895"
+        },
+        {
+          "id": "1369285",
+          "name": "Októ",
+          "key": "opentable:1369285"
+        },
+        {
+          "id": "1370332",
+          "name": "Lee's",
+          "key": "opentable:1370332"
+        },
+        {
+          "id": "151036",
+          "name": "BCN Taste & Tradition",
+          "key": "opentable:151036"
+        }
+      ],
+      "completeness": {
+        "total": 15,
+        "pages": 1,
+        "complete": true
+      }
+    },
+    {
+      "id": "jacksonville",
+      "name": "Jacksonville",
+      "metroId": 83,
+      "url": "https://www.opentable.com/sapphire-reserve-exclusive-tables?metroId=83",
+      "restaurants": [
+        {
+          "id": "1076017",
+          "name": "Midtown Table",
+          "key": "opentable:1076017"
+        },
+        {
+          "id": "4248",
+          "name": "Matthew's Restaurant",
+          "key": "opentable:4248"
+        },
+        {
+          "id": "991921",
+          "name": "Rue Saint-Marc",
+          "key": "opentable:991921"
+        }
+      ],
+      "completeness": {
+        "total": 3,
+        "pages": 1,
+        "complete": true
+      }
+    },
+    {
+      "id": "kansas-city",
+      "name": "Kansas City",
+      "metroId": 87,
+      "url": "https://www.opentable.com/sapphire-reserve-exclusive-tables?metroId=87",
+      "restaurants": [
+        {
+          "id": "213010",
+          "name": "JJ's Restaurant",
+          "key": "opentable:213010"
+        },
+        {
+          "id": "21460",
+          "name": "Room 39 - Midtown",
+          "key": "opentable:21460"
+        },
+        {
+          "id": "4391",
+          "name": "Pierpont's at Union Station",
+          "key": "opentable:4391"
+        }
+      ],
+      "completeness": {
+        "total": 3,
+        "pages": 1,
+        "complete": true
+      }
+    },
+    {
+      "id": "las-vegas",
+      "name": "Las Vegas",
+      "metroId": 10,
+      "url": "https://www.opentable.com/sapphire-reserve/las-vegas",
+      "restaurants": [
+        {
+          "id": "1032643",
+          "name": "Ada's",
+          "key": "opentable:1032643"
+        },
+        {
+          "id": "1108297",
+          "name": "Al Solito Posto",
+          "key": "opentable:1108297"
+        },
+        {
+          "id": "443854",
+          "name": "Esther's Kitchen",
+          "key": "opentable:443854"
+        }
+      ],
+      "completeness": {
+        "total": 3,
+        "pages": 1,
+        "complete": true
+      }
+    },
+    {
+      "id": "los-angeles",
+      "name": "Los Angeles",
+      "metroId": 6,
+      "url": "https://www.opentable.com/sapphire-reserve/los-angeles",
+      "restaurants": [
+        {
+          "id": "1018735",
+          "name": "Petit Trois Le Valley",
+          "key": "opentable:1018735"
+        },
+        {
+          "id": "1030063",
+          "name": "Harriet's",
+          "key": "opentable:1030063"
+        },
+        {
+          "id": "1070095",
+          "name": "Citrin",
+          "key": "opentable:1070095"
+        },
+        {
+          "id": "109594",
+          "name": "Republique",
+          "key": "opentable:109594"
+        },
+        {
+          "id": "1108360",
+          "name": "Antico Nuovo",
+          "key": "opentable:1108360"
+        },
+        {
+          "id": "1218280",
+          "name": "Dunsmoor",
+          "key": "opentable:1218280"
+        },
+        {
+          "id": "1224289",
+          "name": "Meteora",
+          "key": "opentable:1224289"
+        },
+        {
+          "id": "1252330",
+          "name": "Loreto",
+          "key": "opentable:1252330"
+        },
+        {
+          "id": "1263853",
+          "name": "Steak 48 - Beverly Hills",
+          "key": "opentable:1263853"
+        },
+        {
+          "id": "1286056",
+          "name": "Amiga Amore",
+          "key": "opentable:1286056"
+        },
+        {
+          "id": "1296898",
+          "name": "Ocean 48 - Newport",
+          "key": "opentable:1296898"
+        },
+        {
+          "id": "1305016",
+          "name": "Barra Santos",
+          "key": "opentable:1305016"
+        },
+        {
+          "id": "1305019",
+          "name": "Found Oyster",
+          "key": "opentable:1305019"
+        },
+        {
+          "id": "1307437",
+          "name": "Baroo",
+          "key": "opentable:1307437"
+        },
+        {
+          "id": "1361119",
+          "name": "Camélia",
+          "key": "opentable:1361119"
+        },
+        {
+          "id": "1363024",
+          "name": "Queen's Raw Bar & Grill",
+          "key": "opentable:1363024"
+        },
+        {
+          "id": "1380181",
+          "name": "Super Peach",
+          "key": "opentable:1380181"
+        },
+        {
+          "id": "1406359",
+          "name": "Rasarumah",
+          "key": "opentable:1406359"
+        },
+        {
+          "id": "14410",
+          "name": "Osteria Mozza",
+          "key": "opentable:14410"
+        },
+        {
+          "id": "1459006",
+          "name": "Hermon's",
+          "key": "opentable:1459006"
+        },
+        {
+          "id": "149638",
+          "name": "The Nice Guy",
+          "key": "opentable:149638"
+        },
+        {
+          "id": "267124",
+          "name": "Kato",
+          "key": "opentable:267124"
+        },
+        {
+          "id": "335365",
+          "name": "Delilah - Los Angeles",
+          "key": "opentable:335365"
+        },
+        {
+          "id": "3366",
+          "name": "La Dolce Vita",
+          "key": "opentable:3366"
+        },
+        {
+          "id": "347503",
+          "name": "Gwen",
+          "key": "opentable:347503"
+        },
+        {
+          "id": "543",
+          "name": "Melisse",
+          "key": "opentable:543"
+        },
+        {
+          "id": "64306",
+          "name": "chi SPACCA",
+          "key": "opentable:64306"
+        },
+        {
+          "id": "872608",
+          "name": "Anajak Thai Cuisine",
+          "key": "opentable:872608"
+        },
+        {
+          "id": "96412",
+          "name": "Bestia",
+          "key": "opentable:96412"
+        },
+        {
+          "id": "987409",
+          "name": "Bavel",
+          "key": "opentable:987409"
+        },
+        {
+          "id": "987574",
+          "name": "Vespertine",
+          "key": "opentable:987574"
+        },
+        {
+          "id": "991372",
+          "name": "Majordōmo",
+          "key": "opentable:991372"
+        }
+      ],
+      "completeness": {
+        "total": 32,
+        "pages": 2,
+        "complete": true
+      }
+    },
+    {
+      "id": "maine",
+      "name": "Maine",
+      "metroId": 3569,
+      "url": "https://www.opentable.com/sapphire-reserve-exclusive-tables?metroId=3569",
+      "restaurants": [
+        {
+          "id": "1260742",
+          "name": "REGARDS",
+          "key": "opentable:1260742"
+        },
+        {
+          "id": "1409023",
+          "name": "Mr. Tuna",
+          "key": "opentable:1409023"
+        },
+        {
+          "id": "1411564",
+          "name": "Benny's",
+          "key": "opentable:1411564"
+        }
+      ],
+      "completeness": {
+        "total": 3,
+        "pages": 1,
+        "complete": true
+      }
+    },
+    {
+      "id": "miami",
+      "name": "Miami",
+      "metroId": 17,
+      "url": "https://www.opentable.com/sapphire-reserve/miami",
+      "restaurants": [
+        {
+          "id": "1054648",
+          "name": "MILA",
+          "key": "opentable:1054648"
+        },
+        {
+          "id": "1143052",
+          "name": "Luca Osteria",
+          "key": "opentable:1143052"
+        },
+        {
+          "id": "1154731",
+          "name": "Zitz Sum",
+          "key": "opentable:1154731"
+        },
+        {
+          "id": "1191517",
+          "name": "Cafe La Trova",
+          "key": "opentable:1191517"
+        },
+        {
+          "id": "1209250",
+          "name": "Krüs Kitchen",
+          "key": "opentable:1209250"
+        },
+        {
+          "id": "1209367",
+          "name": "Los Félix Miami",
+          "key": "opentable:1209367"
+        },
+        {
+          "id": "1265611",
+          "name": "Taki Omakase - Delray",
+          "key": "opentable:1265611"
+        },
+        {
+          "id": "1275226",
+          "name": "Taki Omakase- Boca Raton",
+          "key": "opentable:1275226"
+        },
+        {
+          "id": "1322215",
+          "name": "Delilah - Miami",
+          "key": "opentable:1322215"
+        }
+      ],
+      "completeness": {
+        "total": 9,
+        "pages": 1,
+        "complete": true
+      }
+    },
+    {
+      "id": "minneapolis",
+      "name": "Minneapolis",
+      "metroId": 46,
+      "url": "https://www.opentable.com/sapphire-reserve/minneapolis",
+      "restaurants": [
+        {
+          "id": "1050022",
+          "name": "Baldamar",
+          "key": "opentable:1050022"
+        },
+        {
+          "id": "1234930",
+          "name": "P.S. Steak",
+          "key": "opentable:1234930"
+        },
+        {
+          "id": "1235059",
+          "name": "Indígena by Owamni",
+          "key": "opentable:1235059"
+        },
+        {
+          "id": "1235161",
+          "name": "Myriel",
+          "key": "opentable:1235161"
+        },
+        {
+          "id": "1316911",
+          "name": "Porzana",
+          "key": "opentable:1316911"
+        }
+      ],
+      "completeness": {
+        "total": 5,
+        "pages": 1,
+        "complete": true
+      }
+    },
+    {
+      "id": "naples",
+      "name": "Naples",
+      "metroId": 86,
+      "url": "https://www.opentable.com/sapphire-reserve-exclusive-tables?metroId=86",
+      "restaurants": [
+        {
+          "id": "118438",
+          "name": "Ocean Prime - Naples",
+          "key": "opentable:118438"
+        },
+        {
+          "id": "1416820",
+          "name": "Blackbird Modern Asian - Naples",
+          "key": "opentable:1416820"
+        },
+        {
+          "id": "1442737",
+          "name": "Oise Ristorante - Fort Myers",
+          "key": "opentable:1442737"
+        }
+      ],
+      "completeness": {
+        "total": 3,
+        "pages": 1,
+        "complete": true
+      }
+    },
+    {
+      "id": "nashville",
+      "name": "Nashville",
+      "metroId": 30,
+      "url": "https://www.opentable.com/sapphire-reserve/nashville",
+      "restaurants": [
+        {
+          "id": "1186552",
+          "name": "Locust Nashville",
+          "key": "opentable:1186552"
+        },
+        {
+          "id": "1276786",
+          "name": "Kisser",
+          "key": "opentable:1276786"
+        },
+        {
+          "id": "1306768",
+          "name": "Bad Idea",
+          "key": "opentable:1306768"
+        },
+        {
+          "id": "1373953",
+          "name": "Henrietta Red",
+          "key": "opentable:1373953"
+        },
+        {
+          "id": "214114",
+          "name": "Rolf and Daughters",
+          "key": "opentable:214114"
+        },
+        {
+          "id": "985351",
+          "name": "Bastion",
+          "key": "opentable:985351"
+        },
+        {
+          "id": "994564",
+          "name": "Peninsula",
+          "key": "opentable:994564"
+        }
+      ],
+      "completeness": {
+        "total": 7,
+        "pages": 1,
+        "complete": true
+      }
+    },
+    {
+      "id": "new-jersey",
+      "name": "New Jersey",
+      "metroId": 3578,
+      "url": "https://www.opentable.com/sapphire-reserve-exclusive-tables?metroId=3578",
+      "restaurants": [
+        {
+          "id": "1021741",
+          "name": "Manhatta",
+          "key": "opentable:1021741"
+        },
+        {
+          "id": "1048522",
+          "name": "Red Hook Tavern",
+          "key": "opentable:1048522"
+        },
+        {
+          "id": "1052086",
+          "name": "Hawksmoor NYC",
+          "key": "opentable:1052086"
+        },
+        {
+          "id": "1072219",
+          "name": "Momofuku Noodle Bar - Uptown",
+          "key": "opentable:1072219"
+        },
+        {
+          "id": "1123567",
+          "name": "Felina Steak- Jersey City",
+          "key": "opentable:1123567"
+        },
+        {
+          "id": "1191640",
+          "name": "Ci Siamo",
+          "key": "opentable:1191640"
+        },
+        {
+          "id": "1238458",
+          "name": "l'abeille",
+          "key": "opentable:1238458"
+        },
+        {
+          "id": "1257628",
+          "name": "Blu on the Hudson",
+          "key": "opentable:1257628"
+        },
+        {
+          "id": "1263916",
+          "name": "Potluck Club",
+          "key": "opentable:1263916"
+        },
+        {
+          "id": "1274416",
+          "name": "San Sabino",
+          "key": "opentable:1274416"
+        },
+        {
+          "id": "1281262",
+          "name": "Parcelle Chinatown",
+          "key": "opentable:1281262"
+        },
+        {
+          "id": "1283554",
+          "name": "Fairfax",
+          "key": "opentable:1283554"
+        },
+        {
+          "id": "1283803",
+          "name": "Una Pizza Napoletana",
+          "key": "opentable:1283803"
+        },
+        {
+          "id": "1311958",
+          "name": "Muku",
+          "key": "opentable:1311958"
+        },
+        {
+          "id": "1317106",
+          "name": "Musaafer - New York",
+          "key": "opentable:1317106"
+        },
+        {
+          "id": "1319164",
+          "name": "Restaurant Le B",
+          "key": "opentable:1319164"
+        },
+        {
+          "id": "1323247",
+          "name": "bōm",
+          "key": "opentable:1323247"
+        },
+        {
+          "id": "1323619",
+          "name": "Sailor",
+          "key": "opentable:1323619"
+        },
+        {
+          "id": "1345699",
+          "name": "Drift Restaurant & Bar",
+          "key": "opentable:1345699"
+        },
+        {
+          "id": "1356769",
+          "name": "Tolo",
+          "key": "opentable:1356769"
+        },
+        {
+          "id": "1358950",
+          "name": "Phoenix Palace",
+          "key": "opentable:1358950"
+        },
+        {
+          "id": "1363933",
+          "name": "Bar Miller",
+          "key": "opentable:1363933"
+        },
+        {
+          "id": "1387021",
+          "name": "Bar Kabawa",
+          "key": "opentable:1387021"
+        },
+        {
+          "id": "1392934",
+          "name": "Momofuku Noodle Bar - East Village",
+          "key": "opentable:1392934"
+        },
+        {
+          "id": "139468",
+          "name": "Razza - Jersey City",
+          "key": "opentable:139468"
+        },
+        {
+          "id": "1412569",
+          "name": "Kabawa",
+          "key": "opentable:1412569"
+        },
+        {
+          "id": "1414090",
+          "name": "Mitsuru",
+          "key": "opentable:1414090"
+        },
+        {
+          "id": "1428529",
+          "name": "Sunn's",
+          "key": "opentable:1428529"
+        },
+        {
+          "id": "144154",
+          "name": "Mike's Bistro - UES",
+          "key": "opentable:144154"
+        },
+        {
+          "id": "144958",
+          "name": "The Tavern at Gramercy Tavern",
+          "key": "opentable:144958"
+        },
+        {
+          "id": "1498219",
+          "name": "Tavern Next Door",
+          "key": "opentable:1498219"
+        },
+        {
+          "id": "1518937",
+          "name": "Lady Delilah",
+          "key": "opentable:1518937"
+        },
+        {
+          "id": "1535359",
+          "name": "Calabash",
+          "key": "opentable:1535359"
+        },
+        {
+          "id": "212488",
+          "name": "Estela",
+          "key": "opentable:212488"
+        },
+        {
+          "id": "212494",
+          "name": "Altro Paradiso",
+          "key": "opentable:212494"
+        },
+        {
+          "id": "213",
+          "name": "Union Square Cafe",
+          "key": "opentable:213"
+        },
+        {
+          "id": "226681",
+          "name": "Joseph Leonard",
+          "key": "opentable:226681"
+        },
+        {
+          "id": "334675",
+          "name": "ASKA",
+          "key": "opentable:334675"
+        },
+        {
+          "id": "34048",
+          "name": "Casa Mono",
+          "key": "opentable:34048"
+        },
+        {
+          "id": "3695",
+          "name": "The Modern",
+          "key": "opentable:3695"
+        },
+        {
+          "id": "4206",
+          "name": "Maddy Rose at Liberty House",
+          "key": "opentable:4206"
+        },
+        {
+          "id": "4304",
+          "name": "The Bar Room at The Modern",
+          "key": "opentable:4304"
+        },
+        {
+          "id": "942",
+          "name": "The Dining Room at Gramercy Tavern",
+          "key": "opentable:942"
+        },
+        {
+          "id": "985804",
+          "name": "Jeffrey's Grocery",
+          "key": "opentable:985804"
+        },
+        {
+          "id": "994474",
+          "name": "Don Angie",
+          "key": "opentable:994474"
+        }
+      ],
+      "completeness": {
+        "total": 45,
+        "pages": 2,
+        "complete": true
+      }
+    },
+    {
+      "id": "new-orleans",
+      "name": "New Orleans",
+      "metroId": 14,
+      "url": "https://www.opentable.com/sapphire-reserve/new-orleans",
+      "restaurants": [
+        {
+          "id": "10693",
+          "name": "La Petite Grocery",
+          "key": "opentable:10693"
+        },
+        {
+          "id": "1271344",
+          "name": "Dakar NOLA",
+          "key": "opentable:1271344"
+        },
+        {
+          "id": "1281451",
+          "name": "Jewel of the South",
+          "key": "opentable:1281451"
+        },
+        {
+          "id": "1321867",
+          "name": "Acamaya",
+          "key": "opentable:1321867"
+        },
+        {
+          "id": "150493",
+          "name": "Brennan's",
+          "key": "opentable:150493"
+        },
+        {
+          "id": "3934",
+          "name": "GW Fins",
+          "key": "opentable:3934"
+        },
+        {
+          "id": "4487",
+          "name": "Restaurant August",
+          "key": "opentable:4487"
+        }
+      ],
+      "completeness": {
+        "total": 7,
+        "pages": 1,
+        "complete": true
+      }
+    },
+    {
+      "id": "new-york-city",
+      "name": "New York City",
+      "metroId": 8,
+      "url": "https://www.opentable.com/sapphire-reserve/new-york-city",
+      "restaurants": [
+        {
+          "id": "1021741",
+          "name": "Manhatta",
+          "key": "opentable:1021741"
+        },
+        {
+          "id": "1048522",
+          "name": "Red Hook Tavern",
+          "key": "opentable:1048522"
+        },
+        {
+          "id": "1052086",
+          "name": "Hawksmoor NYC",
+          "key": "opentable:1052086"
+        },
+        {
+          "id": "1072219",
+          "name": "Momofuku Noodle Bar - Uptown",
+          "key": "opentable:1072219"
+        },
+        {
+          "id": "1123567",
+          "name": "Felina Steak- Jersey City",
+          "key": "opentable:1123567"
+        },
+        {
+          "id": "1191640",
+          "name": "Ci Siamo",
+          "key": "opentable:1191640"
+        },
+        {
+          "id": "1238458",
+          "name": "l'abeille",
+          "key": "opentable:1238458"
+        },
+        {
+          "id": "1257628",
+          "name": "Blu on the Hudson",
+          "key": "opentable:1257628"
+        },
+        {
+          "id": "1263916",
+          "name": "Potluck Club",
+          "key": "opentable:1263916"
+        },
+        {
+          "id": "1274416",
+          "name": "San Sabino",
+          "key": "opentable:1274416"
+        },
+        {
+          "id": "1281262",
+          "name": "Parcelle Chinatown",
+          "key": "opentable:1281262"
+        },
+        {
+          "id": "1283554",
+          "name": "Fairfax",
+          "key": "opentable:1283554"
+        },
+        {
+          "id": "1283803",
+          "name": "Una Pizza Napoletana",
+          "key": "opentable:1283803"
+        },
+        {
+          "id": "1311958",
+          "name": "Muku",
+          "key": "opentable:1311958"
+        },
+        {
+          "id": "1317106",
+          "name": "Musaafer - New York",
+          "key": "opentable:1317106"
+        },
+        {
+          "id": "1319164",
+          "name": "Restaurant Le B",
+          "key": "opentable:1319164"
+        },
+        {
+          "id": "1323247",
+          "name": "bōm",
+          "key": "opentable:1323247"
+        },
+        {
+          "id": "1323619",
+          "name": "Sailor",
+          "key": "opentable:1323619"
+        },
+        {
+          "id": "1345699",
+          "name": "Drift Restaurant & Bar",
+          "key": "opentable:1345699"
+        },
+        {
+          "id": "1356769",
+          "name": "Tolo",
+          "key": "opentable:1356769"
+        },
+        {
+          "id": "1358950",
+          "name": "Phoenix Palace",
+          "key": "opentable:1358950"
+        },
+        {
+          "id": "1363933",
+          "name": "Bar Miller",
+          "key": "opentable:1363933"
+        },
+        {
+          "id": "1387021",
+          "name": "Bar Kabawa",
+          "key": "opentable:1387021"
+        },
+        {
+          "id": "1392934",
+          "name": "Momofuku Noodle Bar - East Village",
+          "key": "opentable:1392934"
+        },
+        {
+          "id": "139468",
+          "name": "Razza - Jersey City",
+          "key": "opentable:139468"
+        },
+        {
+          "id": "1412569",
+          "name": "Kabawa",
+          "key": "opentable:1412569"
+        },
+        {
+          "id": "1414090",
+          "name": "Mitsuru",
+          "key": "opentable:1414090"
+        },
+        {
+          "id": "1428529",
+          "name": "Sunn's",
+          "key": "opentable:1428529"
+        },
+        {
+          "id": "144154",
+          "name": "Mike's Bistro - UES",
+          "key": "opentable:144154"
+        },
+        {
+          "id": "144958",
+          "name": "The Tavern at Gramercy Tavern",
+          "key": "opentable:144958"
+        },
+        {
+          "id": "1498219",
+          "name": "Tavern Next Door",
+          "key": "opentable:1498219"
+        },
+        {
+          "id": "1518937",
+          "name": "Lady Delilah",
+          "key": "opentable:1518937"
+        },
+        {
+          "id": "1535359",
+          "name": "Calabash",
+          "key": "opentable:1535359"
+        },
+        {
+          "id": "212488",
+          "name": "Estela",
+          "key": "opentable:212488"
+        },
+        {
+          "id": "212494",
+          "name": "Altro Paradiso",
+          "key": "opentable:212494"
+        },
+        {
+          "id": "213",
+          "name": "Union Square Cafe",
+          "key": "opentable:213"
+        },
+        {
+          "id": "226681",
+          "name": "Joseph Leonard",
+          "key": "opentable:226681"
+        },
+        {
+          "id": "334675",
+          "name": "ASKA",
+          "key": "opentable:334675"
+        },
+        {
+          "id": "34048",
+          "name": "Casa Mono",
+          "key": "opentable:34048"
+        },
+        {
+          "id": "3695",
+          "name": "The Modern",
+          "key": "opentable:3695"
+        },
+        {
+          "id": "4206",
+          "name": "Maddy Rose at Liberty House",
+          "key": "opentable:4206"
+        },
+        {
+          "id": "4304",
+          "name": "The Bar Room at The Modern",
+          "key": "opentable:4304"
+        },
+        {
+          "id": "942",
+          "name": "The Dining Room at Gramercy Tavern",
+          "key": "opentable:942"
+        },
+        {
+          "id": "985804",
+          "name": "Jeffrey's Grocery",
+          "key": "opentable:985804"
+        },
+        {
+          "id": "994474",
+          "name": "Don Angie",
+          "key": "opentable:994474"
+        }
+      ],
+      "completeness": {
+        "total": 45,
+        "pages": 2,
+        "complete": true
+      }
+    },
+    {
+      "id": "oklahoma",
+      "name": "Oklahoma",
+      "metroId": 36,
+      "url": "https://www.opentable.com/sapphire-reserve-exclusive-tables?metroId=36",
+      "restaurants": [
+        {
+          "id": "1022071",
+          "name": "Grey Sweater",
+          "key": "opentable:1022071"
+        },
+        {
+          "id": "1023865",
+          "name": "nonesuch",
+          "key": "opentable:1023865"
+        },
+        {
+          "id": "1321633",
+          "name": "Perle Mesta",
+          "key": "opentable:1321633"
+        },
+        {
+          "id": "1351975",
+          "name": "Birdies by Chef Kevin Lee",
+          "key": "opentable:1351975"
+        },
+        {
+          "id": "1474669",
+          "name": "MAHT",
+          "key": "opentable:1474669"
+        }
+      ],
+      "completeness": {
+        "total": 5,
+        "pages": 1,
+        "complete": true
+      }
+    },
+    {
+      "id": "orlando",
+      "name": "Orlando",
+      "metroId": 28,
+      "url": "https://www.opentable.com/sapphire-reserve-exclusive-tables?metroId=28",
+      "restaurants": [
+        {
+          "id": "1208074",
+          "name": "AVA MediterrAegean Winter Park",
+          "key": "opentable:1208074"
+        },
+        {
+          "id": "1262860",
+          "name": "Norman's - Orlando",
+          "key": "opentable:1262860"
+        }
+      ],
+      "completeness": {
+        "total": 2,
+        "pages": 1,
+        "complete": true
+      }
+    },
+    {
+      "id": "philadelphia",
+      "name": "Philadelphia",
+      "metroId": 13,
+      "url": "https://www.opentable.com/sapphire-reserve/philadelphia",
+      "restaurants": [
+        {
+          "id": "1209262",
+          "name": "Her Place Supper Club",
+          "key": "opentable:1209262"
+        },
+        {
+          "id": "1283356",
+          "name": "Mawn",
+          "key": "opentable:1283356"
+        },
+        {
+          "id": "1283359",
+          "name": "Tabachoy",
+          "key": "opentable:1283359"
+        },
+        {
+          "id": "1285528",
+          "name": "My Loup",
+          "key": "opentable:1285528"
+        },
+        {
+          "id": "1346254",
+          "name": "Provenance",
+          "key": "opentable:1346254"
+        },
+        {
+          "id": "1351870",
+          "name": "Honeysuckle",
+          "key": "opentable:1351870"
+        },
+        {
+          "id": "1356229",
+          "name": "Ogawa Sushi & Kappo Omakase",
+          "key": "opentable:1356229"
+        },
+        {
+          "id": "1356235",
+          "name": "Pietramala",
+          "key": "opentable:1356235"
+        },
+        {
+          "id": "1368322",
+          "name": "Emmett",
+          "key": "opentable:1368322"
+        },
+        {
+          "id": "1393804",
+          "name": "Almanac",
+          "key": "opentable:1393804"
+        },
+        {
+          "id": "1401910",
+          "name": "Sao",
+          "key": "opentable:1401910"
+        },
+        {
+          "id": "1457662",
+          "name": "Pine Street Grill",
+          "key": "opentable:1457662"
+        },
+        {
+          "id": "20035",
+          "name": "Fork - Philadelphia",
+          "key": "opentable:20035"
+        },
+        {
+          "id": "2575",
+          "name": "Vetri Cucina - Philadelphia",
+          "key": "opentable:2575"
+        },
+        {
+          "id": "63817",
+          "name": "Little Fish",
+          "key": "opentable:63817"
+        },
+        {
+          "id": "63829",
+          "name": "a.kitchen",
+          "key": "opentable:63829"
+        },
+        {
+          "id": "984535",
+          "name": "Friday Saturday Sunday",
+          "key": "opentable:984535"
+        }
+      ],
+      "completeness": {
+        "total": 17,
+        "pages": 1,
+        "complete": true
+      }
+    },
+    {
+      "id": "phoenix",
+      "name": "Phoenix",
+      "metroId": 50,
+      "url": "https://www.opentable.com/sapphire-reserve/phoenix",
+      "restaurants": [
+        {
+          "id": "1193137",
+          "name": "Bacanora",
+          "key": "opentable:1193137"
+        },
+        {
+          "id": "1276825",
+          "name": "Chilte",
+          "key": "opentable:1276825"
+        },
+        {
+          "id": "1279123",
+          "name": "Élephante Scottsdale",
+          "key": "opentable:1279123"
+        },
+        {
+          "id": "1293292",
+          "name": "Course",
+          "key": "opentable:1293292"
+        },
+        {
+          "id": "1371904",
+          "name": "Lom Wong",
+          "key": "opentable:1371904"
+        },
+        {
+          "id": "1374277",
+          "name": "Latha Restaurant",
+          "key": "opentable:1374277"
+        },
+        {
+          "id": "1392139",
+          "name": "Cleaverman",
+          "key": "opentable:1392139"
+        },
+        {
+          "id": "1420309",
+          "name": "Filthy Animal",
+          "key": "opentable:1420309"
+        },
+        {
+          "id": "29929",
+          "name": "The Mission - Old Town Scottsdale",
+          "key": "opentable:29929"
+        },
+        {
+          "id": "333802",
+          "name": "Fat Ox",
+          "key": "opentable:333802"
+        }
+      ],
+      "completeness": {
+        "total": 10,
+        "pages": 1,
+        "complete": true
+      }
+    },
+    {
+      "id": "pittsburgh",
+      "name": "Pittsburgh",
+      "metroId": 62,
+      "url": "https://www.opentable.com/sapphire-reserve-exclusive-tables?metroId=62",
+      "restaurants": [
+        {
+          "id": "1062715",
+          "name": "Gi-Jin",
+          "key": "opentable:1062715"
+        },
+        {
+          "id": "3204",
+          "name": "ELEVEN",
+          "key": "opentable:3204"
+        }
+      ],
+      "completeness": {
+        "total": 2,
+        "pages": 1,
+        "complete": true
+      }
+    },
+    {
+      "id": "portland",
+      "name": "Portland",
+      "metroId": 11,
+      "url": "https://www.opentable.com/sapphire-reserve/portland",
+      "restaurants": [
+        {
+          "id": "1014922",
+          "name": "Arden",
+          "key": "opentable:1014922"
+        },
+        {
+          "id": "1034035",
+          "name": "Canard - Burnside",
+          "key": "opentable:1034035"
+        },
+        {
+          "id": "1189165",
+          "name": "República",
+          "key": "opentable:1189165"
+        },
+        {
+          "id": "1197115",
+          "name": "Shalom Y'all",
+          "key": "opentable:1197115"
+        },
+        {
+          "id": "1203643",
+          "name": "Oma's Hideaway",
+          "key": "opentable:1203643"
+        },
+        {
+          "id": "1266793",
+          "name": "Lilia Comedor",
+          "key": "opentable:1266793"
+        },
+        {
+          "id": "1309453",
+          "name": "L'Orange",
+          "key": "opentable:1309453"
+        },
+        {
+          "id": "1324405",
+          "name": "Xiao Ye",
+          "key": "opentable:1324405"
+        },
+        {
+          "id": "1328245",
+          "name": "Hayward",
+          "key": "opentable:1328245"
+        },
+        {
+          "id": "168553",
+          "name": "Coquine",
+          "key": "opentable:168553"
+        },
+        {
+          "id": "290272",
+          "name": "LangBaan",
+          "key": "opentable:290272"
+        },
+        {
+          "id": "291361",
+          "name": "Nodoguro",
+          "key": "opentable:291361"
+        },
+        {
+          "id": "64318",
+          "name": "Le Pigeon",
+          "key": "opentable:64318"
+        }
+      ],
+      "completeness": {
+        "total": 13,
+        "pages": 1,
+        "complete": true
+      }
+    },
+    {
+      "id": "raleigh",
+      "name": "Raleigh",
+      "metroId": 22,
+      "url": "https://www.opentable.com/sapphire-reserve-exclusive-tables?metroId=22",
+      "restaurants": [
+        {
+          "id": "1264402",
+          "name": "La Terrazza",
+          "key": "opentable:1264402"
+        },
+        {
+          "id": "1270111",
+          "name": "Tamasha Modern Indian",
+          "key": "opentable:1270111"
+        },
+        {
+          "id": "272359",
+          "name": "Poole's Diner",
+          "key": "opentable:272359"
+        },
+        {
+          "id": "347641",
+          "name": "Death & Taxes",
+          "key": "opentable:347641"
+        }
+      ],
+      "completeness": {
+        "total": 4,
+        "pages": 1,
+        "complete": true
+      }
+    },
+    {
+      "id": "rhode-island",
+      "name": "Rhode Island",
+      "metroId": 3568,
+      "url": "https://www.opentable.com/sapphire-reserve-exclusive-tables?metroId=3568",
+      "restaurants": [
+        {
+          "id": "10798",
+          "name": "Waterman Grille",
+          "key": "opentable:10798"
+        },
+        {
+          "id": "1275058",
+          "name": "Gift Horse",
+          "key": "opentable:1275058"
+        },
+        {
+          "id": "2062",
+          "name": "Hemenway's",
+          "key": "opentable:2062"
+        },
+        {
+          "id": "3222",
+          "name": "Gracie's",
+          "key": "opentable:3222"
+        }
+      ],
+      "completeness": {
+        "total": 4,
+        "pages": 1,
+        "complete": true
+      }
+    },
+    {
+      "id": "richmond",
+      "name": "Richmond",
+      "metroId": 92,
+      "url": "https://www.opentable.com/sapphire-reserve-exclusive-tables?metroId=92",
+      "restaurants": [
+        {
+          "id": "66400",
+          "name": "Stella's - Richmond",
+          "key": "opentable:66400"
+        }
+      ],
+      "completeness": {
+        "total": 1,
+        "pages": 1,
+        "complete": true
+      }
+    },
+    {
+      "id": "sacramento",
+      "name": "Sacramento",
+      "metroId": 35,
+      "url": "https://www.opentable.com/sapphire-reserve-exclusive-tables?metroId=35",
+      "restaurants": [
+        {
+          "id": "1050562",
+          "name": "Camden Spit and Larder",
+          "key": "opentable:1050562"
+        },
+        {
+          "id": "16474",
+          "name": "Ella Dining Room and Bar",
+          "key": "opentable:16474"
+        },
+        {
+          "id": "486406",
+          "name": "Canon",
+          "key": "opentable:486406"
+        },
+        {
+          "id": "986593",
+          "name": "Allora",
+          "key": "opentable:986593"
+        }
+      ],
+      "completeness": {
+        "total": 4,
+        "pages": 1,
+        "complete": true
+      }
+    },
+    {
+      "id": "san-antonio",
+      "name": "San Antonio",
+      "metroId": 19,
+      "url": "https://www.opentable.com/sapphire-reserve/san-antonio",
+      "restaurants": [
+        {
+          "id": "1001881",
+          "name": "Clementine",
+          "key": "opentable:1001881"
+        },
+        {
+          "id": "1348942",
+          "name": "Isidore",
+          "key": "opentable:1348942"
+        },
+        {
+          "id": "1348948",
+          "name": "Nicosi",
+          "key": "opentable:1348948"
+        }
+      ],
+      "completeness": {
+        "total": 3,
+        "pages": 1,
+        "complete": true
+      }
+    },
+    {
+      "id": "san-diego",
+      "name": "San Diego",
+      "metroId": 15,
+      "url": "https://www.opentable.com/sapphire-reserve/san-diego",
+      "restaurants": [
+        {
+          "id": "1029706",
+          "name": "Jeune et Jolie",
+          "key": "opentable:1029706"
+        },
+        {
+          "id": "1046074",
+          "name": "Animae",
+          "key": "opentable:1046074"
+        },
+        {
+          "id": "1046077",
+          "name": "Herb & Sea",
+          "key": "opentable:1046077"
+        },
+        {
+          "id": "1083379",
+          "name": "Marisi",
+          "key": "opentable:1083379"
+        },
+        {
+          "id": "1124431",
+          "name": "Callie Restaurant",
+          "key": "opentable:1124431"
+        },
+        {
+          "id": "114097",
+          "name": "Juniper & Ivy",
+          "key": "opentable:114097"
+        },
+        {
+          "id": "1187176",
+          "name": "MOTHERSHIP",
+          "key": "opentable:1187176"
+        },
+        {
+          "id": "1236346",
+          "name": "Paradisaea",
+          "key": "opentable:1236346"
+        },
+        {
+          "id": "1245190",
+          "name": "Lilo",
+          "key": "opentable:1245190"
+        },
+        {
+          "id": "137146",
+          "name": "Ironside Fish & Oyster",
+          "key": "opentable:137146"
+        },
+        {
+          "id": "190246",
+          "name": "Herb & Wood",
+          "key": "opentable:190246"
+        },
+        {
+          "id": "23464",
+          "name": "The Marine Room",
+          "key": "opentable:23464"
+        },
+        {
+          "id": "4855",
+          "name": "Island Prime",
+          "key": "opentable:4855"
+        },
+        {
+          "id": "79210",
+          "name": "Vintana Wine & Dine",
+          "key": "opentable:79210"
+        }
+      ],
+      "completeness": {
+        "total": 14,
+        "pages": 1,
+        "complete": true
+      }
+    },
+    {
+      "id": "san-francisco",
+      "name": "San Francisco",
+      "metroId": 4,
+      "url": "https://www.opentable.com/sapphire-reserve/san-francisco",
+      "restaurants": [
+        {
+          "id": "1017313",
+          "name": "Angler San Francisco",
+          "key": "opentable:1017313"
+        },
+        {
+          "id": "1031068",
+          "name": "Selby's",
+          "key": "opentable:1031068"
+        },
+        {
+          "id": "1050562",
+          "name": "Camden Spit and Larder",
+          "key": "opentable:1050562"
+        },
+        {
+          "id": "1063153",
+          "name": "O' by Claude Le Tohic",
+          "key": "opentable:1063153"
+        },
+        {
+          "id": "1070146",
+          "name": "The Anchovy Bar",
+          "key": "opentable:1070146"
+        },
+        {
+          "id": "1072537",
+          "name": "Niku Steakhouse",
+          "key": "opentable:1072537"
+        },
+        {
+          "id": "1072792",
+          "name": "Ernest",
+          "key": "opentable:1072792"
+        },
+        {
+          "id": "1181854",
+          "name": "Nisei",
+          "key": "opentable:1181854"
+        },
+        {
+          "id": "1215193",
+          "name": "Hilda and Jesse",
+          "key": "opentable:1215193"
+        },
+        {
+          "id": "1237660",
+          "name": "Chez Noir",
+          "key": "opentable:1237660"
+        },
+        {
+          "id": "1277533",
+          "name": "Burdell",
+          "key": "opentable:1277533"
+        },
+        {
+          "id": "1293895",
+          "name": "Dalida",
+          "key": "opentable:1293895"
+        },
+        {
+          "id": "1322866",
+          "name": "Bodega SF",
+          "key": "opentable:1322866"
+        },
+        {
+          "id": "1323082",
+          "name": "Popoca",
+          "key": "opentable:1323082"
+        },
+        {
+          "id": "1365385",
+          "name": "Saison Wine Bar et Salon",
+          "key": "opentable:1365385"
+        },
+        {
+          "id": "1373257",
+          "name": "Saison",
+          "key": "opentable:1373257"
+        },
+        {
+          "id": "139246",
+          "name": "State Bird Provisions",
+          "key": "opentable:139246"
+        },
+        {
+          "id": "1418341",
+          "name": "The Happy Crane",
+          "key": "opentable:1418341"
+        },
+        {
+          "id": "1470298",
+          "name": "Maria Isabel",
+          "key": "opentable:1470298"
+        },
+        {
+          "id": "158713",
+          "name": "The Progress",
+          "key": "opentable:158713"
+        },
+        {
+          "id": "16474",
+          "name": "Ella Dining Room and Bar",
+          "key": "opentable:16474"
+        },
+        {
+          "id": "174622",
+          "name": "Omakase",
+          "key": "opentable:174622"
+        },
+        {
+          "id": "1779",
+          "name": "House of Prime Rib",
+          "key": "opentable:1779"
+        },
+        {
+          "id": "193603",
+          "name": "Gary Danko",
+          "key": "opentable:193603"
+        },
+        {
+          "id": "253693",
+          "name": "Californios",
+          "key": "opentable:253693"
+        },
+        {
+          "id": "256018",
+          "name": "SingleThread Restaurant & Inn",
+          "key": "opentable:256018"
+        },
+        {
+          "id": "3174",
+          "name": "Aziza",
+          "key": "opentable:3174"
+        },
+        {
+          "id": "36649",
+          "name": "Commis",
+          "key": "opentable:36649"
+        },
+        {
+          "id": "36655",
+          "name": "Frances",
+          "key": "opentable:36655"
+        },
+        {
+          "id": "4374",
+          "name": "PRESS Restaurant",
+          "key": "opentable:4374"
+        },
+        {
+          "id": "486406",
+          "name": "Canon",
+          "key": "opentable:486406"
+        },
+        {
+          "id": "97309",
+          "name": "Rich Table",
+          "key": "opentable:97309"
+        },
+        {
+          "id": "986593",
+          "name": "Allora",
+          "key": "opentable:986593"
+        }
+      ],
+      "completeness": {
+        "total": 33,
+        "pages": 2,
+        "complete": true
+      }
+    },
+    {
+      "id": "santa-fe-albuquerque",
+      "name": "Santa Fe / Albuquerque",
+      "metroId": 3741,
+      "url": "https://www.opentable.com/sapphire-reserve/santa-fe-albuquerque",
+      "restaurants": [
+        {
+          "id": "1310200",
+          "name": "Alkemē",
+          "key": "opentable:1310200"
+        },
+        {
+          "id": "1341271",
+          "name": "Corner Office",
+          "key": "opentable:1341271"
+        },
+        {
+          "id": "1361695",
+          "name": "Horno Restaurant",
+          "key": "opentable:1361695"
+        },
+        {
+          "id": "81529",
+          "name": "Farm & Table",
+          "key": "opentable:81529"
+        }
+      ],
+      "completeness": {
+        "total": 4,
+        "pages": 1,
+        "complete": true
+      }
+    },
+    {
+      "id": "seattle",
+      "name": "Seattle",
+      "metroId": 2,
+      "url": "https://www.opentable.com/sapphire-reserve/seattle",
+      "restaurants": [
+        {
+          "id": "1246654",
+          "name": "TOMO",
+          "key": "opentable:1246654"
+        },
+        {
+          "id": "1253326",
+          "name": "Takai by Kashiba",
+          "key": "opentable:1253326"
+        },
+        {
+          "id": "144256",
+          "name": "Lark",
+          "key": "opentable:144256"
+        },
+        {
+          "id": "256168",
+          "name": "Sushi Kashiba",
+          "key": "opentable:256168"
+        },
+        {
+          "id": "75022",
+          "name": "The Pink Door",
+          "key": "opentable:75022"
+        }
+      ],
+      "completeness": {
+        "total": 5,
+        "pages": 1,
+        "complete": true
+      }
+    },
+    {
+      "id": "st-louis",
+      "name": "St. Louis",
+      "metroId": 48,
+      "url": "https://www.opentable.com/sapphire-reserve-exclusive-tables?metroId=48",
+      "restaurants": [
+        {
+          "id": "1201354",
+          "name": "Olive + Oak",
+          "key": "opentable:1201354"
+        },
+        {
+          "id": "1328662",
+          "name": "Madrina",
+          "key": "opentable:1328662"
+        },
+        {
+          "id": "38467",
+          "name": "Brasserie by Niche",
+          "key": "opentable:38467"
+        }
+      ],
+      "completeness": {
+        "total": 3,
+        "pages": 1,
+        "complete": true
+      }
+    },
+    {
+      "id": "tampa",
+      "name": "Tampa",
+      "metroId": 84,
+      "url": "https://www.opentable.com/sapphire-reserve-exclusive-tables?metroId=84",
+      "restaurants": [
+        {
+          "id": "1321021",
+          "name": "Fortu",
+          "key": "opentable:1321021"
+        },
+        {
+          "id": "270733",
+          "name": "Il Ritorno",
+          "key": "opentable:270733"
+        }
+      ],
+      "completeness": {
+        "total": 2,
+        "pages": 1,
+        "complete": true
+      }
+    },
+    {
+      "id": "tulsa",
+      "name": "Tulsa",
+      "metroId": 430,
+      "url": "https://www.opentable.com/sapphire-reserve-exclusive-tables?metroId=430",
+      "restaurants": [],
+      "completeness": {
+        "total": 0,
+        "pages": 1,
+        "complete": true
+      }
+    },
+    {
+      "id": "utah",
+      "name": "Utah",
+      "metroId": 21,
+      "url": "https://www.opentable.com/sapphire-reserve-exclusive-tables?metroId=21",
+      "restaurants": [],
+      "completeness": {
+        "total": 0,
+        "pages": 1,
+        "complete": true
+      }
+    },
+    {
+      "id": "washington-dc",
+      "name": "Washington DC",
+      "metroId": 9,
+      "url": "https://www.opentable.com/sapphire-reserve/washington-dc",
+      "restaurants": [
+        {
+          "id": "1085224",
+          "name": "Xiquet by Danny Lledó",
+          "key": "opentable:1085224"
+        },
+        {
+          "id": "1125733",
+          "name": "Queen's English",
+          "key": "opentable:1125733"
+        },
+        {
+          "id": "1126906",
+          "name": "Jônt",
+          "key": "opentable:1126906"
+        },
+        {
+          "id": "1145458",
+          "name": "Dauphine's",
+          "key": "opentable:1145458"
+        },
+        {
+          "id": "1203007",
+          "name": "The Duck and the Peach",
+          "key": "opentable:1203007"
+        },
+        {
+          "id": "1243099",
+          "name": "Amazonia",
+          "key": "opentable:1243099"
+        },
+        {
+          "id": "1254943",
+          "name": "MARTA",
+          "key": "opentable:1254943"
+        },
+        {
+          "id": "1263940",
+          "name": "Naja Mediterranean",
+          "key": "opentable:1263940"
+        },
+        {
+          "id": "1294048",
+          "name": "The Ruxton",
+          "key": "opentable:1294048"
+        },
+        {
+          "id": "1328176",
+          "name": "Moon Rabbit by Kevin Tien",
+          "key": "opentable:1328176"
+        },
+        {
+          "id": "1363879",
+          "name": "Causa",
+          "key": "opentable:1363879"
+        },
+        {
+          "id": "1382911",
+          "name": "El Taller del Xiquet",
+          "key": "opentable:1382911"
+        },
+        {
+          "id": "1393801",
+          "name": "Chai Pani",
+          "key": "opentable:1393801"
+        },
+        {
+          "id": "1417888",
+          "name": "Elmina",
+          "key": "opentable:1417888"
+        },
+        {
+          "id": "1478707",
+          "name": "Rye Bunny",
+          "key": "opentable:1478707"
+        },
+        {
+          "id": "152956",
+          "name": "Azumi",
+          "key": "opentable:152956"
+        },
+        {
+          "id": "169819",
+          "name": "Centrolina",
+          "key": "opentable:169819"
+        },
+        {
+          "id": "2069",
+          "name": "Old Ebbitt Grill",
+          "key": "opentable:2069"
+        },
+        {
+          "id": "252517",
+          "name": "Thip Khao",
+          "key": "opentable:252517"
+        },
+        {
+          "id": "992542",
+          "name": "Bresca",
+          "key": "opentable:992542"
+        }
+      ],
+      "completeness": {
+        "total": 20,
+        "pages": 1,
+        "complete": true
+      }
+    },
+    {
+      "id": "west-palm-beach",
+      "name": "West Palm Beach",
+      "metroId": 3483,
+      "url": "https://www.opentable.com/sapphire-reserve-exclusive-tables?metroId=3483",
+      "restaurants": [
+        {
+          "id": "1216321",
+          "name": "The Butcher's Club at PGA National Resort",
+          "key": "opentable:1216321"
+        },
+        {
+          "id": "1265611",
+          "name": "Taki Omakase - Delray",
+          "key": "opentable:1265611"
+        },
+        {
+          "id": "1275226",
+          "name": "Taki Omakase- Boca Raton",
+          "key": "opentable:1275226"
+        },
+        {
+          "id": "1345540",
+          "name": "Nicholson Muir Meats",
+          "key": "opentable:1345540"
+        }
+      ],
+      "completeness": {
+        "total": 4,
+        "pages": 1,
+        "complete": true
+      }
+    },
+    {
+      "id": "milwaukee",
+      "name": "Wisconsin",
+      "metroId": 26,
+      "url": "https://www.opentable.com/sapphire-reserve/milwaukee",
+      "restaurants": [
+        {
+          "id": "1004269",
+          "name": "Birch - Milwaukee",
+          "key": "opentable:1004269"
+        },
+        {
+          "id": "1466083",
+          "name": "Cassis",
+          "key": "opentable:1466083"
+        },
+        {
+          "id": "265018",
+          "name": "DanDan Milwaukee",
+          "key": "opentable:265018"
+        },
+        {
+          "id": "349300",
+          "name": "EsterEv",
+          "key": "opentable:349300"
+        },
+        {
+          "id": "5222",
+          "name": "Ristorante Bartolotta dal 1993",
+          "key": "opentable:5222"
+        },
+        {
+          "id": "5224",
+          "name": "Bacchus - A Bartolotta Restaurant",
+          "key": "opentable:5224"
+        }
+      ],
+      "completeness": {
+        "total": 6,
+        "pages": 1,
+        "complete": true
+      }
     }
   ]
 }
