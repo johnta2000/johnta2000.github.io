@@ -35,12 +35,14 @@ test("headline and change totals count each restaurant ID once across overlappin
   const current = [{ restaurants: [a, b] }, { restaurants: [a, b] }];
   assert.deepEqual(restaurantTotals(current, previous), { count: 2, previousCount: 1, listingCount: 4, addedCount: 1, removedCount: 0 });
   assert.equal(restaurantTotals([{ restaurants: [a] }], previous).removedCount, 0);
-  const history = { runs: [{ collectionVersion: 2, timestamp: "baseline", initialized: true, count: 4, previousCount: 4 }] };
+  const history = { runs: [{ collectionVersion: 2, timestamp: "baseline", initialized: true, count: 4, previousCount: 4 },
+    { collectionVersion: 2, timestamp: "a-earlier", initialized: true, changed: false, count: 4, previousCount: 4 }] };
   correctHistoricalCounts(history, { capturedAt: "baseline", cities: current });
   assert.equal(history.runs[0].count, 2);
   assert.equal(history.runs[0].previousCount, 2);
   assert.equal(history.runs[0].countUnit, "unique-restaurants");
   assert.match(history.runs[0].summary, /2 unique restaurants/);
+  assert.equal(history.runs[1].count, 2);
 });
 
 test("normalizes restaurant names and HTML entities", () => {

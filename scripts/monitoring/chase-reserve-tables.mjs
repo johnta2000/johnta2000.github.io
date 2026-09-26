@@ -191,10 +191,12 @@ export function restaurantTotals(cities, previous = cities) {
 }
 
 export function correctHistoricalCounts(history, baseline) {
-  for (const run of history.runs) {
+  let knownSnapshot = false;
+  for (const run of [...history.runs].sort((a, b) => String(b.timestamp).localeCompare(String(a.timestamp)))) {
+    if (run.timestamp === baseline.capturedAt) knownSnapshot = true;
     if (run.collectionVersion === COLLECTION_VERSION && !run.countUnit) {
       run.countUnit = "market-listings";
-      if (run.timestamp === baseline.capturedAt) {
+      if (knownSnapshot && run.status !== "error") {
         run.listingCount = run.count;
         run.count = restaurantTotals(baseline.cities).count;
         run.countUnit = "unique-restaurants";
@@ -204,6 +206,9 @@ export function correctHistoricalCounts(history, baseline) {
         else if (!run.changed) run.summary = `No restaurant-list changes across ${baseline.cities.length} markets (${run.count} unique restaurants).`;
       }
     }
+    // Stable runs share the same complete snapshot, so their older totals can be
+    // corrected exactly. Stop at a membership change; never guess prior totals.
+    if (run.changed) knownSnapshot = false;
   }
 }
 
