@@ -1,9 +1,43 @@
 {
   "schemaVersion": 1,
   "feedId": "john-ta-monitoring-changes",
-  "generatedAt": "2026-09-26T13:08:49.385Z",
-  "latestEventId": "20260925232100-chase-sapphire-reserve-tables-recovery",
+  "generatedAt": "2026-09-26T13:13:26.702Z",
+  "latestEventId": "20260926131326-chase-sapphire-reserve-tables-restaurant-change",
   "events": [
+    {
+      "id": "20260926131326-chase-sapphire-reserve-tables-restaurant-change",
+      "type": "restaurant_change",
+      "severity": "change",
+      "monitorId": "chase-sapphire-reserve-tables",
+      "timestamp": "2026-09-26T13:13:26.702Z",
+      "title": "Chase Sapphire Reserve Exclusive Tables changed",
+      "summary": "1 restaurants added and 1 removed across six cities.",
+      "count": 136,
+      "cities": [
+        {
+          "id": "new-york-city",
+          "name": "New York City",
+          "url": "https://www.opentable.com/sapphire-reserve/new-york-city",
+          "count": 30,
+          "previousCount": 30,
+          "added": [
+            "Blu on the Hudson"
+          ],
+          "removed": [
+            "Mitsuru"
+          ]
+        }
+      ],
+      "dashboardUrl": "https://john-ta.com/tools/monitoring/",
+      "sourceUrls": [
+        "https://www.opentable.com/sapphire-reserve/atlanta",
+        "https://www.opentable.com/sapphire-reserve/san-francisco",
+        "https://www.opentable.com/sapphire-reserve/los-angeles",
+        "https://www.opentable.com/sapphire-reserve/new-york-city",
+        "https://www.opentable.com/sapphire-reserve/chicago",
+        "https://www.opentable.com/sapphire-reserve/boston"
+      ]
+    },
     {
       "id": "20260925232100-chase-sapphire-reserve-tables-recovery",
       "type": "monitor_recovery",
