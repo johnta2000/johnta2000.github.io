@@ -263,11 +263,11 @@ function positionHistoryMarkup(history = []) {
   }
 
   const width = 760;
-  const height = 246;
+  const height = 274;
   const left = 44;
-  const right = 18;
-  const top = 20;
-  const bottom = 42;
+  const right = 30;
+  const top = 32;
+  const bottom = 58;
   const plotWidth = width - left - right;
   const plotHeight = height - top - bottom;
   const values = rows.flatMap((row) => [row.position, row.exactPosition]).filter(Number.isFinite);
@@ -281,6 +281,17 @@ function positionHistoryMarkup(history = []) {
     .join(" ");
   const tickValues = [...new Set([1, Math.ceil((maxPosition + 1) / 2), maxPosition])].sort((a, b) => a - b);
   const latest = rows.at(-1);
+  const pointMarkup = (row, index, key, series, description) => {
+    const value = row[key];
+    if (!Number.isFinite(value)) return "";
+    const otherValue = row[key === "position" ? "exactPosition" : "position"];
+    // Keep the labels outside the two lines, including when both dots coincide.
+    const above = !Number.isFinite(otherValue) || value < otherValue
+      || (value === otherValue && series === "core");
+    const anchor = index === 0 ? "start" : index === rows.length - 1 ? "end" : "middle";
+    return `<circle class="${series}" cx="${x(index).toFixed(1)}" cy="${y(value).toFixed(1)}" r="4"><title>${escapeHtml(shortHistoryDate(row.date))}: ${description} position ${value.toFixed(2)}</title></circle>
+      <text class="position-chart-value ${series}" x="${x(index).toFixed(1)}" y="${(y(value) + (above ? -12 : 20)).toFixed(1)}" text-anchor="${anchor}">${value.toFixed(2)}</text>`;
+  };
 
   return `
     <section class="dialog-section position-history-section">
@@ -299,8 +310,8 @@ function positionHistoryMarkup(history = []) {
           <path class="position-chart-line exact" d="${path("exactPosition")}"></path>
           ${rows.map((row, index) => `
             <g class="position-chart-points">
-              ${Number.isFinite(row.position) ? `<circle class="core" cx="${x(index).toFixed(1)}" cy="${y(row.position).toFixed(1)}" r="4"><title>${escapeHtml(shortHistoryDate(row.date))}: all core queries position ${row.position.toFixed(2)}</title></circle>` : ""}
-              ${Number.isFinite(row.exactPosition) ? `<circle class="exact" cx="${x(index).toFixed(1)}" cy="${y(row.exactPosition).toFixed(1)}" r="4"><title>${escapeHtml(shortHistoryDate(row.date))}: exact query position ${row.exactPosition.toFixed(2)}</title></circle>` : ""}
+              ${pointMarkup(row, index, "position", "core", "all core queries")}
+              ${pointMarkup(row, index, "exactPosition", "exact", "exact query")}
               <text class="position-chart-date" x="${x(index).toFixed(1)}" y="${height - 14}">${escapeHtml(shortHistoryDate(row.date))}${row.partial ? "*" : ""}</text>
             </g>`).join("")}
         </svg>
