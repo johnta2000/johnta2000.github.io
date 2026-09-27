@@ -1,0 +1,42 @@
+name: Personal site health
+
+on:
+  schedule:
+    - cron: '13,43 * * * *'
+  workflow_dispatch:
+  push:
+    branches: [master]
+    paths:
+      - 'assets/js/analytics.js'
+      - 'tests/analytics.test.cjs'
+      - 'scripts/monitoring/site-health.py'
+      - 'scripts/monitoring/site-pages.json'
+      - '.github/workflows/site-health.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: personal-site-health
+  cancel-in-progress: false
+
+jobs:
+  analytics-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node --test tests/analytics.test.cjs
+  availability:
+    # Scheduled runs check the deployed site, after Pages has had time to build.
+    if: github.event_name != 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python scripts/monitoring/site-health.py

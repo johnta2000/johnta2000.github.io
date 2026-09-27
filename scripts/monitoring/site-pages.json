@@ -1,0 +1,112 @@
+[
+  {
+    "app": "apartmentnavigation",
+    "path": "/apartmentnavigation/",
+    "file": "apartmentnavigation/index.html"
+  },
+  {
+    "app": "burgery",
+    "path": "/burgery/",
+    "file": "burgery/index.html"
+  },
+  {
+    "app": "happyhours",
+    "path": "/happyhours.html",
+    "file": "happyhours.html"
+  },
+  {
+    "app": "hertz-las-may-2027",
+    "path": "/hertz-las-may-2027/",
+    "file": "hertz-las-may-2027/index.html"
+  },
+  {
+    "app": "home",
+    "path": "/",
+    "file": "index.html"
+  },
+  {
+    "app": "login",
+    "path": "/login/",
+    "file": "login/index.html"
+  },
+  {
+    "app": "lost-lands-2026-lineup",
+    "path": "/lost-lands-2026-lineup/",
+    "file": "lost-lands-2026-lineup/index.html"
+  },
+  {
+    "app": "projects-war-room",
+    "path": "/projects/war-room/",
+    "file": "projects/war-room/index.html"
+  },
+  {
+    "app": "teaching",
+    "path": "/teaching.html",
+    "file": "teaching.html"
+  },
+  {
+    "app": "menus-hem-by-lequy",
+    "path": "/tools/menus/hem-by-lequy/",
+    "file": "tools/menus/hem-by-lequy/index.html"
+  },
+  {
+    "app": "menus",
+    "path": "/tools/menus/",
+    "file": "tools/menus/index.html"
+  },
+  {
+    "app": "menus-sf-organica",
+    "path": "/tools/menus/sf-organica/",
+    "file": "tools/menus/sf-organica/index.html"
+  },
+  {
+    "app": "monitoring",
+    "path": "/tools/monitoring/",
+    "file": "tools/monitoring/index.html"
+  },
+  {
+    "app": "rally",
+    "path": "/tools/rally/",
+    "file": "tools/rally/index.html"
+  },
+  {
+    "app": "seometadata",
+    "path": "/tools/seometadata/",
+    "file": "tools/seometadata/index.html"
+  },
+  {
+    "app": "sleep",
+    "path": "/tools/sleep/",
+    "file": "tools/sleep/index.html"
+  },
+  {
+    "app": "standups",
+    "path": "/tools/standups/",
+    "file": "tools/standups/index.html"
+  },
+  {
+    "app": "tranquil-connect",
+    "path": "/tools/tranquil-connect/",
+    "file": "tools/tranquil-connect/index.html"
+  },
+  {
+    "app": "video-downloader",
+    "path": "/tools/video-downloader/",
+    "file": "tools/video-downloader/index.html"
+  },
+  {
+    "app": "tutoring",
+    "path": "/tutoring.html",
+    "file": "tutoring.html"
+  },
+  {
+    "app": "war-room-06122026",
+    "path": "/war-room-06122026/",
+    "file": "war-room-06122026/index.html"
+  },
+  {
+    "app": "war-room-06152026",
+    "path": "/war-room-06152026/",
+    "file": "war-room-06152026/index.html"
+  }
+]
