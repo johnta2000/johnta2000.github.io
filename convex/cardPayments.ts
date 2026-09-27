@@ -8,7 +8,12 @@ async function authorized(ctx: QueryCtx | MutationCtx) {
   // This tracker has its own exact-email allowlist and one shared workspace.
   const allowedEmails = (process.env.CARD_PAYMENTS_ALLOWED_EMAIL || "").split(",").map(email => email.trim().toLowerCase()).filter(Boolean);
   const workspaceOwner = process.env.CARD_PAYMENTS_WORKSPACE_OWNER?.trim();
-  if (!workspaceOwner || !user || user.emailVerified !== true || !allowedEmails.includes(user.email?.trim().toLowerCase() || "")) {
+  // This site's Clerk instance verifies email at signup and uses email-code sign-in.
+  // Its signed session tokens can omit email_verified. Trust that omission only
+  // for this exact issuer; explicit false (or a malformed claim) still fails.
+  const verifiedEmail = user?.emailVerified === true ||
+    (user?.emailVerified === undefined && user?.issuer === "https://clerk.john-ta.com");
+  if (!workspaceOwner || !user || !verifiedEmail || !allowedEmails.includes(user.email?.trim().toLowerCase() || "")) {
     throw new Error("This account is not authorized for card payments. Use your approved, verified email.");
   }
   return { ...user, workspaceOwner };

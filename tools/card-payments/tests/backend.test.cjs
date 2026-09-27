@@ -43,7 +43,7 @@ async function seeded() {
   return { ...f, id: f.tables.paymentAccounts[0]._id };
 }
 
-test('every endpoint rejects signed-out, unverified, missing-verification, and unapproved identities', async () => {
+test('every endpoint rejects signed-out, unverified, untrusted missing-verification, and unapproved identities', async () => {
   for (const identity of [null, { email: 'stranger@example.com', emailVerified: true }, { email: 'owner@example.com', emailVerified: false }, { email: 'owner@example.com' }]) {
     const f = fixture(identity);
     for (const name of ['verify', 'dashboard', 'addAccounts', 'save', 'retire', 'updateAccount']) await assert.rejects(f.run(name, {}), /not authorized/);
@@ -54,6 +54,25 @@ test('every endpoint rejects signed-out, unverified, missing-verification, and u
 test('only exact configured emails are accepted, including case-insensitive comparison', async () => {
   assert.equal((await fixture({ tokenIdentifier: 'issuer|owner', email: 'OWNER@example.com', emailVerified: true }).run('verify')).email, 'OWNER@example.com');
   for (const email of ['second@example.com', 'owner+other@example.com', 'owner@example.com.attacker.example']) await assert.rejects(fixture({ tokenIdentifier: 'issuer|other', email, emailVerified: true }).run('verify'), /not authorized/);
+});
+test('the site’s signed email-code session works when the optional verification claim is omitted', async () => {
+  const f = fixture({ tokenIdentifier: 'https://clerk.john-ta.com|user_gmail', issuer: 'https://clerk.john-ta.com', email: 'owner@example.com' });
+  assert.equal((await f.run('verify')).email, 'owner@example.com');
+  await f.run('addAccounts', { startMonth: '2026-09', accounts: [account] });
+  const id = f.tables.paymentAccounts[0]._id;
+  await f.run('save', { accountId: id, month: '2026-09', status: 'paid', expectedVersion: 0 });
+  f.ctx.auth.getUserIdentity = async () => ({ tokenIdentifier: 'https://clerk.john-ta.com|user_work', issuer: 'https://clerk.john-ta.com', email: 'work@example.com' });
+  const result = await f.run('dashboard', { month: '2026-09' });
+  assert.equal(result.logs[0].status, 'paid');
+  await f.run('updateAccount', { accountId: id, ...account, dueDay: 2 });
+  await f.run('retire', { accountId: id, endMonth: '2026-09' });
+});
+test('missing claims do not bypass the issuer, email allowlist, or an explicit failed verification', async () => {
+  const base = { tokenIdentifier: 'issuer|other', issuer: 'https://clerk.john-ta.com', email: 'owner@example.com' };
+  for (const change of [{ issuer: 'https://other.clerk.accounts.dev' }, { issuer: 'https://clerk.john-ta.com.attacker.example' }, { email: 'stranger@example.com' }, { email: undefined }, { emailVerified: false }, { emailVerified: null }, { emailVerified: 'true' }]) {
+    const f = fixture({ ...base, ...change });
+    for (const name of ['verify', 'dashboard', 'addAccounts', 'save', 'retire', 'updateAccount']) await assert.rejects(f.run(name, {}), /not authorized/);
+  }
 });
 test('imports skip duplicates including same-batch duplicates, and validate all records before writing', async () => {
   const f = fixture();
