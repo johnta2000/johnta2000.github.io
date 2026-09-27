@@ -6,7 +6,9 @@
   const complete = status => status === 'paid' || status === 'nothing_due';
   const desktop = window.matchMedia('(min-width: 900px)');
   const today = new Date();
-  $('month').value = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+  // Keep the current deadline visible throughout the 1st; otherwise prepare for the next one.
+  const deadline = new Date(today.getFullYear(), today.getMonth() + (today.getDate() > 1 ? 1 : 0), 1);
+  $('month').value = `${deadline.getFullYear()}-${String(deadline.getMonth() + 1).padStart(2, '0')}`;
   const pending = new Map();
   let saveWarning = '';
   let menuAccount = null;
@@ -250,7 +252,7 @@
     const flagged = accounts.filter(a => logFor(a._id)?.flagged).length;
     message('scope', $('person').value || 'All accounts');
     message('progress-heading', accounts.length ? done === accounts.length ? 'All paid.' : `${accounts.length - done} not paid` : 'A fresh start.');
-    message('progress-detail', accounts.length ? `${done} paid${flagged ? ` · ${flagged} flagged for attention` : ''}` : 'Add your accounts once. They repeat each month.');
+    message('progress-detail', accounts.length ? `Due ${new Date(`${selectedMonth()}-01T12:00:00`).toLocaleDateString(undefined, { month: 'long', day: 'numeric' })} · ${done} paid${flagged ? ` · ${flagged} flagged for attention` : ''}` : 'Add your accounts once. They repeat each month.');
     message('progress-number', `${done} / ${accounts.length}`);
     $('progress').max = accounts.length || 1; $('progress').value = done;
     const shown = accounts.filter(a => !$('remaining').checked || !complete(logFor(a._id)?.status));

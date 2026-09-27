@@ -27,7 +27,7 @@
       <div class="overview">
       <div class="month-bar">
         <button id="previous" class="arrow" aria-label="Previous month">←</button>
-        <label class="month-label">Payments due in<input id="month" type="month" min="2000-01" max="2099-12" aria-label="Due month"></label>
+        <label class="month-label">Due on the 1st<input id="month" type="month" min="2000-01" max="2099-12" aria-label="Due month"></label>
         <button id="next" class="arrow" aria-label="Next month">→</button>
       </div>
       <section class="progress-panel" aria-label="Monthly progress">
@@ -44,7 +44,7 @@
       <p id="load-state" role="status"></p><div id="accounts" class="accounts"></div>
       <div class="toolbar"><button id="import" class="text-button">Import account list</button><button id="manage" class="text-button">Manage accounts</button></div>
       <input id="import-file" type="file" accept=".json,application/json" hidden>
-      <footer><p id="save-state" role="status" aria-live="polite">Changes save to your account.</p><p>Your accounts repeat monthly. Checkoffs and flags are saved per month.</p></footer>
+      <footer><p id="save-state" role="status" aria-live="polite">Changes save to your account.</p><p>Payments are due on the 1st. Each month keeps its own checkoffs and flags.</p></footer>
     </section>
     <noscript>Enable JavaScript to use your payment checklist.</noscript>
   </main>
