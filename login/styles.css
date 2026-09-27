@@ -1,8 +1,11 @@
 [hidden] { display: none !important; }
+main:has(#directory[hidden]) { max-width: 400px; }
+main:has(#directory[hidden]) > header,
+main:has(#directory[hidden]) > #status { text-align: center; }
 .back-link { display: inline-block; margin-bottom: 36px; color: #656565; font-size: 13px; }
 #status, #empty { color: #656565; font-size: 14px; }
 #status { margin: 24px 0; }
-#sign-in { margin-top: 28px; max-width: 100%; }
+#sign-in { width: 100%; max-width: 400px; margin: 28px auto 0; }
 #sign-in:empty { margin-top: 0; }
 #sign-in .cl-rootBox, #sign-in .cl-cardBox { width: 100%; max-width: 400px; }
 #sign-in input { font-size: 16px; }
