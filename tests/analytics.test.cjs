@@ -69,7 +69,7 @@ test('all published HTML pages have exactly one correctly named analytics script
   assert.deepEqual(manifest.map(x=>x.file).sort(), tracked.sort());
   for (const page of manifest) {
     const html = fs.readFileSync(page.file,'utf8');
-    assert.equal(html.match(/src="\/assets\/js\/analytics.js"/g)?.length, 1, page.file);
+    assert.equal(html.match(/src="\/assets\/js\/analytics.js\?v=20260927-2"/g)?.length, 1, page.file);
     assert.ok(html.includes(`data-app="${page.app}"`),page.file);
   }
 });
