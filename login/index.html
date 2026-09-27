@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Log in — John Ta</title>
+  <link rel="icon" href="../assets/img/jt-mark.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../assets/css/home.css">
+  <link rel="stylesheet" href="styles.css">
+  <script async data-clerk-script crossorigin="anonymous" src="https://clerk.john-ta.com/npm/@clerk/ui@1/dist/ui.browser.js"></script>
+  <script async data-clerk-script crossorigin="anonymous" data-clerk-publishable-key="pk_live_Y2xlcmsuam9obi10YS5jb20k" src="https://clerk.john-ta.com/npm/@clerk/clerk-js@6/dist/clerk.browser.js"></script>
+  <script defer src="app.js"></script>
+</head>
+<body>
+  <main>
+    <a class="back-link" href="../">John Ta</a>
+    <header>
+      <h1 id="title">Log in</h1>
+      <p id="intro">Sign in to access your apps.</p>
+    </header>
+    <p id="status" role="status">Loading sign-in…</p>
+    <div id="sign-in"></div>
+    <button id="retry" type="button" hidden>Try again</button>
+    <div id="directory" hidden>
+      <section aria-labelledby="apps-title">
+        <h2 id="apps-title">Your apps</h2>
+        <ul class="projects" id="apps"></ul>
+        <p id="empty" hidden>No apps are linked to this account yet. Use the email address your invitation was sent to.</p>
+      </section>
+      <section aria-labelledby="more-title">
+        <h2 id="more-title">Other tools</h2>
+        <ul class="projects">
+          <li><a href="../apartmentnavigation/">Apartment Navigation</a><span>Directions. Separate password required.</span></li>
+          <li><a href="../burgery/">Burgery</a><span>Our In-N-Out patty tally.</span></li>
+          <li><a href="../tools/menus/">Menu Index</a><span>SF Organica and Hẻm by Lê Quý.</span></li>
+        </ul>
+      </section>
+    </div>
+    <footer id="account" hidden><span id="email"></span><button id="sign-out" type="button">Sign out</button></footer>
+    <noscript><p>Enable JavaScript to sign in.</p></noscript>
+  </main>
+</body>
+</html>

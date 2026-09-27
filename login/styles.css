@@ -1,0 +1,14 @@
+[hidden] { display: none !important; }
+.back-link { display: inline-block; margin-bottom: 36px; color: #656565; font-size: 13px; }
+#status, #empty { color: #656565; font-size: 14px; }
+#status { margin: 24px 0; }
+#sign-in { margin-top: 28px; max-width: 100%; }
+#sign-in:empty { margin-top: 0; }
+#sign-in .cl-rootBox, #sign-in .cl-cardBox { width: 100%; max-width: 400px; }
+#sign-in input { font-size: 16px; }
+#account { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px; font-size: 13px; color: #656565; }
+#email { overflow-wrap: anywhere; min-width: 0; }
+button { font: inherit; color: inherit; background: transparent; border: 0; padding: 0; cursor: pointer; text-decoration: underline; text-underline-offset: 4px; text-decoration-color: #d1d1d1; }
+button:hover { text-decoration-color: currentColor; }
+button:focus-visible { outline: 2px solid #242424; outline-offset: 5px; }
+@media (max-width: 450px) { #sign-in .cl-card { padding: 20px; } }
