@@ -2,6 +2,8 @@
   'use strict';
   const API = 'https://rapid-shark-565.convex.cloud';
   const $ = id => document.getElementById(id);
+  const personPicker = SearchableSelect.enhance($('person'));
+  const statusPicker = SearchableSelect.enhance($('entry-status'));
   const labels = { unchecked: 'Not paid', scheduled: 'Not paid', paid: 'Paid', nothing_due: 'Paid' };
   const complete = status => status === 'paid' || status === 'nothing_due';
   const desktop = window.matchMedia('(min-width: 900px)');
@@ -45,6 +47,7 @@
   }
   function closeDialogs() { document.querySelectorAll('dialog[open]').forEach(d => d.close()); entry = null; imports = []; }
   function clearPrivate() {
+    personPicker.close(); statusPicker.close();
     ++request; pending.clear(); saveWarning = ''; closeMenu(); data = null; ready = false; editingAccount = null; closeDialogs(); setBusy(false);
     $('app').hidden = true; $('accounts').replaceChildren(); $('manage-list').replaceChildren(); $('import-preview').replaceChildren();
     $('entry-form').reset(); $('add-form').reset(); $('import-form').reset();
@@ -246,6 +249,7 @@
     const people = [...new Set(data.accounts.map(a => a.person))];
     $('person').replaceChildren(new Option('Everyone', ''), ...people.map(p => new Option(p, p)));
     $('person').value = people.includes(chosenPerson) ? chosenPerson : '';
+    personPicker.sync();
     $('people').replaceChildren(...people.map(p => new Option(p, p)));
     const accounts = activeAccounts().filter(a => !$('person').value || a.person === $('person').value);
     const done = accounts.filter(a => complete(logFor(a._id)?.status)).length;
@@ -317,6 +321,7 @@
     message('entry-person', account.person); message('entry-title', account.bank + (account.nickname ? ` · ${account.nickname}` : ''));
     message('entry-month', `${monthLabel(entry.month)} · Due ${dueLabel(account)}${log ? ` · Last updated ${new Date(log.updatedAt).toLocaleString()}` : ''}`);
     $('entry-status').value = complete(log?.status) ? 'paid' : 'unchecked';
+    statusPicker.sync();
     $('entry-flag').checked = !!log?.flagged;
     $('entry-amount').value = log?.amountCents != null ? (log.amountCents / 100).toFixed(2) : '';
     $('entry-note').value = log?.note || ''; message('entry-error', '');

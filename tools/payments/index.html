@@ -10,8 +10,10 @@
   <title>Card payments — John Ta</title>
   <link rel="icon" href="../../assets/img/jt-mark.svg" type="image/svg+xml">
   <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="../../assets/css/searchable-select.css">
   <script async data-clerk-script crossorigin="anonymous" src="https://clerk.john-ta.com/npm/@clerk/ui@1/dist/ui.browser.js"></script>
   <script async data-clerk-script crossorigin="anonymous" data-clerk-publishable-key="pk_live_Y2xlcmsuam9obi10YS5jb20k" src="https://clerk.john-ta.com/npm/@clerk/clerk-js@6/dist/clerk.browser.js"></script>
+  <script defer src="../../assets/js/searchable-select.js"></script>
   <script defer src="app.js"></script>
 </head>
 <body>
@@ -37,7 +39,7 @@
       </section>
       </div>
       <div class="table-controls">
-      <div class="filters"><label>Person<select id="person"><option value="">Everyone</option></select></label><label class="switch"><input id="remaining" type="checkbox">Only unpaid</label></div>
+      <div class="filters"><div class="picker-field"><span id="person-label">Person</span><select id="person" aria-labelledby="person-label"><option value="">Everyone</option></select></div><label class="switch"><input id="remaining" type="checkbox">Only unpaid</label></div>
       <div class="list-heading"><button id="refresh" class="text-button">Refresh</button><button id="add" class="secondary">+ Add account</button></div>
       </div>
       <div class="matrix-guide"><p>Click to mark paid. Right-click for flags and details.</p><span>— No account</span></div>
@@ -57,7 +59,7 @@
     <form id="entry-form">
       <div class="dialog-heading"><div><p class="eyebrow" id="entry-person"></p><h2 id="entry-title">Account details</h2></div><button type="button" class="arrow close" aria-label="Close details">×</button></div>
       <p id="entry-month" class="muted"></p>
-      <label>Status<select id="entry-status"><option value="unchecked">Not paid</option><option value="paid">Paid</option></select></label>
+      <div class="picker-field"><span id="entry-status-label">Status</span><select id="entry-status" aria-labelledby="entry-status-label"><option value="unchecked">Not paid</option><option value="paid">Paid</option></select></div>
       <label class="switch"><input id="entry-flag" type="checkbox">Flag for attention</label>
       <label>Payment amount <span class="muted">(optional)</span><input id="entry-amount" type="text" inputmode="decimal" placeholder="0.00" autocomplete="off"></label>
       <label>Note <span class="muted">(optional)</span><textarea id="entry-note" maxlength="1000" rows="3" placeholder="Scheduled for the 1st, confirmation number, anything useful…"></textarea></label>

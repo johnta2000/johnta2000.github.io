@@ -31,6 +31,7 @@ async function open(browser, width = 390, db = store(), mode = 'signed-in') {
   await page.route('**/*', async route => {
     const url = new URL(route.request().url());
     if (url.hostname === 'localhost') {
+      if (url.pathname.startsWith('/assets/')) return route.fulfill({ body: await fs.readFile(path.join(__dirname, '../../..', url.pathname)), contentType: url.pathname.endsWith('.js') ? 'text/javascript' : 'text/css' });
       if (url.pathname.includes('/icons/')) return route.fulfill({ body: await fs.readFile(path.join(__dirname, '..', 'icons', path.basename(url.pathname))), contentType: url.pathname.endsWith('.svg') ? 'image/svg+xml' : 'image/png' });
       const filename = url.pathname.endsWith('/') ? 'index.html' : path.basename(url.pathname);
       let body = await fs.readFile(path.join(__dirname, '..', filename), 'utf8');
@@ -68,6 +69,10 @@ async function open(browser, width = 390, db = store(), mode = 'signed-in') {
   await page.goto('http://localhost/');
   if (mode === 'signed-in') await page.locator('.account').first().waitFor();
   return { page, errors, db };
+}
+async function pick(page, id, label) {
+  await page.locator(`#${id}-trigger`).click();
+  await page.locator(`#${id}-panel`).getByRole('option', { name: label, exact: true }).click();
 }
 async function actions(page, id = 'one') {
   const row = page.locator(`[data-account="${id}"]`);
@@ -113,19 +118,19 @@ test('phone checkoff persists on another device, months stay separate, flags are
     const desktop = (await open(browser, 1280, db)).page;
     assert.equal(await desktop.locator('[data-account="one"] .status-badge').textContent(), 'Paid');
     await details(page, 'two');
-    await page.locator('#entry-status').selectOption('unchecked'); await page.locator('#entry-flag').check(); await page.locator('#entry-amount').fill('0'); await page.locator('#entry-note').fill('Scheduled for the first');
+    await pick(page, 'entry-status', 'Not paid'); await page.locator('#entry-flag').check(); await page.locator('#entry-amount').fill('0'); await page.locator('#entry-note').fill('Scheduled for the first');
     await page.getByRole('button', { name: 'Save entry', exact: true }).tap();
     await page.locator('#entry-dialog').waitFor({ state: 'hidden' });
     await page.waitForFunction(() => document.getElementById('progress-detail').textContent.includes('1 flagged'));
     assert.equal(await page.locator('#progress-number').textContent(), '1 / 4');
     assert.equal(db.logs.find(l => l.accountId === 'two').amountCents, 0);
     await page.locator('#remaining').check(); assert.equal(await page.locator('.account').count(), 3);
-    await page.locator('#person').selectOption('Dana'); assert.equal(await page.locator('.account').count(), 2);
-    await page.locator('#person').selectOption(''); await page.locator('#remaining').uncheck();
+    await pick(page, 'person', 'Dana'); assert.equal(await page.locator('.account').count(), 2);
+    await pick(page, 'person', 'Everyone'); await page.locator('#remaining').uncheck();
     await page.locator('#next').tap(); await page.waitForFunction(() => document.getElementById('progress-number').textContent === '0 / 4');
     await page.locator('#previous').tap(); await page.waitForFunction(() => document.getElementById('progress-number').textContent === '1 / 4');
     assert.equal(await page.locator('#month').inputValue(), month);
-    await details(page, 'one'); await page.locator('#entry-status').selectOption('unchecked'); await page.getByRole('button', { name: 'Save entry', exact: true }).tap();
+    await details(page, 'one'); await pick(page, 'entry-status', 'Not paid'); await page.getByRole('button', { name: 'Save entry', exact: true }).tap();
     await page.waitForFunction(() => document.getElementById('progress-number').textContent === '0 / 4');
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
@@ -139,7 +144,7 @@ test('failed and conflicting saves never claim completion; user input is rendere
     await page.locator('#save-state').filter({ hasText: 'Couldn’t confirm' }).waitFor();
     assert.equal(await page.locator('[data-account="one"] .status-badge').textContent(), 'Not paid');
     db.failSave = false; db.conflict = true;
-    await details(page, 'one'); await page.locator('#entry-status').selectOption('paid'); await page.getByRole('button', { name: 'Save entry', exact: true }).tap();
+    await details(page, 'one'); await pick(page, 'entry-status', 'Paid'); await page.getByRole('button', { name: 'Save entry', exact: true }).tap();
     await page.locator('#entry-error').filter({ hasText: 'another device' }).waitFor();
     assert.equal(await page.locator('#entry-dialog').isVisible(), true); assert.equal(db.logs.length, 0);
     db.conflict = false;
@@ -195,7 +200,7 @@ test('a delayed old-month response cannot replace the selected month', async () 
     const requested = page.waitForRequest(req => req.postData()?.includes('cardPayments:dashboard'));
     await page.locator('#refresh').tap(); await requested; await page.locator('#next').tap();
     await page.waitForFunction(() => document.querySelectorAll('.account').length === 4 && document.getElementById('progress-number').textContent === '0 / 4');
-    release(); await page.locator('#person').selectOption('Alex'); assert.equal(await page.locator('#progress-number').textContent(), '0 / 2');
+    release(); await pick(page, 'person', 'Alex'); assert.equal(await page.locator('#progress-number').textContent(), '0 / 2');
   } finally { await browser.close(); }
 });
 
@@ -311,4 +316,83 @@ test('desktop context menu hides extra controls, supports keyboard and edge posi
   await page.screenshot({ path: path.join(os.tmpdir(), `card-payments-context-${browserType.name()}.png`), fullPage: true });
   await page.locator('h1').click(); assert.equal(await page.locator('#payment-menu').isVisible(), false);
  } finally { await browser.close(); }
+});
+
+test('searchable pickers filter people, support keyboard selection, and work inside a modal', async () => {
+  const browser = await browserType.launch();
+  try {
+    const { page, errors } = await open(browser, 390);
+    await page.locator('#person-trigger').click();
+    const search = page.getByRole('combobox', { name: 'Search person' });
+    await search.fill('dAn');
+    assert.equal(await page.getByRole('option').count(), 1);
+    await search.press('Enter');
+    assert.equal(await page.locator('#person').inputValue(), 'Dana');
+    assert.equal(await page.locator('.account').count(), 2);
+    assert.equal(await page.locator('#person-trigger').textContent(), 'Dana');
+    await page.locator('#person-trigger').press('z');
+    assert.equal(await search.inputValue(), 'z');
+    await page.locator('#person-panel').getByText('No matches. Try another search.').waitFor();
+    await search.press('Escape');
+    assert.equal(await page.locator('#person-trigger').evaluate(n => n === document.activeElement), true);
+    await pick(page, 'person', 'Everyone');
+    await details(page);
+    await page.locator('#entry-status-trigger').click();
+    const statusSearch = page.getByRole('combobox', { name: 'Search status' });
+    await statusSearch.press('ArrowDown'); await statusSearch.press('Enter');
+    assert.equal(await page.locator('#entry-status').inputValue(), 'paid');
+    await page.locator('#entry-status-trigger').click();
+    await statusSearch.fill('not');
+    assert.equal(await page.getByRole('option').count(), 1);
+    await statusSearch.press('Escape');
+    assert.equal(await page.locator('#entry-dialog').isVisible(), true, 'Escape dismisses only the picker');
+    await page.getByRole('button', { name: 'Save entry', exact: true }).click();
+    await page.locator('#entry-dialog').waitFor({ state: 'hidden' });
+    assert.equal(await page.locator('[data-account="one"] .quick-paid').getAttribute('aria-pressed'), 'true');
+    await details(page);
+    assert.equal(await page.locator('#entry-status-trigger').textContent(), 'Paid', 'programmatic value changes sync');
+    await page.locator('#entry-status-trigger').click(); await statusSearch.press('Tab');
+    assert.equal(await page.locator('#entry-status-panel').isVisible(), false);
+    const nextFocus = await page.evaluate(() => document.activeElement.id);
+    assert.ok(['entry-flag', 'entry-amount'].includes(nextFocus), `Tab should advance to the next form control; focused ${nextFocus}`);
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});
+
+test('picker panels stay on screen, scroll long lists, and close on outside click or sign-out', async () => {
+  const browser = await browserType.launch();
+  try {
+    for (const width of [320, 390, 1280]) {
+      const db = store();
+      for (let i = 0; i < 25; i++) db.accounts.push({ ...db.accounts[0], _id: `extra-${i}`, person: `Person ${i}` });
+      const { page, errors } = await open(browser, width, db);
+      await page.locator('#person-trigger').click();
+      const panel = page.locator('#person-panel');
+      let bounds = await panel.boundingBox();
+      assert.ok(bounds.x >= 0 && bounds.x + bounds.width <= width && bounds.y >= 0 && bounds.y + bounds.height <= 844);
+      assert.ok(await page.locator('#person-options').evaluate(n => n.scrollHeight > n.clientHeight));
+      const search = page.getByRole('combobox', { name: 'Search person' });
+      await search.fill('person 24'); await search.press('Enter');
+      assert.equal(await page.locator('.account').count(), 1);
+      await page.locator('#person-trigger').click();
+      await page.screenshot({ path: path.join(os.tmpdir(), `payments-picker-${browserType.name()}-${width}.png`), fullPage: true });
+      await page.setViewportSize({ width, height: 450 });
+      await page.waitForFunction(() => document.getElementById('person-panel').getBoundingClientRect().bottom <= 450);
+      bounds = await panel.boundingBox();
+      assert.ok(bounds.y >= 0 && bounds.y + bounds.height <= 450, `Picker should fit a reduced viewport: ${JSON.stringify(bounds)}`);
+      await page.setViewportSize({ width, height: 844 });
+      await page.locator('h1').click(); assert.equal(await panel.isVisible(), false);
+      await page.locator('#person-trigger').click();
+      await page.locator('#person').evaluate(n => { n.disabled = true; });
+      await panel.waitFor({ state: 'hidden' });
+      assert.equal(await page.locator('#person-trigger').isDisabled(), true);
+      await page.locator('#person').evaluate(n => { n.disabled = false; });
+      await page.locator('#person-trigger').click();
+      await page.evaluate(() => window.changeSession(null));
+      await page.locator('#app').waitFor({ state: 'hidden' });
+      assert.equal(await panel.isVisible(), false);
+      assert.equal(await page.locator('#person').textContent(), 'Everyone');
+      assert.deepEqual(errors, []); await page.close();
+    }
+  } finally { await browser.close(); }
 });
