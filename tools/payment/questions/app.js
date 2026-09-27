@@ -93,12 +93,31 @@
   }
   function renderLegacy(){const t=current.item;const rows=[['Charge',t.amountCents==null?'':`$${(t.amountCents/100).toFixed(2)}`],['Date',t.transactionDate],['Cardholder',t.cardholder],['Card',t.card],['Who owes',t.payer],['Who gets paid',t.payee],['Expected',t.expectedCents==null?'':`$${(t.expectedCents/100).toFixed(2)}`],['Received',t.receivedCents?`$${(t.receivedCents/100).toFixed(2)}`:''],['Follow up',t.followUp]].filter(([,v])=>v);$('earlier').hidden=!rows.length;$('earlier').open=false;$('legacy-details').replaceChildren(...rows.map(([k,v])=>node('p',`${k}: ${v}`)));}
   function renderHistory(){$('history').open=false;$('events').replaceChildren();for(const e of [...current.events].sort((a,b)=>b.createdAt-a.createdAt)){const label=e.kind==='note-edit'?'Previous note':stages[e.kind]?`Moved to ${stages[e.kind]}`:e.kind==='payment'?'Earlier repayment':'Earlier update';const p=node('p');p.append(node('strong',label),node('time',new Date(e.createdAt).toLocaleString()));if(e.text)p.append(node('span',e.text));$('events').append(p);}if(!current.events.length)$('events').append(node('p','Nothing to report. Just keep writing.'));}
-  function renderImages(){clearUrls();$('screenshots').replaceChildren();$('upload-state').textContent=pendingFiles.length?`${pendingFiles.length} screenshot(s) waiting to upload`:'';for(const f of current.files){const b=button('Loading screenshot…',()=>{});b.className='screenshot';b.disabled=true;$('screenshots').append(b);void loadImage(f,b);}for(const f of pendingFiles){const b=button(uploading?'Uploading…':'Retry screenshot',()=>void uploadFiles());b.disabled=uploading;b.className='screenshot';b.append(node('span',f.file.name));$('screenshots').append(b);}}
-  async function loadImage(file,tile){const generation=epoch,target=current;try{const r=await fileRequest(file._id),blob=await r.blob();if(generation!==epoch||target!==current||!tile.isConnected)return;const url=URL.createObjectURL(blob);imageUrls.add(url);const img=node('img');img.src=url;img.alt=file.name;await img.decode();if(generation!==epoch||target!==current||!tile.isConnected)return;tile.replaceChildren(img,node('span',file.name));tile.disabled=false;tile.onclick=()=>{$('full-image').src=url;$('image-dialog').showModal();};}catch{if(generation!==epoch||!tile.isConnected)return;tile.textContent='Retry screenshot';tile.disabled=false;tile.onclick=()=>void loadImage(file,tile);}}
+  function previewImage(file, url, status, retry) {
+    const card=node('figure',undefined,'screenshot'), preview=button('',()=>{$('full-image').src=url;$('image-dialog').showModal();});
+    preview.className='screenshot-preview';preview.setAttribute('aria-label',`Enlarge ${file.name}`);
+    const img=node('img');img.src=url;img.alt=file.name;preview.append(img);
+    const caption=node('figcaption');caption.append(node('span',file.name,'screenshot-name'),node('span',status,'screenshot-status'));
+    if(retry){const action=button('Retry upload',retry);action.className='screenshot-retry';caption.append(action);}
+    card.append(preview,caption);return card;
+  }
+  function renderImages(){
+    clearUrls();$('screenshots').replaceChildren();
+    $('upload-state').textContent=pendingFiles.length?(uploading?'Uploading screenshot…':'Your screenshot is still here. Retry the upload below.') : '';
+    for(const f of current.files){const placeholder=node('div','Loading screenshot…','screenshot-loading');$('screenshots').append(placeholder);void loadImage(f,placeholder);}
+    for(const f of pendingFiles){const url=URL.createObjectURL(f.file);imageUrls.add(url);$('screenshots').append(previewImage(f.file,url,uploading?'Uploading…':'Not uploaded yet',uploading?null:()=>void uploadFiles()));}
+  }
+  async function loadImage(file,placeholder){const generation=epoch,target=current;
+    try{const r=await fileRequest(file._id),blob=await r.blob();if(generation!==epoch||target!==current||!placeholder.isConnected)return;
+      const url=URL.createObjectURL(blob);imageUrls.add(url);const img=node('img');img.src=url;await img.decode();
+      if(generation!==epoch||target!==current||!placeholder.isConnected)return;
+      placeholder.replaceWith(previewImage(file,url,'Saved · click to enlarge'));
+    }catch{if(generation!==epoch||!placeholder.isConnected)return;const retry=button('Retry loading screenshot',()=>void loadImage(file,placeholder));placeholder.replaceChildren(retry);}
+  }
   async function addFiles(files){if(!current)await newNote();if(!current)return;for(const file of files){if(!['image/png','image/jpeg','image/webp'].includes(file.type)||!file.size||file.size>8*1024*1024){notice('Choose a PNG, JPEG, or WebP screenshot under 8 MB.');continue;}if(current.files.length+pendingFiles.length>=20){notice('A note can have up to 20 screenshots.');break;}pendingFiles.push({file,key:crypto.randomUUID()});}renderImages();await uploadFiles();}
   async function uploadFiles(){if(uploading||!current||!pendingFiles.length)return;const generation=epoch,target=current;uploading=true;renderImages();
     try{if(!(await saveNote(!target.item._id)))return;for(const p of [...pendingFiles]){if(generation!==epoch||current!==target)return;$('upload-state').textContent='Uploading screenshot…';await fileRequest(target.item._id,{method:'POST',headers:{'Content-Type':p.file.type,'X-File-Name':encodeURIComponent(p.file.name),'X-Request-Key':p.key},body:p.file});if(generation!==epoch)return;pendingFiles=pendingFiles.filter(f=>f!==p);}const data=await call('query','detail',{id:target.item._id});if(generation!==epoch||current!==target)return;target.files=data.files;notice();}
-    catch(e){if(generation===epoch)notice('Your note is saved, but a screenshot didn’t upload. Click Retry screenshot.');}
+    catch(e){if(generation===epoch)notice('Your note is saved, but a screenshot didn’t upload. Click Retry upload below the preview.');}
     finally{if(generation===epoch){uploading=false;renderImages();}}
   }
   $('note-title').oninput=touch;$('new').onclick=()=>void newNote();$('empty-new').onclick=()=>void newNote();$('save').onclick=()=>void saveNote(true);$('search').oninput=renderQueue;

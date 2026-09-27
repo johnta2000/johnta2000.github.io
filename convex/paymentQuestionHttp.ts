@@ -11,7 +11,7 @@ export const attachment = httpAction(async (ctx, request) => {
   const h = headers(request);
   try {
     const user = await questionUser(ctx);
-    const url = new URL(request.url()); const id = url.searchParams.get('id');
+    const url = new URL(request.url); const id = url.searchParams.get('id');
     if (!id) return new Response('Missing question or screenshot.', { status: 400, headers: h });
     if (request.method === 'GET') {
       const file = await ctx.runQuery(anyApi.paymentQuestions.file, { id });
