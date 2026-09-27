@@ -33,12 +33,13 @@ test('tokens, private URLs, identity, and arbitrary payloads are removed', () =>
   const event = config.before_send({ event: '$pageview', properties: {
     '$current_url': 'https://www.john-ta.com/tools/tranquil-connect/?code=SECRET#TOKEN',
     '$referrer': 'https://example.com/private/person?email=PRIVATE#secret',
-    '$title': 'Private person name', '$session_id': 'session123',
+    '$title': 'Private person name', '$session_id': 'session123', '$cookieless_mode': true,
     '$set': { email: 'PRIVATE' }, email: 'PRIVATE', '$initial_utm_source': 'SECRET',
   } });
   assert.equal(event.properties.$current_url, 'https://www.john-ta.com/tools/tranquil-connect/');
   assert.equal(event.properties.$referrer, 'https://example.com/');
   assert.equal(event.properties.$session_id, 'session123');
+  assert.equal(event.properties.$cookieless_mode, true);
   assert.equal(event.properties.app, 'tranquil-connect');
   assert.doesNotMatch(JSON.stringify(event), /SECRET|TOKEN|PRIVATE|Private person/);
   assert.equal(config.before_send({event: '$snapshot', properties: {}}), null);

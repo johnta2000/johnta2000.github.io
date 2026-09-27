@@ -23,7 +23,7 @@
     '$prev_pageview_max_content_percentage', '$prev_pageview_duration',
     '$viewport_height', '$viewport_width', '$screen_height', '$screen_width',
     '$time', '$timezone', '$timezone_offset', '$is_identified',
-    '$process_person_profile', '$cookieless', '$session_recording_start_reason',
+    '$process_person_profile', '$cookieless_mode',
     'app', 'action', 'element', 'link',
   ]);
   const urlKeys = new Set(['$current_url', '$initial_current_url', '$session_entry_url']);
