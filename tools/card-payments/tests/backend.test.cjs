@@ -4,6 +4,7 @@ const path = require('node:path');
 const vm = require('node:vm');
 const esbuild = require('esbuild');
 let api;
+const env = { CARD_PAYMENTS_ALLOWED_EMAIL: 'owner@example.com, WORK@example.com ', CARD_PAYMENTS_WORKSPACE_OWNER: 'issuer|owner' };
 before(async () => {
   const result = await esbuild.build({
     entryPoints: [path.join(__dirname, '../../../convex/cardPayments.ts')], bundle: true, write: false, platform: 'node', format: 'cjs',
@@ -13,7 +14,7 @@ before(async () => {
     } }],
   });
   const module = { exports: {} };
-  vm.runInNewContext(result.outputFiles[0].text, { module, exports: module.exports, require, process: { env: { CARD_PAYMENTS_ALLOWED_EMAIL: 'owner@example.com' } }, console, TextEncoder, TextDecoder, URL });
+  vm.runInNewContext(result.outputFiles[0].text, { module, exports: module.exports, require, process: { env }, console, TextEncoder, TextDecoder, URL });
   api = module.exports;
 });
 
@@ -50,7 +51,7 @@ test('every endpoint rejects signed-out, unverified, missing-verification, and u
   }
 });
 
-test('only the configured email is accepted, including case-insensitive comparison', async () => {
+test('only exact configured emails are accepted, including case-insensitive comparison', async () => {
   assert.equal((await fixture({ tokenIdentifier: 'issuer|owner', email: 'OWNER@example.com', emailVerified: true }).run('verify')).email, 'OWNER@example.com');
   for (const email of ['second@example.com', 'owner+other@example.com', 'owner@example.com.attacker.example']) await assert.rejects(fixture({ tokenIdentifier: 'issuer|other', email, emailVerified: true }).run('verify'), /not authorized/);
 });
@@ -62,9 +63,34 @@ test('imports skip duplicates including same-batch duplicates, and validate all 
   assert.equal(f.tables.paymentAccounts.length, 1);
   await assert.rejects(f.run('addAccounts', { startMonth: '2026-13', accounts: [account] }), /valid month/);
 });
-test('a different identity with the approved email cannot access another identity’s data', async () => {
+test('approved logins share accounts and versioned history across different identities', async () => {
   const f = await seeded();
-  f.ctx.auth.getUserIdentity = async () => ({ tokenIdentifier: 'issuer|second', email: 'owner@example.com', emailVerified: true });
+  await f.run('save', { accountId: f.id, month: '2026-09', status: 'scheduled', expectedVersion: 0, note: 'Keep this history' });
+  f.ctx.auth.getUserIdentity = async () => ({ tokenIdentifier: 'issuer|work', email: 'work@example.com', emailVerified: true });
+  const result = await f.run('dashboard', { month: '2026-09' });
+  assert.equal(result.accounts[0]._id, f.id);
+  assert.equal(result.logs[0].note, 'Keep this history');
+  await assert.rejects(f.run('save', { accountId: f.id, month: '2026-09', status: 'paid', expectedVersion: 0 }), /another device/);
+  await f.run('save', { accountId: f.id, month: '2026-09', status: 'paid', expectedVersion: 1 });
+  await f.run('updateAccount', { accountId: f.id, ...account, dueDay: 5 });
+  f.ctx.auth.getUserIdentity = async () => ({ tokenIdentifier: 'issuer|owner', email: 'owner@example.com', emailVerified: true });
+  const updated = await f.run('dashboard', { month: '2026-09' });
+  assert.equal(updated.logs[0].status, 'paid');
+  assert.equal(updated.logs[0].version, 2);
+  assert.equal(updated.accounts[0].dueDay, 5);
+  await f.run('retire', { accountId: f.id, endMonth: '2026-09' });
+  assert.equal(f.tables.paymentAccounts[0].endMonth, '2026-09');
+});
+test('missing workspace or allowlist configuration fails closed', async () => {
+  for (const key of Object.keys(env)) {
+    const previous = env[key];
+    try { env[key] = ''; await assert.rejects(fixture().run('verify'), /not authorized/); }
+    finally { env[key] = previous; }
+  }
+});
+test('approved logins cannot access documents outside the configured workspace', async () => {
+  const f = await seeded();
+  f.tables.paymentAccounts[0].owner = 'issuer|unrelated';
   const result = await f.run('dashboard', { month: '2026-09' }); assert.equal(result.accounts.length, 0); assert.equal(result.logs.length, 0);
   await assert.rejects(f.run('save', { accountId: f.id, month: '2026-09', status: 'paid', expectedVersion: 0 }), /Account not found/);
   await assert.rejects(f.run('retire', { accountId: f.id, endMonth: '2026-09' }), /Account not found/);

@@ -4,13 +4,13 @@ A private monthly checklist with a desktop bank-by-person matrix and a compact p
 
 ## Access and release
 
-1. Set `CARD_PAYMENTS_ALLOWED_EMAIL` in the intended Convex deployment to the single approved owner email. No fallback allowlist is used. The authenticated token must include `email` and `email_verified: true` (Convex exposes the latter as `emailVerified`).
+1. Set `CARD_PAYMENTS_ALLOWED_EMAIL` in the intended Convex deployment to the comma-separated approved email addresses. Set `CARD_PAYMENTS_WORKSPACE_OWNER` to one stable, private workspace identifier shared by those logins; when enabling sharing for existing records, use their existing owner identifier. Both settings are required; no fallback allowlist is used. The authenticated token must include `email` and `email_verified: true` (Convex exposes the latter as `emailVerified`).
 2. Deploy `convex/cardPaymentTables.ts`, `convex/cardPayments.ts`, and the schema import/spread. Review the complete backend working tree before deploying: other tools may have unrelated changes. Do not blindly deploy the whole dirty checkout.
 3. Publish this directory and the account-directory link in `login/app.js`.
 4. Verify real sign-in on the configured `john-ta.com` origin, including denial for an unapproved account. Localhost cannot use this site's production Clerk instance.
 5. Import the separately supplied account-list JSON while signed in, review its due days and starting month, then confirm. Personal account rosters and payment records must not be committed to the public static site.
 
-All queries and mutations require server authorization. Each document belongs to the authenticated token identifier; an allowed second user cannot access the first user's data by guessing IDs. Signing out clears rendered account data and form drafts. Data is not stored in localStorage or a service worker.
+All queries and mutations require server authorization. Approved logins share the configured workspace, including its accounts and monthly history. Server-side owner checks deny access to documents outside that workspace even if IDs are known. Signing out clears rendered account data and form drafts. Data is not stored in localStorage or a service worker.
 
 ## Workflow
 
@@ -49,3 +49,5 @@ Verification: 16 backend/directory tests and eight browser scenarios in each of 
 ## Isolated backend release
 
 This repository serves multiple Convex deployments, and the shared checkout also contains unrelated local changes. The initial payment release used the current rapid-shark-565 deployed JavaScript as its baseline, renamed the reserved `_deps` import directory for rebundling, and added only the payment modules and two schema tables. Do not deploy all repository functions to rapid-shark-565 without checking for unrelated changes. The latest GitHub checkout also has a pre-existing rallyNotes.ts type error in addition to the local checkout’s three existing type errors. None is in the payment tracker.
+
+Access update: the two approved verified emails share one configured workspace. All 18 backend/directory tests pass, including shared history and stale-write protection across logins. Live read-only checks accept both approved emails and reject an unrelated email, an unverified approved email, and signed-out access. The full-project typecheck retains only the four unrelated errors noted above.
