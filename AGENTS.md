@@ -14,3 +14,11 @@
 - The canonical route is `/tools/payments/`; preserve the redirect from `/tools/card-payments/`.
 - Preserve the compact desktop bank-by-person matrix and the mobile layout with payment status beside the bank/account details.
 - Test payment changes with mock data. Never change real payment logs just to exercise the UI.
+
+## Payment questions
+
+- `/tools/payment/questions/` is a separate private charge/reimbursement inbox linked from Payments. Keep its access policy separate from the monthly checklist; only the two owner emails are approved by default.
+- Screenshots are private. Upload and retrieve them through the authenticated `payment-question-file` endpoint; never publish user images in the Git repository or return public storage URLs.
+- Charge amount, expected reimbursement, and money actually received are distinct. Resolving a question does not record a payment. Preserve notes and status changes in the activity history.
+- Test with synthetic images and mock records. Import real financial screenshots only with explicit permission.
+- The local Convex checkout can differ from the deployed backend. Preserve unrelated deployed modules, routes, and tables when publishing this tool; do not deploy a stale full checkout.

@@ -2,7 +2,10 @@ import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 import { cardPaymentTables } from "./cardPaymentTables";
 
+import { paymentQuestionTables } from "./paymentQuestionTables";
+
 export default defineSchema({
+  ...paymentQuestionTables,
   ...cardPaymentTables,
   rallyNativeTracking: defineTable({
     eventId:v.string(),memberId:v.string(),subject:v.string(),tokenHash:v.string(),

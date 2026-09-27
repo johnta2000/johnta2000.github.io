@@ -7,7 +7,12 @@ import {
   whoopConfig,
 } from "./whoopLib";
 
+import { attachment, preflight } from "./paymentQuestionHttp";
+
 const http = httpRouter();
+http.route({ path: "/payment-question-file", method: "OPTIONS", handler: preflight });
+http.route({ path: "/payment-question-file", method: "GET", handler: attachment });
+http.route({ path: "/payment-question-file", method: "POST", handler: attachment });
 
 http.route({
   path: "/whoop/callback",
