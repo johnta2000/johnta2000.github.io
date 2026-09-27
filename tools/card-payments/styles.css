@@ -238,3 +238,13 @@ textarea { resize:vertical; }
 @media(min-width:900px) { .matrix-account .touch-actions { display:none; } .matrix-account .quick-paid { padding:4px 10px; } }
 @media(pointer:coarse) { .matrix-account .touch-actions { display:block; min-width:40px; width:40px; } }
 @media(max-width:899px) { .payment-menu button { min-height:44px; } }
+
+/* Color the entire payment cell, right up to the grid lines. */
+.payment-matrix td:has(.matrix-account) { padding:0; background:#fce7e7; }
+.payment-matrix td:has(.matrix-account.done):not(:has(.matrix-account:not(.done))) { background:#d8efdf; }
+.payment-matrix .matrix-account { gap:0; border-radius:0; background:#fce7e7; }
+.payment-matrix .matrix-account.done { background:#d8efdf; }
+.payment-matrix .account-actions,.payment-matrix .quick-paid { border-radius:0; }
+.payment-matrix .quick-paid { min-height:36px; padding:6px 12px; }
+.payment-matrix .card-nickname,.payment-matrix .cell-detail { padding:2px 12px; }
+.payment-matrix .matrix-account+.matrix-account { margin-top:0; padding-top:0; }
