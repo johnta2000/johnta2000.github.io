@@ -2,34 +2,31 @@
 <html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="robots" content="noindex,nofollow"><meta name="theme-color" content="#f7f8f5">
 <title>Payment questions — John Ta</title><link rel="icon" href="../../../assets/img/jt-mark.svg" type="image/svg+xml">
-<link rel="stylesheet" href="styles.css"><link rel="stylesheet" href="../../../assets/css/searchable-select.css">
+<link rel="stylesheet" href="styles.css"><link rel="stylesheet" href="../../rally/note-editor.css">
 <script async data-clerk-script crossorigin="anonymous" src="https://clerk.john-ta.com/npm/@clerk/ui@1/dist/ui.browser.js"></script>
 <script async data-clerk-script crossorigin="anonymous" data-clerk-publishable-key="pk_live_Y2xlcmsuam9obi10YS5jb20k" src="https://clerk.john-ta.com/npm/@clerk/clerk-js@6/dist/clerk.browser.js"></script>
-<script defer src="../../../assets/js/searchable-select.js"></script><script defer src="app.js"></script>
+<script defer src="../../rally/note-rich-text.js"></script><script defer src="../../rally/note-editor.js"></script><script defer src="app.js"></script>
 </head><body><main>
 <nav><a href="../../payments/">← Payments</a><button id="sign-out" class="quiet" hidden>Sign out</button></nav>
-<header><div><p class="eyebrow">A little less to keep in your head</p><h1>Payment questions<span>.</span></h1><p class="muted">Capture the charge. Fill in the story. Close the loop.</p></div><button id="new" class="primary" hidden>+ Flag a charge</button></header>
+<header><div><h1>Payment questions<span>.</span></h1><p class="muted">A note, a screenshot, and somewhere to leave it.</p></div><button id="new" class="primary" hidden>+ New note</button></header>
 <p id="notice" role="status" hidden></p>
-<section id="gate" class="card"><h2>Your private inbox</h2><p id="gate-message">Loading sign-in…</p><div id="sign-in"></div><button id="retry-auth" hidden>Try again</button></section>
-<section id="app" hidden aria-label="Payment questions">
-<div class="summary"><div><strong id="open-count">0</strong><span>unresolved questions</span></div><div><strong id="owed-total">—</strong><span>known reimbursement remaining</span></div><p>Not everything needs an answer today.<br>Just give it a place to live.</p></div>
-<div class="inbox-controls"><label class="search"><span class="sr-only">Search questions</span><input id="search" type="search" placeholder="Search merchant, person, card, or context…"></label><div class="picker-field"><span id="filter-label" class="sr-only">View</span><select id="filter" aria-labelledby="filter-label"><option value="active">Unresolved</option><option value="open">Open</option><option value="waiting">Waiting</option><option value="resolved">Resolved</option><option value="all">All questions</option></select></div><button id="refresh" class="quiet">Refresh</button></div>
-<div class="workspace"><section class="inbox" aria-label="Questions"><p id="list-count" class="muted"></p><div id="tickets"></div></section><section id="detail" class="detail" aria-label="Question details"><div class="detail-placeholder"><span>↗</span><h2>One charge, one place.</h2><p>Select a question to see the full story,<br>or flag a charge to get started.</p></div></section></div>
-</section><noscript>Enable JavaScript to use Payment questions.</noscript>
-</main>
-<dialog id="ticket-dialog" aria-labelledby="ticket-title"><form id="ticket-form"><div class="dialog-heading"><div><p class="eyebrow">Keep it simple to start</p><h2 id="ticket-title">Flag a charge</h2></div><button type="button" class="close quiet" aria-label="Close">×</button></div>
-<div id="capture-area"><label id="dropzone" class="dropzone" for="files"><strong>Add a screenshot</strong><span>Choose a file, drop it here, or paste an image</span><span class="muted">PNG, JPEG, WebP · up to 8 MB each</span></label><input id="files" type="file" accept="image/png,image/jpeg,image/webp" multiple class="sr-only"><div id="draft-files" class="draft-files"></div></div>
-<label>What’s the question?<input id="title" maxlength="160" placeholder="e.g. Who’s reimbursing Mom for this trip?"></label>
-<div class="columns"><label>Charge amount<input id="amount" inputmode="decimal" placeholder="0.00"></label><label>Transaction date<input id="transactionDate" type="date"></label></div>
-<div class="columns"><label>Whose card?<input id="cardholder" maxlength="100" placeholder="e.g. Mom"></label><label>Bank / card<input id="card" maxlength="100" placeholder="e.g. Chase · 9809"></label></div>
-<div class="columns"><label>Who owes?<input id="payer" maxlength="100" placeholder="Unknown is fine for now"></label><label>Who gets paid?<input id="payee" maxlength="100" placeholder="e.g. Me or Mom"></label></div>
-<div class="columns"><label>Reimbursement expected<input id="expected" inputmode="decimal" placeholder="Leave blank if unknown"></label><label>Follow up on<input id="followUp" type="date"></label></div>
-<label>Context<textarea id="context" rows="3" maxlength="8000" placeholder="What you know, what you need to ask, links to messages…"></textarea></label>
-<p class="muted small">Everything except the title is optional. You can come back and fill it in.</p><p id="ticket-error" class="error" role="alert"></p><button id="ticket-submit" class="primary" type="submit">Create question</button></form></dialog>
-<dialog id="update-dialog" aria-labelledby="update-title"><form id="update-form"><div class="dialog-heading"><h2 id="update-title">Add an update</h2><button type="button" class="close quiet" aria-label="Close update">×</button></div>
-<div id="update-status-field" class="picker-field"><span id="status-label">Status</span><select id="update-status" aria-labelledby="status-label"><option value="open">Open — needs an answer</option><option value="waiting">Waiting — someone needs to act</option><option value="resolved">Resolved — all sorted</option></select></div>
-<label id="repayment-field" hidden>Amount received<input id="repayment" inputmode="decimal" placeholder="0.00"></label>
-<label><span id="update-prompt">What changed?</span><textarea id="update-text" rows="4" maxlength="8000" required placeholder="Add the context you’ll want to remember…"></textarea></label><p id="update-help" class="muted small"></p><p id="update-error" class="error" role="alert"></p><button class="primary" type="submit">Save update</button></form></dialog>
-<input id="more-files" type="file" accept="image/png,image/jpeg,image/webp" multiple hidden>
-<dialog id="image-dialog" class="image-dialog" aria-label="Screenshot"><button type="button" class="close" aria-label="Close screenshot">Close</button><img id="full-image" alt="Attached charge screenshot"></dialog>
+<section id="gate" class="card"><h2>Your private notes</h2><p id="gate-message">Loading sign-in…</p><div id="sign-in"></div><button id="retry-auth" hidden>Try again</button></section>
+<section id="app" hidden aria-label="Payment notes">
+<div class="workspace"><aside class="queue" aria-label="Note queue">
+<div class="queue-tabs" role="group" aria-label="Queue"><button data-queue="open" aria-pressed="true">Inbox <span></span></button><button data-queue="waiting" aria-pressed="false">Waiting <span></span></button><button data-queue="resolved" aria-pressed="false">Done <span></span></button></div>
+<label class="sr-only" for="search">Search notes</label><input id="search" type="search" placeholder="Search notes…"><div id="tickets"></div><button id="refresh" class="quiet">Refresh</button>
+</aside><section id="detail" class="detail" aria-label="Note editor">
+<div id="placeholder"><span>↗</span><h2>Just leave a note.</h2><p>Paste a screenshot, jot down what’s going on,<br>and move it along when you’re ready.</p><button id="empty-new" class="quiet">+ New note</button></div>
+<div id="note" hidden><button id="back" class="quiet mobile-back">← Back to queue</button>
+<div class="note-top"><span id="note-stage" class="badge">Inbox</span><span id="save-state" role="status" aria-live="polite"></span></div>
+<label class="sr-only" for="note-title">Note title (optional)</label><input id="note-title" placeholder="Untitled note" maxlength="160" autocomplete="off">
+<div id="editor-mount"><textarea id="note-body" placeholder="What’s going on? Write freely. Paste a screenshot whenever you need one."></textarea></div>
+<div class="note-bottom"><button id="attach" class="quiet">+ Screenshot</button><button id="save" class="quiet">Save note</button></div>
+<p id="upload-state" class="muted small" role="status"></p><div id="screenshots" class="screenshots"></div>
+<div class="move-actions" role="group" aria-label="Move note"><span>Move to</span><button data-move="open">Inbox</button><button data-move="waiting">Waiting</button><button data-move="resolved" class="primary">Done ✓</button></div>
+<details id="earlier" hidden><summary>Earlier details</summary><div id="legacy-details"></div></details>
+<details id="history"><summary>History</summary><div id="events"></div></details>
+</div></section></div></section><noscript>Enable JavaScript to use Payment questions.</noscript></main>
+<input id="files" type="file" accept="image/png,image/jpeg,image/webp" multiple hidden>
+<dialog id="image-dialog" aria-label="Screenshot"><button id="close-image" class="quiet">Close</button><img id="full-image" alt="Attached screenshot"></dialog>
 </body></html>

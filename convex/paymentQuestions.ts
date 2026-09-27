@@ -2,6 +2,7 @@ import { query, mutation, internalMutation } from './_generated/server';
 import { v } from 'convex/values';
 import { questionFields, questionStatus } from './paymentQuestionTables';
 import { questionUser } from './paymentQuestionAuth';
+import { normalizeRichText, richTextPlain } from './paymentQuestionRichText';
 
 function text(value: string, max = 100, required = false) {
   const clean = value.trim();
@@ -52,7 +53,7 @@ export const edit = mutation({ args: { id: v.id('paymentQuestions'), expectedVer
   const next = fields(args);
   const changes = Object.keys(next).filter(k => (next as any)[k] !== item[k]).map(k => `${k}: ${item[k] ?? '—'} → ${(next as any)[k] ?? '—'}`);
   if (!changes.length) return;
-  await ctx.db.patch(args.id, { ...next, version: item.version + 1, updatedAt: Date.now() });
+  await ctx.db.patch(args.id, { ...next, ...(next.context !== item.context ? { richText: undefined } : {}), version: item.version + 1, updatedAt: Date.now() });
   await ctx.db.insert('paymentQuestionEvents', { owner: user.owner, ticketId: args.id, kind: 'edit', text: changes.join('\n'), author: user.email, createdAt: Date.now(), requestKey: `edit-${item.version}` });
 } });
 export const update = mutation({ args: { id: v.id('paymentQuestions'), expectedVersion: v.number(), requestKey: v.string(), text: v.string(), status: v.optional(questionStatus), amountCents: v.optional(v.number()) }, handler: async (ctx, args) => {
@@ -79,4 +80,51 @@ export const file = query({ args: { id: v.id('paymentQuestionFiles') }, handler:
   const user = await questionUser(ctx); const record = await ctx.db.get(id);
   if (!record || record.owner !== user.owner) throw Error('Screenshot not found.');
   await ticket(ctx, record.ticketId, user.owner); return record;
+} });
+
+// Notes are the primary interface. Older structured fields remain intact.
+export const saveNote = mutation({ args: {
+  id: v.optional(v.id('paymentQuestions')), expectedVersion: v.optional(v.number()),
+  title: v.string(), richText: v.any(), requestKey: v.string(),
+}, handler: async (ctx, args) => {
+  const user = await questionUser(ctx), key = text(args.requestKey, 100, true);
+  const richText = normalizeRichText(args.richText), body = richTextPlain(richText).trim();
+  const title = text(args.title, 160) || body.split('\n')[0].slice(0, 100) || 'Untitled note';
+  if (!args.id) {
+    const notes = await ctx.db.query('paymentQuestions').withIndex('by_owner', q => q.eq('owner', user.owner)).collect();
+    const duplicate = notes.find(n => n.requestKey === key);
+    if (duplicate) return { id: duplicate._id, version: 1 };
+    if (notes.length >= 2000) throw Error('This inbox supports up to 2,000 notes.');
+    const id = await ctx.db.insert('paymentQuestions', {
+      owner: user.owner, title, context: body, richText, status: 'open', version: 1,
+      amountCents: null, transactionDate: '', cardholder: '', card: '', payer: '', payee: '',
+      expectedCents: null, followUp: '', receivedCents: 0,
+      createdAt: Date.now(), updatedAt: Date.now(), createdBy: user.email, requestKey: key,
+    });
+    return { id, version: 1 };
+  }
+  const item = await ticket(ctx, args.id, user.owner);
+  const events = await ctx.db.query('paymentQuestionEvents').withIndex('by_ticket', q => q.eq('ticketId', args.id!)).collect();
+  const prior = events.find(e => e.requestKey === key);
+  if (prior) return { id: item._id, version: prior.savedVersion ?? item.version };
+  version(item, args.expectedVersion ?? -1);
+  if (item.title === title && JSON.stringify(item.richText) === JSON.stringify(richText)) return { id: item._id, version: item.version };
+  const nextVersion = item.version + 1, previousBody = item.context;
+  await ctx.db.patch(args.id, { title, context: body, richText, version: nextVersion, updatedAt: Date.now() });
+  // Preserve the previous text without making the user write a change summary.
+  await ctx.db.insert('paymentQuestionEvents', { ticketId: args.id, owner: user.owner, kind: 'note-edit',
+    text: previousBody, savedVersion: nextVersion, author: user.email, createdAt: Date.now(), requestKey: key });
+  return { id: item._id, version: nextVersion };
+} });
+export const move = mutation({ args: { id: v.id('paymentQuestions'), status: questionStatus, expectedVersion: v.number(), requestKey: v.string() }, handler: async (ctx, args) => {
+  const user = await questionUser(ctx), item = await ticket(ctx, args.id, user.owner), key = text(args.requestKey, 100, true);
+  const events = await ctx.db.query('paymentQuestionEvents').withIndex('by_ticket', q => q.eq('ticketId', args.id)).collect();
+  if (events.some(e => e.requestKey === key)) return { version: item.version };
+  version(item, args.expectedVersion);
+  if (item.status === args.status) return { version: item.version };
+  const nextVersion = item.version + 1;
+  await ctx.db.patch(args.id, { status: args.status, version: nextVersion, updatedAt: Date.now() });
+  await ctx.db.insert('paymentQuestionEvents', { ticketId: args.id, owner: user.owner, kind: args.status,
+    text: '', author: user.email, createdAt: Date.now(), requestKey: key });
+  return { version: nextVersion };
 } });

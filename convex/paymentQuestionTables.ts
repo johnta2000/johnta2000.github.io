@@ -8,12 +8,12 @@ export const questionFields = {
 };
 export const paymentQuestionTables = {
   paymentQuestions: defineTable({
-    ...questionFields, owner: v.string(), status: questionStatus, receivedCents: v.number(),
+    ...questionFields, richText: v.optional(v.any()), owner: v.string(), status: questionStatus, receivedCents: v.number(),
     version: v.number(), createdAt: v.number(), updatedAt: v.number(), createdBy: v.string(), requestKey: v.string(),
   }).index("by_owner", ["owner"]),
   paymentQuestionEvents: defineTable({
     ticketId: v.id("paymentQuestions"), owner: v.string(), kind: v.string(), text: v.string(),
-    amountCents: v.optional(v.number()), author: v.string(), createdAt: v.number(), requestKey: v.string(),
+    savedVersion: v.optional(v.number()), amountCents: v.optional(v.number()), author: v.string(), createdAt: v.number(), requestKey: v.string(),
   }).index("by_ticket", ["ticketId"]),
   paymentQuestionFiles: defineTable({
     ticketId: v.id("paymentQuestions"), owner: v.string(), storageId: v.id("_storage"),
