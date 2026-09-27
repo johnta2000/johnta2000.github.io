@@ -1,0 +1,233 @@
+const { test } = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs/promises');
+const path = require('node:path');
+const os = require('node:os');
+const { chromium, webkit } = require('playwright');
+const browserType = process.env.PAYMENTS_BROWSER === 'webkit' ? webkit : chromium;
+function store() {
+  return { accounts: [
+    { _id: 'one', person: 'Alex', bank: 'Chase', nickname: '', dueDay: 1, startMonth: '2020-01' },
+    { _id: 'two', person: 'Alex', bank: 'American Express', nickname: 'Travel', dueDay: 1, startMonth: '2020-01' },
+    { _id: 'three', person: 'Dana', bank: 'Citi', nickname: '', dueDay: 1, startMonth: '2020-01' },
+    { _id: 'four', person: 'Dana', bank: 'Bank of America', nickname: '', dueDay: 15, startMonth: '2020-01' },
+  ], logs: [], requests: [], failSave: false, conflict: false, delayQuery: null };
+}
+async function open(browser, width = 390, db = store(), mode = 'signed-in') {
+  const page = await browser.newPage({ viewport: { width, height: 844 }, hasTouch: true, isMobile: width < 600 });
+  page.setDefaultTimeout(7000); const errors = [];
+  page.on('pageerror', error => errors.push(error.message));
+  await page.addInitScript(mode => {
+    const token = 'test.' + btoa(JSON.stringify({ aud: 'convex' })) + '.test';
+    const session = { id: 'test-session', getToken: async () => token };
+    window.__internal_ClerkUICtor = {};
+    window.Clerk = {
+      session: mode === 'signed-out' ? null : session, load: async () => {},
+      mountSignIn: element => { element.textContent = 'Sign in form'; }, unmountSignIn: element => { element.textContent = ''; },
+      addListener(callback) { window.changeSession = session => { this.session = session; callback({ session }); }; },
+      signOut: async () => window.changeSession(null),
+    };
+  }, mode);
+  await page.route('**/*', async route => {
+    const url = new URL(route.request().url());
+    if (url.hostname === 'localhost') {
+      const filename = url.pathname.endsWith('/') ? 'index.html' : path.basename(url.pathname);
+      let body = await fs.readFile(path.join(__dirname, '..', filename), 'utf8');
+      if (filename === 'index.html') body = body.replace(/<script\b[^>]*src="https:[\s\S]*?<\/script>/g, '');
+      return route.fulfill({ body, contentType: filename.endsWith('.js') ? 'text/javascript' : filename.endsWith('.css') ? 'text/css' : 'text/html' });
+    }
+    if (!url.hostname.endsWith('.convex.cloud')) return route.abort();
+    const { path: endpoint, args } = route.request().postDataJSON(); db.requests.push({ endpoint, args });
+    let value = null;
+    if (mode === 'denied') return route.fulfill({ json: { status: 'error', errorMessage: 'This account is not authorized for card payments.' } });
+    if (endpoint === 'cardPayments:verify') value = { email: 'owner@example.com' };
+    if (endpoint === 'cardPayments:dashboard') {
+      const snapshot = JSON.parse(JSON.stringify({ accounts: db.accounts, logs: db.logs.filter(l => l.month === args.month) }));
+      if (db.delayQuery) await db.delayQuery(args.month);
+      value = snapshot;
+    }
+    if (endpoint === 'cardPayments:save') {
+      if (db.failSave) return route.abort('failed');
+      const old = db.logs.find(l => l.accountId === args.accountId && l.month === args.month);
+      if (db.conflict || (old?.version || 0) !== args.expectedVersion) return route.fulfill({ json: { status: 'error', errorMessage: 'This entry changed on another device. Refresh and review it before saving again.' } });
+      const log = { ...old, ...args, version: (old?.version || 0) + 1, updatedAt: Date.now() };
+      if (old) Object.assign(old, log); else db.logs.push(log);
+      value = { version: log.version };
+    }
+    if (endpoint === 'cardPayments:addAccounts') {
+      const before = db.accounts.length;
+      for (const a of args.accounts) if (!db.accounts.some(b => b.bank === a.bank && b.person === a.person && b.nickname === a.nickname)) db.accounts.push({ ...a, startMonth: args.startMonth, _id: `account-${db.accounts.length}` });
+      value = { added: db.accounts.length - before, skipped: args.accounts.length - (db.accounts.length - before) };
+    }
+    if (endpoint === 'cardPayments:updateAccount') Object.assign(db.accounts.find(a => a._id === args.accountId), args);
+    if (endpoint === 'cardPayments:retire') db.accounts.find(a => a._id === args.accountId).endMonth = args.endMonth;
+    return route.fulfill({ json: { status: 'success', value } });
+  });
+  await page.goto('http://localhost/');
+  if (mode === 'signed-in') await page.locator('.account').first().waitFor();
+  return { page, errors, db };
+}
+async function fits(page) {
+  const size = await page.evaluate(() => [document.documentElement.scrollWidth, innerWidth]);
+  assert.ok(size[0] <= size[1], `Horizontal overflow: ${size}`);
+}
+
+test('mobile and desktop layouts fit, controls are tappable, and details stay within the viewport', async () => {
+  const browser = await browserType.launch();
+  try {
+    for (const width of [320, 390, 768, 1280]) {
+      const { page, errors } = await open(browser, width);
+      await fits(page);
+      const heights = await page.locator('.quick-paid, .details-button, #previous, #next').evaluateAll(nodes => nodes.map(n => n.getBoundingClientRect().height));
+      assert.ok(heights.every(h => h >= 44));
+      await page.screenshot({ path: path.join(os.tmpdir(), `card-payments-${browserType.name()}-${width}.png`), fullPage: true });
+      await page.locator('.details-button').first().click(); await fits(page);
+      assert.ok(await page.locator('#entry-amount').evaluate(n => parseFloat(getComputedStyle(n).fontSize) >= 16));
+      const bounds = await page.locator('#entry-dialog').boundingBox(); assert.ok(bounds.x >= 0 && bounds.x + bounds.width <= width);
+      assert.deepEqual(errors, []); await page.close();
+    }
+  } finally { await browser.close(); }
+});
+
+test('phone checkoff persists on another device, months stay separate, scheduled is unfinished, and zero can be logged', async () => {
+  const browser = await browserType.launch(); const db = store();
+  try {
+    const { page, errors } = await open(browser, 390, db);
+    const month = await page.locator('#month').inputValue();
+    await page.locator('[data-account="one"] .quick-paid').tap();
+    await page.locator('[data-account="one"] .status-badge').filter({ hasText: 'Paid' }).waitFor();
+    assert.equal(await page.locator('#progress-number').textContent(), '1 / 4');
+    const desktop = (await open(browser, 1280, db)).page;
+    assert.equal(await desktop.locator('[data-account="one"] .status-badge').textContent(), 'Paid');
+    await page.locator('[data-account="two"] .details-button').tap();
+    await page.locator('#entry-status').selectOption('scheduled'); await page.locator('#entry-amount').fill('0'); await page.locator('#entry-note').fill('Scheduled for the first');
+    await page.getByRole('button', { name: 'Save entry', exact: true }).tap();
+    await page.locator('#entry-dialog').waitFor({ state: 'hidden' });
+    await page.waitForFunction(() => document.getElementById('progress-detail').textContent.includes('1 scheduled'));
+    assert.equal(await page.locator('#progress-number').textContent(), '1 / 4');
+    assert.equal(db.logs.find(l => l.accountId === 'two').amountCents, 0);
+    await page.locator('#remaining').check(); assert.equal(await page.locator('.account').count(), 3);
+    await page.locator('#person').selectOption('Dana'); assert.equal(await page.locator('.account').count(), 2);
+    await page.locator('#person').selectOption(''); await page.locator('#remaining').uncheck();
+    await page.locator('#next').tap(); await page.waitForFunction(() => document.getElementById('progress-number').textContent === '0 / 4');
+    await page.locator('#previous').tap(); await page.waitForFunction(() => document.getElementById('progress-number').textContent === '1 / 4');
+    assert.equal(await page.locator('#month').inputValue(), month);
+    await page.locator('[data-account="one"] .details-button').tap(); await page.locator('#entry-status').selectOption('unchecked'); await page.getByRole('button', { name: 'Save entry', exact: true }).tap();
+    await page.waitForFunction(() => document.getElementById('progress-number').textContent === '0 / 4');
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});
+
+test('failed and conflicting saves never claim completion; user input is rendered as text', async () => {
+  const browser = await browserType.launch(); const db = store();
+  try {
+    const { page, errors } = await open(browser, 390, db); db.failSave = true;
+    await page.locator('[data-account="one"] .quick-paid').tap();
+    await page.locator('#save-state').filter({ hasText: 'Couldn’t confirm' }).waitFor();
+    assert.equal(await page.locator('[data-account="one"] .status-badge').textContent(), 'To check');
+    db.failSave = false; db.conflict = true;
+    await page.locator('[data-account="one"] .details-button').tap(); await page.locator('#entry-status').selectOption('paid'); await page.getByRole('button', { name: 'Save entry', exact: true }).tap();
+    await page.locator('#entry-error').filter({ hasText: 'another device' }).waitFor();
+    assert.equal(await page.locator('#entry-dialog').isVisible(), true); assert.equal(db.logs.length, 0);
+    db.conflict = false;
+    await page.locator('#entry-note').fill('<img src=x onerror=alert(1)>'); await page.getByRole('button', { name: 'Save entry', exact: true }).tap();
+    await page.locator('.account-note').waitFor(); assert.equal(await page.locator('.account-note img').count(), 0);
+    assert.equal(await page.locator('.account-note').textContent(), '<img src=x onerror=alert(1)>'); assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});
+
+test('add, import with review, edit, retire, and reactivate accounts', async () => {
+  const browser = await browserType.launch();
+  try {
+    const { page, db } = await open(browser);
+    await page.locator('#add').tap(); await page.locator('#add-person').fill('Sam'); await page.locator('#add-bank').fill('Discover'); await page.getByRole('button', { name: 'Add account', exact: true }).tap();
+    await page.waitForFunction(() => document.querySelectorAll('.account').length === 5);
+    const content = JSON.stringify({ version: 1, accounts: [{ person: 'Sam', bank: 'Discover', nickname: '', dueDay: 1 }, { person: 'Sam', bank: 'Citi', nickname: '', dueDay: 1 }] });
+    await page.locator('#import-file').setInputFiles({ name: 'accounts.json', mimeType: 'application/json', buffer: Buffer.from(content) });
+    await page.locator('#import-dialog').waitFor(); assert.equal(db.accounts.length, 5);
+    await page.getByRole('button', { name: 'Import accounts', exact: true }).tap(); await page.waitForFunction(() => document.querySelectorAll('.account').length === 6);
+    assert.equal(db.accounts.length, 6);
+    await page.locator('#manage').tap(); const item = page.locator('.manage-row').filter({ hasText: 'Sam · Discover' });
+    await item.getByRole('button', { name: 'Edit', exact: true }).tap(); await page.locator('#add-day').fill('15'); await page.getByRole('button', { name: 'Save account', exact: true }).tap();
+    await page.locator('#add-dialog').waitFor({ state: 'hidden' }); assert.equal(db.accounts.find(a => a.bank === 'Discover').dueDay, 15);
+    await page.locator('#manage').tap(); await item.getByRole('button', { name: 'Retire', exact: true }).tap(); await item.getByRole('button', { name: 'Reactivate', exact: true }).waitFor();
+    await page.getByRole('button', { name: 'Close account management' }).tap(); await page.locator('#next').tap(); await page.waitForFunction(() => document.querySelectorAll('.account').length === 5);
+    await page.locator('#manage').tap(); await item.getByRole('button', { name: 'Reactivate', exact: true }).tap(); await item.getByRole('button', { name: 'Retire', exact: true }).waitFor();
+    await page.getByRole('button', { name: 'Close account management' }).tap(); assert.equal(await page.locator('.account').count(), 6);
+  } finally { await browser.close(); }
+});
+
+test('signed-out and denied sessions show no account data; late queries cannot restore data after sign-out', async () => {
+  const browser = await browserType.launch();
+  try {
+    const signedOut = await open(browser, 390, store(), 'signed-out'); await signedOut.page.getByText('Sign in form').waitFor();
+    assert.equal(signedOut.db.requests.length, 0); assert.equal(await signedOut.page.locator('#app').isVisible(), false);
+    const denied = await open(browser, 390, store(), 'denied'); await denied.page.locator('#gate-message').filter({ hasText: 'doesn’t have access' }).waitFor();
+    assert.equal(await denied.page.locator('.account').count(), 0);
+    const { page, db } = await open(browser); let release;
+    const pending = new Promise(resolve => { release = resolve; }); db.delayQuery = () => pending;
+    const requested = page.waitForRequest(req => req.postData()?.includes('cardPayments:dashboard'));
+    await page.locator('#refresh').tap(); await requested;
+    await page.locator('#sign-out').tap(); release(); await page.getByText('Sign in form').waitFor();
+    assert.equal(await page.locator('#app').isVisible(), false); assert.equal(await page.locator('.account').count(), 0); assert.equal(await page.locator('#entry-note').inputValue(), '');
+  } finally { await browser.close(); }
+});
+
+test('a delayed old-month response cannot replace the selected month', async () => {
+  const browser = await browserType.launch();
+  try {
+    const { page, db } = await open(browser); const initial = await page.locator('#month').inputValue();
+    db.logs.push({ accountId: 'one', month: initial, status: 'paid', version: 1, updatedAt: Date.now() });
+    let release; const pending = new Promise(resolve => { release = resolve; }); db.delayQuery = month => month === initial ? pending : Promise.resolve();
+    const requested = page.waitForRequest(req => req.postData()?.includes('cardPayments:dashboard'));
+    await page.locator('#refresh').tap(); await requested; await page.locator('#next').tap();
+    await page.waitForFunction(() => document.querySelectorAll('.account').length === 4 && document.getElementById('progress-number').textContent === '0 / 4');
+    release(); await page.locator('#person').selectOption('Alex'); assert.equal(await page.locator('#progress-number').textContent(), '0 / 2');
+  } finally { await browser.close(); }
+});
+
+test('desktop matrix maps banks to people, keeps empty cells inert, and toggles individual accounts', async () => {
+  const browser = await browserType.launch(); const db = store();
+  db.accounts.push({ _id: 'five', person: 'Alex', bank: 'Chase', nickname: 'Second card', dueDay: 1, startMonth: '2020-01' });
+  try {
+    const { page, errors } = await open(browser, 1280, db);
+    assert.equal(await page.locator('.payment-matrix').count(), 1);
+    assert.deepEqual(await page.locator('thead th > span').allTextContents(), ['Alex', 'Dana']);
+    assert.deepEqual(await page.locator('tbody th').allTextContents(), ['Chase', 'American Express', 'Citi', 'Bank of America']);
+    const chase = page.locator('tbody tr').filter({ has: page.getByRole('rowheader', { name: 'Chase', exact: true }) });
+    assert.equal(await chase.locator('td').first().locator('[data-account]').count(), 2);
+    assert.equal(await chase.locator('td').last().locator('button').count(), 0);
+    assert.equal(await chase.locator('td').last().textContent(), '—');
+    await page.locator('[data-account="one"] .quick-paid').click();
+    await page.waitForFunction(() => document.querySelector('[data-account="one"] .quick-paid').getAttribute('aria-pressed') === 'true');
+    assert.equal(await page.locator('[data-account="five"] .quick-paid').getAttribute('aria-pressed'), 'false');
+    await page.locator('[data-account="one"] .quick-paid').click();
+    await page.waitForFunction(() => document.querySelector('[data-account="one"] .quick-paid').getAttribute('aria-pressed') === 'false');
+    await page.locator('[data-account="one"] .quick-paid').click();
+    await page.waitForFunction(() => document.querySelector('[data-account="one"] .quick-paid').getAttribute('aria-pressed') === 'true');
+    await page.locator('#remaining').check(); assert.equal(await page.locator('[data-account="one"]').count(), 0);
+    assert.equal(await page.locator('[data-account="five"]').count(), 1);
+    await page.locator('#remaining').uncheck();
+    await page.setViewportSize({ width: 390, height: 844 }); await page.locator('.payment-matrix').waitFor({ state: 'detached' });
+    assert.equal(await page.locator('[data-account="one"] .status-badge').textContent(), 'Paid');
+    await fits(page); assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});
+
+test('a large desktop roster keeps horizontal scrolling inside the matrix', async () => {
+  const browser = await browserType.launch(); const db = store();
+  db.accounts = [];
+  for (const bank of ['Chase', 'American Express', 'Discover', 'Citi', 'Barclays', 'Santander', 'Bilt', 'Bank of America', 'US Bank']) {
+    for (const person of ['Alex', 'Blake', 'Casey', 'Business', 'Drew']) {
+      db.accounts.push({ _id: `a-${db.accounts.length}`, bank, person, nickname: '', dueDay: 1, startMonth: '2020-01' });
+    }
+  }
+  try {
+    const { page } = await open(browser, 1000, db); await fits(page);
+    assert.equal(await page.locator('thead th').count(), 6);
+    const layout = await page.locator('.matrix-scroll').evaluate(n => ({ scroll: n.scrollWidth, width: n.clientWidth }));
+    assert.ok(layout.scroll > layout.width);
+    await page.setViewportSize({ width: 1440, height: 1000 }); await fits(page);
+    await page.screenshot({ path: path.join(os.tmpdir(), `card-payments-matrix-${browserType.name()}.png`), fullPage: true });
+  } finally { await browser.close(); }
+});

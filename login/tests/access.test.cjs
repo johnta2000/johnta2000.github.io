@@ -65,7 +65,7 @@ test('only server-authorized apps appear, with an accessible Rally event', async
   assert.equal(links[0].href, '../tools/rally/?event=my-room%20%26%20friends');
   assert.equal(p.element('directory').hidden, false);
   assert.equal(p.mounts, 0);
-  assert.equal(p.requests.length, 4);
+  assert.equal(p.requests.length, 5);
   assert.ok(p.requests.every(req => req.token.startsWith('Bearer test.')));
   assert.ok(p.requests.find(req => req.path === 'rally:listEvents').url.includes('dashing-heron-837'));
   assert.ok(p.requests.find(req => req.path === 'standups:verify').url.includes('rapid-shark-565'));
@@ -102,7 +102,7 @@ test('signing in updates the directory without a reload; session refreshes do no
   p.change({ session: p.session, user: p.user }); await settle();
   assert.equal(p.element('apps').children[0].children[0].textContent, 'Monitoring');
   p.change({ session: p.session, user: p.user }); await settle();
-  assert.equal(p.requests.length, 4);
+  assert.equal(p.requests.length, 5);
 });
 test('an unavailable identity provider fails closed with a retry', async () => {
   const p = setup({ loadError: true }); await settle();
@@ -110,4 +110,12 @@ test('an unavailable identity provider fails closed with a retry', async () => {
   assert.equal(p.element('retry').hidden, false);
   assert.match(p.element('status').textContent, /Sign-in couldn’t load/);
   assert.equal(p.requests.length, 0);
+});
+
+test('card payments appears only after its own server authorization succeeds', async () => {
+  const p = setup({ signedIn: true, responses: { 'cardPayments:verify': success({ email: 'member@example.com' }) } }); await settle();
+  assert.equal(p.element('apps').children.length, 1);
+  const link = p.element('apps').children[0].children[0];
+  assert.equal(link.textContent, 'Card payments');
+  assert.equal(link.href, '../tools/card-payments/');
 });

@@ -99,6 +99,7 @@
         query(endpoints.tools, 'standups:verify', token),
         query(endpoints.tools, 'sleep:verify', token),
         query(endpoints.tools, 'monitoring:verify', token),
+        query(endpoints.tools, 'cardPayments:verify', token),
       ]);
       if (currentRevision !== revision) return;
       let incomplete = results.some(result => result.status === 'rejected');
@@ -110,6 +111,7 @@
       if (values[1]) addApp('Standups', '../tools/standups/', 'Team updates.');
       if (values[2]) addApp('Sleep', '../tools/sleep/', 'Your sleep dashboard.');
       if (values[3]) addApp('Monitoring', '../tools/monitoring/', 'Your monitors and updates.');
+      if (values[4]) addApp('Card payments', '../tools/card-payments/', 'Your monthly payment checklist.');
       el.directory.hidden = false;
       el.empty.hidden = el.apps.children.length > 0 || incomplete;
       status(incomplete ? 'Some apps could not be checked. Try again to load the rest.' : '');

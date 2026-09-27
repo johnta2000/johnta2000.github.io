@@ -8,6 +8,8 @@
  * @module
  */
 
+import type * as cardPaymentTables from "../cardPaymentTables.js";
+import type * as cardPayments from "../cardPayments.js";
 import type * as crons from "../crons.js";
 import type * as http from "../http.js";
 import type * as lineupFavorites from "../lineupFavorites.js";
@@ -35,6 +37,8 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  cardPaymentTables: typeof cardPaymentTables;
+  cardPayments: typeof cardPayments;
   crons: typeof crons;
   http: typeof http;
   lineupFavorites: typeof lineupFavorites;
