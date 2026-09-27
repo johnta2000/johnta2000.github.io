@@ -157,3 +157,60 @@ textarea { resize:vertical; }
   #sign-in .cl-card { padding:16px; }
 }
 @media(prefers-reduced-motion:no-preference) { button { transition:background .12s; } }
+
+/* Payment status and attention are independent. */
+.quick-paid:not([aria-pressed=true]) { color:#954b28; background:#fff8f2; border-color:#eddccd; }
+.flag-button { min-width:36px; width:36px; padding:4px; color:#a4aaa2; font-size:21px; background:transparent; border-color:transparent; }
+.flag-button[aria-pressed=true] { color:#9a5a00; background:#fff0bd; border-color:#e3bd5d; }
+.account.flagged { box-shadow:inset 3px 0 #d89b28; }
+.matrix-account.flagged { background:#fff8e5; border-radius:6px; }
+.account.saving .check-box { border-style:dashed; }
+#save-state.error { color:#a33727; }
+.bank-label { display:flex; align-items:center; gap:9px; }
+.bank-icon { width:28px; height:28px; flex:0 0 28px; display:inline-flex; align-items:center; justify-content:center; border:1px solid #e2e7df; border-radius:6px; background:white; overflow:hidden; color:var(--muted); font-size:12px; }
+.bank-icon img { width:24px; height:24px; object-fit:contain; }
+@media(min-width:900px) {
+  main { max-width:1440px; padding:10px 24px 12px; }
+  nav { min-height:26px; margin-bottom:6px; font-size:13px; }
+  nav button { min-height:26px; padding:2px 8px; }
+  header { margin-bottom:10px; }
+  h1 { font-size:28px; margin:0; }
+  header .subtitle { display:none; }
+  .overview { gap:24px; grid-template-columns:minmax(260px,.7fr) 1fr; }
+  .overview .month-bar { gap:12px; }
+  .overview .progress-panel { padding:8px 14px; gap:2px 12px; border-radius:10px; }
+  .overview .progress-panel h2 { font-size:18px; }
+  .overview .eyebrow { display:none; }
+  #progress-detail { margin:0; font-size:12px; }
+  .overview .progress-number { font-size:22px; }
+  progress { height:3px; margin:3px 0 0; }
+  .table-controls { margin:10px 0 6px; gap:12px; }
+  .table-controls button,.table-controls select { min-height:32px; padding:4px 10px; font-size:13px; }
+  .table-controls label { font-size:13px; }
+  .table-controls .switch { min-height:32px; }
+  .matrix-guide { margin-bottom:6px; font-size:11px; }
+  .accounts { margin-top:0; }
+  .matrix-scroll { max-height:none; }
+  .payment-matrix { table-layout:fixed; font-size:13px; }
+  .payment-matrix th,.payment-matrix td { padding:2px 6px; min-width:0; }
+  .payment-matrix thead th { min-width:0; padding:6px; }
+  .payment-matrix thead th:first-child,.payment-matrix tbody th { min-width:0; width:174px; padding-left:10px; }
+  .payment-matrix thead small { font-size:10px; margin:0; }
+  .matrix-account .account-actions { gap:1px; }
+  .matrix-account .quick-paid { min-width:0; min-height:32px; padding:4px; gap:5px; font-size:12px; }
+  .matrix-account .quick-paid:not([aria-pressed=true]) { color:#954b28; background:#fff8f2; }
+  .matrix-account .quick-paid[aria-pressed=true] { background:#edf5e9; }
+  .matrix-account .details-button { min-height:32px; width:22px; flex:0 0 22px; padding:0; }
+  .matrix-account .flag-button { min-height:32px; width:25px; min-width:25px; padding:0; font-size:18px; }
+  .toolbar { margin:5px 0; gap:12px; }
+  .toolbar button { min-height:28px; padding:2px 0; font-size:12px; }
+  footer { display:flex; justify-content:space-between; align-items:center; gap:12px; padding-top:5px; font-size:11px; }
+  footer p { margin:0; }
+  #save-state { font-size:12px; }
+}
+@media(max-width:480px) {
+  .account { grid-template-columns:1fr; }
+  .account-actions { justify-content:flex-start; }
+  .account-actions .quick-paid { flex:1; }
+  .flag-button { width:44px; min-width:44px; }
+}

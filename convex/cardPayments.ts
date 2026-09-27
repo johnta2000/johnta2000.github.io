@@ -69,7 +69,7 @@ export const addAccounts = mutation({ args: { startMonth: v.string(), accounts: 
 
 export const save = mutation({ args: {
   accountId: v.id("paymentAccounts"), month: v.string(), status: paymentStatus, expectedVersion: v.number(),
-  amountCents: v.optional(v.union(v.number(), v.null())), note: v.optional(v.string()),
+  flagged: v.optional(v.boolean()), amountCents: v.optional(v.union(v.number(), v.null())), note: v.optional(v.string()),
 }, handler: async (ctx, args) => {
   const user = await authorized(ctx);
   month(args.month);
@@ -83,6 +83,7 @@ export const save = mutation({ args: {
   if (!Number.isInteger(args.expectedVersion) || args.expectedVersion !== (existing?.version || 0)) throw new Error("This entry changed on another device. Refresh and review it before saving again.");
   const payload = {
     owner: user.workspaceOwner, accountId: args.accountId, month: args.month, status: args.status,
+    flagged: args.flagged ?? existing?.flagged ?? false,
     amountCents: args.amountCents === null ? undefined : args.amountCents ?? existing?.amountCents,
     note: args.note === undefined ? existing?.note || "" : args.note.trim(),
     version: (existing?.version || 0) + 1, updatedAt: Date.now(),

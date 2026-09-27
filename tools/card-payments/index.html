@@ -37,14 +37,14 @@
       </section>
       </div>
       <div class="table-controls">
-      <div class="filters"><label>Person<select id="person"><option value="">Everyone</option></select></label><label class="switch"><input id="remaining" type="checkbox">Only unfinished</label></div>
+      <div class="filters"><label>Person<select id="person"><option value="">Everyone</option></select></label><label class="switch"><input id="remaining" type="checkbox">Only unpaid</label></div>
       <div class="list-heading"><button id="refresh" class="text-button">Refresh</button><button id="add" class="secondary">+ Add account</button></div>
       </div>
-      <div class="matrix-guide"><p>Click a status to check it off. Click a paid status to undo. Use ··· for scheduled payments, nothing due, or notes.</p><span>— No account</span></div>
+      <div class="matrix-guide"><p>Click to mark paid. Flag anything that needs attention.</p><span>— No account</span></div>
       <p id="load-state" role="status"></p><div id="accounts" class="accounts"></div>
       <div class="toolbar"><button id="import" class="text-button">Import account list</button><button id="manage" class="text-button">Manage accounts</button></div>
       <input id="import-file" type="file" accept=".json,application/json" hidden>
-      <footer><p id="save-state" role="status" aria-live="polite">Changes save to your account.</p><p>“Paid” is your confirmation that the payment posted.<br>This checklist doesn’t make payments.</p></footer>
+      <footer><p id="save-state" role="status" aria-live="polite">Changes save to your account.</p><p>Your accounts repeat monthly. Checkoffs and flags are saved per month.</p></footer>
     </section>
     <noscript>Enable JavaScript to use your payment checklist.</noscript>
   </main>
@@ -52,7 +52,8 @@
     <form id="entry-form">
       <div class="dialog-heading"><div><p class="eyebrow" id="entry-person"></p><h2 id="entry-title">Account details</h2></div><button type="button" class="arrow close" aria-label="Close details">×</button></div>
       <p id="entry-month" class="muted"></p>
-      <label>Status<select id="entry-status"><option value="unchecked">To check</option><option value="scheduled">Scheduled</option><option value="paid">Paid</option><option value="nothing_due">Nothing due</option></select></label>
+      <label>Status<select id="entry-status"><option value="unchecked">Not paid</option><option value="paid">Paid</option></select></label>
+      <label class="switch"><input id="entry-flag" type="checkbox">Flag for attention</label>
       <label>Payment amount <span class="muted">(optional)</span><input id="entry-amount" type="text" inputmode="decimal" placeholder="0.00" autocomplete="off"></label>
       <label>Note <span class="muted">(optional)</span><textarea id="entry-note" maxlength="1000" rows="3" placeholder="Scheduled for the 1st, confirmation number, anything useful…"></textarea></label>
       <p id="entry-error" class="error" role="alert"></p><button type="submit" class="primary">Save entry</button>
@@ -73,7 +74,7 @@
       <div class="dialog-heading"><h2 id="import-title">Import account list</h2><button type="button" class="arrow close" aria-label="Close import">×</button></div>
       <p id="import-summary"></p><ul id="import-preview" class="import-preview"></ul>
       <label>First month<input id="import-month" type="month" min="2000-01" max="2099-12" required></label>
-      <p class="muted">Adds accounts only. Existing entries stay as they are. Every imported account starts as “To check.”</p><p id="import-error" class="error" role="alert"></p><button type="submit" class="primary">Import accounts</button>
+      <p class="muted">Adds accounts only. Existing entries stay as they are. Every imported account starts as “Not paid.”</p><p id="import-error" class="error" role="alert"></p><button type="submit" class="primary">Import accounts</button>
     </form>
   </dialog>
   <dialog id="manage-dialog" aria-labelledby="manage-title"><div class="dialog-heading"><h2 id="manage-title">Manage accounts</h2><button class="arrow close" aria-label="Close account management">×</button></div><p class="muted">Retiring an account keeps this month and earlier history. It disappears from future checklists.</p><div id="manage-list"></div><p id="manage-error" class="error" role="alert"></p></dialog>

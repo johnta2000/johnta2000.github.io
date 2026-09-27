@@ -31,6 +31,7 @@ async function open(browser, width = 390, db = store(), mode = 'signed-in') {
   await page.route('**/*', async route => {
     const url = new URL(route.request().url());
     if (url.hostname === 'localhost') {
+      if (url.pathname.includes('/icons/')) return route.fulfill({ body: await fs.readFile(path.join(__dirname, '..', 'icons', path.basename(url.pathname))), contentType: 'image/x-icon' });
       const filename = url.pathname.endsWith('/') ? 'index.html' : path.basename(url.pathname);
       let body = await fs.readFile(path.join(__dirname, '..', filename), 'utf8');
       if (filename === 'index.html') body = body.replace(/<script\b[^>]*src="https:[\s\S]*?<\/script>/g, '');
@@ -47,6 +48,7 @@ async function open(browser, width = 390, db = store(), mode = 'signed-in') {
       value = snapshot;
     }
     if (endpoint === 'cardPayments:save') {
+      if (db.delaySave) await db.delaySave(args);
       if (db.failSave) return route.abort('failed');
       const old = db.logs.find(l => l.accountId === args.accountId && l.month === args.month);
       if (db.conflict || (old?.version || 0) !== args.expectedVersion) return route.fulfill({ json: { status: 'error', errorMessage: 'This entry changed on another device. Refresh and review it before saving again.' } });
@@ -79,7 +81,7 @@ test('mobile and desktop layouts fit, controls are tappable, and details stay wi
       const { page, errors } = await open(browser, width);
       await fits(page);
       const heights = await page.locator('.quick-paid, .details-button, #previous, #next').evaluateAll(nodes => nodes.map(n => n.getBoundingClientRect().height));
-      assert.ok(heights.every(h => h >= 44));
+      assert.ok(heights.every(h => h >= (width >= 900 ? 32 : 44)));
       await page.screenshot({ path: path.join(os.tmpdir(), `card-payments-${browserType.name()}-${width}.png`), fullPage: true });
       await page.locator('.details-button').first().click(); await fits(page);
       assert.ok(await page.locator('#entry-amount').evaluate(n => parseFloat(getComputedStyle(n).fontSize) >= 16));
@@ -89,7 +91,7 @@ test('mobile and desktop layouts fit, controls are tappable, and details stay wi
   } finally { await browser.close(); }
 });
 
-test('phone checkoff persists on another device, months stay separate, scheduled is unfinished, and zero can be logged', async () => {
+test('phone checkoff persists on another device, months stay separate, flags are independent, and zero can be logged', async () => {
   const browser = await browserType.launch(); const db = store();
   try {
     const { page, errors } = await open(browser, 390, db);
@@ -100,10 +102,10 @@ test('phone checkoff persists on another device, months stay separate, scheduled
     const desktop = (await open(browser, 1280, db)).page;
     assert.equal(await desktop.locator('[data-account="one"] .status-badge').textContent(), 'Paid');
     await page.locator('[data-account="two"] .details-button').tap();
-    await page.locator('#entry-status').selectOption('scheduled'); await page.locator('#entry-amount').fill('0'); await page.locator('#entry-note').fill('Scheduled for the first');
+    await page.locator('#entry-status').selectOption('unchecked'); await page.locator('#entry-flag').check(); await page.locator('#entry-amount').fill('0'); await page.locator('#entry-note').fill('Scheduled for the first');
     await page.getByRole('button', { name: 'Save entry', exact: true }).tap();
     await page.locator('#entry-dialog').waitFor({ state: 'hidden' });
-    await page.waitForFunction(() => document.getElementById('progress-detail').textContent.includes('1 scheduled'));
+    await page.waitForFunction(() => document.getElementById('progress-detail').textContent.includes('1 flagged'));
     assert.equal(await page.locator('#progress-number').textContent(), '1 / 4');
     assert.equal(db.logs.find(l => l.accountId === 'two').amountCents, 0);
     await page.locator('#remaining').check(); assert.equal(await page.locator('.account').count(), 3);
@@ -124,7 +126,7 @@ test('failed and conflicting saves never claim completion; user input is rendere
     const { page, errors } = await open(browser, 390, db); db.failSave = true;
     await page.locator('[data-account="one"] .quick-paid').tap();
     await page.locator('#save-state').filter({ hasText: 'Couldn’t confirm' }).waitFor();
-    assert.equal(await page.locator('[data-account="one"] .status-badge').textContent(), 'To check');
+    assert.equal(await page.locator('[data-account="one"] .status-badge').textContent(), 'Not paid');
     db.failSave = false; db.conflict = true;
     await page.locator('[data-account="one"] .details-button').tap(); await page.locator('#entry-status').selectOption('paid'); await page.getByRole('button', { name: 'Save entry', exact: true }).tap();
     await page.locator('#entry-error').filter({ hasText: 'another device' }).waitFor();
@@ -214,7 +216,7 @@ test('desktop matrix maps banks to people, keeps empty cells inert, and toggles 
   } finally { await browser.close(); }
 });
 
-test('a large desktop roster keeps horizontal scrolling inside the matrix', async () => {
+test('nine banks and five people fit a desktop viewport without scrolling', async () => {
   const browser = await browserType.launch(); const db = store();
   db.accounts = [];
   for (const bank of ['Chase', 'American Express', 'Discover', 'Citi', 'Barclays', 'Santander', 'Bilt', 'Bank of America', 'US Bank']) {
@@ -226,8 +228,50 @@ test('a large desktop roster keeps horizontal scrolling inside the matrix', asyn
     const { page } = await open(browser, 1000, db); await fits(page);
     assert.equal(await page.locator('thead th').count(), 6);
     const layout = await page.locator('.matrix-scroll').evaluate(n => ({ scroll: n.scrollWidth, width: n.clientWidth }));
-    assert.ok(layout.scroll > layout.width);
-    await page.setViewportSize({ width: 1440, height: 1000 }); await fits(page);
+    assert.ok(layout.scroll <= layout.width, 'Five people fit without horizontal scrolling');
+    await page.setViewportSize({ width: 1280, height: 720 }); await fits(page);
+    const height = await page.evaluate(() => document.documentElement.scrollHeight); assert.ok(height <= 720, `Desktop requires vertical scrolling: ${height}`);
+    assert.equal(await page.locator('.bank-icon img').count(), 9);
     await page.screenshot({ path: path.join(os.tmpdir(), `card-payments-matrix-${browserType.name()}.png`), fullPage: true });
+  } finally { await browser.close(); }
+});
+
+test('rapid checkoffs and flags render immediately, save per account, and survive rapid undo', async () => {
+  const browser = await browserType.launch(); const db = store();
+  try {
+    const { page } = await open(browser, 1280, db);
+    let release; const delayed = new Promise(resolve => { release = resolve; }); db.delaySave = () => delayed;
+    await page.locator('[data-account="one"] .quick-paid').click();
+    assert.equal(await page.locator('[data-account="one"] .quick-paid').getAttribute('aria-pressed'), 'true');
+    assert.equal(await page.locator('[data-account="two"] .quick-paid').isEnabled(), true);
+    await page.locator('[data-account="two"] .quick-paid').click();
+    await page.locator('[data-account="one"] .flag-button').click();
+    await page.locator('[data-account="one"] .quick-paid').click();
+    assert.equal(await page.locator('[data-account="one"] .quick-paid').getAttribute('aria-pressed'), 'false');
+    assert.equal(await page.locator('[data-account="one"] .flag-button').getAttribute('aria-pressed'), 'true');
+    assert.equal(db.logs.length, 0);
+    release(); await page.locator('#save-state').filter({ hasText: 'All changes saved' }).waitFor();
+    assert.equal(db.logs.find(l => l.accountId === 'one').status, 'unchecked');
+    assert.equal(db.logs.find(l => l.accountId === 'one').flagged, true);
+    assert.equal(db.logs.find(l => l.accountId === 'two').status, 'paid');
+    const other = (await open(browser, 1280, db)).page;
+    assert.equal(await other.locator('[data-account="one"] .flag-button').getAttribute('aria-pressed'), 'true');
+    assert.equal(await other.locator('[data-account="two"] .quick-paid').getAttribute('aria-pressed'), 'true');
+  } finally { await browser.close(); }
+});
+test('pending saves stay scoped to their month and do not restore a signed-out screen', async () => {
+  const browser = await browserType.launch(); const db = store();
+  try {
+    const { page } = await open(browser, 1280, db); const month = await page.locator('#month').inputValue();
+    let release; const delayed = new Promise(resolve => { release = resolve; }); db.delaySave = () => delayed;
+    await page.locator('[data-account="one"] .quick-paid').click();
+    await page.locator('#next').click(); await page.locator('[data-account="one"]').waitFor();
+    assert.equal(await page.locator('[data-account="one"] .quick-paid').getAttribute('aria-pressed'), 'false');
+    release(); await page.locator('#save-state').filter({ hasText: 'All changes saved' }).waitFor();
+    assert.equal(db.logs[0].month, month);
+    assert.equal(await page.locator('[data-account="one"] .quick-paid').getAttribute('aria-pressed'), 'false');
+    let releaseSecond; const second = new Promise(resolve => { releaseSecond = resolve; }); db.delaySave = () => second;
+    await page.locator('[data-account="two"] .quick-paid').click(); await page.locator('#sign-out').click(); releaseSecond();
+    await page.getByText('Sign in form').waitFor(); assert.equal(await page.locator('.account').count(), 0);
   } finally { await browser.close(); }
 });

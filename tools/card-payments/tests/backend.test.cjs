@@ -155,3 +155,14 @@ test('editing due day and names retains history and rejects duplicate account na
   await f.run('addAccounts', { startMonth: '2026-09', accounts: [{ ...account, nickname: 'Second card' }] });
   await assert.rejects(f.run('updateAccount', { ...account, accountId: f.id, nickname: 'second CARD' }), /already exists/);
 });
+
+ test('flags persist independently of paid status and stay in their month', async () => {
+  const f = await seeded();
+  await f.run('save', { accountId: f.id, month: '2026-09', status: 'unchecked', flagged: true, expectedVersion: 0 });
+  await f.run('save', { accountId: f.id, month: '2026-09', status: 'paid', expectedVersion: 1 });
+  assert.equal(f.tables.paymentLogs[0].flagged, true);
+  assert.equal((await f.run('dashboard', { month: '2026-10' })).logs.length, 0);
+  await f.run('save', { accountId: f.id, month: '2026-09', status: 'paid', flagged: false, expectedVersion: 2 });
+  assert.equal(f.tables.paymentLogs[0].flagged, false);
+  assert.equal(f.tables.paymentLogs[0].status, 'paid');
+});

@@ -2,11 +2,13 @@
   'use strict';
   const API = 'https://rapid-shark-565.convex.cloud';
   const $ = id => document.getElementById(id);
-  const labels = { unchecked: 'To check', scheduled: 'Scheduled', paid: 'Paid', nothing_due: 'Nothing due' };
+  const labels = { unchecked: 'Not paid', scheduled: 'Not paid', paid: 'Paid', nothing_due: 'Paid' };
   const complete = status => status === 'paid' || status === 'nothing_due';
   const desktop = window.matchMedia('(min-width: 900px)');
   const today = new Date();
   $('month').value = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+  const pending = new Map();
+  let saveWarning = '';
   let session = null, sessionId, epoch = 0, request = 0, mounted = false;
   let data = null, busy = false, ready = false, entry = null, imports = [], editingAccount = null;
 
@@ -21,7 +23,7 @@
   function selectedMonth() { return $('month').value; }
   function validMonth(value) { return /^20\d{2}-(0[1-9]|1[0-2])$/.test(value); }
   function activeAccounts() { return (data?.accounts || []).filter(a => a.startMonth <= selectedMonth() && (!a.endMonth || a.endMonth >= selectedMonth())); }
-  function logFor(id) { return data?.logs.find(log => log.accountId === id); }
+  function logFor(id) { return pending.get(`${selectedMonth()}/${id}`)?.desired || data?.logs.find(log => log.accountId === id); }
   function formatMoney(cents) { return (cents / 100).toLocaleString('en-US', { style: 'currency', currency: 'USD' }); }
   function dueLabel(account) {
     const [year, month] = selectedMonth().split('-').map(Number);
@@ -40,7 +42,7 @@
   }
   function closeDialogs() { document.querySelectorAll('dialog[open]').forEach(d => d.close()); entry = null; imports = []; }
   function clearPrivate() {
-    ++request; data = null; ready = false; editingAccount = null; closeDialogs(); setBusy(false);
+    ++request; pending.clear(); saveWarning = ''; data = null; ready = false; editingAccount = null; closeDialogs(); setBusy(false);
     $('app').hidden = true; $('accounts').replaceChildren(); $('manage-list').replaceChildren(); $('import-preview').replaceChildren();
     $('entry-form').reset(); $('add-form').reset(); $('import-form').reset();
     ['entry-person', 'entry-title', 'entry-month', 'entry-error', 'add-error', 'manage-error', 'import-summary', 'import-error', 'save-state'].forEach(id => message(id, ''));
@@ -70,10 +72,68 @@
     return result.value;
   }
 
+  const bankIcons = { chase: 'chase', amex: 'amex', 'american express': 'amex', discover: 'discover', citi: 'citi', barclays: 'barclays', santander: 'santander', bilt: 'bilt', 'bank of america': 'boa', 'us bank': 'usbank', 'u.s. bank': 'usbank' };
+  function bankIcon(bank) {
+    const square = node('span', undefined, 'bank-icon'); square.setAttribute('aria-hidden', 'true');
+    const icon = bankIcons[bank.toLowerCase()];
+    if (icon) { const img = node('img'); img.src = `icons/${icon}.ico`; img.alt = ''; img.width = 24; img.height = 24; img.addEventListener('error', () => square.replaceChildren(node('span', bank.slice(0, 1)))); square.append(img); }
+    else square.append(node('span', bank.slice(0, 1)));
+    return square;
+  }
+  function saveMessage() {
+    message('save-state', pending.size ? `Saving ${pending.size} ${pending.size === 1 ? 'change' : 'changes'}…` : saveWarning || 'All changes saved.');
+    $('save-state').classList.toggle('error', !!saveWarning && !pending.size);
+  }
+  function storeConfirmed(item) {
+    if (!data || selectedMonth() !== item.month) return;
+    const index = data.logs.findIndex(log => log.accountId === item.account._id);
+    if (item.confirmed) {
+      if (index === -1) data.logs.push(item.confirmed); else data.logs[index] = item.confirmed;
+    } else if (index !== -1) data.logs.splice(index, 1);
+  }
+  function quickSave(account, fields) {
+    if (!session || !data || busy) return;
+    const month = selectedMonth(), key = `${month}/${account._id}`;
+    let item = pending.get(key);
+    if (!item) {
+      const confirmed = data.logs.find(log => log.accountId === account._id);
+      item = { account, month, confirmed, desired: { accountId: account._id, month, status: 'unchecked', flagged: false, ...confirmed }, revision: 0, running: false, generation: epoch };
+      pending.set(key, item); saveWarning = '';
+    }
+    Object.assign(item.desired, fields); item.revision++; ++request;
+    render(); saveMessage();
+    if (!item.running) void flushSave(key, item);
+  }
+  async function flushSave(key, item) {
+    item.running = true;
+    try {
+      while (item.generation === epoch) {
+        const revision = item.revision, desired = { ...item.desired };
+        const result = await call('mutation', 'save', { accountId: item.account._id, month: item.month, status: desired.status, flagged: !!desired.flagged, expectedVersion: item.confirmed?.version || 0 });
+        if (item.generation !== epoch) return;
+        item.confirmed = { ...desired, version: result.version, updatedAt: Date.now() };
+        storeConfirmed(item); ++request;
+        if (revision === item.revision) break;
+      }
+    } catch (error) {
+      if (item.generation !== epoch) return;
+      saveWarning = `${item.account.person} · ${item.account.bank}: ${friendly(error)}`;
+      storeConfirmed(item);
+    } finally {
+      if (item.generation === epoch) {
+        pending.delete(key); render(); saveMessage();
+        if (!pending.size && (saveWarning || !data)) await refresh({ silent: true });
+      }
+    }
+  }
+  window.addEventListener('beforeunload', event => { if (pending.size) { event.preventDefault(); event.returnValue = ''; } });
+
   function accountControl(account, matrix = false) {
     const log = logFor(account._id), status = log?.status || 'unchecked';
     const row = node(matrix ? 'div' : 'article', undefined, `account${complete(status) ? ' done' : ''}${matrix ? ' matrix-account' : ''}`);
     row.dataset.account = account._id;
+    row.classList.toggle('flagged', !!log?.flagged);
+    row.classList.toggle('saving', pending.has(`${selectedMonth()}/${account._id}`));
     const heading = node('div', undefined, 'account-heading');
     if (!matrix) heading.append(node('h3', account.nickname ? `${account.bank} · ${account.nickname}` : account.bank));
     else if (account.nickname) heading.append(node('p', account.nickname, 'card-nickname'));
@@ -81,16 +141,21 @@
     const actions = node('div', undefined, 'account-actions');
     const paid = node('button', undefined, `quick-paid status-${status}`);
     paid.type = 'button'; paid.dataset.action = 'toggle'; paid.setAttribute('aria-pressed', String(complete(status)));
-    paid.setAttribute('aria-label', `${complete(status) ? 'Uncheck:' : 'Mark paid:'} ${account.person}, ${account.bank}${account.nickname ? `, ${account.nickname}` : ''}`);
-    const check = node('span', complete(status) ? '✓' : status === 'scheduled' ? '◷' : '', 'check-box'); check.setAttribute('aria-hidden', 'true');
+    paid.setAttribute('aria-label', `${complete(status) ? 'Mark not paid:' : 'Mark paid:'} ${account.person}, ${account.bank}${account.nickname ? `, ${account.nickname}` : ''}`);
+    const check = node('span', complete(status) ? '✓' : '', 'check-box'); check.setAttribute('aria-hidden', 'true');
     paid.append(check, node('span', labels[status], `status-badge ${status}`));
-    paid.addEventListener('click', () => saveLog(account, { status: complete(status) ? 'unchecked' : 'paid' }));
+    paid.addEventListener('click', () => quickSave(account, { status: complete(logFor(account._id)?.status) ? 'unchecked' : 'paid' }));
     const details = node('button', '···', 'details-button'); details.type = 'button'; details.dataset.action = 'details';
     details.setAttribute('aria-label', `Details for ${account.person}, ${account.bank}${account.nickname ? `, ${account.nickname}` : ''}`);
     details.title = log?.note ? `Note: ${log.note}` : 'Payment details';
     if (log?.note) details.classList.add('has-note');
     details.addEventListener('click', () => openEntry(account));
-    actions.append(paid, details);
+    const flag = node('button', '⚑', 'flag-button'); flag.type = 'button'; flag.dataset.action = 'flag';
+    flag.setAttribute('aria-pressed', String(!!log?.flagged));
+    flag.setAttribute('aria-label', `${log?.flagged ? 'Unflag' : 'Flag'} ${account.person}, ${account.bank}`);
+    flag.title = log?.flagged ? 'Flagged for attention' : 'Flag for attention';
+    flag.addEventListener('click', () => quickSave(account, { flagged: !logFor(account._id)?.flagged }));
+    actions.append(paid, flag, details);
     if (heading.childNodes.length) row.append(heading);
     row.append(actions);
     if (matrix && (account.dueDay !== 1 || log?.amountCents != null)) row.append(node('p', `${account.dueDay !== 1 ? `Due ${dueLabel(account)}` : ''}${account.dueDay !== 1 && log?.amountCents != null ? ' · ' : ''}${log?.amountCents != null ? formatMoney(log.amountCents) : ''}`, 'cell-detail'));
@@ -113,7 +178,8 @@
     }
     head.append(headers); table.append(head); const body = node('tbody');
     for (const bank of banks) {
-      const tr = node('tr'), bankCell = node('th', bank); bankCell.scope = 'row'; tr.append(bankCell);
+      const tr = node('tr'), bankCell = node('th'); bankCell.scope = 'row';
+      const bankLabel = node('span', undefined, 'bank-label'); bankLabel.append(bankIcon(bank), node('span', bank)); bankCell.append(bankLabel); tr.append(bankCell);
       for (const person of people) {
         const cell = node('td'); const group = accounts.filter(a => a.bank === bank && a.person === person);
         if (!group.length) {
@@ -141,11 +207,10 @@
     $('people').replaceChildren(...people.map(p => new Option(p, p)));
     const accounts = activeAccounts().filter(a => !$('person').value || a.person === $('person').value);
     const done = accounts.filter(a => complete(logFor(a._id)?.status)).length;
-    const scheduled = accounts.filter(a => logFor(a._id)?.status === 'scheduled').length;
-    const unchecked = accounts.length - done - scheduled;
+    const flagged = accounts.filter(a => logFor(a._id)?.flagged).length;
     message('scope', $('person').value || 'All accounts');
-    message('progress-heading', accounts.length ? done === accounts.length ? 'All checked off.' : `${accounts.length - done} still to finish` : 'A fresh start.');
-    message('progress-detail', accounts.length ? `${unchecked} to check · ${scheduled} scheduled · ${done} complete` : 'Add your accounts once. They repeat each month.');
+    message('progress-heading', accounts.length ? done === accounts.length ? 'All paid.' : `${accounts.length - done} not paid` : 'A fresh start.');
+    message('progress-detail', accounts.length ? `${done} paid${flagged ? ` · ${flagged} flagged for attention` : ''}` : 'Add your accounts once. They repeat each month.');
     message('progress-number', `${done} / ${accounts.length}`);
     $('progress').max = accounts.length || 1; $('progress').value = done;
     const shown = accounts.filter(a => !$('remaining').checked || !complete(logFor(a._id)?.status));
@@ -158,12 +223,13 @@
       if (!shown.length) $('accounts').append(node('div', accounts.length ? 'You’re all caught up for this person and month.' : 'No accounts for this person and month yet.', 'empty'));
     }
     setBusy(busy);
+    for (const row of $('accounts').querySelectorAll('[data-account]')) row.querySelector('.details-button').disabled = busy || pending.has(`${selectedMonth()}/${row.dataset.account}`);
     if (focusAccount && focusAction) $('accounts').querySelector(`[data-account="${CSS.escape(focusAccount)}"] [data-action="${focusAction}"]`)?.focus({ preventScroll: true });
   }
   desktop.addEventListener('change', render);
 
   async function refresh({ silent = false } = {}) {
-    if (!session || !ready || busy || !validMonth(selectedMonth())) return;
+    if (!session || !ready || busy || !validMonth(selectedMonth()) || [...pending.values()].some(p => p.month === selectedMonth())) return;
     const version = ++request, generation = epoch, value = selectedMonth();
     if (!silent) message('load-state', 'Loading…');
     try {
@@ -179,6 +245,7 @@
 
   async function mutate(path, args, { errorId, success, close } = {}) {
     if (busy || !session) return false;
+    if (pending.size) { message(errorId || 'save-state', 'Finishing your checkoffs. Try again in a moment.'); return false; }
     const generation = epoch; ++request; setBusy(true);
     message('save-state', 'Saving…'); if (errorId) message(errorId, '');
     try {
@@ -203,12 +270,13 @@
     await mutate('save', args, { errorId: modal ? 'entry-error' : null, close: modal ? 'entry-dialog' : null, success: `${account.person} · ${account.bank}: ${labels[fields.status].toLowerCase()}. Saved.` });
   }
   function openEntry(account) {
-    if (busy) return;
+    if (busy || pending.has(`${selectedMonth()}/${account._id}`)) return;
     const log = logFor(account._id);
     entry = { account, log, month: selectedMonth() };
     message('entry-person', account.person); message('entry-title', account.bank + (account.nickname ? ` · ${account.nickname}` : ''));
     message('entry-month', `${monthLabel(entry.month)} · Due ${dueLabel(account)}${log ? ` · Last updated ${new Date(log.updatedAt).toLocaleString()}` : ''}`);
-    $('entry-status').value = log?.status || 'unchecked';
+    $('entry-status').value = complete(log?.status) ? 'paid' : 'unchecked';
+    $('entry-flag').checked = !!log?.flagged;
     $('entry-amount').value = log?.amountCents != null ? (log.amountCents / 100).toFixed(2) : '';
     $('entry-note').value = log?.note || ''; message('entry-error', '');
     $('entry-dialog').showModal();
@@ -217,7 +285,7 @@
     event.preventDefault(); if (!entry || busy) return;
     const text = $('entry-amount').value.trim();
     if (text && !/^\d+(\.\d{1,2})?$/.test(text)) { message('entry-error', 'Enter an amount like 125.50, or leave it blank.'); return; }
-    void saveLog(entry.account, { status: $('entry-status').value, note: $('entry-note').value, amountCents: text ? Math.round(Number(text) * 100) : null }, true);
+    void saveLog(entry.account, { status: $('entry-status').value, flagged: $('entry-flag').checked, note: $('entry-note').value, amountCents: text ? Math.round(Number(text) * 100) : null }, true);
   });
   $('add').addEventListener('click', () => {
     editingAccount = null; $('add-form').reset(); message('add-title', 'Add account'); $('add-form').querySelector('[type=submit]').textContent = 'Add account';

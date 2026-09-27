@@ -9,7 +9,7 @@ export const cardPaymentTables = {
   }).index("by_owner", ["owner"]),
   paymentLogs: defineTable({
     owner: v.string(), accountId: v.id("paymentAccounts"), month: v.string(), status: paymentStatus,
-    amountCents: v.optional(v.number()), note: v.string(), version: v.number(), updatedAt: v.number(),
+    flagged: v.optional(v.boolean()), amountCents: v.optional(v.number()), note: v.string(), version: v.number(), updatedAt: v.number(),
   }).index("by_owner_month", ["owner", "month"])
     .index("by_account_month", ["accountId", "month"]),
 };
