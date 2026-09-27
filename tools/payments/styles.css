@@ -209,9 +209,6 @@ textarea { resize:vertical; }
   #save-state { font-size:12px; }
 }
 @media(max-width:480px) {
-  .account { grid-template-columns:1fr; }
-  .account-actions { justify-content:flex-start; }
-  .account-actions .quick-paid { flex:1; }
   .flag-button { width:44px; min-width:44px; }
 }
 
@@ -248,3 +245,24 @@ textarea { resize:vertical; }
 .payment-matrix .quick-paid { min-height:36px; padding:6px 12px; }
 .payment-matrix .card-nickname,.payment-matrix .cell-detail { padding:2px 12px; }
 .payment-matrix .matrix-account+.matrix-account { margin-top:0; padding-top:0; }
+
+/* Keep mobile account labels and payment controls together on one row. */
+@media(max-width:899px) {
+  .account { grid-template-columns:minmax(0,1fr) auto; align-items:center; padding:12px; gap:8px 10px; }
+  .account h3 { font-size:15px; line-height:1.3; }
+  .account .meta { font-size:12px; line-height:1.4; margin-top:3px; }
+  .account-actions { gap:0; align-self:center; }
+  .account .quick-paid { flex:none; width:106px; min-width:106px; min-height:44px; padding:8px; gap:5px; font-size:13px; }
+  .account .touch-actions { flex:0 0 44px; width:44px; min-height:44px; padding:8px; }
+  .account .flag-marker { font-size:14px; }
+}
+@media(max-width:899px) {
+  main { padding-top:12px; }
+  nav { margin-bottom:8px; }
+  header { margin-bottom:14px; }
+  h1 { font-size:28px; }
+  header .subtitle { display:none; }
+  .overview .month-bar { margin-bottom:12px; }
+  .overview .progress-panel { padding:12px 16px; }
+  .table-controls .filters { margin:12px 0 6px; }
+}
