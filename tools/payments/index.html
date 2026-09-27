@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex,nofollow">
+  <meta name="theme-color" content="#f7f8f5">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Card payments">
+  <title>Card payments — John Ta</title>
+  <link rel="icon" href="../../assets/img/jt-mark.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+  <script async data-clerk-script crossorigin="anonymous" src="https://clerk.john-ta.com/npm/@clerk/ui@1/dist/ui.browser.js"></script>
+  <script async data-clerk-script crossorigin="anonymous" data-clerk-publishable-key="pk_live_Y2xlcmsuam9obi10YS5jb20k" src="https://clerk.john-ta.com/npm/@clerk/clerk-js@6/dist/clerk.browser.js"></script>
+  <script defer src="app.js"></script>
+</head>
+<body>
+  <main>
+    <nav><a href="../../login/">← Your apps</a><button id="sign-out" class="text-button" hidden>Sign out</button></nav>
+    <header><h1>Card payments<span>.</span></h1><p class="subtitle">Your monthly payment checklist.</p></header>
+    <p id="connection" class="notice" role="status" hidden></p>
+    <section id="gate" class="panel">
+      <h2>Your private checklist</h2><p id="gate-message">Loading sign-in…</p>
+      <div id="sign-in"></div><button id="retry-auth" hidden>Try again</button>
+    </section>
+    <section id="app" hidden aria-label="Payment tracker">
+      <div class="overview">
+      <div class="month-bar">
+        <button id="previous" class="arrow" aria-label="Previous month">←</button>
+        <label class="month-label">Due on the 1st<input id="month" type="month" min="2000-01" max="2099-12" aria-label="Due month"></label>
+        <button id="next" class="arrow" aria-label="Next month">→</button>
+      </div>
+      <section class="progress-panel" aria-label="Monthly progress">
+        <div><p class="eyebrow" id="scope">All accounts</p><h2 id="progress-heading">Loading accounts…</h2><p id="progress-detail">Your checklist is on its way.</p></div>
+        <div id="progress-number" class="progress-number">—</div>
+        <progress id="progress" value="0" max="1" aria-label="Accounts complete"></progress>
+      </section>
+      </div>
+      <div class="table-controls">
+      <div class="filters"><label>Person<select id="person"><option value="">Everyone</option></select></label><label class="switch"><input id="remaining" type="checkbox">Only unpaid</label></div>
+      <div class="list-heading"><button id="refresh" class="text-button">Refresh</button><button id="add" class="secondary">+ Add account</button></div>
+      </div>
+      <div class="matrix-guide"><p>Click to mark paid. Right-click for flags and details.</p><span>— No account</span></div>
+      <p id="load-state" role="status"></p><div id="accounts" class="accounts"></div>
+      <div class="toolbar"><button id="import" class="text-button">Import account list</button><button id="manage" class="text-button">Manage accounts</button></div>
+      <input id="import-file" type="file" accept=".json,application/json" hidden>
+      <footer><p id="save-state" role="status" aria-live="polite">Changes save to your account.</p><p>Payments are due on the 1st. Each month keeps its own checkoffs and flags.</p></footer>
+    </section>
+    <noscript>Enable JavaScript to use your payment checklist.</noscript>
+  </main>
+  <div id="payment-menu" class="payment-menu" role="menu" aria-label="Payment actions" hidden>
+    <p id="menu-title" role="presentation"></p>
+    <button id="menu-flag" role="menuitemcheckbox" aria-checked="false" type="button">Flag for attention</button>
+    <button id="menu-details" role="menuitem" type="button">Payment details…</button>
+  </div>
+  <dialog id="entry-dialog" aria-labelledby="entry-title">
+    <form id="entry-form">
+      <div class="dialog-heading"><div><p class="eyebrow" id="entry-person"></p><h2 id="entry-title">Account details</h2></div><button type="button" class="arrow close" aria-label="Close details">×</button></div>
+      <p id="entry-month" class="muted"></p>
+      <label>Status<select id="entry-status"><option value="unchecked">Not paid</option><option value="paid">Paid</option></select></label>
+      <label class="switch"><input id="entry-flag" type="checkbox">Flag for attention</label>
+      <label>Payment amount <span class="muted">(optional)</span><input id="entry-amount" type="text" inputmode="decimal" placeholder="0.00" autocomplete="off"></label>
+      <label>Note <span class="muted">(optional)</span><textarea id="entry-note" maxlength="1000" rows="3" placeholder="Scheduled for the 1st, confirmation number, anything useful…"></textarea></label>
+      <p id="entry-error" class="error" role="alert"></p><button type="submit" class="primary">Save entry</button>
+    </form>
+  </dialog>
+  <dialog id="add-dialog" aria-labelledby="add-title">
+    <form id="add-form">
+      <div class="dialog-heading"><h2 id="add-title">Add account</h2><button type="button" class="arrow close" aria-label="Close add account">×</button></div>
+      <label>Person<input id="add-person" required maxlength="80" placeholder="Who is this for?" list="people" autocomplete="off"></label><datalist id="people"></datalist>
+      <label>Bank<input id="add-bank" required maxlength="80" placeholder="Bank or issuer" autocomplete="off"></label>
+      <label>Card nickname <span class="muted">(optional)</span><input id="add-nickname" maxlength="80" placeholder="Leave blank to track the whole bank login" autocomplete="off"></label>
+      <div class="two-columns"><label>Due day<input id="add-day" type="number" min="1" max="31" value="1" required inputmode="numeric"></label><label>First month<input id="add-month" type="month" min="2000-01" max="2099-12" required></label></div>
+      <p class="muted">This account repeats each month with a fresh status.</p><p id="add-error" class="error" role="alert"></p><button type="submit" class="primary">Add account</button>
+    </form>
+  </dialog>
+  <dialog id="import-dialog" aria-labelledby="import-title">
+    <form id="import-form">
+      <div class="dialog-heading"><h2 id="import-title">Import account list</h2><button type="button" class="arrow close" aria-label="Close import">×</button></div>
+      <p id="import-summary"></p><ul id="import-preview" class="import-preview"></ul>
+      <label>First month<input id="import-month" type="month" min="2000-01" max="2099-12" required></label>
+      <p class="muted">Adds accounts only. Existing entries stay as they are. Every imported account starts as “Not paid.”</p><p id="import-error" class="error" role="alert"></p><button type="submit" class="primary">Import accounts</button>
+    </form>
+  </dialog>
+  <dialog id="manage-dialog" aria-labelledby="manage-title"><div class="dialog-heading"><h2 id="manage-title">Manage accounts</h2><button class="arrow close" aria-label="Close account management">×</button></div><p class="muted">Retiring an account keeps this month and earlier history. It disappears from future checklists.</p><div id="manage-list"></div><p id="manage-error" class="error" role="alert"></p></dialog>
+</body>
+</html>

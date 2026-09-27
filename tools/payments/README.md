@@ -1,6 +1,6 @@
 # Card payments
 
-A private monthly checklist with a desktop bank-by-person matrix and a compact phone list at `/tools/card-payments/`. It uses the existing Clerk production instance and the `rapid-shark-565` Convex deployment. A tap logs the user's confirmation; it never initiates bank payments or checks issuer balances.
+A private monthly checklist with a desktop bank-by-person matrix and a compact phone list at `/tools/payments/`. It uses the existing Clerk production instance and the `rapid-shark-565` Convex deployment. A tap logs the user's confirmation; it never initiates bank payments or checks issuer balances.
 
 ## Access and release
 
@@ -37,8 +37,8 @@ Exact person/bank/nickname matches (case-insensitive, trimmed) are skipped, incl
 Run from the repository root:
 
 ```sh
-node --test tools/card-payments/tests/*.test.cjs login/tests/access.test.cjs
-PAYMENTS_BROWSER=webkit node --test tools/card-payments/tests/browser.test.cjs
+node --test tools/payments/tests/*.test.cjs login/tests/access.test.cjs
+PAYMENTS_BROWSER=webkit node --test tools/payments/tests/browser.test.cjs
 node_modules/.bin/tsc --noEmit -p convex/tsconfig.json
 ```
 
@@ -57,3 +57,5 @@ Sign-in regression: the real Clerk session omitted the optional email verificati
 Compact matrix update: the nine-bank, five-person view fits 1280×720 without page or matrix scrolling. Desktop status controls are 32px high; phone controls retain 44px touch targets. Bank icons are local copies of official SVG and high-resolution assets (sources in `icons/SOURCES.md`). Legacy scheduled/nothing-due records remain supported in storage; the UI presents unpaid/complete states as Not paid/Paid. No existing payment records are rewritten. Verification: 21 backend/directory checks and 10 browser scenarios in each of Chromium and WebKit passed. Full-project TypeScript still reports only the four unrelated errors described above.
 
 Context menu update: desktop cells contain a single full-width red/green status pill. A flag adds a visible amber outline and marker without changing payment status. Menus stay within the viewport and close on outside click, Escape, scrolling, month changes, or sign-out. Eleven browser scenarios pass in Chromium and WebKit, including keyboard focus, touch access, delayed saves, and 1280×720 layout.
+
+The former `/tools/card-payments/` URL redirects to `/tools/payments/`, preserving query parameters and sign-in fragments. The backend and stored payment records are unchanged.

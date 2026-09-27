@@ -117,5 +117,5 @@ test('card payments appears only after its own server authorization succeeds', a
   assert.equal(p.element('apps').children.length, 1);
   const link = p.element('apps').children[0].children[0];
   assert.equal(link.textContent, 'Card payments');
-  assert.equal(link.href, '../tools/card-payments/');
+  assert.equal(link.href, '../tools/payments/');
 });
