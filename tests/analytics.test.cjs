@@ -33,13 +33,14 @@ test('tokens, private URLs, identity, and arbitrary payloads are removed', () =>
   const event = config.before_send({ event: '$pageview', properties: {
     '$current_url': 'https://www.john-ta.com/tools/tranquil-connect/?code=SECRET#TOKEN',
     '$referrer': 'https://example.com/private/person?email=PRIVATE#secret',
-    '$title': 'Private person name', '$session_id': 'session123', '$cookieless_mode': true,
+    '$title': 'Private person name', '$session_id': 'session123', '$cookieless_mode': true, '$raw_user_agent': 'Mozilla/5.0',
     '$set': { email: 'PRIVATE' }, email: 'PRIVATE', '$initial_utm_source': 'SECRET',
   } });
   assert.equal(event.properties.$current_url, 'https://www.john-ta.com/tools/tranquil-connect/');
   assert.equal(event.properties.$referrer, 'https://example.com/');
   assert.equal(event.properties.$session_id, 'session123');
   assert.equal(event.properties.$cookieless_mode, true);
+  assert.equal(event.properties.$raw_user_agent, 'Mozilla/5.0');
   assert.equal(event.properties.app, 'tranquil-connect');
   assert.doesNotMatch(JSON.stringify(event), /SECRET|TOKEN|PRIVATE|Private person/);
   assert.equal(config.before_send({event: '$snapshot', properties: {}}), null);
@@ -69,7 +70,7 @@ test('all published HTML pages have exactly one correctly named analytics script
   assert.deepEqual(manifest.map(x=>x.file).sort(), tracked.sort());
   for (const page of manifest) {
     const html = fs.readFileSync(page.file,'utf8');
-    assert.equal(html.match(/src="\/assets\/js\/analytics.js\?v=20260927-2"/g)?.length, 1, page.file);
+    assert.equal(html.match(/src="\/assets\/js\/analytics.js\?v=20260927-3"/g)?.length, 1, page.file);
     assert.ok(html.includes(`data-app="${page.app}"`),page.file);
   }
 });
