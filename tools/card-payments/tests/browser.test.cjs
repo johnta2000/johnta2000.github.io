@@ -14,7 +14,7 @@ function store() {
   ], logs: [], requests: [], failSave: false, conflict: false, delayQuery: null };
 }
 async function open(browser, width = 390, db = store(), mode = 'signed-in') {
-  const page = await browser.newPage({ viewport: { width, height: 844 }, hasTouch: true, isMobile: width < 600 });
+  const page = await browser.newPage({ viewport: { width, height: 844 }, hasTouch: width < 900, isMobile: width < 600 });
   page.setDefaultTimeout(7000); const errors = [];
   page.on('pageerror', error => errors.push(error.message));
   await page.addInitScript(mode => {
@@ -31,7 +31,7 @@ async function open(browser, width = 390, db = store(), mode = 'signed-in') {
   await page.route('**/*', async route => {
     const url = new URL(route.request().url());
     if (url.hostname === 'localhost') {
-      if (url.pathname.includes('/icons/')) return route.fulfill({ body: await fs.readFile(path.join(__dirname, '..', 'icons', path.basename(url.pathname))), contentType: 'image/x-icon' });
+      if (url.pathname.includes('/icons/')) return route.fulfill({ body: await fs.readFile(path.join(__dirname, '..', 'icons', path.basename(url.pathname))), contentType: url.pathname.endsWith('.svg') ? 'image/svg+xml' : 'image/png' });
       const filename = url.pathname.endsWith('/') ? 'index.html' : path.basename(url.pathname);
       let body = await fs.readFile(path.join(__dirname, '..', filename), 'utf8');
       if (filename === 'index.html') body = body.replace(/<script\b[^>]*src="https:[\s\S]*?<\/script>/g, '');
@@ -69,6 +69,17 @@ async function open(browser, width = 390, db = store(), mode = 'signed-in') {
   if (mode === 'signed-in') await page.locator('.account').first().waitFor();
   return { page, errors, db };
 }
+async function actions(page, id = 'one') {
+  const row = page.locator(`[data-account="${id}"]`);
+  if (await row.locator('.touch-actions').isVisible()) await row.locator('.touch-actions').click();
+  else await row.locator('.quick-paid').click({ button: 'right' });
+  await page.locator('#payment-menu').waitFor();
+}
+async function details(page, id = 'one') {
+  // Details use confirmed versions; finish any quick save before opening them.
+  await page.locator(`[data-account="${id}"]:not(.saving)`).waitFor();
+  await actions(page, id); await page.locator('#menu-details').click();
+}
 async function fits(page) {
   const size = await page.evaluate(() => [document.documentElement.scrollWidth, innerWidth]);
   assert.ok(size[0] <= size[1], `Horizontal overflow: ${size}`);
@@ -80,10 +91,10 @@ test('mobile and desktop layouts fit, controls are tappable, and details stay wi
     for (const width of [320, 390, 768, 1280]) {
       const { page, errors } = await open(browser, width);
       await fits(page);
-      const heights = await page.locator('.quick-paid, .details-button, #previous, #next').evaluateAll(nodes => nodes.map(n => n.getBoundingClientRect().height));
+      const heights = await page.locator('.quick-paid:visible, .details-button:visible, #previous, #next').evaluateAll(nodes => nodes.map(n => n.getBoundingClientRect().height));
       assert.ok(heights.every(h => h >= (width >= 900 ? 32 : 44)));
       await page.screenshot({ path: path.join(os.tmpdir(), `card-payments-${browserType.name()}-${width}.png`), fullPage: true });
-      await page.locator('.details-button').first().click(); await fits(page);
+      await details(page); await fits(page);
       assert.ok(await page.locator('#entry-amount').evaluate(n => parseFloat(getComputedStyle(n).fontSize) >= 16));
       const bounds = await page.locator('#entry-dialog').boundingBox(); assert.ok(bounds.x >= 0 && bounds.x + bounds.width <= width);
       assert.deepEqual(errors, []); await page.close();
@@ -101,7 +112,7 @@ test('phone checkoff persists on another device, months stay separate, flags are
     assert.equal(await page.locator('#progress-number').textContent(), '1 / 4');
     const desktop = (await open(browser, 1280, db)).page;
     assert.equal(await desktop.locator('[data-account="one"] .status-badge').textContent(), 'Paid');
-    await page.locator('[data-account="two"] .details-button').tap();
+    await details(page, 'two');
     await page.locator('#entry-status').selectOption('unchecked'); await page.locator('#entry-flag').check(); await page.locator('#entry-amount').fill('0'); await page.locator('#entry-note').fill('Scheduled for the first');
     await page.getByRole('button', { name: 'Save entry', exact: true }).tap();
     await page.locator('#entry-dialog').waitFor({ state: 'hidden' });
@@ -114,7 +125,7 @@ test('phone checkoff persists on another device, months stay separate, flags are
     await page.locator('#next').tap(); await page.waitForFunction(() => document.getElementById('progress-number').textContent === '0 / 4');
     await page.locator('#previous').tap(); await page.waitForFunction(() => document.getElementById('progress-number').textContent === '1 / 4');
     assert.equal(await page.locator('#month').inputValue(), month);
-    await page.locator('[data-account="one"] .details-button').tap(); await page.locator('#entry-status').selectOption('unchecked'); await page.getByRole('button', { name: 'Save entry', exact: true }).tap();
+    await details(page, 'one'); await page.locator('#entry-status').selectOption('unchecked'); await page.getByRole('button', { name: 'Save entry', exact: true }).tap();
     await page.waitForFunction(() => document.getElementById('progress-number').textContent === '0 / 4');
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
@@ -128,7 +139,7 @@ test('failed and conflicting saves never claim completion; user input is rendere
     await page.locator('#save-state').filter({ hasText: 'Couldn’t confirm' }).waitFor();
     assert.equal(await page.locator('[data-account="one"] .status-badge').textContent(), 'Not paid');
     db.failSave = false; db.conflict = true;
-    await page.locator('[data-account="one"] .details-button').tap(); await page.locator('#entry-status').selectOption('paid'); await page.getByRole('button', { name: 'Save entry', exact: true }).tap();
+    await details(page, 'one'); await page.locator('#entry-status').selectOption('paid'); await page.getByRole('button', { name: 'Save entry', exact: true }).tap();
     await page.locator('#entry-error').filter({ hasText: 'another device' }).waitFor();
     assert.equal(await page.locator('#entry-dialog').isVisible(), true); assert.equal(db.logs.length, 0);
     db.conflict = false;
@@ -245,17 +256,17 @@ test('rapid checkoffs and flags render immediately, save per account, and surviv
     assert.equal(await page.locator('[data-account="one"] .quick-paid').getAttribute('aria-pressed'), 'true');
     assert.equal(await page.locator('[data-account="two"] .quick-paid').isEnabled(), true);
     await page.locator('[data-account="two"] .quick-paid').click();
-    await page.locator('[data-account="one"] .flag-button').click();
+    await actions(page, 'one'); await page.locator('#menu-flag').click();
     await page.locator('[data-account="one"] .quick-paid').click();
     assert.equal(await page.locator('[data-account="one"] .quick-paid').getAttribute('aria-pressed'), 'false');
-    assert.equal(await page.locator('[data-account="one"] .flag-button').getAttribute('aria-pressed'), 'true');
+    assert.equal(await page.locator('[data-account="one"] .flag-marker').count(), 1);
     assert.equal(db.logs.length, 0);
     release(); await page.locator('#save-state').filter({ hasText: 'All changes saved' }).waitFor();
     assert.equal(db.logs.find(l => l.accountId === 'one').status, 'unchecked');
     assert.equal(db.logs.find(l => l.accountId === 'one').flagged, true);
     assert.equal(db.logs.find(l => l.accountId === 'two').status, 'paid');
     const other = (await open(browser, 1280, db)).page;
-    assert.equal(await other.locator('[data-account="one"] .flag-button').getAttribute('aria-pressed'), 'true');
+    assert.equal(await other.locator('[data-account="one"] .flag-marker').count(), 1);
     assert.equal(await other.locator('[data-account="two"] .quick-paid').getAttribute('aria-pressed'), 'true');
   } finally { await browser.close(); }
 });
@@ -274,4 +285,30 @@ test('pending saves stay scoped to their month and do not restore a signed-out s
     await page.locator('[data-account="two"] .quick-paid').click(); await page.locator('#sign-out').click(); releaseSecond();
     await page.getByText('Sign in form').waitFor(); assert.equal(await page.locator('.account').count(), 0);
   } finally { await browser.close(); }
+});
+
+test('desktop context menu hides extra controls, supports keyboard and edge positioning, and preserves payment status', async () => {
+ const browser = await browserType.launch(); const db = store();
+ try {
+  const { page } = await open(browser, 1280, db);
+  assert.equal(await page.locator('.touch-actions:visible').count(), 0);
+  const paid = page.locator('[data-account="one"] .quick-paid');
+  await paid.click({ button: 'right' });
+  assert.equal(await paid.getAttribute('aria-pressed'), 'false'); assert.equal(db.logs.length, 0);
+  await page.locator('#menu-flag').click(); await page.locator('#save-state').filter({ hasText: 'All changes saved' }).waitFor();
+  assert.equal(db.logs[0].flagged, true); assert.equal(db.logs[0].status, 'unchecked');
+  await paid.focus(); await page.keyboard.press('Shift+F10'); await page.locator('#payment-menu').waitFor();
+  await page.keyboard.press('ArrowDown'); assert.equal(await page.locator('#menu-details').evaluate(n => n === document.activeElement), true);
+  await page.keyboard.press('Escape'); assert.equal(await page.locator('#payment-menu').isVisible(), false);
+  assert.equal(await paid.evaluate(n => n === document.activeElement), true);
+  await actions(page); await page.locator('#menu-details').click(); await page.locator('#entry-dialog').waitFor();
+  assert.equal(await page.locator('#entry-flag').isChecked(), true); await page.getByRole('button', { name: 'Close details', exact: true }).click();
+  await paid.click(); await page.locator('#save-state').filter({ hasText: 'All changes saved' }).waitFor();
+  const fills = await page.locator('[data-account="one"] .quick-paid').evaluate(n => [getComputedStyle(n).backgroundColor, getComputedStyle(n.parentElement).backgroundColor]);
+  assert.equal(fills[0], fills[1]);
+  await page.locator('[data-account="four"]').dispatchEvent('contextmenu', { clientX: 1278, clientY: 718 });
+  const box = await page.locator('#payment-menu').boundingBox(); assert.ok(box.x + box.width <= 1280 && box.y + box.height <= 844);
+  await page.screenshot({ path: path.join(os.tmpdir(), `card-payments-context-${browserType.name()}.png`), fullPage: true });
+  await page.locator('h1').click(); assert.equal(await page.locator('#payment-menu').isVisible(), false);
+ } finally { await browser.close(); }
 });

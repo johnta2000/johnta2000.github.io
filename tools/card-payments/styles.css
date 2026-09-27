@@ -214,3 +214,27 @@ textarea { resize:vertical; }
   .account-actions .quick-paid { flex:1; }
   .flag-button { width:44px; min-width:44px; }
 }
+
+/* One status pill; secondary actions live in its context menu. */
+.account-actions { border-radius:8px; background:#fce7e7; }
+.account.done .account-actions { background:#d8efdf; }
+.account .quick-paid:not([aria-pressed=true]),.matrix-account .quick-paid:not([aria-pressed=true]) { background:#fce7e7; border-color:transparent; color:#9c3037; }
+.account .quick-paid[aria-pressed=true],.matrix-account .quick-paid[aria-pressed=true] { background:#d8efdf; border-color:transparent; color:#24603b; }
+.account .quick-paid { flex:1; border-radius:8px; }
+.account .quick-paid:hover { filter:brightness(.975); }
+.account.flagged,.matrix-account.flagged { box-shadow:none; background:transparent; }
+.account.flagged .account-actions { outline:2px solid #d6a335; outline-offset:-2px; }
+.flag-marker { margin-left:auto; color:#976000; font-size:16px; line-height:1; }
+.touch-actions { background:transparent; border-color:transparent; color:inherit; }
+.payment-menu { position:fixed; z-index:20; width:230px; padding:6px; border:1px solid #dce3dc; border-radius:12px; background:#fff; box-shadow:0 8px 32px #203a2826; }
+.payment-menu p { margin:4px 8px 6px; font-size:11px; color:var(--muted); overflow-wrap:anywhere; }
+.payment-menu button { display:block; width:100%; text-align:left; min-height:40px; border:0; border-radius:7px; font-size:13px; padding:8px 10px; }
+.payment-menu button:focus-visible { outline-offset:-2px; }
+.payment-menu [aria-checked=true] { color:#8d5d0a; background:#fff5d9; }
+.bank-icon { border:0; border-radius:7px; background:transparent; }
+.bank-icon img { width:28px; height:28px; }
+.bank-discover,.bank-citi,.bank-usbank { background:white; border:1px solid #e3e7e1; }
+.bank-discover img,.bank-citi img,.bank-usbank img { width:25px; height:25px; }
+@media(min-width:900px) { .matrix-account .touch-actions { display:none; } .matrix-account .quick-paid { padding:4px 10px; } }
+@media(pointer:coarse) { .matrix-account .touch-actions { display:block; min-width:40px; width:40px; } }
+@media(max-width:899px) { .payment-menu button { min-height:44px; } }

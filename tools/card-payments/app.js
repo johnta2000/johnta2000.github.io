@@ -9,6 +9,7 @@
   $('month').value = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
   const pending = new Map();
   let saveWarning = '';
+  let menuAccount = null;
   let session = null, sessionId, epoch = 0, request = 0, mounted = false;
   let data = null, busy = false, ready = false, entry = null, imports = [], editingAccount = null;
 
@@ -42,7 +43,7 @@
   }
   function closeDialogs() { document.querySelectorAll('dialog[open]').forEach(d => d.close()); entry = null; imports = []; }
   function clearPrivate() {
-    ++request; pending.clear(); saveWarning = ''; data = null; ready = false; editingAccount = null; closeDialogs(); setBusy(false);
+    ++request; pending.clear(); saveWarning = ''; closeMenu(); data = null; ready = false; editingAccount = null; closeDialogs(); setBusy(false);
     $('app').hidden = true; $('accounts').replaceChildren(); $('manage-list').replaceChildren(); $('import-preview').replaceChildren();
     $('entry-form').reset(); $('add-form').reset(); $('import-form').reset();
     ['entry-person', 'entry-title', 'entry-month', 'entry-error', 'add-error', 'manage-error', 'import-summary', 'import-error', 'save-state'].forEach(id => message(id, ''));
@@ -76,7 +77,9 @@
   function bankIcon(bank) {
     const square = node('span', undefined, 'bank-icon'); square.setAttribute('aria-hidden', 'true');
     const icon = bankIcons[bank.toLowerCase()];
-    if (icon) { const img = node('img'); img.src = `icons/${icon}.ico`; img.alt = ''; img.width = 24; img.height = 24; img.addEventListener('error', () => square.replaceChildren(node('span', bank.slice(0, 1)))); square.append(img); }
+    const extension = ['amex', 'discover', 'barclays', 'usbank', 'citi'].includes(icon) ? 'svg' : 'png';
+    if (icon) square.classList.add(`bank-${icon}`);
+    if (icon) { const img = node('img'); img.src = `icons/${icon}.${extension}`; img.alt = ''; img.width = 24; img.height = 24; img.addEventListener('error', () => square.replaceChildren(node('span', bank.slice(0, 1)))); square.append(img); }
     else square.append(node('span', bank.slice(0, 1)));
     return square;
   }
@@ -128,6 +131,42 @@
   }
   window.addEventListener('beforeunload', event => { if (pending.size) { event.preventDefault(); event.returnValue = ''; } });
 
+  function closeMenu(restoreFocus = false) {
+    const account = menuAccount; menuAccount = null; $('payment-menu').hidden = true;
+    if (restoreFocus && account) $('accounts').querySelector(`[data-account="${CSS.escape(account._id)}"] .quick-paid`)?.focus({ preventScroll: true });
+  }
+  function openMenu(account, anchor, point) {
+    if (busy || !ready) return;
+    closeMenu(); menuAccount = account;
+    const log = logFor(account._id), menu = $('payment-menu'), bounds = anchor.getBoundingClientRect();
+    message('menu-title', `${account.person} · ${account.bank}`);
+    message('menu-flag', log?.flagged ? '⚑  Remove flag' : '⚑  Flag for attention');
+    $('menu-flag').setAttribute('aria-checked', String(!!log?.flagged));
+    $('menu-details').disabled = pending.has(`${selectedMonth()}/${account._id}`);
+    message('menu-details', $('menu-details').disabled ? 'Details · saving…' : 'Payment details…');
+    menu.hidden = false;
+    menu.style.left = `${Math.max(8, Math.min(point?.x ?? bounds.left, innerWidth - menu.offsetWidth - 8))}px`;
+    menu.style.top = `${Math.max(8, Math.min(point?.y ?? bounds.bottom + 4, innerHeight - menu.offsetHeight - 8))}px`;
+    $('menu-flag').focus({ preventScroll: true });
+  }
+  $('menu-flag').addEventListener('click', () => {
+    const account = menuAccount; if (!account) return;
+    const flagged = !logFor(account._id)?.flagged; closeMenu(true); quickSave(account, { flagged });
+  });
+  $('menu-details').addEventListener('click', () => { const account = menuAccount; closeMenu(true); if (account) openEntry(account); });
+  $('payment-menu').addEventListener('keydown', event => {
+    if (event.key === 'Escape' || event.key === 'Tab') { event.preventDefault(); closeMenu(true); return; }
+    const buttons = [...$('payment-menu').querySelectorAll('button:not(:disabled)')];
+    if (['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) {
+      event.preventDefault(); const current = buttons.indexOf(document.activeElement);
+      const index = event.key === 'Home' ? 0 : event.key === 'End' ? buttons.length - 1 : (current + (event.key === 'ArrowDown' ? 1 : -1) + buttons.length) % buttons.length;
+      buttons[index]?.focus();
+    }
+  });
+  document.addEventListener('pointerdown', event => { if (!$('payment-menu').contains(event.target)) closeMenu(); });
+  window.addEventListener('resize', () => closeMenu());
+  document.addEventListener('scroll', () => closeMenu(), true);
+
   function accountControl(account, matrix = false) {
     const log = logFor(account._id), status = log?.status || 'unchecked';
     const row = node(matrix ? 'div' : 'article', undefined, `account${complete(status) ? ' done' : ''}${matrix ? ' matrix-account' : ''}`);
@@ -145,17 +184,17 @@
     const check = node('span', complete(status) ? '✓' : '', 'check-box'); check.setAttribute('aria-hidden', 'true');
     paid.append(check, node('span', labels[status], `status-badge ${status}`));
     paid.addEventListener('click', () => quickSave(account, { status: complete(logFor(account._id)?.status) ? 'unchecked' : 'paid' }));
-    const details = node('button', '···', 'details-button'); details.type = 'button'; details.dataset.action = 'details';
-    details.setAttribute('aria-label', `Details for ${account.person}, ${account.bank}${account.nickname ? `, ${account.nickname}` : ''}`);
-    details.title = log?.note ? `Note: ${log.note}` : 'Payment details';
-    if (log?.note) details.classList.add('has-note');
-    details.addEventListener('click', () => openEntry(account));
-    const flag = node('button', '⚑', 'flag-button'); flag.type = 'button'; flag.dataset.action = 'flag';
-    flag.setAttribute('aria-pressed', String(!!log?.flagged));
-    flag.setAttribute('aria-label', `${log?.flagged ? 'Unflag' : 'Flag'} ${account.person}, ${account.bank}`);
-    flag.title = log?.flagged ? 'Flagged for attention' : 'Flag for attention';
-    flag.addEventListener('click', () => quickSave(account, { flagged: !logFor(account._id)?.flagged }));
-    actions.append(paid, flag, details);
+    paid.setAttribute('aria-haspopup', 'menu');
+    paid.title = 'Click to toggle payment. Right-click for flag and details.';
+    if (log?.flagged) { const marker = node('span', '⚑', 'flag-marker'); marker.setAttribute('aria-label', 'Flagged for attention'); paid.append(marker); }
+    paid.addEventListener('keydown', event => {
+      if (event.key === 'ContextMenu' || (event.shiftKey && event.key === 'F10') || event.key === 'ArrowDown') { event.preventDefault(); openMenu(account, paid); }
+    });
+    row.addEventListener('contextmenu', event => { event.preventDefault(); openMenu(account, paid, { x: event.clientX, y: event.clientY }); });
+    const more = node('button', '···', 'details-button touch-actions'); more.type = 'button'; more.dataset.action = 'menu';
+    more.setAttribute('aria-label', `Actions for ${account.person}, ${account.bank}`); more.setAttribute('aria-haspopup', 'menu');
+    more.addEventListener('click', () => openMenu(account, more));
+    actions.append(paid, more);
     if (heading.childNodes.length) row.append(heading);
     row.append(actions);
     if (matrix && (account.dueDay !== 1 || log?.amountCents != null)) row.append(node('p', `${account.dueDay !== 1 ? `Due ${dueLabel(account)}` : ''}${account.dueDay !== 1 && log?.amountCents != null ? ' · ' : ''}${log?.amountCents != null ? formatMoney(log.amountCents) : ''}`, 'cell-detail'));
@@ -199,6 +238,7 @@
 
   function render() {
     if (!data) return;
+    closeMenu();
     const chosenPerson = $('person').value;
     // Preserve account/import order, matching the original spreadsheet's columns.
     const people = [...new Set(data.accounts.map(a => a.person))];
@@ -223,7 +263,6 @@
       if (!shown.length) $('accounts').append(node('div', accounts.length ? 'You’re all caught up for this person and month.' : 'No accounts for this person and month yet.', 'empty'));
     }
     setBusy(busy);
-    for (const row of $('accounts').querySelectorAll('[data-account]')) row.querySelector('.details-button').disabled = busy || pending.has(`${selectedMonth()}/${row.dataset.account}`);
     if (focusAccount && focusAction) $('accounts').querySelector(`[data-account="${CSS.escape(focusAccount)}"] [data-action="${focusAction}"]`)?.focus({ preventScroll: true });
   }
   desktop.addEventListener('change', render);
@@ -347,6 +386,7 @@
   document.querySelectorAll('dialog').forEach(dialog => dialog.addEventListener('cancel', event => { if (busy) event.preventDefault(); }));
   ['person', 'remaining'].forEach(id => $(id).addEventListener('change', render));
   function changeMonth() {
+    closeMenu();
     if (!validMonth(selectedMonth())) { message('load-state', 'Choose a valid month between 2000 and 2099.'); $('accounts').replaceChildren(); return; }
     data = null; $('accounts').replaceChildren(); message('progress-heading', 'Loading accounts…'); message('progress-number', '—'); message('progress-detail', ''); $('progress').value = 0;
     void refresh();

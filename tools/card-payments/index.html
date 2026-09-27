@@ -40,7 +40,7 @@
       <div class="filters"><label>Person<select id="person"><option value="">Everyone</option></select></label><label class="switch"><input id="remaining" type="checkbox">Only unpaid</label></div>
       <div class="list-heading"><button id="refresh" class="text-button">Refresh</button><button id="add" class="secondary">+ Add account</button></div>
       </div>
-      <div class="matrix-guide"><p>Click to mark paid. Flag anything that needs attention.</p><span>— No account</span></div>
+      <div class="matrix-guide"><p>Click to mark paid. Right-click for flags and details.</p><span>— No account</span></div>
       <p id="load-state" role="status"></p><div id="accounts" class="accounts"></div>
       <div class="toolbar"><button id="import" class="text-button">Import account list</button><button id="manage" class="text-button">Manage accounts</button></div>
       <input id="import-file" type="file" accept=".json,application/json" hidden>
@@ -48,6 +48,11 @@
     </section>
     <noscript>Enable JavaScript to use your payment checklist.</noscript>
   </main>
+  <div id="payment-menu" class="payment-menu" role="menu" aria-label="Payment actions" hidden>
+    <p id="menu-title" role="presentation"></p>
+    <button id="menu-flag" role="menuitemcheckbox" aria-checked="false" type="button">Flag for attention</button>
+    <button id="menu-details" role="menuitem" type="button">Payment details…</button>
+  </div>
   <dialog id="entry-dialog" aria-labelledby="entry-title">
     <form id="entry-form">
       <div class="dialog-heading"><div><p class="eyebrow" id="entry-person"></p><h2 id="entry-title">Account details</h2></div><button type="button" class="arrow close" aria-label="Close details">×</button></div>
