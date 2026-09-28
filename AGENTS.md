@@ -12,6 +12,7 @@
 ## Payments tracker
 
 - The canonical route is `/tools/payments/`; preserve the redirect from `/tools/card-payments/`.
+- Keep generous section spacing and the original desktop header layout; allow vertical scrolling instead of squeezing everything into one screen.
 - Preserve the compact desktop bank-by-person matrix and the mobile layout with payment status beside the bank/account details.
 - Housing Payments belongs below Card payments, uses the same selected month and filters, and keeps separate monthly checkoffs. Keep housing records out of the bank matrix. Store property addresses only in the private backend, never in public source files.
 - Test payment changes with mock data. Never change real payment logs just to exercise the UI.

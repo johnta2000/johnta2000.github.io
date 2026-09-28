@@ -184,7 +184,7 @@ textarea { resize:vertical; }
   #progress-detail { margin:0; font-size:12px; }
   .overview .progress-number { font-size:22px; }
   progress { height:3px; margin:3px 0 0; }
-  .table-controls { margin:8px 0 4px; gap:12px; }
+  .table-controls { margin:10px 0 6px; gap:12px; }
   .table-controls button,.table-controls select { min-height:32px; padding:4px 10px; font-size:13px; }
   .table-controls label { font-size:13px; }
   .table-controls .switch { min-height:32px; }
@@ -268,16 +268,16 @@ textarea { resize:vertical; }
 }
 
 /* Recurring housing payments share the selected month and filters. */
-.section-title { font-size:16px; margin:8px 0 4px; }
-.housing-section { margin-top:16px; }
-.section-heading { display:flex; align-items:baseline; justify-content:space-between; gap:12px; margin-bottom:8px; }
+.section-title { font-size:17px; margin:16px 0 8px; }
+.housing-section { margin-top:28px; }
+.section-heading { display:flex; align-items:baseline; justify-content:space-between; gap:12px; margin-bottom:12px; }
 .section-heading h2 { font-size:17px; }
 .section-heading .muted { font-size:12px; }
-.housing-accounts { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; }
-.housing-account { padding:10px 12px; gap:8px; align-items:center; }
-.housing-account h3 { font-size:14px; }
-.housing-address { margin:2px 0 0; color:var(--muted); font-size:12px; overflow-wrap:anywhere; }
-.housing-account .meta { font-size:11px; margin-top:2px; }
+.housing-accounts { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; }
+.housing-account { padding:16px; gap:12px; align-items:center; }
+.housing-account h3 { font-size:15px; }
+.housing-address { margin:5px 0 0; color:var(--muted); font-size:12px; overflow-wrap:anywhere; }
+.housing-account .meta { font-size:12px; margin-top:5px; }
 .housing-account .quick-paid { font-size:12px; min-width:96px; }
 .housing-empty { grid-column:1/-1; margin:0; color:var(--muted); font-size:13px; }
 @media(min-width:900px) { .housing-account .touch-actions { display:none; } }
@@ -289,22 +289,9 @@ textarea { resize:vertical; }
   .housing-account .quick-paid { font-size:13px; }
 }
 
+/* Let the page grow naturally as sections are added. */
 @media(min-width:900px) {
-  .page-top { display:flex; align-items:center; justify-content:space-between; gap:24px; margin-bottom:8px; }
-  .page-top header,.page-top nav { margin:0; }
-  .page-top nav { flex:1; justify-content:flex-end; gap:28px; }
-  .card-section-heading { display:flex; align-items:baseline; gap:16px; margin:6px 0; }
-  .card-section-heading .section-title { margin:0; }
-  .card-section-heading .matrix-guide { flex:1; margin:0; }
-  .payment-matrix .quick-paid { min-height:32px; padding:4px 10px; }
-  .housing-section { margin-top:8px; }
-  .housing-account { padding:6px 10px; }
-}
-@media(min-width:900px) {
-  main { padding-bottom:8px; }
-  .page-top nav button { min-height:28px; padding:2px 8px; }
-}
-@media(max-width:899px) {
-  .page-top { display:flex; flex-direction:column; }
-  .page-top nav { order:-1; }
+  header { margin-bottom:16px; }
+  .toolbar { margin:16px 0; }
+  footer { padding-top:12px; }
 }
