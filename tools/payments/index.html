@@ -6,8 +6,8 @@
   <meta name="robots" content="noindex,nofollow">
   <meta name="theme-color" content="#f7f8f5">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-title" content="Card payments">
-  <title>Card payments — John Ta</title>
+  <meta name="apple-mobile-web-app-title" content="Payments">
+  <title>Payments — John Ta</title>
   <link rel="icon" href="../../assets/img/jt-mark.svg" type="image/svg+xml">
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="../../assets/css/searchable-select.css">
@@ -18,8 +18,10 @@
 </head>
 <body>
   <main>
+    <div class="page-top">
+    <header><h1>Payments<span>.</span></h1><p class="subtitle">Your monthly payment checklist.</p></header>
     <nav><a href="../../login/">← Your apps</a><a href="../payment/questions/">Payment questions ↗</a><button id="sign-out" class="text-button" hidden>Sign out</button></nav>
-    <header><h1>Card payments<span>.</span></h1><p class="subtitle">Your monthly payment checklist.</p></header>
+    </div>
     <p id="connection" class="notice" role="status" hidden></p>
     <section id="gate" class="panel">
       <h2>Your private checklist</h2><p id="gate-message">Loading sign-in…</p>
@@ -42,8 +44,13 @@
       <div class="filters"><div class="picker-field"><span id="person-label">Person</span><select id="person" aria-labelledby="person-label"><option value="">Everyone</option></select></div><label class="switch"><input id="remaining" type="checkbox">Only unpaid</label></div>
       <div class="list-heading"><button id="refresh" class="text-button">Refresh</button><button id="add" class="secondary">+ Add account</button></div>
       </div>
-      <div class="matrix-guide"><p>Click to mark paid. Right-click for flags and details.</p><span>— No account</span></div>
+      <div class="card-section-heading"><h2 class="section-title">Card payments</h2>
+      <div class="matrix-guide"><p>Click to mark paid. Right-click for flags and details.</p><span>— No account</span></div></div>
       <p id="load-state" role="status"></p><div id="accounts" class="accounts"></div>
+      <section id="housing-section" class="housing-section" aria-labelledby="housing-title">
+        <div class="section-heading"><h2 id="housing-title">Housing Payments</h2><span id="housing-progress" class="muted"></span></div>
+        <div id="housing-accounts" class="housing-accounts"></div>
+      </section>
       <div class="toolbar"><button id="import" class="text-button">Import account list</button><button id="manage" class="text-button">Manage accounts</button></div>
       <input id="import-file" type="file" accept=".json,application/json" hidden>
       <footer><p id="save-state" role="status" aria-live="polite">Changes save to your account.</p><p>Payments are due on the 1st. Each month keeps its own checkoffs and flags.</p></footer>
@@ -69,9 +76,10 @@
   <dialog id="add-dialog" aria-labelledby="add-title">
     <form id="add-form">
       <div class="dialog-heading"><h2 id="add-title">Add account</h2><button type="button" class="arrow close" aria-label="Close add account">×</button></div>
+      <div class="picker-field"><span id="add-category-label">Section</span><select id="add-category" aria-labelledby="add-category-label"><option value="card">Card payments</option><option value="housing">Housing Payments</option></select></div>
       <label>Person<input id="add-person" required maxlength="80" placeholder="Who is this for?" list="people" autocomplete="off"></label><datalist id="people"></datalist>
-      <label>Bank<input id="add-bank" required maxlength="80" placeholder="Bank or issuer" autocomplete="off"></label>
-      <label>Card nickname <span class="muted">(optional)</span><input id="add-nickname" maxlength="80" placeholder="Leave blank to track the whole bank login" autocomplete="off"></label>
+      <label><span id="add-bank-label">Bank</span><input id="add-bank" required maxlength="80" placeholder="Bank or issuer" autocomplete="off"></label>
+      <label><span id="add-nickname-label">Card nickname</span> <span class="muted">(optional)</span><input id="add-nickname" maxlength="80" placeholder="Leave blank to track the whole bank login" autocomplete="off"></label>
       <div class="two-columns"><label>Due day<input id="add-day" type="number" min="1" max="31" value="1" required inputmode="numeric"></label><label>First month<input id="add-month" type="month" min="2000-01" max="2099-12" required></label></div>
       <p class="muted">This account repeats each month with a fresh status.</p><p id="add-error" class="error" role="alert"></p><button type="submit" class="primary">Add account</button>
     </form>

@@ -5,6 +5,7 @@ export const paymentStatus = v.union(v.literal("unchecked"), v.literal("schedule
 export const cardPaymentTables = {
   paymentAccounts: defineTable({
     owner: v.string(), person: v.string(), bank: v.string(), nickname: v.string(),
+    category: v.optional(v.union(v.literal("card"), v.literal("housing"))),
     dueDay: v.number(), startMonth: v.string(), endMonth: v.optional(v.string()), createdAt: v.number(),
   }).index("by_owner", ["owner"]),
   paymentLogs: defineTable({

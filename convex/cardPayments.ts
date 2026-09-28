@@ -28,7 +28,7 @@ function label(value: string, name: string, required = true) {
   if ((required && !clean) || clean.length > 80) throw new Error(`${name} must be ${required ? "1–80" : "0–80"} characters.`);
   return clean;
 }
-const accountFields = { person: v.string(), bank: v.string(), nickname: v.string(), dueDay: v.number() };
+const accountFields = { person: v.string(), bank: v.string(), nickname: v.string(), dueDay: v.number(), category: v.optional(v.union(v.literal("card"), v.literal("housing"))) };
 
 export const verify = query({ args: {}, handler: async ctx => {
   const user = await authorized(ctx);
@@ -51,10 +51,10 @@ export const addAccounts = mutation({ args: { startMonth: v.string(), accounts: 
   if (!args.accounts.length || args.accounts.length > 100) throw new Error("Add between 1 and 100 accounts at a time.");
   const clean = args.accounts.map(a => {
     if (!Number.isInteger(a.dueDay) || a.dueDay < 1 || a.dueDay > 31) throw new Error("Due day must be between 1 and 31.");
-    return { person: label(a.person, "Person"), bank: label(a.bank, "Bank"), nickname: label(a.nickname, "Nickname", false), dueDay: a.dueDay };
+    return { category: a.category || "card", person: label(a.person, "Person"), bank: label(a.bank, "Bank"), nickname: label(a.nickname, "Nickname", false), dueDay: a.dueDay };
   });
   const existing = await ctx.db.query("paymentAccounts").withIndex("by_owner", q => q.eq("owner", user.workspaceOwner)).collect();
-  const key = (a: {person: string; bank: string; nickname: string}) => JSON.stringify([a.person, a.bank, a.nickname].map(s => s.toLowerCase()));
+  const key = (a: {person: string; bank: string; nickname: string; category?: string}) => JSON.stringify([a.category || "card", a.person, a.bank, a.nickname].map(s => s.toLowerCase()));
   const keys = new Set(existing.map(key));
   let added = 0;
   for (const account of clean) {
@@ -98,9 +98,9 @@ export const updateAccount = mutation({ args: { accountId: v.id("paymentAccounts
   const account = await ctx.db.get(args.accountId);
   if (!account || account.owner !== user.workspaceOwner) throw new Error("Account not found.");
   if (!Number.isInteger(args.dueDay) || args.dueDay < 1 || args.dueDay > 31) throw new Error("Due day must be between 1 and 31.");
-  const fields = { person: label(args.person, "Person"), bank: label(args.bank, "Bank"), nickname: label(args.nickname, "Nickname", false), dueDay: args.dueDay };
+  const fields = { category: args.category ?? account.category ?? "card", person: label(args.person, "Person"), bank: label(args.bank, "Bank"), nickname: label(args.nickname, "Nickname", false), dueDay: args.dueDay };
   const accounts = await ctx.db.query("paymentAccounts").withIndex("by_owner", q => q.eq("owner", user.workspaceOwner)).collect();
-  if (accounts.some(a => a._id !== account._id && a.person.toLowerCase() === fields.person.toLowerCase() && a.bank.toLowerCase() === fields.bank.toLowerCase() && a.nickname.toLowerCase() === fields.nickname.toLowerCase())) throw new Error("That account already exists. Choose a different nickname.");
+  if (accounts.some(a => a._id !== account._id && (a.category || "card") === fields.category && a.person.toLowerCase() === fields.person.toLowerCase() && a.bank.toLowerCase() === fields.bank.toLowerCase() && a.nickname.toLowerCase() === fields.nickname.toLowerCase())) throw new Error("That account already exists. Choose a different nickname.");
   await ctx.db.patch(account._id, fields);
 } });
 

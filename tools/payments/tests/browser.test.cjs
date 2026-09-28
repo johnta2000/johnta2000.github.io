@@ -232,7 +232,7 @@ test('desktop matrix maps banks to people, keeps empty cells inert, and toggles 
   } finally { await browser.close(); }
 });
 
-test('nine banks and five people fit a desktop viewport without scrolling', async () => {
+test('nine banks, five people and housing fit a desktop viewport without scrolling', async () => {
   const browser = await browserType.launch(); const db = store();
   db.accounts = [];
   for (const bank of ['Chase', 'American Express', 'Discover', 'Citi', 'Barclays', 'Santander', 'Bilt', 'Bank of America', 'US Bank']) {
@@ -241,6 +241,7 @@ test('nine banks and five people fit a desktop viewport without scrolling', asyn
     }
   }
   try {
+    db.accounts.push(...['Rent', 'Mortgage', 'Other rent'].map((bank, i) => ({ _id: `housing-${i}`, bank, person: 'Alex', category: 'housing', nickname: '10 Example Street', dueDay: 1, startMonth: '2020-01' })));
     const { page } = await open(browser, 1000, db); await fits(page);
     assert.equal(await page.locator('thead th').count(), 6);
     const layout = await page.locator('.matrix-scroll').evaluate(n => ({ scroll: n.scrollWidth, width: n.clientWidth }));
@@ -394,5 +395,51 @@ test('picker panels stay on screen, scroll long lists, and close on outside clic
       assert.equal(await page.locator('#person').textContent(), 'Everyone');
       assert.deepEqual(errors, []); await page.close();
     }
+  } finally { await browser.close(); }
+});
+
+test('housing lives below the card matrix, repeats monthly, saves instantly, and follows filters', async () => {
+  const browser = await browserType.launch();
+  try {
+    const db = store();
+    db.accounts.push(
+      { _id: 'rent', category: 'housing', person: 'Alex', bank: 'Rent', nickname: '10 Example Street', dueDay: 1, startMonth: '2020-01' },
+      { _id: 'mortgage', category: 'housing', person: 'Alex', bank: 'Mortgage', nickname: '20 Example Street', dueDay: 1, startMonth: '2020-01' },
+      { _id: 'rent2', category: 'housing', person: 'Dana', bank: 'Rent', nickname: '30 Example Street', dueDay: 1, startMonth: '2020-01' }
+    );
+    const { page, errors } = await open(browser, 1280, db);
+    assert.equal(await page.locator('#housing-accounts .account').count(), 3);
+    assert.equal(await page.locator('#accounts .account').count(), 4);
+    assert.ok(!(await page.locator('.payment-matrix').innerText()).includes('Rent'));
+    const matrix = await page.locator('#accounts').boundingBox(), housing = await page.locator('#housing-section').boundingBox();
+    assert.ok(housing.y >= matrix.y + matrix.height);
+    let release; db.delaySave = () => new Promise(r => { release = r; });
+    await page.locator('[data-account="rent"] .quick-paid').click();
+    assert.equal(await page.locator('[data-account="rent"] .quick-paid').getAttribute('aria-pressed'), 'true');
+    await page.waitForFunction(() => document.getElementById('save-state').textContent.includes('Saving'));
+    while (!release) await new Promise(r => setTimeout(r, 10));
+    db.delaySave = null; release(); await page.locator('[data-account="rent"]:not(.saving)').waitFor();
+    await actions(page, 'rent'); await page.locator('#menu-flag').click();
+    await page.locator('[data-account="rent"]:not(.saving)').waitFor();
+    await page.locator('#next').click();
+    await page.waitForFunction(() => document.getElementById('housing-progress').textContent.startsWith('0 / 3'));
+    assert.equal(await page.locator('[data-account="rent"] .flag-marker').count(), 0);
+    await page.locator('#previous').click();
+    await page.waitForFunction(() => document.getElementById('housing-progress').textContent.startsWith('1 / 3'));
+    assert.equal(await page.locator('[data-account="rent"] .flag-marker').count(), 1);
+    await pick(page, 'person', 'Alex'); assert.equal(await page.locator('#housing-accounts .account').count(), 2);
+    await page.locator('#remaining').check(); assert.equal(await page.locator('#housing-accounts .account').count(), 1);
+    await page.locator('#remaining').uncheck(); await pick(page, 'person', 'Everyone');
+    for (const width of [1280, 390, 320]) {
+      await page.setViewportSize({ width, height: 844 }); await fits(page);
+      await page.screenshot({ path: path.join(os.tmpdir(), `housing-${browserType.name()}-${width}.png`), fullPage: true });
+    }
+    await page.locator('#add').click(); await pick(page, 'add-category', 'Housing Payments');
+    assert.equal(await page.locator('#add-bank-label').textContent(), 'Payment type');
+    assert.equal(await page.locator('#add-nickname-label').textContent(), 'Address');
+    await page.getByLabel('Close add account', { exact: true }).click();
+    await page.locator('#sign-out').click();
+    assert.equal(await page.locator('#housing-accounts').textContent(), '');
+    assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 });

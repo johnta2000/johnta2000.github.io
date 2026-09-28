@@ -166,3 +166,17 @@ test('editing due day and names retains history and rejects duplicate account na
   assert.equal(f.tables.paymentLogs[0].flagged, false);
   assert.equal(f.tables.paymentLogs[0].status, 'paid');
 });
+
+test('housing repeats with independent monthly history and preserves its category through edits', async () => {
+  const f = fixture();
+  const housing = { ...account, bank: 'Rent', nickname: '10 Example Street', category: 'housing' };
+  await f.run('addAccounts', { startMonth: '2026-10', accounts: [housing, housing, { ...housing, category: 'card' }] });
+  assert.equal(f.tables.paymentAccounts.length, 2);
+  const id = f.tables.paymentAccounts[0]._id;
+  await f.run('save', { accountId: id, month: '2026-10', status: 'paid', flagged: true, expectedVersion: 0 });
+  await f.run('updateAccount', { accountId: id, ...account, bank: 'Rent', nickname: '20 Example Street' });
+  assert.equal(f.tables.paymentAccounts[0].category, 'housing');
+  assert.equal((await f.run('dashboard', { month: '2026-11' })).logs.length, 0);
+  assert.equal((await f.run('dashboard', { month: '2026-10' })).logs[0].flagged, true);
+  await assert.rejects(f.run('save', { accountId: id, month: '2026-09', status: 'paid', expectedVersion: 0 }), /not active/);
+});

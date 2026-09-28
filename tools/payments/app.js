@@ -3,6 +3,7 @@
   const API = 'https://rapid-shark-565.convex.cloud';
   const $ = id => document.getElementById(id);
   const personPicker = SearchableSelect.enhance($('person'));
+  const categoryPicker = SearchableSelect.enhance($('add-category'));
   const statusPicker = SearchableSelect.enhance($('entry-status'));
   const labels = { unchecked: 'Not paid', scheduled: 'Not paid', paid: 'Paid', nothing_due: 'Paid' };
   const complete = status => status === 'paid' || status === 'nothing_due';
@@ -47,9 +48,9 @@
   }
   function closeDialogs() { document.querySelectorAll('dialog[open]').forEach(d => d.close()); entry = null; imports = []; }
   function clearPrivate() {
-    personPicker.close(); statusPicker.close();
+    personPicker.close(); statusPicker.close(); categoryPicker.close();
     ++request; pending.clear(); saveWarning = ''; closeMenu(); data = null; ready = false; editingAccount = null; closeDialogs(); setBusy(false);
-    $('app').hidden = true; $('accounts').replaceChildren(); $('manage-list').replaceChildren(); $('import-preview').replaceChildren();
+    $('app').hidden = true; $('accounts').replaceChildren(); $('housing-accounts').replaceChildren(); message('housing-progress', ''); $('manage-list').replaceChildren(); $('import-preview').replaceChildren();
     $('entry-form').reset(); $('add-form').reset(); $('import-form').reset();
     ['entry-person', 'entry-title', 'entry-month', 'entry-error', 'add-error', 'manage-error', 'import-summary', 'import-error', 'save-state'].forEach(id => message(id, ''));
     $('people').replaceChildren(); $('person').replaceChildren(new Option('Everyone', ''));
@@ -138,7 +139,7 @@
 
   function closeMenu(restoreFocus = false) {
     const account = menuAccount; menuAccount = null; $('payment-menu').hidden = true;
-    if (restoreFocus && account) $('accounts').querySelector(`[data-account="${CSS.escape(account._id)}"] .quick-paid`)?.focus({ preventScroll: true });
+    if (restoreFocus && account) $('app').querySelector(`[data-account="${CSS.escape(account._id)}"] .quick-paid`)?.focus({ preventScroll: true });
   }
   function openMenu(account, anchor, point) {
     if (busy || !ready) return;
@@ -179,9 +180,13 @@
     row.classList.toggle('flagged', !!log?.flagged);
     row.classList.toggle('saving', pending.has(`${selectedMonth()}/${account._id}`));
     const heading = node('div', undefined, 'account-heading');
-    if (!matrix) heading.append(node('h3', account.nickname ? `${account.bank} · ${account.nickname}` : account.bank));
+    if (!matrix && account.category === 'housing') {
+      row.classList.add('housing-account');
+      heading.append(node('h3', `${account.person}’s ${account.bank.toLowerCase()}`));
+      if (account.nickname) heading.append(node('p', account.nickname, 'housing-address'));
+    } else if (!matrix) heading.append(node('h3', account.nickname ? `${account.bank} · ${account.nickname}` : account.bank));
     else if (account.nickname) heading.append(node('p', account.nickname, 'card-nickname'));
-    if (!matrix) heading.append(node('p', `${account.person} · Due ${dueLabel(account)}${log?.amountCents != null ? ` · ${formatMoney(log.amountCents)}` : ''}`, 'meta'));
+    if (!matrix) heading.append(node('p', `${account.category === 'housing' ? '' : `${account.person} · `}Due ${dueLabel(account)}${log?.amountCents != null ? ` · ${formatMoney(log.amountCents)}` : ''}`, 'meta'));
     const actions = node('div', undefined, 'account-actions');
     const paid = node('button', undefined, `quick-paid status-${status}`);
     paid.type = 'button'; paid.dataset.action = 'toggle'; paid.setAttribute('aria-pressed', String(complete(status)));
@@ -251,25 +256,32 @@
     $('person').value = people.includes(chosenPerson) ? chosenPerson : '';
     personPicker.sync();
     $('people').replaceChildren(...people.map(p => new Option(p, p)));
-    const accounts = activeAccounts().filter(a => !$('person').value || a.person === $('person').value);
-    const done = accounts.filter(a => complete(logFor(a._id)?.status)).length;
-    const flagged = accounts.filter(a => logFor(a._id)?.flagged).length;
+    const allAccounts = activeAccounts().filter(a => !$('person').value || a.person === $('person').value);
+    const accounts = allAccounts.filter(a => a.category !== 'housing');
+    const housing = allAccounts.filter(a => a.category === 'housing');
+    const done = allAccounts.filter(a => complete(logFor(a._id)?.status)).length;
+    const flagged = allAccounts.filter(a => logFor(a._id)?.flagged).length;
     message('scope', $('person').value || 'All accounts');
-    message('progress-heading', accounts.length ? done === accounts.length ? 'All paid.' : `${accounts.length - done} not paid` : 'A fresh start.');
-    message('progress-detail', accounts.length ? `Due ${new Date(`${selectedMonth()}-01T12:00:00`).toLocaleDateString(undefined, { month: 'long', day: 'numeric' })} · ${done} paid${flagged ? ` · ${flagged} flagged for attention` : ''}` : 'Add your accounts once. They repeat each month.');
-    message('progress-number', `${done} / ${accounts.length}`);
-    $('progress').max = accounts.length || 1; $('progress').value = done;
+    message('progress-heading', allAccounts.length ? done === allAccounts.length ? 'All paid.' : `${allAccounts.length - done} not paid` : 'A fresh start.');
+    message('progress-detail', allAccounts.length ? `Due ${new Date(`${selectedMonth()}-01T12:00:00`).toLocaleDateString(undefined, { month: 'long', day: 'numeric' })} · ${done} paid${flagged ? ` · ${flagged} flagged for attention` : ''}` : 'Add your accounts once. They repeat each month.');
+    message('progress-number', `${done} / ${allAccounts.length}`);
+    $('progress').max = allAccounts.length || 1; $('progress').value = done;
     const shown = accounts.filter(a => !$('remaining').checked || !complete(logFor(a._id)?.status));
     const focus = document.activeElement, focusAccount = focus?.closest('[data-account]')?.dataset.account, focusAction = focus?.dataset.action;
-    $('accounts').replaceChildren(); $('accounts').classList.remove('is-matrix');
+    $('accounts').replaceChildren(); $('housing-accounts').replaceChildren(); message('housing-progress', ''); $('accounts').classList.remove('is-matrix');
     if (desktop.matches) {
-      renderMatrix(accounts, $('person').value ? [$('person').value] : people.filter(p => data.accounts.some(a => a.person === p && a.startMonth <= selectedMonth())));
+      renderMatrix(accounts, $('person').value ? [$('person').value] : people.filter(p => data.accounts.some(a => a.category !== 'housing' && a.person === p && a.startMonth <= selectedMonth())));
     } else {
       for (const account of shown) $('accounts').append(accountControl(account));
       if (!shown.length) $('accounts').append(node('div', accounts.length ? 'You’re all caught up for this person and month.' : 'No accounts for this person and month yet.', 'empty'));
     }
+    const housingDone = housing.filter(a => complete(logFor(a._id)?.status)).length;
+    message('housing-progress', `${housingDone} / ${housing.length} paid · Due on the 1st`);
+    const housingShown = housing.filter(a => !$('remaining').checked || !complete(logFor(a._id)?.status));
+    for (const account of housingShown) $('housing-accounts').append(accountControl(account));
+    if (!housingShown.length) $('housing-accounts').append(node('p', housing.length ? 'Housing is all paid for this month.' : 'No housing payments for this person and month.', 'housing-empty'));
     setBusy(busy);
-    if (focusAccount && focusAction) $('accounts').querySelector(`[data-account="${CSS.escape(focusAccount)}"] [data-action="${focusAction}"]`)?.focus({ preventScroll: true });
+    if (focusAccount && focusAction) $('app').querySelector(`[data-account="${CSS.escape(focusAccount)}"] [data-action="${focusAction}"]`)?.focus({ preventScroll: true });
   }
   desktop.addEventListener('change', render);
 
@@ -333,13 +345,22 @@
     if (text && !/^\d+(\.\d{1,2})?$/.test(text)) { message('entry-error', 'Enter an amount like 125.50, or leave it blank.'); return; }
     void saveLog(entry.account, { status: $('entry-status').value, flagged: $('entry-flag').checked, note: $('entry-note').value, amountCents: text ? Math.round(Number(text) * 100) : null }, true);
   });
+  function syncCategory() {
+    const housing = $('add-category').value === 'housing';
+    message('add-bank-label', housing ? 'Payment type' : 'Bank');
+    message('add-nickname-label', housing ? 'Address' : 'Card nickname');
+    $('add-bank').placeholder = housing ? 'Rent or mortgage' : 'Bank or issuer';
+    $('add-nickname').placeholder = housing ? 'Property address' : 'Leave blank to track the whole bank login';
+    categoryPicker.sync();
+  }
+  $('add-category').addEventListener('change', syncCategory);
   $('add').addEventListener('click', () => {
-    editingAccount = null; $('add-form').reset(); message('add-title', 'Add account'); $('add-form').querySelector('[type=submit]').textContent = 'Add account';
+    editingAccount = null; $('add-form').reset(); syncCategory(); message('add-title', 'Add account'); $('add-form').querySelector('[type=submit]').textContent = 'Add account';
     $('add-month').closest('label').hidden = false; $('add-person').value = $('person').value; $('add-month').value = selectedMonth(); message('add-error', ''); $('add-dialog').showModal();
   });
   $('add-form').addEventListener('submit', event => {
     event.preventDefault();
-    const fields = { person: $('add-person').value.trim(), bank: $('add-bank').value.trim(), nickname: $('add-nickname').value.trim(), dueDay: Number($('add-day').value) };
+    const fields = { category: $('add-category').value, person: $('add-person').value.trim(), bank: $('add-bank').value.trim(), nickname: $('add-nickname').value.trim(), dueDay: Number($('add-day').value) };
     if (editingAccount) void mutate('updateAccount', { accountId: editingAccount._id, ...fields }, { errorId: 'add-error', close: 'add-dialog', success: 'Account details updated.' });
     else void mutate('addAccounts', { startMonth: $('add-month').value, accounts: [fields] }, { errorId: 'add-error', close: 'add-dialog', success: result => result.added ? 'Account added. It will appear from its first month onward.' : 'That account already exists. No duplicate was added.' });
   });
@@ -375,6 +396,7 @@
       const edit = node('button', 'Edit');
       edit.addEventListener('click', () => {
         editingAccount = account; $('manage-dialog').close(); $('add-form').reset();
+        $('add-category').value = account.category || 'card'; syncCategory();
         message('add-title', 'Edit account'); $('add-form').querySelector('[type=submit]').textContent = 'Save account';
         $('add-person').value = account.person; $('add-bank').value = account.bank; $('add-nickname').value = account.nickname; $('add-day').value = account.dueDay;
         $('add-month').value = account.startMonth; $('add-month').closest('label').hidden = true;
@@ -394,8 +416,8 @@
   ['person', 'remaining'].forEach(id => $(id).addEventListener('change', render));
   function changeMonth() {
     closeMenu();
-    if (!validMonth(selectedMonth())) { message('load-state', 'Choose a valid month between 2000 and 2099.'); $('accounts').replaceChildren(); return; }
-    data = null; $('accounts').replaceChildren(); message('progress-heading', 'Loading accounts…'); message('progress-number', '—'); message('progress-detail', ''); $('progress').value = 0;
+    if (!validMonth(selectedMonth())) { message('load-state', 'Choose a valid month between 2000 and 2099.'); $('accounts').replaceChildren(); $('housing-accounts').replaceChildren(); message('housing-progress', ''); return; }
+    data = null; $('accounts').replaceChildren(); $('housing-accounts').replaceChildren(); message('housing-progress', ''); message('progress-heading', 'Loading accounts…'); message('progress-number', '—'); message('progress-detail', ''); $('progress').value = 0;
     void refresh();
   }
   $('month').addEventListener('change', changeMonth);
