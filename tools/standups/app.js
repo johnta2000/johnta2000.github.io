@@ -60,6 +60,7 @@ const els = {
 const personEditors = [els.yesterday, els.today, els.blockers, els.notes];
 const allEditors = [...personEditors, els.dailyNotes];
 const savedEditorSelections = new WeakMap();
+const commentHitTargets = new Map();
 let entriesForDate = [];
 let activePrevious = null;
 let standupComments = [];
@@ -131,8 +132,10 @@ function initStandups() {
       editor.classList.remove("is-invalid");
       normalizeChecklists(editor);
       queueEditorAutosave(editor);
+      scheduleCommentLayout();
     });
     editor.addEventListener("click", handleChecklistClick);
+    editor.addEventListener("click", handleCommentHighlightClick);
     editor.addEventListener("keydown", handleEditorKeydown);
     editor.addEventListener("keyup", handleEditorKeyup);
   });
@@ -776,6 +779,7 @@ function renderItemComments() {
     const groups = groupComments(standupComments.filter((comment) => comment.fieldName === fieldName));
     groups.forEach((group) => addCommentMarker(editor, group));
   });
+  renderCommentHighlights();
 }
 
 function clearItemComments() {
@@ -904,20 +908,125 @@ function addCommentMarker(editor, group) {
   block.append(marker);
 }
 
+// Build a text-to-DOM map without inserting wrappers into the editable content.
+// Spaces between blocks and <br>s let selections span formatting and list items.
+function commentTextIndex(editor) {
+  const chars = [];
+  const append = (value, start, end) => {
+    const char = /\s/.test(value) ? " " : value;
+    if (char === " " && !chars.length) return;
+    if (char === " " && chars.at(-1)?.char === " ") chars.at(-1).end = end;
+    else chars.push({ char, start, end });
+  };
+  const visit = (node) => {
+    if (node.nodeType === Node.TEXT_NODE) {
+      for (let offset = 0; offset < node.length; offset++) {
+        append(node.data[offset], { node, offset }, { node, offset: offset + 1 });
+      }
+      return;
+    }
+    if (node.nodeType !== Node.ELEMENT_NODE || node.matches(".comment-marker")) return;
+    [...node.childNodes].forEach((child, offset) => {
+      const isBlock = child.nodeType === Node.ELEMENT_NODE && /^(LI|P|DIV|BR)$/.test(child.tagName);
+      if (isBlock) append(" ", { node, offset }, { node, offset });
+      visit(child);
+      if (isBlock) append(" ", { node, offset: offset + 1 }, { node, offset: offset + 1 });
+    });
+  };
+  visit(editor);
+  if (chars.at(-1)?.char === " ") chars.pop();
+  return { text: chars.map((entry) => entry.char).join(""), chars };
+}
+
+function indexedCommentRange(index, start, end) {
+  if (start < 0 || end <= start || !index.chars[start] || !index.chars[end - 1]) return null;
+  const range = document.createRange();
+  const first = index.chars[start].start;
+  const last = index.chars[end - 1].end;
+  range.setStart(first.node, first.offset);
+  range.setEnd(last.node, last.offset);
+  return range;
+}
+
+function resolveCommentRange(editor, target) {
+  const index = commentTextIndex(editor);
+  const quote = normalizeItemText(target.itemText);
+  if (!quote) return null;
+  let anchor;
+  // Keep existing threads compatible; new keys carry selection context alongside
+  // their unique thread ID using the backend's existing opaque itemKey field.
+  const encoded = target.itemKey.split(":range-v1:")[1];
+  if (encoded) {
+    try { anchor = JSON.parse(decodeURIComponent(encoded)); } catch { return null; }
+    if (!Number.isInteger(anchor?.start) || !Number.isInteger(anchor?.end) ||
+        typeof anchor.prefix !== "string" || typeof anchor.suffix !== "string") return null;
+  }
+  const matches = [];
+  for (let start = index.text.indexOf(quote); start !== -1; start = index.text.indexOf(quote, start + 1)) {
+    matches.push(start);
+  }
+  let start;
+  if (anchor) {
+    const scores = matches.map((offset) => ({ offset, score:
+      Number(anchor.prefix ? index.text.slice(0, offset).endsWith(anchor.prefix) : offset === 0) +
+      Number(anchor.suffix ? index.text.slice(offset + quote.length).startsWith(anchor.suffix) : offset + quote.length === index.text.length),
+    }));
+    const best = Math.max(0, ...scores.map((entry) => entry.score));
+    const contextual = scores.filter((entry) => best > 0 && entry.score === best).map((entry) => entry.offset);
+    start = contextual.includes(anchor.start) ? anchor.start : contextual.length === 1 ? contextual[0] : undefined;
+  }
+  if (start === undefined && !anchor && matches.length === 1) start = matches[0];
+  // An old or edited ambiguous quote has no trustworthy location. It remains
+  // available in the overview instead of highlighting unrelated text.
+  return start === undefined ? null : indexedCommentRange(index, start, start + quote.length);
+}
+
 function findCommentTargetBlock(editor, group) {
-  const blocks = [...editor.querySelectorAll("li, p, div")].filter(
-    (block) => !block.querySelector("li, p, div") && normalizeItemText(block.textContent),
-  );
-  if (!blocks.length && normalizeItemText(editor.textContent)) blocks.push(editor);
+  const range = resolveCommentRange(editor, group);
+  if (!range) return null;
+  const node = range.startContainer.nodeType === Node.TEXT_NODE ? range.startContainer.parentElement : range.startContainer;
+  const block = node.closest("li, p, div");
+  return block && editor.contains(block) ? block : editor;
+}
 
-  const exact = blocks.find((block) => hashCommentTarget(block.textContent) === group.itemKey.split(":")[0]);
-  if (exact) return exact;
+function renderCommentHighlights() {
+  commentHitTargets.clear();
+  const targets = new Map(groupComments(standupComments).map((group) => [group.key, group]));
+  const active = openCommentThreads.get(activeCommentKey);
+  if (active?.target.personName === els.personName.value) targets.set(activeCommentKey, active.target);
+  const ranges = [];
+  const activeRanges = [];
+  targets.forEach((target, key) => {
+    const editor = els[target.fieldName];
+    if (!editor || target.personName !== els.personName.value) return;
+    const range = resolveCommentRange(editor, target);
+    if (!range) return;
+    ranges.push(range);
+    if (key === activeCommentKey) activeRanges.push(range);
+    commentHitTargets.set(key, { target, range, editor });
+  });
+  if (window.CSS?.highlights && window.Highlight) {
+    CSS.highlights.set("standup-comments", new Highlight(...ranges));
+    const focused = new Highlight(...activeRanges);
+    focused.priority = 1;
+    CSS.highlights.set("standup-active-comment", focused);
+  }
+}
 
-  const targetText = normalizeItemText(group.itemText).toLowerCase();
-  return blocks.find((block) => normalizeItemText(block.textContent).toLowerCase().includes(targetText)) || null;
+function handleCommentHighlightClick(event) {
+  if (event.defaultPrevented || event.target.closest("button") || !window.getSelection()?.isCollapsed) return;
+  const hits = [...commentHitTargets.values()].filter(({ editor, range }) =>
+    editor === event.currentTarget && [...range.getClientRects()].some((rect) =>
+      event.clientX >= rect.left && event.clientX <= rect.right && event.clientY >= rect.top && event.clientY <= rect.bottom));
+  // For overlapping selections, prefer the most specific (shortest) quote.
+  hits.sort((a, b) => a.target.itemText.length - b.target.itemText.length);
+  if (hits[0]) openCommentThread(hits[0].target, { opener: hits[0].editor });
 }
 
 function clearEditorCommentMarkers() {
+  commentHitTargets.clear();
+  window.CSS?.highlights?.delete("standup-comments");
+  window.CSS?.highlights?.delete("standup-active-comment");
   personEditors.forEach((editor) => {
     editor.querySelectorAll(".comment-marker").forEach((marker) => marker.remove());
     editor.classList.remove("has-comment-marker");
@@ -943,7 +1052,7 @@ function addCommentForEditor(source) {
   }
 
   // Each new comment gets its own thread; replies reuse that thread's item key.
-  const itemKey = `${target.itemKey}:${crypto.randomUUID()}`;
+  const itemKey = `${target.itemKey}:${crypto.randomUUID()}:range-v1:${encodeURIComponent(JSON.stringify(target.anchor))}`;
   openCommentThread({
     key: `${normalizePersonKey(personName)}:${editor.id}:${itemKey}`,
     personKey: normalizePersonKey(personName),
@@ -1052,16 +1161,13 @@ function positionCommentThreads() {
   const viewport = window.visualViewport;
   document.body.classList.toggle("is-keyboard-open", window.innerWidth <= 760 &&
     Boolean(viewport && window.innerHeight - viewport.height > 120));
-  personEditors.forEach((editor) => {
-    editor.classList.remove("has-comment-draft");
-    editor.querySelectorAll(".has-comment-draft").forEach((node) => node.classList.remove("has-comment-draft"));
-  });
+  renderCommentHighlights();
   openCommentThreads.forEach((thread) => {
     if (thread.panel.hidden) return;
     const editor = thread.target.personName === els.personName.value ? els[thread.target.fieldName] : null;
     const anchor = thread.anchor?.isConnected ? thread.anchor
       : editor && findCommentTargetBlock(editor, thread.target);
-    if (!thread.target.comments.length) anchor?.classList.add("has-comment-draft");
+
     if (window.innerWidth <= 760) {
       thread.panel.style.removeProperty("left");
       const visibleHeight = viewport?.height || window.innerHeight;
@@ -1072,7 +1178,8 @@ function positionCommentThreads() {
     }
     thread.panel.style.removeProperty("max-height");
     thread.panel.style.removeProperty("bottom");
-    const rect = (anchor || thread.opener?.isConnected && thread.opener || els.commentsOverview).getBoundingClientRect();
+    const range = commentHitTargets.get(thread.target.key)?.range;
+    const rect = range?.getClientRects()[0] || (anchor || thread.opener?.isConnected && thread.opener || els.commentsOverview).getBoundingClientRect();
     const edge = editor?.getBoundingClientRect() || rect;
     const width = thread.panel.offsetWidth;
     let left = edge.right + 16;
@@ -1651,12 +1758,27 @@ function getCurrentTextBlock() {
 
 function getCommentTarget(editor) {
   const selection = window.getSelection();
-  const selectedText = selection && editorContainsSelection(editor, selection) ? normalizeItemText(selection.toString()) : "";
-  const block = getCurrentTextBlock();
-  const itemText = selectedText || normalizeItemText(block && editor.contains(block) ? block.textContent : "");
+  if (!editorContainsSelection(editor, selection)) return { itemText: "" };
+  const range = selection.getRangeAt(0).cloneRange();
+  if (range.collapsed) {
+    const block = getCurrentTextBlock();
+    if (!block || !editor.contains(block)) return { itemText: "" };
+    range.selectNodeContents(block);
+  }
+  const index = commentTextIndex(editor);
+  const selected = index.chars.map((entry, offset) => ({ ...entry, offset })).filter((entry) =>
+    range.comparePoint(entry.start.node, entry.start.offset) === 0 &&
+    range.comparePoint(entry.end.node, entry.end.offset) === 0);
+  while (selected[0]?.char === " ") selected.shift();
+  while (selected.at(-1)?.char === " ") selected.pop();
+  if (!selected.length) return { itemText: "" };
+  const start = selected[0].offset;
+  const end = selected.at(-1).offset + 1;
+  const itemText = index.text.slice(start, end);
   return {
     itemText,
     itemKey: hashCommentTarget(itemText),
+    anchor: { start, end, prefix: index.text.slice(Math.max(0, start - 32), start), suffix: index.text.slice(end, end + 32) },
   };
 }
 

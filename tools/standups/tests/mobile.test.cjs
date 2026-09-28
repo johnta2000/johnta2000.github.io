@@ -16,12 +16,14 @@ async function openStandups(browser, width, height = 844) {
   const mutations = [];
   await page.addInitScript(() => {
     localStorage.setItem('standups:last-person-name', 'Jenny');
+      window.__internal_ClerkUICtor = {};
     window.Clerk = { load: async () => {}, isSignedIn: true,
       session: { getToken: async () => 'test-token' } };
   });
   await page.route('**/*', async route => {
     const url = new URL(route.request().url());
     if (url.hostname === 'localhost') {
+      if (url.pathname === '/assets/js/analytics.js') return route.fulfill({ body: '', contentType: 'text/javascript' });
       const name = url.pathname.endsWith('/') ? 'index.html' : path.basename(url.pathname);
       let body = await fs.readFile(path.join(__dirname, '..', name), 'utf8');
       if (name === 'index.html') body = body.replace(/<script\b[^>]*src="https:[\s\S]*?<\/script>/g, '');

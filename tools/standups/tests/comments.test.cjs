@@ -15,12 +15,14 @@ test('one visible comment at a time preserves drafts, replies, and responsive po
     let delaySave;
     await page.addInitScript(() => {
       localStorage.setItem('standups:last-person-name', 'Jenny');
+      window.__internal_ClerkUICtor = {};
       window.Clerk = { load: async () => {}, isSignedIn: true,
         session: { getToken: async () => 'test-token' } };
     });
     await page.route('**/*', async route => {
       const url = new URL(route.request().url());
       if (url.hostname === 'localhost') {
+      if (url.pathname === '/assets/js/analytics.js') return route.fulfill({ body: '', contentType: 'text/javascript' });
         const file = url.pathname.endsWith('/') ? 'index.html' : path.basename(url.pathname);
         let body = await fs.readFile(path.join(__dirname, '..', file), 'utf8');
         if (file === 'index.html') body = body.replace(/<script\b[^>]*src="https:[\s\S]*?<\/script>/g, '');
@@ -59,7 +61,7 @@ test('one visible comment at a time preserves drafts, replies, and responsive po
     };
     await add();
     assert.equal(await cards.count(), 1);
-    assert.equal(await page.locator('#today .has-comment-draft').count(), 1);
+    assert.equal(await page.evaluate(() => CSS.highlights.get('standup-active-comment').size), 1);
     assert.equal(await cards.first().locator('textarea').evaluate(el => el === document.activeElement), true);
     assert.equal(await cards.first().getByRole('button', { name: 'Comment', exact: true }).isDisabled(), true);
     await cards.first().locator('textarea').fill('First independent thread');

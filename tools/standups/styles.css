@@ -755,11 +755,16 @@ button svg {
   left: -35px;
 }
 
-.has-comment-draft,
+::highlight(standup-comments) {
+  background-color: #fff4c2;
+}
+
+::highlight(standup-active-comment) {
+  background-color: #ffdf75;
+}
+
 .has-comment-marker {
   position: relative;
-  border-radius: 4px;
-  background: #fff4c2;
 }
 
 .comment-marker {
