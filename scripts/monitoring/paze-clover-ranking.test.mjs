@@ -9,6 +9,7 @@ import {
   aggregateRows,
   assess,
   dailyPositionHistory,
+  hourlyWindows,
   parseLivePage,
   periodBounds,
   queryDetails,
@@ -24,6 +25,8 @@ test("aggregates hourly rankings into a seven-day-friendly position history", ()
       position: 2,
       primaryQueryMapImpressions: 4,
       primaryQueryMapPosition: 1,
+      pazeMapImpressions: 2,
+      pazeMapPosition: 6,
     },
     {
       hour: "2026-09-04T09:00:00-07:00",
@@ -32,6 +35,8 @@ test("aggregates hourly rankings into a seven-day-friendly position history", ()
       position: 4,
       primaryQueryMapImpressions: 6,
       primaryQueryMapPosition: 2,
+      pazeMapImpressions: 6,
+      pazeMapPosition: 2,
     },
     {
       hour: "2026-09-05T08:00:00-07:00",
@@ -51,6 +56,8 @@ test("aggregates hourly rankings into a seven-day-friendly position history", ()
       position: 3.5,
       exactPosition: 1.6,
       exactImpressions: 10,
+      pazeMapPosition: 3,
+      pazeMapImpressions: 8,
       partial: false,
     },
     {
@@ -60,9 +67,23 @@ test("aggregates hourly rankings into a seven-day-friendly position history", ()
       position: 1.5,
       exactPosition: 1.2,
       exactImpressions: 5,
+      pazeMapPosition: null,
+      pazeMapImpressions: 0,
       partial: true,
     },
   ]);
+});
+
+test("paze map series includes only that exact query and the dedicated map URL", () => {
+  const hour = "2026-09-27T08:00:00-07:00";
+  const windows = hourlyWindows([
+    { keys: [hour, "paze map", MAP_URL], clicks: 1, impressions: 4, position: 3.5 },
+    { keys: [hour, "paze map", TOOLS_URL], clicks: 0, impressions: 20, position: 1 },
+    { keys: [hour, "paze clover map", MAP_URL], clicks: 2, impressions: 10, position: 1 },
+  ]);
+  assert.equal(windows[0].pazeMapPosition, 3.5);
+  assert.equal(windows[0].pazeMapImpressions, 4);
+  assert.equal(dailyPositionHistory(windows)[0].pazeMapPosition, 3.5);
 });
 
 test("builds adjacent finalized seven-day periods", () => {

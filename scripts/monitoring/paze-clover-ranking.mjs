@@ -209,7 +209,7 @@ export function queryDetails(byQuery, previousByQuery = null) {
   });
 }
 
-function hourlyWindows(rows) {
+export function hourlyWindows(rows) {
   const grouped = new Map();
   for (const row of rows) {
     const [hour, query, page] = row.keys ?? [];
@@ -233,6 +233,8 @@ function hourlyWindows(rows) {
       totalImpressions: summary.totalImpressions,
       primaryQueryMapPosition: primary[MAP_URL].position,
       primaryQueryMapImpressions: primary[MAP_URL].impressions,
+      pazeMapPosition: byQuery["paze map"][MAP_URL].position,
+      pazeMapImpressions: byQuery["paze map"][MAP_URL].impressions,
       primaryQueryWinner: primaryWinner?.url ?? null,
     };
   });
@@ -251,6 +253,8 @@ export function dailyPositionHistory(windows) {
         weightedPosition: 0,
         exactImpressions: 0,
         weightedExactPosition: 0,
+        pazeMapImpressions: 0,
+        weightedPazeMapPosition: 0,
       });
     }
     const day = grouped.get(date);
@@ -262,6 +266,10 @@ export function dailyPositionHistory(windows) {
     day.exactImpressions += window.primaryQueryMapImpressions ?? 0;
     if (Number.isFinite(window.primaryQueryMapPosition)) {
       day.weightedExactPosition += window.primaryQueryMapPosition * (window.primaryQueryMapImpressions ?? 0);
+    }
+    if (Number.isFinite(window.pazeMapPosition) && window.pazeMapImpressions > 0) {
+      day.pazeMapImpressions += window.pazeMapImpressions;
+      day.weightedPazeMapPosition += window.pazeMapPosition * window.pazeMapImpressions;
     }
   }
 
@@ -275,6 +283,8 @@ export function dailyPositionHistory(windows) {
       position: day.impressions ? round(day.weightedPosition / day.impressions) : null,
       exactPosition: day.exactImpressions ? round(day.weightedExactPosition / day.exactImpressions) : null,
       exactImpressions: day.exactImpressions,
+      pazeMapPosition: day.pazeMapImpressions ? round(day.weightedPazeMapPosition / day.pazeMapImpressions) : null,
+      pazeMapImpressions: day.pazeMapImpressions,
       partial: day.date === latestDate,
     }));
 }

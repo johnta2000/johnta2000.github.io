@@ -251,8 +251,13 @@ function shortHistoryDate(value) {
 }
 
 function positionHistoryMarkup(history = []) {
+  const series = [
+    { key: "position", css: "core", label: "All 5 core queries" },
+    { key: "exactPosition", css: "exact", label: "“paze clover map”" },
+    { key: "pazeMapPosition", css: "broad", label: "“paze map”" },
+  ];
   const rows = history
-    .filter((row) => row?.date && (Number.isFinite(row.position) || Number.isFinite(row.exactPosition)))
+    .filter((row) => row?.date && series.some(({ key }) => Number.isFinite(row[key])))
     .slice(-7);
   if (rows.length < 2) {
     return `
@@ -270,27 +275,29 @@ function positionHistoryMarkup(history = []) {
   const bottom = 58;
   const plotWidth = width - left - right;
   const plotHeight = height - top - bottom;
-  const values = rows.flatMap((row) => [row.position, row.exactPosition]).filter(Number.isFinite);
+  const values = rows.flatMap((row) => series.map(({ key }) => row[key])).filter(Number.isFinite);
   const maxPosition = Math.max(3, Math.ceil(Math.max(...values)));
   const x = (index) => left + (rows.length === 1 ? plotWidth / 2 : index * plotWidth / (rows.length - 1));
   const y = (value) => top + ((value - 1) / Math.max(1, maxPosition - 1)) * plotHeight;
-  const path = (key) => rows
-    .map((row, index) => ({ index, value: row[key] }))
-    .filter(({ value }) => Number.isFinite(value))
-    .map(({ index, value }, pointIndex) => `${pointIndex ? "L" : "M"}${x(index).toFixed(1)},${y(value).toFixed(1)}`)
-    .join(" ");
+  const path = (key) => rows.map((row, index) => {
+    if (!Number.isFinite(row[key])) return "";
+    // Missing observations are gaps, not zero positions or a continuous recovery.
+    const command = index > 0 && Number.isFinite(rows[index - 1][key]) ? "L" : "M";
+    return `${command}${x(index).toFixed(1)},${y(row[key]).toFixed(1)}`;
+  }).filter(Boolean).join(" ");
   const tickValues = [...new Set([1, Math.ceil((maxPosition + 1) / 2), maxPosition])].sort((a, b) => a - b);
   const latest = rows.at(-1);
-  const pointMarkup = (row, index, key, series, description) => {
-    const value = row[key];
-    if (!Number.isFinite(value)) return "";
-    const otherValue = row[key === "position" ? "exactPosition" : "position"];
-    // Keep the labels outside the two lines, including when both dots coincide.
-    const above = !Number.isFinite(otherValue) || value < otherValue
-      || (value === otherValue && series === "core");
-    const anchor = index === 0 ? "start" : index === rows.length - 1 ? "end" : "middle";
-    return `<circle class="${series}" cx="${x(index).toFixed(1)}" cy="${y(value).toFixed(1)}" r="4"><title>${escapeHtml(shortHistoryDate(row.date))}: ${description} position ${value.toFixed(2)}</title></circle>
-      <text class="position-chart-value ${series}" x="${x(index).toFixed(1)}" y="${(y(value) + (above ? -12 : 20)).toFixed(1)}" text-anchor="${anchor}">${value.toFixed(2)}</text>`;
+  const pointLabels = (row, index) => {
+    const labels = series.filter(({ key }) => Number.isFinite(row[key]))
+      .map((item) => ({ ...item, labelY: y(row[item.key]) - 12 }))
+      .sort((a, b) => a.labelY - b.labelY);
+    labels.forEach((item, i) => {
+      if (i) item.labelY = Math.max(item.labelY, labels[i - 1].labelY + 28);
+    });
+    const overflow = Math.max(0, (labels.at(-1)?.labelY ?? 0) - (height - 34));
+    const positions = new Map(labels.map((item) => [item.key, item.labelY - overflow]));
+    return series.filter(({ key }) => positions.has(key)).map(({ key, css }) =>
+      `<text class="position-chart-value ${css}" x="${x(index).toFixed(1)}" y="${positions.get(key).toFixed(1)}" text-anchor="${index === 0 ? "start" : index === rows.length - 1 ? "end" : "middle"}">${row[key].toFixed(2)}</text>`).join("");
   };
 
   return `
@@ -302,22 +309,27 @@ function positionHistoryMarkup(history = []) {
       <figure class="position-chart-card">
         <div class="position-chart-legend" aria-hidden="true">
           <span><i class="exact"></i>“paze clover map”</span>
+          <span><i class="broad"></i>“paze map”</span>
           <span><i class="core"></i>All 5 core queries</span>
         </div>
         <svg class="position-chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="Daily Google Search position for the Paze Clover map over the last ${rows.length} days. Lower values are better.">
           ${tickValues.map((tick) => `<g class="position-chart-grid"><line x1="${left}" y1="${y(tick).toFixed(1)}" x2="${width - right}" y2="${y(tick).toFixed(1)}"></line><text x="${left - 10}" y="${(y(tick) + 4).toFixed(1)}">${tick}</text></g>`).join("")}
           <path class="position-chart-line core" d="${path("position")}"></path>
           <path class="position-chart-line exact" d="${path("exactPosition")}"></path>
+          <path class="position-chart-line broad" d="${path("pazeMapPosition")}"></path>
           ${rows.map((row, index) => `
             <g class="position-chart-points">
-              ${pointMarkup(row, index, "position", "core", "all core queries")}
-              ${pointMarkup(row, index, "exactPosition", "exact", "exact query")}
+              ${Number.isFinite(row.position) ? `<circle class="core" cx="${x(index).toFixed(1)}" cy="${y(row.position).toFixed(1)}" r="4"><title>${escapeHtml(shortHistoryDate(row.date))}: all core queries position ${row.position.toFixed(2)}</title></circle>` : ""}
+              ${Number.isFinite(row.exactPosition) ? `<circle class="exact" cx="${x(index).toFixed(1)}" cy="${y(row.exactPosition).toFixed(1)}" r="4"><title>${escapeHtml(shortHistoryDate(row.date))}: exact query position ${row.exactPosition.toFixed(2)}</title></circle>` : ""}
+              ${Number.isFinite(row.pazeMapPosition) ? `<circle class="broad" cx="${x(index).toFixed(1)}" cy="${y(row.pazeMapPosition).toFixed(1)}" r="4"><title>${escapeHtml(shortHistoryDate(row.date))}: paze map position ${row.pazeMapPosition.toFixed(2)} · ${row.pazeMapImpressions ?? "—"} impressions</title></circle>` : ""}
               <text class="position-chart-date" x="${x(index).toFixed(1)}" y="${height - 14}">${escapeHtml(shortHistoryDate(row.date))}${row.partial ? "*" : ""}</text>
             </g>`).join("")}
+          ${rows.map(pointLabels).join("")}
         </svg>
         <figcaption>
-          <span>Latest: exact <strong>${Number.isFinite(latest.exactPosition) ? latest.exactPosition.toFixed(2) : "—"}</strong> · core <strong>${Number.isFinite(latest.position) ? latest.position.toFixed(2) : "—"}</strong></span>
+          <span>Latest: paze clover map <strong>${Number.isFinite(latest.exactPosition) ? latest.exactPosition.toFixed(2) : "—"}</strong> · paze map <strong>${Number.isFinite(latest.pazeMapPosition) ? latest.pazeMapPosition.toFixed(2) : "—"}</strong> · core <strong>${Number.isFinite(latest.position) ? latest.position.toFixed(2) : "—"}</strong></span>
           <span>* Latest day is partial and may change as GSC finishes processing.</span>
+          <span>Map URL only · worldwide · impression-weighted GSC Web positions, including AI appearances. Gaps mean no observed data, not delisting.</span>
         </figcaption>
       </figure>
     </section>`;
