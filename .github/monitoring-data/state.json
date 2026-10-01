@@ -1,9 +1,30 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-10-01T19:34:30.008Z",
+  "generatedAt": "2026-10-01T21:06:16.709Z",
   "overallStatus": "healthy",
   "latestEventId": "20261001153102-chase-sapphire-reserve-tables-restaurant-change",
   "monitors": [
+    {
+      "id": "bilt-calculator-ranking",
+      "name": "Bilt calculator ranking",
+      "description": "Tracks the Bilt calculator across Search Console query performance, index health, canonical integrity, and live-page checks.",
+      "configured": false,
+      "status": "not_configured",
+      "sourceUrl": "https://www.nextcard.com/tools/bilt-calculator",
+      "cadence": "Every 6 hours via Codex",
+      "config": {
+        "property": "sc-domain:nextcard.com",
+        "page": "https://www.nextcard.com/tools/bilt-calculator",
+        "queries": [
+          "bilt calculator",
+          "bilt 2.0 calculator",
+          "bilt calculator 2.0",
+          "bilt points calculator",
+          "bilt card calculator"
+        ],
+        "compareWindow": "Finalized 7 days vs previous 7 days"
+      }
+    },
     {
       "id": "paze-directory",
       "name": "Paze merchant directory",
@@ -70,27 +91,6 @@
           "/tools",
           "dining guide"
         ]
-      }
-    },
-    {
-      "id": "bilt-calculator-ranking",
-      "name": "Bilt calculator ranking",
-      "description": "Tracks the Bilt calculator across Search Console query performance, index health, canonical integrity, and live-page checks.",
-      "configured": false,
-      "status": "not_configured",
-      "sourceUrl": "https://www.nextcard.com/tools/bilt-calculator",
-      "cadence": "Every 6 hours via Codex",
-      "config": {
-        "property": "sc-domain:nextcard.com",
-        "page": "https://www.nextcard.com/tools/bilt-calculator",
-        "queries": [
-          "bilt calculator",
-          "bilt 2.0 calculator",
-          "bilt calculator 2.0",
-          "bilt points calculator",
-          "bilt card calculator"
-        ],
-        "compareWindow": "Finalized 7 days vs previous 7 days"
       }
     },
     {
@@ -178,18 +178,18 @@
         "https://www.opentable.com/sapphire-reserve/milwaukee"
       ],
       "cadence": "Every 4 hours",
-      "latestRunAt": "2026-10-01T15:31:02.409Z",
-      "latestSuccessAt": "2026-10-01T15:31:02.409Z",
+      "latestRunAt": "2026-10-01T21:06:16.709Z",
+      "latestSuccessAt": "2026-10-01T21:06:16.709Z",
       "latestChangeAt": "2026-10-01T15:31:02.409Z",
-      "durationMs": 21803,
-      "summary": "30 unique restaurants added and 0 removed; market lists changed across 52 markets.",
+      "durationMs": 6860,
+      "summary": "No restaurant-list changes across 52 markets (436 unique restaurants).",
       "error": null,
       "metrics": {
         "restaurantCount": 436,
         "uniqueRestaurantCount": 436,
         "listingCount": 516,
         "cityCount": 52,
-        "addedCount": 30,
+        "addedCount": 0,
         "removedCount": 0
       },
       "details": {
@@ -260,9 +260,7 @@
               "Thip Khao",
               "Bresca"
             ],
-            "added": [
-              "Elcielo Washington DC"
-            ],
+            "added": [],
             "removed": []
           },
           {
@@ -288,9 +286,7 @@
               "Honeysuckle Rose",
               "Oak Steakhouse - Charleston"
             ],
-            "added": [
-              "Honeysuckle Rose"
-            ],
+            "added": [],
             "removed": []
           },
           {
@@ -345,10 +341,7 @@
               "Lula Cafe",
               "Daisies Chicago"
             ],
-            "added": [
-              "Swift & Sons",
-              "schwa"
-            ],
+            "added": [],
             "removed": []
           },
           {
@@ -360,9 +353,7 @@
               "Wildweed",
               "Mita's Restaurant"
             ],
-            "added": [
-              "Wildweed"
-            ],
+            "added": [],
             "removed": []
           },
           {
@@ -391,9 +382,7 @@
               "Butcher & Rose",
               "Tucci's - Dublin"
             ],
-            "added": [
-              "Veritas"
-            ],
+            "added": [],
             "removed": []
           },
           {
@@ -454,9 +443,7 @@
               "El Five",
               "Tavernetta Denver"
             ],
-            "added": [
-              "Quality Italian- Denver"
-            ],
+            "added": [],
             "removed": []
           },
           {
@@ -472,9 +459,7 @@
               "Pine Hall",
               "Standby"
             ],
-            "added": [
-              "Vecino"
-            ],
+            "added": [],
             "removed": []
           },
           {
@@ -551,9 +536,7 @@
               "Lee's",
               "BCN Taste & Tradition"
             ],
-            "added": [
-              "Belly of the Beast"
-            ],
+            "added": [],
             "removed": []
           },
           {
@@ -580,9 +563,7 @@
               "Room 39 - Midtown",
               "Pierpont's at Union Station"
             ],
-            "added": [
-              "Anjin"
-            ],
+            "added": [],
             "removed": []
           },
           {
@@ -596,9 +577,7 @@
               "Esther's Kitchen",
               "Sparrow + Wolf"
             ],
-            "added": [
-              "Sparrow + Wolf"
-            ],
+            "added": [],
             "removed": []
           },
           {
@@ -642,10 +621,7 @@
               "Vespertine",
               "Majordōmo"
             ],
-            "added": [
-              "Bad Roman - Beverly Hills",
-              "Providence"
-            ],
+            "added": [],
             "removed": []
           },
           {
@@ -678,9 +654,7 @@
               "Delilah - Miami",
               "Elcielo Miami"
             ],
-            "added": [
-              "Elcielo Miami"
-            ],
+            "added": [],
             "removed": []
           },
           {
@@ -727,10 +701,7 @@
               "Bastion",
               "Peninsula"
             ],
-            "added": [
-              "The Patterson House",
-              "The Catbird Seat"
-            ],
+            "added": [],
             "removed": []
           },
           {
@@ -792,15 +763,7 @@
               "Jeffrey's Grocery",
               "Don Angie"
             ],
-            "added": [
-              "Quality Bistro",
-              "Quality Italian - New York",
-              "Zou Zou's",
-              "Bad Roman - New York",
-              "Twin Tails",
-              "Limusina",
-              "Quality Meats"
-            ],
+            "added": [],
             "removed": []
           },
           {
@@ -879,15 +842,7 @@
               "Jeffrey's Grocery",
               "Don Angie"
             ],
-            "added": [
-              "Quality Bistro",
-              "Quality Italian - New York",
-              "Zou Zou's",
-              "Bad Roman - New York",
-              "Twin Tails",
-              "Limusina",
-              "Quality Meats"
-            ],
+            "added": [],
             "removed": []
           },
           {
@@ -915,9 +870,7 @@
               "Norman's - Orlando",
               "The Ravenous Pig"
             ],
-            "added": [
-              "The Ravenous Pig"
-            ],
+            "added": [],
             "removed": []
           },
           {
@@ -966,10 +919,7 @@
               "The Mission - Old Town Scottsdale",
               "Fat Ox"
             ],
-            "added": [
-              "Christopher's at Wrigley Mansion",
-              "Wrigley Mansion - Geordie's"
-            ],
+            "added": [],
             "removed": []
           },
           {
@@ -1058,9 +1008,7 @@
               "Canon",
               "Allora"
             ],
-            "added": [
-              "Mulvaney's B&L"
-            ],
+            "added": [],
             "removed": []
           },
           {
@@ -1142,10 +1090,7 @@
               "Rich Table",
               "Allora"
             ],
-            "added": [
-              "Birdsong",
-              "Mulvaney's B&L"
-            ],
+            "added": [],
             "removed": []
           },
           {
@@ -1200,9 +1145,7 @@
               "Kōsen",
               "Il Ritorno"
             ],
-            "added": [
-              "Kōsen"
-            ],
+            "added": [],
             "removed": []
           },
           {
@@ -1251,9 +1194,7 @@
               "Thip Khao",
               "Bresca"
             ],
-            "added": [
-              "Elcielo Washington DC"
-            ],
+            "added": [],
             "removed": []
           },
           {
@@ -1268,9 +1209,7 @@
               "Nicholson Muir Meats",
               "The Polo Room Palm Beach"
             ],
-            "added": [
-              "The Polo Room Palm Beach"
-            ],
+            "added": [],
             "removed": []
           },
           {
@@ -1291,125 +1230,68 @@
           }
         ],
         "cache": {
-          "runId": "1790868662409",
-          "requestCount": 112,
+          "runId": "1790888776709",
+          "requestCount": 56,
           "crawlIds": [
-            "primary",
-            "confirmation"
+            "primary"
           ],
           "requestIds": [
-            "1790868662417001",
-            "1790868662445002",
-            "1790868662446003",
-            "1790868662447004",
-            "1790868663018005",
-            "1790868663036006",
-            "1790868663453007",
-            "1790868663488008",
-            "1790868663626009",
-            "1790868663954010",
-            "1790868663976011",
-            "1790868664170012",
-            "1790868664383013",
-            "1790868664478014",
-            "1790868664725015",
-            "1790868665019016",
-            "1790868665283017",
-            "1790868665312018",
-            "1790868665340019",
-            "1790868665360020",
-            "1790868665864021",
-            "1790868665963022",
-            "1790868666010023",
-            "1790868666234024",
-            "1790868666360025",
-            "1790868666650026",
-            "1790868666830027",
-            "1790868667060028",
-            "1790868667233029",
-            "1790868667252030",
-            "1790868667273031",
-            "1790868667885032",
-            "1790868667958033",
-            "1790868668408034",
-            "1790868668481035",
-            "1790868668524036",
-            "1790868668892037",
-            "1790868668954038",
-            "1790868669027039",
-            "1790868669378040",
-            "1790868669441041",
-            "1790868669727042",
-            "1790868669995043",
-            "1790868670140044",
-            "1790868670257045",
-            "1790868670587046",
-            "1790868670798047",
-            "1790868670838048",
-            "1790868671056049",
-            "1790868671195050",
-            "1790868671245051",
-            "1790868671656052",
-            "1790868671672053",
-            "1790868671682054",
-            "1790868672199055",
-            "1790868672304056",
-            "1790868672893057",
-            "1790868672893058",
-            "1790868672893059",
-            "1790868672894060",
-            "1790868673315061",
-            "1790868673527062",
-            "1790868673773063",
-            "1790868674040064",
-            "1790868674106065",
-            "1790868674475066",
-            "1790868674622067",
-            "1790868674840068",
-            "1790868675075069",
-            "1790868675265070",
-            "1790868675272071",
-            "1790868675896072",
-            "1790868676008073",
-            "1790868676171074",
-            "1790868676493075",
-            "1790868676531076",
-            "1790868676535077",
-            "1790868676968078",
-            "1790868677085079",
-            "1790868677186080",
-            "1790868677512081",
-            "1790868677604082",
-            "1790868677923083",
-            "1790868678013084",
-            "1790868678030085",
-            "1790868678718086",
-            "1790868678774087",
-            "1790868678984088",
-            "1790868679263089",
-            "1790868679265090",
-            "1790868679385091",
-            "1790868679692092",
-            "1790868679872093",
-            "1790868680207094",
-            "1790868680423095",
-            "1790868680818096",
-            "1790868680823097",
-            "1790868680824098",
-            "1790868681014099",
-            "1790868681194100",
-            "1790868681354101",
-            "1790868681541102",
-            "1790868682050103",
-            "1790868682106104",
-            "1790868682307105",
-            "1790868682325106",
-            "1790868682525107",
-            "1790868682608108",
-            "1790868683001109",
-            "1790868683107110",
-            "1790868683394111",
-            "1790868683459112"
+            "1790888776719001",
+            "1790888776760002",
+            "1790888776761003",
+            "1790888776762004",
+            "1790888777264005",
+            "1790888777278006",
+            "1790888777302007",
+            "1790888777327008",
+            "1790888777686009",
+            "1790888777707010",
+            "1790888777768011",
+            "1790888777911012",
+            "1790888778211013",
+            "1790888778224014",
+            "1790888778260015",
+            "1790888778441016",
+            "1790888778722017",
+            "1790888778738018",
+            "1790888778804019",
+            "1790888778826020",
+            "1790888779127021",
+            "1790888779252022",
+            "1790888779335023",
+            "1790888779354024",
+            "1790888779573025",
+            "1790888779705026",
+            "1790888779755027",
+            "1790888779868028",
+            "1790888779977029",
+            "1790888780199030",
+            "1790888780257031",
+            "1790888780264032",
+            "1790888780517033",
+            "1790888780535034",
+            "1790888780725035",
+            "1790888780775036",
+            "1790888781042037",
+            "1790888781080038",
+            "1790888781375039",
+            "1790888781546040",
+            "1790888781556041",
+            "1790888781567042",
+            "1790888781853043",
+            "1790888781916044",
+            "1790888781940045",
+            "1790888782040046",
+            "1790888782368047",
+            "1790888782422048",
+            "1790888782428049",
+            "1790888782541050",
+            "1790888782733051",
+            "1790888782793052",
+            "1790888782796053",
+            "1790888783044054",
+            "1790888783134055",
+            "1790888783159056"
           ]
         },
         "collectionVersion": 2
