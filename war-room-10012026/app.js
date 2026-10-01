@@ -283,10 +283,12 @@ window.WarRoomAuth.start({
     unlockWarRoom();
     window.WarRoomSchedule?.start();
     window.WarRoomNotes?.start(viewer.subject);
+    window.WarRoomProjects?.start();
   },
   onLocked: () => {
     window.WarRoomSchedule?.stop();
     window.WarRoomNotes?.stop();
+    window.WarRoomProjects?.stop();
     bucketPicker?.close();
     groupPicker?.close();
     authorized = false;
@@ -462,6 +464,7 @@ function render() {
     });
 
     window.WarRoomNotes?.bind(bucketNode, bucket.id, bucket.title);
+    window.WarRoomProjects?.bind(bucketNode, bucket.id, bucket.title);
     board.append(bucketNode);
   });
 
@@ -724,6 +727,7 @@ function buildExport() {
     buckets: state.buckets.map((bucket) => ({
       title: bucket.title,
       notes: window.WarRoomNotes?.getText(bucket.id) || "",
+      closure: window.WarRoomProjects?.getClosure(bucket.id) || null,
       groups: bucket.groups.map((group) => ({
         title: group.title,
         tasks: group.tasks.map((task) => ({

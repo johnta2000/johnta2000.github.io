@@ -44,6 +44,29 @@ export const setLaunchStatus = mutation({
   },
 });
 
+// Closure entries share the existing metadata map and are patched independently of tickets.
+export const getProjectClosures = query({
+  args: {},
+  handler: async (ctx) => {
+    await requireLaunchUser(ctx);
+    const board = await ctx.db.query("warRoomState").withIndex("by_board", q => q.eq("boardId", PRIVATE_LAUNCH_BOARD)).unique();
+    return Object.fromEntries(Object.entries(board?.launchStatuses ?? {}).filter(([key]) => key.startsWith("project:")).map(([key, value]) => [key.slice(8), value]));
+  },
+});
+
+export const setProjectClosed = mutation({
+  args: { project: v.union(v.literal("ihg"), v.literal("united"), v.literal("air-france"), v.literal("bofa-apr")), closed: v.boolean() },
+  handler: async (ctx, args) => {
+    const viewer = await requireLaunchUser(ctx);
+    const board = await ctx.db.query("warRoomState").withIndex("by_board", q => q.eq("boardId", PRIVATE_LAUNCH_BOARD)).unique();
+    const entry = { closed: args.closed, updatedAt: Date.now(), updatedBy: viewer.email };
+    const launchStatuses = { ...(board?.launchStatuses ?? {}), [`project:${args.project}`]: entry };
+    if (board) await ctx.db.patch(board._id, { launchStatuses });
+    else await ctx.db.insert("warRoomState", { boardId: PRIVATE_LAUNCH_BOARD, completed: {}, linearLinks: {}, docLinks: {}, launchStatuses, updatedAt: Date.now() });
+    return entry;
+  },
+});
+
 export const getProjectNotes = query({
   args: {},
   handler: async (ctx) => {

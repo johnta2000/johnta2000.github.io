@@ -138,3 +138,30 @@ test('anonymous project notes requests cannot read or write',async()=>{
  await assert.rejects(api.setProjectNote._handler(ctx,{project:'ihg',text:'test'}));
  assert.deepEqual(counts(),{reads:0,writes:0});
 });
+
+test('project close and reopen preserve tickets, notes, statuses, and other project closures',async()=>{
+ let row={_id:'board',...args,completed:{existing:true},projectNotes:{ihg:{text:'Keep this'}},launchStatuses:{ihg:{status:'on-track'},'project:united':{closed:true,updatedAt:1}}};
+ const {ctx}=context('john@affil.ai');
+ ctx.db.query=()=>({withIndex:()=>({unique:async()=>row})});
+ ctx.db.patch=async(id,patch)=>{row={...row,...patch}};
+ await api.setProjectClosed._handler(ctx,{project:'bofa-apr',closed:true});
+ assert.equal((await api.getProjectClosures._handler(ctx,{}))['bofa-apr'].closed,true);
+ await api.save._handler(ctx,{...args,completed:{existing:true}});
+ await api.setLaunchStatus._handler(ctx,{milestone:'ihg',status:'behind-schedule'});
+ assert.equal(row.launchStatuses['project:bofa-apr'].closed,true);
+ await api.setProjectClosed._handler(ctx,{project:'bofa-apr',closed:false});
+ assert.equal(row.launchStatuses['project:bofa-apr'].closed,false);
+ assert.equal(row.launchStatuses['project:united'].closed,true);
+ assert.equal(row.projectNotes.ihg.text,'Keep this');
+ assert.equal(row.completed.existing,true);
+ assert.equal(row.launchStatuses.ihg.status,'behind-schedule');
+});
+
+test('project closure endpoints reject anonymous and unapproved users',async()=>{
+ for (const email of [null,'outsider@affil.ai']) {
+  const {ctx,counts}=context(email);
+  await assert.rejects(api.getProjectClosures._handler(ctx,{}));
+  await assert.rejects(api.setProjectClosed._handler(ctx,{project:'ihg',closed:true}));
+  assert.deepEqual(counts(),{reads:0,writes:0});
+ }
+});

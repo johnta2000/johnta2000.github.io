@@ -29,6 +29,7 @@
   }
 
   const controls = new Map();
+  let closedProjects = {};
   let active = false, generation = 0, clockTimer, pollTimer;
   let statuses = {}, pending = new Set(), refreshSequence = 0;
 
@@ -44,6 +45,16 @@
   function tick() {
     for (const milestone of milestones) {
       const control = controls.get(milestone.id);
+      const closed = closedProjects[milestone.id === 'bofa-deadline' ? 'bofa-apr' : milestone.id]?.closed;
+      control.card.dataset.closed = String(Boolean(closed));
+      control.card.querySelector('.launch-health').hidden = Boolean(closed);
+      if (closed) {
+        control.clock.textContent = 'Completed';
+        control.clockLabel.textContent = 'Project closed';
+        control.clock.setAttribute('aria-label', `${milestone.name}: project closed`);
+        control.clock.dataset.elapsed = 'false';
+        continue;
+      }
       const value = countdown(milestone);
       control.clock.textContent = value.time;
       control.clockLabel.textContent = value.label;
@@ -126,6 +137,7 @@
     clearInterval(pollTimer);
     pending = new Set();
     statuses = {};
+    closedProjects = {};
     for (const [id, control] of controls) {
       control.picker.close();
       control.select.disabled = true;
@@ -149,6 +161,7 @@
       pollTimer = setInterval(refresh, 15000);
     },
     stop,
+    setClosedProjects(value) { closedProjects = value; tick(); },
     getStatuses: () => JSON.parse(JSON.stringify(statuses)),
   };
   document.addEventListener('visibilitychange', () => { if (active && !document.hidden) { tick(); void refresh(); } });
