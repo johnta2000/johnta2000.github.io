@@ -361,6 +361,24 @@ export const launchSeedBuckets = [
             "tags": []
           },
           {
+            "id": "ihg-reddit-ihghotelsresorts",
+            "title": "r/ihghotelsresorts",
+            "stages": ["Content prepared", "Content posted"],
+            "stageAssignees": {
+              "ihg-reddit-ihghotelsresorts-content-prepared": "andrew",
+              "ihg-reddit-ihghotelsresorts-content-posted": "andrew"
+            },
+            "notes": "Prepare and share the IHG card news in r/ihghotelsresorts after the embargo lifts. Check the community’s posting rules.",
+            "tags": []
+          },
+          {
+            "id": "ihg-new-card-article",
+            "title": "Article about the new IHG card",
+            "stages": ["Drafted", "Published"],
+            "notes": "Write and publish an article covering the new IHG card using verified launch details.",
+            "tags": []
+          },
+          {
             "id": "ihg-facebook-groups",
             "title": "Facebook Groups",
             "stages": [

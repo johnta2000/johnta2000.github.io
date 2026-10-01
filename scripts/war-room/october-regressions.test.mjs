@@ -10,14 +10,14 @@ function model() {
   vm.runInContext(source.slice(0,source.indexOf('let state = createFallbackState();'))+'\n'+seedSource+'\nseedTaskIds = new Set(seedBuckets.flatMap(b=>b.groups.flatMap(g=>g.tasks.map(t=>getSeedTaskId(b.id,g.id,t)))));\nlet state;\n'+functions,context);
   return code => vm.runInContext(code,context);
 }
-test('new room has four projects, four complete update workflows, all 16 distribution tickets, and unique IDs',()=>{
+test('new room has four projects, four complete update workflows, all 18 distribution tickets, and unique IDs',()=>{
  const run=model();
  assert.equal(run('seedBuckets.length'),4);
- assert.equal(run('new Set(createFallbackState().buckets.flatMap(b=>b.groups.flatMap(g=>g.tasks.map(t=>t.id)))).size'),46);
- assert.equal(run('seedBuckets.flatMap(b=>b.groups).filter(g=>g.id.endsWith("-content")).flatMap(g=>g.tasks).length'),16);
- assert.equal(run('getProgressItems(createFallbackState().buckets).length'),74);
- assert.equal(run('getPrepProgressItems(createFallbackState().buckets).length'),43);
- assert.equal(run('getPostProgressItems(createFallbackState().buckets).length'),31);
+ assert.equal(run('new Set(createFallbackState().buckets.flatMap(b=>b.groups.flatMap(g=>g.tasks.map(t=>t.id)))).size'),48);
+ assert.equal(run('seedBuckets.flatMap(b=>b.groups).filter(g=>g.id.endsWith("-content")).flatMap(g=>g.tasks).length'),18);
+ assert.equal(run('getProgressItems(createFallbackState().buckets).length'),78);
+ assert.equal(run('getPrepProgressItems(createFallbackState().buckets).length'),45);
+ assert.equal(run('getPostProgressItems(createFallbackState().buckets).length'),33);
 });
 test('edited seeded title, cleared note, tags, links, and staged checks survive reload',()=>{
  const run=model();
@@ -158,4 +158,21 @@ test('simplified docs and news summaries survive older saved state, with QA titl
  assert.equal(run('findTask("ihg-email").task.stages.join(",")'),'Email sent');
  assert.equal(run('findTask("united-email").task.stages.join(",")'),'Email sent');
  assert.equal(run('areAllStagesDone(findTask("ihg-email").task)'),true);
+});
+
+
+test('IHG subreddit owners and article stages merge into existing boards without resetting progress',()=>{
+ const run=model();
+ run('state=createFallbackState(); state.buckets[2].groups[1].tasks=state.buckets[2].groups[1].tasks.filter(t=>!["ihg-reddit-ihghotelsresorts","ihg-new-card-article"].includes(t.id)); state.completed["ihg-crawl-baseline-crawl-captured"]=true; state=mergeSeedWithSaved(createFallbackState(),state)');
+ assert.equal(run('findTask("ihg-reddit-ihghotelsresorts").task.stageAssignees["ihg-reddit-ihghotelsresorts-content-posted"]'),'andrew');
+ assert.equal(run('findTask("ihg-new-card-article").task.stages.join(",")'),'Drafted,Published');
+ assert.equal(run('state.completed["ihg-crawl-baseline-crawl-captured"]'),true);
+ run('findTask("ihg-reddit-ihghotelsresorts").task.stageAssignees={}; state=mergeSeedWithSaved(createFallbackState(),state)');
+ assert.equal(run('Object.keys(findTask("ihg-reddit-ihghotelsresorts").task.stageAssignees).length'),0);
+});
+
+test('legacy whole-ticket owner moves to checkbox rows without replacing explicit step assignments',()=>{
+ const run=model();
+ run('state=createFallbackState(); const task=findTask("af-mockups").task; task.assignee="vivek"; delete task.stageAssignees; state=mergeSeedWithSaved(createFallbackState(),state)');
+ assert.equal(run('Object.values(findTask("af-mockups").task.stageAssignees).join(",")'),'vivek,vivek,vivek');
 });

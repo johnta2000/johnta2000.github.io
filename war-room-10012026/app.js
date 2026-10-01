@@ -4,7 +4,7 @@ const BOARD_ID = "war-room-10012026";
 const CONVEX_URL = "https://rapid-shark-565.convex.cloud";
 
 let seedBuckets = [];
-const ASSIGNEES = { john: "John", vivek: "Vivek", vishal: "Vishal", jenny: "Jenny" };
+const ASSIGNEES = { john: "John", vivek: "Vivek", vishal: "Vishal", jenny: "Jenny", andrew: "Andrew" };
 
 const legacyAprDefaults = {
   "apr-crawl": {
@@ -409,9 +409,13 @@ function mergeSeedWithSaved(fallback, saved) {
 }
 
 function mergeSavedTask(seedTask, savedTask) {
-  if (!savedTask) return seedTask;
+  const task = savedTask || seedTask;
+  const stages = seedTask.stages?.length ? seedTask.stages : task.stages || [];
+  const stageAssignees = task.stageAssignees ?? Object.fromEntries(stages.map(stage => [getStageId(task, stage), normalizeAssignee(task.assignee)]).filter(([, value]) => value));
+  if (!savedTask) return { ...seedTask, stageAssignees };
   return {
     ...savedTask,
+    stageAssignees,
     title: seedTask.id.endsWith("-qa") && ["Verify the live update", "Verify all rates by noon"].includes(savedTask.title)
       ? seedTask.title : savedTask.title || seedTask.title,
     tags: savedTask.tags || seedTask.tags || [],
@@ -507,18 +511,24 @@ function renderTask(task, bucketId, groupId) {
     editTaskLinks(task);
   }, true);
 
-  const owner = document.createElement("button");
-  owner.type = "button";
-  owner.className = "ticket-assignee";
-  owner.textContent = getAssigneeName(task.assignee) || "＋ Assign";
-  owner.dataset.assigned = String(Boolean(getAssigneeName(task.assignee)));
-  owner.setAttribute("aria-label", `${task.title} assignee: ${getAssigneeName(task.assignee) || "Unassigned"}`);
-  owner.addEventListener("click", event => {
-    event.preventDefault(); event.stopPropagation();
-    openLinksModal(task);
-    document.querySelector("#ticketAssignee-trigger")?.focus();
-  });
-  titleNode.append(owner);
+  if (!task.stages?.length) {
+    const row = document.createElement("div");
+    row.className = "single-check-row";
+    const label = node.querySelector("label");
+    label.before(row); row.append(label);
+    const owner = document.createElement("button");
+    owner.type = "button";
+    owner.className = "stage-assignee";
+    owner.textContent = getAssigneeName(task.assignee) || "＋";
+    owner.dataset.assigned = String(Boolean(getAssigneeName(task.assignee)));
+    owner.setAttribute("aria-label", `${task.title} assignee: ${getAssigneeName(task.assignee) || "Unassigned"}`);
+    owner.title = "Assign this checklist item";
+    owner.addEventListener("click", () => {
+      openLinksModal(task);
+      document.querySelector("#ticketAssignee-trigger")?.focus();
+    });
+    row.append(owner);
+  }
 
   if (task.tags?.length) {
     const tags = document.createElement("em");
@@ -576,6 +586,10 @@ function addTask(formData) {
     stages: String(formData.get("stages") || "").split("\n").map(s => s.trim()).filter(Boolean),
     custom: true,
   };
+  if (task.stages.length) {
+    task.stageAssignees = Object.fromEntries(task.stages.map(stage => [getStageId(task, stage), task.assignee]).filter(([, value]) => value));
+    task.assignee = "";
+  }
   group.tasks.push(task);
   setOptionalTaskUrl(task.id, linearUrl, "linear");
   setOptionalTaskUrl(task.id, docUrl, "doc");
@@ -850,6 +864,7 @@ function openLinksModal(task) {
   linkForm.elements.title.value = task.title || "";
   linkForm.elements.notes.value = task.notes || "";
   linkForm.elements.tags.value = (task.tags || []).join(", ");
+  ticketAssigneeSelect.closest("label").hidden = Boolean(task.stages?.length);
   ticketAssigneeSelect.value = normalizeAssignee(task.assignee);
   ticketAssigneePicker?.sync();
   populateStepAssignees(task);
@@ -883,7 +898,7 @@ function saveLinksFromModal(formData) {
   task.title = title;
   task.notes = (formData.get("notes") || "").trim();
   task.tags = parseTags(formData.get("tags") || "");
-  task.assignee = normalizeAssignee(formData.get("assignee"));
+  task.assignee = task.stages?.length ? "" : normalizeAssignee(formData.get("assignee"));
   task.stageAssignees = Object.fromEntries((task.stages || []).map(stage => {
     const id = getStageId(task, stage);
     return [id, normalizeAssignee(formData.get(`stageAssignee:${id}`))];
@@ -956,6 +971,7 @@ function normalizeSeedTask(bucketId, groupId, task) {
     tags: typeof task === "string" ? [] : task.tags || [],
     notes: typeof task === "string" ? "" : task.notes || "",
     stages: typeof task === "string" ? [] : task.stages || [],
+    stageAssignees: typeof task === "string" ? {} : { ...task.stageAssignees },
   };
 }
 
