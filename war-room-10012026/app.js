@@ -273,8 +273,10 @@ window.WarRoomAuth.start({
     populateAddControls();
     document.querySelector("#accountEmail").textContent = viewer.email;
     unlockWarRoom();
+    window.WarRoomSchedule?.start();
   },
   onLocked: () => {
+    window.WarRoomSchedule?.stop();
     bucketPicker?.close();
     groupPicker?.close();
     authorized = false;
@@ -1121,7 +1123,7 @@ document.addEventListener("keydown", (event) => {
   if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
 });
 
-document.querySelectorAll('.milestone').forEach(link => link.addEventListener('click', () => {
+document.querySelectorAll('.milestone-link').forEach(link => link.addEventListener('click', () => {
   activeProject = link.getAttribute('href').slice(1);
   applyProjectFilter();
 }));

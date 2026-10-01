@@ -56,3 +56,36 @@ test('public frontend no longer embeds the access password or launch checklist',
  assert.doesNotMatch(frontend,/ACCESS_PASSWORD|corgi124|const seedBuckets = \[/);
  assert.match(frontend,/let seedBuckets = \[\]/);
 });
+
+for (const email of [null, 'outsider@affil.ai']) {
+ test(`launch status endpoints reject ${email ?? 'anonymous'} before any database access`, async()=>{
+  const {ctx,counts}=context(email);
+  await assert.rejects(api.getLaunchStatuses._handler(ctx,{}));
+  await assert.rejects(api.setLaunchStatus._handler(ctx,{milestone:'ihg',status:'on-track'}));
+  assert.deepEqual(counts(),{reads:0,writes:0});
+ });
+}
+test('milestone updates preserve other statuses, checklist progress, and links',async()=>{
+ let row={_id:'board',...args,completed:{existing:true},linearLinks:{ticket:'https://example.com'},launchStatuses:{united:{status:'no-mans-land',updatedAt:1,updatedBy:'vivek@affil.ai'}}};
+ const {ctx}=context('john@affil.ai');
+ ctx.db.query=()=>({withIndex:()=>({unique:async()=>row})});
+ ctx.db.patch=async(id,patch)=>{assert.equal(id,'board');row={...row,...patch}};
+ const entry=await api.setLaunchStatus._handler(ctx,{milestone:'ihg',status:'behind-schedule'});
+ assert.equal(entry.updatedBy,'john@affil.ai');
+ assert.equal(row.launchStatuses.united.status,'no-mans-land');
+ assert.equal(row.launchStatuses.ihg.status,'behind-schedule');
+ assert.equal(row.completed.existing,true);
+ assert.equal(row.linearLinks.ticket,'https://example.com');
+ await api.save._handler(ctx,{...args,completed:{existing:true,newCheck:true}});
+ assert.equal(row.launchStatuses.ihg.status,'behind-schedule');
+ assert.equal(row.launchStatuses.united.status,'no-mans-land');
+ assert.deepEqual(await api.getLaunchStatuses._handler(ctx,{}),row.launchStatuses);
+});
+test('first status creates a board compatible with the existing checklist save',async()=>{
+ const {ctx}=context('jenny@affil.ai');let inserted;
+ ctx.db.insert=async(table,value)=>{assert.equal(table,'warRoomState');inserted=value;return 'new-board'};
+ await api.setLaunchStatus._handler(ctx,{milestone:'bofa-deadline',status:'on-track'});
+ assert.equal(inserted.boardId,boardId);
+ assert.equal(inserted.launchStatuses['bofa-deadline'].updatedBy,'jenny@affil.ai');
+ assert.deepEqual(Object.keys(inserted.completed),[]);
+});

@@ -7,7 +7,7 @@
     <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
     <title>October 1, 2026 · Launch War Room</title>
     <link rel="stylesheet" href="../assets/css/searchable-select.css" />
-    <link rel="stylesheet" href="./styles.css?v=5" />
+    <link rel="stylesheet" href="./styles.css?v=6" />
   </head>
   <body>
     <section id="accessGate" class="password-gate" aria-labelledby="accessGateTitle" role="dialog" aria-modal="true">
@@ -47,11 +47,56 @@
       <section class="launch-schedule" aria-label="October 1 launch schedule">
         <div class="section-heading"><h2>The launch sequence</h2><span>October 1 · <span id="timeBasis">Pacific time (PDT assumed)</span></span></div>
         <div class="timeline">
-          <a href="#ihg" class="milestone"><span class="time">05:00 <small>am</small></span><strong>IHG cards</strong><span>Embargo lifts · news email</span></a>
-          <a href="#united" class="milestone"><span class="time">06:00 <small>am</small></span><strong>United cards</strong><span>Embargo lifts · news email</span></a>
-          <a href="#air-france" class="milestone"><span class="time">07:00 <small>am</small></span><strong>Air France KLM</strong><span>Launch · BOFA partner email</span></a>
-          <a href="#bofa-apr" class="milestone"><span class="time">08:00 <small>am</small></span><strong>BOFA APR changes</strong><span>Rate update window opens</span></a>
-          <a href="#bofa-apr" class="milestone deadline"><span class="time">12:00 <small>pm</small></span><strong>BOFA deadline</strong><span>All APR updates verified</span></a>
+          <article class="milestone" data-milestone="ihg" data-status="unset">
+            <a href="#ihg" class="milestone-link"><span class="time">05:00 <small>am</small></span><strong>IHG cards</strong><span class="milestone-description">Embargo lifts · news email</span></a>
+            <div class="countdown-line"><span class="countdown-label">Launch in</span><span class="launch-countdown" role="timer" aria-live="off">--:--:--</span></div>
+            <div class="launch-health"><select id="launch-status-ihg" aria-label="IHG cards schedule status" disabled>
+              <option value="" disabled>Set status</option>
+              <option value="on-track">On Track</option>
+              <option value="no-mans-land">No Man's Land</option>
+              <option value="behind-schedule">Behind Schedule</option>
+            </select><span class="launch-save-status" role="status"></span></div>
+          </article>
+          <article class="milestone" data-milestone="united" data-status="unset">
+            <a href="#united" class="milestone-link"><span class="time">06:00 <small>am</small></span><strong>United cards</strong><span class="milestone-description">Embargo lifts · news email</span></a>
+            <div class="countdown-line"><span class="countdown-label">Launch in</span><span class="launch-countdown" role="timer" aria-live="off">--:--:--</span></div>
+            <div class="launch-health"><select id="launch-status-united" aria-label="United cards schedule status" disabled>
+              <option value="" disabled>Set status</option>
+              <option value="on-track">On Track</option>
+              <option value="no-mans-land">No Man's Land</option>
+              <option value="behind-schedule">Behind Schedule</option>
+            </select><span class="launch-save-status" role="status"></span></div>
+          </article>
+          <article class="milestone" data-milestone="air-france" data-status="unset">
+            <a href="#air-france" class="milestone-link"><span class="time">07:00 <small>am</small></span><strong>Air France KLM</strong><span class="milestone-description">Launch · BOFA partner email</span></a>
+            <div class="countdown-line"><span class="countdown-label">Launch in</span><span class="launch-countdown" role="timer" aria-live="off">--:--:--</span></div>
+            <div class="launch-health"><select id="launch-status-air-france" aria-label="Air France KLM schedule status" disabled>
+              <option value="" disabled>Set status</option>
+              <option value="on-track">On Track</option>
+              <option value="no-mans-land">No Man's Land</option>
+              <option value="behind-schedule">Behind Schedule</option>
+            </select><span class="launch-save-status" role="status"></span></div>
+          </article>
+          <article class="milestone" data-milestone="bofa-apr" data-status="unset">
+            <a href="#bofa-apr" class="milestone-link"><span class="time">08:00 <small>am</small></span><strong>BOFA APR changes</strong><span class="milestone-description">Rate update window opens</span></a>
+            <div class="countdown-line"><span class="countdown-label">Launch in</span><span class="launch-countdown" role="timer" aria-live="off">--:--:--</span></div>
+            <div class="launch-health"><select id="launch-status-bofa-apr" aria-label="BOFA APR changes schedule status" disabled>
+              <option value="" disabled>Set status</option>
+              <option value="on-track">On Track</option>
+              <option value="no-mans-land">No Man's Land</option>
+              <option value="behind-schedule">Behind Schedule</option>
+            </select><span class="launch-save-status" role="status"></span></div>
+          </article>
+          <article class="milestone deadline" data-milestone="bofa-deadline" data-status="unset">
+            <a href="#bofa-apr" class="milestone-link"><span class="time">12:00 <small>pm</small></span><strong>BOFA deadline</strong><span class="milestone-description">All APR updates verified</span></a>
+            <div class="countdown-line"><span class="countdown-label">Launch in</span><span class="launch-countdown" role="timer" aria-live="off">--:--:--</span></div>
+            <div class="launch-health"><select id="launch-status-bofa-deadline" aria-label="BOFA deadline schedule status" disabled>
+              <option value="" disabled>Set status</option>
+              <option value="on-track">On Track</option>
+              <option value="no-mans-land">No Man's Land</option>
+              <option value="behind-schedule">Behind Schedule</option>
+            </select><span class="launch-save-status" role="status"></span></div>
+          </article>
         </div>
       </section>
       <section class="summary" aria-label="Progress summary">
@@ -157,6 +202,7 @@
 
     <script src="../assets/js/searchable-select.js"></script>
     <script src="./auth.js?v=1"></script>
-    <script src="./app.js?v=10"></script>
+    <script src="./schedule.js?v=1"></script>
+    <script src="./app.js?v=11"></script>
   </body>
 </html>

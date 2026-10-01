@@ -13,6 +13,37 @@ export const verify = query({
   },
 });
 
+export const getLaunchStatuses = query({
+  args: {},
+  handler: async (ctx) => {
+    await requireLaunchUser(ctx);
+    const board = await ctx.db.query("warRoomState")
+      .withIndex("by_board", q => q.eq("boardId", PRIVATE_LAUNCH_BOARD)).unique();
+    return board?.launchStatuses ?? {};
+  },
+});
+
+export const setLaunchStatus = mutation({
+  args: {
+    milestone: v.union(v.literal("ihg"), v.literal("united"), v.literal("air-france"), v.literal("bofa-apr"), v.literal("bofa-deadline")),
+    status: v.union(v.literal("on-track"), v.literal("no-mans-land"), v.literal("behind-schedule")),
+  },
+  handler: async (ctx, args) => {
+    const viewer = await requireLaunchUser(ctx);
+    const board = await ctx.db.query("warRoomState")
+      .withIndex("by_board", q => q.eq("boardId", PRIVATE_LAUNCH_BOARD)).unique();
+    const entry = { status: args.status, updatedAt: Date.now(), updatedBy: viewer.email };
+    const launchStatuses = { ...(board?.launchStatuses ?? {}), [args.milestone]: entry };
+    // Patch just the status map: checklist saves and other milestones remain intact.
+    if (board) await ctx.db.patch(board._id, { launchStatuses });
+    else await ctx.db.insert("warRoomState", {
+      boardId: PRIVATE_LAUNCH_BOARD, completed: {}, linearLinks: {}, docLinks: {},
+      launchStatuses, updatedAt: Date.now(),
+    });
+    return entry;
+  },
+});
+
 const stateArgs = {
   boardId: v.string(),
   completed: v.any(),

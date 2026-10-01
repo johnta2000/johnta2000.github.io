@@ -18,6 +18,7 @@ export default defineSchema({
   }).index('by_event',['eventId']).index('by_member',['eventId','memberId']),
   warRoomState: defineTable({
     boardId: v.string(),
+    launchStatuses: v.optional(v.any()),
     completed: v.any(),
     linearLinks: v.any(),
     docLinks: v.any(),
