@@ -89,3 +89,25 @@ test('first status creates a board compatible with the existing checklist save',
  assert.equal(inserted.launchStatuses['bofa-deadline'].updatedBy,'jenny@affil.ai');
  assert.deepEqual(Object.keys(inserted.completed),[]);
 });
+
+
+test('site Clerk email-code identities work when the optional verification claim is absent',async()=>{
+ for(const email of ['johnta2018@gmail.com','john@affil.ai','vivek@affil.ai','vishal@affil.ai','jenny@affil.ai']) {
+  const {ctx}=context(email);
+  ctx.auth.getUserIdentity=async()=>({subject:'email-code-user',issuer:'https://clerk.john-ta.com',email});
+  assert.equal((await api.verify._handler(ctx,{boardId})).email,email);
+  await api.get._handler(ctx,{boardId});
+  await api.save._handler(ctx,args);
+  await api.getLaunchStatuses._handler(ctx,{});
+  await api.setLaunchStatus._handler(ctx,{milestone:'ihg',status:'on-track'});
+ }
+});
+test('the email-code fallback never accepts another issuer, unapproved email, or failed verification',async()=>{
+ const base={subject:'email-code-user',issuer:'https://clerk.john-ta.com',email:'johnta2018@gmail.com'};
+ for(const change of [{issuer:'https://other.example'},{issuer:'https://clerk.john-ta.com.attacker.example'},{email:'other@gmail.com'},{email:undefined},{emailVerified:false},{emailVerified:null},{emailVerified:'true'}]) {
+  const {ctx,counts}=context(base.email);
+  ctx.auth.getUserIdentity=async()=>({...base,...change});
+  for(const [fn,input] of [[api.verify,{boardId}],[api.get,{boardId}],[api.save,args],[api.getLaunchStatuses,{}],[api.setLaunchStatus,{milestone:'ihg',status:'on-track'}]])await assert.rejects(fn._handler(ctx,input));
+  assert.deepEqual(counts(),{reads:0,writes:0});
+ }
+});

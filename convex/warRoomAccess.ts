@@ -12,7 +12,12 @@ const APPROVED_EMAILS = new Set([
 
 export async function requireLaunchUser(ctx: Pick<QueryCtx | MutationCtx, "auth">) {
   const identity = await ctx.auth.getUserIdentity();
-  if (!identity || identity.emailVerified !== true || !identity.email) {
+  // This Clerk instance verifies email at signup and signs in with email codes.
+  // Its signed tokens may omit email_verified; match the site's other private tools.
+  // Explicit false, malformed values, and missing verification from other issuers fail.
+  const verifiedEmail = identity?.emailVerified === true ||
+    (identity?.emailVerified === undefined && identity?.issuer === "https://clerk.john-ta.com");
+  if (!identity || !verifiedEmail || !identity.email) {
     throw new ConvexError({ code: "UNAUTHENTICATED", message: "Sign in with a verified email to open this war room." });
   }
   const email = identity.email.trim().toLowerCase();
