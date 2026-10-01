@@ -5,6 +5,7 @@ export const PRIVATE_LAUNCH_BOARD = "war-room-10012026";
 const APPROVED_EMAILS = new Set([
   "john@affil.ai",
   "johnta2018@gmail.com",
+  "tothandrew22@gmail.com",
   "vivek@affil.ai",
   "vishal@affil.ai",
   "jenny@affil.ai",
