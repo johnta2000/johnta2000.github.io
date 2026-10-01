@@ -1,9 +1,10 @@
-import { mutation, query } from "./_generated/server";
+import { internalMutation, mutation, query } from "./_generated/server";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { v } from "convex/values";
+import type { Id } from "./_generated/dataModel";
 import { paymentStatus } from "./cardPaymentTables";
 
-async function authorized(ctx: QueryCtx | MutationCtx) {
+export async function authorized(ctx: { auth: QueryCtx["auth"] }) {
   const user = await ctx.auth.getUserIdentity();
   // This tracker has its own exact-email allowlist and one shared workspace.
   const allowedEmails = (process.env.CARD_PAYMENTS_ALLOWED_EMAIL || "").split(",").map(email => email.trim().toLowerCase()).filter(Boolean);
@@ -38,11 +39,14 @@ export const verify = query({ args: {}, handler: async ctx => {
 export const dashboard = query({ args: { month: v.string() }, handler: async (ctx, args) => {
   const user = await authorized(ctx);
   month(args.month);
-  const [accounts, logs] = await Promise.all([
+  const [accounts, logs, files] = await Promise.all([
     ctx.db.query("paymentAccounts").withIndex("by_owner", q => q.eq("owner", user.workspaceOwner)).collect(),
     ctx.db.query("paymentLogs").withIndex("by_owner_month", q => q.eq("owner", user.workspaceOwner).eq("month", args.month)).collect(),
+    ctx.db.query("paymentFiles").withIndex("by_owner_month", q => q.eq("owner", user.workspaceOwner).eq("month", args.month)).collect(),
   ]);
-  return { accounts, logs };
+  const screenshotCounts: Record<string, number> = {};
+  for (const file of files) screenshotCounts[file.accountId] = (screenshotCounts[file.accountId] || 0) + 1;
+  return { accounts, logs, screenshotCounts };
 } });
 
 export const addAccounts = mutation({ args: { startMonth: v.string(), accounts: v.array(v.object(accountFields)) }, handler: async (ctx, args) => {
@@ -113,7 +117,45 @@ export const retire = mutation({ args: { accountId: v.id("paymentAccounts"), end
     month(args.endMonth);
     if (args.endMonth < account.startMonth) throw new Error("The last month cannot precede the first month.");
     const logs = await ctx.db.query("paymentLogs").withIndex("by_account_month", q => q.eq("accountId", args.accountId).gt("month", args.endMonth!)).take(1);
-    if (logs.length) throw new Error("This account already has later history. Choose a later last month.");
+    const files = await ctx.db.query("paymentFiles").withIndex("by_account_month", q => q.eq("accountId", args.accountId).gt("month", args.endMonth!)).take(1);
+    if (logs.length || files.length) throw new Error("This account already has later history. Choose a later last month.");
   }
   await ctx.db.patch(args.accountId, { endMonth: args.endMonth ?? undefined });
+} });
+
+
+async function screenshotAccount(ctx: QueryCtx | MutationCtx, accountId: Id<"paymentAccounts">, value: string, owner: string) {
+  month(value);
+  const account = await ctx.db.get(accountId);
+  if (!account || account.owner !== owner) throw Error("Account not found.");
+  if (value < account.startMonth || (account.endMonth && value > account.endMonth)) throw Error("This account is not active in this month.");
+}
+export const screenshots = query({ args: { accountId: v.id("paymentAccounts"), month: v.string() }, handler: async (ctx, args) => {
+  const user = await authorized(ctx);
+  await screenshotAccount(ctx, args.accountId, args.month, user.workspaceOwner);
+  const files = await ctx.db.query("paymentFiles").withIndex("by_account_month", q => q.eq("accountId", args.accountId).eq("month", args.month)).collect();
+  return files.filter(f => f.owner === user.workspaceOwner).map(({ storageId, ...file }) => file);
+} });
+export const screenshot = query({ args: { id: v.id("paymentFiles") }, handler: async (ctx, { id }) => {
+  const user = await authorized(ctx), file = await ctx.db.get(id);
+  if (!file || file.owner !== user.workspaceOwner) throw Error("Screenshot not found.");
+  await screenshotAccount(ctx, file.accountId, file.month, user.workspaceOwner);
+  return file;
+} });
+export const attachScreenshot = internalMutation({ args: {
+  accountId: v.id("paymentAccounts"), month: v.string(), owner: v.string(), storageId: v.id("_storage"),
+  name: v.string(), type: v.string(), size: v.number(), requestKey: v.string(),
+}, handler: async (ctx, args) => {
+  await screenshotAccount(ctx, args.accountId, args.month, args.owner);
+  const files = await ctx.db.query("paymentFiles").withIndex("by_account_month", q => q.eq("accountId", args.accountId).eq("month", args.month)).collect();
+  if (files.some(f => f.requestKey === args.requestKey)) { await ctx.storage.delete(args.storageId); return; }
+  if (files.length >= 10) throw Error("A payment can have up to 10 screenshots.");
+  await ctx.db.insert("paymentFiles", { ...args, createdAt: Date.now() });
+} });
+export const removeScreenshot = mutation({ args: { id: v.id("paymentFiles") }, handler: async (ctx, { id }) => {
+  const user = await authorized(ctx), file = await ctx.db.get(id);
+  if (!file || file.owner !== user.workspaceOwner) throw Error("Screenshot not found.");
+  await screenshotAccount(ctx, file.accountId, file.month, user.workspaceOwner);
+  await ctx.storage.delete(file.storageId);
+  await ctx.db.delete(id);
 } });

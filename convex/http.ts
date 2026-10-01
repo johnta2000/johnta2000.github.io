@@ -9,7 +9,12 @@ import {
 
 import { attachment, preflight } from "./paymentQuestionHttp";
 
+import { attachment as paymentAttachment, preflight as paymentPreflight } from "./paymentFileHttp";
+
 const http = httpRouter();
+http.route({ path: "/payment-file", method: "OPTIONS", handler: paymentPreflight });
+http.route({ path: "/payment-file", method: "GET", handler: paymentAttachment });
+http.route({ path: "/payment-file", method: "POST", handler: paymentAttachment });
 http.route({ path: "/payment-question-file", method: "OPTIONS", handler: preflight });
 http.route({ path: "/payment-question-file", method: "GET", handler: attachment });
 http.route({ path: "/payment-question-file", method: "POST", handler: attachment });

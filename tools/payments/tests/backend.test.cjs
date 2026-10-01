@@ -10,7 +10,7 @@ before(async () => {
     entryPoints: [path.join(__dirname, '../../../convex/cardPayments.ts')], bundle: true, write: false, platform: 'node', format: 'cjs',
     plugins: [{ name: 'handler-test', setup(build) {
       build.onResolve({ filter: /\.\/_generated\/server$/ }, () => ({ path: 'server', namespace: 'test' }));
-      build.onLoad({ filter: /.*/, namespace: 'test' }, () => ({ contents: 'export const query = x => x; export const mutation = x => x;' }));
+      build.onLoad({ filter: /.*/, namespace: 'test' }, () => ({ contents: 'export const query = x => x; export const mutation = x => x; export const internalMutation = x => x;' }));
     } }],
   });
   const module = { exports: {} };
@@ -19,8 +19,9 @@ before(async () => {
 });
 
 function fixture(identity = { tokenIdentifier: 'issuer|owner', email: 'owner@example.com', emailVerified: true }) {
-  const tables = { paymentAccounts: [], paymentLogs: [] }; let nextId = 1;
-  const ctx = { auth: { getUserIdentity: async () => identity }, db: {
+  const tables = { paymentAccounts: [], paymentLogs: [], paymentFiles: [] }; let nextId = 1;
+  const deleted = [];
+  const ctx = { storage: { delete: async id => deleted.push(id) }, auth: { getUserIdentity: async () => identity }, db: {
     query(table) {
       const filters = [];
       const builder = { eq: (key, value) => { filters.push(row => row[key] === value); return builder; }, gt: (key, value) => { filters.push(row => row[key] > value); return builder; } };
@@ -33,9 +34,10 @@ function fixture(identity = { tokenIdentifier: 'issuer|owner', email: 'owner@exa
     },
     async get(id) { return Object.values(tables).flat().find(row => row._id === id) || null; },
     async insert(table, value) { const _id = `${table}-${nextId++}`; tables[table].push({ ...value, _id }); return _id; },
+    async delete(id) { for (const rows of Object.values(tables)) { const index = rows.findIndex(r => r._id === id); if (index >= 0) rows.splice(index, 1); } },
     async patch(id, fields) { const doc = await ctx.db.get(id); assert.ok(doc); Object.assign(doc, fields); },
   } };
-  return { ctx, tables, run: (name, args = {}) => api[name].handler(ctx, args) };
+  return { ctx, tables, deleted, run: (name, args = {}) => api[name].handler(ctx, args) };
 }
 const account = { person: 'Alex', bank: 'Example Bank', nickname: '', dueDay: 1 };
 async function seeded() {
@@ -179,4 +181,25 @@ test('housing repeats with independent monthly history and preserves its categor
   assert.equal((await f.run('dashboard', { month: '2026-11' })).logs.length, 0);
   assert.equal((await f.run('dashboard', { month: '2026-10' })).logs[0].flagged, true);
   await assert.rejects(f.run('save', { accountId: id, month: '2026-09', status: 'paid', expectedVersion: 0 }), /not active/);
+});
+
+test('screenshots stay private and scoped to their account and month, retry safely, and preserve payment state', async () => {
+  const f = await seeded();
+  const args = { accountId: f.id, month: '2026-10', owner: 'issuer|owner', storageId: 'image-one', name: 'receipt.png', type: 'image/png', size: 90, requestKey: 'upload-one' };
+  await f.run('attachScreenshot', args);
+  await f.run('attachScreenshot', { ...args, storageId: 'duplicate' });
+  assert.equal(f.tables.paymentFiles.length, 1); assert.ok(f.deleted.includes('duplicate'));
+  assert.equal(f.tables.paymentLogs.length, 0, 'Uploading must not mark a payment paid');
+  const files = await f.run('screenshots', { accountId: f.id, month: '2026-10' });
+  assert.equal(files.length, 1); assert.equal(files[0].storageId, undefined);
+  assert.equal((await f.run('screenshots', { accountId: f.id, month: '2026-11' })).length, 0);
+  assert.equal((await f.run('dashboard', { month: '2026-10' })).screenshotCounts[f.id], 1);
+  await assert.rejects(f.run('retire', { accountId: f.id, endMonth: '2026-09' }), /later history/);
+  f.tables.paymentFiles[0].owner = 'other-workspace';
+  await assert.rejects(f.run('screenshot', { id: files[0]._id }), /not found/);
+  await assert.rejects(f.run('removeScreenshot', { id: files[0]._id }), /not found/);
+  f.tables.paymentFiles[0].owner = 'issuer|owner';
+  await f.run('removeScreenshot', { id: files[0]._id }); assert.equal(f.tables.paymentFiles.length, 0); assert.ok(f.deleted.includes('image-one'));
+  f.ctx.auth.getUserIdentity = async () => null;
+  for (const name of ['screenshots', 'screenshot', 'removeScreenshot']) await assert.rejects(f.run(name, {}), /not authorized/);
 });

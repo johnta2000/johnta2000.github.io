@@ -18,6 +18,8 @@
   let session = null, sessionId, epoch = 0, request = 0, mounted = false;
   let data = null, busy = false, ready = false, entry = null, imports = [], editingAccount = null;
 
+  const screenshots = PaymentScreenshots.create({ call, token: () => tokenFor(session), changed: () => refresh({ silent: true }) });
+
   function node(tag, text, className) {
     const item = document.createElement(tag);
     if (text !== undefined) item.textContent = text;
@@ -48,6 +50,7 @@
   }
   function closeDialogs() { document.querySelectorAll('dialog[open]').forEach(d => d.close()); entry = null; imports = []; }
   function clearPrivate() {
+    screenshots.reset();
     personPicker.close(); statusPicker.close(); categoryPicker.close();
     ++request; pending.clear(); saveWarning = ''; closeMenu(); data = null; ready = false; editingAccount = null; closeDialogs(); setBusy(false);
     $('app').hidden = true; $('accounts').replaceChildren(); $('housing-accounts').replaceChildren(); message('housing-progress', ''); $('manage-list').replaceChildren(); $('import-preview').replaceChildren();
@@ -207,6 +210,13 @@
     actions.append(paid, more);
     if (heading.childNodes.length) row.append(heading);
     row.append(actions);
+    const count = data?.screenshotCounts?.[account._id] || 0;
+    if (account.category === 'housing' || count) {
+      const attachment = node('button', count ? `▧ ${count} screenshot${count === 1 ? '' : 's'}` : '+ Screenshot', 'screenshot-link');
+      attachment.type = 'button'; attachment.setAttribute('aria-label', `Screenshots for ${account.person}, ${account.bank}`);
+      attachment.addEventListener('click', () => void screenshots.open(account, selectedMonth(), monthLabel(selectedMonth())));
+      row.append(attachment);
+    }
     if (matrix && (account.dueDay !== 1 || log?.amountCents != null)) row.append(node('p', `${account.dueDay !== 1 ? `Due ${dueLabel(account)}` : ''}${account.dueDay !== 1 && log?.amountCents != null ? ' · ' : ''}${log?.amountCents != null ? formatMoney(log.amountCents) : ''}`, 'cell-detail'));
     if (!matrix && log?.note) row.append(node('p', log.note, 'account-note'));
     return row;
@@ -339,6 +349,7 @@
     $('entry-note').value = log?.note || ''; message('entry-error', '');
     $('entry-dialog').showModal();
   }
+  $('entry-screenshots').addEventListener('click', () => { if (entry) void screenshots.open(entry.account, entry.month, monthLabel(entry.month)); });
   $('entry-form').addEventListener('submit', event => {
     event.preventDefault(); if (!entry || busy) return;
     const text = $('entry-amount').value.trim();

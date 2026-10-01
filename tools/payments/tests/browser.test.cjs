@@ -11,7 +11,7 @@ function store() {
     { _id: 'two', person: 'Alex', bank: 'American Express', nickname: 'Travel', dueDay: 1, startMonth: '2020-01' },
     { _id: 'three', person: 'Dana', bank: 'Citi', nickname: '', dueDay: 1, startMonth: '2020-01' },
     { _id: 'four', person: 'Dana', bank: 'Bank of America', nickname: '', dueDay: 15, startMonth: '2020-01' },
-  ], logs: [], requests: [], failSave: false, conflict: false, delayQuery: null };
+  ], logs: [], files: [], requests: [], failSave: false, conflict: false, delayQuery: null };
 }
 async function open(browser, width = 390, db = store(), mode = 'signed-in') {
   const page = await browser.newPage({ viewport: { width, height: 844 }, hasTouch: width < 900, isMobile: width < 600 });
@@ -38,16 +38,28 @@ async function open(browser, width = 390, db = store(), mode = 'signed-in') {
       if (filename === 'index.html') body = body.replace(/<script\b[^>]*src="https:[\s\S]*?<\/script>/g, '');
       return route.fulfill({ body, contentType: filename.endsWith('.js') ? 'text/javascript' : filename.endsWith('.css') ? 'text/css' : 'text/html' });
     }
+    if (url.hostname.endsWith('.convex.site')) {
+      if (!route.request().headers().authorization || mode !== 'signed-in') return route.fulfill({status:403});
+      if (route.request().method() === 'POST') {
+        if (db.failUpload) return route.fulfill({status:500,body:'Upload failed'});
+        const key = route.request().headers()['x-request-key'];
+        if (!db.files.some(f => f.requestKey === key)) db.files.push({_id:`file-${db.files.length}`,accountId:url.searchParams.get('id'),month:url.searchParams.get('month'),name:'receipt.png',requestKey:key});
+        return route.fulfill({json:{}});
+      }
+      return route.fulfill({body:db.image || Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jF9sAAAAASUVORK5CYII=','base64'),contentType:'image/png'});
+    }
     if (!url.hostname.endsWith('.convex.cloud')) return route.abort();
     const { path: endpoint, args } = route.request().postDataJSON(); db.requests.push({ endpoint, args });
     let value = null;
     if (mode === 'denied') return route.fulfill({ json: { status: 'error', errorMessage: 'This account is not authorized for card payments.' } });
     if (endpoint === 'cardPayments:verify') value = { email: 'owner@example.com' };
     if (endpoint === 'cardPayments:dashboard') {
-      const snapshot = JSON.parse(JSON.stringify({ accounts: db.accounts, logs: db.logs.filter(l => l.month === args.month) }));
+      const snapshot = JSON.parse(JSON.stringify({ accounts: db.accounts, logs: db.logs.filter(l => l.month === args.month), screenshotCounts: Object.fromEntries(db.accounts.map(a => [a._id, db.files.filter(f => f.accountId === a._id && f.month === args.month).length])) }));
       if (db.delayQuery) await db.delayQuery(args.month);
       value = snapshot;
     }
+    if (endpoint === 'cardPayments:screenshots') value = db.files.filter(f => f.accountId === args.accountId && f.month === args.month);
+    if (endpoint === 'cardPayments:removeScreenshot') db.files = db.files.filter(f => f._id !== args.id);
     if (endpoint === 'cardPayments:save') {
       if (db.delaySave) await db.delaySave(args);
       if (db.failSave) return route.abort('failed');
@@ -440,5 +452,38 @@ test('housing lives below the card matrix, repeats monthly, saves instantly, and
     await page.locator('#sign-out').click();
     assert.equal(await page.locator('#housing-accounts').textContent(), '');
     assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});
+
+test('payment screenshots preview failed uploads, retry once, persist for the month, and clear on sign-out', async () => {
+  const browser = await browserType.launch();
+  try {
+    for (const width of [390, 1280]) {
+      const db = store(); db.accounts[0].category = 'housing'; db.accounts[0].bank = 'Rent'; db.failUpload = true;
+      const { page, errors } = await open(browser, width, db);
+      const image = await page.evaluate(() => { const c = document.createElement('canvas'); c.width = 720; c.height = 360; const x = c.getContext('2d'); x.fillStyle = '#f3f7f2'; x.fillRect(0,0,720,360); x.fillStyle = '#276347'; x.font = 'bold 32px sans-serif'; x.fillText('Payment confirmation',40,80); x.font = '22px sans-serif'; x.fillText('Example rent · October',40,135); x.fillText('Synthetic receipt for layout testing',40,210); return c.toDataURL().split(',')[1]; });
+      db.image = Buffer.from(image, 'base64');
+      await page.getByRole('button', {name:'Screenshots for Alex, Rent',exact:true}).click();
+      await page.locator('#screenshot-add:not([disabled])').waitFor();
+      await page.locator('#screenshot-input').setInputFiles({name:'receipt.png',mimeType:'image/png',buffer:db.image});
+      await page.getByRole('button', {name:'Retry upload',exact:true}).waitFor();
+      assert.equal(await page.locator('.payment-screenshot img').count(),1);
+      await page.locator('#screenshots-close').click(); assert.ok(await page.locator('#screenshots-dialog').isVisible());
+      db.failUpload = false; await page.getByRole('button',{name:'Retry upload',exact:true}).click();
+      await page.waitForFunction(() => document.getElementById('screenshot-state').textContent.includes('Screenshots saved'));
+      await page.locator('.payment-screenshot img').waitFor();
+      assert.equal(db.files.length,1); assert.equal(db.logs.length,0);
+      await fits(page); await page.screenshot({path:path.join(os.tmpdir(),`payment-receipt-${browserType.name()}-${width}.png`),fullPage:true});
+      await page.locator('#screenshots-close').click();
+      await page.locator('#next').click(); await page.locator('[data-account="one"] .screenshot-link').waitFor();
+      await page.getByRole('button',{name:'Screenshots for Alex, Rent',exact:true}).click();
+      await page.locator('.screenshot-empty').waitFor(); assert.equal(await page.locator('.payment-screenshot').count(),0);
+      await page.locator('#screenshots-close').click(); await page.locator('#previous').click();
+      await page.locator('[data-account="one"] .screenshot-link').filter({hasText:'1 screenshot'}).waitFor();
+      await page.getByRole('button',{name:'Screenshots for Alex, Rent',exact:true}).click(); await page.locator('.payment-screenshot img').waitFor();
+      await page.evaluate(() => window.changeSession(null));
+      assert.equal(await page.locator('#payment-screenshots').textContent(),''); assert.ok(!(await page.locator('#screenshots-dialog').isVisible()));
+      assert.deepEqual(errors,[]); await page.close();
+    }
   } finally { await browser.close(); }
 });

@@ -14,6 +14,7 @@
   <script async data-clerk-script crossorigin="anonymous" src="https://clerk.john-ta.com/npm/@clerk/ui@1/dist/ui.browser.js"></script>
   <script async data-clerk-script crossorigin="anonymous" data-clerk-publishable-key="pk_live_Y2xlcmsuam9obi10YS5jb20k" src="https://clerk.john-ta.com/npm/@clerk/clerk-js@6/dist/clerk.browser.js"></script>
   <script defer src="../../assets/js/searchable-select.js"></script>
+  <script defer src="screenshots.js"></script>
   <script defer src="app.js"></script>
 </head>
 <body>
@@ -68,6 +69,7 @@
       <label class="switch"><input id="entry-flag" type="checkbox">Flag for attention</label>
       <label>Payment amount <span class="muted">(optional)</span><input id="entry-amount" type="text" inputmode="decimal" placeholder="0.00" autocomplete="off"></label>
       <label>Note <span class="muted">(optional)</span><textarea id="entry-note" maxlength="1000" rows="3" placeholder="Scheduled for the 1st, confirmation number, anything useful…"></textarea></label>
+      <button type="button" id="entry-screenshots">Screenshots / receipts</button>
       <p id="entry-error" class="error" role="alert"></p><button type="submit" class="primary">Save entry</button>
     </form>
   </dialog>
@@ -91,5 +93,13 @@
     </form>
   </dialog>
   <dialog id="manage-dialog" aria-labelledby="manage-title"><div class="dialog-heading"><h2 id="manage-title">Manage accounts</h2><button class="arrow close" aria-label="Close account management">×</button></div><p class="muted">Retiring an account keeps this month and earlier history. It disappears from future checklists.</p><div id="manage-list"></div><p id="manage-error" class="error" role="alert"></p></dialog>
+  <dialog id="screenshots-dialog" aria-labelledby="screenshots-title">
+    <div class="dialog-heading"><div><p class="eyebrow">Payment screenshots</p><h2 id="screenshots-title"></h2></div><button id="screenshots-close" type="button" class="arrow" aria-label="Close screenshots">×</button></div>
+    <p id="screenshots-month" class="muted"></p>
+    <button id="screenshot-add" type="button" class="secondary">+ Add screenshot</button>
+    <input id="screenshot-input" type="file" accept="image/png,image/jpeg,image/webp" multiple hidden>
+    <p id="screenshot-state" role="status" aria-live="polite"></p>
+    <div id="payment-screenshots"></div>
+  </dialog>
 </body>
 </html>

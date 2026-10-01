@@ -15,6 +15,7 @@
 - Keep generous section spacing and the original desktop header layout; allow vertical scrolling instead of squeezing everything into one screen.
 - Preserve the compact desktop bank-by-person matrix and the mobile layout with payment status beside the bank/account details.
 - Housing Payments belongs below Card payments, uses the same selected month and filters, and keeps separate monthly checkoffs. Keep housing records out of the bank matrix. Store property addresses only in the private backend, never in public source files.
+- Payment screenshot attachments belong to an account and month, use the Payments allowlist, and must be uploaded/read through the authenticated `/payment-file` endpoint. Keep full previews visible, preserve failed uploads for retry, and never mark a payment paid just because a screenshot was uploaded.
 - Test payment changes with mock data. Never change real payment logs just to exercise the UI.
 
 ## Payment questions
