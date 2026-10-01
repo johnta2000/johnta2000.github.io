@@ -519,7 +519,7 @@ function renderTask(task, bucketId, groupId) {
     const owner = document.createElement("button");
     owner.type = "button";
     owner.className = "stage-assignee";
-    owner.textContent = getAssigneeName(task.assignee) || "＋";
+    owner.textContent = getAssigneeName(task.assignee) || "Unassigned";
     owner.dataset.assigned = String(Boolean(getAssigneeName(task.assignee)));
     owner.setAttribute("aria-label", `${task.title} assignee: ${getAssigneeName(task.assignee) || "Unassigned"}`);
     owner.title = "Assign this checklist item";
@@ -1055,7 +1055,7 @@ function renderStages(node, task) {
     const owner = document.createElement("button");
     owner.type = "button";
     owner.className = "stage-assignee";
-    owner.textContent = getAssigneeName(task.stageAssignees?.[stageId]) || "＋";
+    owner.textContent = getAssigneeName(task.stageAssignees?.[stageId]) || "Unassigned";
     owner.dataset.assigned = String(Boolean(getAssigneeName(task.stageAssignees?.[stageId])));
     owner.setAttribute("aria-label", `${task.title} — ${stage} assignee: ${getAssigneeName(task.stageAssignees?.[stageId]) || "Unassigned"}`);
     owner.title = "Assign this checklist step";
