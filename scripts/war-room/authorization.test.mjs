@@ -20,7 +20,7 @@ function context(email,verified=true){
  }};
  return {ctx,counts:()=>({reads,writes})};
 }
-for(const email of ['john@affil.ai','vivek@affil.ai','vishal@affil.ai','jenny@affil.ai']) {
+for(const email of ['john@affil.ai','vivek@affil.ai','vishal@affil.ai','jenny@affil.ai','johnta2018@gmail.com']) {
  test(`verified ${email} can load the checklist, read progress, and save`,async()=>{
   const {ctx,counts}=context(email);
   const viewer=await api.verify._handler(ctx,{boardId});
