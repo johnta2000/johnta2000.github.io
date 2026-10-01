@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "collectionVersion": 2,
   "monitorId": "chase-sapphire-reserve-tables",
-  "capturedAt": "2026-10-01T06:10:15.153Z",
+  "capturedAt": "2026-10-01T15:31:02.409Z",
   "sources": [
     {
       "id": "atlanta",
@@ -446,6 +446,11 @@
           "key": "opentable:1085224"
         },
         {
+          "id": "1088005",
+          "name": "Elcielo Washington DC",
+          "key": "opentable:1088005"
+        },
+        {
           "id": "1125733",
           "name": "Queen's English",
           "key": "opentable:1125733"
@@ -542,7 +547,7 @@
         }
       ],
       "completeness": {
-        "total": 20,
+        "total": 21,
         "pages": 1,
         "complete": true
       }
@@ -587,13 +592,18 @@
           "key": "opentable:1202641"
         },
         {
+          "id": "1326763",
+          "name": "Honeysuckle Rose",
+          "key": "opentable:1326763"
+        },
+        {
           "id": "4574",
           "name": "Oak Steakhouse - Charleston",
           "key": "opentable:4574"
         }
       ],
       "completeness": {
-        "total": 4,
+        "total": 5,
         "pages": 1,
         "complete": true
       }
@@ -748,6 +758,11 @@
           "key": "opentable:160909"
         },
         {
+          "id": "173869",
+          "name": "Swift & Sons",
+          "key": "opentable:173869"
+        },
+        {
           "id": "211456",
           "name": "Mott Street",
           "key": "opentable:211456"
@@ -761,6 +776,11 @@
           "id": "342505",
           "name": "Elske",
           "key": "opentable:342505"
+        },
+        {
+          "id": "40489",
+          "name": "schwa",
+          "key": "opentable:40489"
         },
         {
           "id": "47026",
@@ -784,7 +804,7 @@
         }
       ],
       "completeness": {
-        "total": 28,
+        "total": 30,
         "pages": 1,
         "complete": true
       }
@@ -796,13 +816,18 @@
       "url": "https://www.opentable.com/sapphire-reserve-exclusive-tables?metroId=90",
       "restaurants": [
         {
+          "id": "1375327",
+          "name": "Wildweed",
+          "key": "opentable:1375327"
+        },
+        {
           "id": "174625",
           "name": "Mita's Restaurant",
           "key": "opentable:174625"
         }
       ],
       "completeness": {
-        "total": 1,
+        "total": 2,
         "pages": 1,
         "complete": true
       }
@@ -847,6 +872,11 @@
       "url": "https://www.opentable.com/sapphire-reserve-exclusive-tables?metroId=94",
       "restaurants": [
         {
+          "id": "118339",
+          "name": "Veritas",
+          "key": "opentable:118339"
+        },
+        {
           "id": "1308352",
           "name": "Cento - German Village",
           "key": "opentable:1308352"
@@ -868,7 +898,7 @@
         }
       ],
       "completeness": {
-        "total": 4,
+        "total": 5,
         "pages": 1,
         "complete": true
       }
@@ -1031,6 +1061,11 @@
           "key": "opentable:1410958"
         },
         {
+          "id": "335155",
+          "name": "Quality Italian- Denver",
+          "key": "opentable:335155"
+        },
+        {
           "id": "349867",
           "name": "Four by Brother Luck",
           "key": "opentable:349867"
@@ -1057,7 +1092,7 @@
         }
       ],
       "completeness": {
-        "total": 17,
+        "total": 18,
         "pages": 1,
         "complete": true
       }
@@ -1084,6 +1119,11 @@
           "key": "opentable:1281100"
         },
         {
+          "id": "1331743",
+          "name": "Vecino",
+          "key": "opentable:1331743"
+        },
+        {
           "id": "1492291",
           "name": "Pine Hall",
           "key": "opentable:1492291"
@@ -1095,7 +1135,7 @@
         }
       ],
       "completeness": {
-        "total": 5,
+        "total": 6,
         "pages": 1,
         "complete": true
       }
@@ -1266,6 +1306,11 @@
           "key": "opentable:1125094"
         },
         {
+          "id": "1162246",
+          "name": "Belly of the Beast",
+          "key": "opentable:1162246"
+        },
+        {
           "id": "1183306",
           "name": "Street To Kitchen",
           "key": "opentable:1183306"
@@ -1327,7 +1372,7 @@
         }
       ],
       "completeness": {
-        "total": 15,
+        "total": 16,
         "pages": 1,
         "complete": true
       }
@@ -1367,6 +1412,11 @@
       "url": "https://www.opentable.com/sapphire-reserve-exclusive-tables?metroId=87",
       "restaurants": [
         {
+          "id": "1463011",
+          "name": "Anjin",
+          "key": "opentable:1463011"
+        },
+        {
           "id": "213010",
           "name": "JJ's Restaurant",
           "key": "opentable:213010"
@@ -1383,7 +1433,7 @@
         }
       ],
       "completeness": {
-        "total": 3,
+        "total": 4,
         "pages": 1,
         "complete": true
       }
@@ -1408,10 +1458,15 @@
           "id": "443854",
           "name": "Esther's Kitchen",
           "key": "opentable:443854"
+        },
+        {
+          "id": "732187",
+          "name": "Sparrow + Wolf",
+          "key": "opentable:732187"
         }
       ],
       "completeness": {
-        "total": 3,
+        "total": 4,
         "pages": 1,
         "complete": true
       }
@@ -1513,6 +1568,11 @@
           "key": "opentable:1406359"
         },
         {
+          "id": "1433557",
+          "name": "Bad Roman - Beverly Hills",
+          "key": "opentable:1433557"
+        },
+        {
           "id": "14410",
           "name": "Osteria Mozza",
           "key": "opentable:14410"
@@ -1546,6 +1606,11 @@
           "id": "347503",
           "name": "Gwen",
           "key": "opentable:347503"
+        },
+        {
+          "id": "4336",
+          "name": "Providence",
+          "key": "opentable:4336"
         },
         {
           "id": "543",
@@ -1584,7 +1649,7 @@
         }
       ],
       "completeness": {
-        "total": 32,
+        "total": 34,
         "pages": 2,
         "complete": true
       }
@@ -1667,10 +1732,15 @@
           "id": "1322215",
           "name": "Delilah - Miami",
           "key": "opentable:1322215"
+        },
+        {
+          "id": "161446",
+          "name": "Elcielo Miami",
+          "key": "opentable:161446"
         }
       ],
       "completeness": {
-        "total": 9,
+        "total": 10,
         "pages": 1,
         "complete": true
       }
@@ -1748,6 +1818,11 @@
       "url": "https://www.opentable.com/sapphire-reserve/nashville",
       "restaurants": [
         {
+          "id": "1170280",
+          "name": "The Patterson House",
+          "key": "opentable:1170280"
+        },
+        {
           "id": "1186552",
           "name": "Locust Nashville",
           "key": "opentable:1186552"
@@ -1773,6 +1848,11 @@
           "key": "opentable:214114"
         },
         {
+          "id": "95236",
+          "name": "The Catbird Seat",
+          "key": "opentable:95236"
+        },
+        {
           "id": "985351",
           "name": "Bastion",
           "key": "opentable:985351"
@@ -1784,7 +1864,7 @@
         }
       ],
       "completeness": {
-        "total": 7,
+        "total": 9,
         "pages": 1,
         "complete": true
       }
@@ -1806,6 +1886,11 @@
           "key": "opentable:1048522"
         },
         {
+          "id": "1048807",
+          "name": "Quality Bistro",
+          "key": "opentable:1048807"
+        },
+        {
           "id": "1052086",
           "name": "Hawksmoor NYC",
           "key": "opentable:1052086"
@@ -1816,6 +1901,11 @@
           "key": "opentable:1072219"
         },
         {
+          "id": "110224",
+          "name": "Quality Italian - New York",
+          "key": "opentable:110224"
+        },
+        {
           "id": "1123567",
           "name": "Felina Steak- Jersey City",
           "key": "opentable:1123567"
@@ -1824,6 +1914,11 @@
           "id": "1191640",
           "name": "Ci Siamo",
           "key": "opentable:1191640"
+        },
+        {
+          "id": "1197907",
+          "name": "Zou Zou's",
+          "key": "opentable:1197907"
         },
         {
           "id": "1238458",
@@ -1839,6 +1934,11 @@
           "id": "1263916",
           "name": "Potluck Club",
           "key": "opentable:1263916"
+        },
+        {
+          "id": "1268701",
+          "name": "Bad Roman - New York",
+          "key": "opentable:1268701"
         },
         {
           "id": "1274416",
@@ -1906,6 +2006,11 @@
           "key": "opentable:1363933"
         },
         {
+          "id": "1383292",
+          "name": "Twin Tails",
+          "key": "opentable:1383292"
+        },
+        {
           "id": "1387021",
           "name": "Bar Kabawa",
           "key": "opentable:1387021"
@@ -1939,6 +2044,11 @@
           "id": "144154",
           "name": "Mike's Bistro - UES",
           "key": "opentable:144154"
+        },
+        {
+          "id": "1448041",
+          "name": "Limusina",
+          "key": "opentable:1448041"
         },
         {
           "id": "144958",
@@ -2006,6 +2116,11 @@
           "key": "opentable:4304"
         },
         {
+          "id": "6438",
+          "name": "Quality Meats",
+          "key": "opentable:6438"
+        },
+        {
           "id": "942",
           "name": "The Dining Room at Gramercy Tavern",
           "key": "opentable:942"
@@ -2022,7 +2137,7 @@
         }
       ],
       "completeness": {
-        "total": 45,
+        "total": 52,
         "pages": 2,
         "complete": true
       }
@@ -2092,6 +2207,11 @@
           "key": "opentable:1048522"
         },
         {
+          "id": "1048807",
+          "name": "Quality Bistro",
+          "key": "opentable:1048807"
+        },
+        {
           "id": "1052086",
           "name": "Hawksmoor NYC",
           "key": "opentable:1052086"
@@ -2102,6 +2222,11 @@
           "key": "opentable:1072219"
         },
         {
+          "id": "110224",
+          "name": "Quality Italian - New York",
+          "key": "opentable:110224"
+        },
+        {
           "id": "1123567",
           "name": "Felina Steak- Jersey City",
           "key": "opentable:1123567"
@@ -2110,6 +2235,11 @@
           "id": "1191640",
           "name": "Ci Siamo",
           "key": "opentable:1191640"
+        },
+        {
+          "id": "1197907",
+          "name": "Zou Zou's",
+          "key": "opentable:1197907"
         },
         {
           "id": "1238458",
@@ -2125,6 +2255,11 @@
           "id": "1263916",
           "name": "Potluck Club",
           "key": "opentable:1263916"
+        },
+        {
+          "id": "1268701",
+          "name": "Bad Roman - New York",
+          "key": "opentable:1268701"
         },
         {
           "id": "1274416",
@@ -2192,6 +2327,11 @@
           "key": "opentable:1363933"
         },
         {
+          "id": "1383292",
+          "name": "Twin Tails",
+          "key": "opentable:1383292"
+        },
+        {
           "id": "1387021",
           "name": "Bar Kabawa",
           "key": "opentable:1387021"
@@ -2225,6 +2365,11 @@
           "id": "144154",
           "name": "Mike's Bistro - UES",
           "key": "opentable:144154"
+        },
+        {
+          "id": "1448041",
+          "name": "Limusina",
+          "key": "opentable:1448041"
         },
         {
           "id": "144958",
@@ -2292,6 +2437,11 @@
           "key": "opentable:4304"
         },
         {
+          "id": "6438",
+          "name": "Quality Meats",
+          "key": "opentable:6438"
+        },
+        {
           "id": "942",
           "name": "The Dining Room at Gramercy Tavern",
           "key": "opentable:942"
@@ -2308,7 +2458,7 @@
         }
       ],
       "completeness": {
-        "total": 45,
+        "total": 52,
         "pages": 2,
         "complete": true
       }
@@ -2366,10 +2516,15 @@
           "id": "1262860",
           "name": "Norman's - Orlando",
           "key": "opentable:1262860"
+        },
+        {
+          "id": "1356775",
+          "name": "The Ravenous Pig",
+          "key": "opentable:1356775"
         }
       ],
       "completeness": {
-        "total": 2,
+        "total": 3,
         "pages": 1,
         "complete": true
       }
@@ -2484,6 +2639,11 @@
           "key": "opentable:1193137"
         },
         {
+          "id": "1240009",
+          "name": "Christopher's at Wrigley Mansion",
+          "key": "opentable:1240009"
+        },
+        {
           "id": "1276825",
           "name": "Chilte",
           "key": "opentable:1276825"
@@ -2519,6 +2679,11 @@
           "key": "opentable:1420309"
         },
         {
+          "id": "18676",
+          "name": "Wrigley Mansion - Geordie's",
+          "key": "opentable:18676"
+        },
+        {
           "id": "29929",
           "name": "The Mission - Old Town Scottsdale",
           "key": "opentable:29929"
@@ -2530,7 +2695,7 @@
         }
       ],
       "completeness": {
-        "total": 10,
+        "total": 12,
         "pages": 1,
         "complete": true
       }
@@ -2737,6 +2902,11 @@
           "key": "opentable:16474"
         },
         {
+          "id": "17104",
+          "name": "Mulvaney's B&L",
+          "key": "opentable:17104"
+        },
+        {
           "id": "486406",
           "name": "Canon",
           "key": "opentable:486406"
@@ -2748,7 +2918,7 @@
         }
       ],
       "completeness": {
-        "total": 4,
+        "total": 5,
         "pages": 1,
         "complete": true
       }
@@ -2871,6 +3041,11 @@
       "url": "https://www.opentable.com/sapphire-reserve/san-francisco",
       "restaurants": [
         {
+          "id": "1014772",
+          "name": "Birdsong",
+          "key": "opentable:1014772"
+        },
+        {
           "id": "1017313",
           "name": "Angler San Francisco",
           "key": "opentable:1017313"
@@ -2976,6 +3151,11 @@
           "key": "opentable:16474"
         },
         {
+          "id": "17104",
+          "name": "Mulvaney's B&L",
+          "key": "opentable:17104"
+        },
+        {
           "id": "174622",
           "name": "Omakase",
           "key": "opentable:174622"
@@ -3037,7 +3217,7 @@
         }
       ],
       "completeness": {
-        "total": 33,
+        "total": 35,
         "pages": 2,
         "complete": true
       }
@@ -3153,13 +3333,18 @@
           "key": "opentable:1321021"
         },
         {
+          "id": "1374415",
+          "name": "Kōsen",
+          "key": "opentable:1374415"
+        },
+        {
           "id": "270733",
           "name": "Il Ritorno",
           "key": "opentable:270733"
         }
       ],
       "completeness": {
-        "total": 2,
+        "total": 3,
         "pages": 1,
         "complete": true
       }
@@ -3198,6 +3383,11 @@
           "id": "1085224",
           "name": "Xiquet by Danny Lledó",
           "key": "opentable:1085224"
+        },
+        {
+          "id": "1088005",
+          "name": "Elcielo Washington DC",
+          "key": "opentable:1088005"
         },
         {
           "id": "1125733",
@@ -3296,7 +3486,7 @@
         }
       ],
       "completeness": {
-        "total": 20,
+        "total": 21,
         "pages": 1,
         "complete": true
       }
@@ -3326,10 +3516,15 @@
           "id": "1345540",
           "name": "Nicholson Muir Meats",
           "key": "opentable:1345540"
+        },
+        {
+          "id": "1484104",
+          "name": "The Polo Room Palm Beach",
+          "key": "opentable:1484104"
         }
       ],
       "completeness": {
-        "total": 4,
+        "total": 5,
         "pages": 1,
         "complete": true
       }

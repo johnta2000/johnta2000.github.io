@@ -3,6 +3,680 @@
   "maxRuns": 180,
   "runs": [
     {
+      "id": "2026-10-01T15:31:02.409Z",
+      "monitorId": "chase-sapphire-reserve-tables",
+      "timestamp": "2026-10-01T15:31:02.409Z",
+      "status": "success",
+      "collectionVersion": 2,
+      "changed": true,
+      "initialized": false,
+      "confirmed": true,
+      "meaningful": true,
+      "eventType": "restaurant-change",
+      "durationMs": 21803,
+      "count": 436,
+      "countUnit": "unique-restaurants",
+      "listingCount": 516,
+      "addedCount": 30,
+      "removedCount": 0,
+      "previousCount": 406,
+      "cities": [
+        {
+          "id": "atlanta",
+          "name": "Atlanta",
+          "url": "https://www.opentable.com/sapphire-reserve/atlanta",
+          "count": 7,
+          "previousCount": 7,
+          "added": [],
+          "removed": []
+        },
+        {
+          "id": "austin",
+          "name": "Austin",
+          "url": "https://www.opentable.com/sapphire-reserve/austin",
+          "count": 11,
+          "previousCount": 11,
+          "added": [],
+          "removed": []
+        },
+        {
+          "id": "baltimore",
+          "name": "Baltimore",
+          "url": "https://www.opentable.com/sapphire-reserve-exclusive-tables?metroId=18",
+          "count": 21,
+          "previousCount": 20,
+          "added": [
+            "Elcielo Washington DC"
+          ],
+          "removed": []
+        },
+        {
+          "id": "central-coast",
+          "name": "Central Coast",
+          "url": "https://www.opentable.com/sapphire-reserve-exclusive-tables?metroId=80",
+          "count": 1,
+          "previousCount": 1,
+          "added": [],
+          "removed": []
+        },
+        {
+          "id": "charleston",
+          "name": "Charleston",
+          "url": "https://www.opentable.com/sapphire-reserve/charleston",
+          "count": 5,
+          "previousCount": 4,
+          "added": [
+            "Honeysuckle Rose"
+          ],
+          "removed": []
+        },
+        {
+          "id": "charlotte",
+          "name": "Charlotte",
+          "url": "https://www.opentable.com/sapphire-reserve-exclusive-tables?metroId=31",
+          "count": 5,
+          "previousCount": 5,
+          "added": [],
+          "removed": []
+        },
+        {
+          "id": "chicago",
+          "name": "Chicago",
+          "url": "https://www.opentable.com/sapphire-reserve/chicago",
+          "count": 30,
+          "previousCount": 28,
+          "added": [
+            "Swift & Sons",
+            "schwa"
+          ],
+          "removed": []
+        },
+        {
+          "id": "cincinnati",
+          "name": "Cincinnati",
+          "url": "https://www.opentable.com/sapphire-reserve-exclusive-tables?metroId=90",
+          "count": 2,
+          "previousCount": 1,
+          "added": [
+            "Wildweed"
+          ],
+          "removed": []
+        },
+        {
+          "id": "cleveland",
+          "name": "Cleveland",
+          "url": "https://www.opentable.com/sapphire-reserve-exclusive-tables?metroId=52",
+          "count": 4,
+          "previousCount": 4,
+          "added": [],
+          "removed": []
+        },
+        {
+          "id": "columbus",
+          "name": "Columbus",
+          "url": "https://www.opentable.com/sapphire-reserve-exclusive-tables?metroId=94",
+          "count": 5,
+          "previousCount": 4,
+          "added": [
+            "Veritas"
+          ],
+          "removed": []
+        },
+        {
+          "id": "connecticut",
+          "name": "Connecticut",
+          "url": "https://www.opentable.com/sapphire-reserve-exclusive-tables?metroId=3572",
+          "count": 2,
+          "previousCount": 2,
+          "added": [],
+          "removed": []
+        },
+        {
+          "id": "dallas",
+          "name": "Dallas",
+          "url": "https://www.opentable.com/sapphire-reserve/dallas",
+          "count": 11,
+          "previousCount": 11,
+          "added": [],
+          "removed": []
+        },
+        {
+          "id": "denver",
+          "name": "Denver",
+          "url": "https://www.opentable.com/sapphire-reserve/denver",
+          "count": 18,
+          "previousCount": 17,
+          "added": [
+            "Quality Italian- Denver"
+          ],
+          "removed": []
+        },
+        {
+          "id": "detroit",
+          "name": "Detroit",
+          "url": "https://www.opentable.com/sapphire-reserve/detroit",
+          "count": 6,
+          "previousCount": 5,
+          "added": [
+            "Vecino"
+          ],
+          "removed": []
+        },
+        {
+          "id": "boston",
+          "name": "Greater Boston",
+          "url": "https://www.opentable.com/sapphire-reserve/boston",
+          "count": 11,
+          "previousCount": 11,
+          "added": [],
+          "removed": []
+        },
+        {
+          "id": "greenville",
+          "name": "Greenville",
+          "url": "https://www.opentable.com/sapphire-reserve-exclusive-tables?metroId=3670",
+          "count": 4,
+          "previousCount": 4,
+          "added": [],
+          "removed": []
+        },
+        {
+          "id": "hawaii",
+          "name": "Hawaii",
+          "url": "https://www.opentable.com/sapphire-reserve/hawaii",
+          "count": 6,
+          "previousCount": 6,
+          "added": [],
+          "removed": []
+        },
+        {
+          "id": "houston",
+          "name": "Houston",
+          "url": "https://www.opentable.com/sapphire-reserve/houston",
+          "count": 16,
+          "previousCount": 15,
+          "added": [
+            "Belly of the Beast"
+          ],
+          "removed": []
+        },
+        {
+          "id": "jacksonville",
+          "name": "Jacksonville",
+          "url": "https://www.opentable.com/sapphire-reserve-exclusive-tables?metroId=83",
+          "count": 3,
+          "previousCount": 3,
+          "added": [],
+          "removed": []
+        },
+        {
+          "id": "kansas-city",
+          "name": "Kansas City",
+          "url": "https://www.opentable.com/sapphire-reserve-exclusive-tables?metroId=87",
+          "count": 4,
+          "previousCount": 3,
+          "added": [
+            "Anjin"
+          ],
+          "removed": []
+        },
+        {
+          "id": "las-vegas",
+          "name": "Las Vegas",
+          "url": "https://www.opentable.com/sapphire-reserve/las-vegas",
+          "count": 4,
+          "previousCount": 3,
+          "added": [
+            "Sparrow + Wolf"
+          ],
+          "removed": []
+        },
+        {
+          "id": "los-angeles",
+          "name": "Los Angeles",
+          "url": "https://www.opentable.com/sapphire-reserve/los-angeles",
+          "count": 34,
+          "previousCount": 32,
+          "added": [
+            "Bad Roman - Beverly Hills",
+            "Providence"
+          ],
+          "removed": []
+        },
+        {
+          "id": "maine",
+          "name": "Maine",
+          "url": "https://www.opentable.com/sapphire-reserve-exclusive-tables?metroId=3569",
+          "count": 3,
+          "previousCount": 3,
+          "added": [],
+          "removed": []
+        },
+        {
+          "id": "miami",
+          "name": "Miami",
+          "url": "https://www.opentable.com/sapphire-reserve/miami",
+          "count": 10,
+          "previousCount": 9,
+          "added": [
+            "Elcielo Miami"
+          ],
+          "removed": []
+        },
+        {
+          "id": "minneapolis",
+          "name": "Minneapolis",
+          "url": "https://www.opentable.com/sapphire-reserve/minneapolis",
+          "count": 5,
+          "previousCount": 5,
+          "added": [],
+          "removed": []
+        },
+        {
+          "id": "naples",
+          "name": "Naples",
+          "url": "https://www.opentable.com/sapphire-reserve-exclusive-tables?metroId=86",
+          "count": 3,
+          "previousCount": 3,
+          "added": [],
+          "removed": []
+        },
+        {
+          "id": "nashville",
+          "name": "Nashville",
+          "url": "https://www.opentable.com/sapphire-reserve/nashville",
+          "count": 9,
+          "previousCount": 7,
+          "added": [
+            "The Patterson House",
+            "The Catbird Seat"
+          ],
+          "removed": []
+        },
+        {
+          "id": "new-jersey",
+          "name": "New Jersey",
+          "url": "https://www.opentable.com/sapphire-reserve-exclusive-tables?metroId=3578",
+          "count": 52,
+          "previousCount": 45,
+          "added": [
+            "Quality Bistro",
+            "Quality Italian - New York",
+            "Zou Zou's",
+            "Bad Roman - New York",
+            "Twin Tails",
+            "Limusina",
+            "Quality Meats"
+          ],
+          "removed": []
+        },
+        {
+          "id": "new-orleans",
+          "name": "New Orleans",
+          "url": "https://www.opentable.com/sapphire-reserve/new-orleans",
+          "count": 7,
+          "previousCount": 7,
+          "added": [],
+          "removed": []
+        },
+        {
+          "id": "new-york-city",
+          "name": "New York City",
+          "url": "https://www.opentable.com/sapphire-reserve/new-york-city",
+          "count": 52,
+          "previousCount": 45,
+          "added": [
+            "Quality Bistro",
+            "Quality Italian - New York",
+            "Zou Zou's",
+            "Bad Roman - New York",
+            "Twin Tails",
+            "Limusina",
+            "Quality Meats"
+          ],
+          "removed": []
+        },
+        {
+          "id": "oklahoma",
+          "name": "Oklahoma",
+          "url": "https://www.opentable.com/sapphire-reserve-exclusive-tables?metroId=36",
+          "count": 5,
+          "previousCount": 5,
+          "added": [],
+          "removed": []
+        },
+        {
+          "id": "orlando",
+          "name": "Orlando",
+          "url": "https://www.opentable.com/sapphire-reserve-exclusive-tables?metroId=28",
+          "count": 3,
+          "previousCount": 2,
+          "added": [
+            "The Ravenous Pig"
+          ],
+          "removed": []
+        },
+        {
+          "id": "philadelphia",
+          "name": "Philadelphia",
+          "url": "https://www.opentable.com/sapphire-reserve/philadelphia",
+          "count": 17,
+          "previousCount": 17,
+          "added": [],
+          "removed": []
+        },
+        {
+          "id": "phoenix",
+          "name": "Phoenix",
+          "url": "https://www.opentable.com/sapphire-reserve/phoenix",
+          "count": 12,
+          "previousCount": 10,
+          "added": [
+            "Christopher's at Wrigley Mansion",
+            "Wrigley Mansion - Geordie's"
+          ],
+          "removed": []
+        },
+        {
+          "id": "pittsburgh",
+          "name": "Pittsburgh",
+          "url": "https://www.opentable.com/sapphire-reserve-exclusive-tables?metroId=62",
+          "count": 2,
+          "previousCount": 2,
+          "added": [],
+          "removed": []
+        },
+        {
+          "id": "portland",
+          "name": "Portland",
+          "url": "https://www.opentable.com/sapphire-reserve/portland",
+          "count": 13,
+          "previousCount": 13,
+          "added": [],
+          "removed": []
+        },
+        {
+          "id": "raleigh",
+          "name": "Raleigh",
+          "url": "https://www.opentable.com/sapphire-reserve-exclusive-tables?metroId=22",
+          "count": 4,
+          "previousCount": 4,
+          "added": [],
+          "removed": []
+        },
+        {
+          "id": "rhode-island",
+          "name": "Rhode Island",
+          "url": "https://www.opentable.com/sapphire-reserve-exclusive-tables?metroId=3568",
+          "count": 4,
+          "previousCount": 4,
+          "added": [],
+          "removed": []
+        },
+        {
+          "id": "richmond",
+          "name": "Richmond",
+          "url": "https://www.opentable.com/sapphire-reserve-exclusive-tables?metroId=92",
+          "count": 1,
+          "previousCount": 1,
+          "added": [],
+          "removed": []
+        },
+        {
+          "id": "sacramento",
+          "name": "Sacramento",
+          "url": "https://www.opentable.com/sapphire-reserve-exclusive-tables?metroId=35",
+          "count": 5,
+          "previousCount": 4,
+          "added": [
+            "Mulvaney's B&L"
+          ],
+          "removed": []
+        },
+        {
+          "id": "san-antonio",
+          "name": "San Antonio",
+          "url": "https://www.opentable.com/sapphire-reserve/san-antonio",
+          "count": 3,
+          "previousCount": 3,
+          "added": [],
+          "removed": []
+        },
+        {
+          "id": "san-diego",
+          "name": "San Diego",
+          "url": "https://www.opentable.com/sapphire-reserve/san-diego",
+          "count": 14,
+          "previousCount": 14,
+          "added": [],
+          "removed": []
+        },
+        {
+          "id": "san-francisco",
+          "name": "San Francisco",
+          "url": "https://www.opentable.com/sapphire-reserve/san-francisco",
+          "count": 35,
+          "previousCount": 33,
+          "added": [
+            "Birdsong",
+            "Mulvaney's B&L"
+          ],
+          "removed": []
+        },
+        {
+          "id": "santa-fe-albuquerque",
+          "name": "Santa Fe / Albuquerque",
+          "url": "https://www.opentable.com/sapphire-reserve/santa-fe-albuquerque",
+          "count": 4,
+          "previousCount": 4,
+          "added": [],
+          "removed": []
+        },
+        {
+          "id": "seattle",
+          "name": "Seattle",
+          "url": "https://www.opentable.com/sapphire-reserve/seattle",
+          "count": 5,
+          "previousCount": 5,
+          "added": [],
+          "removed": []
+        },
+        {
+          "id": "st-louis",
+          "name": "St. Louis",
+          "url": "https://www.opentable.com/sapphire-reserve-exclusive-tables?metroId=48",
+          "count": 3,
+          "previousCount": 3,
+          "added": [],
+          "removed": []
+        },
+        {
+          "id": "tampa",
+          "name": "Tampa",
+          "url": "https://www.opentable.com/sapphire-reserve-exclusive-tables?metroId=84",
+          "count": 3,
+          "previousCount": 2,
+          "added": [
+            "Kōsen"
+          ],
+          "removed": []
+        },
+        {
+          "id": "tulsa",
+          "name": "Tulsa",
+          "url": "https://www.opentable.com/sapphire-reserve-exclusive-tables?metroId=430",
+          "count": 0,
+          "previousCount": 0,
+          "added": [],
+          "removed": []
+        },
+        {
+          "id": "utah",
+          "name": "Utah",
+          "url": "https://www.opentable.com/sapphire-reserve-exclusive-tables?metroId=21",
+          "count": 0,
+          "previousCount": 0,
+          "added": [],
+          "removed": []
+        },
+        {
+          "id": "washington-dc",
+          "name": "Washington DC",
+          "url": "https://www.opentable.com/sapphire-reserve/washington-dc",
+          "count": 21,
+          "previousCount": 20,
+          "added": [
+            "Elcielo Washington DC"
+          ],
+          "removed": []
+        },
+        {
+          "id": "west-palm-beach",
+          "name": "West Palm Beach",
+          "url": "https://www.opentable.com/sapphire-reserve-exclusive-tables?metroId=3483",
+          "count": 5,
+          "previousCount": 4,
+          "added": [
+            "The Polo Room Palm Beach"
+          ],
+          "removed": []
+        },
+        {
+          "id": "milwaukee",
+          "name": "Wisconsin",
+          "url": "https://www.opentable.com/sapphire-reserve/milwaukee",
+          "count": 6,
+          "previousCount": 6,
+          "added": [],
+          "removed": []
+        }
+      ],
+      "cache": {
+        "runId": "1790868662409",
+        "requestCount": 112,
+        "crawlIds": [
+          "primary",
+          "confirmation"
+        ],
+        "requestIds": [
+          "1790868662417001",
+          "1790868662445002",
+          "1790868662446003",
+          "1790868662447004",
+          "1790868663018005",
+          "1790868663036006",
+          "1790868663453007",
+          "1790868663488008",
+          "1790868663626009",
+          "1790868663954010",
+          "1790868663976011",
+          "1790868664170012",
+          "1790868664383013",
+          "1790868664478014",
+          "1790868664725015",
+          "1790868665019016",
+          "1790868665283017",
+          "1790868665312018",
+          "1790868665340019",
+          "1790868665360020",
+          "1790868665864021",
+          "1790868665963022",
+          "1790868666010023",
+          "1790868666234024",
+          "1790868666360025",
+          "1790868666650026",
+          "1790868666830027",
+          "1790868667060028",
+          "1790868667233029",
+          "1790868667252030",
+          "1790868667273031",
+          "1790868667885032",
+          "1790868667958033",
+          "1790868668408034",
+          "1790868668481035",
+          "1790868668524036",
+          "1790868668892037",
+          "1790868668954038",
+          "1790868669027039",
+          "1790868669378040",
+          "1790868669441041",
+          "1790868669727042",
+          "1790868669995043",
+          "1790868670140044",
+          "1790868670257045",
+          "1790868670587046",
+          "1790868670798047",
+          "1790868670838048",
+          "1790868671056049",
+          "1790868671195050",
+          "1790868671245051",
+          "1790868671656052",
+          "1790868671672053",
+          "1790868671682054",
+          "1790868672199055",
+          "1790868672304056",
+          "1790868672893057",
+          "1790868672893058",
+          "1790868672893059",
+          "1790868672894060",
+          "1790868673315061",
+          "1790868673527062",
+          "1790868673773063",
+          "1790868674040064",
+          "1790868674106065",
+          "1790868674475066",
+          "1790868674622067",
+          "1790868674840068",
+          "1790868675075069",
+          "1790868675265070",
+          "1790868675272071",
+          "1790868675896072",
+          "1790868676008073",
+          "1790868676171074",
+          "1790868676493075",
+          "1790868676531076",
+          "1790868676535077",
+          "1790868676968078",
+          "1790868677085079",
+          "1790868677186080",
+          "1790868677512081",
+          "1790868677604082",
+          "1790868677923083",
+          "1790868678013084",
+          "1790868678030085",
+          "1790868678718086",
+          "1790868678774087",
+          "1790868678984088",
+          "1790868679263089",
+          "1790868679265090",
+          "1790868679385091",
+          "1790868679692092",
+          "1790868679872093",
+          "1790868680207094",
+          "1790868680423095",
+          "1790868680818096",
+          "1790868680823097",
+          "1790868680824098",
+          "1790868681014099",
+          "1790868681194100",
+          "1790868681354101",
+          "1790868681541102",
+          "1790868682050103",
+          "1790868682106104",
+          "1790868682307105",
+          "1790868682325106",
+          "1790868682525107",
+          "1790868682608108",
+          "1790868683001109",
+          "1790868683107110",
+          "1790868683394111",
+          "1790868683459112"
+        ]
+      },
+      "summary": "30 unique restaurants added and 0 removed; market lists changed across 52 markets.",
+      "error": null
+    },
+    {
       "id": "2026-10-01T06:10:15.153Z",
       "monitorId": "chase-sapphire-reserve-tables",
       "timestamp": "2026-10-01T06:10:15.153Z",

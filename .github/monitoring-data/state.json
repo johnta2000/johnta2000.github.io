@@ -1,9 +1,30 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-10-01T13:23:45.723Z",
+  "generatedAt": "2026-10-01T15:31:02.409Z",
   "overallStatus": "healthy",
-  "latestEventId": "20260926131326-chase-sapphire-reserve-tables-restaurant-change",
+  "latestEventId": "20261001153102-chase-sapphire-reserve-tables-restaurant-change",
   "monitors": [
+    {
+      "id": "bilt-calculator-ranking",
+      "name": "Bilt calculator ranking",
+      "description": "Tracks the Bilt calculator across Search Console query performance, index health, canonical integrity, and live-page checks.",
+      "configured": false,
+      "status": "not_configured",
+      "sourceUrl": "https://www.nextcard.com/tools/bilt-calculator",
+      "cadence": "Every 6 hours via Codex",
+      "config": {
+        "property": "sc-domain:nextcard.com",
+        "page": "https://www.nextcard.com/tools/bilt-calculator",
+        "queries": [
+          "bilt calculator",
+          "bilt 2.0 calculator",
+          "bilt calculator 2.0",
+          "bilt points calculator",
+          "bilt card calculator"
+        ],
+        "compareWindow": "Finalized 7 days vs previous 7 days"
+      }
+    },
     {
       "id": "paze-directory",
       "name": "Paze merchant directory",
@@ -70,27 +91,6 @@
           "/tools",
           "dining guide"
         ]
-      }
-    },
-    {
-      "id": "bilt-calculator-ranking",
-      "name": "Bilt calculator ranking",
-      "description": "Tracks the Bilt calculator across Search Console query performance, index health, canonical integrity, and live-page checks.",
-      "configured": false,
-      "status": "not_configured",
-      "sourceUrl": "https://www.nextcard.com/tools/bilt-calculator",
-      "cadence": "Every 6 hours via Codex",
-      "config": {
-        "property": "sc-domain:nextcard.com",
-        "page": "https://www.nextcard.com/tools/bilt-calculator",
-        "queries": [
-          "bilt calculator",
-          "bilt 2.0 calculator",
-          "bilt calculator 2.0",
-          "bilt points calculator",
-          "bilt card calculator"
-        ],
-        "compareWindow": "Finalized 7 days vs previous 7 days"
       }
     },
     {
@@ -178,18 +178,18 @@
         "https://www.opentable.com/sapphire-reserve/milwaukee"
       ],
       "cadence": "Every 4 hours",
-      "latestRunAt": "2026-10-01T06:10:15.153Z",
-      "latestSuccessAt": "2026-10-01T06:10:15.153Z",
-      "latestChangeAt": null,
-      "durationMs": 6156,
-      "summary": "No restaurant-list changes across 52 markets (406 unique restaurants).",
+      "latestRunAt": "2026-10-01T15:31:02.409Z",
+      "latestSuccessAt": "2026-10-01T15:31:02.409Z",
+      "latestChangeAt": "2026-10-01T15:31:02.409Z",
+      "durationMs": 21803,
+      "summary": "30 unique restaurants added and 0 removed; market lists changed across 52 markets.",
       "error": null,
       "metrics": {
-        "restaurantCount": 406,
-        "uniqueRestaurantCount": 406,
-        "listingCount": 477,
+        "restaurantCount": 436,
+        "uniqueRestaurantCount": 436,
+        "listingCount": 516,
         "cityCount": 52,
-        "addedCount": 0,
+        "addedCount": 30,
         "removedCount": 0
       },
       "details": {
@@ -236,9 +236,10 @@
             "id": "baltimore",
             "name": "Baltimore",
             "url": "https://www.opentable.com/sapphire-reserve-exclusive-tables?metroId=18",
-            "count": 20,
+            "count": 21,
             "restaurants": [
               "Xiquet by Danny Lledó",
+              "Elcielo Washington DC",
               "Queen's English",
               "Jônt",
               "Dauphine's",
@@ -259,7 +260,9 @@
               "Thip Khao",
               "Bresca"
             ],
-            "added": [],
+            "added": [
+              "Elcielo Washington DC"
+            ],
             "removed": []
           },
           {
@@ -277,14 +280,17 @@
             "id": "charleston",
             "name": "Charleston",
             "url": "https://www.opentable.com/sapphire-reserve/charleston",
-            "count": 4,
+            "count": 5,
             "restaurants": [
               "Tempest",
               "Southbound",
               "Ma'am Saab",
+              "Honeysuckle Rose",
               "Oak Steakhouse - Charleston"
             ],
-            "added": [],
+            "added": [
+              "Honeysuckle Rose"
+            ],
             "removed": []
           },
           {
@@ -306,7 +312,7 @@
             "id": "chicago",
             "name": "Chicago",
             "url": "https://www.opentable.com/sapphire-reserve/chicago",
-            "count": 28,
+            "count": 30,
             "restaurants": [
               "Anelya",
               "Kasama",
@@ -329,26 +335,34 @@
               "Gingie",
               "Momotaro",
               "Prime & Provisions Steakhouse",
+              "Swift & Sons",
               "Mott Street",
               "Boka",
               "Elske",
+              "schwa",
               "Chicago Cut Steakhouse",
               "Alinea",
               "Lula Cafe",
               "Daisies Chicago"
             ],
-            "added": [],
+            "added": [
+              "Swift & Sons",
+              "schwa"
+            ],
             "removed": []
           },
           {
             "id": "cincinnati",
             "name": "Cincinnati",
             "url": "https://www.opentable.com/sapphire-reserve-exclusive-tables?metroId=90",
-            "count": 1,
+            "count": 2,
             "restaurants": [
+              "Wildweed",
               "Mita's Restaurant"
             ],
-            "added": [],
+            "added": [
+              "Wildweed"
+            ],
             "removed": []
           },
           {
@@ -369,14 +383,17 @@
             "id": "columbus",
             "name": "Columbus",
             "url": "https://www.opentable.com/sapphire-reserve-exclusive-tables?metroId=94",
-            "count": 4,
+            "count": 5,
             "restaurants": [
+              "Veritas",
               "Cento - German Village",
               "Del Mar - Easton",
               "Butcher & Rose",
               "Tucci's - Dublin"
             ],
-            "added": [],
+            "added": [
+              "Veritas"
+            ],
             "removed": []
           },
           {
@@ -416,7 +433,7 @@
             "id": "denver",
             "name": "Denver",
             "url": "https://www.opentable.com/sapphire-reserve/denver",
-            "count": 17,
+            "count": 18,
             "restaurants": [
               "Ash'Kara",
               "BRUTØ",
@@ -430,28 +447,34 @@
               "Cozobi Fonda Fina",
               "Mezcaleria Alma",
               "Alteno",
+              "Quality Italian- Denver",
               "Four by Brother Luck",
               "Rioja",
               "Frasca Food and Wine",
               "El Five",
               "Tavernetta Denver"
             ],
-            "added": [],
+            "added": [
+              "Quality Italian- Denver"
+            ],
             "removed": []
           },
           {
             "id": "detroit",
             "name": "Detroit",
             "url": "https://www.opentable.com/sapphire-reserve/detroit",
-            "count": 5,
+            "count": 6,
             "restaurants": [
               "Ladder 4 Wine Bar",
               "BARDA",
               "Bar Pigalle",
+              "Vecino",
               "Pine Hall",
               "Standby"
             ],
-            "added": [],
+            "added": [
+              "Vecino"
+            ],
             "removed": []
           },
           {
@@ -509,11 +532,12 @@
             "id": "houston",
             "name": "Houston",
             "url": "https://www.opentable.com/sapphire-reserve/houston",
-            "count": 15,
+            "count": 16,
             "restaurants": [
               "Musaafer - Houston",
               "Bludorn",
               "Rosie Cannonball",
+              "Belly of the Beast",
               "Street To Kitchen",
               "JŪN",
               "Turner's Cut",
@@ -527,7 +551,9 @@
               "Lee's",
               "BCN Taste & Tradition"
             ],
-            "added": [],
+            "added": [
+              "Belly of the Beast"
+            ],
             "removed": []
           },
           {
@@ -547,33 +573,39 @@
             "id": "kansas-city",
             "name": "Kansas City",
             "url": "https://www.opentable.com/sapphire-reserve-exclusive-tables?metroId=87",
-            "count": 3,
+            "count": 4,
             "restaurants": [
+              "Anjin",
               "JJ's Restaurant",
               "Room 39 - Midtown",
               "Pierpont's at Union Station"
             ],
-            "added": [],
+            "added": [
+              "Anjin"
+            ],
             "removed": []
           },
           {
             "id": "las-vegas",
             "name": "Las Vegas",
             "url": "https://www.opentable.com/sapphire-reserve/las-vegas",
-            "count": 3,
+            "count": 4,
             "restaurants": [
               "Ada's",
               "Al Solito Posto",
-              "Esther's Kitchen"
+              "Esther's Kitchen",
+              "Sparrow + Wolf"
             ],
-            "added": [],
+            "added": [
+              "Sparrow + Wolf"
+            ],
             "removed": []
           },
           {
             "id": "los-angeles",
             "name": "Los Angeles",
             "url": "https://www.opentable.com/sapphire-reserve/los-angeles",
-            "count": 32,
+            "count": 34,
             "restaurants": [
               "Petit Trois Le Valley",
               "Harriet's",
@@ -593,6 +625,7 @@
               "Queen's Raw Bar & Grill",
               "Super Peach",
               "Rasarumah",
+              "Bad Roman - Beverly Hills",
               "Osteria Mozza",
               "Hermon's",
               "The Nice Guy",
@@ -600,6 +633,7 @@
               "Delilah - Los Angeles",
               "La Dolce Vita",
               "Gwen",
+              "Providence",
               "Melisse",
               "chi SPACCA",
               "Anajak Thai Cuisine",
@@ -608,7 +642,10 @@
               "Vespertine",
               "Majordōmo"
             ],
-            "added": [],
+            "added": [
+              "Bad Roman - Beverly Hills",
+              "Providence"
+            ],
             "removed": []
           },
           {
@@ -628,7 +665,7 @@
             "id": "miami",
             "name": "Miami",
             "url": "https://www.opentable.com/sapphire-reserve/miami",
-            "count": 9,
+            "count": 10,
             "restaurants": [
               "MILA",
               "Luca Osteria",
@@ -638,9 +675,12 @@
               "Los Félix Miami",
               "Taki Omakase - Delray",
               "Taki Omakase- Boca Raton",
-              "Delilah - Miami"
+              "Delilah - Miami",
+              "Elcielo Miami"
             ],
-            "added": [],
+            "added": [
+              "Elcielo Miami"
+            ],
             "removed": []
           },
           {
@@ -675,34 +715,43 @@
             "id": "nashville",
             "name": "Nashville",
             "url": "https://www.opentable.com/sapphire-reserve/nashville",
-            "count": 7,
+            "count": 9,
             "restaurants": [
+              "The Patterson House",
               "Locust Nashville",
               "Kisser",
               "Bad Idea",
               "Henrietta Red",
               "Rolf and Daughters",
+              "The Catbird Seat",
               "Bastion",
               "Peninsula"
             ],
-            "added": [],
+            "added": [
+              "The Patterson House",
+              "The Catbird Seat"
+            ],
             "removed": []
           },
           {
             "id": "new-jersey",
             "name": "New Jersey",
             "url": "https://www.opentable.com/sapphire-reserve-exclusive-tables?metroId=3578",
-            "count": 45,
+            "count": 52,
             "restaurants": [
               "Manhatta",
               "Red Hook Tavern",
+              "Quality Bistro",
               "Hawksmoor NYC",
               "Momofuku Noodle Bar - Uptown",
+              "Quality Italian - New York",
               "Felina Steak- Jersey City",
               "Ci Siamo",
+              "Zou Zou's",
               "l'abeille",
               "Blu on the Hudson",
               "Potluck Club",
+              "Bad Roman - New York",
               "San Sabino",
               "Parcelle Chinatown",
               "Fairfax",
@@ -716,6 +765,7 @@
               "Tolo",
               "Phoenix Palace",
               "Bar Miller",
+              "Twin Tails",
               "Bar Kabawa",
               "Momofuku Noodle Bar - East Village",
               "Razza - Jersey City",
@@ -723,6 +773,7 @@
               "Mitsuru",
               "Sunn's",
               "Mike's Bistro - UES",
+              "Limusina",
               "The Tavern at Gramercy Tavern",
               "Tavern Next Door",
               "Lady Delilah",
@@ -736,11 +787,20 @@
               "The Modern",
               "Maddy Rose at Liberty House",
               "The Bar Room at The Modern",
+              "Quality Meats",
               "The Dining Room at Gramercy Tavern",
               "Jeffrey's Grocery",
               "Don Angie"
             ],
-            "added": [],
+            "added": [
+              "Quality Bistro",
+              "Quality Italian - New York",
+              "Zou Zou's",
+              "Bad Roman - New York",
+              "Twin Tails",
+              "Limusina",
+              "Quality Meats"
+            ],
             "removed": []
           },
           {
@@ -764,17 +824,21 @@
             "id": "new-york-city",
             "name": "New York City",
             "url": "https://www.opentable.com/sapphire-reserve/new-york-city",
-            "count": 45,
+            "count": 52,
             "restaurants": [
               "Manhatta",
               "Red Hook Tavern",
+              "Quality Bistro",
               "Hawksmoor NYC",
               "Momofuku Noodle Bar - Uptown",
+              "Quality Italian - New York",
               "Felina Steak- Jersey City",
               "Ci Siamo",
+              "Zou Zou's",
               "l'abeille",
               "Blu on the Hudson",
               "Potluck Club",
+              "Bad Roman - New York",
               "San Sabino",
               "Parcelle Chinatown",
               "Fairfax",
@@ -788,6 +852,7 @@
               "Tolo",
               "Phoenix Palace",
               "Bar Miller",
+              "Twin Tails",
               "Bar Kabawa",
               "Momofuku Noodle Bar - East Village",
               "Razza - Jersey City",
@@ -795,6 +860,7 @@
               "Mitsuru",
               "Sunn's",
               "Mike's Bistro - UES",
+              "Limusina",
               "The Tavern at Gramercy Tavern",
               "Tavern Next Door",
               "Lady Delilah",
@@ -808,11 +874,20 @@
               "The Modern",
               "Maddy Rose at Liberty House",
               "The Bar Room at The Modern",
+              "Quality Meats",
               "The Dining Room at Gramercy Tavern",
               "Jeffrey's Grocery",
               "Don Angie"
             ],
-            "added": [],
+            "added": [
+              "Quality Bistro",
+              "Quality Italian - New York",
+              "Zou Zou's",
+              "Bad Roman - New York",
+              "Twin Tails",
+              "Limusina",
+              "Quality Meats"
+            ],
             "removed": []
           },
           {
@@ -834,12 +909,15 @@
             "id": "orlando",
             "name": "Orlando",
             "url": "https://www.opentable.com/sapphire-reserve-exclusive-tables?metroId=28",
-            "count": 2,
+            "count": 3,
             "restaurants": [
               "AVA MediterrAegean Winter Park",
-              "Norman's - Orlando"
+              "Norman's - Orlando",
+              "The Ravenous Pig"
             ],
-            "added": [],
+            "added": [
+              "The Ravenous Pig"
+            ],
             "removed": []
           },
           {
@@ -873,9 +951,10 @@
             "id": "phoenix",
             "name": "Phoenix",
             "url": "https://www.opentable.com/sapphire-reserve/phoenix",
-            "count": 10,
+            "count": 12,
             "restaurants": [
               "Bacanora",
+              "Christopher's at Wrigley Mansion",
               "Chilte",
               "Élephante Scottsdale",
               "Course",
@@ -883,10 +962,14 @@
               "Latha Restaurant",
               "Cleaverman",
               "Filthy Animal",
+              "Wrigley Mansion - Geordie's",
               "The Mission - Old Town Scottsdale",
               "Fat Ox"
             ],
-            "added": [],
+            "added": [
+              "Christopher's at Wrigley Mansion",
+              "Wrigley Mansion - Geordie's"
+            ],
             "removed": []
           },
           {
@@ -967,14 +1050,17 @@
             "id": "sacramento",
             "name": "Sacramento",
             "url": "https://www.opentable.com/sapphire-reserve-exclusive-tables?metroId=35",
-            "count": 4,
+            "count": 5,
             "restaurants": [
               "Camden Spit and Larder",
               "Ella Dining Room and Bar",
+              "Mulvaney's B&L",
               "Canon",
               "Allora"
             ],
-            "added": [],
+            "added": [
+              "Mulvaney's B&L"
+            ],
             "removed": []
           },
           {
@@ -1018,8 +1104,9 @@
             "id": "san-francisco",
             "name": "San Francisco",
             "url": "https://www.opentable.com/sapphire-reserve/san-francisco",
-            "count": 33,
+            "count": 35,
             "restaurants": [
+              "Birdsong",
               "Angler San Francisco",
               "Selby's",
               "Camden Spit and Larder",
@@ -1041,6 +1128,7 @@
               "Maria Isabel",
               "The Progress",
               "Ella Dining Room and Bar",
+              "Mulvaney's B&L",
               "Omakase",
               "House of Prime Rib",
               "Gary Danko",
@@ -1054,7 +1142,10 @@
               "Rich Table",
               "Allora"
             ],
-            "added": [],
+            "added": [
+              "Birdsong",
+              "Mulvaney's B&L"
+            ],
             "removed": []
           },
           {
@@ -1103,12 +1194,15 @@
             "id": "tampa",
             "name": "Tampa",
             "url": "https://www.opentable.com/sapphire-reserve-exclusive-tables?metroId=84",
-            "count": 2,
+            "count": 3,
             "restaurants": [
               "Fortu",
+              "Kōsen",
               "Il Ritorno"
             ],
-            "added": [],
+            "added": [
+              "Kōsen"
+            ],
             "removed": []
           },
           {
@@ -1133,9 +1227,10 @@
             "id": "washington-dc",
             "name": "Washington DC",
             "url": "https://www.opentable.com/sapphire-reserve/washington-dc",
-            "count": 20,
+            "count": 21,
             "restaurants": [
               "Xiquet by Danny Lledó",
+              "Elcielo Washington DC",
               "Queen's English",
               "Jônt",
               "Dauphine's",
@@ -1156,21 +1251,26 @@
               "Thip Khao",
               "Bresca"
             ],
-            "added": [],
+            "added": [
+              "Elcielo Washington DC"
+            ],
             "removed": []
           },
           {
             "id": "west-palm-beach",
             "name": "West Palm Beach",
             "url": "https://www.opentable.com/sapphire-reserve-exclusive-tables?metroId=3483",
-            "count": 4,
+            "count": 5,
             "restaurants": [
               "The Butcher's Club at PGA National Resort",
               "Taki Omakase - Delray",
               "Taki Omakase- Boca Raton",
-              "Nicholson Muir Meats"
+              "Nicholson Muir Meats",
+              "The Polo Room Palm Beach"
             ],
-            "added": [],
+            "added": [
+              "The Polo Room Palm Beach"
+            ],
             "removed": []
           },
           {
@@ -1191,68 +1291,125 @@
           }
         ],
         "cache": {
-          "runId": "1790835015153",
-          "requestCount": 56,
+          "runId": "1790868662409",
+          "requestCount": 112,
           "crawlIds": [
-            "primary"
+            "primary",
+            "confirmation"
           ],
           "requestIds": [
-            "1790835015161001",
-            "1790835015196002",
-            "1790835015197003",
-            "1790835015198004",
-            "1790835015669005",
-            "1790835015743006",
-            "1790835015764007",
-            "1790835016024008",
-            "1790835016041009",
-            "1790835016135010",
-            "1790835016315011",
-            "1790835016421012",
-            "1790835016430013",
-            "1790835016581014",
-            "1790835016697015",
-            "1790835016843016",
-            "1790835016898017",
-            "1790835016976018",
-            "1790835017075019",
-            "1790835017223020",
-            "1790835017250021",
-            "1790835017360022",
-            "1790835017504023",
-            "1790835017600024",
-            "1790835017745025",
-            "1790835017879026",
-            "1790835017962027",
-            "1790835017999028",
-            "1790835018128029",
-            "1790835018314030",
-            "1790835018319031",
-            "1790835018499032",
-            "1790835018606033",
-            "1790835018704034",
-            "1790835018763035",
-            "1790835018848036",
-            "1790835018974037",
-            "1790835019059038",
-            "1790835019173039",
-            "1790835019358040",
-            "1790835019364041",
-            "1790835019439042",
-            "1790835019563043",
-            "1790835019753044",
-            "1790835019766045",
-            "1790835019826046",
-            "1790835020026047",
-            "1790835020134048",
-            "1790835020195049",
-            "1790835020266050",
-            "1790835020375051",
-            "1790835020543052",
-            "1790835020639053",
-            "1790835020684054",
-            "1790835020760055",
-            "1790835020858056"
+            "1790868662417001",
+            "1790868662445002",
+            "1790868662446003",
+            "1790868662447004",
+            "1790868663018005",
+            "1790868663036006",
+            "1790868663453007",
+            "1790868663488008",
+            "1790868663626009",
+            "1790868663954010",
+            "1790868663976011",
+            "1790868664170012",
+            "1790868664383013",
+            "1790868664478014",
+            "1790868664725015",
+            "1790868665019016",
+            "1790868665283017",
+            "1790868665312018",
+            "1790868665340019",
+            "1790868665360020",
+            "1790868665864021",
+            "1790868665963022",
+            "1790868666010023",
+            "1790868666234024",
+            "1790868666360025",
+            "1790868666650026",
+            "1790868666830027",
+            "1790868667060028",
+            "1790868667233029",
+            "1790868667252030",
+            "1790868667273031",
+            "1790868667885032",
+            "1790868667958033",
+            "1790868668408034",
+            "1790868668481035",
+            "1790868668524036",
+            "1790868668892037",
+            "1790868668954038",
+            "1790868669027039",
+            "1790868669378040",
+            "1790868669441041",
+            "1790868669727042",
+            "1790868669995043",
+            "1790868670140044",
+            "1790868670257045",
+            "1790868670587046",
+            "1790868670798047",
+            "1790868670838048",
+            "1790868671056049",
+            "1790868671195050",
+            "1790868671245051",
+            "1790868671656052",
+            "1790868671672053",
+            "1790868671682054",
+            "1790868672199055",
+            "1790868672304056",
+            "1790868672893057",
+            "1790868672893058",
+            "1790868672893059",
+            "1790868672894060",
+            "1790868673315061",
+            "1790868673527062",
+            "1790868673773063",
+            "1790868674040064",
+            "1790868674106065",
+            "1790868674475066",
+            "1790868674622067",
+            "1790868674840068",
+            "1790868675075069",
+            "1790868675265070",
+            "1790868675272071",
+            "1790868675896072",
+            "1790868676008073",
+            "1790868676171074",
+            "1790868676493075",
+            "1790868676531076",
+            "1790868676535077",
+            "1790868676968078",
+            "1790868677085079",
+            "1790868677186080",
+            "1790868677512081",
+            "1790868677604082",
+            "1790868677923083",
+            "1790868678013084",
+            "1790868678030085",
+            "1790868678718086",
+            "1790868678774087",
+            "1790868678984088",
+            "1790868679263089",
+            "1790868679265090",
+            "1790868679385091",
+            "1790868679692092",
+            "1790868679872093",
+            "1790868680207094",
+            "1790868680423095",
+            "1790868680818096",
+            "1790868680823097",
+            "1790868680824098",
+            "1790868681014099",
+            "1790868681194100",
+            "1790868681354101",
+            "1790868681541102",
+            "1790868682050103",
+            "1790868682106104",
+            "1790868682307105",
+            "1790868682325106",
+            "1790868682525107",
+            "1790868682608108",
+            "1790868683001109",
+            "1790868683107110",
+            "1790868683394111",
+            "1790868683459112"
           ]
         },
         "collectionVersion": 2
