@@ -1,0 +1,352 @@
+.sticker-loader {
+  position: fixed;
+  inset: 0;
+  z-index: 45;
+  overflow: hidden;
+  background:
+    linear-gradient(180deg, rgba(31, 33, 29, 0.98), rgba(31, 33, 29, 0.82)),
+    radial-gradient(circle at center, rgba(255, 252, 245, 0.2), transparent 42%),
+    rgba(31, 33, 29, 0.9);
+}
+
+.siren-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 35;
+  pointer-events: none;
+  overflow: hidden;
+  background: rgba(169, 54, 47, 0);
+}
+
+.siren-layer.is-active {
+  animation: alarmWash 1600ms ease both;
+}
+
+.siren {
+  position: absolute;
+  top: 28px;
+  width: clamp(96px, 13vw, 170px);
+  aspect-ratio: 1.25;
+  border: 3px solid rgba(255, 248, 232, 0.92);
+  border-radius: 22px 22px 46% 46%;
+  background:
+    radial-gradient(circle at 50% 28%, rgba(255, 255, 255, 0.78) 0 13%, transparent 14%),
+    linear-gradient(180deg, #ff6058 0%, #bd271f 52%, #5d0f0b 100%);
+  box-shadow:
+    0 0 32px rgba(255, 45, 36, 0.9),
+    0 18px 40px rgba(0, 0, 0, 0.34);
+  opacity: 0;
+}
+
+.siren::before {
+  content: "";
+  position: absolute;
+  left: 18%;
+  right: 18%;
+  bottom: -16px;
+  height: 20px;
+  border-radius: 999px;
+  background: #2f211b;
+}
+
+.siren-left {
+  left: 24px;
+}
+
+.siren-right {
+  right: 24px;
+}
+
+.siren-layer.is-active .siren-left {
+  animation: sirenSpinLeft 820ms linear infinite, sirenIn 1600ms ease both;
+}
+
+.siren-layer.is-active .siren-right {
+  animation: sirenSpinRight 820ms linear infinite, sirenIn 1600ms ease both;
+}
+
+.siren-beam {
+  position: absolute;
+  top: -18vh;
+  width: 52vw;
+  height: 72vh;
+  opacity: 0;
+  mix-blend-mode: screen;
+  background: conic-gradient(from 90deg, transparent 0 18%, rgba(255, 44, 35, 0.6) 23%, transparent 35% 100%);
+  transform-origin: 50% 0;
+}
+
+.beam-left {
+  left: -10vw;
+}
+
+.beam-right {
+  right: -10vw;
+}
+
+.siren-layer.is-active .beam-left {
+  animation: beamSweepLeft 520ms linear infinite, beamFade 1600ms ease both;
+}
+
+.siren-layer.is-active .beam-right {
+  animation: beamSweepRight 520ms linear infinite, beamFade 1600ms ease both;
+}
+
+@keyframes alarmWash {
+  0%,
+  100% {
+    background: rgba(169, 54, 47, 0);
+  }
+  15%,
+  58% {
+    background: rgba(169, 54, 47, 0.2);
+  }
+}
+
+@keyframes sirenIn {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  8%,
+  82% {
+    opacity: 1;
+  }
+}
+
+@keyframes sirenSpinLeft {
+  from {
+    transform: rotate(-10deg);
+  }
+  to {
+    transform: rotate(350deg);
+  }
+}
+
+@keyframes sirenSpinRight {
+  from {
+    transform: rotate(10deg);
+  }
+  to {
+    transform: rotate(-350deg);
+  }
+}
+
+@keyframes beamFade {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  10%,
+  78% {
+    opacity: 1;
+  }
+}
+
+@keyframes beamSweepLeft {
+  from {
+    transform: rotate(-24deg);
+  }
+  to {
+    transform: rotate(42deg);
+  }
+}
+
+@keyframes beamSweepRight {
+  from {
+    transform: rotate(24deg);
+  }
+  to {
+    transform: rotate(-42deg);
+  }
+}
+
+.sticker-loader::after {
+  content: "Loading war room";
+  position: absolute;
+  left: 50%;
+  bottom: 26px;
+  transform: translateX(-50%);
+  border: 1px solid rgba(255, 248, 232, 0.36);
+  border-radius: 999px;
+  background: rgba(31, 33, 29, 0.76);
+  color: #fff8e8;
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  padding: 9px 12px;
+  text-transform: uppercase;
+}
+
+.sticker-rain {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: clamp(74px, 10vw, 132px);
+  height: auto;
+  filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.36));
+  transform: translate(calc(var(--x) - 50%), -160px) rotate(var(--r)) scale(var(--s));
+  animation: stickerRain 980ms cubic-bezier(0.16, 0.92, 0.22, 1) both;
+}
+
+@keyframes stickerRain {
+  0% {
+    opacity: 0;
+    transform: translate(calc(var(--x) - 50%), -160px) rotate(calc(var(--r) * -1)) scale(var(--s));
+  }
+  22% {
+    opacity: 1;
+    transform: translate(calc(var(--x) - 50%), calc(var(--y) + 8vh)) rotate(var(--r)) scale(var(--s));
+  }
+  56% {
+    opacity: 1;
+    transform: translate(calc(var(--x) - 50%), var(--y)) rotate(calc(var(--r) * 0.55)) scale(var(--s));
+  }
+  82% {
+    opacity: 1;
+    transform: translate(calc(var(--x) - 50%), var(--y)) rotate(var(--r)) scale(var(--s));
+  }
+  100% {
+    opacity: 0.15;
+    transform: translate(calc(var(--x) - 50%), calc(var(--y) + 4vh)) rotate(calc(var(--r) * 1.2)) scale(calc(var(--s) * 0.96));
+  }
+}
+
+.six-seven {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: center;
+  justify-items: center;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.six-seven b {
+  display: grid;
+  place-items: center;
+  width: clamp(80px, 14vw, 150px);
+  aspect-ratio: 1;
+  border: 2px solid rgba(255, 248, 232, 0.9);
+  border-radius: 999px;
+  background: rgba(169, 54, 47, 0.86);
+  color: #fff8e8;
+  font-size: clamp(3rem, 10vw, 7rem);
+  font-weight: 950;
+  line-height: 1;
+  text-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+  transform: translateY(36px) rotate(-10deg) scale(0.72);
+}
+
+.six-seven b:last-child {
+  background: rgba(47, 79, 112, 0.9);
+  transform: translateY(-28px) rotate(12deg) scale(0.72);
+}
+
+.war-cat:hover img {
+  transform: scale(1.025);
+}
+
+.war-cat img {
+  transition: transform 220ms ease;
+}
+
+.war-cat.is-six-sevening img {
+  animation: cat67 1100ms cubic-bezier(0.2, 0.9, 0.2, 1);
+}
+
+.war-cat.is-six-sevening .cat-caption {
+  animation: caption67 1400ms ease;
+}
+
+.war-cat.is-six-sevening .six-seven {
+  animation: reveal67 1400ms ease;
+}
+
+.war-cat.is-six-sevening .six-seven b:first-child {
+  animation: sixPop 1400ms ease;
+}
+
+.war-cat.is-six-sevening .six-seven b:last-child {
+  animation: sevenPop 1400ms ease;
+}
+
+@keyframes cat67 {
+  0%,
+  100% {
+    transform: scale(1) rotate(0deg) translate(0, 0);
+  }
+  10% {
+    transform: scale(1.045) rotate(-4deg) translate(-12px, 4px);
+  }
+  22% {
+    transform: scale(1.06) rotate(5deg) translate(14px, -3px);
+  }
+  34% {
+    transform: scale(1.05) rotate(-6deg) translate(-16px, 3px);
+  }
+  48% {
+    transform: scale(1.065) rotate(6deg) translate(18px, -4px);
+  }
+  62% {
+    transform: scale(1.045) rotate(-3deg) translate(-10px, 2px);
+  }
+  78% {
+    transform: scale(1.035) rotate(3deg) translate(8px, -2px);
+  }
+}
+
+@keyframes reveal67 {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  12%,
+  76% {
+    opacity: 1;
+  }
+}
+
+@keyframes sixPop {
+  0%,
+  100% {
+    transform: translateY(36px) rotate(-10deg) scale(0.72);
+  }
+  16%,
+  70% {
+    transform: translateY(0) rotate(-8deg) scale(1);
+  }
+  42% {
+    transform: translateY(-8px) rotate(8deg) scale(1.1);
+  }
+}
+
+@keyframes sevenPop {
+  0%,
+  100% {
+    transform: translateY(-28px) rotate(12deg) scale(0.72);
+  }
+  22%,
+  70% {
+    transform: translateY(0) rotate(8deg) scale(1);
+  }
+  48% {
+    transform: translateY(10px) rotate(-8deg) scale(1.12);
+  }
+}
+
+@keyframes caption67 {
+  0%,
+  100% {
+    content: normal;
+  }
+  12%,
+  76% {
+    transform: translateY(-4px);
+    background: rgba(169, 54, 47, 0.86);
+  }
+}
+
+

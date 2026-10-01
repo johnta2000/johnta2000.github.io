@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="October 1 launch operations for Air France KLM, BOFA APR, IHG, and United. Preparation, approvals, partner communications, and distribution." />
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+    <title>October 1, 2026 · Launch War Room</title>
+    <link rel="stylesheet" href="../assets/css/searchable-select.css" />
+    <link rel="stylesheet" href="./styles.css?v=5" />
+  </head>
+  <body>
+    <section id="accessGate" class="password-gate" aria-labelledby="accessGateTitle" role="dialog" aria-modal="true">
+      <div class="password-card auth-card">
+        <p class="eyebrow">nextcard · Launch operations</p>
+        <h1 id="accessGateTitle">Sign in to the war room</h1>
+        <p class="auth-copy">Use your approved affil.ai account to continue.</p>
+        <div id="clerkSignIn"></div>
+        <p id="authStatus" role="status">Loading secure sign-in…</p>
+        <button id="authRetry" type="button" hidden>Retry sign-in</button>
+        <button id="authSignOut" type="button" hidden>Use another account</button>
+        <a id="hostedSignIn" href="https://www.john-ta.com/war-room-10012026/" hidden>Open the secure war room ↗</a>
+      </div>
+    </section>
+    <section id="stickerLoader" class="sticker-loader" aria-label="Entering war room" hidden></section>
+    <section id="sirenLayer" class="siren-layer" aria-hidden="true" hidden>
+      <span class="siren siren-left"></span>
+      <span class="siren siren-right"></span>
+      <span class="siren-beam beam-left"></span>
+      <span class="siren-beam beam-right"></span>
+    </section>
+    <section id="corgiGifLayer" class="corgi-gif-layer" aria-label="Dancing corgis everywhere" hidden>
+      <button id="corgiGifClose" type="button">Close corgis × <small>Esc</small></button>
+    </section>
+    <main id="warRoomApp" class="shell" hidden>
+      <header class="topbar"><a class="wordmark" href="#">nextcard<span> / launch operations</span></a><div class="account-controls"><span id="accountEmail"></span><button id="signOut" type="button">Sign out</button><button id="syncStatus" class="sync-status" type="button" aria-live="polite">Connecting shared progress…</button></div></header>
+      <section class="hero">
+        <div class="hero-copy">
+          <p class="eyebrow"><span class="live-dot"></span> Thursday, October 01, 2026</p>
+          <h1>Launch war room<span class="heading-dot">.</span></h1>
+          <p class="hero-subtitle">Four projects. Four launch windows. One place to get it done.</p>
+        </div>
+        <button class="war-cat" id="warCat" type="button" aria-label="Activate War Corgi Command">
+          <img src="./war-corgi.png" alt="War corgi at the command post" /><span class="cat-caption">COMMAND ON DUTY</span><span class="six-seven" aria-hidden="true"><b>6</b><b>7</b></span>
+        </button>
+      </section>
+      <section class="launch-schedule" aria-label="October 1 launch schedule">
+        <div class="section-heading"><h2>The launch sequence</h2><span>October 1 · <span id="timeBasis">Pacific time (PDT assumed)</span></span></div>
+        <div class="timeline">
+          <a href="#ihg" class="milestone"><span class="time">05:00 <small>am</small></span><strong>IHG cards</strong><span>Embargo lifts · news email</span></a>
+          <a href="#united" class="milestone"><span class="time">06:00 <small>am</small></span><strong>United cards</strong><span>Embargo lifts · news email</span></a>
+          <a href="#air-france" class="milestone"><span class="time">07:00 <small>am</small></span><strong>Air France KLM</strong><span>Launch · BOFA partner email</span></a>
+          <a href="#bofa-apr" class="milestone"><span class="time">08:00 <small>am</small></span><strong>BOFA APR changes</strong><span>Rate update window opens</span></a>
+          <a href="#bofa-apr" class="milestone deadline"><span class="time">12:00 <small>pm</small></span><strong>BOFA deadline</strong><span>All APR updates verified</span></a>
+        </div>
+      </section>
+      <section class="summary" aria-label="Progress summary">
+        <div class="progress-block"><div class="progress-meta"><strong><i class="legend-dot prep-dot"></i>Preparation</strong><span><b id="doneCount">0</b> / <b id="totalCount">0</b> <em id="percentCount">0%</em></span></div><div class="meter"><i id="meterFill"></i></div><small>Crawls, drafts, mockups & ready-to-send copy</small></div>
+        <div class="progress-block"><div class="progress-meta"><strong><i class="legend-dot launch-dot"></i>Launch & distribution</strong><span><b id="postDoneCount">0</b> / <b id="postTotalCount">0</b> <em id="postPercentCount">0%</em></span></div><div class="meter post-meter"><i id="postMeterFill"></i></div><small>Deployments, verified changelogs, emails & published content</small></div>
+      </section>
+      <div class="briefing"><strong>Before the first launch</strong><span>Crawl every affected card. Attach issuer sources and the card inventory. Stage updates and collect approvals. IHG / United emails wait for embargo lift.</span></div>
+      <section class="board-toolbar" aria-label="Board controls"><div class="project-filters"><button type="button" data-project="all" aria-pressed="true">All projects <b>4</b></button><button type="button" data-project="air-france" aria-pressed="false">Air France KLM</button><button type="button" data-project="bofa-apr" aria-pressed="false">BOFA APR</button><button type="button" data-project="ihg" aria-pressed="false">IHG</button><button type="button" data-project="united" aria-pressed="false">United</button></div><div class="command-bar"><button id="collapseDone" type="button">Hide done</button><button id="toggleAddPanel" class="primary" type="button">＋ Add ticket</button></div></section>
+      <section id="board" class="board" aria-label="War room board"></section>
+
+      <footer class="board-footer"><p>Use ⋯ or right-click to edit. Double-click opens a saved link. Checks save automatically.<br>Preparation and launch are tracked separately; all work starts unchecked.</p><div class="command-bar"><button id="expandAll" type="button">Show all checks</button><button id="exportState" type="button">Export progress</button><button id="resetState" class="danger" type="button">Reset checks</button></div></footer>
+      <details class="reference"><summary>Original whiteboard reference</summary><img src="../projects/war-room/prior-war-room.png" alt="Original war room whiteboard" /></details>
+    </main>
+
+    <section id="addModal" class="modal-shell" aria-labelledby="addModalTitle" aria-modal="true" role="dialog" hidden>
+      <button id="modalBackdrop" class="modal-backdrop" type="button" aria-label="Close add item modal"></button>
+      <div class="add-panel">
+        <header class="modal-header">
+          <div>
+            <p class="eyebrow">Add to board</p>
+            <h2 id="addModalTitle">New checklist item</h2>
+          </div>
+          <button id="closeAddModal" class="icon-button" type="button" aria-label="Close">×</button>
+        </header>
+        <form id="globalAddForm" class="global-add-form">
+          <label class="field-label">Item title<input type="text" name="title" required autocomplete="off" placeholder="Item or partner name" aria-label="Item title" /></label>
+          <label class="field-label">Bucket<select id="bucketSelect" name="bucket" aria-label="Bucket"></select></label>
+          <label class="field-label">Section<select id="groupSelect" name="group" aria-label="Section"></select></label>
+          <label class="field-label">Linear URL<input type="url" name="linearUrl" autocomplete="off" placeholder="Linear URL" aria-label="Linear URL" /></label>
+          <label class="field-label">Google Doc URL<input type="url" name="docUrl" autocomplete="off" placeholder="Google Doc URL" aria-label="Google Doc URL" /></label>
+          <label class="field-label">Maintouch URL<input type="url" name="maintouchUrl" autocomplete="off" placeholder="Maintouch URL" aria-label="Maintouch URL" /></label>
+          <label class="field-label">Other URLs<textarea name="otherUrls" placeholder="Other URLs" aria-label="Other URLs"></textarea></label>
+          <label class="field-label">Tags<input type="text" name="tags" autocomplete="off" placeholder="Tags: Owner, Waiting, Priority" aria-label="Tags" /></label>
+          <label class="field-label">Notes<textarea name="notes" placeholder="Notes" aria-label="Notes"></textarea></label>
+          <label class="field-label">Checklist stages<textarea name="stages" placeholder="Optional checklist stages, one per line" aria-label="Checklist stages"></textarea></label>
+          <button type="submit">Add ticket</button>
+        </form>
+      </div>
+    </section>
+
+    <section id="linkModal" class="modal-shell" aria-labelledby="linkModalTitle" aria-modal="true" role="dialog" hidden>
+      <button id="linkModalBackdrop" class="modal-backdrop" type="button" aria-label="Close ticket editor"></button>
+      <div class="add-panel link-panel">
+        <header class="modal-header">
+          <div>
+            <p class="eyebrow">Ticket editor</p>
+            <h2 id="linkModalTitle">Edit ticket</h2>
+            <p id="linkModalTask" class="modal-subtitle"></p>
+          </div>
+          <button id="closeLinkModal" class="icon-button" type="button" aria-label="Close">×</button>
+        </header>
+        <form id="linkForm" class="link-form">
+          <label class="field-label">Ticket title<input type="text" name="title" required autocomplete="off" placeholder="Ticket title" aria-label="Ticket title" /></label>
+          <label class="field-label">Notes<textarea name="notes" placeholder="Notes" aria-label="Notes"></textarea></label>
+          <label class="field-label">Tags<input type="text" name="tags" autocomplete="off" placeholder="Tags: Owner, Waiting, Priority" aria-label="Tags" /></label>
+          <label class="field-label">Linear URL<input type="url" name="linearUrl" autocomplete="off" placeholder="Linear URL" aria-label="Linear URL" /></label>
+          <label class="field-label">Google Doc URL<input type="url" name="docUrl" autocomplete="off" placeholder="Google Doc URL" aria-label="Google Doc URL" /></label>
+          <label class="field-label">Maintouch URL<input type="url" name="maintouchUrl" autocomplete="off" placeholder="Maintouch URL" aria-label="Maintouch URL" /></label>
+          <label class="field-label">Other URLs<textarea name="otherUrls" placeholder="Other URLs" aria-label="Other URLs"></textarea></label>
+          <div class="modal-actions">
+            <button id="deleteTicket" class="danger" type="button">Delete ticket</button>
+            <button type="submit">Save ticket</button>
+          </div>
+          <section id="deleteConfirmation" class="delete-confirmation" aria-label="Confirm ticket deletion" hidden>
+            <p id="deleteConfirmationText" role="alert"></p>
+            <div class="delete-confirmation-actions">
+              <button id="cancelDeleteTicket" type="button">Cancel</button>
+              <button id="confirmDeleteTicket" class="danger" type="button">Confirm delete</button>
+            </div>
+          </section>
+        </form>
+      </div>
+    </section>
+
+    <template id="bucketTemplate">
+      <article class="bucket">
+        <header class="bucket-header">
+          <div>
+            <p class="bucket-kicker"></p>
+            <h2></h2>
+          </div>
+          <span class="bucket-progress"></span>
+        </header>
+        <div class="groups"></div>
+      </article>
+    </template>
+
+    <template id="groupTemplate">
+      <section class="task-group">
+        <h3></h3>
+        <ul></ul>
+      </section>
+    </template>
+
+    <template id="taskTemplate">
+      <li>
+        <label>
+          <input type="checkbox" />
+          <span></span>
+        </label>
+      </li>
+    </template>
+
+    <script src="../assets/js/searchable-select.js"></script>
+    <script src="./auth.js?v=1"></script>
+    <script src="./app.js?v=10"></script>
+  </body>
+</html>

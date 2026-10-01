@@ -1,5 +1,17 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { ConvexError } from "convex/values";
+import { PRIVATE_LAUNCH_BOARD, requireLaunchUser, requireWarRoomAccess } from "./warRoomAccess";
+import { launchSeedBuckets } from "./warRoomLaunchSeed";
+
+export const verify = query({
+  args: { boardId: v.string() },
+  handler: async (ctx, args) => {
+    const viewer = await requireLaunchUser(ctx);
+    if (args.boardId !== PRIVATE_LAUNCH_BOARD) throw new ConvexError({ code: "FORBIDDEN" });
+    return { ...viewer, seedBuckets: launchSeedBuckets };
+  },
+});
 
 const stateArgs = {
   boardId: v.string(),
@@ -15,6 +27,7 @@ const stateArgs = {
 export const get = query({
   args: { boardId: v.string() },
   handler: async (ctx, args) => {
+    await requireWarRoomAccess(ctx, args.boardId);
     return await ctx.db
       .query("warRoomState")
       .withIndex("by_board", (q) => q.eq("boardId", args.boardId))
@@ -25,6 +38,7 @@ export const get = query({
 export const save = mutation({
   args: stateArgs,
   handler: async (ctx, args) => {
+    await requireWarRoomAccess(ctx, args.boardId);
     const existing = await ctx.db
       .query("warRoomState")
       .withIndex("by_board", (q) => q.eq("boardId", args.boardId))
