@@ -7,7 +7,7 @@
     <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
     <title>October 1, 2026 · Launch War Room</title>
     <link rel="stylesheet" href="../assets/css/searchable-select.css" />
-    <link rel="stylesheet" href="./styles.css?v=6" />
+    <link rel="stylesheet" href="./styles.css?v=7" />
   </head>
   <body>
     <section id="accessGate" class="password-gate" aria-labelledby="accessGateTitle" role="dialog" aria-modal="true">
@@ -180,6 +180,10 @@
           </div>
           <span class="bucket-progress"></span>
         </header>
+        <section class="project-notes">
+          <label>Project notes<textarea rows="3" maxlength="10000" placeholder="Updates, blockers, handoff notes…" disabled></textarea></label>
+          <div class="project-notes-footer"><span class="project-notes-status" role="status">Shared with the team</span><button class="save-project-notes" type="button" disabled>Save notes</button></div>
+        </section>
         <div class="groups"></div>
       </article>
     </template>
@@ -203,6 +207,7 @@
     <script src="../assets/js/searchable-select.js"></script>
     <script src="./auth.js?v=1"></script>
     <script src="./schedule.js?v=1"></script>
-    <script src="./app.js?v=11"></script>
+    <script src="./project-notes.js?v=1"></script>
+    <script src="./app.js?v=12"></script>
   </body>
 </html>

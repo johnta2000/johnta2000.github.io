@@ -44,6 +44,37 @@ export const setLaunchStatus = mutation({
   },
 });
 
+export const getProjectNotes = query({
+  args: {},
+  handler: async (ctx) => {
+    await requireLaunchUser(ctx);
+    const board = await ctx.db.query("warRoomState")
+      .withIndex("by_board", q => q.eq("boardId", PRIVATE_LAUNCH_BOARD)).unique();
+    return board?.projectNotes ?? {};
+  },
+});
+
+export const setProjectNote = mutation({
+  args: {
+    project: v.union(v.literal("ihg"), v.literal("united"), v.literal("air-france"), v.literal("bofa-apr")),
+    text: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const viewer = await requireLaunchUser(ctx);
+    if (args.text.length > 10000) throw new ConvexError({ code: "INVALID_NOTE", message: "Project notes must be 10,000 characters or fewer." });
+    const board = await ctx.db.query("warRoomState")
+      .withIndex("by_board", q => q.eq("boardId", PRIVATE_LAUNCH_BOARD)).unique();
+    const entry = { text: args.text, updatedAt: Date.now(), updatedBy: viewer.email };
+    const projectNotes = { ...(board?.projectNotes ?? {}), [args.project]: entry };
+    if (board) await ctx.db.patch(board._id, { projectNotes });
+    else await ctx.db.insert("warRoomState", {
+      boardId: PRIVATE_LAUNCH_BOARD, completed: {}, linearLinks: {}, docLinks: {},
+      projectNotes, updatedAt: Date.now(),
+    });
+    return entry;
+  },
+});
+
 const stateArgs = {
   boardId: v.string(),
   completed: v.any(),

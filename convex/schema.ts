@@ -19,6 +19,7 @@ export default defineSchema({
   warRoomState: defineTable({
     boardId: v.string(),
     launchStatuses: v.optional(v.any()),
+    projectNotes: v.optional(v.any()),
     completed: v.any(),
     linearLinks: v.any(),
     docLinks: v.any(),

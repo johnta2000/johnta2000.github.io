@@ -274,9 +274,11 @@ window.WarRoomAuth.start({
     document.querySelector("#accountEmail").textContent = viewer.email;
     unlockWarRoom();
     window.WarRoomSchedule?.start();
+    window.WarRoomNotes?.start(viewer.subject);
   },
   onLocked: () => {
     window.WarRoomSchedule?.stop();
+    window.WarRoomNotes?.stop();
     bucketPicker?.close();
     groupPicker?.close();
     authorized = false;
@@ -302,6 +304,10 @@ window.WarRoomAuth.start({
 });
 
 document.querySelector("#signOut").addEventListener("click", async () => {
+  if (window.WarRoomNotes && !await window.WarRoomNotes.flushAll()) {
+    setSyncStatus("Project notes are saved locally. Retry saving before signing out.", "error");
+    return;
+  }
   if (dirty) {
     await syncFromRemote();
     if (authorized && remoteReady) await saveRemoteNow();
@@ -443,6 +449,7 @@ function render() {
       }
     });
 
+    window.WarRoomNotes?.bind(bucketNode, bucket.id, bucket.title);
     board.append(bucketNode);
   });
 
@@ -680,6 +687,7 @@ function buildExport() {
     exportedAt: new Date().toISOString(),
     buckets: state.buckets.map((bucket) => ({
       title: bucket.title,
+      notes: window.WarRoomNotes?.getText(bucket.id) || "",
       groups: bucket.groups.map((group) => ({
         title: group.title,
         tasks: group.tasks.map((task) => ({
@@ -1111,7 +1119,7 @@ document.querySelectorAll("[data-project]").forEach(button => button.addEventLis
 document.querySelector("#syncStatus").addEventListener("click", () => { if (!saving) syncFromRemote(); });
 window.addEventListener("online", () => syncFromRemote());
 window.addEventListener("beforeunload", (event) => {
-  if (dirty) { event.preventDefault(); event.returnValue = ""; }
+  if (dirty || window.WarRoomNotes?.hasPending()) { event.preventDefault(); event.returnValue = ""; }
 });
 document.addEventListener("keydown", (event) => {
   if (event.key !== "Tab") return;

@@ -107,7 +107,34 @@ test('the email-code fallback never accepts another issuer, unapproved email, or
  for(const change of [{issuer:'https://other.example'},{issuer:'https://clerk.john-ta.com.attacker.example'},{email:'other@gmail.com'},{email:undefined},{emailVerified:false},{emailVerified:null},{emailVerified:'true'}]) {
   const {ctx,counts}=context(base.email);
   ctx.auth.getUserIdentity=async()=>({...base,...change});
-  for(const [fn,input] of [[api.verify,{boardId}],[api.get,{boardId}],[api.save,args],[api.getLaunchStatuses,{}],[api.setLaunchStatus,{milestone:'ihg',status:'on-track'}]])await assert.rejects(fn._handler(ctx,input));
+  for(const [fn,input] of [[api.verify,{boardId}],[api.get,{boardId}],[api.save,args],[api.getLaunchStatuses,{}],[api.setLaunchStatus,{milestone:'ihg',status:'on-track'}],[api.getProjectNotes,{}],[api.setProjectNote,{project:'ihg',text:'draft'}]])await assert.rejects(fn._handler(ctx,input));
   assert.deepEqual(counts(),{reads:0,writes:0});
  }
+});
+
+
+test('project notes save independently, can be cleared, and survive checklist/status updates',async()=>{
+ let row={_id:'board',...args,completed:{existing:true},projectNotes:{united:{text:'United notes',updatedAt:1,updatedBy:'vivek@affil.ai'}}};
+ const {ctx}=context('johnta2018@gmail.com');
+ ctx.db.query=()=>({withIndex:()=>({unique:async()=>row})});
+ ctx.db.patch=async(id,patch)=>{row={...row,...patch}};
+ await api.setProjectNote._handler(ctx,{project:'ihg',text:'Line one\nLine two'});
+ assert.equal(row.projectNotes.ihg.text,'Line one\nLine two');
+ assert.equal(row.projectNotes.united.text,'United notes');
+ await api.save._handler(ctx,{...args,completed:{existing:true,newCheck:true}});
+ await api.setLaunchStatus._handler(ctx,{milestone:'ihg',status:'on-track'});
+ assert.equal(row.projectNotes.ihg.text,'Line one\nLine two');
+ await api.setProjectNote._handler(ctx,{project:'ihg',text:''});
+ assert.equal(row.projectNotes.ihg.text,'');
+ assert.equal(row.projectNotes.united.text,'United notes');
+ assert.equal(row.completed.newCheck,true);
+ assert.equal(row.launchStatuses.ihg.status,'on-track');
+ assert.deepEqual(await api.getProjectNotes._handler(ctx,{}),row.projectNotes);
+ await assert.rejects(api.setProjectNote._handler(ctx,{project:'ihg',text:'x'.repeat(10001)}));
+});
+test('anonymous project notes requests cannot read or write',async()=>{
+ const {ctx,counts}=context(null);
+ await assert.rejects(api.getProjectNotes._handler(ctx,{}));
+ await assert.rejects(api.setProjectNote._handler(ctx,{project:'ihg',text:'test'}));
+ assert.deepEqual(counts(),{reads:0,writes:0});
 });

@@ -6,7 +6,7 @@ const source = readFileSync(new URL('../../war-room-10012026/app.js',import.meta
 const seedSource = readFileSync(new URL('../../convex/warRoomLaunchSeed.ts',import.meta.url),'utf8').replace('export const launchSeedBuckets =', 'seedBuckets =');
 const functions = source.slice(source.indexOf('function createFallbackState()'),source.indexOf('\ndocument.querySelectorAll("[data-project]")'));
 function model() {
-  const context = vm.createContext({console, URL});
+  const context = vm.createContext({console, URL, window:{}});
   vm.runInContext(source.slice(0,source.indexOf('let state = createFallbackState();'))+'\n'+seedSource+'\nseedTaskIds = new Set(seedBuckets.flatMap(b=>b.groups.flatMap(g=>g.tasks.map(t=>getSeedTaskId(b.id,g.id,t)))));\nlet state;\n'+functions,context);
   return code => vm.runInContext(code,context);
 }
@@ -40,6 +40,8 @@ test('export reports staged completion and uses October board identity',()=>{
  run('state=createFallbackState(); const task=state.buckets[0].groups[0].tasks[0]; task.stages.forEach(s=>state.completed[getStageId(task,s)]=true)');
  assert.equal(run('buildExport().buckets[0].groups[0].tasks[0].done'),true);
  assert.match(run('buildExport().warRoom'),/October 1, 2026/);
+ run('window.WarRoomNotes = {getText: id => id === "air-france" ? "Handoff notes" : ""}');
+ assert.equal(run('buildExport().buckets[0].notes'),'Handoff notes');
  assert.equal(run('BOARD_ID'),'war-room-10012026');
 });
 test('pasted link lists exclude executable URLs',()=>{
