@@ -49,6 +49,24 @@ test('pasted link lists exclude executable URLs',()=>{
  assert.equal(run('safeUrls("javascript:alert(1) https://example.com data:text/html,test")'),'https://example.com');
 });
 
+test('optional ticket and step owners survive reload, stable stage renames, export, and clearing',()=>{
+ const run=model();
+ run(`state=createFallbackState();
+ const task=findTask("af-crawl").task;
+ task.assignee="john";
+ task.stageAssignees={"af-crawl-baseline-crawl-captured":"jenny"};
+ state=mergeSeedWithSaved(createFallbackState(),state);`);
+ assert.equal(run('findTask("af-crawl").task.assignee'),'john');
+ assert.equal(run('findTask("af-crawl").task.stageAssignees[getStageId(findTask("af-crawl").task,"Crawls started")]'),'jenny');
+ assert.equal(run('buildExport().buckets[0].groups[0].tasks[0].assignee'),'John');
+ assert.equal(run('buildExport().buckets[0].groups[0].tasks[0].stages[0].assignee'),'Jenny');
+ run('findTask("af-crawl").task.assignee=""; findTask("af-crawl").task.stageAssignees={}; state=mergeSeedWithSaved(createFallbackState(),state)');
+ assert.equal(run('findTask("af-crawl").task.assignee'),'');
+ assert.equal(run('Object.keys(findTask("af-crawl").task.stageAssignees).length'),0);
+ assert.equal(run('getAssigneeName("unexpected")'),'');
+ assert.equal(run('normalizeAssignee("toString")'),'');
+});
+
 test('splitting the old BOFA bucket keeps custom tickets, edits, deleted tasks, and checks in their matching groups',()=>{
  const run=model();
  run(`state=createFallbackState();

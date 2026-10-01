@@ -7,7 +7,7 @@
     <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
     <title>October 1, 2026 · Launch War Room</title>
     <link rel="stylesheet" href="../assets/css/searchable-select.css" />
-    <link rel="stylesheet" href="./styles.css?v=7" />
+    <link rel="stylesheet" href="./styles.css?v=8" />
   </head>
   <body>
     <section id="accessGate" class="password-gate" aria-labelledby="accessGateTitle" role="dialog" aria-modal="true">
@@ -125,6 +125,7 @@
           <label class="field-label">Item title<input type="text" name="title" required autocomplete="off" placeholder="Item or partner name" aria-label="Item title" /></label>
           <label class="field-label">Bucket<select id="bucketSelect" name="bucket" aria-label="Bucket"></select></label>
           <label class="field-label">Section<select id="groupSelect" name="group" aria-label="Section"></select></label>
+          <label class="field-label assignee-field">Assignee (optional)<select id="newTicketAssignee" name="assignee" aria-label="New ticket assignee"><option value="">Unassigned</option><option value="john">John</option><option value="vivek">Vivek</option><option value="vishal">Vishal</option><option value="jenny">Jenny</option></select></label>
           <label class="field-label">Linear URL<input type="url" name="linearUrl" autocomplete="off" placeholder="Linear URL" aria-label="Linear URL" /></label>
           <label class="field-label">Google Doc URL<input type="url" name="docUrl" autocomplete="off" placeholder="Google Doc URL" aria-label="Google Doc URL" /></label>
           <label class="field-label">Maintouch URL<input type="url" name="maintouchUrl" autocomplete="off" placeholder="Maintouch URL" aria-label="Maintouch URL" /></label>
@@ -150,6 +151,8 @@
         </header>
         <form id="linkForm" class="link-form">
           <label class="field-label">Ticket title<input type="text" name="title" required autocomplete="off" placeholder="Ticket title" aria-label="Ticket title" /></label>
+          <label class="field-label assignee-field">Ticket assignee (optional)<select id="ticketAssignee" name="assignee" aria-label="Ticket assignee"><option value="">Unassigned</option><option value="john">John</option><option value="vivek">Vivek</option><option value="vishal">Vishal</option><option value="jenny">Jenny</option></select></label>
+          <fieldset id="stepAssignees" class="step-assignees" hidden><legend>Checklist step assignees (optional)</legend><div id="stepAssigneeFields"></div></fieldset>
           <label class="field-label">Notes<textarea name="notes" placeholder="Notes" aria-label="Notes"></textarea></label>
           <label class="field-label">Tags<input type="text" name="tags" autocomplete="off" placeholder="Tags: Owner, Waiting, Priority" aria-label="Tags" /></label>
           <label class="field-label">Linear URL<input type="url" name="linearUrl" autocomplete="off" placeholder="Linear URL" aria-label="Linear URL" /></label>
@@ -208,6 +211,6 @@
     <script src="./auth.js?v=1"></script>
     <script src="./schedule.js?v=1"></script>
     <script src="./project-notes.js?v=1"></script>
-    <script src="./app.js?v=12"></script>
+    <script src="./app.js?v=13"></script>
   </body>
 </html>

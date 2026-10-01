@@ -4,6 +4,7 @@ const BOARD_ID = "war-room-10012026";
 const CONVEX_URL = "https://rapid-shark-565.convex.cloud";
 
 let seedBuckets = [];
+const ASSIGNEES = { john: "John", vivek: "Vivek", vishal: "Vishal", jenny: "Jenny" };
 
 const legacyAprDefaults = {
   "apr-crawl": {
@@ -68,6 +69,13 @@ const linkModal = document.querySelector("#linkModal");
 const linkModalBackdrop = document.querySelector("#linkModalBackdrop");
 const closeLinkModal = document.querySelector("#closeLinkModal");
 const linkForm = document.querySelector("#linkForm");
+const newAssigneeSelect = document.querySelector("#newTicketAssignee");
+const ticketAssigneeSelect = document.querySelector("#ticketAssignee");
+const newAssigneePicker = window.SearchableSelect?.enhance(newAssigneeSelect);
+const ticketAssigneePicker = window.SearchableSelect?.enhance(ticketAssigneeSelect);
+const stepAssigneeFields = document.querySelector("#stepAssigneeFields");
+const stepAssignees = document.querySelector("#stepAssignees");
+const stepOwnerControls = [];
 const linkModalTask = document.querySelector("#linkModalTask");
 const deleteTicket = document.querySelector("#deleteTicket");
 const deleteConfirmation = document.querySelector("#deleteConfirmation");
@@ -499,6 +507,19 @@ function renderTask(task, bucketId, groupId) {
     editTaskLinks(task);
   }, true);
 
+  const owner = document.createElement("button");
+  owner.type = "button";
+  owner.className = "ticket-assignee";
+  owner.textContent = getAssigneeName(task.assignee) || "＋ Assign";
+  owner.dataset.assigned = String(Boolean(getAssigneeName(task.assignee)));
+  owner.setAttribute("aria-label", `${task.title} assignee: ${getAssigneeName(task.assignee) || "Unassigned"}`);
+  owner.addEventListener("click", event => {
+    event.preventDefault(); event.stopPropagation();
+    openLinksModal(task);
+    document.querySelector("#ticketAssignee-trigger")?.focus();
+  });
+  titleNode.append(owner);
+
   if (task.tags?.length) {
     const tags = document.createElement("em");
     tags.className = "task-tags";
@@ -551,6 +572,7 @@ function addTask(formData) {
     title,
     tags,
     notes,
+    assignee: normalizeAssignee(formData.get("assignee")),
     stages: String(formData.get("stages") || "").split("\n").map(s => s.trim()).filter(Boolean),
     custom: true,
   };
@@ -694,6 +716,7 @@ function buildExport() {
           title: task.title,
           tags: task.tags || [],
           notes: task.notes || "",
+          assignee: getAssigneeName(task.assignee) || "",
           done: task.stages?.length ? areAllStagesDone(task) : Boolean(state.completed[task.id]),
           linearUrl: state.linearLinks[task.id] || "",
           docUrl: state.docLinks[task.id] || "",
@@ -701,6 +724,7 @@ function buildExport() {
           otherUrls: state.otherLinks[task.id] || "",
           stages: (task.stages || []).map((stage) => ({
             title: stage,
+            assignee: getAssigneeName(task.stageAssignees?.[getStageId(task, stage)]) || "",
             done: Boolean(state.completed[getStageId(task, stage)]),
           })),
         })),
@@ -826,6 +850,9 @@ function openLinksModal(task) {
   linkForm.elements.title.value = task.title || "";
   linkForm.elements.notes.value = task.notes || "";
   linkForm.elements.tags.value = (task.tags || []).join(", ");
+  ticketAssigneeSelect.value = normalizeAssignee(task.assignee);
+  ticketAssigneePicker?.sync();
+  populateStepAssignees(task);
   linkForm.elements.linearUrl.value = state.linearLinks[task.id] || "";
   linkForm.elements.docUrl.value = state.docLinks[task.id] || "";
   linkForm.elements.maintouchUrl.value = state.maintouchLinks[task.id] || "";
@@ -837,6 +864,8 @@ function openLinksModal(task) {
 }
 
 function closeLinksModal() {
+  ticketAssigneePicker?.close();
+  stepOwnerControls.forEach(control => control.picker?.close());
   deleteConfirmation.hidden = true;
   linkModal.setAttribute("hidden", "");
   document.body.classList.remove("modal-open");
@@ -854,6 +883,11 @@ function saveLinksFromModal(formData) {
   task.title = title;
   task.notes = (formData.get("notes") || "").trim();
   task.tags = parseTags(formData.get("tags") || "");
+  task.assignee = normalizeAssignee(formData.get("assignee"));
+  task.stageAssignees = Object.fromEntries((task.stages || []).map(stage => {
+    const id = getStageId(task, stage);
+    return [id, normalizeAssignee(formData.get(`stageAssignee:${id}`))];
+  }).filter(([, value]) => value));
   task.custom = task.custom || !seedTaskIds.has(task.id);
   setOptionalTaskUrl(activeLinkTaskId, formData.get("linearUrl") || "", "linear");
   setOptionalTaskUrl(activeLinkTaskId, formData.get("docUrl") || "", "doc");
@@ -1002,9 +1036,62 @@ function renderStages(node, task) {
 
     label.append(checkbox, text);
     item.append(label);
+    const owner = document.createElement("button");
+    owner.type = "button";
+    owner.className = "stage-assignee";
+    owner.textContent = getAssigneeName(task.stageAssignees?.[stageId]) || "＋";
+    owner.dataset.assigned = String(Boolean(getAssigneeName(task.stageAssignees?.[stageId])));
+    owner.setAttribute("aria-label", `${task.title} — ${stage} assignee: ${getAssigneeName(task.stageAssignees?.[stageId]) || "Unassigned"}`);
+    owner.title = "Assign this checklist step";
+    owner.addEventListener("click", () => {
+      openLinksModal(task);
+      const control = stepOwnerControls[task.stages.indexOf(stage)];
+      document.getElementById(`${control.select.id}-trigger`)?.focus();
+    });
+    item.append(owner);
     stageList.append(item);
   });
   node.append(stageList);
+}
+
+function normalizeAssignee(value) {
+  return Object.hasOwn(ASSIGNEES, value) ? value : "";
+}
+
+function getAssigneeName(value) {
+  return ASSIGNEES[normalizeAssignee(value)] || "";
+}
+
+function populateStepAssignees(task) {
+  const stages = task.stages || [];
+  stepAssignees.hidden = stages.length === 0;
+  stages.forEach((stage, index) => {
+    if (!stepOwnerControls[index]) {
+      const label = document.createElement("label");
+      label.className = "field-label";
+      const text = document.createElement("span");
+      const select = document.createElement("select");
+      select.id = `step-assignee-${index}`;
+      select.setAttribute("aria-label", `Checklist step ${index + 1} assignee`);
+      for (const [value, name] of [["", "Unassigned"], ...Object.entries(ASSIGNEES)]) {
+        const option = document.createElement("option");
+        option.value = value; option.textContent = name; select.append(option);
+      }
+      label.append(text, select); stepAssigneeFields.append(label);
+      stepOwnerControls.push({ label, text, select, picker: window.SearchableSelect?.enhance(select) });
+    }
+    const control = stepOwnerControls[index];
+    control.label.hidden = false;
+    control.text.textContent = stage;
+    control.select.disabled = false;
+    control.select.name = `stageAssignee:${getStageId(task, stage)}`;
+    control.select.value = normalizeAssignee(task.stageAssignees?.[getStageId(task, stage)]);
+    control.picker?.sync();
+  });
+  stepOwnerControls.slice(stages.length).forEach(control => {
+    control.picker?.close(); control.label.hidden = true;
+    control.select.disabled = true; control.picker?.sync();
+  });
 }
 
 function parseTags(value) {
@@ -1064,6 +1151,7 @@ function openAddModal() {
 }
 
 function closeModal() {
+  newAssigneePicker?.close();
   bucketPicker?.close();
   groupPicker?.close();
   addModal.setAttribute("hidden", "");
