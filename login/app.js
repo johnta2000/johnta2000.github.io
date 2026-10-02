@@ -100,6 +100,7 @@
         query(endpoints.tools, 'sleep:verify', token),
         query(endpoints.tools, 'monitoring:verify', token),
         query(endpoints.tools, 'cardPayments:verify', token),
+        query(endpoints.tools, 'rent:verify', token),
       ]);
       if (currentRevision !== revision) return;
       let incomplete = results.some(result => result.status === 'rejected');
@@ -112,6 +113,7 @@
       if (values[2]) addApp('Sleep', '../tools/sleep/', 'Your sleep dashboard.');
       if (values[3]) addApp('Monitoring', '../tools/monitoring/', 'Your monitors and updates.');
       if (values[4]) addApp('Card payments', '../tools/payments/', 'Your monthly payment checklist.');
+      if (values[5]) addApp('Rent', '../tools/rent/', 'Monthly rent splits and shared payment history.');
       el.directory.hidden = false;
       el.empty.hidden = el.apps.children.length > 0 || incomplete;
       status(incomplete ? 'Some apps could not be checked. Try again to load the rest.' : '');

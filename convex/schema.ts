@@ -4,7 +4,10 @@ import { cardPaymentTables } from "./cardPaymentTables";
 
 import { paymentQuestionTables } from "./paymentQuestionTables";
 
+import { rentTables } from "./rentTables";
+
 export default defineSchema({
+  ...rentTables,
   ...paymentQuestionTables,
   ...cardPaymentTables,
   rallyNativeTracking: defineTable({
