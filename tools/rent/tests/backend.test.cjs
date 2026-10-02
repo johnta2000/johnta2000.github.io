@@ -34,9 +34,19 @@ test('all public endpoints deny signed-out, wrong email and unverified identitie
   const invalid=[null,{email:'other@affil.ai',emailVerified:true},{email:'vivek@affil.ai.evil.test',emailVerified:true},{email:'vivek@affil.ai',emailVerified:false},{email:'cyin7890@gmail.com',issuer:'https://evil.test'},{email:'cyin7890@gmail.com',emailVerified:'true'}];
   for(const id of invalid)for(const name of ['verify','dashboard','saveMonth','recordPayment','voidPayment'])await assert.rejects(fixture(id).run(name,{}),/not authorized/);
 });
-test('exact two approved emails share the workspace; pinned issuer omission is supported',async()=>{
+test('approved emails share the workspace; pinned issuer omission is supported',async()=>{
   const f=fixture();await f.run('saveMonth',monthArgs());f.ctx.auth.getUserIdentity=async()=>({email:' CYIN7890@GMAIL.COM ',issuer:'https://clerk.john-ta.com'});
   assert.equal((await f.run('verify')).email,'cyin7890@gmail.com');assert.equal((await f.run('dashboard',{month:'2026-10'})).item.config.rentCents,600000);
+});
+test('both John accounts have shared access with verified and site-issued email-code identities',async()=>{
+  const f=fixture();await f.run('saveMonth',monthArgs());
+  for(const email of ['john@affil.ai','johnta2018@gmail.com'])for(const claims of [{emailVerified:true},{issuer:'https://clerk.john-ta.com'}]){
+    f.ctx.auth.getUserIdentity=async()=>({email,...claims});assert.equal((await f.run('verify')).email,email);assert.equal((await f.run('dashboard',{month:'2026-10'})).item.config.rentCents,600000);
+  }
+  for(const email of ['john@affil.ai','johnta2018@gmail.com']){
+    f.ctx.auth.getUserIdentity=async()=>({email,emailVerified:false,issuer:'https://clerk.john-ta.com'});await assert.rejects(f.run('verify'),/not authorized/);
+    f.ctx.auth.getUserIdentity=async()=>({email:email+'.evil.test',emailVerified:true});await assert.rejects(f.run('verify'),/not authorized/);
+  }
 });
 test('month snapshots isolate edits, reject stale versions and deduplicate retries',async()=>{
   const f=fixture();const args=monthArgs();const id=await f.run('saveMonth',args);assert.equal(await f.run('saveMonth',args),id);

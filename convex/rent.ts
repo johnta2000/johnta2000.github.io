@@ -8,7 +8,7 @@ async function authorize(ctx: QueryCtx | MutationCtx) {
   const user = await ctx.auth.getUserIdentity();
   const email = user?.email?.trim().toLowerCase();
   const verified = user?.emailVerified === true || (user?.emailVerified === undefined && user?.issuer === 'https://clerk.john-ta.com');
-  if (!user || !verified || !['vivek@affil.ai', 'cyin7890@gmail.com'].includes(email || '')) throw Error('This account is not authorized for Rent.');
+  if (!user || !verified || !['vivek@affil.ai', 'cyin7890@gmail.com', 'john@affil.ai', 'johnta2018@gmail.com'].includes(email || '')) throw Error('This account is not authorized for Rent.');
   return email!;
 }
 function monthKey(month: string) { if (!/^20\d{2}-(0[1-9]|1[0-2])$/.test(month)) throw Error('Enter a valid month.'); }

@@ -1,6 +1,6 @@
 # Rent
 
-Private shared rent calculations and payment history at `/tools/rent/`. Every public Convex function enforces an exact allowlist of `vivek@affil.ai` and `cyin7890@gmail.com`. Both use the existing Clerk production instance and share one rent workspace. The site issuer's verified email-code sessions may omit `email_verified`; explicit false or an untrusted issuer without verification is rejected. The static page contains no apartment inputs or payment records. Data is not persisted in browser storage.
+Private shared rent calculations and payment history at `/tools/rent/`. Every public Convex function enforces an exact allowlist of `vivek@affil.ai`, `cyin7890@gmail.com`, `john@affil.ai`, and `johnta2018@gmail.com`. All four accounts use the existing Clerk production instance and share one rent workspace. The site issuer's verified email-code sessions may omit `email_verified`; explicit false or an untrusted issuer without verification is rejected. The static page contains no apartment inputs or payment records. Data is not persisted in browser storage.
 
 ## Monthly workflow
 
