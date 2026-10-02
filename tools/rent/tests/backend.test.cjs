@@ -32,7 +32,7 @@ test('zero, partial, overpaid and voided entries stay distinct without offsettin
 });
 test('all public endpoints deny signed-out, wrong email and unverified identities',async()=>{
   const invalid=[null,{email:'other@affil.ai',emailVerified:true},{email:'vivek@affil.ai.evil.test',emailVerified:true},{email:'vivek@affil.ai',emailVerified:false},{email:'cyin7890@gmail.com',issuer:'https://evil.test'},{email:'cyin7890@gmail.com',emailVerified:'true'}];
-  for(const id of invalid)for(const name of ['verify','dashboard','saveMonth','recordPayment','voidPayment'])await assert.rejects(fixture(id).run(name,{}),/not authorized/);
+  for(const id of invalid)for(const name of ['verify','dashboard','ledger','saveGrid','saveMonth','recordPayment','voidPayment'])await assert.rejects(fixture(id).run(name,{}),/not authorized/);
 });
 test('approved emails share the workspace; pinned issuer omission is supported',async()=>{
   const f=fixture();await f.run('saveMonth',monthArgs());f.ctx.auth.getUserIdentity=async()=>({email:' CYIN7890@GMAIL.COM ',issuer:'https://clerk.john-ta.com'});
@@ -71,4 +71,20 @@ test('invalid inputs cannot create a plausible split',()=>{
   assert.throws(()=>math.calculate({...config,rentCents:0}));assert.throws(()=>math.calculate(config,700000));
   assert.throws(()=>math.calculate({...config,people:config.people.map(p=>({...p,room:0,closet:0}))}));
   assert.throws(()=>math.calculate({...config,bathroomCents:900000}));
+});
+const gridRow=(extra={})=>({month:'2026-10',config:structuredClone(config),parkingCents:0,expectedVersion:0,expectedPayments:'',receipts:[],...extra});
+test('grid saves multiple months atomically, accepts zero, and retries without duplicating receipts',async()=>{
+  const f=fixture(),args={requestKey:'grid-batch',rows:[gridRow({receipts:[{payer:0,amountCents:190000},{payer:1,amountCents:0}]}),gridRow({month:'2026-11',parkingCents:10000,receipts:[{payer:2,amountCents:40000}]})]};
+  await f.run('saveGrid',args);assert.equal(f.tables.rentMonths.length,2);assert.equal(f.tables.rentPayments.length,2);await f.run('saveGrid',args);assert.equal(f.tables.rentPayments.length,2);
+  const ledger=await f.run('ledger');assert.equal(ledger.months.length,2);assert.equal(ledger.payments[0].date,'2026-10');
+});
+test('editing a received total replaces it and preserves original receipts as voided audit history',async()=>{
+  const f=fixture();await f.run('saveMonth',monthArgs());const id=await f.run('recordPayment',payment());await f.run('saveGrid',{requestKey:'replace',rows:[gridRow({expectedVersion:1,expectedPayments:id,receipts:[{payer:0,amountCents:25000}]})]});
+  assert.ok(f.tables.rentPayments[0].voidedAt);assert.equal(f.tables.rentPayments.filter(p=>!p.voidedAt).reduce((s,p)=>s+p.amountCents,0),25000);
+  const active=f.tables.rentPayments.find(p=>!p.voidedAt);await f.run('saveGrid',{requestKey:'clear',rows:[gridRow({expectedVersion:2,expectedPayments:active._id,receipts:[{payer:0,amountCents:0}]})]});assert.equal(f.tables.rentPayments.filter(p=>!p.voidedAt).length,0);
+});
+test('grid conflicts on another payment or calculation change before making any writes',async()=>{
+  const f=fixture();await f.run('saveMonth',monthArgs());await f.run('recordPayment',payment());
+  await assert.rejects(f.run('saveGrid',{requestKey:'conflict',rows:[gridRow({month:'2026-11'}),gridRow({expectedVersion:1,receipts:[{payer:0,amountCents:20000}]})]}),/another device/);assert.equal(f.tables.rentMonths.length,1);assert.equal(f.tables.rentPayments.length,1);
+  await assert.rejects(f.run('saveGrid',{requestKey:'bad',rows:[gridRow({receipts:[{payer:0,amountCents:-1}]})]}));
 });

@@ -13,6 +13,11 @@ async function open(browser,width=1280,mode='signed-in'){
   if(!url.hostname.endsWith('.convex.cloud'))return route.abort();const {path:routePath,args}=route.request().postDataJSON();const name=routePath.split(':')[1];let value=null;
   if(mode==='denied')return route.fulfill({json:{status:'error',errorMessage:'This account is not authorized for Rent.'}});
   if(name==='verify')value={email:'test@example.com'};
+  if(name==='ledger')value={months:db.months,payments:db.payments};
+  if(name==='saveGrid'){
+   if(db.fail)return route.abort();
+   for(const row of args.rows){let item=db.months.find(m=>m.month===row.month);if(item?.requestKey===args.requestKey)continue;if((item?.version||0)!==row.expectedVersion)return route.fulfill({json:{status:'error',errorMessage:'This month changed on another device.'}});if(!item){item={_id:'month'+db.months.length,month:row.month,note:'',requestsSent:false};db.months.push(item);}Object.assign(item,{config:row.config,parkingCents:row.parkingCents,version:row.expectedVersion+1,requestKey:args.requestKey});for(const receipt of row.receipts){db.payments.filter(p=>p.month===row.month&&p.payer===receipt.payer&&!p.voidedAt).forEach(p=>p.voidedAt=Date.now());if(receipt.amountCents)db.payments.push({...receipt,month:row.month,date:row.month,_id:'grid'+db.payments.length,createdAt:Date.now(),createdBy:'test@example.com',note:'Monthly total'});}}value={saved:args.rows.length};
+  }
   if(name==='dashboard'){if(db.delayRead)await db.delayRead();const item=db.months.find(m=>m.month===args.month)||null;value={item,template:db.months[0]?.config||null,months:db.months.map(m=>({month:m.month})),payments:db.payments.filter(p=>p.month===args.month)};}
   if(name==='recordPayment'){if(db.delaySave)await db.delaySave();if(db.fail)return route.abort();let payment=db.payments.find(p=>p.requestKey===args.requestKey);if(!payment){payment={...args,_id:'payment'+db.payments.length,createdAt:Date.now(),createdBy:'test@example.com'};db.payments.push(payment);}value=payment._id;}
   if(name==='saveMonth'){if(db.fail)return route.abort();let item=db.months.find(m=>m.month===args.month);if(item&&item.version!==args.expectedVersion)return route.fulfill({json:{status:'error',errorMessage:'This month changed on another device. Refresh before saving.'}});if(!item){item={_id:'month'+db.months.length};db.months.push(item);}Object.assign(item,args,{version:args.expectedVersion+1});value=item._id;}
@@ -50,4 +55,18 @@ test('signed-out and denied accounts see no private rent information',async()=>{
 });
 test('an empty workspace can be initialized without importing financial history',async()=>{
  const browser=await engine.launch();try{const {page,db,errors}=await open(browser,390,'empty');await page.locator('#create').click();await page.locator('#rent-input').fill('3000');for(let i=0;i<3;i++){await page.locator(`#name-${i}`).fill(['Alex','Blair','Casey'][i]);await page.locator(`#room-${i}`).fill('100');}await page.locator('#config-submit').click();await page.locator('#config-dialog').waitFor({state:'hidden'});assert.equal(db.months.length,1);assert.equal(db.payments.length,0);assert.equal(await page.locator('#remaining').textContent(),'$3,000.00');assert.deepEqual(errors,[]);}finally{await browser.close();}
+});
+test('monthly cells support typing, keyboard navigation, pasting, batch save, and live charts',async()=>{
+ const browser=await engine.launch();try{for(const width of [390,1280]){const {page,db,errors}=await open(browser,width);const month=db.months[0].month;
+  const cell=field=>page.locator(`.rent-cell[data-month="${month}"][data-field="${field}"]`);
+  await cell('p0').fill('1900');await cell('p0').press('Tab');assert.equal(await cell('p1').evaluate(n=>n===document.activeElement),true);
+  await cell('p1').evaluate(n=>{const clipboardData=new DataTransfer();clipboardData.setData('text/plain','500\t400');n.dispatchEvent(new ClipboardEvent('paste',{clipboardData,bubbles:true,cancelable:true}));});
+  assert.equal(await cell('p2').inputValue(),'400');assert.match(await page.locator('.year-summary').textContent(),/2,800/);assert.equal(await page.locator('.rent-trend svg').count(),1);assert.equal(await page.locator('.rent-split svg').count(),1);
+  await page.getByRole('button',{name:'Save changes',exact:true}).click();await page.locator('.sheet-actions [role=status]').filter({hasText:'All changes saved'}).waitFor();assert.equal(db.payments.length,3);assert.equal(db.payments.reduce((s,p)=>s+p.amountCents,0),280000);
+  assert.equal(await cell('p0').inputValue(),'1900.00');await page.screenshot({path:path.join(os.tmpdir(),`rent-sheet-${engine.name()}-${width}.png`),fullPage:true});
+  const size=await page.evaluate(()=>[document.documentElement.scrollWidth,innerWidth]);assert.ok(size[0]<=size[1]);assert.deepEqual(errors,[]);await page.close();
+ }}finally{await browser.close();}
+});
+test('grid retry keeps exact edits, refresh does not drop drafts, and sign-out erases the sheet',async()=>{
+ const browser=await engine.launch();try{const {page,db}=await open(browser);const month=db.months[0].month;const input=page.locator(`.rent-cell[data-month="${month}"][data-field=p0]`);await input.fill('42.50');await page.locator('#refresh').click();assert.equal(await input.inputValue(),'42.50');db.fail=true;await page.getByRole('button',{name:'Save changes',exact:true}).click();await page.locator('.sheet-error').filter({hasText:/retry safely/}).waitFor();assert.equal(await input.inputValue(),'42.50');db.fail=false;await page.getByRole('button',{name:'Save changes',exact:true}).click();await page.locator('.sheet-actions [role=status]').filter({hasText:'All changes saved'}).waitFor();assert.equal(db.payments.length,1);await page.locator('#sign-out').click();await page.getByText('Sign in form',{exact:true}).waitFor();assert.equal(await page.locator('.rent-cell').count(),0);assert.equal(await page.locator('.year-summary').textContent(),'');}finally{await browser.close();}
 });
