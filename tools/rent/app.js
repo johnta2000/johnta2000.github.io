@@ -52,8 +52,8 @@
   function render() {
     const item = data.item;
     $('empty').hidden = !!item; $('dashboard').hidden = !item; $('edit').hidden = !item;
-    $('create').disabled = !data.template;
-    $('empty-message').textContent = data.template ? 'Start with the previous month’s rent split. Payments and parking credits start fresh.' : 'No earlier rent split is available. Import the workbook to initialize your private workspace.';
+    $('create').disabled = false;
+    $('empty-message').textContent = data.template ? 'Start with the previous month’s rent split. Payments and parking credits start fresh.' : 'Set up your three residents and monthly split, or wait for the approved workbook import.';
     $('history').replaceChildren(...data.months.sort((a,b) => b.month.localeCompare(a.month)).map(m => { const b = button(monthLabel(m.month), () => navigate(m.month)); b.setAttribute('aria-pressed', String(m.month === $('month').value)); return b; }));
     if (!item) return;
     calc = RentMath.calculate(item.config, item.parkingCents); totals = RentMath.summary(calc, data.payments);
@@ -115,17 +115,19 @@
   };
   function openConfig(create=false) {
     if (dirty) { notice('Save your monthly note before editing the calculation.'); return; }
-    configTarget={month:$('month').value,version:create?0:data.item.version,config:structuredClone(create?data.template:data.item.config),note:create?'':data.item.note,requestsSent:create?false:data.item.requestsSent}; configAttempt=null;
+    const initial={rentCents:0,loftCents:0,bathroomCents:0,people:[0,1,2].map(i=>({name:`Resident ${i+1}`,room:0,closet:0,creditCents:0}))};
+    configTarget={month:$('month').value,version:create?0:data.item.version,config:structuredClone(create?(data.template||initial):data.item.config),note:create?'':data.item.note,requestsSent:create?false:data.item.requestsSent}; configAttempt=null;
     $('config-month').textContent=monthLabel(configTarget.month);
     for(const [id,key] of [['rent-input','rentCents'],['loft-input','loftCents'],['bath-input','bathroomCents']])$(id).value=(configTarget.config[key]/100).toFixed(2);
     $('parking-input').value=((create?0:data.item.parkingCents)/100).toFixed(2);
     $('resident-inputs').replaceChildren(...configTarget.config.people.map((p,i)=>{
-      const section=node('section',undefined,'resident-input');section.append(node('h3',p.name)); const grid=node('div',undefined,'form-grid');
+      const section=node('section',undefined,'resident-input');section.append(node('h3',['Private room · private bathroom','Loft · private bathroom','Private room · shared bathroom'][i]));
+      const nameLabel=node('label','Resident name'),nameInput=node('input');nameInput.id=`name-${i}`;nameInput.value=p.name;nameInput.required=true;nameInput.maxLength=80;nameLabel.htmlFor=nameInput.id;section.append(nameLabel,nameInput);const grid=node('div',undefined,'form-grid');
       for(const [field,label,value,step] of [['room','Room (sq ft)',p.room,'0.1'],['closet','Closet (sq ft)',p.closet,'0.1'],['credit','Affil share ($)',p.creditCents/100,'0.01']]){const wrap=node('div'), l=node('label',label), input=node('input');input.id=`${field}-${i}`;input.type='number';input.min='0';input.step=step;input.required=true;input.value=value;l.htmlFor=input.id;wrap.append(l,input);grid.append(wrap);} section.append(grid); return section;
     })); $('config-error').textContent='';preview();$('config-dialog').showModal();
   }
   function configFields() {
-    const config={...configTarget.config,rentCents:cents('rent-input'),loftCents:cents('loft-input'),bathroomCents:cents('bath-input'),people:configTarget.config.people.map((p,i)=>({...p,room:Number($(`room-${i}`).value),closet:Number($(`closet-${i}`).value),creditCents:cents(`credit-${i}`)}))};
+    const config={...configTarget.config,rentCents:cents('rent-input'),loftCents:cents('loft-input'),bathroomCents:cents('bath-input'),people:configTarget.config.people.map((p,i)=>({...p,name:$(`name-${i}`).value.trim(),room:Number($(`room-${i}`).value),closet:Number($(`closet-${i}`).value),creditCents:cents(`credit-${i}`)}))};
     const parkingCents=cents('parking-input');RentMath.calculate(config,parkingCents);return {month:configTarget.month,config,parkingCents,note:configTarget.note,requestsSent:configTarget.requestsSent,expectedVersion:configTarget.version};
   }
   function preview(){try{const f=configFields(),c=RentMath.calculate(f.config,f.parkingCents);$('config-preview').textContent=c.rows.map(r=>`${r.name} ${cash(r.dueCents)}`).join(' · ')+` · Affil ${cash(c.affilCents)}`;}catch(e){$('config-preview').textContent=e.message;}}

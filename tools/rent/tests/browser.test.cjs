@@ -5,6 +5,7 @@ async function open(browser,width=1280,mode='signed-in'){
  const page=await browser.newPage({viewport:{width,height:960},hasTouch:width<800,isMobile:width<800});page.setDefaultTimeout(7000);const errors=[];page.on('pageerror',e=>errors.push(e.message));
  const month=await page.evaluate(()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;});
  const db={months:[{_id:'month1',month,config:structuredClone(config),parkingCents:0,note:'',requestsSent:false,version:1,sourceNote:'Original spreadsheet history retained for review.',sourcePayments:[{payer:0,amountCents:190000,note:'Payment request, date unconfirmed.'}]}],payments:[],fail:false};
+ if(mode==="empty")db.months=[];
  await page.addInitScript(mode=>{const session={id:'one',getToken:async()=>`test.${btoa(JSON.stringify({aud:'convex'}))}.test`};window.__internal_ClerkUICtor={};window.Clerk={session:mode==='signed-out'?null:session,load:async()=>{},mountSignIn:n=>n.textContent='Sign in form',unmountSignIn:n=>n.textContent='',addListener(fn){window.changeSession=s=>{this.session=s;fn({session:s});};},signOut:async()=>window.changeSession(null)};},mode);
  await page.route('**/*',async route=>{
   const url=new URL(route.request().url());if(url.protocol==='blob:')return route.continue();
@@ -12,13 +13,13 @@ async function open(browser,width=1280,mode='signed-in'){
   if(!url.hostname.endsWith('.convex.cloud'))return route.abort();const {path:routePath,args}=route.request().postDataJSON();const name=routePath.split(':')[1];let value=null;
   if(mode==='denied')return route.fulfill({json:{status:'error',errorMessage:'This account is not authorized for Rent.'}});
   if(name==='verify')value={email:'test@example.com'};
-  if(name==='dashboard'){if(db.delayRead)await db.delayRead();const item=db.months.find(m=>m.month===args.month)||null;value={item,template:db.months[0].config,months:db.months.map(m=>({month:m.month})),payments:db.payments.filter(p=>p.month===args.month)};}
+  if(name==='dashboard'){if(db.delayRead)await db.delayRead();const item=db.months.find(m=>m.month===args.month)||null;value={item,template:db.months[0]?.config||null,months:db.months.map(m=>({month:m.month})),payments:db.payments.filter(p=>p.month===args.month)};}
   if(name==='recordPayment'){if(db.delaySave)await db.delaySave();if(db.fail)return route.abort();let payment=db.payments.find(p=>p.requestKey===args.requestKey);if(!payment){payment={...args,_id:'payment'+db.payments.length,createdAt:Date.now(),createdBy:'test@example.com'};db.payments.push(payment);}value=payment._id;}
   if(name==='saveMonth'){if(db.fail)return route.abort();let item=db.months.find(m=>m.month===args.month);if(item&&item.version!==args.expectedVersion)return route.fulfill({json:{status:'error',errorMessage:'This month changed on another device. Refresh before saving.'}});if(!item){item={_id:'month'+db.months.length};db.months.push(item);}Object.assign(item,args,{version:args.expectedVersion+1});value=item._id;}
   if(name==='voidPayment'){db.payments.find(p=>p._id===args.id).voidedAt=Date.now();}
   return route.fulfill({json:{status:'success',value}});
  });
- await page.goto('http://localhost/tools/rent/');if(mode==='signed-in')await page.locator('#dashboard').waitFor();return {page,db,errors};
+ await page.goto('http://localhost/tools/rent/');if(mode==='signed-in')await page.locator('#dashboard').waitFor();if(mode==='empty')await page.locator('#empty').waitFor();return {page,db,errors};
 }
 test('desktop and phone layouts, searchable payer picker, payment and void workflow',async()=>{
  const browser=await engine.launch();try{for(const width of [390,1280]){const {page,db,errors}=await open(browser,width);
@@ -46,4 +47,7 @@ test('imported payments require an explicit date and do not count before confirm
 });
 test('signed-out and denied accounts see no private rent information',async()=>{
  const browser=await engine.launch();try{for(const mode of ['signed-out','denied']){const {page}=await open(browser,390,mode);await page.getByText(mode==='signed-out'?'Sign in form':'This account doesn’t have access to Rent. Sign out and use an approved email.',{exact:true}).waitFor();assert.equal(await page.locator('#app').isVisible(),false);assert.equal(await page.locator('#people').textContent(),'');await page.close();}}finally{await browser.close();}
+});
+test('an empty workspace can be initialized without importing financial history',async()=>{
+ const browser=await engine.launch();try{const {page,db,errors}=await open(browser,390,'empty');await page.locator('#create').click();await page.locator('#rent-input').fill('3000');for(let i=0;i<3;i++){await page.locator(`#name-${i}`).fill(['Alex','Blair','Casey'][i]);await page.locator(`#room-${i}`).fill('100');}await page.locator('#config-submit').click();await page.locator('#config-dialog').waitFor({state:'hidden'});assert.equal(db.months.length,1);assert.equal(db.payments.length,0);assert.equal(await page.locator('#remaining').textContent(),'$3,000.00');assert.deepEqual(errors,[]);}finally{await browser.close();}
 });
