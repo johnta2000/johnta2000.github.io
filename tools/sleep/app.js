@@ -1,6 +1,6 @@
 const CONVEX_URL = "https://rapid-shark-565.convex.cloud";
 const SOURCE_LABELS = {
-  whoop: "Whoop",
+  whoop: "WHOOP",
   apple_health: "Apple Health",
   eightsleep: "Eight Sleep",
   manual: "Other",
@@ -34,7 +34,6 @@ const els = {
   whoopMessage: document.querySelector("#whoopMessage"),
   appleStatus: document.querySelector("#appleStatus"),
   eightStatus: document.querySelector("#eightStatus"),
-  trendChart: document.querySelector("#trendChart"),
   trendEmpty: document.querySelector("#trendEmpty"),
   scatterChart: document.querySelector("#scatterChart"),
   scatterEmpty: document.querySelector("#scatterEmpty"),
@@ -69,6 +68,13 @@ let alertnessRatings = [];
 let stagedNights = [];
 let selectedRating = null;
 let chartResizeTimer;
+let selectedDays = 7;
+let activeView = "overview";
+let isDemo = ["1", "empty"].includes(
+  new URLSearchParams(location.search).get("demo"),
+);
+let demoData;
+const $ = (selector) => document.querySelector(selector);
 
 init().catch((error) => showAuthError(error));
 
@@ -77,10 +83,44 @@ async function init() {
   els.manualDate.value = todayPacific();
   els.heroDate.textContent = formatLongDate(todayPacific());
   bindEvents();
+  switchView("overview");
+  document
+    .querySelectorAll("select")
+    .forEach((select) => SearchableSelect.enhance(select));
+  if (isDemo) return startPreview();
   await initializeClerk();
 }
 
 function bindEvents() {
+  $("#previewButton").addEventListener("click", startPreview);
+  $("#retryLoad").addEventListener("click", loadDashboard);
+  document
+    .querySelectorAll("[data-view], [data-go]")
+    .forEach((button) =>
+      button.addEventListener("click", () =>
+        switchView(button.dataset.view || button.dataset.go),
+      ),
+    );
+  document.querySelectorAll("[data-range]").forEach((button) =>
+    button.addEventListener("click", () => {
+      selectedDays = Number(button.dataset.range);
+      document
+        .querySelectorAll("[data-range]")
+        .forEach((item) =>
+          item.setAttribute("aria-pressed", String(item === button)),
+        );
+      renderDashboard();
+    }),
+  );
+  $("#chartMetric").addEventListener("change", renderCharts);
+  $("#friendsPreview").addEventListener("click", () => {
+    const open = $("#friendSample").hidden;
+    $("#friendSample").hidden = !open;
+    $("#friendsPreview").setAttribute("aria-expanded", String(open));
+    $("#friendsPreview").textContent = open
+      ? "Hide sample circle"
+      : "Explore a sample circle ↗";
+  });
   els.lockButton.addEventListener("click", signOut);
   els.authSignOut.addEventListener("click", signOut);
   document.querySelectorAll("[data-open-import]").forEach((button) => {
@@ -102,9 +142,13 @@ function bindEvents() {
 
 async function initializeClerk() {
   try {
-    if (!window.Clerk) throw new Error("Secure sign-in did not load. Check your connection and try again.");
+    if (!window.Clerk)
+      throw new Error(
+        "Secure sign-in did not load. Check your connection and try again.",
+      );
     await window.Clerk.load({ ui: { ClerkUI: window.__internal_ClerkUICtor } });
 
+    if (isDemo) return;
     if (window.Clerk.isSignedIn) {
       await unlockDashboard();
       return;
@@ -124,7 +168,8 @@ async function initializeClerk() {
           colorInputBackground: "#ffffff",
           colorInputText: "#17231e",
           borderRadius: "4px",
-          fontFamily: "Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+          fontFamily:
+            "Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
         },
       },
     });
@@ -138,8 +183,9 @@ async function unlockDashboard() {
   els.authStatus.hidden = false;
   els.authStatus.textContent = "Verifying your account…";
   try {
-    const viewer = await convexQuery("sleep:verify", {});
-    els.lastUpdated.textContent = viewer.email || "Sleep lab";
+    await convexQuery("sleep:verify", {});
+    if (isDemo) return;
+    els.lastUpdated.textContent = "Private workspace";
     els.gate.hidden = true;
     els.app.hidden = false;
     await loadDashboard();
@@ -151,6 +197,10 @@ async function unlockDashboard() {
 }
 
 async function signOut() {
+  if (isDemo) {
+    window.location.assign(location.pathname);
+    return;
+  }
   sleepNights = [];
   alertnessRatings = [];
   if (window.Clerk?.isSignedIn) await window.Clerk.signOut();
@@ -158,31 +208,44 @@ async function signOut() {
 }
 
 function showAuthError(error) {
+  if (isDemo) return;
   const message = String(error?.message || error || "");
   els.app.hidden = true;
   els.gate.hidden = false;
   els.authStatus.hidden = false;
   els.authSignOut.hidden = !window.Clerk?.isSignedIn;
   if (/not authorized/i.test(message)) {
-    els.authStatus.textContent = "This Clerk account is signed in, but it is not approved for this private dashboard.";
-  } else if (/auth provider|token|authenticated|verified email|jwt|invalidauthheader/i.test(message)) {
-    els.authStatus.textContent = "Clerk sign-in is ready, but its Convex integration still needs to be activated in the Clerk dashboard.";
+    els.authStatus.textContent =
+      "This Clerk account is signed in, but it is not approved for this private dashboard.";
+  } else if (
+    /auth provider|token|authenticated|verified email|jwt|invalidauthheader/i.test(
+      message,
+    )
+  ) {
+    els.authStatus.textContent =
+      "Clerk sign-in is ready, but its Convex integration still needs to be activated in the Clerk dashboard.";
   } else {
-    els.authStatus.textContent = "Secure sign-in could not finish loading. Refresh the page and try again.";
+    els.authStatus.textContent =
+      "Secure sign-in could not finish loading. Refresh the page and try again.";
   }
 }
 
 async function loadDashboard() {
+  const startedInDemo = isDemo;
   els.lastUpdated.textContent = "Refreshing…";
+  $("#loadError").hidden = true;
   const endDate = todayPacific();
   const startDate = addDays(endDate, -365);
 
   try {
     const data = await convexQuery("sleep:dashboard", { startDate, endDate });
+    if (startedInDemo !== isDemo) return;
     sleepNights = data.nights || [];
     alertnessRatings = data.alertness || [];
     renderDashboard();
-    els.lastUpdated.textContent = `Updated ${formatTime(new Date())}`;
+    els.lastUpdated.textContent = isDemo
+      ? "Sample data"
+      : `Updated ${formatTime(new Date())}`;
   } catch (error) {
     console.error(error);
     if (/authorized|authenticated|token|verified email/i.test(error.message)) {
@@ -190,6 +253,7 @@ async function loadDashboard() {
       return;
     }
     els.lastUpdated.textContent = "Could not refresh";
+    $("#loadError").hidden = false;
   }
 }
 
@@ -197,14 +261,16 @@ async function initializeWhoop() {
   const params = new URLSearchParams(window.location.search);
   const callbackStatus = params.get("whoop");
   if (callbackStatus === "error") {
-    els.whoopMessage.textContent = "WHOOP authorization did not finish. Try connecting again.";
+    els.whoopMessage.textContent =
+      "WHOOP authorization did not finish. Try connecting again.";
   }
 
   try {
     const status = await convexQuery("whoopData:status", {});
     setWhoopConnectionState(status);
     if (callbackStatus === "connected") {
-      els.whoopMessage.textContent = "Connected. Importing your WHOOP sleep history…";
+      els.whoopMessage.textContent =
+        "Connected. Importing your WHOOP sleep history…";
       await syncWhoop();
     }
   } catch (error) {
@@ -215,14 +281,27 @@ async function initializeWhoop() {
       params.delete("whoop");
       params.delete("reason");
       const query = params.toString();
-      window.history.replaceState({}, "", `${window.location.pathname}${query ? `?${query}` : ""}`);
+      window.history.replaceState(
+        {},
+        "",
+        `${window.location.pathname}${query ? `?${query}` : ""}`,
+      );
     }
   }
 }
 
 function setWhoopConnectionState(status) {
+  if (isDemo) {
+    els.whoopAction.disabled = true;
+    els.whoopAction.textContent = "Sample connection";
+    els.whoopDisconnect.hidden = true;
+    els.whoopMessage.textContent = "Sign in to connect your own WHOOP account.";
+    return;
+  }
   els.whoopAction.dataset.connected = status.connected ? "true" : "false";
-  els.whoopAction.textContent = status.connected ? "Sync Whoop" : "Connect Whoop";
+  els.whoopAction.textContent = status.connected
+    ? "Sync WHOOP"
+    : "Connect WHOOP";
   els.whoopDisconnect.hidden = !status.connected;
   if (status.connected && status.lastSyncedAt) {
     els.whoopMessage.textContent = `Last synced ${formatTime(new Date(status.lastSyncedAt))}`;
@@ -236,7 +315,8 @@ async function disconnectWhoop() {
   try {
     await convexAction("whoop:disconnect", {});
     setWhoopConnectionState({ connected: false });
-    els.whoopMessage.textContent = "WHOOP disconnected. Imported history remains in your dashboard.";
+    els.whoopMessage.textContent =
+      "WHOOP disconnected. Imported history remains in your dashboard.";
   } catch (error) {
     console.error(error);
     els.whoopMessage.textContent = readableWhoopError(error);
@@ -261,7 +341,7 @@ async function handleWhoopAction() {
     console.error(error);
     els.whoopMessage.textContent = readableWhoopError(error);
     els.whoopAction.disabled = false;
-    els.whoopAction.textContent = "Connect Whoop";
+    els.whoopAction.textContent = "Connect WHOOP";
   }
 }
 
@@ -278,52 +358,229 @@ async function syncWhoop() {
     els.whoopMessage.textContent = readableWhoopError(error);
   } finally {
     els.whoopAction.disabled = false;
-    els.whoopAction.textContent = "Sync Whoop";
+    els.whoopAction.textContent = "Sync WHOOP";
   }
 }
 
 function readableWhoopError(error) {
   const message = String(error?.message || error || "");
-  if (/WHOOP_CLIENT/i.test(message)) return "WHOOP developer credentials still need to be configured.";
+  if (/WHOOP_CLIENT/i.test(message))
+    return "WHOOP developer credentials still need to be configured.";
   if (/connect WHOOP/i.test(message)) return "Connect WHOOP before syncing.";
   return "WHOOP could not finish that request. Try again.";
 }
 
+function startPreview() {
+  isDemo = true;
+  demoData =
+    new URLSearchParams(location.search).get("demo") === "empty"
+      ? { nights: [], alertness: [] }
+      : Daylight.sample(todayPacific());
+  sleepNights = demoData.nights;
+  alertnessRatings = demoData.alertness;
+  els.gate.hidden = true;
+  els.app.hidden = false;
+  $("#demoBanner").hidden = false;
+  els.lastUpdated.textContent = "Sample data";
+  els.lockButton.textContent = "Exit preview ↗";
+  setWhoopConnectionState({ connected: false });
+  renderDashboard();
+}
+
+function switchView(view) {
+  const views = {
+    overview: [
+      "Overview",
+      "Your day, in perspective.",
+      "A clearer picture of your sleep. A little more understanding of you.",
+    ],
+    trends: [
+      "Sleep trends",
+      "Step back. See the pattern.",
+      "Your WHOOP sleep over time, and how it lines up with your day.",
+    ],
+    friends: [
+      "Friends",
+      "Good company. Better perspective.",
+      "A first look at private, opt-in comparisons with your circle.",
+    ],
+    connections: [
+      "Connections",
+      "Your data, all together.",
+      "Connect WHOOP. Bring in Apple Health. Keep each source in perspective.",
+    ],
+  };
+  if (!views[view]) return;
+  activeView = view;
+  $("#pageLabel").textContent = views[view][0];
+  $("#pageTitle").textContent = views[view][1];
+  $("#pageSubtitle").textContent = views[view][2];
+  document
+    .querySelectorAll("[data-panels]")
+    .forEach(
+      (panel) =>
+        (panel.hidden = !panel.dataset.panels.split(" ").includes(view)),
+    );
+  document.querySelectorAll("[data-view]").forEach((button) => {
+    if (button.dataset.view === view)
+      button.setAttribute("aria-current", "page");
+    else button.removeAttribute("aria-current");
+  });
+  $("#rangeControl").hidden = !["overview", "trends"].includes(view);
+  renderCharts();
+}
+
+function currentRows() {
+  return Daylight.range(sleepNights, selectedDays, todayPacific());
+}
+function whoopGrouped() {
+  return groupNightsByDate(
+    currentRows().filter(
+      (row) => row.source === "whoop" && row.scoreKind === "native",
+    ),
+  );
+}
+
 function renderDashboard() {
-  const grouped = groupNightsByDate(sleepNights);
-  const dates = [...grouped.keys()].sort();
-  const latestDate = dates.at(-1);
-  const latest = latestDate ? grouped.get(latestDate) : null;
-
+  const records = sleepNights
+    .filter((row) => row.source === "whoop" && row.sleepDate <= todayPacific())
+    .sort((a, b) => a.sleepDate.localeCompare(b.sleepDate));
+  const latest = records.at(-1);
+  const nativeScore = latest && Daylight.value(latest, "score");
+  els.latestScore.textContent = Number.isFinite(nativeScore)
+    ? Math.round(nativeScore)
+    : "—";
+  $("#scoreRing").style.setProperty(
+    "--progress",
+    `${Number.isFinite(nativeScore) ? clamp(nativeScore, 0, 100) : 0}%`,
+  );
+  els.latestScoreLabel.textContent = "Sleep performance";
+  els.orbitNote.textContent = latest
+    ? `WHOOP · ${formatShortDate(latest.sleepDate)}`
+    : "WHOOP · waiting for data";
   if (latest) {
-    els.latestScore.textContent = Math.round(latest.aggregate);
-    els.latestScoreLabel.textContent = describeScore(latest.aggregate);
-    els.orbitNote.textContent = `${formatShortDate(latestDate)} · ${latest.records.length} source${latest.records.length === 1 ? "" : "s"}`;
-    const recentDates = dates.slice(-7);
-    const recentAverage = average(recentDates.map((date) => grouped.get(date).aggregate));
-    els.heroSummary.textContent = `Your latest aggregate is ${Math.round(latest.aggregate)}. Over the last ${recentDates.length} tracked night${recentDates.length === 1 ? "" : "s"}, you averaged ${Math.round(recentAverage)} across ${new Set(sleepNights.map((row) => row.source)).size} source${new Set(sleepNights.map((row) => row.source)).size === 1 ? "" : "s"}.`;
+    const duration = Number.isFinite(latest.durationMinutes)
+      ? `${formatDuration(latest.durationMinutes)} asleep`
+      : "Sleep duration not available";
+    els.heroSummary.textContent = `${formatTableDate(latest.sleepDate)}: ${duration}${Number.isFinite(nativeScore) ? ` and ${Math.round(nativeScore)}% sleep performance` : ""}. Explore your recent nights below.`;
   } else {
-    els.latestScore.textContent = "—";
-    els.latestScoreLabel.textContent = "No data yet";
-    els.orbitNote.textContent = "Your latest night";
-    els.heroSummary.textContent = "Import your first sleep history to start finding the pattern between sleep and how you feel.";
+    els.heroSummary.textContent =
+      "Connect WHOOP to start seeing your sleep clearly. Already have an export? Import your history to get started.";
   }
-
+  renderMetrics();
+  renderNight(latest);
+  renderDeviceComparison();
   renderSourceCard("whoop", els.whoopScore, els.whoopStatus);
   renderSourceCard("apple_health", els.appleScore, els.appleStatus);
   renderSourceCard("eightsleep", els.eightScore, els.eightStatus);
   renderCheckin();
   renderCharts();
-  renderHistory(grouped);
+  renderHistory(groupNightsByDate(currentRows()));
+}
+
+function renderMetrics() {
+  const definitions = [
+    ["score", "Sleep performance", "◷", "WHOOP sleep need met"],
+    ["durationMinutes", "Time asleep", "☾", "WHOOP · sleep duration"],
+    ["efficiency", "Sleep efficiency", "✧", "WHOOP · time asleep / in bed"],
+    ["restorativeMinutes", "Deep + REM sleep", "≈", "WHOOP · estimated stages"],
+  ];
+  $("#metricCards").innerHTML = definitions
+    .map(([metric, label, icon, note]) => {
+      const stats = Daylight.stats(
+        sleepNights,
+        metric,
+        selectedDays,
+        todayPacific(),
+      );
+      const percent = ["score", "efficiency"].includes(metric);
+      const display =
+        stats.average === null
+          ? "—"
+          : percent
+            ? `${Math.round(stats.average)}<small>%</small>`
+            : formatDuration(stats.average);
+      const roundedDelta = Math.round(stats.delta || 0);
+      const difference =
+        stats.delta === null
+          ? "No previous period to compare"
+          : `${roundedDelta === 0 ? "" : roundedDelta > 0 ? "+" : "−"}${Math.abs(roundedDelta)} ${percent ? "pts" : "min"} vs previous ${selectedDays} days`;
+      return `<article class="metric-card"><div><h3>${label}</h3><span class="metric-icon" aria-hidden="true">${icon}</span></div><strong>${display}</strong><p>${difference}</p><p class="metric-footnote">${stats.count}/${selectedDays} nights · ${note}</p></article>`;
+    })
+    .join("");
+}
+
+function renderNight(latest) {
+  $("#stageDate").textContent = latest
+    ? `WHOOP · ${formatShortDate(latest.sleepDate)}`
+    : "LATEST WHOOP NIGHT";
+  $("#nightDuration").textContent = formatDuration(latest?.durationMinutes);
+  const stages = Daylight.stages(latest);
+  $("#stageBar").innerHTML = stages
+    ? stages
+        .map(
+          (stage) =>
+            `<span style="width:${(stage.minutes / latest.durationMinutes) * 100}%;background:${stage.color}"></span>`,
+        )
+        .join("")
+    : "";
+  $("#stageBar").setAttribute(
+    "aria-label",
+    stages
+      ? stages
+          .map((stage) => `${stage.label}: ${formatDuration(stage.minutes)}`)
+          .join(", ")
+      : "Sleep stages unavailable",
+  );
+  $("#stageLegend").innerHTML = stages
+    ? stages
+        .map(
+          (stage) =>
+            `<div><i style="background:${stage.color}"></i>${stage.label}<strong>${formatDuration(stage.minutes)}</strong></div>`,
+        )
+        .join("")
+    : '<p class="small-note">Stage details will appear when available from WHOOP.</p>';
+  const time = (value) =>
+    value && !Number.isNaN(new Date(value).getTime())
+      ? formatTime(new Date(value))
+      : "—";
+  $("#bedtime").textContent = time(latest?.asleepAt);
+  $("#waketime").textContent = time(latest?.wokeAt);
+}
+
+function renderDeviceComparison() {
+  const pair = Daylight.matchedDevices(
+    sleepNights,
+    selectedDays,
+    todayPacific(),
+  );
+  const max = Math.max(pair.whoop || 0, pair.apple || 0, 1);
+  $("#deviceComparison").innerHTML =
+    [
+      ["WHOOP", pair.whoop, "#7a9b85"],
+      ["Apple Health", pair.apple, "#dca886"],
+    ]
+      .map(
+        ([label, value, color]) =>
+          `<div class="device-row"><span>${label}</span><div class="device-track"><i style="width:${value === null ? 0 : (value / max) * 100}%;background:${color}"></i></div><strong>${formatDuration(value)}</strong></div>`,
+      )
+      .join("") +
+    `<p class="comparison-note">${pair.count ? `Apple Health recorded ${Math.round(Math.abs(pair.difference))} min ${pair.difference >= 0 ? "more" : "less"} on average · ${pair.count} matched night${pair.count === 1 ? "" : "s"} in the last ${selectedDays} days.` : `No overlapping nights in the last ${selectedDays} days. Import Apple Health sleep records to compare.`}</p>`;
 }
 
 function renderSourceCard(source, scoreElement, statusElement) {
-  const records = sleepNights.filter((row) => row.source === source).sort((a, b) => a.sleepDate.localeCompare(b.sleepDate));
-  const latest = records.at(-1);
-  scoreElement.textContent = latest ? Math.round(latest.score) : "—";
+  const latest = sleepNights
+    .filter((row) => row.source === source && row.sleepDate <= todayPacific())
+    .sort((a, b) => a.sleepDate.localeCompare(b.sleepDate))
+    .at(-1);
+  scoreElement.textContent = latest
+    ? source === "whoop" && latest.scoreKind === "native"
+      ? `${Math.round(latest.score)}%`
+      : formatDuration(latest.durationMinutes)
+    : "—";
   statusElement.textContent = latest
-    ? `${formatShortDate(latest.sleepDate)} · ${latest.scoreKind === "derived" ? "derived" : "native"} score`
-    : "Awaiting import";
+    ? `${formatShortDate(latest.sleepDate)} · ${source === "whoop" && latest.scoreKind === "native" ? "Sleep performance" : "Time asleep"}`
+    : "No nights imported";
 }
 
 function buildRatingScale() {
@@ -336,17 +593,46 @@ function buildRatingScale() {
     button.setAttribute("aria-checked", "false");
     button.setAttribute("aria-label", `${score} out of 10 alertness`);
     button.addEventListener("click", () => selectRating(score));
+    button.addEventListener("keydown", (event) => {
+      if (
+        ![
+          "ArrowLeft",
+          "ArrowRight",
+          "ArrowUp",
+          "ArrowDown",
+          "Home",
+          "End",
+        ].includes(event.key)
+      )
+        return;
+      event.preventDefault();
+      const next =
+        event.key === "Home"
+          ? 1
+          : event.key === "End"
+            ? 10
+            : ((score -
+                1 +
+                (["ArrowLeft", "ArrowUp"].includes(event.key) ? 9 : 1)) %
+                10) +
+              1;
+      selectRating(next);
+      els.ratingScale.children[next - 1].focus();
+    });
     els.ratingScale.append(button);
   }
 }
 
 function selectRating(score) {
   selectedRating = score;
-  els.ratingScale.querySelectorAll(".rating-button").forEach((button, index) => {
-    const selected = index + 1 === score;
-    button.classList.toggle("selected", selected);
-    button.setAttribute("aria-checked", String(selected));
-  });
+  els.ratingScale
+    .querySelectorAll(".rating-button")
+    .forEach((button, index) => {
+      const selected = index + 1 === score;
+      button.classList.toggle("selected", selected);
+      button.setAttribute("aria-checked", String(selected));
+      button.tabIndex = selected || (!selectedRating && index === 0) ? 0 : -1;
+    });
   updateSaveButton();
 }
 
@@ -355,11 +641,14 @@ function renderCheckin() {
   const existing = alertnessRatings.find((row) => row.ratingDate === today);
   selectedRating = existing?.score ?? null;
   els.alertnessNote.value = existing?.note || "";
-  els.ratingScale.querySelectorAll(".rating-button").forEach((button, index) => {
-    const selected = index + 1 === selectedRating;
-    button.classList.toggle("selected", selected);
-    button.setAttribute("aria-checked", String(selected));
-  });
+  els.ratingScale
+    .querySelectorAll(".rating-button")
+    .forEach((button, index) => {
+      const selected = index + 1 === selectedRating;
+      button.classList.toggle("selected", selected);
+      button.setAttribute("aria-checked", String(selected));
+      button.tabIndex = selected || (!selectedRating && index === 0) ? 0 : -1;
+    });
 
   const hour = currentPacificHour();
   if (existing) {
@@ -379,10 +668,17 @@ function renderCheckin() {
 }
 
 function updateSaveButton() {
-  const existing = alertnessRatings.find((row) => row.ratingDate === todayPacific());
-  const changed = selectedRating && (selectedRating !== existing?.score || els.alertnessNote.value.trim() !== (existing?.note || ""));
+  const existing = alertnessRatings.find(
+    (row) => row.ratingDate === todayPacific(),
+  );
+  const changed =
+    selectedRating &&
+    (selectedRating !== existing?.score ||
+      els.alertnessNote.value.trim() !== (existing?.note || ""));
   els.saveAlertness.disabled = !selectedRating || !changed;
-  els.saveAlertness.textContent = existing ? "Update today’s check-in" : "Save today’s check-in";
+  els.saveAlertness.textContent = existing
+    ? "Update today’s check-in"
+    : "Save today’s check-in";
 }
 
 async function saveTodayAlertness() {
@@ -397,7 +693,9 @@ async function saveTodayAlertness() {
       timezone: "America/Los_Angeles",
     });
     await loadDashboard();
-    els.checkinMessage.textContent = "Saved. One more useful data point.";
+    els.checkinMessage.textContent = isDemo
+      ? "Sample check-in updated. This is not saved."
+      : "Saved. One more useful data point.";
   } catch (error) {
     console.error(error);
     els.checkinMessage.textContent = "Could not save. Try again.";
@@ -407,91 +705,145 @@ async function saveTodayAlertness() {
 
 function renderCharts() {
   if (els.app.hidden) return;
-  const grouped = groupNightsByDate(sleepNights);
-  drawTrendChart(grouped);
-  drawScatterChart(grouped);
+  drawTrendChart();
+  if (activeView === "trends") drawScatterChart(whoopGrouped());
 }
 
-function drawTrendChart(grouped) {
-  const context = prepareCanvas(els.trendChart);
-  if (!context) return;
-  const { ctx, width, height } = context;
-  const allDates = [...grouped.keys()].sort();
-  els.trendEmpty.hidden = allDates.length > 0;
-  if (!allDates.length) return;
-
-  const endDate = allDates.at(-1);
-  const dates = Array.from({ length: 28 }, (_, index) => addDays(endDate, index - 27));
-  const pad = { top: 18, right: 18, bottom: 34, left: 38 };
-  const plotWidth = width - pad.left - pad.right;
-  const plotHeight = height - pad.top - pad.bottom;
-  const x = (index) => pad.left + (index / Math.max(1, dates.length - 1)) * plotWidth;
-  const y = (value) => pad.top + (1 - value / 100) * plotHeight;
-
-  ctx.font = "11px ui-sans-serif, system-ui";
-  ctx.fillStyle = "#7a857e";
-  ctx.strokeStyle = "#dfe3dc";
-  ctx.lineWidth = 1;
-  [25, 50, 75, 100].forEach((tick) => {
-    ctx.beginPath();
-    ctx.moveTo(pad.left, y(tick));
-    ctx.lineTo(width - pad.right, y(tick));
-    ctx.stroke();
-    ctx.fillText(String(tick), 6, y(tick) + 4);
-  });
-
-  [0, 7, 14, 21, 27].forEach((index) => {
-    ctx.fillText(formatTinyDate(dates[index]), x(index) - (index === 27 ? 28 : 12), height - 8);
-  });
-
-  ["whoop", "apple_health", "eightsleep", "manual"].forEach((source) => {
-    const points = dates.map((date, index) => {
-      const row = grouped.get(date)?.records.find((record) => record.source === source);
-      return row ? { x: x(index), y: y(row.score) } : null;
-    });
-    drawSeries(ctx, points, SOURCE_COLORS[source], 1.2, [4, 5], 2.2);
-  });
-
-  const aggregatePoints = dates.map((date, index) => {
-    const night = grouped.get(date);
-    return night ? { x: x(index), y: y(night.aggregate) } : null;
-  });
-  drawSeries(ctx, aggregatePoints, "#17231e", 2.5, [], 3.2);
-}
-
-function drawSeries(ctx, points, color, lineWidth, dash, pointRadius) {
-  ctx.strokeStyle = color;
-  ctx.fillStyle = color;
-  ctx.lineWidth = lineWidth;
-  ctx.setLineDash(dash);
-  let open = false;
-  ctx.beginPath();
+function drawTrendChart() {
+  const metric = $("#chartMetric").value;
+  const percent = metric !== "durationMinutes";
+  const stats = Daylight.stats(
+    sleepNights,
+    metric,
+    selectedDays,
+    todayPacific(),
+  );
+  $("#trendPeriod").textContent = `THE LAST ${selectedDays} DAYS`;
+  $("#trendAverage").textContent =
+    stats.average === null
+      ? "—"
+      : percent
+        ? `${Math.round(stats.average)}%`
+        : formatDuration(stats.average);
+  $("#trendComparison").textContent =
+    `${stats.count} of ${selectedDays} nights · WHOOP average`;
+  const byDate = new Map(
+    currentRows()
+      .filter((row) => row.source === "whoop")
+      .map((row) => [row.sleepDate, row]),
+  );
+  const dates = Array.from({ length: selectedDays }, (_, index) =>
+    addDays(todayPacific(), index - selectedDays + 1),
+  );
+  const points = dates.map((date, index) => ({
+    date,
+    index,
+    value: byDate.has(date)
+      ? Daylight.value(byDate.get(date), metric)
+      : undefined,
+  }));
+  els.trendEmpty.hidden = stats.count > 0;
+  const w = 640,
+    h = 196,
+    left = 34,
+    right = 12,
+    top = 20,
+    bottom = 30;
+  const upper = percent
+    ? 100
+    : Math.max(600, ...points.map((point) => point.value || 0));
+  const x = (index) =>
+    left + (index / Math.max(1, selectedDays - 1)) * (w - left - right);
+  const y = (value) => top + (1 - value / upper) * (h - top - bottom);
+  const pieces = [];
+  let segment = [];
   points.forEach((point) => {
-    if (!point) {
-      open = false;
-      return;
+    if (Number.isFinite(point.value)) segment.push(point);
+    else if (segment.length) {
+      pieces.push(segment);
+      segment = [];
     }
-    if (!open) ctx.moveTo(point.x, point.y);
-    else ctx.lineTo(point.x, point.y);
-    open = true;
   });
-  ctx.stroke();
-  ctx.setLineDash([]);
-  points.filter(Boolean).forEach((point) => {
-    ctx.beginPath();
-    ctx.arc(point.x, point.y, pointRadius, 0, Math.PI * 2);
-    ctx.fill();
-  });
+  if (segment.length) pieces.push(segment);
+  const grid = [0, 1, 2, 3, 4]
+    .map((i) => {
+      const value = (upper * i) / 4;
+      return `<line x1="${left}" x2="${w - right}" y1="${y(value)}" y2="${y(value)}" stroke="#e8ede7" stroke-dasharray="3 5"/><text x="0" y="${y(value) + 3}" fill="#8b978e" font-size="9">${percent ? Math.round(value) : `${Math.round(value / 60)}h`}</text>`;
+    })
+    .join("");
+  const indices =
+    selectedDays === 7
+      ? [0, 1, 2, 3, 4, 5, 6]
+      : [
+          0,
+          Math.round(selectedDays / 4),
+          Math.round(selectedDays / 2),
+          Math.round((selectedDays * 3) / 4),
+          selectedDays - 1,
+        ];
+  const labels = indices
+    .map(
+      (i) =>
+        `<text x="${x(i)}" y="${h - 7}" text-anchor="${i === 0 ? "start" : i === selectedDays - 1 ? "end" : "middle"}" fill="#8b978e" font-size="9">${formatShortDate(dates[i])}</text>`,
+    )
+    .join("");
+  const lines = pieces
+    .map((piece) => {
+      const path = piece
+        .map(
+          (point, i) => `${i ? "L" : "M"}${x(point.index)},${y(point.value)}`,
+        )
+        .join(" ");
+      return `<path d="${path} L${x(piece.at(-1).index)},${y(0)} L${x(piece[0].index)},${y(0)} Z" fill="url(#trendFill)"/><path d="${path}" fill="none" stroke="#72987e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>`;
+    })
+    .join("");
+  const dots = points
+    .filter((point) => Number.isFinite(point.value))
+    .map((point) => {
+      const label = `${formatTableDate(point.date)}: ${percent ? `${Math.round(point.value)}%` : formatDuration(point.value)}`;
+      return `<g tabindex="0" role="button" class="chart-point" aria-label="${escapeHtml(label)}" data-label="${escapeHtml(label)}"><circle class="point-halo" cx="${x(point.index)}" cy="${y(point.value)}" r="10" fill="transparent"/><circle cx="${x(point.index)}" cy="${y(point.value)}" r="${selectedDays > 28 ? 2 : 3.5}" fill="#72987e" stroke="white" stroke-width="2"/><title>${escapeHtml(label)}</title></g>`;
+    })
+    .join("");
+  $("#trendPlot").innerHTML =
+    `<svg viewBox="0 0 ${w} ${h}" role="group" aria-label="WHOOP ${percent ? "percentage" : "duration"} history. Missing days are gaps."><defs><linearGradient id="trendFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#dce8d9" stop-opacity=".65"/><stop offset="1" stop-color="#f9fcf6" stop-opacity=".1"/></linearGradient></defs>${grid}${labels}${lines}${dots}</svg>`;
+  $("#chartDetail").textContent = stats.count
+    ? "Select a point to explore a night."
+    : "No WHOOP data in this period.";
+  $("#trendPlot")
+    .querySelectorAll(".chart-point")
+    .forEach((point) => {
+      const reveal = () =>
+        ($("#chartDetail").textContent = point.dataset.label);
+      point.addEventListener("mouseenter", reveal);
+      point.addEventListener("focus", reveal);
+      point.addEventListener("click", reveal);
+      point.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          reveal();
+        }
+      });
+    });
 }
 
 function drawScatterChart(grouped) {
   const context = prepareCanvas(els.scatterChart);
   if (!context) return;
   const { ctx, width, height } = context;
-  const ratingByDate = new Map(alertnessRatings.map((row) => [row.ratingDate, row]));
+  const ratingByDate = new Map(
+    alertnessRatings.map((row) => [row.ratingDate, row]),
+  );
   const pairs = [...grouped.entries()]
     .filter(([date]) => ratingByDate.has(date))
-    .map(([date, night]) => ({ x: night.aggregate, y: ratingByDate.get(date).score, date }));
+    .map(([date, night]) => ({
+      x: night.aggregate,
+      y: ratingByDate.get(date).score,
+      date,
+    }));
+  els.scatterChart.setAttribute(
+    "aria-label",
+    `WHOOP sleep performance versus noon alertness for ${pairs.length} paired days in the last ${selectedDays} days.`,
+  );
 
   els.pairedDays.textContent = pairs.length;
   els.scatterEmpty.hidden = pairs.length >= 3;
@@ -514,10 +866,15 @@ function drawScatterChart(grouped) {
   ctx.strokeStyle = "#e1e5de";
   ctx.lineWidth = 1;
   [1, 4, 7, 10].forEach((tick) => {
-    ctx.beginPath(); ctx.moveTo(pad.left, y(tick)); ctx.lineTo(width - pad.right, y(tick)); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(pad.left, y(tick));
+    ctx.lineTo(width - pad.right, y(tick));
+    ctx.stroke();
     ctx.fillText(String(tick), 15, y(tick) + 3);
   });
-  [0, 25, 50, 75, 100].forEach((tick) => ctx.fillText(String(tick), x(tick) - 7, height - 8));
+  [0, 25, 50, 75, 100].forEach((tick) =>
+    ctx.fillText(String(tick), x(tick) - 7, height - 8),
+  );
 
   const regression = linearRegression(pairs);
   ctx.strokeStyle = "#a9b2aa";
@@ -525,7 +882,10 @@ function drawScatterChart(grouped) {
   ctx.setLineDash([5, 5]);
   ctx.beginPath();
   ctx.moveTo(x(0), y(clamp(regression.intercept, 1, 10)));
-  ctx.lineTo(x(100), y(clamp(regression.intercept + regression.slope * 100, 1, 10)));
+  ctx.lineTo(
+    x(100),
+    y(clamp(regression.intercept + regression.slope * 100, 1, 10)),
+  );
   ctx.stroke();
   ctx.setLineDash([]);
 
@@ -539,33 +899,58 @@ function drawScatterChart(grouped) {
     ctx.stroke();
   });
 
-  const correlation = pearson(pairs.map((pair) => pair.x), pairs.map((pair) => pair.y));
-  const strength = Math.abs(correlation) < 0.2 ? "Very weak" : Math.abs(correlation) < 0.4 ? "Weak" : Math.abs(correlation) < 0.65 ? "Moderate" : "Strong";
+  const correlation = pearson(
+    pairs.map((pair) => pair.x),
+    pairs.map((pair) => pair.y),
+  );
+  const strength =
+    Math.abs(correlation) < 0.2
+      ? "Very weak"
+      : Math.abs(correlation) < 0.4
+        ? "Weak"
+        : Math.abs(correlation) < 0.65
+          ? "Moderate"
+          : "Strong";
   els.correlationBadge.textContent = `${correlation >= 0 ? "+" : ""}${correlation.toFixed(2)} correlation`;
   els.correlationBadge.className = `correlation-badge ${correlation >= 0.15 ? "positive" : correlation <= -0.15 ? "negative" : ""}`;
   els.signalLabel.textContent = `${strength} ${correlation >= 0 ? "positive" : "negative"}`;
-  const best = [...pairs].sort((a, b) => b.y - a.y).slice(0, Math.max(1, Math.ceil(pairs.length / 3)));
-  els.sweetSpot.textContent = `${Math.round(average(best.map((pair) => pair.x)))}+ sleep`;
+  const best = [...pairs]
+    .sort((a, b) => b.y - a.y)
+    .slice(0, Math.max(1, Math.ceil(pairs.length / 3)));
+  els.sweetSpot.textContent = `${Math.round(average(best.map((pair) => pair.x)))}%`;
 }
 
 function renderHistory(grouped) {
-  const ratingByDate = new Map(alertnessRatings.map((row) => [row.ratingDate, row]));
-  const rows = [...grouped.entries()].sort((a, b) => b[0].localeCompare(a[0])).slice(0, 12);
+  const ratingByDate = new Map(
+    alertnessRatings.map((row) => [row.ratingDate, row]),
+  );
+  const rows = [...grouped.entries()].sort((a, b) => b[0].localeCompare(a[0]));
   els.historyEmpty.hidden = rows.length > 0;
+  const hasOther = rows.some(([, night]) =>
+    night.records.some(
+      (record) => !["whoop", "apple_health"].includes(record.source),
+    ),
+  );
+  $("#otherSourceHeading").hidden = !hasOther;
+  $("#historyCount").textContent =
+    `${rows.length} night${rows.length === 1 ? "" : "s"}`;
   els.historyRows.replaceChildren();
-
   rows.forEach(([date, night]) => {
+    const whoop = night.records.find((record) => record.source === "whoop");
+    const apple = night.records.find(
+      (record) => record.source === "apple_health",
+    );
     const row = document.createElement("tr");
-    const durations = night.records.map((record) => record.durationMinutes).filter(Number.isFinite);
-    const duration = durations.length ? average(durations) : null;
+    const score = whoop && Daylight.value(whoop, "score");
     const rating = ratingByDate.get(date);
-    row.innerHTML = `
-      <td>${escapeHtml(formatTableDate(date))}</td>
-      <td><strong>${Math.round(night.aggregate)}</strong></td>
-      <td><div class="source-chips">${night.records.map((record) => `<span class="source-chip">${escapeHtml(SOURCE_LABELS[record.source])}</span>`).join("")}</div></td>
-      <td>${duration ? formatDuration(duration) : "—"}</td>
-      <td>${rating ? `<span class="alertness-cell"><strong>${rating.score}</strong><i style="--rating-width:${rating.score * 10}%"></i></span>` : "—"}</td>
-    `;
+    const other = night.records
+      .filter((record) => !["whoop", "apple_health"].includes(record.source))
+      .map(
+        (record) =>
+          `${escapeHtml(SOURCE_LABELS[record.source])}: ${formatDuration(record.durationMinutes)}${record.scoreKind === "native" ? ` · ${Math.round(record.score)} score` : ""}`,
+      )
+      .join("<br>");
+    row.innerHTML = `<td>${escapeHtml(formatTableDate(date))}</td><td>${Number.isFinite(score) ? `<span class="score-pill">${Math.round(score)}%</span>` : "—"}</td><td>${formatDuration(whoop?.durationMinutes)}</td><td>${formatDuration(apple?.durationMinutes)}</td><td>${rating ? `${rating.score} <span class="muted">/ 10</span>` : "—"}</td>${hasOther ? `<td>${other || "—"}</td>` : ""}`;
     els.historyRows.append(row);
   });
 }
@@ -576,6 +961,10 @@ function openImportDialog() {
   els.importPreview.hidden = true;
   els.importMessage.textContent = "";
   els.manualDate.value = todayPacific();
+  els.confirmImport.disabled = isDemo;
+  if (isDemo)
+    els.importMessage.textContent =
+      "Preview only. You can inspect files here, but importing requires sign-in.";
   els.importDialog.showModal();
 }
 
@@ -591,22 +980,31 @@ async function handleFiles(event) {
       parsed.push(...parseSleepExport(text, file.name));
     }
     stagedNights = dedupeNights(parsed);
-    if (!stagedNights.length) throw new Error("No recognizable sleep rows were found.");
+    if (!stagedNights.length)
+      throw new Error("No recognizable sleep rows were found.");
     renderImportPreview();
     els.importMessage.textContent = "Review the count, then import when ready.";
   } catch (error) {
     console.error(error);
     stagedNights = [];
     els.importPreview.hidden = true;
-    els.importMessage.textContent = error.message || "That export could not be read.";
+    els.importMessage.textContent =
+      error.message || "That export could not be read.";
   }
 }
 
 function stageManualNight() {
   const score = Number(els.manualScore.value);
   const hours = Number(els.manualDuration.value);
-  if (!els.manualDate.value || !Number.isFinite(score) || score < 0 || score > 100) {
-    els.importMessage.textContent = "Add a wake date and a score between 0 and 100.";
+  if (
+    !els.manualScore.value.trim() ||
+    !els.manualDate.value ||
+    !Number.isFinite(score) ||
+    score < 0 ||
+    score > 100
+  ) {
+    els.importMessage.textContent =
+      "Add a wake date and a score between 0 and 100.";
     return;
   }
 
@@ -617,7 +1015,8 @@ function stageManualNight() {
       source: els.manualSource.value,
       score,
       scoreKind: "native",
-      durationMinutes: Number.isFinite(hours) && hours > 0 ? hours * 60 : undefined,
+      durationMinutes:
+        Number.isFinite(hours) && hours > 0 ? hours * 60 : undefined,
     }),
   ]);
   renderImportPreview();
@@ -627,14 +1026,16 @@ function stageManualNight() {
 }
 
 function renderImportPreview() {
-  const sources = [...new Set(stagedNights.map((night) => SOURCE_LABELS[night.source]))];
+  const sources = [
+    ...new Set(stagedNights.map((night) => SOURCE_LABELS[night.source])),
+  ];
   els.previewCount.textContent = `${stagedNights.length} night${stagedNights.length === 1 ? "" : "s"} ready`;
   els.previewSources.textContent = sources.join(" · ");
   els.importPreview.hidden = false;
 }
 
 async function importStagedNights() {
-  if (!stagedNights.length) return;
+  if (!stagedNights.length || isDemo) return;
   els.confirmImport.disabled = true;
   els.confirmImport.textContent = "Importing…";
   els.importMessage.textContent = "Saving your sleep history…";
@@ -656,7 +1057,8 @@ async function importStagedNights() {
     setTimeout(() => els.importDialog.close(), 700);
   } catch (error) {
     console.error(error);
-    els.importMessage.textContent = error.message || "Import failed. Try again.";
+    els.importMessage.textContent =
+      error.message || "Import failed. Try again.";
   } finally {
     els.confirmImport.disabled = false;
     els.confirmImport.textContent = "Import to Daylight";
@@ -666,7 +1068,10 @@ async function importStagedNights() {
 function parseSleepExport(text, filename) {
   const trimmed = text.trim();
   if (!trimmed) return [];
-  if (trimmed.startsWith("<") && /HealthData|HKCategoryTypeIdentifierSleepAnalysis/.test(trimmed)) {
+  if (
+    trimmed.startsWith("<") &&
+    /HealthData|HKCategoryTypeIdentifierSleepAnalysis/.test(trimmed)
+  ) {
     return parseAppleHealthXml(trimmed);
   }
   if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
@@ -676,7 +1081,9 @@ function parseSleepExport(text, filename) {
 }
 
 function parseJsonExport(data, filename) {
-  const rows = Array.isArray(data) ? data : data.records || data.sleeps || data.data || [];
+  const rows = Array.isArray(data)
+    ? data
+    : data.records || data.sleeps || data.data || [];
   if (!Array.isArray(rows)) return [];
   return normalizeRows(rows, filename);
 }
@@ -685,77 +1092,209 @@ function parseCsvExport(text, filename) {
   const matrix = parseCsv(text);
   if (matrix.length < 2) return [];
   const headers = matrix[0].map(normalizeHeader);
-  const rows = matrix.slice(1).map((cells) => Object.fromEntries(headers.map((header, index) => [header, cells[index] || ""])));
+  const rows = matrix
+    .slice(1)
+    .map((cells) =>
+      Object.fromEntries(
+        headers.map((header, index) => [header, cells[index] || ""]),
+      ),
+    );
   return normalizeRows(rows, filename);
 }
 
 function normalizeRows(rows, filename) {
   const fallbackSource = inferSource(filename);
-  return rows.map((row) => {
-    const normalized = Object.fromEntries(Object.entries(row).map(([key, value]) => [normalizeHeader(key), value]));
-    const source = inferSource(String(firstValue(normalized, ["source", "provider", "device", "source_name"]) || filename)) || fallbackSource;
-    const dateValue = firstValue(normalized, ["wake_onset", "woke_at", "end", "end_time", "sleep_end", "date", "sleep_date", "cycle_start_time", "start"]);
-    const scoreValue = firstValue(normalized, ["sleep_performance_percentage", "sleep_performance", "sleep_score", "quality_score", "overall_score", "score"]);
-    const durationValue = firstValue(normalized, ["asleep_duration_min", "asleep_duration", "sleep_duration_minutes", "total_sleep_minutes", "total_sleep_time", "duration_minutes", "duration"]);
-    const durationMinutes = parseDurationMinutes(durationValue, normalized);
-    const scoreNumber = parseMetric(scoreValue);
-    const sleepDate = normalizeDate(dateValue);
-    if (!sleepDate || (!Number.isFinite(scoreNumber) && !Number.isFinite(durationMinutes))) return null;
-    const nativeScore = Number.isFinite(scoreNumber);
+  return rows
+    .map((row) => {
+      const normalized = Object.fromEntries(
+        Object.entries(row).map(([key, value]) => [
+          normalizeHeader(key),
+          value,
+        ]),
+      );
+      const source =
+        inferSource(
+          String(
+            firstValue(normalized, [
+              "source",
+              "provider",
+              "device",
+              "source_name",
+            ]) || filename,
+          ),
+        ) || fallbackSource;
+      const dateValue = firstValue(normalized, [
+        "wake_onset",
+        "woke_at",
+        "end",
+        "end_time",
+        "sleep_end",
+        "date",
+        "sleep_date",
+        "cycle_start_time",
+        "start",
+      ]);
+      const scoreValue = firstValue(normalized, [
+        "sleep_performance_percentage",
+        "sleep_performance",
+        "sleep_score",
+        "quality_score",
+        "overall_score",
+        "score",
+      ]);
+      const durationValue = firstValue(normalized, [
+        "asleep_duration_min",
+        "asleep_duration",
+        "sleep_duration_minutes",
+        "total_sleep_minutes",
+        "total_sleep_time",
+        "duration_minutes",
+        "duration",
+      ]);
+      const durationMinutes = parseDurationMinutes(durationValue, normalized);
+      const scoreNumber = parseMetric(scoreValue);
+      const sleepDate = normalizeDate(dateValue);
+      if (
+        !sleepDate ||
+        (!Number.isFinite(scoreNumber) && !Number.isFinite(durationMinutes))
+      )
+        return null;
+      const nativeScore = Number.isFinite(scoreNumber);
 
-    return cleanNight({
-      sleepDate,
-      source: source || "manual",
-      score: nativeScore ? scoreNumber : durationScore(durationMinutes),
-      scoreKind: nativeScore ? "native" : "derived",
-      durationMinutes,
-      efficiency: parseMetric(firstValue(normalized, ["sleep_efficiency_percentage", "sleep_efficiency", "efficiency"])),
-      hrv: parseMetric(firstValue(normalized, ["hrv_rmssd_milli", "hrv", "average_hrv"])),
-      restingHeartRate: parseMetric(firstValue(normalized, ["resting_heart_rate", "rhr", "average_heart_rate"])),
-      deepMinutes: parseDurationMinutes(firstValue(normalized, ["deep_sleep_minutes", "slow_wave_sleep_minutes", "deep_minutes"]), normalized),
-      remMinutes: parseDurationMinutes(firstValue(normalized, ["rem_sleep_minutes", "rem_minutes"]), normalized),
-      asleepAt: normalizeTimestamp(firstValue(normalized, ["sleep_onset", "asleep_at", "start", "start_time"])),
-      wokeAt: normalizeTimestamp(firstValue(normalized, ["wake_onset", "woke_at", "end", "end_time"])),
-    });
-  }).filter(Boolean);
+      return cleanNight({
+        sleepDate,
+        source: source || "manual",
+        score: nativeScore ? scoreNumber : durationScore(durationMinutes),
+        scoreKind: nativeScore ? "native" : "derived",
+        durationMinutes,
+        efficiency: parseMetric(
+          firstValue(normalized, [
+            "sleep_efficiency_percentage",
+            "sleep_efficiency",
+            "efficiency",
+          ]),
+        ),
+        hrv: parseMetric(
+          firstValue(normalized, ["hrv_rmssd_milli", "hrv", "average_hrv"]),
+        ),
+        restingHeartRate: parseMetric(
+          firstValue(normalized, [
+            "resting_heart_rate",
+            "rhr",
+            "average_heart_rate",
+          ]),
+        ),
+        deepMinutes: parseDurationMinutes(
+          firstValue(normalized, [
+            "deep_sleep_minutes",
+            "slow_wave_sleep_minutes",
+            "deep_minutes",
+          ]),
+          normalized,
+        ),
+        remMinutes: parseDurationMinutes(
+          firstValue(normalized, ["rem_sleep_minutes", "rem_minutes"]),
+          normalized,
+        ),
+        asleepAt: normalizeTimestamp(
+          firstValue(normalized, [
+            "sleep_onset",
+            "asleep_at",
+            "start",
+            "start_time",
+          ]),
+        ),
+        wokeAt: normalizeTimestamp(
+          firstValue(normalized, ["wake_onset", "woke_at", "end", "end_time"]),
+        ),
+      });
+    })
+    .filter(Boolean);
 }
 
 function parseAppleHealthXml(text) {
   const documentNode = new DOMParser().parseFromString(text, "application/xml");
-  if (documentNode.querySelector("parsererror")) throw new Error("Apple Health XML is not valid.");
+  if (documentNode.querySelector("parsererror"))
+    throw new Error("Apple Health XML is not valid.");
   const groups = new Map();
-  const records = [...documentNode.querySelectorAll("Record[type='HKCategoryTypeIdentifierSleepAnalysis']")];
+  const records = [
+    ...documentNode.querySelectorAll(
+      "Record[type='HKCategoryTypeIdentifierSleepAnalysis']",
+    ),
+  ];
 
   records.forEach((record) => {
     const value = record.getAttribute("value") || "";
-    if (!/(Asleep|Core|Deep|REM)/i.test(value) || /Awake|InBed/i.test(value)) return;
+    if (!/(Asleep|Core|Deep|REM)/i.test(value) || /Awake|InBed/i.test(value))
+      return;
     const start = parseAppleDate(record.getAttribute("startDate"));
     const end = parseAppleDate(record.getAttribute("endDate"));
     if (!start || !end || end <= start) return;
     const sourceName = record.getAttribute("sourceName") || "Apple Health";
+    if (/whoop/i.test(sourceName)) return; // Do not compare WHOOP with its own Health export.
     const source = /eight/i.test(sourceName) ? "eightsleep" : "apple_health";
-    const date = dateInTimeZone(end, "America/Los_Angeles");
-    const key = `${source}:${date}`;
-    if (!groups.has(key)) groups.set(key, { source, date, intervals: [], deep: [], rem: [] });
-    const group = groups.get(key);
-    const interval = [start.getTime(), end.getTime()];
-    group.intervals.push(interval);
-    if (/Deep/i.test(value)) group.deep.push(interval);
-    if (/REM/i.test(value)) group.rem.push(interval);
+    if (!groups.has(source)) groups.set(source, []);
+    groups
+      .get(source)
+      .push({ start: start.getTime(), end: end.getTime(), value });
   });
 
-  return [...groups.values()].map((group) => {
-    const durationMinutes = mergedIntervalMinutes(group.intervals);
-    return cleanNight({
-      sleepDate: group.date,
-      source: group.source,
-      score: durationScore(durationMinutes),
-      scoreKind: "derived",
-      durationMinutes,
-      deepMinutes: mergedIntervalMinutes(group.deep) || undefined,
-      remMinutes: mergedIntervalMinutes(group.rem) || undefined,
+  // Keep an overnight session together across midnight. Separate naps after a
+  // three-hour gap; choose the longest session for each Pacific wake date.
+  const byWakeDate = new Map();
+  groups.forEach((records, source) => {
+    const sessions = [];
+    records
+      .sort((a, b) => a.start - b.start)
+      .forEach((record) => {
+        let session = sessions.at(-1);
+        if (!session || record.start - session.end > 3 * 60 * 60 * 1000) {
+          session = {
+            start: record.start,
+            end: record.end,
+            intervals: [],
+            deep: [],
+            rem: [],
+          };
+          sessions.push(session);
+        }
+        session.end = Math.max(session.end, record.end);
+        const interval = [record.start, record.end];
+        session.intervals.push(interval);
+        if (/Deep/i.test(record.value)) session.deep.push(interval);
+        if (/REM/i.test(record.value)) session.rem.push(interval);
+      });
+    sessions.forEach((session) => {
+      const durationMinutes = mergedIntervalMinutes(session.intervals);
+      if (durationMinutes < 60) return;
+      const sleepDate = dateInTimeZone(
+        new Date(session.end),
+        "America/Los_Angeles",
+      );
+      const key = `${source}:${sleepDate}`;
+      if ((byWakeDate.get(key)?.durationMinutes || 0) >= durationMinutes)
+        return;
+      byWakeDate.set(
+        key,
+        cleanNight({
+          sleepDate,
+          source,
+          score: durationScore(durationMinutes),
+          scoreKind: "derived",
+          durationMinutes,
+          deepMinutes: session.deep.length
+            ? mergedIntervalMinutes(session.deep)
+            : undefined,
+          remMinutes: session.rem.length
+            ? mergedIntervalMinutes(session.rem)
+            : undefined,
+          asleepAt: new Date(session.start).toISOString(),
+          wokeAt: new Date(session.end).toISOString(),
+        }),
+      );
     });
-  }).filter((night) => night.durationMinutes >= 60);
+  });
+  return [...byWakeDate.values()];
 }
 
 function cleanNight(night) {
@@ -765,8 +1304,16 @@ function cleanNight(night) {
     score: clamp(Math.round(Number(night.score) * 10) / 10, 0, 100),
     scoreKind: night.scoreKind === "derived" ? "derived" : "native",
   };
-  ["durationMinutes", "efficiency", "hrv", "restingHeartRate", "deepMinutes", "remMinutes"].forEach((key) => {
-    if (Number.isFinite(night[key])) cleaned[key] = Math.round(Number(night[key]) * 10) / 10;
+  [
+    "durationMinutes",
+    "efficiency",
+    "hrv",
+    "restingHeartRate",
+    "deepMinutes",
+    "remMinutes",
+  ].forEach((key) => {
+    if (Number.isFinite(night[key]))
+      cleaned[key] = Math.round(Number(night[key]) * 10) / 10;
   });
   if (night.asleepAt) cleaned.asleepAt = night.asleepAt;
   if (night.wokeAt) cleaned.wokeAt = night.wokeAt;
@@ -775,8 +1322,12 @@ function cleanNight(night) {
 
 function dedupeNights(nights) {
   const map = new Map();
-  nights.filter(Boolean).forEach((night) => map.set(`${night.source}:${night.sleepDate}`, night));
-  return [...map.values()].sort((a, b) => a.sleepDate.localeCompare(b.sleepDate));
+  nights
+    .filter(Boolean)
+    .forEach((night) => map.set(`${night.source}:${night.sleepDate}`, night));
+  return [...map.values()].sort((a, b) =>
+    a.sleepDate.localeCompare(b.sleepDate),
+  );
 }
 
 function parseCsv(text) {
@@ -787,15 +1338,19 @@ function parseCsv(text) {
   for (let index = 0; index < text.length; index += 1) {
     const character = text[index];
     if (character === '"') {
-      if (quoted && text[index + 1] === '"') { cell += '"'; index += 1; }
-      else quoted = !quoted;
+      if (quoted && text[index + 1] === '"') {
+        cell += '"';
+        index += 1;
+      } else quoted = !quoted;
     } else if (character === "," && !quoted) {
-      row.push(cell.trim()); cell = "";
+      row.push(cell.trim());
+      cell = "";
     } else if ((character === "\n" || character === "\r") && !quoted) {
       if (character === "\r" && text[index + 1] === "\n") index += 1;
       row.push(cell.trim());
       if (row.some(Boolean)) rows.push(row);
-      row = []; cell = "";
+      row = [];
+      cell = "";
     } else {
       cell += character;
     }
@@ -806,12 +1361,18 @@ function parseCsv(text) {
 }
 
 function normalizeHeader(value) {
-  return String(value).trim().toLowerCase().replace(/%/g, " percentage ").replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "");
+  return String(value)
+    .trim()
+    .toLowerCase()
+    .replace(/%/g, " percentage ")
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_|_$/g, "");
 }
 
 function firstValue(object, keys) {
   for (const key of keys) {
-    if (object[key] !== undefined && object[key] !== null && object[key] !== "") return object[key];
+    if (object[key] !== undefined && object[key] !== null && object[key] !== "")
+      return object[key];
   }
   return undefined;
 }
@@ -835,11 +1396,16 @@ function parseDurationMinutes(value, row = {}) {
   const text = String(value).trim();
   if (/^\d{1,2}:\d{2}(:\d{2})?$/.test(text)) {
     const parts = text.split(":").map(Number);
-    return parts.length === 3 ? parts[0] * 60 + parts[1] + parts[2] / 60 : parts[0] * 60 + parts[1];
+    return parts.length === 3
+      ? parts[0] * 60 + parts[1] + parts[2] / 60
+      : parts[0] * 60 + parts[1];
   }
   const number = parseMetric(text);
   if (!Number.isFinite(number)) return undefined;
-  const headerText = Object.keys(row).join(" ");
+  const headerText = Object.entries(row)
+    .filter(([, candidate]) => candidate === value)
+    .map(([key]) => key)
+    .join(" ");
   if (number > 100000 || /milli/.test(headerText)) return number / 60000;
   if (number <= 24 && /hour/.test(headerText)) return number * 60;
   if (number > 1440 && number < 100000) return number / 60;
@@ -852,7 +1418,9 @@ function normalizeDate(value) {
   const isoMatch = text.match(/^(\d{4}-\d{2}-\d{2})/);
   if (isoMatch) return isoMatch[1];
   const date = new Date(text);
-  return Number.isNaN(date.getTime()) ? null : dateInTimeZone(date, "America/Los_Angeles");
+  return Number.isNaN(date.getTime())
+    ? null
+    : dateInTimeZone(date, "America/Los_Angeles");
 }
 
 function normalizeTimestamp(value) {
@@ -863,7 +1431,9 @@ function normalizeTimestamp(value) {
 
 function parseAppleDate(value) {
   if (!value) return null;
-  const normalized = value.replace(/ ([+-]\d{2})(\d{2})$/, "$1:$2").replace(" ", "T");
+  const normalized = value
+    .replace(/ ([+-]\d{2})(\d{2})$/, "$1:$2")
+    .replace(" ", "T");
   const date = new Date(normalized);
   return Number.isNaN(date.getTime()) ? null : date;
 }
@@ -875,7 +1445,11 @@ function mergedIntervalMinutes(intervals) {
   let [start, end] = sorted[0];
   sorted.slice(1).forEach(([nextStart, nextEnd]) => {
     if (nextStart <= end) end = Math.max(end, nextEnd);
-    else { total += end - start; start = nextStart; end = nextEnd; }
+    else {
+      total += end - start;
+      start = nextStart;
+      end = nextEnd;
+    }
   });
   total += end - start;
   return Math.round(total / 6000) / 10;
@@ -890,18 +1464,27 @@ function durationScore(minutes) {
 function groupNightsByDate(rows) {
   const grouped = new Map();
   rows.forEach((record) => {
-    if (!grouped.has(record.sleepDate)) grouped.set(record.sleepDate, { records: [], aggregate: 0 });
+    if (!grouped.has(record.sleepDate))
+      grouped.set(record.sleepDate, { records: [], aggregate: 0 });
     grouped.get(record.sleepDate).records.push(record);
   });
-  grouped.forEach((night) => { night.aggregate = average(night.records.map((record) => record.score)); });
+  grouped.forEach((night) => {
+    night.aggregate = average(night.records.map((record) => record.score));
+  });
   return grouped;
 }
 
 function linearRegression(points) {
   const xMean = average(points.map((point) => point.x));
   const yMean = average(points.map((point) => point.y));
-  const numerator = points.reduce((sum, point) => sum + (point.x - xMean) * (point.y - yMean), 0);
-  const denominator = points.reduce((sum, point) => sum + (point.x - xMean) ** 2, 0);
+  const numerator = points.reduce(
+    (sum, point) => sum + (point.x - xMean) * (point.y - yMean),
+    0,
+  );
+  const denominator = points.reduce(
+    (sum, point) => sum + (point.x - xMean) ** 2,
+    0,
+  );
   const slope = denominator ? numerator / denominator : 0;
   return { slope, intercept: yMean - slope * xMean };
 }
@@ -909,9 +1492,16 @@ function linearRegression(points) {
 function pearson(xs, ys) {
   const xMean = average(xs);
   const yMean = average(ys);
-  const numerator = xs.reduce((sum, xValue, index) => sum + (xValue - xMean) * (ys[index] - yMean), 0);
-  const xSpread = Math.sqrt(xs.reduce((sum, value) => sum + (value - xMean) ** 2, 0));
-  const ySpread = Math.sqrt(ys.reduce((sum, value) => sum + (value - yMean) ** 2, 0));
+  const numerator = xs.reduce(
+    (sum, xValue, index) => sum + (xValue - xMean) * (ys[index] - yMean),
+    0,
+  );
+  const xSpread = Math.sqrt(
+    xs.reduce((sum, value) => sum + (value - xMean) ** 2, 0),
+  );
+  const ySpread = Math.sqrt(
+    ys.reduce((sum, value) => sum + (value - yMean) ** 2, 0),
+  );
   return xSpread && ySpread ? numerator / (xSpread * ySpread) : 0;
 }
 
@@ -956,11 +1546,28 @@ function downloadNoonReminder() {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-async function convexQuery(path, args) { return convexCall("query", path, args); }
-async function convexMutation(path, args) { return convexCall("mutation", path, args); }
-async function convexAction(path, args) { return convexCall("action", path, args); }
+async function convexQuery(path, args) {
+  return convexCall("query", path, args);
+}
+async function convexMutation(path, args) {
+  return convexCall("mutation", path, args);
+}
+async function convexAction(path, args) {
+  return convexCall("action", path, args);
+}
 
 async function convexCall(kind, path, args) {
+  if (isDemo) {
+    if (kind === "query" && path === "sleep:dashboard") return demoData;
+    if (kind === "mutation" && path === "sleep:saveAlertness") {
+      demoData.alertness = demoData.alertness.filter(
+        (row) => row.ratingDate !== args.ratingDate,
+      );
+      demoData.alertness.push({ ...args, updatedAt: Date.now() });
+      return;
+    }
+    throw new Error("Sample workspace: sign in to connect or save data.");
+  }
   const token = await getConvexToken();
   if (!token) throw new Error("Not authenticated with Clerk.");
   const response = await fetch(`${CONVEX_URL}/api/${kind}`, {
@@ -985,7 +1592,10 @@ async function getConvexToken() {
 
   const sessionToken = await session.getToken();
   const audience = readJwtPayload(sessionToken)?.aud;
-  if (audience === "convex" || (Array.isArray(audience) && audience.includes("convex"))) {
+  if (
+    audience === "convex" ||
+    (Array.isArray(audience) && audience.includes("convex"))
+  ) {
     return sessionToken;
   }
 
@@ -1006,16 +1616,31 @@ function readJwtPayload(token) {
   }
 }
 
-function todayPacific() { return dateInTimeZone(new Date(), "America/Los_Angeles"); }
+function todayPacific() {
+  return dateInTimeZone(new Date(), "America/Los_Angeles");
+}
 
 function dateInTimeZone(date, timeZone) {
-  const parts = new Intl.DateTimeFormat("en-US", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(date);
-  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+  const values = Object.fromEntries(
+    parts.map((part) => [part.type, part.value]),
+  );
   return `${values.year}-${values.month}-${values.day}`;
 }
 
 function currentPacificHour() {
-  return Number(new Intl.DateTimeFormat("en-US", { timeZone: "America/Los_Angeles", hour: "numeric", hourCycle: "h23" }).format(new Date()));
+  return Number(
+    new Intl.DateTimeFormat("en-US", {
+      timeZone: "America/Los_Angeles",
+      hour: "numeric",
+      hourCycle: "h23",
+    }).format(new Date()),
+  );
 }
 
 function addDays(isoDate, amount) {
@@ -1025,41 +1650,59 @@ function addDays(isoDate, amount) {
 }
 
 function formatLongDate(value) {
-  return new Intl.DateTimeFormat("en-US", { weekday: "long", month: "long", day: "numeric", timeZone: "UTC" }).format(new Date(`${value}T12:00:00Z`));
+  return new Intl.DateTimeFormat("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    timeZone: "UTC",
+  }).format(new Date(`${value}T12:00:00Z`));
 }
 
 function formatShortDate(value) {
-  return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", timeZone: "UTC" }).format(new Date(`${value}T12:00:00Z`));
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    timeZone: "UTC",
+  }).format(new Date(`${value}T12:00:00Z`));
 }
 
 function formatTinyDate(value) {
-  return new Intl.DateTimeFormat("en-US", { month: "numeric", day: "numeric", timeZone: "UTC" }).format(new Date(`${value}T12:00:00Z`));
+  return new Intl.DateTimeFormat("en-US", {
+    month: "numeric",
+    day: "numeric",
+    timeZone: "UTC",
+  }).format(new Date(`${value}T12:00:00Z`));
 }
 
 function formatTableDate(value) {
-  return new Intl.DateTimeFormat("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" }).format(new Date(`${value}T12:00:00Z`));
+  return new Intl.DateTimeFormat("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    timeZone: "UTC",
+  }).format(new Date(`${value}T12:00:00Z`));
 }
 
 function formatTime(date) {
-  return new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit", timeZone: "America/Los_Angeles" }).format(date);
+  return new Intl.DateTimeFormat("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    timeZone: "America/Los_Angeles",
+  }).format(date);
 }
 
 function formatDuration(minutes) {
-  const hours = Math.floor(minutes / 60);
-  const remaining = Math.round(minutes % 60);
-  return `${hours}h ${String(remaining).padStart(2, "0")}m`;
+  return Daylight.duration(minutes);
 }
 
-function describeScore(score) {
-  if (score >= 90) return "Exceptional sleep";
-  if (score >= 80) return "Strong sleep";
-  if (score >= 70) return "Solid sleep";
-  if (score >= 60) return "Room to recover";
-  return "Recovery needed";
+function average(values) {
+  return values.length
+    ? values.reduce((sum, value) => sum + value, 0) / values.length
+    : 0;
 }
-
-function average(values) { return values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : 0; }
-function clamp(value, min, max) { return Math.min(max, Math.max(min, value)); }
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value));
+}
 
 function escapeHtml(value) {
   const span = document.createElement("span");

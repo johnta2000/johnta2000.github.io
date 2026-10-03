@@ -1,7 +1,11 @@
 <!doctype html>
 <html lang="en">
   <head>
-  <script defer src="/assets/js/analytics.js?v=20260927-3" data-app="sleep"></script>
+    <script
+      defer
+      src="/assets/js/analytics.js?v=20260927-3"
+      data-app="sleep"
+    ></script>
     <script>
       if (window.location.protocol === "file:") {
         window.location.replace("https://www.john-ta.com/tools/sleep/");
@@ -10,205 +14,679 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="robots" content="noindex, nofollow" />
-    <meta name="theme-color" content="#f2f4ed" />
-    <title>Daylight — Personal Sleep Lab</title>
-    <link rel="stylesheet" href="./styles.css?v=2" />
+    <meta name="theme-color" content="#f7f8fa" />
+    <title>Daylight — Your sleep, in perspective</title>
+    <link rel="stylesheet" href="/assets/css/searchable-select.css" />
+    <link rel="stylesheet" href="./styles.css?v=20261003-1" />
   </head>
   <body>
     <section id="accessGate" class="access-gate" aria-labelledby="gateTitle">
       <div class="gate-orbit" aria-hidden="true"><span></span></div>
       <div class="gate-card">
         <div class="brand-mark"><span></span> Daylight</div>
-        <p class="eyebrow">Personal sleep lab · private</p>
-        <h1 id="gateTitle">Make sense of how<br />rest becomes <em>feeling.</em></h1>
-        <p class="gate-copy">Enter your email and use the six-digit code Clerk sends you. Only your approved account can reach the sleep data.</p>
+        <p class="eyebrow">Your sleep, in perspective</p>
+        <h1 id="gateTitle">A little clarity.<br />A better <em>day.</em></h1>
+        <p class="gate-copy">
+          Your WHOOP nights, longer-term patterns, and wearable data in one calm
+          place. Sign in to open your private dashboard.
+        </p>
         <div id="clerkSignIn" class="clerk-sign-in" aria-live="polite"></div>
-        <p id="authStatus" class="auth-status" role="status">Loading secure sign-in…</p>
-        <button id="authSignOut" class="secondary-button auth-sign-out" type="button" hidden>Use a different email</button>
-        <p class="gate-footnote">Passwordless sign-in by Clerk · Server-verified access</p>
+        <p id="authStatus" class="auth-status" role="status">
+          Loading secure sign-in…
+        </p>
+        <button
+          id="authSignOut"
+          class="secondary-button auth-sign-out"
+          type="button"
+          hidden
+        >
+          Use a different email
+        </button>
+        <button
+          id="previewButton"
+          type="button"
+          class="secondary-button preview-button"
+        >
+          Explore with sample data ↗
+        </button>
+        <p class="gate-footnote">
+          Passwordless sign-in by Clerk · Server-verified access
+        </p>
       </div>
     </section>
 
     <div id="app" class="app" hidden>
-      <header class="site-header">
-        <a class="brand-mark" href="./" aria-label="Daylight dashboard"><span></span> Daylight</a>
-        <div class="header-actions">
-          <p id="lastUpdated">Sleep lab</p>
-          <button id="lockButton" class="icon-button" type="button" aria-label="Lock dashboard" title="Lock dashboard">⌁</button>
-        </div>
-      </header>
-
-      <main>
-        <section class="hero-grid" aria-labelledby="heroTitle">
-          <div class="hero-copy">
-            <p id="heroDate" class="eyebrow">Today</p>
-            <h1 id="heroTitle">Good morning,<br /><em>John.</em></h1>
-            <p id="heroSummary" class="hero-summary">Import your first sleep history to start finding the pattern between sleep and how you feel.</p>
-            <div class="hero-actions">
-              <button class="primary-button" type="button" data-open-import>Import sleep data <span aria-hidden="true">↗</span></button>
-              <button id="reminderButton" class="text-button" type="button">Add noon reminder <span aria-hidden="true">↓</span></button>
+      <a class="skip-link" href="#mainContent">Skip to content</a>
+      <aside class="sidebar">
+        <a class="brand-mark" href="./"
+          ><span class="sun-mark" aria-hidden="true">☀</span> daylight<span
+            class="brand-period"
+            >.</span
+          ></a
+        >
+        <p class="sidebar-caption">YOUR PERSONAL SLEEP LAB</p>
+        <nav class="main-nav" aria-label="Main navigation">
+          <button type="button" data-view="overview" aria-current="page">
+            <span aria-hidden="true">◫</span> Overview
+          </button>
+          <button type="button" data-view="trends">
+            <span aria-hidden="true">↗</span> Sleep trends
+          </button>
+          <button type="button" data-view="friends">
+            <span aria-hidden="true">♧</span> Friends <small>Preview</small>
+          </button>
+          <button type="button" data-view="connections">
+            <span aria-hidden="true">⊕</span> Connections
+          </button>
+        </nav>
+        <div class="sidebar-bottom">
+          <div class="private-note">
+            <span aria-hidden="true">◈</span>
+            <div>
+              <strong>A space for your data</strong>
+              <p>Private by default.<br />A little more perspective.</p>
             </div>
           </div>
-
-          <article class="score-orbit" aria-label="Latest aggregate sleep score">
-            <div class="orbit-ring ring-one" aria-hidden="true"></div>
-            <div class="orbit-ring ring-two" aria-hidden="true"></div>
-            <div class="score-core">
-              <span>Aggregate</span>
-              <strong id="latestScore">—</strong>
-              <small id="latestScoreLabel">No data yet</small>
-            </div>
-            <p class="orbit-note" id="orbitNote">Your latest night</p>
-          </article>
-        </section>
-
-        <section class="source-strip" aria-label="Latest scores by source">
-          <article class="source-card source-whoop">
-            <div><span class="source-dot"></span><p>Whoop</p></div>
-            <strong id="whoopScore">—</strong>
-            <small id="whoopStatus">Awaiting import</small>
-            <button id="whoopAction" class="source-action" type="button">Connect Whoop</button>
-            <button id="whoopDisconnect" class="source-action source-action-muted" type="button" hidden>Disconnect</button>
-            <span id="whoopMessage" class="source-message" role="status"></span>
-          </article>
-          <article class="source-card source-apple">
-            <div><span class="source-dot"></span><p>Apple Health</p></div>
-            <strong id="appleScore">—</strong>
-            <small id="appleStatus">Awaiting import</small>
-          </article>
-          <article class="source-card source-eight">
-            <div><span class="source-dot"></span><p>Eight Sleep</p></div>
-            <strong id="eightScore">—</strong>
-            <small id="eightStatus">Awaiting import</small>
-          </article>
-          <button class="source-card source-add" type="button" data-open-import>
-            <span>+</span>
-            <div><p>Add data</p><small>CSV, JSON, or Health export</small></div>
+          <button id="lockButton" class="signout-button" type="button">
+            Sign out <span aria-hidden="true">↗</span>
           </button>
-        </section>
+        </div>
+      </aside>
+      <div class="workspace">
+        <header class="site-header">
+          <div>
+            My workspace <span>/</span> <strong id="pageLabel">Overview</strong>
+          </div>
+          <div class="header-actions">
+            <span class="status-dot" aria-hidden="true"></span>
+            <p id="lastUpdated" role="status">Loading your data…</p>
+            <span class="avatar" aria-label="Personal workspace">D</span>
+          </div>
+        </header>
+        <div id="demoBanner" class="demo-banner" hidden>
+          <span
+            ><strong>Sample workspace</strong> · Fictional data. Explore freely;
+            nothing is saved.</span
+          ><a href="./">Exit preview ↗</a>
+        </div>
+        <main id="mainContent" tabindex="-1">
+          <div id="loadError" class="error-banner" role="alert" hidden>
+            Could not load your data.
+            <button type="button" id="retryLoad">Try again</button>
+          </div>
+          <section class="page-heading">
+            <div>
+              <p id="heroDate" class="eyebrow">YOUR DAILY PERSPECTIVE</p>
+              <h1 id="pageTitle">Your day, in perspective.</h1>
+              <p id="pageSubtitle">
+                A clearer picture of your sleep. A little more understanding of
+                you.
+              </p>
+            </div>
+            <div class="heading-controls">
+              <div
+                id="rangeControl"
+                class="segmented"
+                role="group"
+                aria-label="Time range"
+              >
+                <button type="button" data-range="7" aria-pressed="true">
+                  7 days</button
+                ><button type="button" data-range="28" aria-pressed="false">
+                  28 days</button
+                ><button type="button" data-range="90" aria-pressed="false">
+                  90 days
+                </button>
+              </div>
+              <button type="button" class="secondary-button" data-open-import>
+                ↑ <span>Import data</span>
+              </button>
+            </div>
+          </section>
 
-        <section class="dashboard-grid">
-          <article class="panel trend-panel">
-            <div class="panel-heading">
-              <div>
-                <p class="eyebrow">Last 28 nights</p>
-                <h2>Your sleep signal</h2>
-              </div>
-              <div class="chart-legend" aria-label="Chart legend">
-                <span><i class="legend-aggregate"></i>Aggregate</span>
-                <span><i class="legend-source"></i>Sources</span>
-              </div>
+          <section class="welcome-card" data-panels="overview">
+            <div>
+              <span class="tag"
+                ><span class="status-dot"></span> YOUR LATEST NIGHT</span
+              >
+              <h2 id="heroTitle">Good days start<br />the night before.</h2>
+              <p id="heroSummary">
+                Connect WHOOP or import your sleep history to find your rhythm.
+              </p>
+              <button class="text-button" type="button" data-go="connections">
+                Manage your connections <span aria-hidden="true">↗</span>
+              </button>
             </div>
-            <div class="canvas-wrap">
-              <canvas id="trendChart" role="img" aria-label="Sleep scores over the last 28 nights"></canvas>
-              <div id="trendEmpty" class="chart-empty">Your timeline will appear after your first import.</div>
+            <div class="hero-score">
+              <div class="score-ring" id="scoreRing">
+                <div>
+                  <strong id="latestScore">—</strong
+                  ><span id="latestScoreLabel">Sleep performance</span>
+                </div>
+              </div>
+              <p id="orbitNote">WHOOP · waiting for data</p>
             </div>
-          </article>
+            <div class="hero-decoration" aria-hidden="true"></div>
+          </section>
 
-          <article class="panel checkin-panel">
-            <div class="checkin-top">
-              <div>
-                <p class="eyebrow">Noon pulse · Pacific time</p>
-                <h2>How alert do you feel?</h2>
+          <section
+            id="metricCards"
+            class="metric-grid"
+            aria-label="Sleep summary"
+            data-panels="overview trends"
+          ></section>
+          <div class="dashboard-grid" data-panels="overview trends">
+            <article class="panel trend-panel">
+              <div class="panel-heading">
+                <div>
+                  <p class="eyebrow" id="trendPeriod">THE LAST 7 DAYS</p>
+                  <h2>Your sleep rhythm</h2>
+                </div>
+                <label class="metric-picker"
+                  ><span class="sr-only">Chart metric</span
+                  ><select id="chartMetric" aria-label="Chart metric">
+                    <option value="score">Sleep performance</option>
+                    <option value="durationMinutes">Time asleep</option>
+                    <option value="efficiency">Sleep efficiency</option>
+                  </select></label
+                >
               </div>
-              <span id="checkinState" class="status-pill">Due at 12:00</span>
-            </div>
-            <p class="checkin-copy">Go with your first instinct. Consistency matters more than precision.</p>
-            <div id="ratingScale" class="rating-scale" role="radiogroup" aria-label="Alertness from 1 to 10"></div>
-            <div class="rating-labels"><span>Foggy</span><span>Fully switched on</span></div>
-            <label class="note-field">
-              <span>One-line context <em>optional</em></span>
-              <input id="alertnessNote" type="text" maxlength="500" placeholder="Late coffee, hard workout, unusual stress…" />
-            </label>
-            <div class="checkin-actions">
-              <button id="saveAlertness" class="primary-button" type="button" disabled>Save today’s check-in</button>
+              <div class="chart-topline">
+                <strong id="trendAverage">—</strong
+                ><span id="trendComparison">WHOOP average</span>
+              </div>
+              <div class="plot-wrap">
+                <div id="trendPlot"></div>
+                <div id="trendEmpty" class="chart-empty">
+                  Connect WHOOP to see your sleep over time.
+                </div>
+              </div>
+              <div class="chart-footer">
+                <span><i class="legend-dot"></i> WHOOP</span>
+                <p id="chartDetail" role="status">
+                  Select a point to explore a night.
+                </p>
+              </div>
+            </article>
+            <article class="panel night-panel">
+              <div class="panel-heading">
+                <div>
+                  <p class="eyebrow" id="stageDate">LATEST WHOOP NIGHT</p>
+                  <h2>A closer look</h2>
+                </div>
+                <span class="moon-icon" aria-hidden="true">☾</span>
+              </div>
+              <div class="night-duration">
+                <strong id="nightDuration">—</strong><span>time asleep</span>
+              </div>
+              <div
+                id="stageBar"
+                class="stage-bar"
+                aria-label="Sleep stage proportions"
+              ></div>
+              <div id="stageLegend" class="stage-legend"></div>
+              <div class="night-times">
+                <div>
+                  <span>Sleep began</span><strong id="bedtime">—</strong>
+                </div>
+                <div><span>Woke up</span><strong id="waketime">—</strong></div>
+              </div>
+              <p class="small-note">
+                Stages are WHOOP’s estimates. Sleep times are shown in Pacific
+                time.
+              </p>
+            </article>
+          </div>
+
+          <div class="dashboard-grid secondary-grid" data-panels="overview">
+            <article class="panel compare-panel">
+              <div class="panel-heading">
+                <div>
+                  <p class="eyebrow">TWO DEVICES. ONE NIGHT.</p>
+                  <h2>Same sleep, different lens.</h2>
+                </div>
+                <span class="device-symbol" aria-hidden="true">⌚</span>
+              </div>
+              <p class="panel-copy">
+                Compare time asleep on nights tracked by both WHOOP and Apple
+                Health.
+              </p>
+              <div id="deviceComparison"></div>
+              <button type="button" class="text-button" data-open-import>
+                Import Apple Health <span aria-hidden="true">↗</span>
+              </button>
+              <p class="small-note">
+                We keep each source separate. An Apple duration estimate isn’t a
+                WHOOP performance score.
+              </p>
+            </article>
+            <article class="panel checkin-panel">
+              <div class="checkin-top">
+                <div>
+                  <p class="eyebrow">YOUR DAILY CHECK-IN</p>
+                  <h2>And how do you feel?</h2>
+                </div>
+                <span id="checkinState" class="status-pill">Due at noon</span>
+              </div>
+              <p class="checkin-copy">
+                A quick noon check-in connects the numbers to your day.
+              </p>
+              <div
+                id="ratingScale"
+                class="rating-scale"
+                role="radiogroup"
+                aria-label="Alertness from 1 to 10"
+              ></div>
+              <div class="rating-labels">
+                <span>Foggy</span><span>Fully switched on</span>
+              </div>
+              <label class="note-field"
+                ><span class="sr-only">Optional check-in note</span
+                ><input
+                  id="alertnessNote"
+                  type="text"
+                  maxlength="500"
+                  placeholder="Anything worth noting? (optional)"
+              /></label>
+              <div class="checkin-actions">
+                <button
+                  id="saveAlertness"
+                  class="primary-button"
+                  type="button"
+                  disabled
+                >
+                  Save check-in</button
+                ><button id="reminderButton" class="text-button" type="button">
+                  Add reminder
+                </button>
+              </div>
               <p id="checkinMessage" role="status"></p>
-            </div>
-          </article>
+            </article>
+          </div>
 
-          <article class="panel relationship-panel">
+          <article class="panel relationship-panel" data-panels="trends">
             <div class="panel-heading">
               <div>
-                <p class="eyebrow">Sleep × alertness</p>
-                <h2>Does better sleep feel better?</h2>
+                <p class="eyebrow">SLEEP × ALERTNESS</p>
+                <h2>Do the numbers match how you feel?</h2>
               </div>
-              <div id="correlationBadge" class="correlation-badge">Not enough data</div>
+              <div id="correlationBadge" class="correlation-badge">
+                Not enough data
+              </div>
             </div>
+            <p class="panel-copy">
+              WHOOP sleep performance and your check-ins in the selected period.
+              Patterns describe your logs, not cause and effect.
+            </p>
             <div class="canvas-wrap scatter-wrap">
-              <canvas id="scatterChart" role="img" aria-label="Sleep score compared with noon alertness"></canvas>
-              <div id="scatterEmpty" class="chart-empty">Log at least three matched days to reveal your trend.</div>
+              <canvas
+                id="scatterChart"
+                role="img"
+                aria-label="WHOOP sleep performance compared with noon alertness"
+              ></canvas>
+              <div id="scatterEmpty" class="chart-empty">
+                Log at least three matched days to reveal your trend.
+              </div>
             </div>
             <div class="insight-grid">
-              <div><span>Paired days</span><strong id="pairedDays">0</strong></div>
-              <div><span>Your sweet spot</span><strong id="sweetSpot">—</strong></div>
-              <div><span>Signal</span><strong id="signalLabel">Learning</strong></div>
+              <div>
+                <span>Paired days</span><strong id="pairedDays">0</strong>
+              </div>
+              <div>
+                <span>Mean sleep score on most alert days</span
+                ><strong id="sweetSpot">—</strong>
+              </div>
+              <div>
+                <span>Observed association</span
+                ><strong id="signalLabel">Learning</strong>
+              </div>
             </div>
           </article>
-
-          <article class="panel recent-panel">
+          <article class="panel recent-panel" data-panels="overview trends">
             <div class="panel-heading">
               <div>
-                <p class="eyebrow">Recent history</p>
+                <p class="eyebrow">THE DETAILS, WITHOUT THE NOISE</p>
                 <h2>Night by night</h2>
               </div>
-              <button class="text-button" type="button" data-open-import>Manage data <span aria-hidden="true">↗</span></button>
+              <span id="historyCount" class="muted"></span>
             </div>
             <div class="table-wrap">
               <table>
-                <thead><tr><th>Night</th><th>Aggregate</th><th>Sources</th><th>Duration</th><th>Noon alertness</th></tr></thead>
+                <caption class="sr-only">
+                  Sleep history for the selected period, with each source kept
+                  separate
+                </caption>
+                <thead>
+                  <tr>
+                    <th>Wake date</th>
+                    <th>WHOOP performance</th>
+                    <th>WHOOP asleep</th>
+                    <th>Apple Health asleep</th>
+                    <th>Noon alertness</th>
+                    <th id="otherSourceHeading" hidden>Other sources</th>
+                  </tr>
+                </thead>
                 <tbody id="historyRows"></tbody>
               </table>
-              <div id="historyEmpty" class="table-empty">No sleep nights imported yet.</div>
+              <div id="historyEmpty" class="table-empty">
+                Your nights will appear here after connecting or importing data.
+              </div>
             </div>
           </article>
-        </section>
-      </main>
 
-      <footer>
-        <div class="brand-mark"><span></span> Daylight</div>
-        <p>A personal experiment, not medical advice.</p>
-      </footer>
+          <section data-panels="friends" hidden>
+            <div class="friends-intro panel">
+              <div>
+                <span class="tag">FRIENDS · DESIGN PREVIEW</span>
+                <h2>A little shared perspective.</h2>
+                <p>
+                  Find patterns together. Compare sleep habits and progress
+                  against your own baseline, with everyone choosing what they
+                  share.
+                </p>
+                <button
+                  id="friendsPreview"
+                  type="button"
+                  class="primary-button"
+                  aria-expanded="false"
+                >
+                  Explore a sample circle <span aria-hidden="true">↗</span>
+                </button>
+              </div>
+              <div class="friend-art" aria-hidden="true">
+                <span>J</span><span>A</span><span>M</span>
+              </div>
+            </div>
+            <div id="friendSample" class="panel" hidden>
+              <div class="panel-heading">
+                <div>
+                  <p class="eyebrow">FICTIONAL PEOPLE · SAMPLE DATA ONLY</p>
+                  <h2>Better rest, together.</h2>
+                </div>
+                <span class="tag">7-day example</span>
+              </div>
+              <p class="panel-copy">
+                Everyone’s change compares their last 7 days with their own
+                previous 7 days. This preview does not connect accounts or share
+                data.
+              </p>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Member</th>
+                      <th>Average sleep</th>
+                      <th>Change from baseline</th>
+                      <th>Nights tracked</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><span class="person-dot">Y</span>You (sample)</td>
+                      <td>7h 42m</td>
+                      <td class="positive-text">+24 min</td>
+                      <td>7 / 7</td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <span class="person-dot peach">A</span>Alex (sample)
+                      </td>
+                      <td>7h 18m</td>
+                      <td class="positive-text">+16 min</td>
+                      <td>6 / 7</td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <span class="person-dot lavender">M</span>Morgan
+                        (sample)
+                      </td>
+                      <td>8h 06m</td>
+                      <td>−8 min</td>
+                      <td>7 / 7</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div class="feature-grid">
+              <article class="panel">
+                <span class="step-number">01</span>
+                <h3>Connect individually</h3>
+                <p>
+                  Each friend will sign in and authorize their own WHOOP
+                  account.
+                </p>
+              </article>
+              <article class="panel">
+                <span class="step-number">02</span>
+                <h3>Choose what to share</h3>
+                <p>
+                  Planned controls for sharing selected metrics with a private
+                  circle.
+                </p>
+              </article>
+              <article class="panel">
+                <span class="step-number">03</span>
+                <h3>Find your patterns</h3>
+                <p>
+                  Shared trends and personal baselines, with gaps in tracking
+                  made clear.
+                </p>
+              </article>
+            </div>
+            <p class="small-note roadmap-note">
+              Live circles are not available yet. Individual data ownership,
+              invitations, and revocable sharing are the next implementation
+              step.
+            </p>
+          </section>
+
+          <section data-panels="connections" hidden>
+            <div class="connection-grid">
+              <article class="panel connection-card">
+                <div class="connection-icon whoop-icon">W</div>
+                <span class="tag">DIRECT CONNECTION</span>
+                <h2>WHOOP</h2>
+                <p>
+                  Your sleep performance, duration, efficiency, and stages. Sync
+                  up to a year of sleep history.
+                </p>
+                <div class="source-data">
+                  <strong id="whoopScore">—</strong
+                  ><small id="whoopStatus">No nights imported</small>
+                </div>
+                <div class="connection-actions">
+                  <button id="whoopAction" class="primary-button" type="button">
+                    Connect WHOOP</button
+                  ><button
+                    id="whoopDisconnect"
+                    class="text-button"
+                    type="button"
+                    hidden
+                  >
+                    Disconnect
+                  </button>
+                </div>
+                <p id="whoopMessage" class="source-message" role="status"></p>
+                <p class="small-note">
+                  Recovery, strain, and workout syncing are planned; the current
+                  connection reads sleep only.
+                </p>
+              </article>
+              <article class="panel connection-card">
+                <div class="connection-icon apple-icon">♡</div>
+                <span class="tag">FILE IMPORT</span>
+                <h2>Apple Watch</h2>
+                <p>
+                  Bring in sleep recorded in Apple Health to compare durations
+                  alongside WHOOP.
+                </p>
+                <div class="source-data">
+                  <strong id="appleScore">—</strong
+                  ><small id="appleStatus">No nights imported</small>
+                </div>
+                <button class="secondary-button" type="button" data-open-import>
+                  Import Apple Health
+                </button>
+                <details class="connection-help">
+                  <summary>How to export your data</summary>
+                  <p>
+                    On iPhone, open Health → your profile → Export All Health
+                    Data. Unzip the export and choose export.xml here. Daylight
+                    reads the sleep records; this is a manual import, not
+                    automatic Watch syncing.
+                  </p>
+                </details>
+                <p class="small-note">
+                  Apple Health may include other apps and devices. It is not
+                  necessarily Apple Watch-only data.
+                </p>
+              </article>
+              <article class="panel connection-card">
+                <div class="connection-icon eight-icon">8</div>
+                <span class="tag">FILE IMPORT</span>
+                <h2>Eight Sleep &amp; more</h2>
+                <p>
+                  Keep your existing sleep exports in one place, with each
+                  source labeled.
+                </p>
+                <div class="source-data">
+                  <strong id="eightScore">—</strong
+                  ><small id="eightStatus">No nights imported</small>
+                </div>
+                <button class="secondary-button" type="button" data-open-import>
+                  Import CSV or JSON
+                </button>
+                <p class="small-note">
+                  Existing Eight Sleep imports are preserved. No direct Eight
+                  Sleep connection is available.
+                </p>
+              </article>
+            </div>
+          </section>
+          <footer>
+            <span
+              ><span class="mini-sun" aria-hidden="true">☀</span> A little
+              clarity for your everyday.</span
+            ><span>Daylight · Personal sleep lab</span>
+          </footer>
+        </main>
+      </div>
     </div>
 
-    <dialog id="importDialog" class="import-dialog" aria-labelledby="importTitle">
+    <dialog
+      id="importDialog"
+      class="import-dialog"
+      aria-labelledby="importTitle"
+    >
       <form method="dialog" class="dialog-shell">
         <div class="dialog-heading">
           <div>
             <p class="eyebrow">Bring your history together</p>
             <h2 id="importTitle">Import sleep data</h2>
           </div>
-          <button class="icon-button" value="cancel" aria-label="Close import dialog">×</button>
+          <button
+            class="icon-button"
+            value="cancel"
+            aria-label="Close import dialog"
+          >
+            ×
+          </button>
         </div>
 
         <div class="import-options">
           <label class="upload-card">
-            <input id="fileInput" type="file" accept=".csv,.json,.xml,text/csv,application/json,text/xml" multiple />
+            <input
+              id="fileInput"
+              type="file"
+              accept=".csv,.json,.xml,text/csv,application/json,text/xml"
+              multiple
+            />
             <span class="upload-icon">↑</span>
             <strong>Choose export files</strong>
-            <small>Whoop CSV · Eight Sleep CSV/JSON · Apple Health export.xml</small>
+            <small
+              >Whoop CSV · Eight Sleep CSV/JSON · Apple Health export.xml</small
+            >
           </label>
           <div class="import-explainer">
             <h3>What happens to each source</h3>
-            <div><span class="source-dot whoop-dot"></span><p><strong>Whoop</strong><small>Uses Sleep Performance as its native score.</small></p></div>
-            <div><span class="source-dot apple-dot"></span><p><strong>Apple Health</strong><small>Sleep duration becomes a clearly labeled derived score.</small></p></div>
-            <div><span class="source-dot eight-dot"></span><p><strong>Eight Sleep</strong><small>Uses a native score when included in the export.</small></p></div>
+            <div>
+              <span class="source-dot whoop-dot"></span>
+              <p>
+                <strong>Whoop</strong
+                ><small
+                  >Uses WHOOP Sleep Performance as its native score.</small
+                >
+              </p>
+            </div>
+            <div>
+              <span class="source-dot apple-dot"></span>
+              <p>
+                <strong>Apple Health</strong
+                ><small
+                  >Sleep duration stays separate from WHOOP performance.</small
+                >
+              </p>
+            </div>
+            <div>
+              <span class="source-dot eight-dot"></span>
+              <p>
+                <strong>Eight Sleep</strong
+                ><small>Uses a native score when included in the export.</small>
+              </p>
+            </div>
           </div>
         </div>
 
         <details class="manual-entry">
           <summary>Add one night manually</summary>
           <div class="manual-grid">
-            <label><span>Source</span><select id="manualSource"><option value="whoop">Whoop</option><option value="apple_health">Apple Health</option><option value="eightsleep">Eight Sleep</option><option value="manual">Other</option></select></label>
-            <label><span>Wake date</span><input id="manualDate" type="date" /></label>
-            <label><span>Sleep score</span><input id="manualScore" type="number" min="0" max="100" step="1" placeholder="82" /></label>
-            <label><span>Duration (hours)</span><input id="manualDuration" type="number" min="0" max="24" step="0.1" placeholder="7.6" /></label>
+            <label
+              ><span>Source</span
+              ><select id="manualSource" aria-label="Sleep data source">
+                <option value="whoop">Whoop</option>
+                <option value="apple_health">Apple Health</option>
+                <option value="eightsleep">Eight Sleep</option>
+                <option value="manual">Other</option>
+              </select></label
+            >
+            <label
+              ><span>Wake date</span><input id="manualDate" type="date"
+            /></label>
+            <label
+              ><span>Sleep score</span
+              ><input
+                id="manualScore"
+                type="number"
+                min="0"
+                max="100"
+                step="1"
+                placeholder="82"
+            /></label>
+            <label
+              ><span>Duration (hours)</span
+              ><input
+                id="manualDuration"
+                type="number"
+                min="0"
+                max="24"
+                step="0.1"
+                placeholder="7.6"
+            /></label>
           </div>
-          <button id="addManual" class="secondary-button" type="button">Add this night</button>
+          <button id="addManual" class="secondary-button" type="button">
+            Add this night
+          </button>
         </details>
 
         <div id="importPreview" class="import-preview" hidden>
-          <div><strong id="previewCount">0 nights ready</strong><span id="previewSources"></span></div>
-          <button id="confirmImport" class="primary-button" type="button">Import to Daylight</button>
+          <div>
+            <strong id="previewCount">0 nights ready</strong
+            ><span id="previewSources"></span>
+          </div>
+          <button id="confirmImport" class="primary-button" type="button">
+            Import to Daylight
+          </button>
         </div>
         <p id="importMessage" class="dialog-message" role="status"></p>
       </form>
@@ -227,6 +705,8 @@
       src="https://clerk.john-ta.com/npm/@clerk/clerk-js@6/dist/clerk.browser.js"
       type="text/javascript"
     ></script>
-    <script defer src="./app.js?v=5"></script>
+    <script defer src="/assets/js/searchable-select.js"></script>
+    <script defer src="./model.js?v=20261003-1"></script>
+    <script defer src="./app.js?v=20261003-1"></script>
   </body>
 </html>
