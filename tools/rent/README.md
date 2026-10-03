@@ -34,7 +34,7 @@ The workbook's 54 resident-month calculated values were independently compared w
 
 ## Payment evidence and utility statements
 
-Received bars are solid teal; outstanding bars use amber diagonal hatching. Each rent payment cell includes its own **Checked** checkbox and proof control. Multiple receipts have separate checks. Opening proof shows the receipts and full screenshots together. Payment activity retains the audit history. A screenshot may be linked to multiple receipts without adding to the recorded amounts. Changing a monthly total preserves evidence on the original, voided entries; replacement totals start unchecked.
+Received bars are solid teal; outstanding bars use amber diagonal hatching. Rent amounts stay in compact rectangular cells. A discreet top-right screenshot icon opens proof and individual receipt checkboxes; a small dot indicates that all receipts in the cell are checked. Multiple receipts remain separately checkable inside the proof view. Payment activity retains the audit history. A screenshot may be linked to multiple receipts without adding to the recorded amounts. Changing a monthly total preserves evidence on the original, voided entries; replacement totals start unchecked.
 
 `rentRecords` authorizes the same four rent accounts. `/rent-file` authenticates every upload and download, validates file signatures and size (15 MB), serves private bytes with no-store headers, and never returns a public storage URL. Upload retries reuse a request key. Full-size screenshot previews and PDF previews are cleared on sign-out. Existing screenshots can be reused from the receipt view. Unmatched imported transfers remain accessible from the rent ledger toolbar; there is no standalone proof library.
 
