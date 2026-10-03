@@ -70,7 +70,8 @@ let selectedRating = null;
 let chartResizeTimer;
 let groupSample;
 let groupHistory;
-let groupPlotWidth = 900;
+let groupGeometry;
+let groupSelectedDate;
 const visibleGroupMembers = new Set(["you", "alex", "morgan"]);
 let selectedDays = 7;
 let activeView = "overview";
@@ -119,7 +120,7 @@ function bindEvents() {
   );
   $("#chartMetric").addEventListener("change", renderCharts);
   $("#groupMetric").addEventListener("change", drawGroupChart);
-  $("#groupDay").addEventListener("input", () => showGroupDay(Number($("#groupDay").value)));
+
   els.lockButton.addEventListener("click", signOut);
   els.authSignOut.addEventListener("click", signOut);
   document.querySelectorAll("[data-open-import]").forEach((button) => {
@@ -400,8 +401,8 @@ function switchView(view) {
     ],
     friends: [
       "Groups",
-      "Good company. Better perspective.",
-      "A first look at private, opt-in comparisons with your circle.",
+      "Group sleep",
+      "Compare sleep history across your group.",
     ],
     connections: [
       "Connections",
@@ -1715,46 +1716,58 @@ function drawGroupChart() {
   const metric = $("#groupMetric").value;
   const metricName = $("#groupMetric").selectedOptions[0].textContent;
   groupHistory = Daylight.groupHistory(groupSample.filter(member => visibleGroupMembers.has(member.id)), metric, selectedDays, todayPacific());
-  $("#groupPeriod").textContent = `SAMPLE GROUP · LAST ${selectedDays} DAYS`;
+  $("#groupPeriod").textContent = `${formatShortDate(groupHistory.dates[0])} – ${formatShortDate(groupHistory.dates.at(-1))} · WHOOP`;
   $("#groupMetricHeading").textContent = metricName;
-  $("#groupBaselineNote").textContent = `Each person’s change compares with their own previous ${selectedDays} days. Averages use tracked nights only.`;
+  $("#groupBaselineNote").textContent = `Compared with each person’s previous ${selectedDays} days. Only tracked nights count.`;
   if (!$("#groupMembers").children.length) {
-    $("#groupMembers").innerHTML = groupSample.map(member => `<button type="button" data-member="${member.id}" aria-pressed="true" style="--member-color:${member.color}"><svg width="24" height="12" aria-hidden="true"><line x1="0" x2="24" y1="6" y2="6" stroke="currentColor" stroke-width="3" stroke-dasharray="${member.dash}"/></svg>${escapeHtml(member.name)}<span class="member-visibility">Shown</span></button>`).join("");
+    $("#groupMembers").innerHTML = groupSample.map(member => `<button type="button" data-member="${member.id}" aria-pressed="true" style="--member-color:${member.color}"><span class="group-member-name"><svg width="22" height="12" aria-hidden="true"><line x1="0" x2="22" y1="6" y2="6" stroke="currentColor" stroke-width="3" stroke-dasharray="${member.dash}"/></svg>${escapeHtml(member.name.replace(' (sample)', ''))}</span><strong class="group-member-value"></strong></button>`).join("");
     $("#groupMembers").querySelectorAll("button").forEach(button => button.addEventListener("click", () => {
       const id = button.dataset.member;
       if (visibleGroupMembers.has(id)) visibleGroupMembers.delete(id); else visibleGroupMembers.add(id);
       button.setAttribute("aria-pressed", String(visibleGroupMembers.has(id)));
-      button.querySelector(".member-visibility").textContent = visibleGroupMembers.has(id) ? "Shown" : "Hidden";
       drawGroupChart();
     }));
   }
   const percent = metric !== "durationMinutes";
-  const w = Math.max(250, Math.min(900, $("#groupPlot").clientWidth || 900)), h = w < 500 ? 220 : 280, left = 42, right = 18, top = 16, bottom = 32;
-  groupPlotWidth = w;
-  const upper = percent ? 100 : Math.max(600, Math.ceil(Math.max(0, ...groupHistory.members.flatMap(m => m.points.map(p => p.value || 0))) / 120) * 120);
+  const w = Math.max(240, $("#groupPlot").clientWidth || 900);
+  const h = w < 500 ? 240 : 280, left = 44, right = 22, top = 24, bottom = 34;
+  const values = groupHistory.members.flatMap(member => member.points.map(point => point.value)).filter(Number.isFinite);
+  const step = percent ? 10 : 60;
+  const lower = Math.max(0, Math.floor((Math.min(...values, percent ? 70 : 360) - step / 2) / step) * step);
+  const upper = percent ? 100 : Math.ceil((Math.max(...values, 480) + step / 2) / step) * step;
   const x = index => left + index / (selectedDays - 1) * (w - left - right);
-  const y = value => top + (1 - value / upper) * (h - top - bottom);
-  const grid = Array.from({length: 5}, (_, i) => {
-    const value = upper * i / 4;
-    return `<line x1="${left}" x2="${w - right}" y1="${y(value)}" y2="${y(value)}" stroke="#e4eae5" stroke-dasharray="3 5"/><text x="0" y="${y(value) + 4}" fill="#6d7c75" font-size="12">${percent ? `${Math.round(value)}%` : `${value / 60}h`}</text>`;
-  }).join("");
-  const labels = [0, Math.round((selectedDays - 1) / 4), Math.round((selectedDays - 1) / 2), Math.round((selectedDays - 1) * .75), selectedDays - 1].map(i => `<text x="${x(i)}" y="${h - 5}" text-anchor="${i === 0 ? "start" : i === selectedDays - 1 ? "end" : "middle"}" fill="#6d7c75" font-size="12">${formatShortDate(groupHistory.dates[i])}</text>`).join("");
-  const series = groupHistory.members.map(member => member.segments.map(segment => `<path d="${segment.map((point, i) => `${i ? "L" : "M"}${x(point.index)},${y(point.value)}`).join(" ")}" fill="none" stroke="${member.color}" stroke-width="2.5" stroke-dasharray="${member.dash}" stroke-linecap="round" stroke-linejoin="round"/>${segment.map(point => `<circle cx="${x(point.index)}" cy="${y(point.value)}" r="${selectedDays > 28 ? 2 : 3}" fill="${member.color}"/>`).join("")}`).join("")).join("");
-  const hits = groupHistory.dates.map((date, index) => `<rect class="group-day-hit" data-index="${index}" x="${Math.max(left, x(index) - (w - left - right) / (selectedDays - 1) / 2)}" y="${top}" width="${(w - left - right) / (selectedDays - 1)}" height="${h - top - bottom}" fill="transparent"><title>${formatTableDate(date)}</title></rect>`).join("");
-  $("#groupPlot").innerHTML = `<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="Sample group ${escapeHtml(metricName.toLowerCase())} over ${selectedDays} days. Use the Explore a night slider for exact values. Line breaks represent missing nights.">${grid}${labels}${series}<line id="groupCursor" y1="${top}" y2="${h - bottom}" stroke="#a7b4ab" stroke-dasharray="3 3"/>${hits}</svg>`;
-  $("#groupPlot").querySelectorAll(".group-day-hit").forEach(hit => {
-    const reveal = () => showGroupDay(Number(hit.dataset.index));
-    hit.addEventListener("mouseenter", reveal); hit.addEventListener("click", reveal);
-  });
-  const empty = !groupHistory.members.length;
-  $("#groupEmpty").hidden = !empty;
-  $("#groupDay").disabled = empty;
-  $("#groupDay").max = selectedDays - 1;
+  const y = value => top + (1 - (value - lower) / (upper - lower)) * (h - top - bottom);
+  groupGeometry = { w, h, x, y, left, right };
+  const ticks = Array.from({length: Math.round((upper - lower) / step) + 1}, (_, i) => lower + i * step);
+  const grid = ticks.map(value => `<line x1="${left}" x2="${w - right}" y1="${y(value)}" y2="${y(value)}" stroke="#e4eae5" stroke-dasharray="3 5"/><text x="0" y="${y(value) + 4}" fill="#6d7c75" font-size="12">${percent ? `${value}%` : `${value / 60}h`}</text>`).join("");
+  const labelCount = selectedDays === 7 && w > 500 ? 7 : w < 400 ? 3 : 5;
+  const labels = Array.from({length: labelCount}, (_, i) => Math.round(i * (selectedDays - 1) / (labelCount - 1))).map(i => `<text x="${x(i)}" y="${h - 5}" text-anchor="${i === 0 ? "start" : i === selectedDays - 1 ? "end" : "middle"}" fill="#6d7c75" font-size="12">${formatShortDate(groupHistory.dates[i])}</text>`).join("");
+  const series = groupHistory.members.map(member => member.segments.map(segment => `<path d="${segment.map((point, i) => `${i ? "L" : "M"}${x(point.index)},${y(point.value)}`).join(" ")}" fill="none" stroke="${member.color}" stroke-width="2.5" stroke-dasharray="${member.dash}" stroke-linecap="round" stroke-linejoin="round"/>${segment.map(point => `<circle cx="${x(point.index)}" cy="${y(point.value)}" r="${selectedDays > 28 ? 1.8 : 3.5}" fill="${member.color}"/>`).join("")}`).join("")).join("");
+  $("#groupPlot").innerHTML = `<svg viewBox="0 0 ${w} ${h}" aria-hidden="true">${grid}${labels}${series}<line id="groupCursor" y1="${top}" y2="${h - bottom}" stroke="#82958a" stroke-dasharray="3 3"/><g id="groupActivePoints"></g></svg>`;
+  const plot = $("#groupPlot");
+  const explore = event => {
+    if (!groupHistory.members.length) return;
+    const rect = plot.getBoundingClientRect();
+    const px = (event.clientX - rect.left) * w / rect.width;
+    showGroupDay(Math.round((px - left) / (w - left - right) * (selectedDays - 1)), true);
+  };
+  plot.onpointermove = event => { if (event.pointerType !== "touch") explore(event); };
+  plot.onclick = explore;
+  plot.onpointerleave = () => { $("#groupTooltip").hidden = true; };
+  plot.onblur = () => { $("#groupTooltip").hidden = true; };
+  plot.onkeydown = event => {
+    const current = groupHistory.dates.indexOf(groupSelectedDate);
+    const moves = { ArrowLeft: current - 1, ArrowRight: current + 1, Home: 0, End: selectedDays - 1 };
+    if (event.key in moves) { event.preventDefault(); showGroupDay(moves[event.key], true); }
+    if (event.key === "Escape") $("#groupTooltip").hidden = true;
+  };
+  $("#groupEmpty").hidden = groupHistory.members.length > 0;
   $("#groupSummaryRows").innerHTML = groupHistory.members.map(member => {
-    const delta = member.delta === null ? "Not enough history" : metric === "durationMinutes" ? `${member.delta > 0 ? "+" : member.delta < 0 ? "−" : ""}${Math.abs(Math.round(member.delta))} min` : `${member.delta > 0 ? "+" : member.delta < 0 ? "−" : ""}${Math.abs(member.delta).toFixed(1)} pp`;
-    return `<tr><th scope="row"><span class="group-person-marker" style="background:${member.color}"></span>${escapeHtml(member.name)}</th><td>${formatGroupValue(member.average)}</td><td>${delta}<small class="group-coverage">${member.previousCount} / ${selectedDays} nights in previous period</small></td><td>${member.count} / ${selectedDays}</td></tr>`;
-  }).join("") || '<tr><td colspan="4">No people selected. Choose someone above to compare.</td></tr>';
-  showGroupDay(selectedDays - 1);
+    const delta = member.delta === null ? "Not enough history" : metric === "durationMinutes" ? `${member.delta > 0 ? "+" : member.delta < 0 ? "−" : ""}${Math.abs(Math.round(member.delta))} min` : `${member.delta > 0 ? "+" : member.delta < 0 ? "−" : ""}${Math.abs(member.delta).toFixed(1)} pts`;
+    return `<tr><th scope="row"><span class="group-person-marker" style="background:${member.color}"></span>${escapeHtml(member.name.replace(' (sample)', ''))}</th><td>${formatGroupValue(member.average)}</td><td>${delta}<small class="group-coverage">${member.previousCount} / ${selectedDays} previous nights</small></td><td>${member.count} / ${selectedDays}</td></tr>`;
+  }).join("") || '<tr><td colspan="4">Select a person above to compare.</td></tr>';
+  const selected = groupHistory.dates.indexOf(groupSelectedDate);
+  showGroupDay(selected >= 0 ? selected : selectedDays - 1);
 }
 
 function formatGroupValue(value) {
@@ -1762,16 +1775,26 @@ function formatGroupValue(value) {
   return $("#groupMetric").value === "durationMinutes" ? formatDuration(value) : `${Math.round(value)}%`;
 }
 
-function showGroupDay(index) {
-  if (!groupHistory) return;
+function showGroupDay(index, tooltip = false) {
+  if (!groupHistory || !groupGeometry) return;
   index = clamp(index, 0, groupHistory.dates.length - 1);
-  const date = groupHistory.dates[index];
-  $("#groupDay").value = index;
-  $("#groupDay").setAttribute("aria-valuetext", formatTableDate(date));
-  $("#groupDayLabel").textContent = formatShortDate(date);
-  const x = 42 + index / (selectedDays - 1) * (groupPlotWidth - 60);
-  $("#groupCursor").setAttribute("x1", x);
-  $("#groupCursor").setAttribute("x2", x);
+  groupSelectedDate = groupHistory.dates[index];
+  const {x, y, w} = groupGeometry;
+  $("#groupSelectedDate").textContent = formatTableDate(groupSelectedDate);
+  $("#groupCursor").setAttribute("x1", x(index));
+  $("#groupCursor").setAttribute("x2", x(index));
   $("#groupCursor").setAttribute("visibility", groupHistory.members.length ? "visible" : "hidden");
-  $("#groupDayDetail").innerHTML = groupHistory.members.map(member => `<div><span><i class="group-person-marker" style="background:${member.color}"></i>${escapeHtml(member.name)}</span><strong>${formatGroupValue(member.points[index].value)}</strong></div>`).join("") || '<p>Select a person to explore their nights.</p>';
+  $("#groupActivePoints").innerHTML = groupHistory.members.filter(member => Number.isFinite(member.points[index].value)).map(member => `<circle cx="${x(index)}" cy="${y(member.points[index].value)}" r="6" fill="${member.color}" stroke="white" stroke-width="2.5"/>`).join("");
+  $("#groupMembers").querySelectorAll("button").forEach(button => {
+    const member = groupHistory.members.find(member => member.id === button.dataset.member);
+    button.querySelector(".group-member-value").textContent = member ? formatGroupValue(member.points[index].value) : "Hidden";
+  });
+  const rows = groupHistory.members.map(member => `<div><span><i class="group-person-marker" style="background:${member.color}"></i>${escapeHtml(member.name.replace(' (sample)', ''))}</span><strong>${formatGroupValue(member.points[index].value)}</strong></div>`).join("");
+  const tip = $("#groupTooltip");
+  tip.innerHTML = `<p>${formatTableDate(groupSelectedDate)}</p>${rows}`;
+  tip.hidden = !tooltip || !groupHistory.members.length;
+  const tipWidth = Math.min(210, w - 16);
+  tip.style.width = `${tipWidth}px`;
+  tip.style.left = `${clamp(x(index) + (x(index) < w / 2 ? 18 : -tipWidth - 18), 8, w - tipWidth - 8)}px`;
+  $("#groupChartStatus").textContent = `${formatTableDate(groupSelectedDate)}. ${groupHistory.members.map(member => `${member.name}: ${formatGroupValue(member.points[index].value)}`).join('. ')}`;
 }

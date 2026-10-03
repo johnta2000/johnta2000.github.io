@@ -17,7 +17,7 @@
     <meta name="theme-color" content="#f7f8fa" />
     <title>Daylight — Your sleep, in perspective</title>
     <link rel="stylesheet" href="/assets/css/searchable-select.css" />
-    <link rel="stylesheet" href="./styles.css?v=20261003-2" />
+    <link rel="stylesheet" href="./styles.css?v=20261003-3" />
   </head>
   <body>
     <section id="accessGate" class="access-gate" aria-labelledby="gateTitle">
@@ -139,7 +139,7 @@
                   90 days
                 </button>
               </div>
-              <button type="button" class="secondary-button" data-open-import>
+              <button type="button" class="secondary-button" data-open-import data-panels="overview trends connections">
                 ↑ <span>Import data</span>
               </button>
             </div>
@@ -376,36 +376,21 @@
           </article>
 
           <section data-panels="friends" hidden>
-            <div class="friends-intro panel group-intro">
-              <div>
-                <span class="tag">GROUPS · INTERACTIVE PREVIEW</span>
-                <h2>Better rest, together.</h2>
-                <p>One timeline. Everyone’s own rhythm. Explore how a private group will compare sleep over time.</p>
-              </div>
-              <div class="group-preview-note"><strong>Sample group</strong><span>All three people and their records below are fictional. Live invitations and sharing are not available yet.</span></div>
-            </div>
+            <p class="group-preview-label"><span class="tag">SAMPLE GROUP</span> Fictional data · Live sharing is not available yet.</p>
             <article id="friendSample" class="panel group-history">
               <div class="panel-heading">
-                <div><p class="eyebrow" id="groupPeriod">SHARED HISTORY</p><h2>The group’s sleep rhythm</h2></div>
+                <div><p class="eyebrow" id="groupPeriod">SHARED HISTORY</p><h2>Sleep history</h2></div>
                 <label class="metric-picker"><span class="sr-only">Group chart metric</span><select id="groupMetric" aria-label="Group chart metric"><option value="durationMinutes">Time asleep</option><option value="score">Sleep performance</option><option value="efficiency">Sleep efficiency</option></select></label>
               </div>
-              <p class="panel-copy">WHOOP sleep only · One line per person · Missing nights stay as gaps.</p>
+              <div class="group-readout-heading"><strong id="groupSelectedDate"></strong><span>Hover or tap the chart for exact values</span></div>
               <div id="groupMembers" class="group-members" role="group" aria-label="People shown in the chart"></div>
-              <div class="group-plot-wrap"><div id="groupPlot"></div><p id="groupEmpty" class="chart-empty" hidden>Select a person above to show their history.</p></div>
-              <div class="group-day-controls"><label for="groupDay">Explore a night</label><input id="groupDay" type="range" min="0" max="6" value="6"><output id="groupDayLabel" for="groupDay"></output></div>
-              <div id="groupDayDetail" class="group-day-detail" role="status" aria-live="polite"></div>
+              <div class="group-plot-wrap"><div id="groupPlot" tabindex="0" role="group" aria-label="Group sleep history. Use left and right arrow keys to explore dates." aria-describedby="groupChartStatus"></div><div id="groupTooltip" class="group-tooltip" hidden></div><p id="groupEmpty" class="chart-empty" hidden>Select a person above to show their history.</p></div>
+              <p id="groupChartStatus" class="sr-only" role="status" aria-live="polite"></p>
+              <p class="group-chart-note">WHOOP · Missing nights appear as gaps. Select a person above to hide or show their line.</p>
               <div class="group-summary-heading"><h3>Averages over this period</h3><p id="groupBaselineNote" class="small-note"></p></div>
               <div class="table-wrap"><table><caption class="sr-only">Selected members’ average, change from their own previous period, and data coverage</caption><thead><tr><th scope="col">Person</th><th scope="col" id="groupMetricHeading">Time asleep</th><th scope="col">Change vs. own previous period</th><th scope="col">Nights tracked</th></tr></thead><tbody id="groupSummaryRows"></tbody></table></div>
             </article>
-            <section class="group-onboarding" aria-labelledby="groupOnboardingTitle">
-              <div class="panel-heading"><div><p class="eyebrow">PLANNED ONBOARDING</p><h2 id="groupOnboardingTitle">An invite. Their account. Their choice.</h2></div><span class="tag">COMING NEXT</span></div>
-              <div class="feature-grid">
-                <article class="panel"><span class="step-number">01</span><h3>Open your invitation</h3><p>You create a private group and send an expiring invite link. Friends sign in with their own email.</p></article>
-                <article class="panel"><span class="step-number">02</span><h3>Connect their WHOOP</h3><p>Each friend approves Daylight on WHOOP’s sign-in page. No developer account, API key, or password sharing needed.</p></article>
-                <article class="panel"><span class="step-number">03</span><h3>Choose what to share</h3><p>Preview the group, select sleep metrics and the history window to share, then join. They can stop sharing or leave later.</p></article>
-              </div>
-              <p class="small-note roadmap-note">Invitations are coming next. The planned sharing controls keep each person’s history private until they choose to share it. Connecting WHOOP alone will not share data, and personal notes will stay private.</p>
-            </section>
+            <details class="group-onboarding"><summary>How will friends join?</summary><p>Open your invitation → sign in → connect their own WHOOP → choose metrics and history to share → join. No developer accounts or API keys needed. Invitations and sharing controls are still being built.</p></details>
           </section>
 
           <section data-panels="connections" hidden>
@@ -636,7 +621,7 @@
       type="text/javascript"
     ></script>
     <script defer src="/assets/js/searchable-select.js"></script>
-    <script defer src="./model.js?v=20261003-2"></script>
-    <script defer src="./app.js?v=20261003-2"></script>
+    <script defer src="./model.js?v=20261003-3"></script>
+    <script defer src="./app.js?v=20261003-3"></script>
   </body>
 </html>
