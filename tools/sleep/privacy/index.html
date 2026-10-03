@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="theme-color" content="#f6f8f7" />
+    <title>Daylight — Privacy</title>
+    <style>
+      :root {
+        color-scheme: light;
+        font-family:
+          Inter,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+        color: #243b36;
+        background: #f6f8f7;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+      }
+      main {
+        max-width: 780px;
+        margin: 0 auto;
+        padding: 48px 24px 64px;
+      }
+      a {
+        color: #2e715b;
+        text-underline-offset: 4px;
+      }
+      a:focus-visible {
+        outline: 3px solid #df9876;
+        outline-offset: 4px;
+      }
+      .brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 25px;
+        font-weight: 650;
+        text-decoration: none;
+        letter-spacing: -1px;
+      }
+      .brand span {
+        color: #d89065;
+        font-size: 32px;
+      }
+      .eyebrow {
+        font-size: 11px;
+        letter-spacing: 0.12em;
+        color: #6c7976;
+        margin-top: 42px;
+        text-transform: uppercase;
+      }
+      h1 {
+        font-size: 40px;
+        letter-spacing: -1.5px;
+        font-weight: 600;
+        margin: 12px 0 20px;
+        line-height: 1.1;
+      }
+      .intro {
+        font-size: 17px;
+        color: #64766d;
+        line-height: 1.7;
+      }
+      .notice {
+        background: #edf2eb;
+        border: 1px solid #dfe8dd;
+        border-radius: 12px;
+        padding: 18px 22px;
+        margin: 26px 0;
+        font-size: 14px;
+        line-height: 1.7;
+      }
+      section {
+        margin-top: 32px;
+      }
+      h2 {
+        font-size: 19px;
+        letter-spacing: -0.4px;
+        margin-bottom: 12px;
+      }
+      p,
+      li {
+        font-size: 14px;
+        line-height: 1.85;
+      }
+      li {
+        margin: 8px 0;
+      }
+      ul {
+        padding-left: 22px;
+      }
+      .updated {
+        font-size: 12px;
+        color: #6c7976;
+      }
+      footer {
+        border-top: 1px solid #e5ebe8;
+        margin-top: 42px;
+        padding-top: 22px;
+        font-size: 12px;
+        color: #6c7976;
+      }
+      @media (max-width: 500px) {
+        main {
+          padding-top: 28px;
+        }
+        h1 {
+          font-size: 34px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <a class="brand" href="../"
+        ><span aria-hidden="true">☀</span> daylight.</a
+      >
+      <p class="eyebrow">Your data, explained</p>
+      <h1>Daylight privacy notice</h1>
+      <p class="updated">Last updated October 3, 2026</p>
+      <p class="intro">
+        Daylight is a personal sleep dashboard operated by John Ta. This notice
+        describes the data used by the current version at
+        john-ta.com/tools/sleep/.
+      </p>
+      <div class="notice">
+        <strong>Current access:</strong> Daylight is a private personal-use
+        dashboard. Access is limited to approved sign-in accounts and the
+        operator. Those approved accounts share access to the stored dashboard
+        dataset. Separate friend accounts and live sharing controls are not
+        available yet; the Friends view contains fictional examples only.
+      </div>
+      <section>
+        <h2>What Daylight collects</h2>
+        <ul>
+          <li>
+            <strong>Sign-in information:</strong> your email address and account
+            identifier, used to verify access through Clerk.
+          </li>
+          <li>
+            <strong>WHOOP sleep data, when you authorize it:</strong> sleep
+            dates, sleep performance, duration, efficiency, estimated deep and
+            REM sleep, and sleep start and end times. The current integration
+            requests sleep access and offline access so it can refresh the
+            connection without asking you to sign in each time.
+          </li>
+          <li>
+            <strong>Connection credentials:</strong> WHOOP authorization tokens
+            and refresh tokens are stored encrypted on the backend. Your WHOOP
+            password is entered on WHOOP’s own sign-in page, not collected by
+            Daylight.
+          </li>
+          <li>
+            <strong>Data you enter or import:</strong> sleep records from CSV,
+            JSON, or Apple Health exports; manual sleep entries; and optional
+            alertness ratings and notes. Export files are parsed in your
+            browser. The selected sleep fields are sent to the backend only when
+            you confirm an import; the original export file is not uploaded by
+            this importer. Supported import fields can include heart-rate
+            variability and resting heart rate.
+          </li>
+        </ul>
+      </section>
+      <section>
+        <h2>How the data is used</h2>
+        <p>
+          Daylight uses these records to display your sleep history, calculate
+          trends, compare overlapping nights across data sources, and relate
+          sleep to your own alertness check-ins. WHOOP syncing can run when you
+          request it and automatically in the background. The integration
+          currently requests up to one year of sleep history. Connecting WHOOP
+          does not activate friend sharing.
+        </p>
+      </section>
+      <section>
+        <h2>Services involved</h2>
+        <p>
+          Clerk handles sign-in, Convex runs the backend and stores the
+          dashboard records, and GitHub Pages hosts the website frontend. WHOOP
+          supplies data you authorize. These providers process information
+          needed to deliver their respective services.
+        </p>
+        <p>
+          The dashboard uses PostHog for limited page, browser, generic
+          interaction, and error metadata. Its configuration disables session
+          recordings and automatic form capture, strips query strings from
+          recorded URLs, and excludes health measurements and check-in notes
+          from analytics events. This privacy page itself does not load
+          analytics. Hosting and service providers may maintain their own
+          operational logs.
+        </p>
+      </section>
+      <section>
+        <h2>Sharing and security</h2>
+        <p>
+          Daylight does not publish your sleep records, sell them, or use them
+          for advertising. Access is limited as described above, together with
+          the service providers needed to operate the app. Information may also
+          be disclosed when required by law or needed to address misuse or a
+          security incident.
+        </p>
+        <p>
+          Sign-in checks, restricted dashboard access, HTTPS, and encrypted
+          WHOOP tokens help protect your information. No online service can
+          guarantee complete security. The privacy notice is public so WHOOP can
+          display it; your dashboard and sleep records are not public.
+        </p>
+      </section>
+      <section>
+        <h2>Retention and disconnecting</h2>
+        <p>
+          Disconnecting WHOOP in Daylight removes the stored connection and
+          stops future syncing through it; Daylight also requests revocation
+          from WHOOP. You can also revoke Daylight’s access through WHOOP.
+          Disconnecting does not automatically delete previously imported sleep
+          records or check-ins. The current dashboard has no automatic
+          record-expiration schedule.
+        </p>
+        <p>
+          To request a copy, correction, or deletion of stored records, contact
+          <a href="mailto:johnta2018@gmail.com">johnta2018@gmail.com</a>. There
+          is currently no self-service delete-all control. Your identity may
+          need to be verified before a request is fulfilled. Service-provider
+          backups and required operational records may remain under their
+          retention practices.
+        </p>
+      </section>
+      <section>
+        <h2>Questions and changes</h2>
+        <p>
+          Contact John Ta at
+          <a href="mailto:johnta2018@gmail.com">johnta2018@gmail.com</a> about
+          Daylight’s data handling. This notice will be updated when the
+          integration or sharing features change.
+        </p>
+      </section>
+      <footer>
+        <a href="../">Return to Daylight</a>
+        <p class="updated">
+          Prepared with reference to
+          <a
+            href="https://github.com/General-Legal/legal-templates/tree/main/templates/privacy-policy-us"
+            >General Legal’s CC0 privacy-policy template</a
+          >, tailored to Daylight’s current practices. General Legal has not
+          reviewed or endorsed this notice.
+        </p>
+      </footer>
+    </main>
+  </body>
+</html>
