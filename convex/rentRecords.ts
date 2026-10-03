@@ -6,7 +6,20 @@ function date(s: string) { if (!/^20\d{2}-\d{2}-\d{2}$/.test(s) || !Number.isFin
 function amount(n: number) { if (!Number.isSafeInteger(n)||Math.abs(n)>100000000) throw Error('Enter a valid amount.'); }
 export const overview = query({ args: {}, handler: async ctx => {
   await authorize(ctx); const files = await ctx.db.query('rentFiles').collect();
-  return { bills: await ctx.db.query('rentBills').collect(), files: files.map(({storageId, ...f})=>f) };
+  return { bills: await ctx.db.query('rentBills').collect(), files: files.map(({storageId, ...f})=>f), marks: await ctx.db.query('rentProofMarks').collect() };
+} });
+// Flags are non-destructive overlays. Every edit/removal is an immutable audit event.
+export const setProofMark = mutation({args:{fileId:v.id('rentFiles'),paymentId:v.id('rentPayments'),y:v.number(),height:v.number(),removed:v.boolean(),expectedVersion:v.number(),requestKey:v.string()},handler:async(ctx,a)=>{
+  const email=await authorize(ctx),f=await ctx.db.get(a.fileId),p=await ctx.db.get(a.paymentId);
+  if(!f||!f.type.startsWith('image/')||f.billId||!p||p.voidedAt||!f.paymentIds.includes(p._id))throw Error('Choose an image linked to an active payment.');
+  if(!Number.isFinite(a.y)||!Number.isFinite(a.height)||a.y<0||a.height<0.01||a.height>0.5||a.y+a.height>1.000001||!Number.isSafeInteger(a.expectedVersion)||a.expectedVersion<0||!a.requestKey||a.requestKey.length>100)throw Error('Invalid proof flag.');
+  const history=await ctx.db.query('rentProofMarks').withIndex('by_file_payment',q=>q.eq('fileId',a.fileId).eq('paymentId',a.paymentId)).collect();
+  const retry=history.find(m=>m.requestKey===a.requestKey);
+  if(retry){if(retry.y!==a.y||retry.height!==a.height||retry.removed!==a.removed)throw Error('Proof flag request changed.');return retry._id;}
+  const version=Math.max(0,...history.map(m=>m.version));
+  if(version!==a.expectedVersion)throw Error('This proof flag changed on another device. Reopen the receipt before editing.');
+  const {expectedVersion,...fields}=a;
+  return ctx.db.insert('rentProofMarks',{...fields,version:version+1,createdAt:Date.now(),createdBy:email});
 } });
 export const file = query({ args: {id:v.id('rentFiles')}, handler: async(ctx,{id})=>{ await authorize(ctx); const f=await ctx.db.get(id);if(!f)throw Error('File not found.');return f; } });
 export const destination = query({ args:{paymentId:v.optional(v.id('rentPayments')),billId:v.optional(v.id('rentBills'))},handler:async(ctx,args)=>{

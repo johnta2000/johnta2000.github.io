@@ -45,3 +45,10 @@ User-authorized evidence imports preserve each bank transaction's displayed date
 For backend releases, extend the current deployed schema with `rentRecordTables`, the optional receipt check fields in `rentTables`, and the three `/rent-file` HTTP methods while preserving all other deployed definitions. Deploy `rentRecords.ts` and `rentFileHttp.ts` along with the existing rent modules. Additional tests: `node --test tools/rent/tests/records.test.cjs`.
 
 Hover, focus, or tap a monthly bar in the yearly chart to see exact amounts and a per-payer due/received/remaining breakdown. Overpayments are shown separately; unsaved edits are labeled. Escape, a second tap, or an outside click dismisses the popup.
+
+
+Payment proof row flags
+----------------------
+Open a payment’s proof from its ledger cell, then use **Flag payment row**. Tap the matching row or adjust the position/height sliders; save the flag. Flags use normalized image coordinates so they track the same source row at every screen size. The full original remains downloadable without annotations.
+
+Each flag belongs to one file/payment pair. `rentProofMarks` stores append-only, versioned edits and removals with the authenticated editor and timestamp; `setProofMark` validates the file link, image type, active receipt, bounds, and expected version. It never changes receipt totals or confirmation status. Private overview access uses the same Rent allowlist. Older flags remain associated with superseded receipts rather than transferring to replacement totals automatically.

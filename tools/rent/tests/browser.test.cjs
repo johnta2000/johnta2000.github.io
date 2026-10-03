@@ -4,21 +4,22 @@ const config={rentCents:600000,loftCents:30000,bathroomCents:10000,people:[{name
 async function open(browser,width=1280,mode='signed-in'){
  const page=await browser.newPage({viewport:{width,height:960},hasTouch:width<800,isMobile:width<800});page.setDefaultTimeout(7000);const errors=[];page.on('pageerror',e=>errors.push(e.message));
  const month=await page.evaluate(()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;});
- const db={months:[{_id:'month1',month,config:structuredClone(config),parkingCents:0,note:'',requestsSent:false,version:1,sourceNote:'Original spreadsheet history retained for review.',sourcePayments:[{payer:0,amountCents:190000,note:'Payment request, date unconfirmed.'}]}],payments:[],files:[],bills:[],fail:false};
+ const db={months:[{_id:'month1',month,config:structuredClone(config),parkingCents:0,note:'',requestsSent:false,version:1,sourceNote:'Original spreadsheet history retained for review.',sourcePayments:[{payer:0,amountCents:190000,note:'Payment request, date unconfirmed.'}]}],payments:[],files:[],bills:[],marks:[],fail:false};
  if(mode==="empty")db.months=[];
  await page.addInitScript(mode=>{const session={id:'one',getToken:async()=>`test.${btoa(JSON.stringify({aud:'convex'}))}.test`};window.__internal_ClerkUICtor={};window.Clerk={session:mode==='signed-out'?null:session,load:async()=>{},mountSignIn:n=>n.textContent='Sign in form',unmountSignIn:n=>n.textContent='',addListener(fn){window.changeSession=s=>{this.session=s;fn({session:s});};},signOut:async()=>window.changeSession(null)};},mode);
  await page.route('**/*',async route=>{
   const url=new URL(route.request().url());if(url.protocol==='blob:')return route.continue();
   if(url.hostname==='localhost'){let filename=url.pathname.endsWith('/')?url.pathname+'index.html':url.pathname;let body=await fs.readFile(path.join(__dirname,'../../..',filename));if(filename.endsWith('.html'))body=Buffer.from(body.toString().replace(/<script\b[^>]*src="https:[\s\S]*?<\/script>/g,''));return route.fulfill({body,contentType:filename.endsWith('.js')?'text/javascript':filename.endsWith('.css')?'text/css':'text/html'});}
   if(url.hostname.endsWith('.convex.site')){
-    if(route.request().method()==='GET')return route.fulfill({body:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a0t0AAAAASUVORK5CYII=','base64'),contentType:'image/png'});
+    if(route.request().method()==='GET')return route.fulfill({body:db.proofBytes||Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a0t0AAAAASUVORK5CYII=','base64'),contentType:'image/png'});
     if(db.failUpload)return route.abort();
     const key=route.request().headers()['x-request-key'];let f=db.files.find(f=>f.requestKey===key);if(!f){f={_id:'file'+db.files.length,name:decodeURIComponent(route.request().headers()['x-file-name']),type:route.request().headers()['content-type'],paymentIds:url.searchParams.get('paymentId')?[url.searchParams.get('paymentId')]:[],billId:url.searchParams.get('billId')||undefined,requestKey:key};db.files.push(f);}return route.fulfill({json:{id:f._id}});
   }
   if(!url.hostname.endsWith('.convex.cloud'))return route.abort();const {path:routePath,args}=route.request().postDataJSON();const name=routePath.split(':')[1];let value=null;
   if(mode==='denied')return route.fulfill({json:{status:'error',errorMessage:'This account is not authorized for Rent.'}});
   if(name==='verify')value={email:'test@example.com'};
-  if(name==='overview')value={bills:db.bills,files:db.files};
+  if(name==='overview')value={bills:db.bills,files:db.files,marks:db.marks};
+  if(name==='setProofMark'){if(db.failMark)return route.abort();let mark=db.marks.find(m=>m.requestKey===args.requestKey);if(!mark){mark={...args,_id:'mark'+db.marks.length,version:args.expectedVersion+1,createdAt:Date.now(),createdBy:'test@example.com'};db.marks.push(mark);}value=mark._id;}
   if(name==='linkFile'){const f=db.files.find(f=>f._id===args.id);if(!f.paymentIds.includes(args.paymentId))f.paymentIds.push(args.paymentId);}
   if(name==='setConfirmation'){db.payments.find(p=>p._id===args.id).checked=args.checked;}
   if(name==='saveBillGrid'){
@@ -118,5 +119,22 @@ test('chart breakdown supports hover, focus, tap, exact cents and independent ov
  await page.keyboard.press('Escape');await tip.waitFor({state:'hidden'});await bar.evaluate(n=>n.blur());await bar.focus();await tip.waitFor();await page.keyboard.press('Escape');await tip.waitFor({state:'hidden'});await bar.click();await tip.waitFor();await page.locator('header h1').click();await tip.waitFor({state:'hidden'});
  const input=page.locator(`.rent-cell[data-month="${m}"][data-field=p1]`);await input.fill('351.25');await page.locator(`.rent-month-bar[data-month="${m}"]`).click();await tip.waitFor();assert.match(await tip.textContent(),/Unsaved preview/);assert.match(await tip.textContent(),/2,852\.24/);assert.deepEqual(errors,[]);
  await page.locator('#sign-out').click();await page.getByText('Sign in form',{exact:true}).waitFor();assert.equal(await page.locator('#rent-month-tooltip').count(),0);await page.close();
+ }}finally{await browser.close();}
+});
+
+test('proof row flags persist per receipt, keep history and failed drafts, and clear on sign-out',async()=>{
+ const browser=await engine.launch();try{for(const width of [390,1280]){const {page,db,errors}=await open(browser,width),m=db.months[0].month;
+ const image=await page.evaluate(()=>{const c=document.createElement('canvas');c.width=1000;c.height=1400;const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,1000,1400);x.fillStyle='#234';x.font='26px sans-serif';x.fillText('Synthetic payment history',50,90);for(let i=0;i<8;i++){x.fillStyle=i%2?'#f5f5ef':'#fff';x.fillRect(40,150+i*145,920,140);x.fillStyle='#345';x.fillText('Test transfer '+(i+1)+'     $100.00',60,210+i*145);}return c.toDataURL('image/png').split(',')[1];});db.proofBytes=Buffer.from(image,'base64');
+ db.payments.push({_id:'flagged',month:m,payer:0,amountCents:10000,date:m+'-01',note:'Synthetic receipt',createdAt:1,createdBy:'test'},{_id:'other',month:m,payer:0,amountCents:20000,date:m+'-02',note:'Separate receipt',createdAt:2,createdBy:'test'});
+ db.files.push({_id:'proof',name:'Synthetic history.png',type:'image/png',paymentIds:['flagged','other'],entries:[{paymentId:'flagged',date:m+'-01',status:'Completed',memo:'Rent'}]});
+ await page.locator('#refresh').click();const cell=page.locator(`.rent-cell[data-month="${m}"][data-field=p0]`).locator('..');await cell.locator('button').click();
+ const first=page.locator('.receipt-detail').first();await first.getByRole('button',{name:'Flag payment row',exact:true}).click();await first.getByRole('slider',{name:'Flag row position'}).fill('320');await first.getByRole('slider',{name:'Flag row height'}).fill('80');
+ db.failMark=true;await first.getByRole('button',{name:'Save row flag',exact:true}).click();await first.getByRole('status').filter({hasText:/Couldn’t save/}).waitFor();assert.equal(await first.getByRole('slider',{name:'Flag row position'}).inputValue(),'320');assert.equal(db.marks.length,0);
+ db.failMark=false;await first.getByRole('button',{name:'Save row flag',exact:true}).click();await first.getByRole('button',{name:'Adjust row flag',exact:true}).waitFor();assert.equal(db.marks.length,1);assert.equal(db.marks[0].paymentId,'flagged');assert.equal(db.marks[0].y,.32);assert.equal(db.payments[0].checked,undefined);
+ const second=page.locator('.receipt-detail').nth(1);assert.equal(await second.locator('.proof-row-flag').isVisible(),false);assert.equal(await first.locator('.proof-row-flag').isVisible(),true);
+ await first.locator('.proof-stage').scrollIntoViewIfNeeded();await page.locator('.record-dialog').screenshot({path:path.join(os.tmpdir(),`rent-proof-flags-${engine.name()}-${width}.png`)});
+ const bounds=await first.locator('.proof-row-flag').boundingBox(),stage=await first.locator('.proof-stage').boundingBox();assert.ok(Math.abs(bounds.y-stage.y-stage.height*.32)<2);assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+ await first.getByRole('button',{name:'Adjust row flag',exact:true}).click();await first.getByRole('button',{name:'Remove row flag',exact:true}).click();await first.getByRole('button',{name:'Flag payment row',exact:true}).waitFor();assert.equal(db.marks.length,2);assert.ok(db.marks[1].removed);await first.getByText('Flag history · 2 revisions',{exact:true}).click();assert.match(await first.locator('.proof-flag-history').textContent(),/test@example.com/);
+ await first.getByRole('button',{name:'Flag payment row',exact:true}).click();await page.evaluate(()=>window.changeSession(null));await page.getByText('Sign in form',{exact:true}).waitFor();assert.equal(await page.locator('.proof-audit').count(),0);assert.deepEqual(errors,[]);await page.close();
  }}finally{await browser.close();}
 });
