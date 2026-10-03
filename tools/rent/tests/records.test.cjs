@@ -49,3 +49,24 @@ test('reconciliation validates amounts, concurrent receipts and all proof before
   const before=JSON.stringify(f.tables);await assert.rejects(f.run('reconcileReceipt',f.args));assert.equal(JSON.stringify(f.tables),before);
  }
 });
+
+test('matching owner-assigned evidence confirms an existing total, preserves money and retries safely',async()=>{
+ const f=reconciliation();f.tables.rentFiles[0].entries[0].amountCents=30000;
+ const args={fileId:'history',paymentId:'aggregate',evidenceDate:'2026-04-30',expectedMonth:'2026-05',author:'owner',review:'Owner assigned this early payment to the following rent month.'};
+ const before={...f.tables.rentPayments[0]};await f.run('matchEvidence',args);
+ for(const [k,v] of Object.entries(before))assert.equal(f.tables.rentPayments[0][k],v);
+ assert.equal(f.tables.rentPayments.length,1);assert.ok(f.tables.rentPayments[0].checked);assert.equal(f.tables.rentFiles[0].entries[0].paymentId,'aggregate');
+ const snapshot=JSON.stringify(f.tables);await f.run('matchEvidence',args);assert.equal(JSON.stringify(f.tables),snapshot);
+});
+test('evidence matching rejects mismatches, ambiguous transfers and prior assignments before writes',async()=>{
+ for(const kind of ['amount','payer','month','voided','duplicate','assigned']){
+  const f=reconciliation();f.tables.rentFiles[0].entries[0].amountCents=30000;
+  if(kind==='amount')f.tables.rentFiles[0].entries[0].amountCents++;
+  if(kind==='payer')f.tables.rentFiles[0].entries[0].payer=1;
+  if(kind==='month')f.tables.rentPayments[0].month='2026-06';
+  if(kind==='voided')f.tables.rentPayments[0].voidedAt=1;
+  if(kind==='duplicate')f.tables.rentFiles[0].entries.push({...f.tables.rentFiles[0].entries[0]});
+  if(kind==='assigned')f.tables.rentFiles[0].entries[0].paymentId='other';
+  const snapshot=JSON.stringify(f.tables);await assert.rejects(f.run('matchEvidence',{fileId:'history',paymentId:'aggregate',evidenceDate:'2026-04-30',expectedMonth:'2026-05',author:'owner',review:'Owner clarification'}));assert.equal(JSON.stringify(f.tables),snapshot);
+ }
+});

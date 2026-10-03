@@ -79,6 +79,23 @@ export const importEvidence = internalMutation({args:{id:v.id('rentFiles'),entri
   await ctx.db.patch(id,{entries:result,paymentIds});return {linked:paymentIds.length,review:result.length-paymentIds.length};
 } });
 
+// Link owner-assigned bank evidence to an existing total without creating money records.
+export const matchEvidence = internalMutation({args:{fileId:v.id('rentFiles'),paymentId:v.id('rentPayments'),evidenceDate:v.string(),expectedMonth:v.string(),author:v.string(),review:v.string()},handler:async(ctx,a)=>{
+  date(a.evidenceDate);
+  if(!a.author||!a.review||a.review.length>1000)throw Error('Include the reconciliation reason.');
+  const f=await ctx.db.get(a.fileId),p=await ctx.db.get(a.paymentId);
+  if(!f||f.billId||!p||p.voidedAt||p.month!==a.expectedMonth)throw Error('Payment or proof changed.');
+  const matches=(f.entries||[]).map((e,i)=>({e,i})).filter(({e})=>e.date===a.evidenceDate&&e.payer===p.payer&&e.amountCents===p.amountCents);
+  if(matches.length!==1)throw Error('Evidence must match the payer and amount uniquely.');
+  const {e,i}=matches[0];
+  if(e.paymentId){if(e.paymentId!==p._id||e.month!==p.month)throw Error('Evidence is already assigned.');return p._id;}
+  const note=[p.note,`Payment proof dated ${e.date}: ${a.review}`].filter(Boolean).join('\n');
+  if(note.length>4000)throw Error('Payment note is too long.');
+  await ctx.db.patch(f._id,{paymentIds:f.paymentIds.includes(p._id)?f.paymentIds:[...f.paymentIds,p._id],entries:f.entries!.map((entry,j)=>j===i?{...entry,month:p.month,paymentId:p._id,review:a.review}:entry)});
+  await ctx.db.patch(p._id,{note,checked:true,checkedAt:Date.now(),checkedBy:a.author});
+  return p._id;
+} });
+
 // Admin reconciliation replaces an aggregate with proven components in one transaction.
 // The original stays in the audit history; the received total must never change.
 export const reconcileReceipt = internalMutation({args:{
