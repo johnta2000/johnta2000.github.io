@@ -1,49 +1,41 @@
 # Hertz LAS May 2027 price monitor
 
-This is a standalone Hertz price watch, separate from `/tools/monitoring/`. The site page lives at `/hertz-las-may-2027/` and checks the read-only Hertz results for a LAS pickup on May 20, 2027 at 7:00 PM Pacific and return on May 24 at 5:00 PM Pacific. It never selects a car, submits a form, or starts a booking.
+The standalone page is /hertz-las-may-2027/. It tracks LAS pickup May 20, 2027 at 7 PM Pacific through May 24 at 5 PM Pacific, CDP 2278478, age 25. Accept only vehicles with 6–12 rendered passenger seats and exclude pickups/trucks. No vehicle selection, form submission on Hertz, or booking.
 
-The current criteria (version 2) are 6–12 passengers inclusive, with pickups and trucks excluded. Passenger capacity comes from the rendered passenger feature in each Hertz card, with explicit `N Passenger`/`N Seat` card text as a fallback. Vehicle class and model text are both checked for the excluded pickup/truck terms.
+## Refresh architecture (October 3 repair)
 
-## Data and parsing
+The previous GitHub headless Chromium collector received a blank Hertz application and failed every daily check after September 6. The regular in-app browser successfully renders the search. The existing local scheduled task now performs daily browser checks at 9 AM Pacific, then hands the exact rendered evidence to the deterministic importer. The local computer must be on and the app running. A human verification challenge requires attention; never invent prices or silently report success.
 
-The deterministic Playwright collector searches only visible rendered vehicle-card containers. A rate is valid only when card text contains `$N/day` or `$N` followed by `/day`, the visible capacity is between 6 and 12, and the card is not a pickup or truck. Bare currency values, filter sliders, hidden elements, page-level text, and cards without a trustworthy capacity are not candidates.
+The browser orchestrator uses a current configured Codex model to navigate and run the capture expression. All prices, capacity rules, history updates, and publication are processed by scripts. A model does not choose or transcribe prices.
 
-Every attempt—including failures—is prepended to the private repository source log at `.github/monitoring-data/hertz-las-may-2027-history.json`. The script then writes the same JSON to `hertz-las-may-2027/history.json`, which is the static page's deployable data source, and a one-row-per-check summary to `hertz-las-may-2027/history.csv`. Each new JSON record contains the timestamp, checked URL, full itinerary, lowest valid rate, vehicle class, passenger capacity, estimated total, taxes/fees visibility, rendered evidence, status/error, duration, page metadata, eligible-card count, and the complete qualifying-vehicle snapshot for successful checks.
+GitHub Actions now runs a read-only health watchdog at 15:27 UTC. It fails visibly when the latest attempt failed or the last verified price is over 36 hours old. It never claims a headless scrape succeeded. The page uses the same freshness rule, refreshes its data every five minutes and when refocused, and keeps old prices clearly dated.
 
-The initial 26 observations came from the reconstructed source-thread CSV and are marked `source: "reconstructed"`. They tracked the cheapest vehicle of any size, so they remain visible as `Legacy scope` in the durable log but are excluded from the version-2 chart and summary. Unknown legacy fields are `not_recorded` or `null`, never inferred.
+## Run the working browser check
 
-## Manual check
+1. Use the supported in-app browser tool to open the bookingUrl in history.json, in a fresh tab or with an intentional reload. Wait for the visible vehicle results. Dismiss the cookie notice if needed. Do not submit any Hertz forms or select a vehicle.
+2. Read scripts/monitoring/hertz-browser-snapshot.js and evaluate that complete expression with the browser tool's read-only page evaluator. Keep its exact returned object in a browser-tool variable. Verify the rendered itinerary. The expression reads visible vehicle headings, features and price blocks; it never reads hidden application state or filter values. If still loading, allow up to 60 seconds and try one normal reload. If blocked, capture the failed page too and report the blocker.
+3. Start the local handoff server in a terminal: `node scripts/monitoring/hertz-capture-server.mjs /tmp/hertz-UNIQUE-snapshot.json`. Use a unique filename each run. Open http://127.0.0.1:4187/ with the browser tool, paste JSON.stringify(theSnapshot) into the labeled textarea and click Save snapshot. This loopback-only, same-origin form writes the exact JSON without manual transcription. If validation fails, it still saves evidence so the attempt can be logged.
+4. Run `node scripts/monitoring/hertz-publish.mjs /tmp/hertz-UNIQUE-snapshot.json`. The publisher fetches origin/master into a temporary worktree, preserves every historical run, imports the snapshot, commits only the three history files, and pushes master. It retries concurrent branch updates up to three times. Duplicate successful capture IDs are idempotent. Invalid evidence is stored as an error and never accepted as a price.
+5. Wait for GitHub Pages to deploy. Read the public history.json with a cache-busting query and verify the new timestamp/status. A successful push alone is not proof of a refreshed site. Close the local handoff tab and stop its server.
 
-```sh
-npm ci
-npx playwright install chromium
-npm run monitor:hertz
-```
+Manual import without publishing: `node scripts/monitoring/hertz-las-may-2027.mjs --snapshot /absolute/snapshot.json`. To isolate output in tests, supply all three paths: --history, --public-history, --public-csv.
 
-For a parser-only fixture check:
+If browser access itself fails before capture, create a schemaVersion 1 snapshot with the current capturedAt, exact bookingUrl as checkedUrl, empty cards, resultCount null, empty itineraryText, and pageEvidence describing the actual failure. Publish it through the same command and report the failure. Do not alter any successful historical record.
 
-```sh
-npm run monitor:hertz -- --html /absolute/path/to/fixture.html --history /tmp/source.json --public-history /tmp/public.json
-```
+## Persistence and validation
 
-If Hertz serves only its blank application shell to automated Chromium, the run is stored as unavailable with capped console, page-error, and failed-request diagnostics; the prior successful rate remains on the page. The parser never falls back to slider values or hidden state.
+- .github/monitoring-data/hertz-las-may-2027-history.json: repository source log.
+- hertz-las-may-2027/history.json: public page data, including the full raw rendered snapshot on new successful browser checks and all eligible vehicle rates.
+- hertz-las-may-2027/history.csv: one summary row per attempt.
 
-## Local page
+Every attempt is retained. Successful browser imports require the exact URL itinerary and discount parameters, matching rendered dates/times, a capture under two hours old, complete result count when visible, unique vehicle IDs, and explicit dollar-per-day text inside the rendered pricing block. Prices are parsed from that text, never trusted from a model-produced numeric field. Estimated totals are taken from displayed totals; tax inclusion remains unknown unless displayed.
 
-From the repository root:
+The 26 reconstructed June–September observations remain the gray all-vehicle history; family-vehicle observations are a separate yellow series. They must never be discarded or reclassified.
 
-```sh
-python3 -m http.server 4173
-```
+## Tests and deployment
 
-Open `http://localhost:4173/hertz-las-may-2027/`.
+Run `node --test scripts/monitoring/hertz-*.test.mjs`. The tests cover evidence validation, filters, totals, complete history preservation, duplicate imports, failed imports, missed schedules and stale data.
 
-## Schedule and deployment
+This site deploys through GitHub Pages from master. Use a clean checkout of current origin/master for code deployment; the normal working tree may contain unrelated edits. No Convex changes or new credentials are required.
 
-`.github/workflows/hertz-las-may-2027-monitor.yml` runs daily at 15:27 UTC and supports manual dispatch. It tests the parser, performs the read-only check, uploads a 30-day screenshot artifact, and commits the durable JSON, public JSON, and public CSV even when collection fails. An unavailable Hertz page is recorded in the dashboard without failing the workflow, which avoids noisy scheduled-run alerts.
-
-This repository deploys static files through GitHub Pages. Commit the Hertz collector, standalone page, history files, dependency lockfile, and workflow, then push `master`. No Convex deployment or monitoring-dashboard secret is required for this standalone page.
-
-## Model recommendation
-
-Use `gpt-5.6-sol` at high reasoning for future implementation work. Scheduled price identification should remain deterministic and model-free: visible-card scoping and explicit `/day` syntax are testable and auditable.
+The old Playwright collector remains available for diagnostics, but is not the scheduled data source.

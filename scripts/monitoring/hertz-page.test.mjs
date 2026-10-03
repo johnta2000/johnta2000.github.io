@@ -33,11 +33,10 @@ test("standalone page includes threshold, evidence, and failure presentation", (
   assert.match(styles, /chart-threshold/);
 });
 
-test("scheduled job updates both durable and public history", () => {
+test("cloud job checks refresh health and surfaces failures", () => {
   assert.match(workflow, /cron: "27 15 \* \* \*"/);
-  assert.match(workflow, /\.github\/monitoring-data\/hertz-las-may-2027-history\.json/);
-  assert.match(workflow, /git add hertz-las-may-2027\/history\.json/);
-  assert.match(workflow, /git add hertz-las-may-2027\/history\.csv/);
+  assert.match(workflow, /node scripts\/monitoring\/hertz-health\.mjs/);
+  assert.doesNotMatch(workflow, /continue-on-error|playwright install/);
   assert.doesNotMatch(workflow, /Report collector failure/);
   assert.doesNotMatch(workflow, /MONITORING_REPORT_SECRET|convex/i);
 });

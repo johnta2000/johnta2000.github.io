@@ -1,3 +1,5 @@
+import { getMonitorHealth } from './health.mjs';
+
 const els = Object.fromEntries([
   "monitor-status", "last-success-relative", "latest-rate", "latest-vehicle", "latest-total", "latest-alert",
   "pickup-time", "pickup-location", "return-time", "return-location", "threshold-rate", "threshold-note",
@@ -119,9 +121,10 @@ function render(data) {
   const latestSuccess = successful[0] ?? null;
   const firstSuccess = allSuccessful.at(-1) ?? null;
   const threshold = data.thresholdDailyRateUsd ?? 120;
-  const latestOkay = latestRun?.status === "success";
+  const health = getMonitorHealth(data.runs, Date.now(), criteriaVersion);
+  const latestOkay = health.status === 'fresh';
 
-  els["monitor-status"].textContent = latestOkay ? "Current" : "Last run unavailable";
+  els["monitor-status"].textContent = health.stale ? 'Stale prices' : latestOkay ? "Verified recently" : "Refresh failed";
   els["monitor-status"].className = `status-pill ${latestOkay ? "success" : "failure"}`;
   els["last-success-relative"].textContent = latestSuccess ? `Success ${relativeTime(latestSuccess.checkedAt)}` : "No successful check";
   els["latest-rate"].textContent = money(latestSuccess?.lowestVisibleDailyRateUsd);
@@ -155,9 +158,10 @@ function render(data) {
   els["under-threshold-count"].textContent = String(options.filter((option) => option.dailyRateUsd <= threshold).length);
   for (const id of ["booking-link-top", "booking-link-evidence"]) els[id].href = data.bookingUrl;
 
-  if (!latestOkay && latestRun) {
+  els["latest-alert"].hidden = latestOkay;
+  if (!latestOkay) {
     els["latest-alert"].hidden = false;
-    els["latest-alert"].innerHTML = `<strong>Latest attempt unavailable.</strong> ${escapeHtml(latestRun.error ?? "No visible rendered vehicle-card rate was found.")} The last successful rate is preserved.`;
+    els["latest-alert"].innerHTML = `<strong>${health.stale ? 'Prices are stale.' : 'Latest attempt unavailable.'}</strong> Last verified price: ${escapeHtml(fullDate(latestSuccess?.checkedAt))} Pacific. Latest attempt: ${escapeHtml(fullDate(latestRun?.checkedAt))} Pacific. ${health.failureStreak} unsuccessful check${health.failureStreak === 1 ? '' : 's'} since the last success. ${escapeHtml(latestRun?.error ?? 'The next browser check is overdue.')} The charts show the saved prices below.`;
   }
   renderChart(legacySuccessful, successful, threshold);
   renderOptionsChart(options, threshold);
@@ -170,7 +174,8 @@ document.querySelectorAll("[data-filter]").forEach((button) => button.addEventLi
   renderRows();
 }));
 
-fetch(`history.json?ts=${Date.now()}`, { cache: "no-store" })
+function refreshHistory() {
+  return fetch(`history.json?ts=${Date.now()}`, { cache: "no-store" })
   .then((response) => {
     if (!response.ok) throw new Error(`History request failed (${response.status})`);
     return response.json();
@@ -182,3 +187,7 @@ fetch(`history.json?ts=${Date.now()}`, { cache: "no-store" })
     els["latest-alert"].hidden = false;
     els["latest-alert"].textContent = `The price history could not be loaded: ${error.message}`;
   });
+}
+refreshHistory();
+setInterval(refreshHistory, 5 * 60_000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshHistory(); });

@@ -46,6 +46,7 @@ export function parseCliArgs(argv = process.argv.slice(2)) {
     publicCsvPath: process.env.HERTZ_PUBLIC_CSV_PATH || DEFAULT_PUBLIC_CSV_PATH,
     screenshotPath: process.env.HERTZ_SCREENSHOT_PATH || null,
     htmlPath: null,
+    snapshotPath: null,
   };
   for (let index = 0; index < argv.length; index += 1) {
     const argument = argv[index];
@@ -54,6 +55,7 @@ export function parseCliArgs(argv = process.argv.slice(2)) {
     else if (argument === "--public-csv") options.publicCsvPath = resolve(argv[++index]);
     else if (argument === "--screenshot") options.screenshotPath = resolve(argv[++index]);
     else if (argument === "--html") options.htmlPath = resolve(argv[++index]);
+    else if (argument === "--snapshot") options.snapshotPath = resolve(argv[++index]);
     else throw new Error(`Unknown argument: ${argument}`);
   }
   return options;
@@ -296,14 +298,16 @@ export async function runMonitor(options = {}) {
   let run;
 
   try {
-    const result = options.htmlPath
+    const result = options.snapshotPath
+      ? (await import('./hertz-snapshot.mjs')).parseBrowserSnapshot(JSON.parse(await readFile(options.snapshotPath, 'utf8')))
+      : options.htmlPath
       ? await collectFromFixture(options.htmlPath)
       : await collectWithBrowser({ screenshotPath: options.screenshotPath });
     const { lowest, validCards, pricedCards } = selectLowestVisibleCard(result.cards);
     if (!lowest) {
       run = {
-        id: startedAt.toISOString(),
-        checkedAt: startedAt.toISOString(),
+        id: result.checkedAt || startedAt.toISOString(),
+        checkedAt: result.checkedAt || startedAt.toISOString(),
         checkedUrl: result.checkedUrl,
         itinerary: ITINERARY,
         lowestVisibleDailyRateUsd: null,
@@ -315,7 +319,7 @@ export async function runMonitor(options = {}) {
         error: result.cards.length
           ? "No visible 6–12 passenger non-truck vehicle card with an explicit $N/day rate was found."
           : "No visible rendered vehicle-card price matching $N/day was found.",
-        source: options.htmlPath ? "fixture" : "live_browser",
+        source: result.source || (options.htmlPath ? "fixture" : "live_browser"),
         durationMs: Math.round(performance.now() - started),
         pageTitle: result.pageTitle,
         httpStatus: result.httpStatus,
@@ -327,8 +331,8 @@ export async function runMonitor(options = {}) {
       };
     } else {
       run = {
-        id: startedAt.toISOString(),
-        checkedAt: startedAt.toISOString(),
+        id: result.checkedAt || startedAt.toISOString(),
+        checkedAt: result.checkedAt || startedAt.toISOString(),
         checkedUrl: result.checkedUrl,
         itinerary: ITINERARY,
         lowestVisibleDailyRateUsd: lowest.dailyRateUsd,
@@ -340,7 +344,8 @@ export async function runMonitor(options = {}) {
         rawEvidenceExcerpt: lowest.evidence,
         status: "success",
         error: null,
-        source: options.htmlPath ? "fixture" : "live_browser",
+        source: result.source || (options.htmlPath ? "fixture" : "live_browser"),
+        renderedSnapshot: result.snapshot ?? null,
         durationMs: Math.round(performance.now() - started),
         pageTitle: result.pageTitle,
         httpStatus: result.httpStatus,
@@ -372,7 +377,7 @@ export async function runMonitor(options = {}) {
       rawEvidenceExcerpt: "",
       status: "error",
       error: normalizeSpace(error?.message || error).slice(0, 700),
-      source: options.htmlPath ? "fixture" : "live_browser",
+      source: options.snapshotPath ? "regular_browser" : options.htmlPath ? "fixture" : "live_browser",
       durationMs: Math.round(performance.now() - started),
       pageTitle: null,
       httpStatus: null,
@@ -390,7 +395,7 @@ export async function runMonitor(options = {}) {
   history.thresholdDailyRateUsd = THRESHOLD_DAILY_RATE_USD;
   history.bookingUrl = BOOKING_URL;
   history.itinerary = ITINERARY;
-  history.runs = [run, ...(history.runs || []).filter((candidate) => candidate.id !== run.id)];
+  history.runs = [run, ...(history.runs || []).filter((candidate) => candidate.id !== run.id)].sort((a, b) => Date.parse(b.checkedAt) - Date.parse(a.checkedAt));
   await writeHistory(historyPath, history);
   await writeHistory(options.publicHistoryPath || DEFAULT_PUBLIC_HISTORY_PATH, history);
   await writeText(options.publicCsvPath || DEFAULT_PUBLIC_CSV_PATH, historyToCsv(history));
