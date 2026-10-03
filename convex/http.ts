@@ -1,3 +1,4 @@
+import { attachment as rentAttachment, preflight as rentPreflight } from "./rentFileHttp";
 import { httpRouter } from "convex/server";
 import { httpAction } from "./_generated/server";
 import { internal } from "./_generated/api";
@@ -76,4 +77,7 @@ function redirect(appUrl: URL, status: string, reason?: string) {
   });
 }
 
+http.route({ path: "/rent-file", method: "GET", handler: rentAttachment });
+http.route({ path: "/rent-file", method: "POST", handler: rentAttachment });
+http.route({ path: "/rent-file", method: "OPTIONS", handler: rentPreflight });
 export default http;

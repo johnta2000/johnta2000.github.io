@@ -12,6 +12,7 @@ export const rentTables = {
   }).index('by_month', ['month']),
   rentPayments: defineTable({ month: v.string(), payer: v.number(), amountCents: v.number(), date: v.string(), note: v.string(),
     requestKey: v.string(), createdAt: v.number(), createdBy: v.string(), sourcePayer: v.optional(v.number()),
+    checked: v.optional(v.boolean()), checkedAt: v.optional(v.number()), checkedBy: v.optional(v.string()),
     voidedAt: v.optional(v.number()), voidedBy: v.optional(v.string()),
   }).index('by_month', ['month']).index('by_request', ['requestKey']),
 };

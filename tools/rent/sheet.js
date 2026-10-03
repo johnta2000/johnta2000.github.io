@@ -112,7 +112,7 @@ window.RentSheet = function ({ root, save, refreshed, selectMonth, canEdit }) {
     summary.replaceChildren(...[['Rent to cover', due], ['Confirmed received', received], ['Left to collect', remaining]].map(([title, value]) => { const n = make('div'); n.append(make('span', title), make('strong', dollars(value))); return n; }));
     chartNote.textContent = `${year} · ${rows.length} saved or edited months${drafts.size ? ' · Includes unsaved edits' : ''}. Imported entries awaiting review are excluded from received totals.`;
     trend.replaceChildren();
-    const chart = svg('svg', { viewBox: '0 0 720 205', role: 'img', 'aria-label': `${year} monthly rent coverage. ${dollars(received)} recorded, ${dollars(remaining)} left to collect.` }); chart.append(svg('title', {}, 'Monthly rent coverage'));
+    const chart = svg('svg', { viewBox: '0 0 720 205', role: 'img', 'aria-label': `${year} monthly rent coverage. ${dollars(received)} recorded, ${dollars(remaining)} left to collect.` }); chart.append(svg('title', {}, 'Monthly rent coverage')); const defs=svg('defs'), pattern=svg('pattern',{id:'outstanding-hatch',width:8,height:8,patternUnits:'userSpaceOnUse'});pattern.append(svg('rect',{width:8,height:8,fill:'#f7d19a'}),svg('path',{d:'M-2 2L2 -2M0 8L8 0M6 10L10 6',stroke:'#b5782a','stroke-width':1.5}));defs.append(pattern);chart.append(defs);
     const max = Math.max(100, ...rows.map(r => r.calculation.landlordCents));
     for (let tick = 0; tick <= 2; tick++) { const y = 150 - tick * 62; chart.append(svg('line', { x1: 50, x2: 709, y1: y, y2: y, stroke: '#e6e8e1', 'stroke-dasharray': '3 5' }), svg('text', { x: 40, y: y + 4, 'text-anchor': 'end', fill: '#7d887f', 'font-size': 10 }, dollars(max * tick / 2))); }
     for (let n = 1; n <= 12; n++) {
@@ -120,8 +120,8 @@ window.RentSheet = function ({ root, save, refreshed, selectMonth, canEdit }) {
       chart.append(svg('text', { x: x + 17, y: 178, 'text-anchor': 'middle', fill: '#6c776e', 'font-size': 11 }, short));
       if (!r) { chart.append(svg('rect', { x, y: 147, width: 34, height: 3, rx: 1.5, fill: '#e9ece5' })); continue; }
       const h = r.calculation.landlordCents / max * 124, paid = (r.calculation.landlordCents - r.totals.remaining) / max * 124;
-      const g = svg('g'); g.append(svg('title', {}, `${label(r.month)}: ${dollars(r.calculation.landlordCents)} rent, ${dollars(r.totals.received)} received, ${dollars(r.totals.remaining)} outstanding${r.totals.overpaid ? `, ${dollars(r.totals.overpaid)} overpaid` : ''}`), svg('rect', { x, y: 150 - h, width: 34, height: h, rx: 4, fill: '#dce6ce' }));
-      if (paid > 0) g.append(svg('rect', { x, y: 150 - paid, width: 34, height: paid, rx: 3, fill: '#427860' })); chart.append(g);
+      const g = svg('g'); g.append(svg('title', {}, `${label(r.month)}: ${dollars(r.calculation.landlordCents)} rent, ${dollars(r.totals.received)} received, ${dollars(r.totals.remaining)} outstanding${r.totals.overpaid ? `, ${dollars(r.totals.overpaid)} overpaid` : ''}`), svg('rect', { x, y: 150 - h, width: 34, height: h, rx: 4, fill: 'url(#outstanding-hatch)' }));
+      if (paid > 0) g.append(svg('rect', { x, y: 150 - paid, width: 34, height: paid, rx: 3, fill: '#176b64' })); chart.append(g);
     }
     trend.append(chart); split.replaceChildren();
     let r; try { r = rowValue(selected); } catch {}
@@ -154,7 +154,7 @@ window.RentSheet = function ({ root, save, refreshed, selectMonth, canEdit }) {
   function mount() {
     root.replaceChildren();
     const insights = make('div', undefined, 'rent-insights'), coverage = make('section', undefined, 'coverage-card'), side = make('section', undefined, 'split-card');
-    const heading = make('div', undefined, 'chart-heading'); heading.append(make('h2', 'The year at a glance'), make('div', '● Received   ● Outstanding', 'coverage-legend')); coverage.append(heading);
+    const heading = make('div', undefined, 'chart-heading'); const legend=make('div',undefined,'coverage-legend');legend.append(make('span','Received','legend-received'),make('span','Outstanding','legend-outstanding'));heading.append(make('h2', 'The year at a glance'), legend); coverage.append(heading);
     summary = make('div', undefined, 'year-summary'); trend = make('div', undefined, 'rent-trend'); chartNote = make('p', undefined, 'chart-note'); coverage.append(summary, trend, chartNote);
     side.append(make('h2', 'Who covers what')); split = make('div', undefined, 'rent-split'); side.append(split); insights.append(coverage, side); root.append(insights);
     const panel = make('section', undefined, 'sheet-panel'), toolbar = make('div', undefined, 'sheet-toolbar'), title = make('div'); title.append(make('h2', 'Monthly ledger'), make('p', 'Click a cell and type. Tab to move across, Enter to move down. Paste from your spreadsheet.'));

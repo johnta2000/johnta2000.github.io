@@ -4,15 +4,24 @@ const config={rentCents:600000,loftCents:30000,bathroomCents:10000,people:[{name
 async function open(browser,width=1280,mode='signed-in'){
  const page=await browser.newPage({viewport:{width,height:960},hasTouch:width<800,isMobile:width<800});page.setDefaultTimeout(7000);const errors=[];page.on('pageerror',e=>errors.push(e.message));
  const month=await page.evaluate(()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;});
- const db={months:[{_id:'month1',month,config:structuredClone(config),parkingCents:0,note:'',requestsSent:false,version:1,sourceNote:'Original spreadsheet history retained for review.',sourcePayments:[{payer:0,amountCents:190000,note:'Payment request, date unconfirmed.'}]}],payments:[],fail:false};
+ const db={months:[{_id:'month1',month,config:structuredClone(config),parkingCents:0,note:'',requestsSent:false,version:1,sourceNote:'Original spreadsheet history retained for review.',sourcePayments:[{payer:0,amountCents:190000,note:'Payment request, date unconfirmed.'}]}],payments:[],files:[],bills:[],fail:false};
  if(mode==="empty")db.months=[];
  await page.addInitScript(mode=>{const session={id:'one',getToken:async()=>`test.${btoa(JSON.stringify({aud:'convex'}))}.test`};window.__internal_ClerkUICtor={};window.Clerk={session:mode==='signed-out'?null:session,load:async()=>{},mountSignIn:n=>n.textContent='Sign in form',unmountSignIn:n=>n.textContent='',addListener(fn){window.changeSession=s=>{this.session=s;fn({session:s});};},signOut:async()=>window.changeSession(null)};},mode);
  await page.route('**/*',async route=>{
   const url=new URL(route.request().url());if(url.protocol==='blob:')return route.continue();
   if(url.hostname==='localhost'){let filename=url.pathname.endsWith('/')?url.pathname+'index.html':url.pathname;let body=await fs.readFile(path.join(__dirname,'../../..',filename));if(filename.endsWith('.html'))body=Buffer.from(body.toString().replace(/<script\b[^>]*src="https:[\s\S]*?<\/script>/g,''));return route.fulfill({body,contentType:filename.endsWith('.js')?'text/javascript':filename.endsWith('.css')?'text/css':'text/html'});}
+  if(url.hostname.endsWith('.convex.site')){
+    if(route.request().method()==='GET')return route.fulfill({body:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a0t0AAAAASUVORK5CYII=','base64'),contentType:'image/png'});
+    if(db.failUpload)return route.abort();
+    const key=route.request().headers()['x-request-key'];let f=db.files.find(f=>f.requestKey===key);if(!f){f={_id:'file'+db.files.length,name:decodeURIComponent(route.request().headers()['x-file-name']),type:route.request().headers()['content-type'],paymentIds:url.searchParams.get('paymentId')?[url.searchParams.get('paymentId')]:[],billId:url.searchParams.get('billId')||undefined,requestKey:key};db.files.push(f);}return route.fulfill({json:{id:f._id}});
+  }
   if(!url.hostname.endsWith('.convex.cloud'))return route.abort();const {path:routePath,args}=route.request().postDataJSON();const name=routePath.split(':')[1];let value=null;
   if(mode==='denied')return route.fulfill({json:{status:'error',errorMessage:'This account is not authorized for Rent.'}});
   if(name==='verify')value={email:'test@example.com'};
+  if(name==='overview')value={bills:db.bills,files:db.files};
+  if(name==='linkFile'){const f=db.files.find(f=>f._id===args.id);if(!f.paymentIds.includes(args.paymentId))f.paymentIds.push(args.paymentId);}
+  if(name==='setConfirmation'){db.payments.find(p=>p._id===args.id).checked=args.checked;}
+  if(name==='saveBill'){let b=db.bills.find(b=>b.requestKey===args.requestKey);if(!b){b={...args,_id:'bill'+db.bills.length,month:args.statementDate.slice(0,7)};db.bills.push(b);}value=b._id;}
   if(name==='ledger')value={months:db.months,payments:db.payments};
   if(name==='saveGrid'){
    if(db.fail)return route.abort();
@@ -69,4 +78,19 @@ test('monthly cells support typing, keyboard navigation, pasting, batch save, an
 });
 test('grid retry keeps exact edits, refresh does not drop drafts, and sign-out erases the sheet',async()=>{
  const browser=await engine.launch();try{const {page,db}=await open(browser);const month=db.months[0].month;const input=page.locator(`.rent-cell[data-month="${month}"][data-field=p0]`);await input.fill('42.50');await page.locator('#refresh').click();assert.equal(await input.inputValue(),'42.50');db.fail=true;await page.getByRole('button',{name:'Save changes',exact:true}).click();await page.locator('.sheet-error').filter({hasText:/retry safely/}).waitFor();assert.equal(await input.inputValue(),'42.50');db.fail=false;await page.getByRole('button',{name:'Save changes',exact:true}).click();await page.locator('.sheet-actions [role=status]').filter({hasText:'All changes saved'}).waitFor();assert.equal(db.payments.length,1);await page.locator('#sign-out').click();await page.getByText('Sign in form',{exact:true}).waitFor();assert.equal(await page.locator('.rent-cell').count(),0);assert.equal(await page.locator('.year-summary').textContent(),'');}finally{await browser.close();}
+});
+
+test('proof upload retries, preview, independent checkboxes and statement dates on phone and desktop',async()=>{
+ const browser=await engine.launch();try{for(const width of [390,1280]){const {page,db,errors}=await open(browser,width);
+  await page.locator('#record').click();await page.locator('#amount').fill('100');await page.locator('#payment-submit').click();await page.locator('#payment-dialog').waitFor({state:'hidden'});
+  await page.getByRole('checkbox',{name:'Payment checked',exact:true}).check();await page.getByText('✓ Checked',{exact:true}).waitFor();assert.equal(db.payments[0].checked,true);assert.equal(db.payments[0].amountCents,10000);
+  await page.getByRole('button',{name:'+ Attach proof',exact:true}).click();await page.locator('#rent-upload').setInputFiles({name:'Synthetic proof.png',mimeType:'image/png',buffer:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a0t0AAAAASUVORK5CYII=','base64')});
+  await page.locator('.proof-preview').waitFor();db.failUpload=true;await page.getByRole('button',{name:'Save attachment',exact:true}).click();await page.getByText(/Your file is kept here for retry/).waitFor();assert.equal(await page.locator('#rent-upload').evaluate(n=>n.files.length),1);db.failUpload=false;await page.getByRole('button',{name:'Save attachment',exact:true}).click();await page.locator('.record-dialog').waitFor({state:'hidden'});assert.equal(db.files.length,1);
+  await page.getByRole('button',{name:'↗ Synthetic proof.png',exact:true}).click();await page.getByRole('link',{name:'Download original'}).waitFor();assert.ok(await page.locator('.proof-preview').evaluate(n=>n.src.startsWith('blob:')));await page.locator('.record-dialog').getByRole('button',{name:'Close',exact:true}).click();
+  await page.getByRole('button',{name:'+ Add statement',exact:true}).click();for(const [key,val] of Object.entries({statementDate:'2026-02-09',periodStart:'2026-01-02',periodEnd:'2026-02-02',dueDate:'2026-03-02',chargesCents:'300',previousCents:'-50',paymentsCents:'0',totalCents:'250'}))await page.locator('#bill-'+key).fill(val);
+  await page.getByRole('button',{name:'Save statement',exact:true}).click();await page.locator('.record-dialog').waitFor({state:'hidden'});assert.equal(db.bills[0].month,'2026-02');assert.equal(db.bills[0].previousCents,-5000);await page.locator('.bill-table').getByText('Jan 2, 2026 – Feb 2, 2026',{exact:true}).waitFor();assert.equal(db.payments.length,1);
+  await page.locator('.proof-library summary').click();await page.getByRole('button',{name:'Link to payment',exact:true}).click();await page.locator('.record-dialog .search-select-trigger').click();await page.locator('.record-dialog [role=combobox]').fill('does not exist');await page.locator('.record-dialog').getByText('No matches').waitFor();await page.keyboard.press('Escape');await page.locator('.record-dialog').getByRole('button',{name:'Close',exact:true}).click();
+  await page.locator('#rent-records').screenshot({path:path.join(os.tmpdir(),`rent-documents-${engine.name()}-${width}.png`)});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));assert.deepEqual(errors,[]);
+  await page.locator('#sign-out').click();await page.getByText('Sign in form',{exact:true}).waitFor();assert.equal(await page.locator('#rent-records').textContent(),'');assert.equal(await page.locator('.record-dialog').textContent(),'');await page.close();
+ }}finally{await browser.close();}
 });

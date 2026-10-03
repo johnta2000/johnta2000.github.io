@@ -31,3 +31,15 @@ RENT_BROWSER=webkit node --test tools/rent/tests/browser.test.cjs
 ```
 
 The workbook's 54 resident-month calculated values were independently compared with the new calculator, with differences below one cent from rounding; all 18 monthly totals reconcile exactly. Browser coverage includes spreadsheet typing, keyboard navigation, rectangular paste, batch saves, chart updates, retry and draft retention, mobile/desktop layout, the searchable payer picker, recording/voiding, month creation, import review, failure/retry, and sign-out races. Actual email-code sign-in still requires an approved user's session on the production domain.
+
+## Payment evidence and utility statements
+
+Received bars are solid teal; outstanding bars use amber diagonal hatching. Payment activity provides an independent **Checked** toggle and private attachments. A screenshot may be linked to multiple receipts without adding to the recorded amounts. Changing a monthly total preserves evidence on the original, voided entries; replacement totals start unchecked.
+
+`rentRecords` authorizes the same four rent accounts. `/rent-file` authenticates every upload and download, validates file signatures and size (15 MB), serves private bytes with no-store headers, and never returns a public storage URL. Upload retries reuse a request key. Full-size screenshot previews and PDF previews are cleared on sign-out. New library screenshots can be linked to receipts through the searchable picker.
+
+PG&E records are keyed by the original statement date and grouped by its month. Service start/end, due date, prior signed balance, payments reported by the statement, new charges, and total due are retained separately. Prior balance minus reported payments plus charges must reconcile to the total. Duplicate dates are rejected except for idempotent retries; multiple original PDFs may attach to one statement. Utility records do not alter rent totals or infer that the current statement has been paid.
+
+User-authorized evidence imports preserve each bank transaction's displayed date, status, memo, and any unambiguous rent month. Only a unique exact match on rent month, payer and amount is checked automatically; unmatched and ambiguous transfers stay in the proof library for review. Imports never create additional rent receipts. Source PDFs, screenshots and extracted private data must stay outside the public repository.
+
+For backend releases, extend the current deployed schema with `rentRecordTables`, the optional receipt check fields in `rentTables`, and the three `/rent-file` HTTP methods while preserving all other deployed definitions. Deploy `rentRecords.ts` and `rentFileHttp.ts` along with the existing rent modules. Additional tests: `node --test tools/rent/tests/records.test.cjs`.

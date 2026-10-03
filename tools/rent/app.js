@@ -10,6 +10,7 @@
   let session = null, sessionId, epoch = 0, serial = 0, mounted = false, data = null, calc = null, totals = null, busy = false, dirty = false, picker;
   let paymentTarget, configTarget, voidTarget, paymentAttempt, configAttempt, noteAttempt;
   const sheet = RentSheet({ root: $('rent-sheet'), save: args => call('mutation', 'saveGrid', args), refreshed: () => refresh(), selectMonth: month => navigate(month), canEdit: () => { if (dirty || busy) { notice('Save your monthly note or finish the pending save before editing the sheet.'); return false; } return true; } });
+  const records = RentRecords({root:$('rent-records'),call:(kind,name,args)=>call(kind,'rentRecords:'+name,args),fileRequest,refresh,canEdit:()=>{if(busy||dirty||sheet.hasChanges()){notice('Save your rent edits before changing documents or payment checks.');return false;}return true;}});
   $('month').value = localDate().slice(0, 7);
   function notice(value = '') { $('notice').textContent = value; $('notice').hidden = !value; }
   function message(e) { return e.message?.match(/(?:This month changed[^\n]*|This imported payment[^\n]*|Enter [^\n]*|Parking credit[^\n]*|Affil contribution[^\n]*|Room adjustments[^\n]*|Save the month[^\n]*)/)?.[0] || 'Couldn’t save. Your changes are still here. Try again.'; }
@@ -24,15 +25,21 @@
     if (!current) throw Error('Sign in again.');
     const bearer = await token(current);
     if (generation !== epoch) throw Error('Session changed.');
-    const response = await fetch(`${API}/api/${kind}`, { method: 'POST', cache: 'no-store', signal: AbortSignal.timeout(20000), headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${bearer}` }, body: JSON.stringify({ path: `rent:${name}`, args, format: 'json' }) });
+    const response = await fetch(`${API}/api/${kind}`, { method: 'POST', cache: 'no-store', signal: AbortSignal.timeout(20000), headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${bearer}` }, body: JSON.stringify({ path: name.includes(':') ? name : `rent:${name}`, args, format: 'json' }) });
     const result = await response.json();
     if (generation !== epoch) throw Error('Session changed.');
     if (!response.ok || result.status !== 'success') throw Error(result.errorMessage || 'Request failed.');
     return result.value;
   }
+  async function fileRequest(method,args,file,key) {
+    const generation=epoch,current=session;if(!current)throw Error('Sign in again.');
+    const bearer=await token(current);if(generation!==epoch)throw Error('Session changed.');
+    const response=await fetch('https://rapid-shark-565.convex.site/rent-file?'+new URLSearchParams(args),{method,cache:'no-store',signal:AbortSignal.timeout(60000),headers:{Authorization:`Bearer ${bearer}`,...(file?{'Content-Type':file.type,'X-File-Name':encodeURIComponent(file.name),'X-Request-Key':key}:{})},...(file?{body:file}:{})});
+    if(generation!==epoch)throw Error('Session changed.');if(!response.ok)throw Error(await response.text());return method==='GET'?response.blob():response.json();
+  }
   function lock(value) { busy = value; document.querySelectorAll('#app button, dialog button[type=submit], #month').forEach(n => n.disabled = value); sheet.setLocked(value); if(value)$('sync').textContent='Saving…'; else if($('sync').textContent==='Saving…')$('sync').textContent=''; }
   function clearPrivate() {
-    sheet.clear();
+    sheet.clear(); records.clear();
     ++serial; data = calc = totals = null; busy = dirty = false; paymentTarget = configTarget = voidTarget = paymentAttempt = configAttempt = noteAttempt = null;
     document.querySelectorAll('dialog').forEach(d => d.close());
     document.querySelectorAll('dialog input, dialog textarea, #note').forEach(n => n.value = '');
@@ -44,10 +51,10 @@
     const generation = epoch, request = ++serial, month = $('month').value;
     $('sync').textContent = 'Loading…';
     try {
-      const [result, ledger] = await Promise.all([call('query', 'dashboard', { month }), call('query', 'ledger')]);
+      const [result, ledger, documents] = await Promise.all([call('query', 'dashboard', { month }), call('query', 'ledger'),call('query','rentRecords:overview')]);
       if (generation !== epoch || request !== serial || month !== $('month').value) return;
       if (dirty || sheet.hasChanges()) { $('sync').textContent='Unsaved changes'; return; }
-      data = result; dirty = false; noteAttempt = null; render(); sheet.load(ledger, month); $('sync').textContent = 'Up to date';
+      data = result; dirty = false; noteAttempt = null; records.load(documents,ledger); render(); sheet.load(ledger, month); $('sync').textContent = 'Up to date';
     } catch (e) { if (generation === epoch && request === serial) { $('sync').textContent = 'Couldn’t refresh'; notice('Couldn’t load this month. Check your connection and refresh.'); } }
   }
   const names = () => [...data.item.config.people.map(p => p.name), 'Affil'];
@@ -85,7 +92,7 @@
     for (const p of [...data.payments].sort((a,b) => b.date.localeCompare(a.date) || b.createdAt-a.createdAt)) {
       const row = node('div', undefined, `activity-row${p.voidedAt?' voided':''}`), info = node('div'), right = node('div', undefined, 'entry-right');
       info.append(node('strong', `${labels[p.payer]}${p.voidedAt?' · Voided':''}`), node('p', `${p.date} · Recorded by ${p.createdBy}${p.note?'\n'+p.note:''}`));
-      right.append(node('strong', cash(p.amountCents), 'entry-amount')); if (!p.voidedAt) right.append(button('Void', () => { if(dirty||sheet.hasChanges()){notice('Save your note and sheet edits before changing payments.');return;} voidTarget = p._id; $('void-error').textContent=''; $('void-dialog').showModal(); })); row.append(info,right); $('payments').append(row);
+      right.append(node('strong', cash(p.amountCents), 'entry-amount')); if (!p.voidedAt) right.append(button('Void', () => { if(dirty||sheet.hasChanges()){notice('Save your note and sheet edits before changing payments.');return;} voidTarget = p._id; $('void-error').textContent=''; $('void-dialog').showModal(); })); info.append(records.paymentControls(p)); row.append(info,right); $('payments').append(row);
     }
   }
   function navigate(month) {
@@ -169,10 +176,10 @@
   }
   $('sign-out').onclick=async()=>{++epoch;session=null;sessionId=undefined;clearPrivate();$('gate').hidden=false;$('gate-message').textContent='Signing out…';try{await window.Clerk.signOut();await sessionChanged({session:null});}catch{$('gate-message').textContent='Sign-out failed. Try again.';}};
   $('retry').onclick=()=>location.reload();
-  window.addEventListener('beforeunload',e=>{if(dirty||busy||sheet.hasChanges()){e.preventDefault();e.returnValue='';}});
+  window.addEventListener('beforeunload',e=>{if(dirty||busy||sheet.hasChanges()||records.hasChanges()){e.preventDefault();e.returnValue='';}});
   window.addEventListener('offline',()=>{if(session)notice('You’re offline. Keep this page open to retry unsaved changes when you reconnect.');});
   window.addEventListener('pageshow',e=>{if(e.persisted)location.reload();});
-  setInterval(()=>{if(session&&data&&!dirty&&!busy&&!sheet.hasChanges()&&!document.hidden&&!document.querySelector('dialog[open]'))void refresh();},30000);
+  setInterval(()=>{if(session&&data&&!dirty&&!busy&&!sheet.hasChanges()&&!records.hasChanges()&&!document.hidden&&!document.querySelector('dialog[open]'))void refresh();},30000);
   async function start(){try{await new Promise((resolve,reject)=>{let ticks=0;const timer=setInterval(()=>{if(window.Clerk&&window.__internal_ClerkUICtor){clearInterval(timer);resolve();}else if(++ticks>200){clearInterval(timer);reject(Error('Sign-in timed out'));}},100);});await window.Clerk.load({ui:{ClerkUI:window.__internal_ClerkUICtor}});window.Clerk.addListener(sessionChanged);await sessionChanged({session:window.Clerk.session||null});}catch{clearPrivate();$('gate-message').textContent='Sign-in couldn’t load. Use john-ta.com and check your connection.';$('retry').hidden=false;}}
   void start();
 })();

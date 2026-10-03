@@ -1,10 +1,10 @@
 import { query, mutation, internalMutation } from './_generated/server';
-import type { QueryCtx, MutationCtx } from './_generated/server';
+import type { QueryCtx, MutationCtx, ActionCtx } from './_generated/server';
 import { v } from 'convex/values';
 import { rentConfig, sourcePayment } from './rentTables';
 import { calculate, money } from '../tools/rent/math.js';
 
-async function authorize(ctx: QueryCtx | MutationCtx) {
+export async function authorize(ctx: QueryCtx | MutationCtx | ActionCtx) {
   const user = await ctx.auth.getUserIdentity();
   const email = user?.email?.trim().toLowerCase();
   const verified = user?.emailVerified === true || (user?.emailVerified === undefined && user?.issuer === 'https://clerk.john-ta.com');
