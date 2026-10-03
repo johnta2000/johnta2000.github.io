@@ -9,7 +9,7 @@
   const button = (label, fn, className = 'quiet') => { const b = node('button', label, className); b.type = 'button'; b.onclick = fn; return b; };
   let session = null, sessionId, epoch = 0, serial = 0, mounted = false, data = null, calc = null, totals = null, busy = false, dirty = false, picker;
   let paymentTarget, configTarget, voidTarget, paymentAttempt, configAttempt, noteAttempt;
-  const sheet = RentSheet({ root: $('rent-sheet'), save: args => call('mutation', 'saveGrid', args), refreshed: () => refresh(), selectMonth: month => navigate(month), canEdit: () => { if (dirty || busy) { notice('Save your monthly note or finish the pending save before editing the sheet.'); return false; } return true; } });
+  const sheet = RentSheet({ root: $('rent-sheet'), save: args => call('mutation', 'saveGrid', args), refreshed: () => refresh(), selectMonth: month => navigate(month), cellControls:(month,payer)=>records.cellControls(month,payer),reviewCount:()=>records.unmatchedCount(),reviewProof:()=>records.openUnmatched(),canEdit: () => { if (dirty || busy || records.hasChanges()) { notice('Save your monthly note or finish the pending save before editing the sheet.'); return false; } return true; } });
   const records = RentRecords({root:$('rent-records'),call:(kind,name,args)=>call(kind,'rentRecords:'+name,args),fileRequest,refresh,canEdit:()=>{if(busy||dirty||sheet.hasChanges()){notice('Save your rent edits before changing documents or payment checks.');return false;}return true;}});
   $('month').value = localDate().slice(0, 7);
   function notice(value = '') { $('notice').textContent = value; $('notice').hidden = !value; }
@@ -37,7 +37,7 @@
     const response=await fetch('https://rapid-shark-565.convex.site/rent-file?'+new URLSearchParams(args),{method,cache:'no-store',signal:AbortSignal.timeout(60000),headers:{Authorization:`Bearer ${bearer}`,...(file?{'Content-Type':file.type,'X-File-Name':encodeURIComponent(file.name),'X-Request-Key':key}:{})},...(file?{body:file}:{})});
     if(generation!==epoch)throw Error('Session changed.');if(!response.ok)throw Error(await response.text());return method==='GET'?response.blob():response.json();
   }
-  function lock(value) { busy = value; document.querySelectorAll('#app button, dialog button[type=submit], #month').forEach(n => n.disabled = value); sheet.setLocked(value); if(value)$('sync').textContent='Saving…'; else if($('sync').textContent==='Saving…')$('sync').textContent=''; }
+  function lock(value) { busy = value; document.querySelectorAll('#app button, dialog button[type=submit], #month').forEach(n => n.disabled = value); sheet.setLocked(value); records.setLocked(value); if(value)$('sync').textContent='Saving…'; else if($('sync').textContent==='Saving…')$('sync').textContent=''; }
   function clearPrivate() {
     sheet.clear(); records.clear();
     ++serial; data = calc = totals = null; busy = dirty = false; paymentTarget = configTarget = voidTarget = paymentAttempt = configAttempt = noteAttempt = null;
@@ -53,7 +53,7 @@
     try {
       const [result, ledger, documents] = await Promise.all([call('query', 'dashboard', { month }), call('query', 'ledger'),call('query','rentRecords:overview')]);
       if (generation !== epoch || request !== serial || month !== $('month').value) return;
-      if (dirty || sheet.hasChanges()) { $('sync').textContent='Unsaved changes'; return; }
+      if (dirty || sheet.hasChanges() || records.hasChanges()) { $('sync').textContent='Unsaved changes'; return; }
       data = result; dirty = false; noteAttempt = null; records.load(documents,ledger); render(); sheet.load(ledger, month); $('sync').textContent = 'Up to date';
     } catch (e) { if (generation === epoch && request === serial) { $('sync').textContent = 'Couldn’t refresh'; notice('Couldn’t load this month. Check your connection and refresh.'); } }
   }
@@ -92,19 +92,19 @@
     for (const p of [...data.payments].sort((a,b) => b.date.localeCompare(a.date) || b.createdAt-a.createdAt)) {
       const row = node('div', undefined, `activity-row${p.voidedAt?' voided':''}`), info = node('div'), right = node('div', undefined, 'entry-right');
       info.append(node('strong', `${labels[p.payer]}${p.voidedAt?' · Voided':''}`), node('p', `${p.date} · Recorded by ${p.createdBy}${p.note?'\n'+p.note:''}`));
-      right.append(node('strong', cash(p.amountCents), 'entry-amount')); if (!p.voidedAt) right.append(button('Void', () => { if(dirty||sheet.hasChanges()){notice('Save your note and sheet edits before changing payments.');return;} voidTarget = p._id; $('void-error').textContent=''; $('void-dialog').showModal(); })); info.append(records.paymentControls(p)); row.append(info,right); $('payments').append(row);
+      right.append(node('strong', cash(p.amountCents), 'entry-amount')); if (!p.voidedAt) right.append(button('Void', () => { if(dirty||sheet.hasChanges()||records.hasChanges()){notice('Save your note and sheet edits before changing payments.');return;} voidTarget = p._id; $('void-error').textContent=''; $('void-dialog').showModal(); })); info.append(records.paymentControls(p)); row.append(info,right); $('payments').append(row);
     }
   }
   function navigate(month) {
     if (busy) return;
-    if (sheet.hasChanges()) { notice('Save or discard your sheet edits before changing month details.'); $('month').value = data?.item?.month || localDate().slice(0,7); return; }
+    if (sheet.hasChanges()||records.hasChanges()) { notice('Save or discard your sheet edits before changing month details.'); $('month').value = data?.item?.month || localDate().slice(0,7); return; }
     if (dirty) { notice('Save your monthly note before changing months.'); $('month').value = data.item.month; return; }
     if (!/^20\d{2}-(0[1-9]|1[0-2])$/.test(month)) { $('month').value = data?.item?.month || localDate().slice(0,7); return; }
     $('month').value=month; $('dashboard').hidden=true; $('empty').hidden=true; notice(); void refresh();
   }
   function offsetMonth(delta) { const d = new Date($('month').value+'-15T12:00:00'); d.setMonth(d.getMonth()+delta); navigate(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`); }
   function openPayment(payer=0, source=null) {
-    if(sheet.hasChanges()){notice('Save or discard your sheet edits before recording an individual receipt.');return;}
+    if(sheet.hasChanges()||records.hasChanges()){notice('Save or discard your sheet edits before recording an individual receipt.');return;}
     if(dirty){notice('Save your monthly note before recording a payment.');return;}
     paymentTarget = { month: data.item.month, sourcePayer: source?.payer }; paymentAttempt=null;
     $('payment-month').textContent=monthLabel(paymentTarget.month); $('payer').replaceChildren(...names().map((name,i)=>{const o=node('option',name);o.value=i;return o;}));
@@ -125,7 +125,7 @@
     finally{if(generation===epoch)lock(false);}
   };
   function openConfig(create=false) {
-    if(sheet.hasChanges()){notice('Save or discard your sheet edits before changing room calculations.');return;}
+    if(sheet.hasChanges()||records.hasChanges()){notice('Save or discard your sheet edits before changing room calculations.');return;}
     if (dirty) { notice('Save your monthly note before editing the calculation.'); return; }
     const initial={rentCents:0,loftCents:0,bathroomCents:0,people:[0,1,2].map(i=>({name:`Resident ${i+1}`,room:0,closet:0,creditCents:0}))};
     configTarget={month:$('month').value,version:create?0:data.item.version,config:structuredClone(create?(data.template||initial):data.item.config),note:create?'':data.item.note,requestsSent:create?false:data.item.requestsSent}; configAttempt=null;
@@ -148,18 +148,18 @@
     const fields=configFields(); if(!configAttempt||JSON.stringify(configAttempt.fields)!==JSON.stringify(fields))configAttempt={fields,key:crypto.randomUUID()};lock(true);
     await call('mutation','saveMonth',{...fields,requestKey:configAttempt.key});if(generation!==epoch)return;$('config-dialog').close();await refresh();notice();
   }catch(e){if(generation===epoch)$('config-error').textContent=message(e);}finally{if(generation===epoch)lock(false);}};
-  $('save-note').onclick=async()=>{if(busy)return;if(sheet.hasChanges()){notice('Save or discard sheet edits before saving notes.');return;}const generation=epoch;try{
+  $('save-note').onclick=async()=>{if(busy)return;if(sheet.hasChanges()||records.hasChanges()){notice('Save or discard sheet edits before saving notes.');return;}const generation=epoch;try{
     const fields={month:data.item.month,config:data.item.config,parkingCents:data.item.parkingCents,note:$('note').value,requestsSent:$('requests').checked,expectedVersion:data.item.version};
     if(!noteAttempt||JSON.stringify(noteAttempt.fields)!==JSON.stringify(fields))noteAttempt={fields,key:crypto.randomUUID()};lock(true);$('note').disabled=$('requests').disabled=true;
     await call('mutation','saveMonth',{...fields,requestKey:noteAttempt.key});if(generation!==epoch)return;dirty=false;await refresh();notice();
   }catch(e){if(generation===epoch)notice(message(e));}finally{if(generation===epoch){lock(false);$('note').disabled=$('requests').disabled=false;}}};
   $('void-form').onsubmit=async e=>{e.preventDefault();if(busy)return;const generation=epoch;lock(true);try{await call('mutation','voidPayment',{id:voidTarget});if(generation!==epoch)return;$('void-dialog').close();await refresh();}catch(e){if(generation===epoch)$('void-error').textContent=message(e);}finally{if(generation===epoch)lock(false);}};
-  $('note').onbeforeinput=e=>{if(sheet.hasChanges()){e.preventDefault();notice('Save or discard your sheet edits before changing monthly notes.');}};
-  $('requests').onclick=e=>{if(sheet.hasChanges()){e.preventDefault();notice('Save or discard your sheet edits before changing monthly notes.');}};
+  $('note').onbeforeinput=e=>{if(sheet.hasChanges()||records.hasChanges()){e.preventDefault();notice('Save or discard your sheet edits before changing monthly notes.');}};
+  $('requests').onclick=e=>{if(sheet.hasChanges()||records.hasChanges()){e.preventDefault();notice('Save or discard your sheet edits before changing monthly notes.');}};
   $('note').oninput=$('requests').onchange=()=>{dirty=true; $('sync').textContent='Unsaved note';};
   $('prev').onclick=()=>offsetMonth(-1);$('next').onclick=()=>offsetMonth(1);$('month').onchange=()=>navigate($('month').value);
   $('record').onclick=()=>openPayment();$('edit').onclick=()=>openConfig();$('create').onclick=()=>openConfig(true);
-  $('refresh').onclick=()=>{if(dirty || sheet.hasChanges()){notice('Save or discard your edits before refreshing. If another account changed them, copy your edits before reloading.');return;}notice();void refresh();};
+  $('refresh').onclick=()=>{if(dirty || sheet.hasChanges() || records.hasChanges()){notice('Save or discard your edits before refreshing. If another account changed them, copy your edits before reloading.');return;}notice();void refresh();};
   document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>{if(!busy)$(b.dataset.close).close();});
   document.querySelectorAll('dialog').forEach(d=>d.addEventListener('cancel',e=>{if(busy)e.preventDefault();}));
   $('export').onclick=()=>{

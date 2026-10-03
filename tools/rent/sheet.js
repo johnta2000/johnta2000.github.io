@@ -1,5 +1,5 @@
 /* Spreadsheet-style rent entry. All data arrives through the authenticated API. */
-window.RentSheet = function ({ root, save, refreshed, selectMonth, canEdit }) {
+window.RentSheet = function ({ root, save, refreshed, selectMonth, canEdit, cellControls, reviewCount, reviewProof }) {
   const make = (tag, text, cls) => { const n = document.createElement(tag); if (text !== undefined) n.textContent = text; if (cls) n.className = cls; return n; };
   const dollars = n => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n / 100);
   const exact = n => (n / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -8,7 +8,7 @@ window.RentSheet = function ({ root, save, refreshed, selectMonth, canEdit }) {
   const svg = (tag, attrs = {}, text) => { const n = document.createElementNS('http://www.w3.org/2000/svg', tag); for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, v); if (text !== undefined) n.textContent = text; return n; };
   const fields = ['rent', 'parking', 'p0', 'p1', 'p2', 'p3'];
   let records = [], payments = [], selected = '', year = new Date().getFullYear(), drafts = new Map(), pending = false, attempt = null, generation = 0, locked = false;
-  let tableBody, error, status, saveButton, undoButton, yearText, trend, split, summary, chartNote;
+  let reviewButton, tableBody, error, status, saveButton, undoButton, yearText, trend, split, summary, chartNote;
   const button = (text, fn, cls = 'quiet') => { const b = make('button', text, cls); b.type = 'button'; b.onclick = fn; return b; };
   function cents(value) {
     const s = value.trim().replace(/[$,]/g, '');
@@ -46,6 +46,7 @@ window.RentSheet = function ({ root, save, refreshed, selectMonth, canEdit }) {
     status.textContent = pending ? 'Saving changes…' : count ? `${count} edited ${count === 1 ? 'cell' : 'cells'} in ${drafts.size} ${drafts.size === 1 ? 'month' : 'months'}` : 'All changes saved';
     saveButton.disabled = !count || pending || locked; undoButton.disabled = !count || pending || locked || !!attempt;
     root.classList.toggle('has-edits', count > 0);
+    root.querySelectorAll('.cell-receipts button,.cell-receipts input').forEach(n=>{n.disabled=pending||locked||count>0||n.dataset.empty==='true';});
     root.querySelectorAll('.rent-cell').forEach(input => { input.readOnly = pending || locked || !!attempt; input.classList.toggle('edited', drafts.get(input.dataset.month)?.[input.dataset.field] !== undefined); });
   }
   function rowTotals(month) {
@@ -65,7 +66,7 @@ window.RentSheet = function ({ root, save, refreshed, selectMonth, canEdit }) {
     const names = [...(latest?.config.people.map(p => p.name) || ['Resident 1', 'Resident 2', 'Resident 3']), 'Affil'];
     const header = root.querySelector('.sheet-table thead tr:last-child');
     header.replaceChildren(...['Month', 'Rent', 'Parking credit', ...names, 'To cover', 'Left to collect', 'Status'].map((text, i) => { const th = make('th', text); th.scope = 'col'; if (i === 3) th.className = 'payer-start'; return th; }));
-    yearText.textContent = String(year); tableBody.replaceChildren();
+    yearText.textContent = String(year); tableBody.replaceChildren();const reviews=reviewCount();reviewButton.textContent=`${reviews} unmatched transfer${reviews===1?'':'s'}`;reviewButton.hidden=!reviews;
     for (let n = 1; n <= 12; n++) {
       const month = `${year}-${String(n).padStart(2, '0')}`, original = base(month), tr = make('tr'); tr.dataset.month = month; tr.classList.toggle('selected-month', month === selected);
       const monthCell = make('th'); monthCell.scope = 'row'; const open = button(new Date(month + '-15T12:00:00').toLocaleDateString('en-US', { month: 'short' }), () => { if (drafts.size || pending) return showError('Save or discard your cell edits before opening month details.'); selectMonth(month); }, 'month-link');
@@ -81,6 +82,7 @@ window.RentSheet = function ({ root, save, refreshed, selectMonth, canEdit }) {
         input.oninput = () => { if (!canEdit()) { input.value = original ? (original.values[i] / 100).toFixed(2) : ''; return; } mark(month, field, input.value); showError(''); rowTotals(month); updateState(); drawCharts(); };
         input.onblur = () => { try { if (input.value.trim()) input.value = (cents(input.value) / 100).toFixed(2); input.removeAttribute('aria-invalid'); } catch { input.setAttribute('aria-invalid', 'true'); } };
         input.onkeydown = e => {
+          if(e.key==='Tab'){const inputs=[...root.querySelectorAll('.rent-cell:not(:disabled)')],next=inputs[inputs.indexOf(input)+(e.shiftKey?-1:1)];if(next){e.preventDefault();next.focus();}}
           if (['Enter', 'ArrowDown', 'ArrowUp'].includes(e.key)) { e.preventDefault(); const next = e.key === 'ArrowUp' || e.shiftKey ? -1 : 1; tableBody.rows[n - 1 + next]?.querySelector(`[data-field="${field}"]`)?.focus(); }
           if (e.key === 'Escape' && !attempt) { const d = drafts.get(month); if (d) { delete d[field]; if (!Object.keys(d).length) drafts.delete(month); } input.value = original && (i < 2 || original.values[i]) ? (original.values[i] / 100).toFixed(2) : ''; rowTotals(month); updateState(); drawCharts(); }
         };
@@ -98,6 +100,7 @@ window.RentSheet = function ({ root, save, refreshed, selectMonth, canEdit }) {
         td.append(input);
         const source = i >= 2 ? original?.item?.sourcePayments?.find(p => p.payer === i - 2) : null;
         if (source?.amountCents > 0 && !original.active.some(p => p.sourcePayer === i - 2 || p.payer === i - 2 && p.date === month)) { const hint = make('span', `Import ${exact(source.amountCents)} · review`, 'source-cell-note'); hint.title = 'Original workbook amount; not counted as received until confirmed in month details or entered above.'; td.append(hint); }
+        if(i>=2)td.append(cellControls(month,i-2));
         tr.append(td);
       });
       tr.append(make('td', '—', 'row-total computed'), make('td', '—', 'row-balance computed'), make('td', '', 'row-status')); tableBody.append(tr); if (original) rowTotals(month);
@@ -157,13 +160,13 @@ window.RentSheet = function ({ root, save, refreshed, selectMonth, canEdit }) {
     const heading = make('div', undefined, 'chart-heading'); const legend=make('div',undefined,'coverage-legend');legend.append(make('span','Received','legend-received'),make('span','Outstanding','legend-outstanding'));heading.append(make('h2', 'The year at a glance'), legend); coverage.append(heading);
     summary = make('div', undefined, 'year-summary'); trend = make('div', undefined, 'rent-trend'); chartNote = make('p', undefined, 'chart-note'); coverage.append(summary, trend, chartNote);
     side.append(make('h2', 'Who covers what')); split = make('div', undefined, 'rent-split'); side.append(split); insights.append(coverage, side); root.append(insights);
-    const panel = make('section', undefined, 'sheet-panel'), toolbar = make('div', undefined, 'sheet-toolbar'), title = make('div'); title.append(make('h2', 'Monthly ledger'), make('p', 'Click a cell and type. Tab to move across, Enter to move down. Paste from your spreadsheet.'));
+    const panel = make('section', undefined, 'sheet-panel'), toolbar = make('div', undefined, 'sheet-toolbar'), title = make('div'); title.append(make('h2', 'Monthly ledger'), make('p', 'Type or paste monthly amounts. Check each receipt and open its proof directly beneath the amount.'));
     const controls = make('div', undefined, 'sheet-year'); yearText = make('strong', String(year));
     const changeYear = delta => { if (year + delta < 2000 || year + delta > 2099) return; year += delta; drawRows(); };
-    const prev = button('←', () => changeYear(-1)), next = button('→', () => changeYear(1)); prev.setAttribute('aria-label', 'Previous ledger year'); next.setAttribute('aria-label', 'Next ledger year'); controls.append(prev, yearText, next); toolbar.append(title, controls); panel.append(toolbar);
+    const prev = button('←', () => changeYear(-1)), next = button('→', () => changeYear(1)); prev.setAttribute('aria-label', 'Previous ledger year'); next.setAttribute('aria-label', 'Next ledger year'); controls.append(prev, yearText, next); reviewButton=button('Unmatched transfers',()=>{if(drafts.size)return showError('Save or discard your edits first.');reviewProof();},'review-transfers');reviewButton.hidden=true;const right=make('div',undefined,'ledger-toolbar-actions');right.append(reviewButton,controls);toolbar.append(title,right);panel.append(toolbar);
     const wrap = make('div', undefined, 'sheet-scroll'); wrap.tabIndex = 0; wrap.setAttribute('aria-label', 'Editable monthly rent ledger; scroll horizontally for all columns');
     const table = make('table', undefined, 'sheet-table'), head = make('thead'), groups = make('tr'), columns = make('colgroup');
-    [105,115,115,115,115,115,115,115,130,130].forEach(width => { const col = make('col'); col.style.width = width + 'px'; columns.append(col); }); table.append(columns);
+    [84,95,105,140,140,140,140,110,115,115].forEach(width => { const col = make('col'); col.style.width = width + 'px'; columns.append(col); }); table.append(columns);
     for (const [text, span, cls] of [['', 1, ''], ['MONTHLY CHARGES', 2, ''], ['TOTAL RECEIVED · EDIT TO UPDATE', 4, 'received-heading'], ['CALCULATED', 3, '']]) { const th = make('th', text, cls); th.colSpan = span; groups.append(th); }
     head.append(groups, make('tr')); tableBody = make('tbody'); table.append(head, tableBody); wrap.append(table); panel.append(wrap);
     const foot = make('div', undefined, 'sheet-footer'); foot.append(make('span', 'Received cells are monthly totals, not additional payments. Earlier entries stay in history. Blank received cells = $0 confirmed.'));

@@ -2,10 +2,10 @@
 <html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex,nofollow"><meta name="theme-color" content="#f5f4ef">
 <title>Rent — John Ta</title><link rel="icon" href="/assets/img/jt-mark.svg" type="image/svg+xml">
-<link rel="stylesheet" href="styles.css?v=20261003-records1"><link rel="stylesheet" href="/assets/css/searchable-select.css">
+<link rel="stylesheet" href="styles.css?v=20261003-ledgers2"><link rel="stylesheet" href="/assets/css/searchable-select.css">
 <script async data-clerk-script crossorigin="anonymous" src="https://clerk.john-ta.com/npm/@clerk/ui@1/dist/ui.browser.js"></script>
 <script async data-clerk-script crossorigin="anonymous" data-clerk-publishable-key="pk_live_Y2xlcmsuam9obi10YS5jb20k" src="https://clerk.john-ta.com/npm/@clerk/clerk-js@6/dist/clerk.browser.js"></script>
-<script defer src="/assets/js/searchable-select.js"></script><script defer src="math.js"></script><script defer src="sheet.js?v=20261003-records1"></script><script defer src="records.js?v=20261003-records1"></script><script defer src="app.js?v=20261003-records1"></script>
+<script defer src="/assets/js/searchable-select.js"></script><script defer src="math.js"></script><script defer src="sheet.js?v=20261003-ledgers2"></script><script defer src="bills.js?v=20261003-ledgers2"></script><script defer src="records.js?v=20261003-ledgers2"></script><script defer src="app.js?v=20261003-ledgers2"></script>
 </head><body>
 <main>
 <nav><a href="/login/" class="wordmark"><span class="home-icon">⌂</span> john ta <span class="nav-slash">/</span> tools</a><div><span class="private-label">◈ Private workspace</span><button id="sign-out" class="quiet" hidden>Sign out</button></div></nav>
@@ -13,8 +13,8 @@
 <p id="notice" role="status" hidden></p>
 <section id="gate" class="panel gate"><span class="gate-icon">⌂</span><h2>A place for your rent.</h2><p id="gate-message">Loading secure sign-in…</p><div id="sign-in"></div><button id="retry" hidden>Try again</button></section>
 <section id="app" hidden aria-label="Rent dashboard">
-<div class="rent-sections" aria-label="Page sections"><a href="#rent-sheet">Rent ledger</a><a href="#rent-records">PG&E bills</a><a href="#rent-proof-library">Payment proof</a></div>
-<div id="rent-sheet"></div><div class="detail-heading"><h2>Month details</h2><p>Room calculations, individual receipts, and original spreadsheet entries.</p></div>
+<div class="rent-sections" aria-label="Page sections"><a href="#rent-sheet">Rent ledger</a><a href="#rent-records">PG&E bills</a></div>
+<div id="rent-sheet"></div><div id="rent-records"></div><div class="detail-heading"><h2>Month details</h2><p>Room calculations, individual receipts, and original spreadsheet entries.</p></div>
 <div class="toolbar"><div class="month-nav"><button id="prev" class="icon-button" aria-label="Previous month">←</button><label class="sr-only" for="month">Rent month</label><input id="month" type="month" min="2000-01" max="2099-12"><button id="next" class="icon-button" aria-label="Next month">→</button></div><div class="toolbar-actions"><span id="sync" role="status"></span><button id="refresh" class="quiet">↻ Refresh</button><button id="edit" class="outline">Edit calculation</button></div></div>
 <section id="empty" class="panel empty" hidden><h2>A fresh month.</h2><p id="empty-message">Start with the previous month’s rent split. Payments and parking credits start fresh.</p><button id="create" class="primary">Set up this month</button></section>
 <div id="dashboard" hidden>
@@ -25,7 +25,6 @@
 <section class="panel notes"><h2>The month’s notes</h2><label class="check"><input id="requests" type="checkbox"> Payment requests sent</label><label class="sr-only" for="note">Monthly note</label><textarea id="note" placeholder="Parking credit, a late payment, something to remember…" maxlength="4000" rows="4"></textarea><button id="save-note" class="outline">Save note</button></section></div>
 <section class="panel activity"><div class="section-heading"><div><div class="eyebrow">A LITTLE PAPER TRAIL</div><h2>Payment activity</h2></div><button id="export" class="quiet">Download CSV ↓</button></div><div id="payments"></div></section>
 </div>
-<div id="rent-records"></div>
 <section class="history"><div class="section-heading"><h2>Past & planned months</h2></div><div id="history"></div></section>
 </section><footer><span>RENT, WITHOUT THE SPREADSHEET SHUFFLE.</span><span>Private. Shared. All accounted for.</span></footer>
 <noscript>Enable JavaScript to use the private rent tracker.</noscript>

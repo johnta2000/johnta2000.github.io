@@ -42,6 +42,29 @@ export const saveBill = mutation({args:{...billFields,requestKey:v.string()},han
   if(duplicate)throw Error('A statement with this date is already logged. Attach the PDF to the existing bill.');
   return ctx.db.insert('rentBills',{...a,month:a.statementDate.slice(0,7),createdAt:Date.now(),createdBy:email});
 } });
+// Statement edits keep their document links and reject stale concurrent changes.
+export const saveBillGrid = mutation({args:{rows:v.array(v.object({...billFields,id:v.optional(v.id('rentBills')),month:v.string(),expectedVersion:v.number()})),requestKey:v.string()},handler:async(ctx,{rows,requestKey})=>{
+  const email=await authorize(ctx);
+  if(!requestKey||requestKey.length>100||!rows.length||rows.length>24)throw Error('Save between 1 and 24 statements at once.');
+  if(new Set(rows.map(r=>r.statementDate)).size!==rows.length||new Set(rows.filter(r=>r.id).map(r=>r.id)).size!==rows.filter(r=>r.id).length)throw Error('Each statement must appear only once.');
+  const prepared=[];
+  for(const row of rows){
+    [row.statementDate,row.periodStart,row.periodEnd,row.dueDate].forEach(date);[row.chargesCents,row.previousCents,row.paymentsCents,row.totalCents].forEach(amount);
+    if(row.month!==row.statementDate.slice(0,7))throw Error('Statement date must stay within its ledger month.');
+    if(row.periodStart>row.periodEnd||row.dueDate<row.statementDate||row.paymentsCents<0)throw Error('Check the bill dates and payment amount.');
+    if(row.previousCents-row.paymentsCents+row.chargesCents!==row.totalCents||row.note.length>4000)throw Error('Check the statement amounts.');
+    const byDate=await ctx.db.query('rentBills').withIndex('by_statement',q=>q.eq('statementDate',row.statementDate)).unique();
+    const existing=row.id?await ctx.db.get(row.id):byDate;
+    if(existing?.lastEditKey===requestKey)continue;
+    if(row.id&&!existing||existing&&(existing._id!==row.id||(existing.version||0)!==row.expectedVersion)||!existing&&row.expectedVersion!==0)throw Error('This statement changed on another device. Copy your edits, then discard and reload before trying again.');
+    if(byDate&&byDate._id!==row.id)throw Error('A statement with this date is already logged.');
+    prepared.push({row,existing});
+  }
+  for(const {row,existing} of prepared){const {id,expectedVersion,...fields}=row;const value={...fields,version:expectedVersion+1,lastEditKey:requestKey,updatedAt:Date.now(),updatedBy:email};
+    if(existing)await ctx.db.patch(existing._id,value);else await ctx.db.insert('rentBills',{...value,requestKey:requestKey+':'+row.statementDate,createdAt:Date.now(),createdBy:email});
+  }
+  return {saved:prepared.length};
+} });
 // One-time extraction of user-supplied bank screenshots. Entries are evidence, never new receipts.
 export const importEvidence = internalMutation({args:{id:v.id('rentFiles'),entries:v.array(evidenceEntry)},handler:async(ctx,{id,entries})=>{
   const f=await ctx.db.get(id);if(!f)throw Error('File not found.');if(f.entries)return {linked:f.paymentIds.length};
