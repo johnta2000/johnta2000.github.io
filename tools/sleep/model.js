@@ -147,7 +147,38 @@
     if (latestApple) latestApple.durationMinutes = 474;
     return { nights, alertness };
   }
+  // Receives separate, already-authorized member histories; this is not an access-control layer.
+  function groupHistory(members, metric, days, endDate) {
+    const dates = Array.from({ length: days }, (_, i) => dateShift(endDate, i - days + 1));
+    return { dates, members: members.map((member) => {
+      const byDate = new Map(member.nights.filter(row => row.source === "whoop").map(row => [row.sleepDate, row]));
+      const nights = [...byDate.values()];
+      const points = dates.map(date => ({ date, value: byDate.has(date) ? value(byDate.get(date), metric) : undefined }));
+      const segments = [];
+      let segment = [];
+      points.forEach((point, index) => {
+        if (finite(point.value)) segment.push({ ...point, index });
+        else if (segment.length) { segments.push(segment); segment = []; }
+      });
+      if (segment.length) segments.push(segment);
+      return { id: member.id, name: member.name, color: member.color, dash: member.dash, points, segments, ...stats(nights, metric, days, endDate) };
+    }) };
+  }
+  function sampleGroup(endDate) {
+    return [
+      { id: "you", name: "You (sample)", color: "#397967", dash: "" },
+      { id: "alex", name: "Alex (sample)", color: "#b66b3d", dash: "7 4" },
+      { id: "morgan", name: "Morgan (sample)", color: "#7c6da7", dash: "2 5" },
+    ].map((member, person) => ({ ...member, nights: Array.from({ length: 180 }, (_, i) => ({
+      sleepDate: dateShift(endDate, i - 179), source: "whoop", scoreKind: "native",
+      durationMinutes: Math.round(433 + person * 15 + Math.sin(i * .8 + person * 2) * 43 + Math.cos(i * .21 + person) * 21),
+      score: Math.round(78 + person * 3 + Math.sin(i * .8 + person * 2) * 12),
+      efficiency: Math.round(91 + Math.sin(i * .55 + person) * 5),
+    })).filter((_, i) => (i + person * 3) % (13 + person * 4) !== 5) }));
+  }
   const api = {
+    groupHistory,
+    sampleGroup,
     range,
     stats,
     matchedDevices,

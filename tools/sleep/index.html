@@ -17,7 +17,7 @@
     <meta name="theme-color" content="#f7f8fa" />
     <title>Daylight — Your sleep, in perspective</title>
     <link rel="stylesheet" href="/assets/css/searchable-select.css" />
-    <link rel="stylesheet" href="./styles.css?v=20261003-1" />
+    <link rel="stylesheet" href="./styles.css?v=20261003-2" />
   </head>
   <body>
     <section id="accessGate" class="access-gate" aria-labelledby="gateTitle">
@@ -50,7 +50,8 @@
           Explore with sample data ↗
         </button>
         <p class="gate-footnote">
-          Passwordless sign-in by Clerk · Server-verified access · <a href="./privacy/">Privacy</a>
+          Passwordless sign-in by Clerk · Server-verified access ·
+          <a href="./privacy/">Privacy</a>
         </p>
       </div>
     </section>
@@ -73,7 +74,7 @@
             <span aria-hidden="true">↗</span> Sleep trends
           </button>
           <button type="button" data-view="friends">
-            <span aria-hidden="true">♧</span> Friends <small>Preview</small>
+            <span aria-hidden="true">♧</span> Groups <small>Preview</small>
           </button>
           <button type="button" data-view="connections">
             <span aria-hidden="true">⊕</span> Connections
@@ -375,110 +376,36 @@
           </article>
 
           <section data-panels="friends" hidden>
-            <div class="friends-intro panel">
+            <div class="friends-intro panel group-intro">
               <div>
-                <span class="tag">FRIENDS · DESIGN PREVIEW</span>
-                <h2>A little shared perspective.</h2>
-                <p>
-                  Find patterns together. Compare sleep habits and progress
-                  against your own baseline, with everyone choosing what they
-                  share.
-                </p>
-                <button
-                  id="friendsPreview"
-                  type="button"
-                  class="primary-button"
-                  aria-expanded="false"
-                >
-                  Explore a sample circle <span aria-hidden="true">↗</span>
-                </button>
+                <span class="tag">GROUPS · INTERACTIVE PREVIEW</span>
+                <h2>Better rest, together.</h2>
+                <p>One timeline. Everyone’s own rhythm. Explore how a private group will compare sleep over time.</p>
               </div>
-              <div class="friend-art" aria-hidden="true">
-                <span>J</span><span>A</span><span>M</span>
-              </div>
+              <div class="group-preview-note"><strong>Sample group</strong><span>All three people and their records below are fictional. Live invitations and sharing are not available yet.</span></div>
             </div>
-            <div id="friendSample" class="panel" hidden>
+            <article id="friendSample" class="panel group-history">
               <div class="panel-heading">
-                <div>
-                  <p class="eyebrow">FICTIONAL PEOPLE · SAMPLE DATA ONLY</p>
-                  <h2>Better rest, together.</h2>
-                </div>
-                <span class="tag">7-day example</span>
+                <div><p class="eyebrow" id="groupPeriod">SHARED HISTORY</p><h2>The group’s sleep rhythm</h2></div>
+                <label class="metric-picker"><span class="sr-only">Group chart metric</span><select id="groupMetric" aria-label="Group chart metric"><option value="durationMinutes">Time asleep</option><option value="score">Sleep performance</option><option value="efficiency">Sleep efficiency</option></select></label>
               </div>
-              <p class="panel-copy">
-                Everyone’s change compares their last 7 days with their own
-                previous 7 days. This preview does not connect accounts or share
-                data.
-              </p>
-              <div class="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Member</th>
-                      <th>Average sleep</th>
-                      <th>Change from baseline</th>
-                      <th>Nights tracked</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <td><span class="person-dot">Y</span>You (sample)</td>
-                      <td>7h 42m</td>
-                      <td class="positive-text">+24 min</td>
-                      <td>7 / 7</td>
-                    </tr>
-                    <tr>
-                      <td>
-                        <span class="person-dot peach">A</span>Alex (sample)
-                      </td>
-                      <td>7h 18m</td>
-                      <td class="positive-text">+16 min</td>
-                      <td>6 / 7</td>
-                    </tr>
-                    <tr>
-                      <td>
-                        <span class="person-dot lavender">M</span>Morgan
-                        (sample)
-                      </td>
-                      <td>8h 06m</td>
-                      <td>−8 min</td>
-                      <td>7 / 7</td>
-                    </tr>
-                  </tbody>
-                </table>
+              <p class="panel-copy">WHOOP sleep only · One line per person · Missing nights stay as gaps.</p>
+              <div id="groupMembers" class="group-members" role="group" aria-label="People shown in the chart"></div>
+              <div class="group-plot-wrap"><div id="groupPlot"></div><p id="groupEmpty" class="chart-empty" hidden>Select a person above to show their history.</p></div>
+              <div class="group-day-controls"><label for="groupDay">Explore a night</label><input id="groupDay" type="range" min="0" max="6" value="6"><output id="groupDayLabel" for="groupDay"></output></div>
+              <div id="groupDayDetail" class="group-day-detail" role="status" aria-live="polite"></div>
+              <div class="group-summary-heading"><h3>Averages over this period</h3><p id="groupBaselineNote" class="small-note"></p></div>
+              <div class="table-wrap"><table><caption class="sr-only">Selected members’ average, change from their own previous period, and data coverage</caption><thead><tr><th scope="col">Person</th><th scope="col" id="groupMetricHeading">Time asleep</th><th scope="col">Change vs. own previous period</th><th scope="col">Nights tracked</th></tr></thead><tbody id="groupSummaryRows"></tbody></table></div>
+            </article>
+            <section class="group-onboarding" aria-labelledby="groupOnboardingTitle">
+              <div class="panel-heading"><div><p class="eyebrow">PLANNED ONBOARDING</p><h2 id="groupOnboardingTitle">An invite. Their account. Their choice.</h2></div><span class="tag">COMING NEXT</span></div>
+              <div class="feature-grid">
+                <article class="panel"><span class="step-number">01</span><h3>Open your invitation</h3><p>You create a private group and send an expiring invite link. Friends sign in with their own email.</p></article>
+                <article class="panel"><span class="step-number">02</span><h3>Connect their WHOOP</h3><p>Each friend approves Daylight on WHOOP’s sign-in page. No developer account, API key, or password sharing needed.</p></article>
+                <article class="panel"><span class="step-number">03</span><h3>Choose what to share</h3><p>Preview the group, select sleep metrics and the history window to share, then join. They can stop sharing or leave later.</p></article>
               </div>
-            </div>
-            <div class="feature-grid">
-              <article class="panel">
-                <span class="step-number">01</span>
-                <h3>Connect individually</h3>
-                <p>
-                  Each friend will sign in and authorize their own WHOOP
-                  account.
-                </p>
-              </article>
-              <article class="panel">
-                <span class="step-number">02</span>
-                <h3>Choose what to share</h3>
-                <p>
-                  Planned controls for sharing selected metrics with a private
-                  circle.
-                </p>
-              </article>
-              <article class="panel">
-                <span class="step-number">03</span>
-                <h3>Find your patterns</h3>
-                <p>
-                  Shared trends and personal baselines, with gaps in tracking
-                  made clear.
-                </p>
-              </article>
-            </div>
-            <p class="small-note roadmap-note">
-              Live circles are not available yet. Individual data ownership,
-              invitations, and revocable sharing are the next implementation
-              step.
-            </p>
+              <p class="small-note roadmap-note">Invitations are coming next. The planned sharing controls keep each person’s history private until they choose to share it. Connecting WHOOP alone will not share data, and personal notes will stay private.</p>
+            </section>
           </section>
 
           <section data-panels="connections" hidden>
@@ -568,7 +495,10 @@
             <span
               ><span class="mini-sun" aria-hidden="true">☀</span> A little
               clarity for your everyday.</span
-            ><span>Daylight · Personal sleep lab · <a href="./privacy/">Privacy</a></span>
+            ><span
+              >Daylight · Personal sleep lab ·
+              <a href="./privacy/">Privacy</a></span
+            >
           </footer>
         </main>
       </div>
@@ -706,7 +636,7 @@
       type="text/javascript"
     ></script>
     <script defer src="/assets/js/searchable-select.js"></script>
-    <script defer src="./model.js?v=20261003-1"></script>
-    <script defer src="./app.js?v=20261003-1"></script>
+    <script defer src="./model.js?v=20261003-2"></script>
+    <script defer src="./app.js?v=20261003-2"></script>
   </body>
 </html>

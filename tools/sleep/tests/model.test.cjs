@@ -111,3 +111,35 @@ test("sample data is deterministic, separate, and covers all ranges with a previ
     8,
   );
 });
+
+test("group history separates people, sources, and calendar gaps", () => {
+  const group = model.groupHistory([
+    { id: "a", nights: [row("2026-10-01", "whoop", 420), row("2026-10-03", "whoop", 480), row("2026-10-03", "apple_health", 900)] },
+    { id: "b", nights: [row("2026-10-03", "whoop", 600)] },
+  ], "durationMinutes", 3, "2026-10-03");
+  assert.equal(group.members[0].average, 450);
+  assert.equal(group.members[1].average, 600);
+  assert.equal(group.members[0].points[1].value, undefined);
+  assert.equal(group.members[0].segments.length, 2);
+  assert.equal(group.members[1].count, 1);
+});
+
+test("group baselines remain personal and missing history is never zero", () => {
+  const group = model.groupHistory([
+    { id: "a", nights: [row("2026-09-30", "whoop", 400), row("2026-10-03", "whoop", 460)] },
+    { id: "b", nights: [row("2026-10-03", "whoop", 600)] },
+  ], "durationMinutes", 3, "2026-10-03");
+  assert.equal(group.members[0].delta, 60);
+  assert.equal(group.members[1].delta, null);
+  assert.equal(group.members[1].previousCount, 0);
+  assert.deepEqual(model.groupHistory([], "score", 7, "2026-10-03").members, []);
+});
+
+test("group coverage counts unique dates and ignores derived WHOOP scores", () => {
+  const group = model.groupHistory([{id:"a", nights:[
+    row("2026-10-03", "whoop", 400), row("2026-10-03", "whoop", 460),
+    row("2026-10-02", "whoop", 400, {scoreKind:"derived"}),
+  ]}], "score", 7, "2026-10-03");
+  assert.equal(group.members[0].count, 1);
+  assert.equal(group.members[0].points[5].value, undefined);
+});
