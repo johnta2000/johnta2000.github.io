@@ -25,3 +25,27 @@ test('utility grid validates the entire batch before writes and rejects duplicat
  await assert.rejects(f.run('saveBillGrid',{rows:[row,row],requestKey:'duplicate'}),/only once/);
  await assert.rejects(f.run('saveBillGrid',{rows:[{...row,month:'2026-01'}],requestKey:'mismatch'}),/ledger month/);
 });
+
+function reconciliation(){
+ const f=fixture();f.tables.rentPayments.push({_id:'aggregate',month:'2026-05',payer:0,amountCents:30000,date:'2026-05'});
+ f.tables.rentFiles.push({_id:'history',paymentIds:[],entries:[{date:'2026-04-30',payer:0,amountCents:10000,memo:'',status:'Completed',review:'Unassigned'}]},{_id:'remainder',paymentIds:[]});
+ return {...f,args:{originalId:'aggregate',expectedActiveIds:['aggregate'],requestKey:'split',author:'owner',parts:[{amountCents:10000,date:'2026-04-30',note:'First installment',fileId:'history',evidenceDate:'2026-04-30'},{amountCents:20000,date:'2026-05',note:'Remainder; receipt date unspecified',fileId:'remainder'}]}};
+}
+test('reconciliation retains audit history, preserves totals, links evidence and retries without duplicating',async()=>{
+ const f=reconciliation(),ids=await f.run('reconcileReceipt',f.args);
+ assert.equal(f.tables.rentPayments.filter(p=>!p.voidedAt).reduce((s,p)=>s+p.amountCents,0),30000);
+ assert.ok(f.tables.rentPayments[0].voidedAt);assert.equal(f.tables.rentPayments[0].amountCents,30000);
+ assert.ok(f.tables.rentPayments.slice(1).every(p=>p.checked));assert.equal(f.tables.rentFiles[0].entries[0].paymentId,ids[0]);assert.equal(f.tables.rentFiles[0].entries[0].month,'2026-05');assert.equal(f.tables.rentFiles[1].paymentIds[0],ids[1]);
+ assert.deepEqual(await f.run('reconcileReceipt',f.args),ids);assert.equal(f.tables.rentPayments.length,3);
+ await assert.rejects(f.run('reconcileReceipt',{...f.args,parts:f.args.parts.map((p,i)=>({...p,date:i===0?'2026-04-29':p.date}))}),/request changed/);
+});
+test('reconciliation validates amounts, concurrent receipts and all proof before any writes',async()=>{
+ for(const scenario of ['amount','stale','proof','linked']){
+  const f=reconciliation();
+  if(scenario==='amount')f.args.parts[1].amountCents++;
+  if(scenario==='stale')f.tables.rentPayments.push({_id:'concurrent',month:'2026-05',payer:0,amountCents:100});
+  if(scenario==='proof')f.args.parts[1].fileId='missing';
+  if(scenario==='linked')f.tables.rentFiles[0].entries[0].paymentId='another';
+  const before=JSON.stringify(f.tables);await assert.rejects(f.run('reconcileReceipt',f.args));assert.equal(JSON.stringify(f.tables),before);
+ }
+});

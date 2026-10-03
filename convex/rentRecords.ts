@@ -78,3 +78,44 @@ export const importEvidence = internalMutation({args:{id:v.id('rentFiles'),entri
   }
   await ctx.db.patch(id,{entries:result,paymentIds});return {linked:paymentIds.length,review:result.length-paymentIds.length};
 } });
+
+// Admin reconciliation replaces an aggregate with proven components in one transaction.
+// The original stays in the audit history; the received total must never change.
+export const reconcileReceipt = internalMutation({args:{
+  originalId:v.id('rentPayments'),expectedActiveIds:v.array(v.id('rentPayments')),
+  requestKey:v.string(),author:v.string(),parts:v.array(v.object({
+    amountCents:v.number(),date:v.string(),note:v.string(),fileId:v.id('rentFiles'),evidenceDate:v.optional(v.string())
+  }))
+},handler:async(ctx,a)=>{
+  const original=await ctx.db.get(a.originalId);
+  if(!original||!a.requestKey||a.requestKey.length>100||!a.author||a.parts.length<2||a.parts.length>10)throw Error('Invalid reconciliation.');
+  for(const part of a.parts){amount(part.amountCents);if(part.amountCents<=0||part.note.length>4000)throw Error('Invalid receipt component.');if(part.date!==original.month)date(part.date);if(part.evidenceDate)date(part.evidenceDate);}
+  if(a.parts.reduce((sum,p)=>sum+p.amountCents,0)!==original.amountCents)throw Error('Components must equal the recorded total.');
+  const keys=a.parts.map((_,i)=>`reconcile:${a.originalId}:${a.requestKey}:${i}`);
+  const retries=await Promise.all(keys.map(key=>ctx.db.query('rentPayments').withIndex('by_request',q=>q.eq('requestKey',key)).unique()));
+  if(retries.some(Boolean)){
+    if(!original.voidedAt||retries.some((p,i)=>!p||p.voidedAt||p.month!==original.month||p.payer!==original.payer||p.amountCents!==a.parts[i].amountCents||p.date!==a.parts[i].date||p.note!==a.parts[i].note))throw Error('Reconciliation request changed.');
+    for(let i=0;i<a.parts.length;i++){const f=await ctx.db.get(a.parts[i].fileId);if(!f?.paymentIds.includes(retries[i]!._id))throw Error('Reconciliation proof changed.');}
+    return retries.map(p=>p!._id);
+  }
+  const active=(await ctx.db.query('rentPayments').withIndex('by_month',q=>q.eq('month',original.month)).collect()).filter(p=>p.payer===original.payer&&!p.voidedAt);
+  if(original.voidedAt||active.length!==a.expectedActiveIds.length||new Set(a.expectedActiveIds).size!==active.length||active.some(p=>!a.expectedActiveIds.includes(p._id)))throw Error('Payments changed. Reload before reconciling.');
+  const prepared=[];
+  for(const part of a.parts){
+    const f=await ctx.db.get(part.fileId);if(!f||f.billId)throw Error('Payment proof not found.');
+    const matches=part.evidenceDate?(f.entries||[]).map((e,i)=>({e,i})).filter(({e})=>e.date===part.evidenceDate&&e.payer===original.payer&&e.amountCents===part.amountCents):[];
+    if(part.evidenceDate&&(matches.length!==1||matches[0].e.paymentId))throw Error('Evidence is missing, ambiguous, or already linked.');
+    prepared.push({part,fileId:f._id,evidenceIndex:matches[0]?.i});
+  }
+  if(new Set(prepared.filter(p=>p.evidenceIndex!==undefined).map(p=>`${p.fileId}:${p.evidenceIndex}`)).size!==prepared.filter(p=>p.evidenceIndex!==undefined).length)throw Error('Evidence cannot be used twice.');
+  const now=Date.now(),ids=[];
+  await ctx.db.patch(original._id,{voidedAt:now,voidedBy:a.author});
+  for(let i=0;i<prepared.length;i++){
+    const {part,fileId,evidenceIndex}=prepared[i];
+    const id=await ctx.db.insert('rentPayments',{month:original.month,payer:original.payer,amountCents:part.amountCents,date:part.date,note:part.note,requestKey:keys[i],createdAt:now,createdBy:a.author,checked:true,checkedAt:now,checkedBy:a.author});
+    const f=(await ctx.db.get(fileId))!;
+    await ctx.db.patch(fileId,{paymentIds:[...f.paymentIds,id],...(evidenceIndex!==undefined?{entries:f.entries!.map((e,j)=>j===evidenceIndex?{...e,month:original.month,paymentId:id,review:'Reconciled as part of the recorded monthly total using owner clarification and payment proof.'}:e)}:{})});
+    ids.push(id);
+  }
+  return ids;
+} });
