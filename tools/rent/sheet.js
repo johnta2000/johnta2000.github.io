@@ -8,6 +8,7 @@ window.RentSheet = function ({ root, save, refreshed, selectMonth, canEdit, cell
   const svg = (tag, attrs = {}, text) => { const n = document.createElementNS('http://www.w3.org/2000/svg', tag); for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, v); if (text !== undefined) n.textContent = text; return n; };
   const fields = ['rent', 'parking', 'p0', 'p1', 'p2', 'p3'];
   let records = [], payments = [], selected = '', year = new Date().getFullYear(), drafts = new Map(), pending = false, attempt = null, generation = 0, locked = false;
+  let hideChart=()=>{},moveChart=()=>{};
   let reviewButton, tableBody, error, status, saveButton, undoButton, yearText, trend, split, summary, chartNote;
   const button = (text, fn, cls = 'quiet') => { const b = make('button', text, cls); b.type = 'button'; b.onclick = fn; return b; };
   function cents(value) {
@@ -109,24 +110,47 @@ window.RentSheet = function ({ root, save, refreshed, selectMonth, canEdit, cell
   }
   function showError(text) { error.textContent = text; error.hidden = !text; }
   function drawCharts() {
+    hideChart();
     const rows = [];
     for (let n = 1; n <= 12; n++) { const month = `${year}-${String(n).padStart(2, '0')}`; try { const r = rowValue(month); if (r && (r.item || drafts.has(month))) rows.push({ month, n, ...r }); } catch {} }
     const due = rows.reduce((s, r) => s + r.calculation.landlordCents, 0), received = rows.reduce((s, r) => s + r.totals.received, 0), remaining = rows.reduce((s, r) => s + r.totals.remaining, 0);
     summary.replaceChildren(...[['Rent to cover', due], ['Confirmed received', received], ['Left to collect', remaining]].map(([title, value]) => { const n = make('div'); n.append(make('span', title), make('strong', dollars(value))); return n; }));
-    chartNote.textContent = `${year} · ${rows.length} saved or edited months${drafts.size ? ' · Includes unsaved edits' : ''}. Imported entries awaiting review are excluded from received totals.`;
+    chartNote.textContent = `Hover or tap a month for details. ${year} · ${rows.length} saved or edited months${drafts.size ? ' · Includes unsaved edits' : ''}. Imported entries awaiting review are excluded from received totals.`;
     trend.replaceChildren();
-    const chart = svg('svg', { viewBox: '0 0 720 205', role: 'img', 'aria-label': `${year} monthly rent coverage. ${dollars(received)} recorded, ${dollars(remaining)} left to collect.` }); chart.append(svg('title', {}, 'Monthly rent coverage')); const defs=svg('defs'), pattern=svg('pattern',{id:'outstanding-hatch',width:8,height:8,patternUnits:'userSpaceOnUse'});pattern.append(svg('rect',{width:8,height:8,fill:'#f7d19a'}),svg('path',{d:'M-2 2L2 -2M0 8L8 0M6 10L10 6',stroke:'#b5782a','stroke-width':1.5}));defs.append(pattern);chart.append(defs);
+    const tooltip=make('div',undefined,'rent-chart-tooltip');tooltip.id='rent-month-tooltip';tooltip.setAttribute('role','tooltip');tooltip.hidden=true;
+    let active=null,pinned=false,hideTimer;
+    const hide=()=>{clearTimeout(hideTimer);pinned=false;active=null;tooltip.hidden=true;trend.querySelectorAll('.rent-month-bar').forEach(n=>{n.classList.remove('is-active');n.setAttribute('aria-expanded','false');n.removeAttribute('aria-describedby');});};hideChart=hide;
+    const fullCash=n=>'$'+exact(n);
+    function show(r,m,anchor){clearTimeout(hideTimer);active=m;tooltip.replaceChildren();const heading=make('div',undefined,'tooltip-heading');heading.append(make('strong',label(m)));if(drafts.has(m))heading.append(make('span','Unsaved preview','tooltip-draft'));tooltip.append(heading);
+      if(!r){tooltip.append(make('p',drafts.has(m)?'Fix this month’s inputs to see its breakdown.':'No saved rent entries for this month.','tooltip-empty'));}
+      else {
+        const overview=make('div',undefined,'tooltip-totals');for(const [title,value,cls] of [['Received',r.totals.received,'received'],['Outstanding',r.totals.remaining,'outstanding']]){const block=make('div',undefined,cls);block.append(make('span',title),make('strong',fullCash(value)));overview.append(block);}tooltip.append(overview);
+        tooltip.append(make('p',`Rent ${fullCash(r.config.rentCents)} − parking ${fullCash(r.values[1])} = ${fullCash(r.calculation.landlordCents)} to cover`,'tooltip-rent'));
+        const table=make('table'),thead=make('thead'),tr=make('tr');['Payer','Due','Received','Left'].forEach(s=>tr.append(make('th',s)));thead.append(tr);table.append(thead);const tbody=make('tbody'),names=[...r.config.people.map(p=>p.name),'Affil'];
+        r.totals.rows.forEach((p,i)=>{const row=make('tr');row.append(make('th',names[i]),...['due','received','remaining'].map(k=>make('td',fullCash(p[k]))));tbody.append(row);});table.append(tbody);tooltip.append(table);
+        if(r.totals.overpaid)tooltip.append(make('p','Overpaid: '+r.totals.rows.flatMap((p,i)=>p.overpaid?[names[i]+' '+fullCash(p.overpaid)]:[]).join(' · ')+'. Other balances remain separate.','tooltip-overpaid'));
+        tooltip.append(make('p','Unconfirmed imported entries are excluded.','tooltip-footnote'));
+      }
+      tooltip.hidden=false;trend.querySelectorAll('.rent-month-bar').forEach(n=>{const on=n===anchor;n.classList.toggle('is-active',on);n.setAttribute('aria-expanded',String(on));if(on)n.setAttribute('aria-describedby',tooltip.id);else n.removeAttribute('aria-describedby');});
+      const box=anchor.getBoundingClientRect(),size=tooltip.getBoundingClientRect(),left=Math.max(8,Math.min(innerWidth-size.width-8,box.left+box.width/2-size.width/2));let top=box.bottom+8;if(top+size.height>innerHeight-8)top=box.top-size.height-8;top=Math.max(8,Math.min(top,innerHeight-size.height-8));tooltip.style.left=left+'px';tooltip.style.top=top+'px';
+    }
+    moveChart=()=>{if(!active||tooltip.hidden)return;const anchor=trend.querySelector(`[data-month="${active}"]`);if(!anchor)return hide();const b=anchor.getBoundingClientRect();if(b.bottom<0||b.top>innerHeight)return hide();show(rows.find(r=>r.month===active),active,anchor);};
+    trend.onpointerleave=()=>{if(!pinned)hideTimer=setTimeout(hide,180);};trend.onpointerenter=()=>clearTimeout(hideTimer);tooltip.onpointerenter=()=>clearTimeout(hideTimer);
+
+    const chart = svg('svg', { viewBox: '0 0 720 205', role: 'group', 'aria-label': `${year} monthly rent coverage. ${dollars(received)} recorded, ${dollars(remaining)} left to collect.` }); chart.append(svg('title', {}, 'Monthly rent coverage')); const defs=svg('defs'), pattern=svg('pattern',{id:'outstanding-hatch',width:8,height:8,patternUnits:'userSpaceOnUse'});pattern.append(svg('rect',{width:8,height:8,fill:'#f7d19a'}),svg('path',{d:'M-2 2L2 -2M0 8L8 0M6 10L10 6',stroke:'#b5782a','stroke-width':1.5}));defs.append(pattern);chart.append(defs);
     const max = Math.max(100, ...rows.map(r => r.calculation.landlordCents));
     for (let tick = 0; tick <= 2; tick++) { const y = 150 - tick * 62; chart.append(svg('line', { x1: 50, x2: 709, y1: y, y2: y, stroke: '#e6e8e1', 'stroke-dasharray': '3 5' }), svg('text', { x: 40, y: y + 4, 'text-anchor': 'end', fill: '#7d887f', 'font-size': 10 }, dollars(max * tick / 2))); }
     for (let n = 1; n <= 12; n++) {
       const r = rows.find(r => r.n === n), x = 57 + (n - 1) * 54, short = new Date(year, n - 1, 15).toLocaleDateString('en-US', { month: 'short' });
       chart.append(svg('text', { x: x + 17, y: 178, 'text-anchor': 'middle', fill: '#6c776e', 'font-size': 11 }, short));
-      if (!r) { chart.append(svg('rect', { x, y: 147, width: 34, height: 3, rx: 1.5, fill: '#e9ece5' })); continue; }
-      const h = r.calculation.landlordCents / max * 124, paid = (r.calculation.landlordCents - r.totals.remaining) / max * 124;
-      const g = svg('g'); g.append(svg('title', {}, `${label(r.month)}: ${dollars(r.calculation.landlordCents)} rent, ${dollars(r.totals.received)} received, ${dollars(r.totals.remaining)} outstanding${r.totals.overpaid ? `, ${dollars(r.totals.overpaid)} overpaid` : ''}`), svg('rect', { x, y: 150 - h, width: 34, height: h, rx: 4, fill: 'url(#outstanding-hatch)' }));
-      if (paid > 0) g.append(svg('rect', { x, y: 150 - paid, width: 34, height: paid, rx: 3, fill: '#176b64' })); chart.append(g);
+      const m=`${year}-${String(n).padStart(2,'0')}`,g=svg('g',{class:'rent-month-bar',tabindex:0,role:'button','data-month':m,'aria-label':`${label(m)} rent breakdown`,'aria-expanded':'false','aria-controls':tooltip.id});
+      if(!r)g.append(svg('rect',{x,y:147,width:34,height:3,rx:1.5,fill:'#e9ece5'}));
+      else {const h=r.calculation.landlordCents/max*124,paid=(r.calculation.landlordCents-r.totals.remaining)/max*124;g.append(svg('rect',{x,y:150-h,width:34,height:h,rx:4,fill:'url(#outstanding-hatch)'}));if(paid>0)g.append(svg('rect',{x,y:150-paid,width:34,height:paid,rx:3,fill:'#176b64'}));}
+      g.append(svg('rect',{x:x-7,y:12,width:48,height:174,rx:5,fill:'transparent',class:'chart-hit-area'}));
+      g.onpointerenter=e=>{if(e.pointerType!=='touch'&&!pinned)show(r,m,g);};g.onfocus=()=>{if(!pinned)show(r,m,g);};g.onblur=()=>{if(!pinned)hide();};
+      const toggle=()=>{if(pinned&&active===m)hide();else{pinned=true;show(r,m,g);}};g.onclick=toggle;g.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();toggle();}if(e.key==='Escape'){e.preventDefault();hide();}};chart.append(g);
     }
-    trend.append(chart); split.replaceChildren();
+    trend.append(chart,tooltip);split.replaceChildren();
     let r; try { r = rowValue(selected); } catch {}
     r ||= rows.at(-1);
     if (!r) { split.append(make('p', 'Your rent split appears after you set up a month.', 'muted')); return; }
@@ -173,10 +197,14 @@ window.RentSheet = function ({ root, save, refreshed, selectMonth, canEdit, cell
     const actions = make('div', undefined, 'sheet-actions'); status = make('span'); status.setAttribute('role', 'status'); undoButton = button('Discard edits', async () => { drafts.clear(); attempt = null; showError(''); drawRows(); await refreshed(); }, 'quiet'); saveButton = button('Save changes', commit, 'primary'); actions.append(status, undoButton, saveButton); foot.append(actions); panel.append(foot);
     error = make('p', '', 'sheet-error'); error.hidden = true; error.setAttribute('role', 'alert'); panel.append(error); root.append(panel);
   }
+  document.addEventListener('pointerdown',e=>{if(!trend?.contains(e.target))hideChart();});
+  document.addEventListener('keydown',e=>{if(e.key==='Escape')hideChart();});
+  window.addEventListener('resize',()=>hideChart());
+  window.addEventListener('scroll',()=>moveChart(),{passive:true});
   mount();
   return {
     load(result, month) { if (drafts.size || pending) return; records = result.months; payments = result.payments; if (!selected || selected.slice(0,4) !== month.slice(0,4)) year = Number(month.slice(0, 4)); selected = month; drawRows(); },
-    clear() { generation++; records = []; payments = []; drafts.clear(); selected = ''; attempt = null; pending = false; root.replaceChildren(); mount(); },
+    clear() { hideChart(); hideChart=moveChart=()=>{}; generation++; records = []; payments = []; drafts.clear(); selected = ''; attempt = null; pending = false; root.replaceChildren(); mount(); },
     hasChanges: () => drafts.size > 0 || pending,
     setLocked(value) { locked = value; updateState(); },
   };
