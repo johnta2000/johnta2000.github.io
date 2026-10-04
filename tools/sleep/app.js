@@ -426,6 +426,7 @@ function switchView(view) {
   };
   if (!views[view]) return;
   activeView = view;
+  $("#openPrivateWorkspace").href = view === "friends" ? "./?view=groups" : "./";
   els.app.dataset.activeView = view;
   $("#pageLabel").textContent = views[view][0];
   $("#pageTitle").textContent = views[view][1];
