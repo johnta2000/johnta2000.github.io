@@ -24,6 +24,30 @@ const niteharts={id:'niteharts-festival-2026',name:'Niteharts',startsAt:'2026-10
  {id:'sat-2hollis',name:'2hollis',day:'Saturday',date:'2026-10-10',estimatedOrder:2},
  {id:'fri-isoxo',name:'ISOxo',day:'Friday',date:'2026-10-09',estimatedOrder:1},
 ]};
+test('Niteharts official schedule includes both stages, keeps identities and supports stage filters on phones and desktop',()=>{
+ const lineup=JSON.parse(read('../../scripts/fixtures/niteharts-2026.json'));
+ assert.equal(lineup.length,34);assert.equal(new Set(lineup.map(s=>s.id)).size,34);
+ assert.equal(lineup.filter(s=>s.stage==='VALORANT').length,11);
+ assert(lineup.every(s=>s.start<s.end&&!('estimatedOrder' in s)));
+ for(const mobile of [true,false]){
+  const ctx=setup(mobile,null,{...niteharts,lineup});
+  try{
+   ctx.w.RallyLineup.show({...ctx.options,params:'view=timeline&days=Friday'});
+   assert.equal(ctx.root.querySelectorAll('.timeline-lane').length,2);
+   assert.equal(ctx.root.querySelectorAll('.timeline-set').length,10);
+   const valorant=[...ctx.root.querySelectorAll('[data-filter="stages"] input[type="checkbox"]')].find(x=>x.value==='VALORANT');
+   assert(valorant);valorant.checked=true;valorant.dispatchEvent(new ctx.w.Event('change',{bubbles:true}));
+   assert.equal(ctx.root.querySelectorAll('.timeline-set').length,3);
+   assert(ctx.root.querySelector('.timeline-set').textContent.includes('ACYAN'));
+   const star=ctx.root.querySelector('.timeline-set');star.click();
+   assert(ctx.events.some(e=>e.type==='rally-lineup-favorites-changed'&&e.artistIds.includes('fri-valorant-acyan')));
+   ctx.w.RallyLineup.receive({type:'rally-lineup-favorites-saved'});
+   assert.equal(ctx.root.querySelector('.toast').getAttribute('popover'),'manual');
+   assert.equal(ctx.root.querySelector('.toast').getAttribute('role'),'status');
+   ctx.w.RallyLineup.hide();assert.equal(ctx.root.querySelector('.toast'),null);
+  }finally{ctx.w.close();}
+ }
+});
 test('untimed events share mobile filters, likes and estimated order without fabricated timelines',()=>{
  const ctx=setup(true,null,niteharts);try{
   ctx.root.querySelector('[data-day="Saturday"]').click();
@@ -63,6 +87,16 @@ test('generic timed events use event timezone, actual times and refresh changed 
   ctx.w.RallyLineup.show({...ctx.options,event:{...event,lineup:[...event.lineup,{id:'c',name:'Added',day:'Friday'}]},params:null});
   assert.notEqual(ctx.container.firstElementChild,ctx.element);
   assert(ctx.container.firstElementChild.shadowRoot.textContent.includes('Added'));
+ }finally{ctx.w.close();}
+});
+test('integrated notifications use the shared Rally toast instead of stacking another popup',()=>{
+ const ctx=setup();try{
+  const messages=[];
+  ctx.w.RallyLineup.destroy();
+  ctx.w.RallyLineup.show({...ctx.options,onToast:message=>messages.push(message)});
+  ctx.w.RallyLineup.receive({type:'rally-lineup-favorites-saved'});
+  assert.deepEqual(messages,['Saved to your Rally profile.']);
+  assert.equal(ctx.container.firstElementChild.shadowRoot.querySelector('.toast'),null);
  }finally{ctx.w.close();}
 });
 test('native mobile lineup runs directly in Rally with day filters and isolated styles',()=>{

@@ -709,6 +709,7 @@ function renderLineup(){
     event:{id:data.id,name:data.name,startsAt:data.startsAt,endsAt:data.endsAt,timeZone:RallyEvents.zoneFor(data)||'UTC',lineup:data.id===DEFAULT_EVENT?window.LOST_LANDS_SET_TIMES||data.lineup||[]:data.lineup||[],orderNote:data.lineupOrderNote||'',source:data.lineupSource||''},
     shareUrl:`https://www.john-ta.com${href('lineup')}`,
     onEvent:handleLineupEvent,
+    onToast:showToast,
     onParams(params){
       if(activeView!=='lineup')return;
       const url=new URL(location.href);url.hash=params.toString();
@@ -793,7 +794,14 @@ function openLineupArtist(artist){openDialog(artist?"Edit artist":"Add artist","
 function openNewEvent(){const cards=eventTemplates.map((template,index)=>`<label class="event-template-card${index===0?" selected":""}"><input type="radio" name="templateId" value="${template.id}" ${index===0?"checked":""}><span class="template-icon">${template.icon}</span><span class="template-copy"><span class="template-title">${escapeHtml(template.name)}${template.badge?`<em>${escapeHtml(template.badge)}</em>`:""}</span><span>${escapeHtml(template.description)}</span><small>${escapeHtml(template.summary)}</small></span></label>`).join("");openDialog("New rave room","Start with a useful plan. Every starter item can be changed or deleted afterward.",`<fieldset class="template-picker"><legend>Choose a starting point</legend><div class="template-grid">${cards}</div><p id="templatePreview" class="template-preview">${escapeHtml(eventTemplates[0].summary)}</p></fieldset>`+field("Rave name","name")+field("Location","location")+`<div class="form-row">${field("Starts","startsAt","","date")}${field("Ends","endsAt","","date")}</div>`+field("Event timezone","eventTimeZone",Intl.DateTimeFormat().resolvedOptions().timeZone)+field("Admin name","adminName",data.members.find((m)=>m.id===data.currentMemberId)?.name||"John"),async(values)=>{const created=await convexMutation("rally:act",{eventId:activeEvent,action:"create-event",payload:values});closeDialog();await navigateTo(new URL(href("home",created.id),location.href))});el.dialogRoot.querySelector(".dialog").classList.add("new-event-dialog");const form=el.dialogRoot.querySelector("form"),submit=form.querySelector('[type="submit"]'),preview=document.getElementById("templatePreview");submit.textContent="Create room";form.querySelectorAll('[name="templateId"]').forEach((input)=>input.addEventListener("change",()=>{form.querySelectorAll(".event-template-card").forEach((card)=>card.classList.toggle("selected",card.contains(input)));preview.textContent=eventTemplates.find((template)=>template.id===input.value)?.summary||""}))}
 
 async function act(action,payload,message,rerender=true){data=await convexMutation("rally:act",{eventId:activeEvent,action,payload});if(rerender)render();showToast(message);return data;}
-function showToast(message){el.toast.textContent=`✓ ${message}`;el.toast.hidden=false;clearTimeout(el.toast.timer);el.toast.timer=setTimeout(()=>el.toast.hidden=true,2800)}
+function showToast(message){
+  // A manual popover stays above native dialogs without stealing focus.
+  // Do not label errors or offline notices with a success checkmark.
+  el.toast.textContent=message;el.toast.hidden=false;
+  if(typeof el.toast.showPopover==='function'&&!el.toast.matches(':popover-open'))el.toast.showPopover();
+  clearTimeout(el.toast.timer);
+  el.toast.timer=setTimeout(()=>{el.toast.hidePopover?.();el.toast.hidden=true;},4500);
+}
 
 async function convexQuery(path,args){return convexCall("query",path,args)} async function convexMutation(path,args){return convexCall("mutation",path,args)} async function convexAction(path,args){return convexCall("action",path,args)}
 async function convexCall(kind, path, args) {

@@ -6,7 +6,7 @@
     if(!instance)return;
     instance.controller.suspend();instance.controller.destroy();instance.element.remove();instance=null;
   }
-  function show({container,key,state,params,onEvent,onParams,shareUrl,event}){
+  function show({container,key,state,params,onEvent,onParams,onToast,shareUrl,event}){
     const catalogSignature=JSON.stringify(event||null);
     if(instance&&(instance.key!==key||instance.catalogSignature!==catalogSignature))destroy();
     if(!instance){
@@ -17,7 +17,7 @@
       root.append(style);
       const template=document.createElement('template');template.innerHTML=RallyLineupTemplate.markup;
       root.append(template.content.cloneNode(true));container.append(element);
-      const integration={params:params||'',shareUrl,event,isActive:()=>!container.hidden,onEvent,onParams};
+      const integration={params:params||'',shareUrl,event,isActive:()=>!container.hidden,onEvent,onParams,onToast};
       const controller=createLostLandsLineup(root,integration);
       instance={key,catalogSignature,element,controller,integration,stateSignature:'',scroll:0};
     } else if(params!==null&&params!==undefined&&params!==instance.integration.params){

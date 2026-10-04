@@ -16,6 +16,22 @@ test('one theme is loaded last in the shell and baked into the native lineup',()
  assert(ctx.window.RallyLineupTemplate.css.endsWith(read('theme.css')));
  const sw=read('../../rally-sw.js');for(const asset of ['theme.css','searchable-select.js','searchable-select.css'])assert(sw.includes(asset));
 });
+test('toast announcements are neutral, readable, replaceable and dismissed without stealing focus',()=>{
+ const dom=setup(),w=dom.window;
+ try{
+  const toast=w.document.getElementById('toast');
+  let dismiss;w.setTimeout=fn=>{dismiss=fn;return 1;};
+  const focus=w.document.getElementById('accountButton');focus.focus();
+  w.showToast('Could not save. Reconnect and try again.');
+  assert.equal(toast.textContent,'Could not save. Reconnect and try again.');
+  assert.equal(toast.getAttribute('role'),'status');assert.equal(toast.getAttribute('popover'),'manual');
+  assert.equal(toast.hidden,false);assert.equal(w.document.activeElement,focus);
+  w.showToast('Saved');assert.equal(w.document.querySelectorAll('#toast').length,1);
+  dismiss();assert.equal(toast.hidden,true);
+  const css=read('theme.css');assert.match(css,/background: #fff; color: #202b25/);
+  assert.match(css,/bottom: var\(--rally-nav-clearance/);
+ }finally{w.close();}
+});
 test('dialog pickers keep native form values, labels, keyboard choice, empty state and disabled options',()=>{
  const dom=setup(),w=dom.window;
  try{

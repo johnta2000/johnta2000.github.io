@@ -995,15 +995,20 @@ function saveFavoritesAsMine() {
 }
 
 function showToast(message) {
+  // Rally owns a single notification surface across every section.
+  if (integration?.onToast) { integration.onToast(message); return; }
   const existing = root.querySelector(".toast");
   if (existing) existing.remove();
 
   const toast = document.createElement("div");
   toast.className = "toast";
   toast.setAttribute("role", "status");
+  toast.setAttribute("aria-atomic", "true");
+  toast.setAttribute("popover", "manual");
   toast.textContent = message;
   container.append(toast);
-  window.setTimeout(() => toast.remove(), 2200);
+  toast.showPopover?.();
+  window.setTimeout(() => toast.remove(), 4500);
 }
 
 async function initializeOptionalAccount() {
@@ -1514,7 +1519,7 @@ else window.addEventListener("load", initializeOptionalAccount, { once: true });
 return {
   receive: message => receive({data:message}),
   route(params) { integration.params=params; readStateFromUrl(); render(); },
-  suspend() { root.querySelectorAll('dialog[open]').forEach(dialog=>dialog.close()); root.activeElement?.blur(); closeFilterPopovers(); },
+  suspend() { root.querySelector('.toast')?.remove(); root.querySelectorAll('dialog[open]').forEach(dialog=>dialog.close()); root.activeElement?.blur(); closeFilterPopovers(); },
   destroy() { lifetime.abort(); overlayObserver?.disconnect(); window.clearTimeout(cloudSaveTimer); window.clearInterval(progressTimer); }
 };
 };

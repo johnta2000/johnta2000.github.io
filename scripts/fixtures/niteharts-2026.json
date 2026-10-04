@@ -1,0 +1,342 @@
+[
+  {
+    "date": "2026-10-09",
+    "day": "Friday",
+    "end": "2026-10-09T16:40",
+    "id": "fri-knock2-friends",
+    "name": "Knock2 & Friends",
+    "start": "2026-10-09T16:00",
+    "time": "16:00",
+    "stage": "Main stage"
+  },
+  {
+    "date": "2026-10-09",
+    "day": "Friday",
+    "end": "2026-10-09T17:30",
+    "id": "fri-yaego",
+    "name": "Yaego",
+    "start": "2026-10-09T16:40",
+    "time": "16:40",
+    "stage": "Main stage"
+  },
+  {
+    "date": "2026-10-09",
+    "day": "Friday",
+    "end": "2026-10-09T18:25",
+    "id": "fri-frost-children",
+    "name": "Frost Children (DJ set)",
+    "start": "2026-10-09T17:30",
+    "time": "17:30",
+    "stage": "Main stage"
+  },
+  {
+    "date": "2026-10-09",
+    "day": "Friday",
+    "end": "2026-10-09T19:20",
+    "id": "fri-devault",
+    "name": "Devault",
+    "start": "2026-10-09T18:25",
+    "time": "18:25",
+    "stage": "Main stage"
+  },
+  {
+    "date": "2026-10-09",
+    "day": "Friday",
+    "end": "2026-10-09T20:10",
+    "id": "fri-jane-remover",
+    "name": "Jane Remover",
+    "start": "2026-10-09T19:25",
+    "time": "19:25",
+    "stage": "Main stage"
+  },
+  {
+    "date": "2026-10-09",
+    "day": "Friday",
+    "end": "2026-10-09T21:15",
+    "id": "fri-porter-robinson",
+    "name": "Porter Robinson (DJ set)",
+    "start": "2026-10-09T20:15",
+    "time": "20:15",
+    "stage": "Main stage"
+  },
+  {
+    "date": "2026-10-09",
+    "day": "Friday",
+    "end": "2026-10-09T23:00",
+    "id": "fri-isoxo",
+    "name": "ISOxo H.C.D.",
+    "start": "2026-10-09T21:30",
+    "time": "21:30",
+    "stage": "Main stage"
+  },
+  {
+    "date": "2026-10-10",
+    "day": "Saturday",
+    "end": "2026-10-10T16:00",
+    "id": "sat-isoxo-friends",
+    "name": "ISOxo & Friends",
+    "start": "2026-10-10T15:00",
+    "time": "15:00",
+    "stage": "Main stage"
+  },
+  {
+    "date": "2026-10-10",
+    "day": "Saturday",
+    "end": "2026-10-10T16:55",
+    "id": "sat-kimj",
+    "name": "KimJ",
+    "start": "2026-10-10T16:00",
+    "time": "16:00",
+    "stage": "Main stage"
+  },
+  {
+    "date": "2026-10-10",
+    "day": "Saturday",
+    "end": "2026-10-10T17:30",
+    "id": "sat-daine",
+    "name": "Daine",
+    "start": "2026-10-10T17:00",
+    "time": "17:00",
+    "stage": "Main stage"
+  },
+  {
+    "date": "2026-10-10",
+    "day": "Saturday",
+    "end": "2026-10-10T18:30",
+    "id": "sat-flava-d",
+    "name": "Flava D",
+    "start": "2026-10-10T17:30",
+    "time": "17:30",
+    "stage": "Main stage"
+  },
+  {
+    "date": "2026-10-10",
+    "day": "Saturday",
+    "end": "2026-10-10T19:20",
+    "id": "sat-thaiboy-swedm",
+    "name": "Thaiboy Digital & swedm®",
+    "start": "2026-10-10T18:35",
+    "time": "18:35",
+    "stage": "Main stage"
+  },
+  {
+    "date": "2026-10-10",
+    "day": "Saturday",
+    "end": "2026-10-10T20:20",
+    "id": "sat-lyny",
+    "name": "LYNY",
+    "start": "2026-10-10T19:20",
+    "time": "19:20",
+    "stage": "Main stage"
+  },
+  {
+    "date": "2026-10-10",
+    "day": "Saturday",
+    "end": "2026-10-10T21:15",
+    "id": "sat-2hollis",
+    "name": "2hollis",
+    "start": "2026-10-10T20:25",
+    "time": "20:25",
+    "stage": "Main stage"
+  },
+  {
+    "date": "2026-10-10",
+    "day": "Saturday",
+    "end": "2026-10-10T23:00",
+    "id": "sat-isoknock",
+    "name": "ISOKNOCK",
+    "start": "2026-10-10T21:30",
+    "time": "21:30",
+    "stage": "Main stage"
+  },
+  {
+    "date": "2026-10-11",
+    "day": "Sunday",
+    "end": "2026-10-11T14:40",
+    "id": "sun-isoknock-friends",
+    "name": "ISOKNOCK & Friends",
+    "start": "2026-10-11T14:00",
+    "time": "14:00",
+    "stage": "Main stage"
+  },
+  {
+    "date": "2026-10-11",
+    "day": "Sunday",
+    "end": "2026-10-11T15:30",
+    "id": "sun-control-freak",
+    "name": "Control Freak",
+    "start": "2026-10-11T14:40",
+    "time": "14:40",
+    "stage": "Main stage"
+  },
+  {
+    "date": "2026-10-11",
+    "day": "Sunday",
+    "end": "2026-10-11T16:20",
+    "id": "sun-knock2-borne",
+    "name": "Borne",
+    "start": "2026-10-11T15:30",
+    "time": "15:30",
+    "stage": "Main stage"
+  },
+  {
+    "date": "2026-10-11",
+    "day": "Sunday",
+    "end": "2026-10-11T17:20",
+    "id": "sun-nitepunk",
+    "name": "Nitepunk",
+    "start": "2026-10-11T16:30",
+    "time": "16:30",
+    "stage": "Main stage"
+  },
+  {
+    "date": "2026-10-11",
+    "day": "Sunday",
+    "end": "2026-10-11T18:20",
+    "id": "sun-underscores",
+    "name": "underscores",
+    "start": "2026-10-11T17:25",
+    "time": "17:25",
+    "stage": "Main stage"
+  },
+  {
+    "date": "2026-10-11",
+    "day": "Sunday",
+    "end": "2026-10-11T19:20",
+    "id": "sun-hamdi",
+    "name": "Hamdi",
+    "start": "2026-10-11T18:20",
+    "time": "18:20",
+    "stage": "Main stage"
+  },
+  {
+    "date": "2026-10-11",
+    "day": "Sunday",
+    "end": "2026-10-11T20:20",
+    "id": "sun-rl-grime",
+    "name": "RL Grime",
+    "start": "2026-10-11T19:20",
+    "time": "19:20",
+    "stage": "Main stage"
+  },
+  {
+    "date": "2026-10-11",
+    "day": "Sunday",
+    "end": "2026-10-11T22:00",
+    "id": "sun-dj-snake",
+    "name": "Knock2 B2B DJ Snake",
+    "start": "2026-10-11T20:30",
+    "time": "20:30",
+    "stage": "Main stage"
+  },
+  {
+    "id": "fri-valorant-acyan",
+    "name": "ACYAN",
+    "day": "Friday",
+    "date": "2026-10-09",
+    "time": "17:00",
+    "start": "2026-10-09T17:00",
+    "end": "2026-10-09T18:00",
+    "stage": "VALORANT"
+  },
+  {
+    "id": "fri-valorant-silcrow",
+    "name": "SILCROW",
+    "day": "Friday",
+    "date": "2026-10-09",
+    "time": "18:00",
+    "start": "2026-10-09T18:00",
+    "end": "2026-10-09T19:00",
+    "stage": "VALORANT"
+  },
+  {
+    "id": "fri-valorant-beastboi",
+    "name": "BEASTBOI",
+    "day": "Friday",
+    "date": "2026-10-09",
+    "time": "19:00",
+    "start": "2026-10-09T19:00",
+    "end": "2026-10-09T20:00",
+    "stage": "VALORANT"
+  },
+  {
+    "id": "sat-valorant-asdek",
+    "name": "ASDEK",
+    "day": "Saturday",
+    "date": "2026-10-10",
+    "time": "16:00",
+    "start": "2026-10-10T16:00",
+    "end": "2026-10-10T17:00",
+    "stage": "VALORANT"
+  },
+  {
+    "id": "sat-valorant-darby",
+    "name": "DARBY",
+    "day": "Saturday",
+    "date": "2026-10-10",
+    "time": "17:00",
+    "start": "2026-10-10T17:00",
+    "end": "2026-10-10T18:00",
+    "stage": "VALORANT"
+  },
+  {
+    "id": "sat-valorant-alrt",
+    "name": "ALRT",
+    "day": "Saturday",
+    "date": "2026-10-10",
+    "time": "18:00",
+    "start": "2026-10-10T18:00",
+    "end": "2026-10-10T19:00",
+    "stage": "VALORANT"
+  },
+  {
+    "id": "sat-valorant-rad-cat",
+    "name": "RAD CAT",
+    "day": "Saturday",
+    "date": "2026-10-10",
+    "time": "19:00",
+    "start": "2026-10-10T19:00",
+    "end": "2026-10-10T20:00",
+    "stage": "VALORANT"
+  },
+  {
+    "id": "sun-valorant-blurrd-vzn",
+    "name": "BLURRD VZN",
+    "day": "Sunday",
+    "date": "2026-10-11",
+    "time": "15:00",
+    "start": "2026-10-11T15:00",
+    "end": "2026-10-11T16:00",
+    "stage": "VALORANT"
+  },
+  {
+    "id": "sun-valorant-yojas",
+    "name": "YOJAS",
+    "day": "Sunday",
+    "date": "2026-10-11",
+    "time": "16:00",
+    "start": "2026-10-11T16:00",
+    "end": "2026-10-11T17:00",
+    "stage": "VALORANT"
+  },
+  {
+    "id": "sun-valorant-cheyenne-giles",
+    "name": "CHEYENNE GILES",
+    "day": "Sunday",
+    "date": "2026-10-11",
+    "time": "17:00",
+    "start": "2026-10-11T17:00",
+    "end": "2026-10-11T18:00",
+    "stage": "VALORANT"
+  },
+  {
+    "id": "sun-valorant-leotrix",
+    "name": "LEOTRIX",
+    "day": "Sunday",
+    "date": "2026-10-11",
+    "time": "18:00",
+    "start": "2026-10-11T18:00",
+    "end": "2026-10-11T19:00",
+    "stage": "VALORANT"
+  }
+]
