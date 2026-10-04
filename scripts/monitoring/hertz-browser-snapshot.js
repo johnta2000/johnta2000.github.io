@@ -15,7 +15,8 @@
     if (!visible(heading)) continue;
     const key = heading.id.slice(0, -'-vehicle_type'.length);
     const feature = document.getElementById(key + '-vehicle_features');
-    const price = document.getElementById(key + '-best-available-pricing');
+    const price = ['-best-available-pricing', '-dual-discount-rates']
+      .map((suffix) => document.getElementById(key + suffix)).find(visible);
     let card = heading.parentElement;
     while (card && !(card.contains(feature) && card.contains(price))) card = card.parentElement;
     if (!card || !visible(feature) || !visible(price) || card.querySelectorAll('[id$="-vehicle_type"]').length !== 1) continue;
