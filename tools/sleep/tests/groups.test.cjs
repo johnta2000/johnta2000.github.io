@@ -73,3 +73,12 @@ test('expanded metrics preserve opt-in boundaries, source integrity, and daily o
  const day=f.tables.whoopDays.find(d=>d.ownerSubject==='friend');assert.equal(day.hrv,undefined);assert.equal(day.strain,15);
  assert.equal((await f.run(whoop,'status','friend')).needsUpgrade,true);
 });
+
+test('personal dashboard biometrics are owner-scoped and date-bounded independently of group sharing', async()=>{
+ const f=await setup();await join(f);
+ for(const ownerSubject of ['owner','friend'])for(const sleepDate of [today(),'2020-01-01'])f.tables.whoopDays.push({ownerSubject,sleepDate,hrv:ownerSubject==='owner'?55:95});
+ for(const subject of ['owner','friend']){
+  const data=await f.run(sleep,'dashboard',subject,{startDate:today(),endDate:today()});
+  assert.equal(data.whoopDays.length,1);assert.equal(data.whoopDays[0].ownerSubject,subject);assert.equal(data.whoopDays[0].hrv,subject==='owner'?55:95);
+ }
+});

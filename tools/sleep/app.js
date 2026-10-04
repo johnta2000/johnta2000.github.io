@@ -21,10 +21,6 @@ const els = {
   lockButton: document.querySelector("#lockButton"),
   lastUpdated: document.querySelector("#lastUpdated"),
   heroDate: document.querySelector("#heroDate"),
-  heroSummary: document.querySelector("#heroSummary"),
-  latestScore: document.querySelector("#latestScore"),
-  latestScoreLabel: document.querySelector("#latestScoreLabel"),
-  orbitNote: document.querySelector("#orbitNote"),
   whoopScore: document.querySelector("#whoopScore"),
   appleScore: document.querySelector("#appleScore"),
   eightScore: document.querySelector("#eightScore"),
@@ -65,6 +61,8 @@ const els = {
 
 let sleepNights = [];
 let alertnessRatings = [];
+let whoopDays = [];
+let personalComparison;
 let stagedNights = [];
 let selectedRating = null;
 let chartResizeTimer;
@@ -88,6 +86,7 @@ async function init() {
   buildRatingScale();
   els.manualDate.value = todayPacific();
   els.heroDate.textContent = formatLongDate(todayPacific());
+  personalComparison = new DaylightComparison(document.querySelector("#personalComparison"));
   bindEvents();
   const requestedView = new URLSearchParams(location.search).get("view");
   switchView(requestedView === "groups" ? "friends" : "overview");
@@ -247,6 +246,7 @@ async function loadDashboard() {
     const data = await convexQuery("sleep:dashboard", { startDate, endDate });
     if (startedInDemo !== isDemo) return;
     sleepNights = data.nights || [];
+    whoopDays = data.whoopDays || [];
     alertnessRatings = data.alertness || [];
     renderDashboard();
     els.lastUpdated.textContent = isDemo
@@ -387,6 +387,7 @@ function startPreview() {
       ? { nights: [], alertness: [] }
       : Daylight.sample(todayPacific());
   sleepNights = demoData.nights;
+  whoopDays = demoData.whoopDays || [];
   alertnessRatings = demoData.alertness;
   els.gate.hidden = true;
   els.app.hidden = false;
@@ -402,14 +403,14 @@ function startPreview() {
 function switchView(view) {
   const views = {
     overview: [
-      "Overview",
-      "Your day, in perspective.",
-      "A clearer picture of your sleep. A little more understanding of you.",
+      "My data",
+      "Sleep & recovery",
+      "",
     ],
     trends: [
-      "Sleep trends",
-      "Step back. See the pattern.",
-      "Your WHOOP sleep over time, and how it lines up with your day.",
+      "Journal",
+      "Sleep journal",
+      "Your history, check-ins, and sleep patterns.",
     ],
     friends: [
       "Groups",
@@ -424,6 +425,7 @@ function switchView(view) {
   };
   if (!views[view]) return;
   activeView = view;
+  els.app.dataset.activeView = view;
   $("#pageLabel").textContent = views[view][0];
   $("#pageTitle").textContent = views[view][1];
   $("#pageSubtitle").textContent = views[view][2];
@@ -458,27 +460,6 @@ function renderDashboard() {
     .filter((row) => row.source === "whoop" && row.sleepDate <= todayPacific())
     .sort((a, b) => a.sleepDate.localeCompare(b.sleepDate));
   const latest = records.at(-1);
-  const nativeScore = latest && Daylight.value(latest, "score");
-  els.latestScore.textContent = Number.isFinite(nativeScore)
-    ? Math.round(nativeScore)
-    : "—";
-  $("#scoreRing").style.setProperty(
-    "--progress",
-    `${Number.isFinite(nativeScore) ? clamp(nativeScore, 0, 100) : 0}%`,
-  );
-  els.latestScoreLabel.textContent = "Sleep performance";
-  els.orbitNote.textContent = latest
-    ? `WHOOP · ${formatShortDate(latest.sleepDate)}`
-    : "WHOOP · waiting for data";
-  if (latest) {
-    const duration = Number.isFinite(latest.durationMinutes)
-      ? `${formatDuration(latest.durationMinutes)} asleep`
-      : "Sleep duration not available";
-    els.heroSummary.textContent = `${formatTableDate(latest.sleepDate)}: ${duration}${Number.isFinite(nativeScore) ? ` and ${Math.round(nativeScore)}% sleep performance` : ""}. Explore your recent nights below.`;
-  } else {
-    els.heroSummary.textContent =
-      "Connect WHOOP to start seeing your sleep clearly. Already have an export? Import your history to get started.";
-  }
   renderMetrics();
   renderNight(latest);
   renderDeviceComparison();
@@ -718,6 +699,11 @@ async function saveTodayAlertness() {
 function renderCharts() {
   if (els.app.hidden) return;
   if (activeView === "friends") return drawGroupChart();
+  if (activeView === "overview") {
+    $("#pageSubtitle").textContent = `${formatShortDate(addDays(todayPacific(), 1 - selectedDays))} – ${formatShortDate(todayPacific())}`;
+    personalComparison?.render(sleepNights, whoopDays, selectedDays, todayPacific());
+    return;
+  }
   drawTrendChart();
   if (activeView === "trends") drawScatterChart(whoopGrouped());
 }

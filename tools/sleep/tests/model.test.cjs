@@ -143,3 +143,21 @@ test("group coverage counts unique dates and ignores derived WHOOP scores", () =
   assert.equal(group.members[0].count, 1);
   assert.equal(group.members[0].points[5].value, undefined);
 });
+
+test('personal history aligns sources by date without mixing native scores or filling gaps', () => {
+  const nights=[
+    {sleepDate:'2026-10-01',source:'whoop',score:88,scoreKind:'native',hrv:50},
+    {sleepDate:'2026-10-01',source:'apple_health',score:99,scoreKind:'derived',durationMinutes:430,hrv:42},
+    {sleepDate:'2026-10-01',source:'eightsleep',score:92,scoreKind:'native'},
+    {sleepDate:'2026-10-04',source:'whoop',score:100,scoreKind:'native'},
+  ];
+  const history=model.providerHistory(nights,[{sleepDate:'2026-10-01',hrv:65,restingHeartRate:52},{sleepDate:'2026-10-03',hrv:61}],3,'2026-10-03');
+  assert.deepEqual(history.dates,['2026-10-01','2026-10-02','2026-10-03']);
+  assert.equal(history.rows[0].whoop.hrv,65);assert.equal(nights[0].hrv,50);
+  assert.equal(history.rows[0].apple_health.hrv,42);
+  assert.equal(model.value(history.rows[0].apple_health,'score'),undefined);
+  assert.equal(model.value(history.rows[0].eightsleep,'score'),92);
+  assert.deepEqual(history.rows[1],{});
+  assert.equal(model.value(history.rows[2].whoop,'score'),undefined);
+  assert.equal(history.rows[2].whoop.hrv,61);
+});

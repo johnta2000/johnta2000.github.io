@@ -110,7 +110,7 @@ test("empty dashboard renders missing values and source-aware empty states", () 
   const app = load();
   app.elements.get("#app").hidden = true;
   app.run("renderDashboard()");
-  assert.equal(app.elements.get("#latestScore").textContent, "—");
+  assert.equal(app.elements.get("#whoopScore").textContent, "—");
   assert.equal(app.elements.get("#historyEmpty").hidden, false);
   assert.match(
     app.elements.get("#deviceComparison").innerHTML,

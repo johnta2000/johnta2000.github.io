@@ -107,11 +107,14 @@
         scoreKind: "native",
         durationMinutes: minutes,
         efficiency: 91 + (i % 7),
+        hrv: Math.round(60 + Math.sin(i * .45) * 14),
+        restingHeartRate: Math.round(55 - Math.sin(i * .45) * 5),
         deepMinutes,
         remMinutes,
         asleepAt: `${dateShift(sleepDate, -1)}T23:12:00-07:00`,
         wokeAt: `${sleepDate}T07:18:00-07:00`,
       });
+      if (i % 11 !== 3) nights.push({sleepDate,source:"eightsleep",scoreKind:"native",score:Math.min(100,score+4),durationMinutes:minutes+18,hrv:Math.round(65+Math.sin(i*.45+.2)*13),restingHeartRate:Math.round(57-Math.sin(i*.45+.2)*4)});
       if (i % 9 !== 2)
         nights.push({
           sleepDate,
@@ -220,7 +223,26 @@
 
     })).filter((_, i) => (i + person * 3) % (13 + person * 4) !== 5) }));
   }
+  // Synced recovery readings take precedence only for WHOOP on the same date.
+  // Imported sources keep their own measurements and native score provenance.
+  function providerHistory(nights, whoopDays, days, endDate) {
+    const dates = Array.from({length: days}, (_, i) => dateShift(endDate, i - days + 1));
+    const byDate = new Map(dates.map(date => [date, {}]));
+    for (const night of nights) {
+      if (!byDate.has(night.sleepDate)) continue;
+      byDate.get(night.sleepDate)[night.source] = {...night};
+    }
+    for (const day of whoopDays) {
+      if (!byDate.has(day.sleepDate)) continue;
+      const providers = byDate.get(day.sleepDate);
+      providers.whoop ||= {sleepDate: day.sleepDate, source: "whoop"};
+      for (const metric of ["hrv", "restingHeartRate"])
+        if (finite(day[metric])) providers.whoop[metric] = day[metric];
+    }
+    return {dates, rows: dates.map(date => byDate.get(date))};
+  }
   const api = {
+    providerHistory,
     metrics, competitions, standings,
     groupHistory,
     sampleGroup,

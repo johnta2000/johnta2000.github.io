@@ -1,6 +1,6 @@
 # Daylight
 
-WHOOP-first sleep dashboard for the personal website. Static HTML/CSS/JavaScript with the existing Clerk sign-in and Convex endpoints.
+Personal provider-comparison sleep dashboard for the personal website. Static HTML/CSS/JavaScript with the existing Clerk sign-in and Convex endpoints.
 
 ## Local preview
 
@@ -14,7 +14,12 @@ Run `node --test tools/sleep/tests/*.test.cjs` for calculations, import regressi
 
 ## Current behavior
 
-- Overview and trends use WHOOP sleep performance, duration, efficiency, and estimated stages. Metrics summarize the selected 7/28/90 calendar days through today in Pacific time; the latest-night card is separately dated. Missing records are not zeros. Prior-period comparisons use available observations in the immediately preceding period.
+- My data shows stacked sleep scores, time asleep, HRV, and resting heart rate across WHOOP, Eight Sleep, Apple Health, and other imports. Provider-native scores share a 0–100 axis; derived scores remain hidden. Provider measurement definitions stay distinct.
+- Hover follows the same night across every chart and its detail panel. Click/tap pins a night; arrow keys on a focused chart and the previous/next buttons work without hover. Provider toggles remove that provider from charts and details. Missing observations remain gaps; isolated observations remain visible points. The detail panel shows available stage breakdowns per provider.
+- The personal dashboard query also returns owner-scoped `whoopDays` in the requested dates. Synced HRV/RHR augment only WHOOP on the same date and take precedence over imported WHOOP biometrics; other sources are never overwritten. No permission or group sharing setting changes.
+- Journal retains check-ins, historical tables, and the existing WHOOP sleep/alertness analysis. Connections and private groups remain available.
+
+- Journal summaries use WHOOP sleep performance, duration, efficiency, and estimated stages. Metrics summarize the selected 7/28/90 calendar days through today in Pacific time; the latest-night card is separately dated. Missing records are not zeros. Prior-period comparisons use available observations in the immediately preceding period.
 - WHOOP scores are never averaged with Apple-derived scores. Apple comparison uses only dates with duration from both sources. Health data can include multiple apps/devices, so the UI says Apple Health rather than claiming Watch-only measurements.
 - Health XML ignores WHOOP-written records, merges overlapping sleep intervals, keeps sessions together across midnight, splits at gaps over three hours, and selects the longest session of at least an hour per Pacific wake date. This is a documented heuristic, not automatic device reconciliation. Exports are parsed locally before explicit import. Large XML exports are still parsed on the main thread.
 - CSV/JSON imports, Eight Sleep/other history, noon check-ins, and calendar reminders remain available. Historical derived scores remain stored for compatibility but are not presented as WHOOP performance.

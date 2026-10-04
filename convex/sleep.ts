@@ -55,7 +55,7 @@ export const dashboard = query({
     assertIsoDate(args.startDate, "startDate");
     assertIsoDate(args.endDate, "endDate");
 
-    const [nights, alertness] = await Promise.all([
+    const [nights, alertness, whoopDays] = await Promise.all([
       ctx.db
         .query("sleepNights")
         .withIndex("by_owner_date", (q) => q.eq("ownerSubject", identity.subject).gte("sleepDate", args.startDate).lte("sleepDate", args.endDate))
@@ -64,9 +64,13 @@ export const dashboard = query({
         .query("alertnessRatings")
         .withIndex("by_owner_date", (q) => q.eq("ownerSubject", identity.subject).gte("ratingDate", args.startDate).lte("ratingDate", args.endDate))
         .collect(),
+      ctx.db
+        .query("whoopDays")
+        .withIndex("by_owner_date", (q) => q.eq("ownerSubject", identity.subject).gte("sleepDate", args.startDate).lte("sleepDate", args.endDate))
+        .collect(),
     ]);
 
-    return { nights, alertness };
+    return { nights, alertness, whoopDays };
   },
 });
 

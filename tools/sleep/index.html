@@ -17,7 +17,7 @@
     <meta name="theme-color" content="#f7f8fa" />
     <title>Daylight — Your sleep, in perspective</title>
     <link rel="stylesheet" href="/assets/css/searchable-select.css" />
-    <link rel="stylesheet" href="./styles.css?v=20261003-6" />
+    <link rel="stylesheet" href="./styles.css?v=20261003-7" />
   </head>
   <body>
     <section id="accessGate" class="access-gate" aria-labelledby="gateTitle">
@@ -69,10 +69,10 @@
         <p class="sidebar-caption">YOUR PERSONAL SLEEP LAB</p>
         <nav class="main-nav" aria-label="Main navigation">
           <button type="button" data-view="overview" aria-current="page">
-            <span aria-hidden="true">◫</span> Overview
+            <span aria-hidden="true">◫</span> My data
           </button>
           <button type="button" data-view="trends">
-            <span aria-hidden="true">↗</span> Sleep trends
+            <span aria-hidden="true">↗</span> Journal
           </button>
           <button type="button" data-view="friends">
             <span aria-hidden="true">♧</span> Groups <small id="groupsPreviewBadge">Preview</small>
@@ -146,38 +146,21 @@
             </div>
           </section>
 
-          <section class="welcome-card" data-panels="overview">
-            <div>
-              <span class="tag"
-                ><span class="status-dot"></span> YOUR LATEST NIGHT</span
-              >
-              <h2 id="heroTitle">Good days start<br />the night before.</h2>
-              <p id="heroSummary">
-                Connect WHOOP or import your sleep history to find your rhythm.
-              </p>
-              <button class="text-button" type="button" data-go="connections">
-                Manage your connections <span aria-hidden="true">↗</span>
-              </button>
-            </div>
-            <div class="hero-score">
-              <div class="score-ring" id="scoreRing">
-                <div>
-                  <strong id="latestScore">—</strong
-                  ><span id="latestScoreLabel">Sleep performance</span>
-                </div>
-              </div>
-              <p id="orbitNote">WHOOP · waiting for data</p>
-            </div>
-            <div class="hero-decoration" aria-hidden="true"></div>
+          <section id="personalComparison" class="personal-comparison" data-panels="overview" aria-label="Your provider comparisons">
+            <div class="comparison-toolbar"><div id="comparisonProviders" class="comparison-providers" aria-label="Visible providers"></div><span>Hover to compare · Click to pin a night</span><button class="text-button" type="button" data-go="connections">Connections ↗</button></div>
+            <div id="comparisonEmpty" class="comparison-empty" hidden><h2>Your data starts here</h2><p>Connect WHOOP or import a sleep export to compare your providers.</p><button class="primary-button" type="button" data-go="connections">Connect a provider</button></div>
+            <div class="comparison-layout"><div id="comparisonCharts" class="comparison-charts"></div><aside id="comparisonInspector" class="comparison-inspector" aria-label="Selected night details"></aside></div>
+            <p class="comparison-footnote">Provider-reported values · Sleep uses each record’s wake date · Missing readings stay empty</p>
+            <span id="comparisonAnnouncement" class="sr-only" role="status"></span>
           </section>
 
           <section
             id="metricCards"
             class="metric-grid"
             aria-label="Sleep summary"
-            data-panels="overview trends"
+            data-panels="trends"
           ></section>
-          <div class="dashboard-grid" data-panels="overview trends">
+          <div class="dashboard-grid" data-panels="trends">
             <article class="panel trend-panel">
               <div class="panel-heading">
                 <div>
@@ -240,7 +223,7 @@
             </article>
           </div>
 
-          <div class="dashboard-grid secondary-grid" data-panels="overview">
+          <div class="dashboard-grid secondary-grid" data-panels="trends">
             <article class="panel compare-panel">
               <div class="panel-heading">
                 <div>
@@ -344,7 +327,7 @@
               </div>
             </div>
           </article>
-          <article class="panel recent-panel" data-panels="overview trends">
+          <article class="panel recent-panel" data-panels="trends">
             <div class="panel-heading">
               <div>
                 <p class="eyebrow">THE DETAILS, WITHOUT THE NOISE</p>
@@ -632,8 +615,9 @@
     ></script>
     <script defer src="/assets/js/searchable-select.js"></script>
     <dialog id="groupDialog" class="group-dialog"><form id="groupForm"><div class="panel-heading"><h2 id="groupDialogTitle">Create a group</h2><button id="cancelGroupDialog" type="button" class="text-button">Cancel</button></div><p id="groupDialogIntro"></p><label id="groupNameLabel">Group name<input id="groupNameInput" maxlength="60" type="text"></label><label>Your display name<input id="groupDisplayName" maxlength="40" required type="text" autocomplete="nickname"></label><fieldset id="groupSharingOptions"><legend>Share with this group</legend><p>Nothing is shared unless you select it. Your notes always stay private.</p><label><input type="checkbox" name="sharedMetric" value="durationMinutes"> Time asleep</label><label><input type="checkbox" name="sharedMetric" value="score"> Sleep performance</label><label><input type="checkbox" name="sharedMetric" value="efficiency"> Sleep efficiency</label></fieldset><label>History to share<select id="groupShareDays" aria-label="History to share"><option value="7">Last 7 days</option><option value="28">Last 28 days</option><option value="90">Last 90 days</option><option value="180">Last 180 days</option></select></label><p class="small-note">This is a rolling window that includes future synced days. New members of this group can see the metrics you share.</p><p id="groupFormError" role="alert"></p><button id="saveGroupForm" type="submit" class="primary-button">Create group</button></form></dialog>
-    <script defer src="./model.js?v=20261003-6"></script>
-    <script defer src="./groups.js?v=20261003-6"></script>
-    <script defer src="./app.js?v=20261003-6"></script>
+    <script defer src="./model.js?v=20261003-7"></script>
+    <script defer src="./comparison.js?v=20261003-7"></script>
+    <script defer src="./groups.js?v=20261003-7"></script>
+    <script defer src="./app.js?v=20261003-7"></script>
   </body>
 </html>
