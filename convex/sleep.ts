@@ -24,25 +24,7 @@ const sleepNight = v.object({
   wokeAt: v.optional(v.string()),
 });
 
-async function requireAuthorizedUser(ctx: QueryCtx | MutationCtx) {
-  const identity = await ctx.auth.getUserIdentity();
-  const allowedEmails = new Set(
-    (process.env.SLEEP_ALLOWED_EMAIL || "")
-      .split(",")
-      .map((value) => value.trim().toLowerCase())
-      .filter(Boolean),
-  );
-  const email = identity?.email?.trim().toLowerCase();
-
-  if (!identity || !email || identity.emailVerified === false) {
-    throw new Error("Sign in with a verified email to open this dashboard.");
-  }
-  if (!allowedEmails.has(email)) {
-    throw new Error("This email is not authorized for the sleep dashboard.");
-  }
-
-  return identity;
-}
+import { requireSleepUser as requireAuthorizedUser } from "./sleepAccess";
 
 function assertIsoDate(value: string, field: string) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
@@ -69,18 +51,18 @@ export const dashboard = query({
     endDate: v.string(),
   },
   handler: async (ctx, args) => {
-    await requireAuthorizedUser(ctx);
+    const identity = await requireAuthorizedUser(ctx);
     assertIsoDate(args.startDate, "startDate");
     assertIsoDate(args.endDate, "endDate");
 
     const [nights, alertness] = await Promise.all([
       ctx.db
         .query("sleepNights")
-        .withIndex("by_date", (q) => q.gte("sleepDate", args.startDate).lte("sleepDate", args.endDate))
+        .withIndex("by_owner_date", (q) => q.eq("ownerSubject", identity.subject).gte("sleepDate", args.startDate).lte("sleepDate", args.endDate))
         .collect(),
       ctx.db
         .query("alertnessRatings")
-        .withIndex("by_date", (q) => q.gte("ratingDate", args.startDate).lte("ratingDate", args.endDate))
+        .withIndex("by_owner_date", (q) => q.eq("ownerSubject", identity.subject).gte("ratingDate", args.startDate).lte("ratingDate", args.endDate))
         .collect(),
     ]);
 
@@ -94,7 +76,7 @@ export const importNights = mutation({
     nights: v.array(sleepNight),
   },
   handler: async (ctx, args) => {
-    await requireAuthorizedUser(ctx);
+    const identity = await requireAuthorizedUser(ctx);
     if (!args.nights.length || args.nights.length > 500) {
       throw new Error("Import between 1 and 500 nights at a time.");
     }
@@ -111,11 +93,12 @@ export const importNights = mutation({
 
       const existing = await ctx.db
         .query("sleepNights")
-        .withIndex("by_source_date", (q) => q.eq("source", night.source).eq("sleepDate", night.sleepDate))
+        .withIndex("by_owner_source_date", (q) => q.eq("ownerSubject", identity.subject).eq("source", night.source).eq("sleepDate", night.sleepDate))
         .unique();
 
       const payload = {
         ...night,
+        ownerSubject: identity.subject,
         score: Math.round(night.score * 10) / 10,
         durationMinutes: cleanOptionalNumber(night.durationMinutes, 0, 1440),
         efficiency: cleanOptionalNumber(night.efficiency, 0, 100),
@@ -149,7 +132,7 @@ export const saveAlertness = mutation({
     timezone: v.string(),
   },
   handler: async (ctx, args) => {
-    await requireAuthorizedUser(ctx);
+    const identity = await requireAuthorizedUser(ctx);
     assertIsoDate(args.ratingDate, "ratingDate");
     if (!Number.isInteger(args.score) || args.score < 1 || args.score > 10) {
       throw new Error("Alertness must be a whole number from 1 to 10.");
@@ -158,7 +141,7 @@ export const saveAlertness = mutation({
     const now = Date.now();
     const existing = await ctx.db
       .query("alertnessRatings")
-      .withIndex("by_date", (q) => q.eq("ratingDate", args.ratingDate))
+      .withIndex("by_owner_date", (q) => q.eq("ownerSubject", identity.subject).eq("ratingDate", args.ratingDate))
       .unique();
     const payload = {
       score: args.score,
@@ -175,6 +158,7 @@ export const saveAlertness = mutation({
     return await ctx.db.insert("alertnessRatings", {
       ...payload,
       ratingDate: args.ratingDate,
+      ownerSubject: identity.subject,
       recordedAt: now,
     });
   },

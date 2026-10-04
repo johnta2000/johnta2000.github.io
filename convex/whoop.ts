@@ -31,19 +31,8 @@ type WhoopSleepPage = {
   next_token?: string;
 };
 
-async function requireAuthorizedIdentity(ctx: { auth: any }) {
-  const identity = await ctx.auth.getUserIdentity();
-  const email = identity?.email?.trim().toLowerCase();
-  const allowedEmails = new Set(
-    (process.env.SLEEP_ALLOWED_EMAIL || "")
-      .split(",")
-      .map((value) => value.trim().toLowerCase())
-      .filter(Boolean),
-  );
-  if (!identity || !email || !allowedEmails.has(email)) {
-    throw new Error("This email is not authorized for the sleep dashboard.");
-  }
-  return identity;
+async function requireAuthorizedIdentity(ctx: any) {
+  return ctx.runQuery(internal.sleepAccess.authorize, {});
 }
 
 export const beginConnect = action({

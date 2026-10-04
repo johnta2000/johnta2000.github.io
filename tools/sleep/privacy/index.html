@@ -133,10 +133,7 @@
       </p>
       <div class="notice">
         <strong>Current access:</strong> Daylight is a private personal-use
-        dashboard. Access is limited to approved sign-in accounts and the
-        operator. Those approved accounts share access to the stored dashboard
-        dataset. Separate friend accounts and live sharing controls are not
-        available yet; the Groups view contains fictional examples only.
+        dashboard. Access requires sign-in and either operator approval or a valid group invitation. Each account has its own private sleep history and check-ins. The operator administers the backend and can access stored data for support and maintenance. Group members can see only the WHOOP sleep metrics and history window that each person explicitly chooses to share. Demo mode uses fictional data.
       </div>
       <section>
         <h2>What Daylight collects</h2>
@@ -177,7 +174,7 @@
           sleep to your own alertness check-ins. WHOOP syncing can run when you
           request it and automatically in the background. The integration
           currently requests up to one year of sleep history. Connecting WHOOP
-          does not activate friend sharing.
+          does not activate friend sharing by itself. When creating or joining a group, you can choose to share time asleep, sleep performance, and/or sleep efficiency for a rolling history window. Sharing also covers future synced nights and future members of that group. No metrics are selected by default. Personal check-in notes, account credentials, and unselected health metrics are not returned in group views.
         </p>
       </section>
       <section>
@@ -215,6 +212,9 @@
         </p>
       </section>
       <section>
+        <h2>Groups and invitations</h2>
+        <p>Group owners can create single-use invitations that expire after seven days, revoke unused invitations, remove members, or close the group. Treat an invitation like a private access link: anyone signed in who receives it can accept it before it is used or expires. The backend stores a hash of the invitation token. Your browser keeps a pending invitation in session storage during sign-in.</p>
+        <p>You can change your sharing choices, uncheck all metrics to stop sharing, or leave a group. These changes block subsequent group reads; they cannot erase information someone has already viewed or copied. Leaving a group or being removed does not delete your private history or disconnect your WHOOP account. Membership and invitation records may be retained to operate the service.</p>
         <h2>Retention and disconnecting</h2>
         <p>
           Disconnecting WHOOP in Daylight removes the stored connection and

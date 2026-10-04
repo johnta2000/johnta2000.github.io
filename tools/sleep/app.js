@@ -84,6 +84,7 @@ const $ = (selector) => document.querySelector(selector);
 init().catch((error) => showAuthError(error));
 
 async function init() {
+  captureSleepInvite();
   buildRatingScale();
   els.manualDate.value = todayPacific();
   els.heroDate.textContent = formatLongDate(todayPacific());
@@ -98,6 +99,7 @@ async function init() {
 }
 
 function bindEvents() {
+  bindGroupEvents();
   $("#previewButton").addEventListener("click", startPreview);
   $("#retryLoad").addEventListener("click", loadDashboard);
   document
@@ -183,6 +185,7 @@ async function unlockDashboard() {
   els.authStatus.hidden = false;
   els.authStatus.textContent = "Verifying your account…";
   try {
+    if (pendingSleepInvite) { await reviewSleepInvite(); return; }
     await convexQuery("sleep:verify", {});
     if (isDemo) return;
     els.lastUpdated.textContent = "Private workspace";
@@ -190,6 +193,7 @@ async function unlockDashboard() {
     els.app.hidden = false;
     await loadDashboard();
     await initializeWhoop();
+    await initializeGroups();
   } catch (error) {
     console.error(error);
     showAuthError(error);
@@ -214,7 +218,9 @@ function showAuthError(error) {
   els.gate.hidden = false;
   els.authStatus.hidden = false;
   els.authSignOut.hidden = !window.Clerk?.isSignedIn;
-  if (/not authorized/i.test(message)) {
+  if (/invitation is required/i.test(message)) {
+    els.authStatus.textContent = "Ask a group owner for a Daylight invitation, then open their link to join.";
+  } else if (/not authorized/i.test(message)) {
     els.authStatus.textContent =
       "This Clerk account is signed in, but it is not approved for this private dashboard.";
   } else if (
@@ -371,6 +377,7 @@ function readableWhoopError(error) {
 }
 
 function startPreview() {
+  resetGroupsPreview();
   isDemo = true;
   demoData =
     new URLSearchParams(location.search).get("demo") === "empty"
@@ -384,6 +391,8 @@ function startPreview() {
   els.lastUpdated.textContent = "Sample data";
   els.lockButton.textContent = "Exit preview ↗";
   setWhoopConnectionState({ connected: false });
+  $("#groupToolbar").hidden = true;
+  $(".group-preview-label").hidden = false;
   renderDashboard();
 }
 
@@ -1712,6 +1721,8 @@ function escapeHtml(value) {
 }
 
 function drawGroupChart() {
+  $("#friendSample").hidden = !isDemo && !liveGroup;
+  if (!isDemo && !liveGroup) return;
   if (!groupSample) groupSample = Daylight.sampleGroup(todayPacific());
   const metric = $("#groupMetric").value;
   const metricName = $("#groupMetric").selectedOptions[0].textContent;
@@ -1720,7 +1731,7 @@ function drawGroupChart() {
   $("#groupMetricHeading").textContent = metricName;
   $("#groupBaselineNote").textContent = `Compared with each person’s previous ${selectedDays} days. Only tracked nights count.`;
   if (!$("#groupMembers").children.length) {
-    $("#groupMembers").innerHTML = groupSample.map(member => `<button type="button" data-member="${member.id}" aria-pressed="true" style="--member-color:${member.color}"><span class="group-member-name"><svg width="22" height="12" aria-hidden="true"><line x1="0" x2="22" y1="6" y2="6" stroke="currentColor" stroke-width="3" stroke-dasharray="${member.dash}"/></svg>${escapeHtml(member.name.replace(' (sample)', ''))}</span><strong class="group-member-value"></strong></button>`).join("");
+    $("#groupMembers").innerHTML = groupSample.map(member => `<button type="button" data-member="${member.id}" aria-pressed="${visibleGroupMembers.has(member.id)}" style="--member-color:${member.color}"><span class="group-member-name"><svg width="22" height="12" aria-hidden="true"><line x1="0" x2="22" y1="6" y2="6" stroke="currentColor" stroke-width="3" stroke-dasharray="${member.dash}"/></svg>${escapeHtml(member.name.replace(' (sample)', ''))}</span><strong class="group-member-value"></strong></button>`).join("");
     $("#groupMembers").querySelectorAll("button").forEach(button => button.addEventListener("click", () => {
       const id = button.dataset.member;
       if (visibleGroupMembers.has(id)) visibleGroupMembers.delete(id); else visibleGroupMembers.add(id);
@@ -1764,7 +1775,7 @@ function drawGroupChart() {
   $("#groupEmpty").hidden = groupHistory.members.length > 0;
   $("#groupSummaryRows").innerHTML = groupHistory.members.map(member => {
     const delta = member.delta === null ? "Not enough history" : metric === "durationMinutes" ? `${member.delta > 0 ? "+" : member.delta < 0 ? "−" : ""}${Math.abs(Math.round(member.delta))} min` : `${member.delta > 0 ? "+" : member.delta < 0 ? "−" : ""}${Math.abs(member.delta).toFixed(1)} pts`;
-    return `<tr><th scope="row"><span class="group-person-marker" style="background:${member.color}"></span>${escapeHtml(member.name.replace(' (sample)', ''))}</th><td>${formatGroupValue(member.average)}</td><td>${delta}<small class="group-coverage">${member.previousCount} / ${selectedDays} previous nights</small></td><td>${member.count} / ${selectedDays}</td></tr>`;
+    return `<tr><th scope="row"><span class="group-person-marker" style="background:${member.color}"></span>${escapeHtml(member.name.replace(' (sample)', ''))}</th><td>${formatMemberValue(member, member.average)}</td><td>${delta}<small class="group-coverage">${member.previousCount} / ${selectedDays} previous nights</small></td><td>${member.count} / ${selectedDays}</td></tr>`;
   }).join("") || '<tr><td colspan="4">Select a person above to compare.</td></tr>';
   const selected = groupHistory.dates.indexOf(groupSelectedDate);
   showGroupDay(selected >= 0 ? selected : selectedDays - 1);
@@ -1787,14 +1798,20 @@ function showGroupDay(index, tooltip = false) {
   $("#groupActivePoints").innerHTML = groupHistory.members.filter(member => Number.isFinite(member.points[index].value)).map(member => `<circle cx="${x(index)}" cy="${y(member.points[index].value)}" r="6" fill="${member.color}" stroke="white" stroke-width="2.5"/>`).join("");
   $("#groupMembers").querySelectorAll("button").forEach(button => {
     const member = groupHistory.members.find(member => member.id === button.dataset.member);
-    button.querySelector(".group-member-value").textContent = member ? formatGroupValue(member.points[index].value) : "Hidden";
+    button.querySelector(".group-member-value").textContent = member ? formatMemberValue(member, member.points[index].value) : "Hidden";
   });
-  const rows = groupHistory.members.map(member => `<div><span><i class="group-person-marker" style="background:${member.color}"></i>${escapeHtml(member.name.replace(' (sample)', ''))}</span><strong>${formatGroupValue(member.points[index].value)}</strong></div>`).join("");
+  const rows = groupHistory.members.map(member => `<div><span><i class="group-person-marker" style="background:${member.color}"></i>${escapeHtml(member.name.replace(' (sample)', ''))}</span><strong>${formatMemberValue(member, member.points[index].value)}</strong></div>`).join("");
   const tip = $("#groupTooltip");
   tip.innerHTML = `<p>${formatTableDate(groupSelectedDate)}</p>${rows}`;
   tip.hidden = !tooltip || !groupHistory.members.length;
   const tipWidth = Math.min(210, w - 16);
   tip.style.width = `${tipWidth}px`;
   tip.style.left = `${clamp(x(index) + (x(index) < w / 2 ? 18 : -tipWidth - 18), 8, w - tipWidth - 8)}px`;
-  $("#groupChartStatus").textContent = `${formatTableDate(groupSelectedDate)}. ${groupHistory.members.map(member => `${member.name}: ${formatGroupValue(member.points[index].value)}`).join('. ')}`;
+  $("#groupChartStatus").textContent = `${formatTableDate(groupSelectedDate)}. ${groupHistory.members.map(member => `${member.name}: ${formatMemberValue(member, member.points[index].value)}`).join('. ')}`;
+}
+
+function formatMemberValue(member, value) {
+  const sharing = !isDemo && liveGroup?.members.find(item => item.id === member.id);
+  if (sharing && !sharing.metrics.includes($("#groupMetric").value)) return "Not shared";
+  return formatGroupValue(value);
 }

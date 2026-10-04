@@ -12,20 +12,7 @@ const importedWhoopNight = v.object({
   wokeAt: v.optional(v.string()),
 });
 
-async function requireAuthorizedIdentity(ctx: { auth: any }) {
-  const identity = await ctx.auth.getUserIdentity();
-  const email = identity?.email?.trim().toLowerCase();
-  const allowedEmails = new Set(
-    (process.env.SLEEP_ALLOWED_EMAIL || "")
-      .split(",")
-      .map((value) => value.trim().toLowerCase())
-      .filter(Boolean),
-  );
-  if (!identity || !email || !allowedEmails.has(email)) {
-    throw new Error("This email is not authorized for the sleep dashboard.");
-  }
-  return identity;
-}
+import { requireSleepUser as requireAuthorizedIdentity } from "./sleepAccess";
 
 export const status = query({
   args: {},
@@ -133,12 +120,13 @@ export const upsertSleepNights = internalMutation({
     for (const night of args.nights) {
       const existing = await ctx.db
         .query("sleepNights")
-        .withIndex("by_source_date", (q) =>
-          q.eq("source", "whoop").eq("sleepDate", night.sleepDate),
+        .withIndex("by_owner_source_date", (q) =>
+          q.eq("ownerSubject", args.clerkSubject).eq("source", "whoop").eq("sleepDate", night.sleepDate),
         )
         .unique();
       const payload = {
         ...night,
+        ownerSubject: args.clerkSubject,
         source: "whoop" as const,
         scoreKind: "native" as const,
         importBatchId: args.importBatchId,
