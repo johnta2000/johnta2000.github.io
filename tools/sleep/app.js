@@ -1771,7 +1771,7 @@ function drawGroupChart() {
   $("#groupEmpty").textContent = !groupHistory.members.length
     ? "Select a person above to show their history."
     : !isDemo && !liveGroup.members.some(member => member.metrics.includes(metric))
-      ? "This metric isn’t shared yet. Open Your sharing to choose what to share."
+      ? "This metric isn’t shared yet. Use Edit sharing in Members below to choose what to share."
       : "No shared data in this period. Enable recovery & activity in Connections, or choose a longer sharing window.";
   $("#groupSummaryRows").innerHTML = groupHistory.members.map(member => {
     const deltaUnit = unit === '%' ? 'pts' : unit === '/21' ? 'strain' : unit;

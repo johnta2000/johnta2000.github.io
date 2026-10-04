@@ -17,7 +17,7 @@
     <meta name="theme-color" content="#f7f8fa" />
     <title>Daylight — Your sleep, in perspective</title>
     <link rel="stylesheet" href="/assets/css/searchable-select.css" />
-    <link rel="stylesheet" href="./styles.css?v=20261004-1" />
+    <link rel="stylesheet" href="./styles.css?v=20261004-2" />
   </head>
   <body>
     <section id="accessGate" class="access-gate" aria-labelledby="gateTitle">
@@ -360,15 +360,9 @@
           </article>
 
           <section data-panels="friends" hidden>
-            <div id="groupToolbar" class="group-toolbar" hidden><label>Group<select id="groupSelect" aria-label="Your groups"></select></label><div><button id="createGroup" type="button" class="secondary-button">New group</button><button id="editSharing" type="button" class="secondary-button" hidden>Your sharing</button><button id="inviteFriend" type="button" class="primary-button" hidden>Invite friend</button></div></div>
+            <div id="groupToolbar" class="group-toolbar" hidden><label>Group<select id="groupSelect" aria-label="Your groups"></select></label></div>
             <p id="groupMessage" role="status" class="small-note"></p>
             <div id="groupEmptyState" class="panel" hidden><h2>Your first group</h2><p>Create a private group, then send a friend an invitation. Everyone chooses what to share.</p><button id="createFirstGroup" type="button" class="primary-button">Create a group</button></div>
-            <div id="newInvite" class="panel invite-result" hidden><h3>Your invitation is ready</h3><p>One person can use this link. It expires in 7 days. Only send it to the friend you want to invite.</p><label for="inviteLink">Invitation link</label><div><input id="inviteLink" type="text" readonly><button id="copyInvite" class="primary-button" type="button">Copy link</button></div><p id="copyInviteStatus" role="status"></p></div>
-            <section id="invitationManager" class="panel invitation-manager" aria-labelledby="invitationTitle" hidden>
-              <div class="panel-heading"><div><h2 id="invitationTitle">Invitations</h2><p class="small-note">Each link admits one person and expires after 7 days.</p></div><button id="manageInviteFriend" type="button" class="secondary-button">New invitation</button></div>
-              <div id="invitationFilters" class="invitation-filters" role="group" aria-label="Filter invitations"></div>
-              <div id="invitationRows"></div><p id="invitationMessage" class="small-note" role="status"></p>
-            </section>
             <p class="group-preview-label"><span class="tag">SAMPLE GROUP</span> Fictional data · Sign in to compare with your friends.</p>
             <article id="friendSample" class="panel group-history">
               <div class="panel-heading">
@@ -389,8 +383,17 @@
               <div id="standingsRows" class="standings-rows"></div>
               <p class="small-note">All group members · Today is excluded while data is still coming in. Ties share a rank.</p>
             </section>
-            <section id="groupManagement" class="panel group-management" hidden><h3>Members</h3><div id="groupMemberList"></div><button id="leaveGroup" type="button" class="text-button">Leave group</button></section>
-            <details class="group-onboarding"><summary>How will friends join?</summary><p>Open your invitation → sign in → choose metrics and history to share → join → connect their own WHOOP. No developer accounts or API keys needed. You can stop sharing at any time from Your sharing, or leave the group. Invitations expire after seven days and can be used once.</p></details>
+            <section id="groupManagement" class="panel group-management" aria-labelledby="membersTitle" hidden>
+              <div class="panel-heading"><div><h2 id="membersTitle">Members</h2><p class="small-note">Each person controls what they share with this group.</p></div><button id="inviteFriend" type="button" class="secondary-button" hidden>Invite friend</button></div>
+              <div id="groupMemberList"></div>
+            <div id="newInvite" class="panel invite-result" hidden><h3>Your invitation is ready</h3><p>One person can use this link. It expires in 7 days. Only send it to the friend you want to invite.</p><label for="inviteLink">Invitation link</label><div><input id="inviteLink" type="text" readonly><button id="copyInvite" class="primary-button" type="button">Copy link</button></div><p id="copyInviteStatus" role="status"></p></div>
+            <section id="invitationManager" class="invitation-manager" aria-labelledby="invitationTitle" hidden>
+              <div class="panel-heading"><div><h3 id="invitationTitle">Invitations</h3><p class="small-note">Each link admits one person and expires after 7 days.</p></div></div>
+              <div id="invitationFilters" class="invitation-filters" role="group" aria-label="Filter invitations"></div>
+              <div id="invitationRows"></div><p id="invitationMessage" class="small-note" role="status"></p>
+            </section>
+              <div class="group-management-footer"><details class="group-onboarding"><summary>How invitations work</summary><p>Open an invitation → sign in → choose what to share → connect WHOOP. Each link works once and expires after 7 days. Use Edit sharing on your member row to change your metrics or stop sharing.</p></details><button id="leaveGroup" type="button" class="text-button">Leave group</button></div>
+            </section>
           </section>
 
           <section data-panels="connections" hidden>
@@ -626,9 +629,9 @@
       <p id="invitationError" role="alert"></p><button id="saveInvitation" type="submit" class="primary-button">Create link</button>
     </form></dialog>
     <dialog id="groupDialog" class="group-dialog"><form id="groupForm"><div class="panel-heading"><h2 id="groupDialogTitle">Create a group</h2><button id="cancelGroupDialog" type="button" class="text-button">Cancel</button></div><p id="groupDialogIntro"></p><label id="groupNameLabel">Group name<input id="groupNameInput" maxlength="60" type="text"></label><label>Your display name<input id="groupDisplayName" maxlength="40" required type="text" autocomplete="nickname"></label><fieldset id="groupSharingOptions"><legend>Share with this group</legend><p>Nothing is shared unless you select it. Your notes always stay private.</p><label><input type="checkbox" name="sharedMetric" value="durationMinutes"> Time asleep</label><label><input type="checkbox" name="sharedMetric" value="score"> Sleep performance</label><label><input type="checkbox" name="sharedMetric" value="efficiency"> Sleep efficiency</label></fieldset><label>History to share<select id="groupShareDays" aria-label="History to share"><option value="7">Last 7 days</option><option value="28">Last 28 days</option><option value="90">Last 90 days</option><option value="180">Last 180 days</option></select></label><p class="small-note">This is a rolling window that includes future synced days. New members of this group can see the metrics you share.</p><p id="groupFormError" role="alert"></p><button id="saveGroupForm" type="submit" class="primary-button">Create group</button></form></dialog>
-    <script defer src="./model.js?v=20261004-1"></script>
-    <script defer src="./comparison.js?v=20261004-1"></script>
-    <script defer src="./groups.js?v=20261004-1"></script>
-    <script defer src="./app.js?v=20261004-1"></script>
+    <script defer src="./model.js?v=20261004-2"></script>
+    <script defer src="./comparison.js?v=20261004-2"></script>
+    <script defer src="./groups.js?v=20261004-2"></script>
+    <script defer src="./app.js?v=20261004-2"></script>
   </body>
 </html>

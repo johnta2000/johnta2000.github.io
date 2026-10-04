@@ -25,17 +25,20 @@ function bindGroupEvents() {
     ['Recovery', ['recovery','hrv','restingHeartRate']], ['Activity', ['strain','workoutMinutes','workoutCount']],
   ].map(([title,keys]) => `<div class="sharing-category"><h3>${title}</h3><div>${keys.map(key => `<label><input type="checkbox" name="sharedMetric" value="${key}"> ${Daylight.metrics[key].label}</label>`).join('')}</div></div>`).join('');
 
-  $('#createGroup').addEventListener('click', () => openGroupForm('create'));
   $('#createFirstGroup').addEventListener('click', () => openGroupForm('create'));
-  $('#editSharing').addEventListener('click', () => openGroupForm('sharing'));
   $('#inviteFriend').addEventListener('click', () => openInvitationForm());
-  $('#manageInviteFriend').addEventListener('click', () => openInvitationForm());
   $('#cancelInvitation').addEventListener('click', () => $('#invitationDialog').close());
   $('#invitationForm').addEventListener('submit', createGroupInvitation);
   $('#reviewInviteButton').addEventListener('click', reviewSleepInvite);
   $('#cancelGroupDialog').addEventListener('click', () => $('#groupDialog').close());
   $('#groupForm').addEventListener('submit', saveGroupForm);
   $('#groupSelect').addEventListener('change', () => {
+    if ($('#groupSelect').value === '__create__') {
+      $('#groupSelect').value = activeGroupId || '';
+      SearchableSelect.enhance($('#groupSelect')).sync();
+      openGroupForm('create');
+      return;
+    }
     activeGroupId = $('#groupSelect').value;
     sessionStorage.setItem('daylightActiveGroup', activeGroupId);
     $('#newInvite').hidden = true;
@@ -129,7 +132,7 @@ async function initializeGroups() {
     activeGroupId = activeGroupId || sessionStorage.getItem('daylightActiveGroup');
     if (!groups.some(group => group.id === activeGroupId)) activeGroupId = groups[0]?.id || null;
     const select = $('#groupSelect');
-    select.innerHTML = groups.map(group => `<option value="${escapeHtml(group.id)}">${escapeHtml(group.name)}</option>`).join('');
+    select.innerHTML = groups.map(group => `<option value="${escapeHtml(group.id)}">${escapeHtml(group.name)}</option>`).join('') + '<option value="__create__">＋ New group</option>';
     select.disabled = !groups.length;
     select.value = activeGroupId || '';
     SearchableSelect.enhance(select).sync();
@@ -143,7 +146,7 @@ function clearLiveGroup() {
   liveGroup = null; groupSample = null; groupHistory = null;
   $('#friendSample').hidden = true; $('#groupStandings').hidden = true; $('#groupManagement').hidden = true;
   $('#invitationManager').hidden = true; $('#newInvite').hidden = true;
-  $('#inviteFriend').hidden = true; $('#editSharing').hidden = true;
+  $('#inviteFriend').hidden = true;
   $('#groupPlot').replaceChildren(); $('#groupSummaryRows').replaceChildren(); $('#groupMembers').replaceChildren();
 }
 async function refreshLiveGroup() {
@@ -161,10 +164,10 @@ async function refreshLiveGroup() {
     $('#groupMembers').replaceChildren();
     $('#groupMessage').textContent = data.members.length === 1 ? 'Your group is ready. Invite a friend to start comparing.' : '';
     $('#inviteFriend').hidden = !data.owner;
-    $('#editSharing').hidden = false;
     $('#friendSample').hidden = false;
     $('#groupManagement').hidden = false;
-    $('#groupMemberList').innerHTML = data.members.map(member => `<div class="group-member-row"><span><strong>${escapeHtml(member.name)}${member.self ? ' (you)' : ''}</strong><small>${member.metrics.length ? `Sharing ${member.metrics.length} ${member.metrics.length === 1 ? 'metric' : 'metrics'} · last ${member.shareDays} days` : 'Not sharing data'}</small></span>${data.owner && !member.self ? `<button type="button" class="text-button" data-remove-member="${escapeHtml(member.id)}">Remove</button>` : ''}</div>`).join('');
+    $('#groupMemberList').innerHTML = data.members.map(member => `<div class="group-member-row${member.self ? ' is-self' : ''}"><div class="group-member-details"><strong>${escapeHtml(member.name)}${member.self ? ' <span class="member-you">You</span>' : ''}</strong><small>${member.metrics.length ? `Last ${member.shareDays} days · ${member.metrics.length} ${member.metrics.length === 1 ? 'metric' : 'metrics'}` : 'Not sharing data'}</small><p class="member-shared-metrics">${member.metrics.length ? member.metrics.map(key => escapeHtml(Daylight.metrics[key]?.label || key)).join(' · ') : member.self ? 'Choose the metrics you want others to see.' : 'This person has not shared any metrics.'}</p></div>${member.self ? '<button type="button" id="editSharing" class="secondary-button">Edit sharing</button>' : data.owner ? `<button type="button" class="text-button" data-remove-member="${escapeHtml(member.id)}">Remove</button>` : ''}</div>`).join('');
+    $('#editSharing')?.addEventListener('click', () => openGroupForm('sharing'));
     $('#groupMemberList').querySelectorAll('[data-remove-member]').forEach(button => button.addEventListener('click', () => {
       if (confirm('Remove this person from the group? Their private records will remain in their account.')) groupOperation(async () => { await convexMutation('sleepGroups:removeMember', {groupId: id, memberId: button.dataset.removeMember}); await refreshLiveGroup(); });
     }));
