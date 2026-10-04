@@ -160,6 +160,7 @@
     workoutMinutes: {label: "Workout time", unit: "min"}, workoutCount: {label: "Workouts", unit: "workouts"},
   };
   const competitions = {
+    durationMinutes: {label: "Time asleep", metric: "durationMinutes", mode: "average", description: "Average time asleep per night, longest first. At least 4 of 7 nights to rank."},
     score: {label: "Sleep performance", metric: "score", mode: "average", description: "Average sleep performance. At least 4 of 7 days to rank."},
     recovery: {label: "Recovery", metric: "recovery", mode: "average", description: "Average recovery score. At least 4 of 7 days to rank."},
     consistency: {label: "Sleep consistency", metric: "consistency", mode: "average", description: "Average WHOOP sleep consistency. At least 4 of 7 days to rank."},
@@ -178,7 +179,7 @@
       const eligible = shared && data.count >= (rule.mode === "total" ? 7 : 4) && (!baseline || data.previousCount >= 4) && (rule.mode !== "percentChange" || data.previous > 0);
       const raw = !eligible ? null : rule.mode === "total" ? data.average * data.count : rule.mode === "delta" ? data.delta : rule.mode === "percentChange" ? data.delta / data.previous * 100 : data.average;
       // Rank at displayed precision, with competition-style ties (1, 1, 3).
-      const result = raw === null ? null : rule.mode === "total" ? Math.round(raw) : Math.round(raw * 10) / 10;
+      const result = raw === null ? null : (rule.mode === "total" || rule.metric === "durationMinutes") ? Math.round(raw) : Math.round(raw * 10) / 10;
       return {...member, ...data, result, eligible, reason: !shared ? "Not shared" : baseline && data.previousCount < 4 ? "Needs previous-week history" : "Needs more tracked days"};
     }).sort((a,b) => Number(b.eligible) - Number(a.eligible) || (b.result ?? 0) - (a.result ?? 0) || a.name.localeCompare(b.name));
     let rank = 0;

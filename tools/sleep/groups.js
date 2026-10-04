@@ -17,9 +17,7 @@ function captureSleepInvite() {
 function bindGroupEvents() {
   $('#groupMetric').innerHTML = Object.entries(Daylight.metrics).map(([key, item]) => `<option value="${key}">${item.label}</option>`).join('');
   SearchableSelect.enhance($('#groupMetric')).sync();
-  $('#competitionMetric').innerHTML = Object.entries(Daylight.competitions).map(([key, item]) => `<option value="${key}">${item.label}</option>`).join('');
-  SearchableSelect.enhance($('#competitionMetric')).sync();
-  $('#competitionMetric').addEventListener('change', renderStandings);
+  bindStandingsControls();
   $('#groupSharingOptions').innerHTML = '<legend>Share with this group</legend><p>Only checked metrics are shared. Your notes stay private.</p>' + [
     ['Sleep', ['durationMinutes','score','efficiency','deepMinutes','remMinutes','consistency']],
     ['Recovery', ['recovery','hrv','restingHeartRate']], ['Activity', ['strain','workoutMinutes','workoutCount']],
@@ -305,17 +303,67 @@ function resetGroupsPreview() {
   $('#groupsPreviewBadge').hidden = false;
 }
 
+const DEFAULT_STANDINGS = ['durationMinutes', 'score', 'recovery', 'workoutMinutes'];
+let selectedStandings = [...DEFAULT_STANDINGS];
+try {
+  const saved = JSON.parse(localStorage.getItem('daylightStandingsMetrics'));
+  if (Array.isArray(saved)) {
+    const valid = [...new Set(saved.filter(key => Object.hasOwn(Daylight.competitions, key)))];
+    if (valid.length) selectedStandings = valid;
+  }
+} catch {}
+function bindStandingsControls() {
+  $('#customizeStandings').addEventListener('click', () => {
+    $('#standingsOptions').innerHTML = Object.entries(Daylight.competitions).map(([key, rule]) => `<label class="standings-option"><input type="checkbox" name="standingMetric" value="${key}" ${selectedStandings.includes(key) ? 'checked' : ''}><span><strong>${rule.label}</strong><small>${rule.description}</small></span></label>`).join('');
+    $('#standingsSearch').value = '';
+    $('#standingsSearchEmpty').hidden = true;
+    $('#standingsError').textContent = '';
+    updateStandingsSelection();
+    $('#standingsDialog').showModal();
+  });
+  $('#cancelStandings').addEventListener('click', () => $('#standingsDialog').close());
+  $('#standingsOptions').addEventListener('change', updateStandingsSelection);
+  $('#standingsSearch').addEventListener('input', filterStandingsOptions);
+  $('#resetStandings').addEventListener('click', () => {
+    $('#standingsOptions').querySelectorAll('input').forEach(input => input.checked = DEFAULT_STANDINGS.includes(input.value));
+    $('#standingsSearch').value = '';
+    filterStandingsOptions();
+    updateStandingsSelection();
+  });
+  $('#standingsForm').addEventListener('submit', event => {
+    event.preventDefault();
+    const selected = [...$('#standingsOptions').querySelectorAll('input:checked')].map(input => input.value);
+    if (!selected.length) { $('#standingsError').textContent = 'Choose at least one metric.'; return; }
+    selectedStandings = selected;
+    try { if (!isDemo) localStorage.setItem('daylightStandingsMetrics', JSON.stringify(selected)); } catch {}
+    renderStandings();
+    $('#standingsDialog').close();
+  });
+}
+function updateStandingsSelection() {
+  const count = $('#standingsOptions').querySelectorAll('input:checked').length;
+  $('#standingsSelection').textContent = `${count} ${count === 1 ? 'comparison' : 'comparisons'} selected`;
+  $('#standingsError').textContent = '';
+}
+function filterStandingsOptions() {
+  const query = $('#standingsSearch').value.trim().toLowerCase();
+  const options = [...$('#standingsOptions').querySelectorAll('label')];
+  options.forEach(option => option.hidden = !option.textContent.toLowerCase().includes(query));
+  $('#standingsSearchEmpty').hidden = options.some(option => !option.hidden);
+}
 function renderStandings() {
   const panel = $('#groupStandings');
   panel.hidden = !groupSample || (!isDemo && !liveGroup);
   if (panel.hidden) return;
-  const board = Daylight.standings(groupSample, $('#competitionMetric').value, todayPacific());
-  $('#standingsPeriod').textContent = `${formatShortDate(board.start)} – ${formatShortDate(board.end)} · LAST 7 COMPLETE DAYS`;
-  $('#standingsRule').textContent = board.rule.description;
-  const baseline = ['delta','percentChange'].includes(board.rule.mode);
-  $('#standingsRows').innerHTML = board.entries.map(member => {
-    const value = !member.eligible ? '—' : baseline ? `${member.result > 0 ? '+' : ''}${member.result.toFixed(1)}${board.rule.mode === 'percentChange' ? '%' : ' pts'}` : board.rule.mode === 'total' ? `${Math.round(member.result)} min` : formatMetricValue(member.result, board.rule.metric);
-    return `<div class="standing-row${member.rank === 1 ? ' standing-leader' : ''}"><span class="standing-rank">${member.rank || '—'}</span><span class="standing-name"><i class="group-person-marker" style="background:${member.color}"></i>${escapeHtml(member.name.replace(' (sample)', ''))}<small>${member.eligible ? `${member.count}/7 days${baseline ? ` · ${member.previousCount}/7 previous days` : ''}` : `${member.reason}${member.reason === 'Not shared' ? '' : ` · ${member.count}/7 days`}`}</small></span><strong>${value}</strong></div>`;
+  const boards = selectedStandings.map(key => ({key, ...Daylight.standings(groupSample, key, todayPacific())}));
+  $('#standingsPeriod').textContent = `${formatShortDate(boards[0].start)} – ${formatShortDate(boards[0].end)} · LAST 7 COMPLETE DAYS`;
+  $('#standingsBoards').innerHTML = boards.map(board => {
+    const baseline = ['delta','percentChange'].includes(board.rule.mode);
+    const rows = board.entries.map(member => {
+      const value = !member.eligible ? '—' : baseline ? `${member.result > 0 ? '+' : ''}${member.result.toFixed(1)}${board.rule.mode === 'percentChange' ? '%' : ' pts'}` : board.rule.mode === 'total' ? `${Math.round(member.result)} min` : formatMetricValue(member.result, board.rule.metric);
+      return `<li class="standing-row${member.rank === 1 ? ' standing-leader' : ''}"><span class="standing-rank" aria-label="${member.rank ? `Rank ${member.rank}` : 'Unranked'}">${member.rank || '—'}</span><span class="standing-name"><span><i class="group-person-marker" style="background:${member.color}"></i>${escapeHtml(member.name.replace(' (sample)', ''))}</span><small>${member.eligible ? `${member.count}/7 ${board.rule.metric === 'durationMinutes' ? 'nights' : 'days'}${baseline ? ` · ${member.previousCount}/7 previous days` : ''}` : `${member.reason}${member.reason === 'Not shared' ? '' : ` · ${member.count}/7 days`}`}</small></span><strong>${value}</strong></li>`;
+    }).join('');
+    return `<article class="standings-card" aria-labelledby="standingTitle-${board.key}"><div class="standings-card-heading"><h3 id="standingTitle-${board.key}">${board.rule.label}</h3><p>${board.rule.description}</p></div><ol class="standings-rows">${rows}</ol></article>`;
   }).join('');
 }
 function formatMetricValue(value, metric) {

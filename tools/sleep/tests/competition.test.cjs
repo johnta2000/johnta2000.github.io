@@ -32,3 +32,18 @@ test('workout aggregation deduplicates records and ignores pending workouts',()=
  const result=buildWhoopDays([],[],[],[w,w,{...w,id:'p',start:'2026-10-03T20:00:00Z',score_state:'PENDING_SCORE'}],'read:workout',Date.parse('2026-10-04T00:00:00Z'));
  assert.equal(result.days[0].sleepDate,'2026-10-01');assert.equal(result.days[0].workoutMinutes,60);assert.equal(result.days[0].workoutCount,1);assert.equal(result.days.find(d=>d.sleepDate==='2026-10-03').workoutMinutes,undefined);
 });
+
+test('sleep duration standings use nightly averages, round minute ties, and honor sharing and coverage',()=>{
+ const a=member('a',Array.from({length:14},()=>({durationMinutes:480.2})),{metrics:['durationMinutes']});
+ const b=member('b',Array.from({length:14},()=>({durationMinutes:480.4})),{metrics:['durationMinutes']});
+ const c=member('c',Array.from({length:14},()=>({durationMinutes:420})),{metrics:['durationMinutes']});
+ const hidden={...a,id:'hidden',name:'hidden',metrics:[]};
+ const sparse={...a,id:'sparse',name:'sparse',nights:a.nights.slice(-3)};
+ a.nights.push({sleepDate:'2026-10-01',source:'whoop',durationMinutes:900});
+ const board=D.standings([c,b,sparse,hidden,a],'durationMinutes','2026-10-01');
+ assert.equal(board.rule.metric,'durationMinutes');
+ assert.deepEqual(board.entries.slice(0,3).map(x=>[x.id,x.result,x.rank]),[['a',480,1],['b',480,1],['c',420,3]]);
+ assert.equal(board.entries.find(x=>x.id==='hidden').reason,'Not shared');
+ assert.equal(board.entries.find(x=>x.id==='sparse').eligible,false);
+ assert.equal(board.entries[0].count,7);
+});

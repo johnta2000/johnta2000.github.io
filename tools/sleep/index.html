@@ -17,7 +17,7 @@
     <meta name="theme-color" content="#f7f8fa" />
     <title>Daylight — Your sleep, in perspective</title>
     <link rel="stylesheet" href="/assets/css/searchable-select.css" />
-    <link rel="stylesheet" href="./styles.css?v=20261004-3" />
+    <link rel="stylesheet" href="./styles.css?v=20261004-4" />
   </head>
   <body>
     <section id="accessGate" class="access-gate" aria-labelledby="gateTitle">
@@ -378,10 +378,9 @@
               <div class="table-wrap"><table><caption class="sr-only">Selected members’ average, change from their own previous period, and data coverage</caption><thead><tr><th scope="col">Person</th><th scope="col" id="groupMetricHeading">Time asleep</th><th scope="col">Change vs. own previous period</th><th scope="col">Days tracked</th></tr></thead><tbody id="groupSummaryRows"></tbody></table></div>
             </article>
             <section id="groupStandings" class="panel group-standings" hidden>
-              <div class="panel-heading"><div><p class="eyebrow" id="standingsPeriod">LAST 7 COMPLETE DAYS</p><h2>Weekly standings</h2></div><label class="metric-picker"><span class="sr-only">Rank by</span><select id="competitionMetric" aria-label="Rank by"></select></label></div>
-              <p id="standingsRule" class="small-note"></p>
-              <div id="standingsRows" class="standings-rows"></div>
-              <p class="small-note">All group members · Today is excluded while data is still coming in. Ties share a rank.</p>
+              <div class="panel-heading"><div><p class="eyebrow" id="standingsPeriod">LAST 7 COMPLETE DAYS</p><h2>Weekly standings</h2></div><button id="customizeStandings" type="button" class="secondary-button">Choose metrics</button></div>
+              <div id="standingsBoards" class="standings-grid"></div>
+              <p class="small-note standings-footnote">All group members · Today is excluded while data is still coming in. Each metric has its own ranking. Ties share a rank.</p>
             </section>
             <section id="groupManagement" class="panel group-management" aria-labelledby="membersTitle" hidden>
               <div class="panel-heading"><div><h2 id="membersTitle">Members</h2><p class="small-note">Each person controls what they share with this group.</p></div><button id="inviteFriend" type="button" class="secondary-button" hidden>Invite friend</button></div>
@@ -616,6 +615,17 @@
       type="text/javascript"
     ></script>
     <script defer src="/assets/js/searchable-select.js"></script>
+    <dialog id="standingsDialog" class="group-dialog standings-dialog" aria-labelledby="standingsDialogTitle">
+      <form id="standingsForm">
+        <div class="panel-heading"><h2 id="standingsDialogTitle">Weekly comparisons</h2><button id="cancelStandings" type="button" class="text-button">Cancel</button></div>
+        <p class="small-note">Choose the standings you want to see. This changes your view, not what anyone shares.</p>
+        <label for="standingsSearch">Find a metric<input id="standingsSearch" type="search" placeholder="Search metrics" autocomplete="off"></label>
+        <div id="standingsOptions" class="standings-options"></div>
+        <p id="standingsSearchEmpty" class="small-note" hidden>No matching metrics. Try another search.</p>
+        <p id="standingsSelection" class="small-note" role="status"></p><p id="standingsError" role="alert"></p>
+        <div class="standings-dialog-actions"><button id="resetStandings" type="button" class="text-button">Restore defaults</button><button type="submit" class="primary-button">Apply</button></div>
+      </form>
+    </dialog>
     <dialog id="invitationDialog" class="group-dialog invitation-dialog" aria-labelledby="invitationDialogTitle" aria-describedby="invitationGroupName">
       <div class="invitation-dialog-header"><div><h2 id="invitationDialogTitle">Invite friends</h2><p id="invitationGroupName" class="small-note"></p></div><button id="cancelInvitation" class="text-button" type="button" autofocus>Close</button></div>
       <div class="invitation-dialog-body">
@@ -636,9 +646,9 @@
       </div>
     </dialog>
     <dialog id="groupDialog" class="group-dialog"><form id="groupForm"><div class="panel-heading"><h2 id="groupDialogTitle">Create a group</h2><button id="cancelGroupDialog" type="button" class="text-button">Cancel</button></div><p id="groupDialogIntro"></p><label id="groupNameLabel">Group name<input id="groupNameInput" maxlength="60" type="text"></label><label>Your display name<input id="groupDisplayName" maxlength="40" required type="text" autocomplete="nickname"></label><fieldset id="groupSharingOptions"><legend>Share with this group</legend><p>Nothing is shared unless you select it. Your notes always stay private.</p><label><input type="checkbox" name="sharedMetric" value="durationMinutes"> Time asleep</label><label><input type="checkbox" name="sharedMetric" value="score"> Sleep performance</label><label><input type="checkbox" name="sharedMetric" value="efficiency"> Sleep efficiency</label></fieldset><label>History to share<select id="groupShareDays" aria-label="History to share"><option value="7">Last 7 days</option><option value="28">Last 28 days</option><option value="90">Last 90 days</option><option value="180">Last 180 days</option></select></label><p class="small-note">This is a rolling window that includes future synced days. New members of this group can see the metrics you share.</p><p id="groupFormError" role="alert"></p><button id="saveGroupForm" type="submit" class="primary-button">Create group</button></form></dialog>
-    <script defer src="./model.js?v=20261004-3"></script>
-    <script defer src="./comparison.js?v=20261004-3"></script>
-    <script defer src="./groups.js?v=20261004-3"></script>
-    <script defer src="./app.js?v=20261004-3"></script>
+    <script defer src="./model.js?v=20261004-4"></script>
+    <script defer src="./comparison.js?v=20261004-4"></script>
+    <script defer src="./groups.js?v=20261004-4"></script>
+    <script defer src="./app.js?v=20261004-4"></script>
   </body>
 </html>

@@ -2162,3 +2162,33 @@ body:has(#invitationDialog[open]) { overflow:hidden; }
 }
 
 .invitation-dialog #invitationForm, .invitation-dialog #newInvite { scroll-margin-top:120px; }
+
+/* Several independent weekly comparisons, visible together. */
+.standings-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:18px; margin-top:22px; }
+.standings-card { min-width:0; border:1px solid #e2e8e3; border-radius:12px; padding:20px; background:#fff; }
+.standings-card-heading h3 { margin:0 0 8px; font-size:17px; }
+.standings-card-heading p { margin:0; color:var(--muted); font-size:12px; line-height:1.6; min-height:40px; }
+.standings-card .standings-rows { list-style:none; padding:0; margin:16px 0 0; }
+.standings-card .standing-row { gap:10px; padding:14px 10px; }
+.standings-card .standing-rank { flex:0 0 18px; width:18px; font-size:16px; }
+.standings-card .standing-name { min-width:0; font-size:13px; }
+.standings-card .standing-name > span { display:flex; align-items:center; gap:6px; overflow-wrap:anywhere; }
+.standings-card .group-person-marker { flex-shrink:0; }
+.standings-card .standing-name small { font-size:11px; line-height:1.5; }
+.standings-card .standing-row > strong { flex-shrink:0; font-size:18px; }
+.standings-footnote { margin:20px 0 0; }
+.standings-dialog .panel-heading { display:flex; justify-content:space-between; gap:16px; align-items:center; }
+.standings-dialog h2 { margin:0; }
+#standingsSearch { width:100%; min-height:44px; margin-top:8px; padding:10px 12px; border:1px solid #dce3dd; border-radius:8px; font:inherit; background:#fff; color:var(--ink); }
+.standings-options { display:grid; gap:8px; }
+.standings-option { display:flex; gap:12px; align-items:flex-start; padding:12px; border:1px solid #e2e8e3; border-radius:8px; cursor:pointer; }
+.standings-option:has(input:checked) { background:#f1f6f2; border-color:#a5bdb0; }
+.standings-option input { flex-shrink:0; margin-top:2px; }
+.standings-option strong { font-size:13px; }
+.standings-option small { display:block; color:var(--muted); font-size:12px; line-height:1.5; margin-top:4px; }
+.standings-dialog-actions { display:flex; justify-content:space-between; align-items:center; gap:16px; margin-top:20px; }
+.standings-dialog button { min-height:44px; }
+#standingsError:not(:empty) { color:#a34237; font-size:13px; }
+body:has(#standingsDialog[open]) { overflow:hidden; }
+@media(max-width:900px) { .standings-grid { grid-template-columns:1fr; } }
+@media(max-width:650px) { .standings-card { padding:16px 12px; } .standings-card .standing-row { padding:12px 8px; } }
