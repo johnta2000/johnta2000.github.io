@@ -28,6 +28,7 @@ function bindGroupEvents() {
   $('#createFirstGroup').addEventListener('click', () => openGroupForm('create'));
   $('#inviteFriend').addEventListener('click', () => openInvitationForm());
   $('#cancelInvitation').addEventListener('click', () => $('#invitationDialog').close());
+  $('#cancelReplaceInvitation').addEventListener('click', () => openInvitationForm());
   $('#invitationForm').addEventListener('submit', createGroupInvitation);
   $('#reviewInviteButton').addEventListener('click', reviewSleepInvite);
   $('#cancelGroupDialog').addEventListener('click', () => $('#groupDialog').close());
@@ -143,6 +144,7 @@ async function initializeGroups() {
   } catch (error) { clearLiveGroup(); $('#groupMessage').textContent = groupError(error); }
 }
 function clearLiveGroup() {
+  $('#invitationDialog').close();
   liveGroup = null; groupSample = null; groupHistory = null;
   $('#friendSample').hidden = true; $('#groupStandings').hidden = true; $('#groupManagement').hidden = true;
   $('#invitationManager').hidden = true; $('#newInvite').hidden = true;
@@ -197,13 +199,25 @@ function openInvitationForm(invite = null) {
   if (!liveGroup?.owner) return;
   invitationFormGroup = liveGroup.id;
   replacingInvitation = invite?.id || null;
+  $('#newInvite').hidden = true;
   $('#invitationLabel').value = invite && invite.label !== 'Unlabeled invitation' ? invite.label : '';
   $('#invitationError').textContent = '';
-  $('#invitationDialogTitle').textContent = invite ? 'Replace invitation link' : 'Invite a friend';
+  $('#invitationGroupName').textContent = liveGroup.name;
+  $('#invitationFormTitle').textContent = invite ? 'Replace invitation link' : 'New invitation';
+  $('#cancelReplaceInvitation').hidden = !invite;
   $('#saveInvitation').textContent = invite ? 'Replace link' : 'Create link';
   $('#invitationExplanation').textContent = invite ? 'This creates a new 7-day link and disables the old one. Send the new link to your friend. The old invitation stays in your history.' : 'A label for your records. Anyone you send the link to can use it once. No email is sent.';
-  $('#invitationDialog').showModal();
-  $('#invitationLabel').focus();
+  renderInvitations();
+  if (!$('#invitationDialog').open) {
+    $('#newInvite').hidden = true;
+    $('#invitationMessage').textContent = '';
+    $('#invitationDialog').showModal();
+    $('#invitationDialog').scrollTop = 0;
+  }
+  if (invite) {
+    $('#invitationForm').scrollIntoView({block:'nearest'});
+    $('#invitationLabel').focus();
+  }
 }
 function displayInvitation(invite, token) {
   if (!/^[a-f0-9]{64}$/.test(token)) return;
@@ -225,12 +239,15 @@ async function createGroupInvitation(event) {
     invitationLinks[invite.id] = invite.token;
     if (replacingInvitation) delete invitationLinks[replacingInvitation];
     persistInvitationLinks();
-    $('#invitationDialog').close();
     if (groupId !== activeGroupId) return;
+    openInvitationForm();
     invitationFilter = 'pending';
     displayInvitation({...invite, label}, invite.token);
     await refreshLiveGroup();
-    $('#newInvite').scrollIntoView({block:'nearest',behavior:'smooth'});
+    if ($('#invitationDialog').open) {
+      $('#copyInvite').focus({preventScroll:true});
+      $('#newInvite').scrollIntoView({block:'nearest',behavior:'smooth'});
+    }
   } catch (error) { $('#invitationError').textContent = groupError(error); }
   finally { button.disabled = false; }
 }
@@ -273,6 +290,7 @@ async function groupOperation(work) {
 }
 
 function resetGroupsPreview() {
+  $('#invitationDialog').close();
   clearInterval(groupPoll);
   liveGroup = null;
   groupSample = null;
