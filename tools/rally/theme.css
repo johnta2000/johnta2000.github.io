@@ -18,6 +18,12 @@
   -webkit-font-smoothing: antialiased;
 }
 body { background: var(--paper); color: var(--ink); }
+.access-gate { background: #eef2e9; color: var(--ink); }
+.access-gate::after { border-color: #bccfbc; }
+.access-card h1 { color: var(--ink); font-size: clamp(36px, 5vw, 64px); line-height: .98; letter-spacing: -.055em; }
+.access-card h1 em, .access-card .eyebrow { color: var(--rally-accent); }
+.access-card > p:not(.eyebrow), .access-card .auth-status { color: var(--muted); }
+.access-gate .text-button { color: var(--rally-accent); }
 button, input, textarea, select { font: inherit; }
 button, a, input, textarea, select { -webkit-tap-highlight-color: transparent; }
 :where(button, a, input, textarea, select, [contenteditable]):focus-visible { outline: 3px solid #6a9d86; outline-offset: 3px; }
@@ -40,6 +46,9 @@ button, a, input, textarea, select { -webkit-tap-highlight-color: transparent; }
 .event-menu { background: #fff; color: var(--ink); border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 16px 40px #1e342320; max-height: min(65dvh, 520px); overflow: auto; }
 .event-menu button { color: var(--ink); min-height: 44px; border-radius: 9px; }
 .event-menu button:hover, .event-menu button.active { background: var(--rally-soft); color: var(--rally-accent); }
+.event-menu .event-menu-date { color: #63725c; font-weight: 500; }
+.event-menu .new-event-menu-item { border-color: var(--line); color: var(--rally-accent); font-weight: 600; }
+.sidebar-bottom button:hover, .sidebar-bottom a:hover { background: #e3eae0; color: var(--ink); }
 .event-menu-search { display: block; padding: 8px; position: sticky; top: 0; background: #fff; z-index: 1; }
 .event-menu-search input { width: 100%; min-height: 44px; padding: 10px; background: var(--paper); border: 1px solid var(--line); border-radius: 8px; color: var(--ink); font-size: 14px; }
 .event-menu-empty { margin: 12px; font-size: 13px; color: var(--muted); }
@@ -97,6 +106,8 @@ h1, h2, h3 { color: var(--ink); }
 .flight-header, .itinerary-footer, .pass-footer, .note-footer { border-color: #ecf0e9; }
 .flight-route strong, .flight-endpoint strong { letter-spacing: -.04em; }
 .member-picker button.selected, .template-choice.selected, .template-picker button.selected, .note-section-picker button.active { background: var(--rally-soft); color: #2b573b; border-color: #8cae93; box-shadow: none; }
+.member-action { color: var(--rally-accent); border-color: #c6d8c3; background: #eff5eb; }
+.badge { background: #e3ecdc; color: #536b45; }
 .kanban-column { background: #edf1eb; border: 1px solid var(--line); border-radius: 16px; }
 .ticket-card { border-radius: 12px; border: 1px solid var(--line); box-shadow: 0 2px 5px #1a332805; }
 .notes-board { max-width: 850px; }
@@ -179,6 +190,7 @@ h1, h2, h3 { color: var(--ink); }
   .sidebar { width: 280px; padding-top: calc(24px + var(--rally-safe-top, 0px)); }
   .sidebar nav a { min-height: 46px; font-size: 14px; }
   .brand #closeMenu { color: #4a6046; font-size: 24px; }
+  #closeMenu { border: 1px solid var(--line); border-radius: 10px; width: 40px; height: 40px; background: #f7f9f3; }
   .topbar { padding-left: 16px; padding-right: 16px; gap: 12px; }
   .mobile-event strong { font-size: 14px; }
   .mobile-event small { color: var(--muted); font-size: 11px; }

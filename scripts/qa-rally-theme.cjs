@@ -78,6 +78,8 @@ window.qaDialog=()=>openTask();
    await page.locator(view==='board'?'#poster-view-button':'#heat-view-button').click();
    await page.screenshot({path:`${output}/${label}-${view}.png`});
   }
+  await page.evaluate(()=>{document.getElementById('accessGate').hidden=false;document.getElementById('rallyApp').hidden=true;});
+  await page.screenshot({path:`${output}/${label}-signin.png`});
   await context.close();
  }
  await browser.close();assert.deepEqual(errors,[]);console.log('All widths passed: sections, overflow, searchable dialog, mobile filters, and timeline. Screenshots: '+output);
