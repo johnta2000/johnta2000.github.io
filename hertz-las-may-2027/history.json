@@ -24,6 +24,34 @@
   "seededFrom": "Reconstructed source-thread CSV; legacy rows predate the durable monitor and may lack fields that were not recorded.",
   "runs": [
     {
+      "id": "2026-10-04T16:04:24.792Z",
+      "checkedAt": "2026-10-04T16:04:24.792Z",
+      "checkedUrl": "https://www.hertz.com/us/en/book/vehicles?pid=LAST11&pdate=2027-05-20T19%3A00%3A00&did=LAST11&ddate=2027-05-24T17%3A00%3A00&CDP=2278478&travelType=LEISURE&ownershipType=CORPORATE&age=25",
+      "itinerary": {
+        "pickupLocation": "Las Vegas - Harry Reid International Airport (LAS)",
+        "pickupAt": "2027-05-20T19:00:00-07:00",
+        "returnLocation": "Las Vegas - Harry Reid International Airport (LAS)",
+        "returnAt": "2027-05-24T17:00:00-07:00",
+        "timezone": "America/Los_Angeles",
+        "rateContext": "CDP 2278478 · leisure · corporate ownership · age 25"
+      },
+      "lowestVisibleDailyRateUsd": null,
+      "vehicle": null,
+      "estimatedTotalUsd": null,
+      "taxesFeesVisibility": "unknown",
+      "rawEvidenceExcerpt": "",
+      "status": "error",
+      "error": "Incomplete rendered snapshot: 0 of 35 vehicle cards.",
+      "source": "regular_browser",
+      "durationMs": 2,
+      "pageTitle": null,
+      "httpStatus": null,
+      "validVehicleCardCount": 0,
+      "eligibleVehicleCardCount": 0,
+      "visiblePricedVehicleCardCount": 0,
+      "criteriaVersion": 2
+    },
+    {
       "id": "2026-10-03T16:10:38.736Z",
       "checkedAt": "2026-10-03T16:10:38.736Z",
       "checkedUrl": "https://www.hertz.com/us/en/book/vehicles?CDP=2278478&age=25&ddate=2027-05-24T17%3A00%3A00&did=LAST11&ownershipType=CORPORATE&pdate=2027-05-20T19%3A00%3A00&pid=LAST11&travelType=LEISURE",
