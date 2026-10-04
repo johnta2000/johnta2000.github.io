@@ -1,3 +1,4 @@
+import { pdf as statementPdf, preflight as statementPreflight } from './statementHttp';
 import { attachment as rentAttachment, preflight as rentPreflight } from "./rentFileHttp";
 import { httpRouter } from "convex/server";
 import { httpAction } from "./_generated/server";
@@ -13,6 +14,8 @@ import { attachment, preflight } from "./paymentQuestionHttp";
 import { attachment as paymentAttachment, preflight as paymentPreflight } from "./paymentFileHttp";
 
 const http = httpRouter();
+http.route({path:'/statement-pdf',method:'GET',handler:statementPdf});
+http.route({path:'/statement-pdf',method:'OPTIONS',handler:statementPreflight});
 http.route({ path: "/payment-file", method: "OPTIONS", handler: paymentPreflight });
 http.route({ path: "/payment-file", method: "GET", handler: paymentAttachment });
 http.route({ path: "/payment-file", method: "POST", handler: paymentAttachment });

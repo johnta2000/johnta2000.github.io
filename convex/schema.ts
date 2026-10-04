@@ -1,3 +1,4 @@
+import { statementTables } from './statementTables';
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 import { cardPaymentTables } from "./cardPaymentTables";
@@ -10,6 +11,7 @@ import { rentTables } from "./rentTables";
 import { sleepTables } from "./sleepTables";
 
 export default defineSchema({
+  ...statementTables,
   ...sleepTables,
   ...rentTables,
   ...rentRecordTables,
