@@ -31,6 +31,7 @@ import type * as videoDownloads from "../videoDownloads.js";
 import type * as warRoom from "../warRoom.js";
 import type * as whoop from "../whoop.js";
 import type * as whoopData from "../whoopData.js";
+import type * as whoopMetrics from "../whoopMetrics.js";
 import type * as whoopLib from "../whoopLib.js";
 
 import type {
@@ -64,6 +65,7 @@ declare const fullApi: ApiFromModules<{
   whoop: typeof whoop;
   whoopData: typeof whoopData;
   whoopLib: typeof whoopLib;
+  whoopMetrics: typeof whoopMetrics;
 }>;
 
 /**

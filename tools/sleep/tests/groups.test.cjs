@@ -10,7 +10,7 @@ before(async()=>{
  groups=await bundle('sleepGroups.ts');sleep=await bundle('sleep.ts');whoop=await bundle('whoopData.ts');
 });
 function fixture(){
- const tables=Object.fromEntries(['sleepNights','alertnessRatings','sleepProfiles','sleepGroups','sleepMembers','sleepInvites','whoopConnections'].map(t=>[t,[]]));let n=0;
+ const tables=Object.fromEntries(['sleepNights','alertnessRatings','sleepProfiles','sleepGroups','sleepMembers','sleepInvites','whoopConnections','whoopDays'].map(t=>[t,[]]));let n=0;
  const db={query(table){let filters=[];const q={withIndex(_,fn){const builder={eq(k,v){filters.push(r=>r[k]===v);return this},gte(k,v){filters.push(r=>r[k]>=v);return this},lte(k,v){filters.push(r=>r[k]<=v);return this}};fn(builder);return q},collect:async()=>tables[table].filter(r=>filters.every(f=>f(r))),async unique(){const rows=await q.collect();assert.ok(rows.length<=1);return rows[0]||null},async take(limit){return (await q.collect()).slice(0,limit)}};return q},get:async id=>Object.values(tables).flat().find(r=>r._id===id)||null,insert:async(t,v)=>{const id=t+ ++n;tables[t].push({...v,_id:id});return id},patch:async(id,v)=>Object.assign(await db.get(id),v),delete:async id=>{for(const rows of Object.values(tables)){const i=rows.findIndex(r=>r._id===id);if(i>=0)rows.splice(i,1)}}};
  const context=subject=>({db,auth:{getUserIdentity:async()=>subject===null?null:{subject,email:subject==='owner'?'owner@example.com':`${subject}@example.com`,emailVerified:subject!=='unverified'}}});
  const run=(api,name,subject,args={})=>api[name].handler(context(subject),args);
@@ -57,4 +57,19 @@ test('only owners issue/revoke invites or remove members and cross-group IDs are
 test('WHOOP upsert separates two connections and migration never reassigns owned records',async()=>{
  const f=await setup();await join(f);for(const subject of ['owner','friend']){await f.db.insert('whoopConnections',{clerkSubject:subject});await f.run(whoop,'upsertSleepNights',subject,{clerkSubject:subject,importBatchId:'whoop',nights:[{sleepDate:today(),score:90}]});}
  assert.equal(f.tables.sleepNights.length,2);await f.db.insert('sleepNights',{...night()});await f.run(groups,'migrateLegacy','owner');assert.equal(f.tables.sleepNights.filter(n=>n.ownerSubject==='friend').length,1);assert.equal(f.tables.sleepNights.filter(n=>n.ownerSubject==='owner').length,2);assert.equal((await f.run(groups,'migrateLegacy','owner')).migrated,0);
+});
+test('expanded metrics preserve opt-in boundaries, source integrity, and daily owner isolation',async()=>{
+ const f=await setup();await join(f,'friend',['recovery','workoutMinutes','deepMinutes']);
+ await f.db.insert('whoopConnections',{clerkSubject:'friend',scope:'read:sleep read:recovery'});
+ await f.run(whoop,'upsertDays','friend',{clerkSubject:'friend',fields:['recovery','hrv','strain','workoutMinutes'],days:[{sleepDate:today(),recovery:82,hrv:90,strain:15,workoutMinutes:0}]});
+ f.tables.sleepNights.push({...night(),ownerSubject:'friend',deepMinutes:75,recovery:10,hrv:999});
+ f.tables.whoopDays.push({ownerSubject:'owner',sleepDate:today(),recovery:2});
+ let friend=(await f.group('history','owner',{groupId:f.id})).members.find(m=>!m.self);
+ assert.equal(friend.nights[0].recovery,82);assert.equal(friend.nights[0].workoutMinutes,0);assert.equal(friend.nights[0].deepMinutes,75);
+ assert.equal(friend.nights[0].hrv,undefined);assert.equal(friend.nights[0].strain,undefined);
+ await f.group('updateSharing','friend',{groupId:f.id,name:'Friend',metrics:['score'],shareDays:7});
+ friend=(await f.group('history','owner',{groupId:f.id})).members.find(m=>!m.self);assert.equal(friend.nights[0].recovery,undefined);
+ await f.run(whoop,'upsertDays','friend',{clerkSubject:'friend',fields:['recovery','hrv'],days:[{sleepDate:today(),recovery:83}]});
+ const day=f.tables.whoopDays.find(d=>d.ownerSubject==='friend');assert.equal(day.hrv,undefined);assert.equal(day.strain,15);
+ assert.equal((await f.run(whoop,'status','friend')).needsUpgrade,true);
 });

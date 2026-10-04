@@ -1,13 +1,15 @@
 import { defineTable } from "convex/server";
 import { v } from "convex/values";
-export const sharedMetric = v.union(v.literal("durationMinutes"), v.literal("score"), v.literal("efficiency"));
+export const sharedMetric = v.union(v.literal("durationMinutes"), v.literal("score"), v.literal("efficiency"), v.literal("deepMinutes"), v.literal("remMinutes"), v.literal("consistency"), v.literal("recovery"), v.literal("hrv"), v.literal("restingHeartRate"), v.literal("strain"), v.literal("workoutMinutes"), v.literal("workoutCount"));
+export const dailyWhoopFields = { recovery: v.optional(v.number()), hrv: v.optional(v.number()), restingHeartRate: v.optional(v.number()), strain: v.optional(v.number()), workoutMinutes: v.optional(v.number()), workoutCount: v.optional(v.number()) };
 export const sleepTables = {
+  whoopDays: defineTable({ ownerSubject: v.string(), sleepDate: v.string(), ...dailyWhoopFields, updatedAt: v.number() }).index("by_owner_date", ["ownerSubject", "sleepDate"]),
   sleepNights: defineTable({
     ownerSubject: v.optional(v.string()), sleepDate: v.string(),
     source: v.union(v.literal("whoop"), v.literal("apple_health"), v.literal("eightsleep"), v.literal("manual")),
     score: v.number(), scoreKind: v.union(v.literal("native"), v.literal("derived")),
     durationMinutes: v.optional(v.number()), efficiency: v.optional(v.number()), hrv: v.optional(v.number()), restingHeartRate: v.optional(v.number()),
-    deepMinutes: v.optional(v.number()), remMinutes: v.optional(v.number()), asleepAt: v.optional(v.string()), wokeAt: v.optional(v.string()),
+    consistency: v.optional(v.number()), deepMinutes: v.optional(v.number()), remMinutes: v.optional(v.number()), asleepAt: v.optional(v.string()), wokeAt: v.optional(v.string()),
     importBatchId: v.string(), importedAt: v.number(), updatedAt: v.number(),
   }).index("by_date", ["sleepDate"]).index("by_source_date", ["source", "sleepDate"])
     .index("by_owner_date", ["ownerSubject", "sleepDate"]).index("by_owner_source_date", ["ownerSubject", "source", "sleepDate"]),

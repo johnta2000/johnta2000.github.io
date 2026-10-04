@@ -136,15 +136,23 @@ export const history = query({args: {groupId: v.id("sleepGroups")}, handler: asy
   const visible = [];
   for (const member of members) {
     const nights = member.metrics.length ? await ctx.db.query("sleepNights").withIndex("by_owner_date", q => q.eq("ownerSubject", member.subject).gte("sleepDate", dateShift(today, 1 - member.shareDays)).lte("sleepDate", today)).collect() : [];
-    visible.push({id: member._id, name: member.name, self: member.subject === user.subject, metrics: member.metrics, shareDays: member.shareDays, nights: nights.filter(n => n.source === "whoop").map(n => {
-      const result: any = {sleepDate: n.sleepDate, source: "whoop"};
+    const dailyMetrics = new Set(["recovery", "hrv", "restingHeartRate", "strain", "workoutMinutes", "workoutCount"]);
+    const days = member.metrics.some(m => dailyMetrics.has(m)) ? await ctx.db.query("whoopDays").withIndex("by_owner_date", q => q.eq("ownerSubject", member.subject).gte("sleepDate", dateShift(today, 1 - member.shareDays)).lte("sleepDate", today)).collect() : [];
+    const merged = new Map<string, any>();
+    for (const n of [...nights.filter(n => n.source === "whoop"), ...days]) {
+      const result = merged.get(n.sleepDate) || {sleepDate: n.sleepDate, source: "whoop"};
+      const isDaily = !("source" in n);
       for (const metric of member.metrics) {
-        if (metric === "score" && n.scoreKind !== "native") continue;
-        if (typeof n[metric] === "number") result[metric] = n[metric];
+        // Recovery biometrics only come from the API daily table, never manual sleep imports.
+        if (dailyMetrics.has(metric) !== isDaily) continue;
+        if (metric === "score" && (n as any).scoreKind !== "native") continue;
+        const value = (n as any)[metric];
+        if (typeof value === "number" && Number.isFinite(value)) result[metric] = value;
         if (metric === "score") result.scoreKind = "native";
       }
-      return result;
-    })});
+      if (Object.keys(result).length > 2) merged.set(n.sleepDate, result);
+    }
+    visible.push({id: member._id, name: member.name, self: member.subject === user.subject, metrics: member.metrics, shareDays: member.shareDays, nights: [...merged.values()]});
   }
   const invites = group.ownerSubject === user.subject ? await ctx.db.query("sleepInvites").withIndex("by_group", q => q.eq("groupId", group._id)).collect() : [];
   return {id: group._id, name: group.name, owner: group.ownerSubject === user.subject, own: {name: own.name, metrics: own.metrics, shareDays: own.shareDays}, members: visible, invites: invites.filter(i => !i.usedAt && !i.revokedAt && i.expiresAt > Date.now()).map(i => ({id: i._id, createdAt: i.createdAt, expiresAt: i.expiresAt}))};

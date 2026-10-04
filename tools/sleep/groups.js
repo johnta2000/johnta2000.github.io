@@ -15,6 +15,16 @@ function captureSleepInvite() {
   pendingSleepInvite = sessionStorage.getItem('daylightInvite');
 }
 function bindGroupEvents() {
+  $('#groupMetric').innerHTML = Object.entries(Daylight.metrics).map(([key, item]) => `<option value="${key}">${item.label}</option>`).join('');
+  SearchableSelect.enhance($('#groupMetric')).sync();
+  $('#competitionMetric').innerHTML = Object.entries(Daylight.competitions).map(([key, item]) => `<option value="${key}">${item.label}</option>`).join('');
+  SearchableSelect.enhance($('#competitionMetric')).sync();
+  $('#competitionMetric').addEventListener('change', renderStandings);
+  $('#groupSharingOptions').innerHTML = '<legend>Share with this group</legend><p>Only checked metrics are shared. Your notes stay private.</p>' + [
+    ['Sleep', ['durationMinutes','score','efficiency','deepMinutes','remMinutes','consistency']],
+    ['Recovery', ['recovery','hrv','restingHeartRate']], ['Activity', ['strain','workoutMinutes','workoutCount']],
+  ].map(([title,keys]) => `<div class="sharing-category"><h3>${title}</h3><div>${keys.map(key => `<label><input type="checkbox" name="sharedMetric" value="${key}"> ${Daylight.metrics[key].label}</label>`).join('')}</div></div>`).join('');
+
   $('#createGroup').addEventListener('click', () => openGroupForm('create'));
   $('#createFirstGroup').addEventListener('click', () => openGroupForm('create'));
   $('#editSharing').addEventListener('click', () => openGroupForm('sharing'));
@@ -128,7 +138,7 @@ async function initializeGroups() {
 }
 function clearLiveGroup() {
   liveGroup = null; groupSample = null; groupHistory = null;
-  $('#friendSample').hidden = true; $('#groupManagement').hidden = true;
+  $('#friendSample').hidden = true; $('#groupStandings').hidden = true; $('#groupManagement').hidden = true;
   $('#inviteFriend').hidden = true; $('#editSharing').hidden = true;
   $('#groupPlot').replaceChildren(); $('#groupSummaryRows').replaceChildren(); $('#groupMembers').replaceChildren();
 }
@@ -145,12 +155,12 @@ async function refreshLiveGroup() {
     groupSample = data.members.map((member, index) => ({...member, color: GROUP_COLORS[index % GROUP_COLORS.length], dash: ['', '7 4', '2 5'][index % 3]}));
     for (const member of groupSample) if (!oldIds.has(member.id)) visibleGroupMembers.add(member.id);
     $('#groupMembers').replaceChildren();
-    $('#groupMessage').textContent = data.members.length === 1 ? 'Your group is ready. Invite a friend to compare sleep.' : '';
+    $('#groupMessage').textContent = data.members.length === 1 ? 'Your group is ready. Invite a friend to start comparing.' : '';
     $('#inviteFriend').hidden = !data.owner;
     $('#editSharing').hidden = false;
     $('#friendSample').hidden = false;
     $('#groupManagement').hidden = false;
-    $('#groupMemberList').innerHTML = data.members.map(member => `<div class="group-member-row"><span><strong>${escapeHtml(member.name)}${member.self ? ' (you)' : ''}</strong><small>${member.metrics.length ? `Sharing ${member.metrics.length} ${member.metrics.length === 1 ? 'metric' : 'metrics'} · last ${member.shareDays} days` : 'Not sharing sleep data'}</small></span>${data.owner && !member.self ? `<button type="button" class="text-button" data-remove-member="${escapeHtml(member.id)}">Remove</button>` : ''}</div>`).join('');
+    $('#groupMemberList').innerHTML = data.members.map(member => `<div class="group-member-row"><span><strong>${escapeHtml(member.name)}${member.self ? ' (you)' : ''}</strong><small>${member.metrics.length ? `Sharing ${member.metrics.length} ${member.metrics.length === 1 ? 'metric' : 'metrics'} · last ${member.shareDays} days` : 'Not sharing data'}</small></span>${data.owner && !member.self ? `<button type="button" class="text-button" data-remove-member="${escapeHtml(member.id)}">Remove</button>` : ''}</div>`).join('');
     $('#groupMemberList').querySelectorAll('[data-remove-member]').forEach(button => button.addEventListener('click', () => {
       if (confirm('Remove this person from the group? Their private records will remain in their account.')) groupOperation(async () => { await convexMutation('sleepGroups:removeMember', {groupId: id, memberId: button.dataset.removeMember}); await refreshLiveGroup(); });
     }));
@@ -197,4 +207,23 @@ function resetGroupsPreview() {
   $('#groupEmptyState').hidden = true;
   $('#newInvite').hidden = true;
   $('#groupsPreviewBadge').hidden = false;
+}
+
+function renderStandings() {
+  const panel = $('#groupStandings');
+  panel.hidden = !groupSample || (!isDemo && !liveGroup);
+  if (panel.hidden) return;
+  const board = Daylight.standings(groupSample, $('#competitionMetric').value, todayPacific());
+  $('#standingsPeriod').textContent = `${formatShortDate(board.start)} – ${formatShortDate(board.end)} · LAST 7 COMPLETE DAYS`;
+  $('#standingsRule').textContent = board.rule.description;
+  const baseline = ['delta','percentChange'].includes(board.rule.mode);
+  $('#standingsRows').innerHTML = board.entries.map(member => {
+    const value = !member.eligible ? '—' : baseline ? `${member.result > 0 ? '+' : ''}${member.result.toFixed(1)}${board.rule.mode === 'percentChange' ? '%' : ' pts'}` : board.rule.mode === 'total' ? `${Math.round(member.result)} min` : formatMetricValue(member.result, board.rule.metric);
+    return `<div class="standing-row${member.rank === 1 ? ' standing-leader' : ''}"><span class="standing-rank">${member.rank || '—'}</span><span class="standing-name"><i class="group-person-marker" style="background:${member.color}"></i>${escapeHtml(member.name.replace(' (sample)', ''))}<small>${member.eligible ? `${member.count}/7 days${baseline ? ` · ${member.previousCount}/7 previous days` : ''}` : `${member.reason}${member.reason === 'Not shared' ? '' : ` · ${member.count}/7 days`}`}</small></span><strong>${value}</strong></div>`;
+  }).join('');
+}
+function formatMetricValue(value, metric) {
+  if (!Number.isFinite(value)) return 'No data';
+  const unit = Daylight.metrics[metric].unit;
+  return unit === 'min' ? formatDuration(value) : unit === '%' ? `${value.toFixed(1)}%` : unit === '/21' ? `${value.toFixed(1)} / 21` : `${Number.isInteger(value) ? value : value.toFixed(1)} ${unit}`;
 }

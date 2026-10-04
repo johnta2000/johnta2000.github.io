@@ -8,6 +8,8 @@ import {
   refreshWhoopTokens,
 } from "./whoopLib";
 
+import { buildWhoopDays, dateAtOffset } from "./whoopMetrics";
+
 type WhoopSleep = {
   id: string;
   start: string;
@@ -18,6 +20,7 @@ type WhoopSleep = {
   score?: {
     sleep_performance_percentage?: number;
     sleep_efficiency_percentage?: number;
+    sleep_consistency_percentage?: number;
     stage_summary?: {
       total_light_sleep_time_milli?: number;
       total_slow_wave_sleep_time_milli?: number;
@@ -80,6 +83,7 @@ async function performSync(ctx: any, clerkSubject: string) {
     });
     if (!connection) throw new Error("Connect WHOOP before syncing.");
 
+    let scope = connection.scope;
     let accessToken = await decryptWhoopToken(connection.accessTokenEncrypted);
     if (connection.expiresAt <= Date.now() + 60_000) {
       const refreshToken = await decryptWhoopToken(
@@ -87,6 +91,7 @@ async function performSync(ctx: any, clerkSubject: string) {
       );
       const refreshed = await refreshWhoopTokens(refreshToken, connection.scope);
       accessToken = refreshed.access_token;
+      scope = refreshed.scope || scope;
       await ctx.runMutation(internal.whoopData.saveConnection, {
         clerkSubject,
         accessTokenEncrypted: await encryptWhoopToken(refreshed.access_token),
@@ -99,7 +104,13 @@ async function performSync(ctx: any, clerkSubject: string) {
       });
     }
 
-    const sleeps = await fetchWhoopSleeps(accessToken);
+    const sleeps = await fetchWhoopCollection(accessToken, "activity/sleep") as WhoopSleep[];
+    const granted = new Set(scope.split(/\s+/));
+    const recoveries = granted.has("read:recovery") ? await fetchWhoopCollection(accessToken, "recovery") : [];
+    const cycles = granted.has("read:cycles") ? await fetchWhoopCollection(accessToken, "cycle") : [];
+    const workouts = granted.has("read:workout") ? await fetchWhoopCollection(accessToken, "activity/workout") : [];
+    const daily = buildWhoopDays(sleeps, recoveries, cycles, workouts, scope);
+    if (daily.fields.length) await ctx.runMutation(internal.whoopData.upsertDays, {clerkSubject, ...daily});
     const nights = sleeps
       .filter(
         (sleep) =>
@@ -137,12 +148,12 @@ export const disconnect = action({
   },
 });
 
-async function fetchWhoopSleeps(accessToken: string) {
-  const records: WhoopSleep[] = [];
+export async function fetchWhoopCollection(accessToken: string, endpoint: string) {
+  const records: any[] = [];
   const start = new Date(Date.now() - 366 * 24 * 60 * 60 * 1000).toISOString();
   let nextToken: string | undefined;
-  for (let page = 0; page < 16; page += 1) {
-    const url = new URL(`${WHOOP_API_BASE}/developer/v2/activity/sleep`);
+  for (let page = 0; page < 64; page += 1) {
+    const url = new URL(`${WHOOP_API_BASE}/developer/v2/${endpoint}`);
     url.searchParams.set("limit", "25");
     url.searchParams.set("start", start);
     if (nextToken) url.searchParams.set("nextToken", nextToken);
@@ -157,9 +168,9 @@ async function fetchWhoopSleeps(accessToken: string) {
     }
     records.push(...(payload.records || []));
     nextToken = payload.next_token;
-    if (!nextToken) break;
+    if (!nextToken) return records;
   }
-  return records;
+  throw new Error("WHOOP history is too large for one sync. No partial history was saved.");
 }
 
 function toSleepNight(sleep: WhoopSleep) {
@@ -172,20 +183,10 @@ function toSleepNight(sleep: WhoopSleep) {
     score: sleep.score!.sleep_performance_percentage!,
     durationMinutes: Math.round((light + deep + rem) / 60_000),
     efficiency: sleep.score?.sleep_efficiency_percentage,
+    consistency: sleep.score?.sleep_consistency_percentage,
     deepMinutes: Math.round(deep / 60_000),
     remMinutes: Math.round(rem / 60_000),
     asleepAt: sleep.start,
     wokeAt: sleep.end,
   };
-}
-
-function dateAtOffset(value: string, offset = "+00:00") {
-  const match = /^([+-])(\d{2}):(\d{2})$/.exec(offset);
-  const direction = match?.[1] === "-" ? -1 : 1;
-  const minutes = match
-    ? direction * (Number(match[2]) * 60 + Number(match[3]))
-    : 0;
-  return new Date(new Date(value).getTime() + minutes * 60_000)
-    .toISOString()
-    .slice(0, 10);
 }

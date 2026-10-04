@@ -1,11 +1,14 @@
 import { internalMutation, internalQuery, query } from "./_generated/server";
 import { v } from "convex/values";
 
+import { dailyWhoopFields } from "./sleepTables";
+
 const importedWhoopNight = v.object({
   sleepDate: v.string(),
   score: v.number(),
   durationMinutes: v.optional(v.number()),
   efficiency: v.optional(v.number()),
+  consistency: v.optional(v.number()),
   deepMinutes: v.optional(v.number()),
   remMinutes: v.optional(v.number()),
   asleepAt: v.optional(v.string()),
@@ -25,6 +28,7 @@ export const status = query({
     return {
       connected: Boolean(connection),
       lastSyncedAt: connection?.lastSyncedAt,
+      needsUpgrade: Boolean(connection && ["read:recovery", "read:cycles", "read:workout"].some(scope => !connection.scope.split(/\s+/).includes(scope))),
     };
   },
 });
@@ -155,4 +159,20 @@ export const removeConnection = internalMutation({
       .unique();
     if (connection) await ctx.db.delete(connection._id);
   },
+});
+
+// Each sync replaces only fields covered by its granted scopes, preserving sleep-only connections.
+export const upsertDays = internalMutation({
+  args: {clerkSubject: v.string(), fields: v.array(v.string()), days: v.array(v.object({sleepDate: v.string(), ...dailyWhoopFields}))},
+  handler: async (ctx, args) => {
+    const connection = await ctx.db.query("whoopConnections").withIndex("by_subject", q => q.eq("clerkSubject", args.clerkSubject)).unique();
+    if (!connection) throw new Error("WHOOP is not connected.");
+    for (const day of args.days) {
+      const existing = await ctx.db.query("whoopDays").withIndex("by_owner_date", q => q.eq("ownerSubject", args.clerkSubject).eq("sleepDate", day.sleepDate)).unique();
+      const payload: any = {ownerSubject: args.clerkSubject, sleepDate: day.sleepDate, updatedAt: Date.now()};
+      for (const field of args.fields) if (field in dailyWhoopFields) payload[field] = (day as any)[field];
+      if (existing) await ctx.db.patch(existing._id, payload);
+      else await ctx.db.insert("whoopDays", payload);
+    }
+  }
 });

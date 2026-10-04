@@ -29,7 +29,7 @@ export function buildWhoopAuthorizationUrl(state: string) {
   url.searchParams.set("client_id", config.clientId);
   url.searchParams.set("redirect_uri", config.redirectUri);
   url.searchParams.set("response_type", "code");
-  url.searchParams.set("scope", "offline read:sleep");
+  url.searchParams.set("scope", "offline read:sleep read:recovery read:cycles read:workout");
   url.searchParams.set("state", state);
   return url.toString();
 }

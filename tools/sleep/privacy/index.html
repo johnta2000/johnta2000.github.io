@@ -133,7 +133,7 @@
       </p>
       <div class="notice">
         <strong>Current access:</strong> Daylight is a private personal-use
-        dashboard. Access requires sign-in and either operator approval or a valid group invitation. Each account has its own private sleep history and check-ins. The operator administers the backend and can access stored data for support and maintenance. Group members can see only the WHOOP sleep metrics and history window that each person explicitly chooses to share. Demo mode uses fictional data.
+        dashboard. Access requires sign-in and either operator approval or a valid group invitation. Each account has its own private sleep history and check-ins. The operator administers the backend and can access stored data for support and maintenance. Group members can see only the WHOOP metrics and history window that each person explicitly chooses to share. Demo mode uses fictional data.
       </div>
       <section>
         <h2>What Daylight collects</h2>
@@ -143,11 +143,7 @@
             identifier, used to verify access through Clerk.
           </li>
           <li>
-            <strong>WHOOP sleep data, when you authorize it:</strong> sleep
-            dates, sleep performance, duration, efficiency, estimated deep and
-            REM sleep, and sleep start and end times. The current integration
-            requests sleep access and offline access so it can refresh the
-            connection without asking you to sign in each time.
+            <strong>WHOOP data, when you authorize it:</strong> sleep dates, performance, consistency, duration, efficiency, estimated deep and REM sleep, and start and end times. With the additional permissions, we also import recovery scores, heart rate variability (HRV), resting heart rate, daily strain, and daily workout counts and duration. The connection requests sleep, recovery, cycle, workout, and offline access so it can refresh without asking you to sign in each time. Existing sleep-only connections continue to work until you choose to reconnect for these additional categories.
           </li>
           <li>
             <strong>Connection credentials:</strong> WHOOP authorization tokens
@@ -173,8 +169,8 @@
           trends, compare overlapping nights across data sources, and relate
           sleep to your own alertness check-ins. WHOOP syncing can run when you
           request it and automatically in the background. The integration
-          currently requests up to one year of sleep history. Connecting WHOOP
-          does not activate friend sharing by itself. When creating or joining a group, you can choose to share time asleep, sleep performance, and/or sleep efficiency for a rolling history window. Sharing also covers future synced nights and future members of that group. No metrics are selected by default. Personal check-in notes, account credentials, and unselected health metrics are not returned in group views.
+          requests up to one year of WHOOP history. Connecting WHOOP
+          does not activate friend sharing by itself. When creating or joining a group, you choose individual sleep, recovery, and activity metrics for a rolling history window. Shared metrics are used in group charts, averages, and weekly standings, including changes against your own previous period. Adding new metrics does not enable sharing them automatically. Sharing also covers future synced days and future members of that group. No metrics are selected by default. Personal check-in notes, account credentials, and unselected health metrics are not returned in group views.
         </p>
       </section>
       <section>

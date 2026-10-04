@@ -304,12 +304,14 @@ function setWhoopConnectionState(status) {
     els.whoopMessage.textContent = "Sign in to connect your own WHOOP account.";
     return;
   }
-  els.whoopAction.dataset.connected = status.connected ? "true" : "false";
-  els.whoopAction.textContent = status.connected
+  els.whoopAction.dataset.connected = status.connected && !status.needsUpgrade ? "true" : "false";
+  els.whoopAction.textContent = status.needsUpgrade ? "Enable recovery & activity" : status.connected
     ? "Sync WHOOP"
     : "Connect WHOOP";
   els.whoopDisconnect.hidden = !status.connected;
-  if (status.connected && status.lastSyncedAt) {
+  if (status.needsUpgrade) {
+    els.whoopMessage.textContent = "Reconnect WHOOP to add recovery, strain, and workouts. Your existing sleep history and sharing choices stay in place.";
+  } else if (status.connected && status.lastSyncedAt) {
     els.whoopMessage.textContent = `Last synced ${formatTime(new Date(status.lastSyncedAt))}`;
   }
 }
@@ -358,13 +360,13 @@ async function syncWhoop() {
     const result = await convexAction("whoop:sync", {});
     els.whoopMessage.textContent = `Synced ${result.inserted + result.updated} nights from Whoop.`;
     await loadDashboard();
-    setWhoopConnectionState({ connected: true, lastSyncedAt: Date.now() });
+    setWhoopConnectionState(await convexQuery("whoopData:status", {}));
   } catch (error) {
     console.error(error);
     els.whoopMessage.textContent = readableWhoopError(error);
   } finally {
     els.whoopAction.disabled = false;
-    els.whoopAction.textContent = "Sync WHOOP";
+    if (els.whoopAction.textContent === "Syncing…") els.whoopAction.textContent = "Sync WHOOP";
   }
 }
 
@@ -410,8 +412,8 @@ function switchView(view) {
     ],
     friends: [
       "Groups",
-      "Group sleep",
-      "Compare sleep history across your group.",
+      "Your group",
+      "Compare your trends. See who’s ahead this week.",
     ],
     connections: [
       "Connections",
@@ -1729,7 +1731,7 @@ function drawGroupChart() {
   groupHistory = Daylight.groupHistory(groupSample.filter(member => visibleGroupMembers.has(member.id)), metric, selectedDays, todayPacific());
   $("#groupPeriod").textContent = `${formatShortDate(groupHistory.dates[0])} – ${formatShortDate(groupHistory.dates.at(-1))} · WHOOP`;
   $("#groupMetricHeading").textContent = metricName;
-  $("#groupBaselineNote").textContent = `Compared with each person’s previous ${selectedDays} days. Only tracked nights count.`;
+  $("#groupBaselineNote").textContent = `Compared with each person’s previous ${selectedDays} days. Only tracked days count. HRV and resting heart rate are personal measures.`;
   if (!$("#groupMembers").children.length) {
     $("#groupMembers").innerHTML = groupSample.map(member => `<button type="button" data-member="${member.id}" aria-pressed="${visibleGroupMembers.has(member.id)}" style="--member-color:${member.color}"><span class="group-member-name"><svg width="22" height="12" aria-hidden="true"><line x1="0" x2="22" y1="6" y2="6" stroke="currentColor" stroke-width="3" stroke-dasharray="${member.dash}"/></svg>${escapeHtml(member.name.replace(' (sample)', ''))}</span><strong class="group-member-value"></strong></button>`).join("");
     $("#groupMembers").querySelectorAll("button").forEach(button => button.addEventListener("click", () => {
@@ -1739,18 +1741,23 @@ function drawGroupChart() {
       drawGroupChart();
     }));
   }
-  const percent = metric !== "durationMinutes";
+  const unit = Daylight.metrics[metric].unit;
+  const percent = unit === "%";
   const w = Math.max(240, $("#groupPlot").clientWidth || 900);
   const h = w < 500 ? 240 : 280, left = 44, right = 22, top = 24, bottom = 34;
   const values = groupHistory.members.flatMap(member => member.points.map(point => point.value)).filter(Number.isFinite);
-  const step = percent ? 10 : 60;
-  const lower = Math.max(0, Math.floor((Math.min(...values, percent ? 70 : 360) - step / 2) / step) * step);
-  const upper = percent ? 100 : Math.ceil((Math.max(...values, 480) + step / 2) / step) * step;
+  const maximum = Math.max(...values, percent ? 100 : metric === "strain" ? 21 : 1);
+  const span = maximum - Math.min(...values, 0);
+  const rawStep = span / 4;
+  const magnitude = 10 ** Math.floor(Math.log10(rawStep || 1));
+  const step = percent ? 25 : metric === "strain" ? 7 : unit === "min" ? (rawStep <= 30 ? 30 : rawStep <= 60 ? 60 : Math.ceil(rawStep / 120) * 120) : Math.max(metric === "workoutCount" ? 1 : .1, [1,2,5,10].find(n => n * magnitude >= rawStep) * magnitude);
+  const lower = 0;
+  const upper = percent ? Math.max(100, Math.ceil(maximum / step) * step) : Math.ceil(maximum / step) * step;
   const x = index => left + index / (selectedDays - 1) * (w - left - right);
   const y = value => top + (1 - (value - lower) / (upper - lower)) * (h - top - bottom);
   groupGeometry = { w, h, x, y, left, right };
   const ticks = Array.from({length: Math.round((upper - lower) / step) + 1}, (_, i) => lower + i * step);
-  const grid = ticks.map(value => `<line x1="${left}" x2="${w - right}" y1="${y(value)}" y2="${y(value)}" stroke="#e4eae5" stroke-dasharray="3 5"/><text x="0" y="${y(value) + 4}" fill="#6d7c75" font-size="12">${percent ? `${value}%` : `${value / 60}h`}</text>`).join("");
+  const grid = ticks.map(value => `<line x1="${left}" x2="${w - right}" y1="${y(value)}" y2="${y(value)}" stroke="#e4eae5" stroke-dasharray="3 5"/><text x="0" y="${y(value) + 4}" fill="#6d7c75" font-size="12">${percent ? `${value}%` : unit === "min" ? (metric === "durationMinutes" ? `${Number((value / 60).toFixed(1))}h` : `${value}m`) : Number(value.toFixed(1))}</text>`).join("");
   const labelCount = selectedDays === 7 && w > 500 ? 7 : w < 400 ? 3 : 5;
   const labels = Array.from({length: labelCount}, (_, i) => Math.round(i * (selectedDays - 1) / (labelCount - 1))).map(i => `<text x="${x(i)}" y="${h - 5}" text-anchor="${i === 0 ? "start" : i === selectedDays - 1 ? "end" : "middle"}" fill="#6d7c75" font-size="12">${formatShortDate(groupHistory.dates[i])}</text>`).join("");
   const series = groupHistory.members.map(member => member.segments.map(segment => `<path d="${segment.map((point, i) => `${i ? "L" : "M"}${x(point.index)},${y(point.value)}`).join(" ")}" fill="none" stroke="${member.color}" stroke-width="2.5" stroke-dasharray="${member.dash}" stroke-linecap="round" stroke-linejoin="round"/>${segment.map(point => `<circle cx="${x(point.index)}" cy="${y(point.value)}" r="${selectedDays > 28 ? 1.8 : 3.5}" fill="${member.color}"/>`).join("")}`).join("")).join("");
@@ -1777,18 +1784,20 @@ function drawGroupChart() {
     ? "Select a person above to show their history."
     : !isDemo && !liveGroup.members.some(member => member.metrics.includes(metric))
       ? "This metric isn’t shared yet. Open Your sharing to choose what to share."
-      : "No shared WHOOP nights in this period. Connect WHOOP or choose a longer history window.";
+      : "No shared data in this period. Enable recovery & activity in Connections, or choose a longer sharing window.";
   $("#groupSummaryRows").innerHTML = groupHistory.members.map(member => {
-    const delta = member.delta === null ? "Not enough history" : metric === "durationMinutes" ? `${member.delta > 0 ? "+" : member.delta < 0 ? "−" : ""}${Math.abs(Math.round(member.delta))} min` : `${member.delta > 0 ? "+" : member.delta < 0 ? "−" : ""}${Math.abs(member.delta).toFixed(1)} pts`;
-    return `<tr><th scope="row"><span class="group-person-marker" style="background:${member.color}"></span>${escapeHtml(member.name.replace(' (sample)', ''))}</th><td>${formatMemberValue(member, member.average)}</td><td>${delta}<small class="group-coverage">${member.previousCount} / ${selectedDays} previous nights</small></td><td>${member.count} / ${selectedDays}</td></tr>`;
+    const deltaUnit = unit === '%' ? 'pts' : unit === '/21' ? 'strain' : unit;
+    const delta = member.delta === null ? "Not enough history" : `${member.delta > 0 ? "+" : member.delta < 0 ? "−" : ""}${Math.abs(member.delta).toFixed(1)} ${deltaUnit}`;
+    return `<tr><th scope="row"><span class="group-person-marker" style="background:${member.color}"></span>${escapeHtml(member.name.replace(' (sample)', ''))}</th><td>${formatMemberValue(member, member.average)}</td><td>${delta}<small class="group-coverage">${member.previousCount} / ${selectedDays} previous days</small></td><td>${member.count} / ${selectedDays}</td></tr>`;
   }).join("") || '<tr><td colspan="4">Select a person above to compare.</td></tr>';
   const selected = groupHistory.dates.indexOf(groupSelectedDate);
   showGroupDay(selected >= 0 ? selected : selectedDays - 1);
+  renderStandings();
 }
 
 function formatGroupValue(value) {
   if (!Number.isFinite(value)) return "No data";
-  return $("#groupMetric").value === "durationMinutes" ? formatDuration(value) : `${Math.round(value)}%`;
+  return formatMetricValue(value, $("#groupMetric").value);
 }
 
 function showGroupDay(index, tooltip = false) {

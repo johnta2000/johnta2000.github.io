@@ -148,6 +148,40 @@
     return { nights, alertness };
   }
   // Receives separate, already-authorized member histories; this is not an access-control layer.
+  const metrics = {
+    durationMinutes: {label: "Time asleep", unit: "min"}, score: {label: "Sleep performance", unit: "%"},
+    efficiency: {label: "Sleep efficiency", unit: "%"}, deepMinutes: {label: "Deep sleep", unit: "min"},
+    remMinutes: {label: "REM sleep", unit: "min"}, consistency: {label: "Sleep consistency", unit: "%"},
+    recovery: {label: "Recovery", unit: "%"}, hrv: {label: "HRV", unit: "ms"},
+    restingHeartRate: {label: "Resting heart rate", unit: "bpm"}, strain: {label: "Day strain", unit: "/21"},
+    workoutMinutes: {label: "Workout time", unit: "min"}, workoutCount: {label: "Workouts", unit: "workouts"},
+  };
+  const competitions = {
+    score: {label: "Sleep performance", metric: "score", mode: "average", description: "Average sleep performance. At least 4 of 7 days to rank."},
+    recovery: {label: "Recovery", metric: "recovery", mode: "average", description: "Average recovery score. At least 4 of 7 days to rank."},
+    consistency: {label: "Sleep consistency", metric: "consistency", mode: "average", description: "Average WHOOP sleep consistency. At least 4 of 7 days to rank."},
+    strain: {label: "Day strain", metric: "strain", mode: "average", description: "Average completed-day strain. At least 4 of 7 days. Measures effort, not overall health."},
+    workoutMinutes: {label: "Workout minutes", metric: "workoutMinutes", mode: "total", description: "Total workout time. All 7 days must be tracked to rank; rest days count as zero."},
+    sleepGain: {label: "Sleep improvement", metric: "score", mode: "delta", description: "Sleep performance change vs. your previous 7 days. At least 4 days in each week."},
+    hrvGain: {label: "HRV improvement", metric: "hrv", mode: "percentChange", description: "HRV change vs. your own previous 7 days. At least 4 days in each week; requires 14 days of sharing."},
+  };
+  function standings(members, category, today) {
+    const rule = competitions[category] || competitions.score, end = dateShift(today, -1);
+    const entries = members.map(member => {
+      const unique = [...new Map(member.nights.filter(n => n.source === "whoop").map(n => [n.sleepDate, n])).values()];
+      const data = stats(unique, rule.metric, 7, end);
+      const shared = !member.metrics || member.metrics.includes(rule.metric);
+      const baseline = ["delta", "percentChange"].includes(rule.mode);
+      const eligible = shared && data.count >= (rule.mode === "total" ? 7 : 4) && (!baseline || data.previousCount >= 4) && (rule.mode !== "percentChange" || data.previous > 0);
+      const raw = !eligible ? null : rule.mode === "total" ? data.average * data.count : rule.mode === "delta" ? data.delta : rule.mode === "percentChange" ? data.delta / data.previous * 100 : data.average;
+      // Rank at displayed precision, with competition-style ties (1, 1, 3).
+      const result = raw === null ? null : rule.mode === "total" ? Math.round(raw) : Math.round(raw * 10) / 10;
+      return {...member, ...data, result, eligible, reason: !shared ? "Not shared" : baseline && data.previousCount < 4 ? "Needs previous-week history" : "Needs more tracked days"};
+    }).sort((a,b) => Number(b.eligible) - Number(a.eligible) || (b.result ?? 0) - (a.result ?? 0) || a.name.localeCompare(b.name));
+    let rank = 0;
+    entries.forEach((entry,index) => { if (entry.eligible) { if (index === 0 || entry.result !== entries[index - 1].result) rank = index + 1; entry.rank = rank; }});
+    return {entries, rule, start: dateShift(end, -6), end};
+  }
   function groupHistory(members, metric, days, endDate) {
     const dates = Array.from({ length: days }, (_, i) => dateShift(endDate, i - days + 1));
     return { dates, members: members.map((member) => {
@@ -174,9 +208,20 @@
       durationMinutes: Math.round(433 + person * 15 + Math.sin(i * .8 + person * 2) * 43 + Math.cos(i * .21 + person) * 21),
       score: Math.round(78 + person * 3 + Math.sin(i * .8 + person * 2) * 12),
       efficiency: Math.round(91 + Math.sin(i * .55 + person) * 5),
+      deepMinutes: Math.round(85 + Math.sin(i * .4 + person) * 22),
+      remMinutes: Math.round(100 + Math.sin(i * .6 + person) * 28),
+      consistency: Math.round(78 + person * 3 + Math.cos(i * .3) * 9),
+      recovery: Math.round(64 + person * 4 + Math.sin(i * .5 + person) * 24),
+      hrv: Math.round(45 + person * 18 + Math.sin(i * .2 + person) * 12),
+      restingHeartRate: Math.round(57 + person * 3 + Math.cos(i * .2) * 5),
+      strain: Math.round((10 + Math.sin(i * .8 + person) * 5) * 10) / 10,
+      workoutMinutes: i % 3 === person ? 0 : 35 + (i % 4) * 12,
+      workoutCount: i % 3 === person ? 0 : 1,
+
     })).filter((_, i) => (i + person * 3) % (13 + person * 4) !== 5) }));
   }
   const api = {
+    metrics, competitions, standings,
     groupHistory,
     sampleGroup,
     range,

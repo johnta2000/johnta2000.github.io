@@ -1992,3 +1992,27 @@ footer {
 .group-members { flex-wrap:wrap; }
 .group-members button { flex:1 1 135px; }
 @media(max-width:650px) { .group-members button { flex:1 1 75px; } }
+
+/* Group comparison: readable ranks, transparent coverage, explicit sharing. */
+.group-standings { margin-top: 24px; }
+.group-standings .panel-heading { gap: 16px; align-items: center; }
+.group-standings .metric-picker { min-width: 210px; }
+.standings-rows { margin: 18px 0; }
+.standing-row { display: flex; align-items: center; gap: 16px; padding: 16px 18px; border-bottom: 1px solid var(--line, #e4eae5); }
+.standing-row:last-child { border-bottom: 0; }
+.standing-leader { background: #eef4ef; border-radius: 12px; }
+.standing-rank { width: 24px; font-size: 20px; font-weight: 700; color: #6d7c75; }
+.standing-leader .standing-rank { color: #397967; }
+.standing-name { flex: 1; font-weight: 600; }
+.standing-name small { display: block; margin-top: 4px; color: #6d7c75; font-weight: 400; font-size: 12px; }
+.standing-row > strong { font-size: 20px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.sharing-category h3 { margin: 14px 0 8px; font-size: 13px; }
+.sharing-category > div { display: grid; grid-template-columns: 1fr 1fr; gap: 0 10px; }
+.group-dialog { max-height: 90dvh; overflow-y: auto; }
+.group-dialog .sharing-category label { min-height: 44px; margin: 0; display: flex; align-items: center; font-size: 13px; }
+@media (max-width: 600px) {
+  .group-standings .panel-heading { align-items: stretch; flex-direction: column; }
+  .standing-row { padding: 14px 8px; gap: 10px; }
+  .standing-row > strong { font-size: 17px; }
+  .sharing-category > div { grid-template-columns: 1fr; }
+}
