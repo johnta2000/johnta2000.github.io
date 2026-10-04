@@ -93,7 +93,7 @@ function openGroupForm(mode, invite) {
   $('#groupDialogTitle').textContent = mode === 'create' ? 'Create a private group' : mode === 'join' ? `Join ${invite.name}` : 'Your sharing';
   $('#groupDialogIntro').textContent = mode === 'join' ? `${invite.count} ${invite.count === 1 ? 'person' : 'people'} in this group. You can connect WHOOP after joining.` : mode === 'sharing' ? `Choose what members of ${liveGroup.name} can see. Uncheck all metrics to stop sharing.` : 'Give your group a name and choose what you want to share.';
   $('#saveGroupForm').textContent = mode === 'create' ? 'Create group' : mode === 'join' ? 'Join group' : 'Save sharing';
-  $('#groupShareDays').value = String(mode === 'sharing' ? liveGroup.own.shareDays : 28);
+  $('#groupShareDays').value = String(mode === 'sharing' ? liveGroup.own.shareDays : 90);
   if (mode === 'sharing') $('#groupForm').querySelectorAll('[name="sharedMetric"]').forEach(input => { input.checked = liveGroup.own.metrics.includes(input.value); });
   SearchableSelect.enhance($('#groupShareDays')).sync();
   $('#groupDialog').showModal();
