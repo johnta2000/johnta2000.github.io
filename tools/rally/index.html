@@ -5,7 +5,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="robots" content="noindex, nofollow" />
-    <meta name="theme-color" content="#1c1d19" />
+    <meta name="theme-color" content="#f7f7f2" />
     <title>Rally · Rave project rooms</title>
     <link rel="stylesheet" href="./styles.css?v=10" />
     <link rel="stylesheet" href="./event-history.css?v=1" />
@@ -119,6 +119,8 @@
       .lineup-day-settings small{margin-left:auto;color:#7a8470;font-size:12px}
       .lineup-day-settings label:has(input:checked){background:#f0f4e7;border-color:#c5d3b0}
     </style>
+    <link rel="stylesheet" href="../../assets/css/searchable-select.css?v=1">
+    <link rel="stylesheet" href="./theme.css?v=1">
   </head>
   <body class="booting">
     <section id="accessGate" class="access-gate" hidden>
@@ -137,7 +139,7 @@
 
     <div id="rallyApp" class="app-shell">
       <aside id="sidebar" class="sidebar">
-        <div class="brand"><span class="brand-mark"><i></i><i></i><i></i></span><strong>Rally</strong><button id="closeMenu" class="mobile-only">×</button></div>
+        <div class="brand"><span class="brand-mark"><i></i><i></i><i></i></span><strong>Rally</strong><button id="closeMenu" class="mobile-only" aria-label="Close navigation">×</button></div>
         <button id="eventSwitcher" class="event-switcher"><span id="eventThumb">LL</span><span><small>Project room</small><strong id="eventName">Lost Lands '26</strong></span><b>⌄</b></button>
         <div id="eventMenu" class="event-menu" hidden></div>
         <nav id="sideNav" aria-label="Rally sections"><span class="nav-skeleton"></span><span class="nav-skeleton"></span><span class="nav-skeleton short"></span></nav>
@@ -145,7 +147,7 @@
       </aside>
       <button id="menuBackdrop" class="menu-backdrop" hidden aria-label="Close menu"></button>
       <main class="main-column">
-        <header class="topbar"><button id="openMenu" class="icon-button">☰</button><div class="mobile-event"><strong id="mobileEventName"></strong><small id="mobileCountdown"></small></div><span></span><button id="topInvite" class="secondary">＋ Invite crew</button><button id="accountButton" class="avatar" aria-label="Your profile">?</button></header>
+        <header class="topbar"><button id="openMenu" class="icon-button" aria-label="Open navigation">☰</button><div class="mobile-event"><strong id="mobileEventName"></strong><small id="mobileCountdown"></small></div><span></span><button id="topInvite" class="secondary">＋ Invite crew</button><button id="accountButton" class="avatar" aria-label="Your profile">?</button></header>
         <div id="page" class="page"><section class="boot-heading"><i></i><b></b><span></span></section><div class="boot-grid"><article></article><article></article><article></article><article></article><article></article><article></article></div></div>
         <section id="lineupView" class="page lineup" aria-label="Lineup" hidden></section>
       </main>
@@ -161,7 +163,7 @@
     <script defer src="./offline.js?v=1"></script>
     <script defer src="../../lost-lands-2026-lineup/set-times.js?v=20260920-weather"></script>
     <script defer src="../../lost-lands-2026-lineup/controller.js?v=8"></script>
-    <script defer src="./lineup-template.js?v=5"></script>
+    <script defer src="./lineup-template.js?v=6"></script>
     <script defer src="./lineup.js?v=2"></script>
     <script defer src="./meetup-timing.js?v=1"></script>
     <script defer src="./meetups.js?v=4"></script>
@@ -170,7 +172,8 @@
     <script defer src="./note-editor.js?v=2"></script>
     <script defer src="./mascot.js?v=1"></script>
     <script defer src="./event-lifecycle.js?v=1"></script>
-    <script defer src="./event-history.js?v=1"></script>
-    <script defer src="./app.js?v=44"></script>
+    <script defer src="./event-history.js?v=2"></script>
+    <script defer src="../../assets/js/searchable-select.js?v=1"></script>
+    <script defer src="./app.js?v=45"></script>
   </body>
 </html>

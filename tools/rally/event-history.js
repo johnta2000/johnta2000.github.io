@@ -10,8 +10,12 @@ window.RallyHistory={
   if(!status.finished&&!status.past&&!data.isAdmin)return;
   const banner=document.createElement('div');banner.id='eventHistoryBanner';banner.className='event-history-banner';
   banner.innerHTML=`<span>${status.finished?'Event finished · ':status.past?'Past rave · ':''}${status.finished||status.past?'Your plans, likes, and notes are still here.':'Moves to Past raves 48 hours after it ends.'}</span>${data.isAdmin?'<button type="button" class="secondary">Event settings</button>':''}`;
-  document.getElementById('offlineStatus')?.after(banner);
+  // Routine administration belongs in the project menu, not an app-wide banner.
+  if(!status.finished&&!status.past)document.getElementById('eventMenu')?.append(banner);
+  else document.getElementById('offlineStatus')?.after(banner);
   banner.querySelector('button')?.addEventListener('click',()=>{
+    const menu=document.getElementById('eventMenu');if(menu)menu.hidden=true;
+    document.getElementById('eventSwitcher')?.setAttribute('aria-expanded','false');
     openDialog('Event history','Past raves stay editable and old links keep working. Restoring keeps a rave in the main list until you switch back to Automatic.',
       `<label class="field"><span>Show this rave</span><select name="visibility">${[['auto','Automatic · 48 hours after ending'],['past','Past raves · move now'],['active','Main list · keep restored']].map(([value,label])=>`<option value="${value}" ${value===(data.eventVisibility||'auto')?'selected':''}>${label}</option>`).join('')}</select></label>`+
       field('Final event day','endsAt',data.endsAt,'date')+field('Event timezone','timeZone',status.timeZone||'','text')+'<p>Use an IANA timezone, e.g. America/New_York. Overnight sets are included. Without final-day set times, the end is 6 AM the following morning.</p>',

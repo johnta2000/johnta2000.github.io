@@ -8,6 +8,24 @@ const views = [
 ];
 const noteSections = {general:'General',stay:'Stay',crew:'Crew',travel:'Travel',passes:'Passes'};
 
+// One icon vocabulary for sidebar, overview, and mobile navigation.
+function rallyIcon(id) {
+  const paths = {
+    home:'<path d="m3 10 9-7 9 7v10H3Z"/><path d="M9 20v-7h6v7"/>',
+    stay:'<path d="M3 18V7m18 11V9a2 2 0 0 0-2-2H3m0 6h18M3 18v3m18-3v3M7 7v6"/>',
+    crew:'<circle cx="9" cy="8" r="3"/><path d="M3 21v-3a6 6 0 0 1 12 0v3M16 5a3 3 0 0 1 0 6M18 15a5 5 0 0 1 3 5"/>',
+    travel:'<path d="m22 2-7 20-4-9-9-4Z M22 2 11 13"/>',
+    passes:'<path d="M3 5h18v5a2 2 0 0 0 0 4v5H3v-5a2 2 0 0 0 0-4Z M15 5v3m0 3v2m0 3v3"/>',
+    tasks:'<rect x="3" y="3" width="18" height="18" rx="4"/><path d="m7 12 3 3 7-7"/>',
+    lineup:'<path d="M9 18V5l11-2v13M9 8l11-2"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/>',
+    meetups:'<path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="3"/>',
+    notes:'<path d="M5 3h14v18H5ZM8 7h8M8 11h8M8 15h5"/>',
+    search:'<circle cx="10" cy="10" r="7"/><path d="m15 15 6 6"/>',
+    more:'<path d="M4 6h16M4 12h16M4 18h16"/>'
+  };
+  return `<svg class="rally-icon" viewBox="0 0 24 24" aria-hidden="true">${paths[id] || paths.notes}</svg>`;
+}
+
 const eventTemplates = [
   { id: "festival-weekend", icon: "◉", name: "Festival weekend", badge: "Recommended", description: "A multi-day trip with lodging, travel, passes, packing, and crew checkpoints.", summary: "7 starter tasks · 4 pass categories" },
   { id: "local-show", icon: "◆", name: "Local show", description: "A lighter plan for a one-night show or block party.", summary: "3 starter tasks · 2 pass categories" },
@@ -93,12 +111,33 @@ async function syncFavorites() {
 }
 
 function wireShell() {
+  el.openMenu.innerHTML=rallyIcon('more');
   document.addEventListener("click", handleAppLink);
   window.addEventListener("popstate", () => navigateTo(new URL(location.href), { push: false }));
   window.addEventListener('resize', sendLineupLayout);
   el.openMenu.addEventListener("click", () => { el.sidebar.classList.add("open"); el.menuBackdrop.hidden = false; });
   [el.closeMenu, el.menuBackdrop].forEach((button) => button.addEventListener("click", closeMenu));
-  el.eventSwitcher.addEventListener("click", () => { renderEventMenu(); el.eventMenu.hidden = !el.eventMenu.hidden; });
+  el.eventSwitcher.setAttribute('aria-controls','eventMenu');
+  el.eventSwitcher.setAttribute('aria-expanded','false');
+  el.eventSwitcher.addEventListener("click", () => {
+    renderEventMenu(); el.eventMenu.hidden = !el.eventMenu.hidden;
+    el.eventSwitcher.setAttribute('aria-expanded',String(!el.eventMenu.hidden));
+    if(!el.eventMenu.hidden)el.eventMenu.querySelector('input').focus({preventScroll:true});
+  });
+  el.eventMenu.addEventListener('keydown',event=>{
+    if(event.key==='Escape'){event.stopPropagation();el.eventMenu.hidden=true;el.eventSwitcher.setAttribute('aria-expanded','false');el.eventSwitcher.focus();}
+    if(['ArrowDown','ArrowUp'].includes(event.key)){
+      const options=[...el.eventMenu.querySelectorAll('button[data-event]')].filter(button=>!button.hidden&&button.getClientRects().length);
+      if(!options.length)return;
+      event.preventDefault();const index=options.indexOf(document.activeElement);
+      options[(index+(event.key==='ArrowDown'?1:options.length-1)+options.length)%options.length].focus();
+    }
+  });
+  document.addEventListener('pointerdown',event=>{
+    if(!el.eventMenu.hidden&&!el.eventMenu.contains(event.target)&&!el.eventSwitcher.contains(event.target)){
+      el.eventMenu.hidden=true;el.eventSwitcher.setAttribute('aria-expanded','false');
+    }
+  });
   el.signOut.addEventListener("click", signOut);
   el.accountButton.addEventListener("click", () => openProfile(data?.members.find((member) => member.id === data.currentMemberId)));
   el.topInvite.addEventListener("click", () => openInvite());
@@ -284,9 +323,27 @@ async function signOut() { if (offlineMode) return showToast('Reconnect to sign 
 
 function renderEventMenu(){
   el.eventMenu.innerHTML = RallyHistory.menu(events,data);
+  el.eventMenu.insertAdjacentHTML('afterbegin','<label class="event-menu-search"><input type="search" aria-label="Find a rave room" placeholder="Find a rave room…" autocomplete="off"></label><p class="event-menu-empty" hidden>No matching rave rooms.</p>');
+  const roomSearch=el.eventMenu.querySelector('input');
+  roomSearch.oninput=()=>{
+    const query=roomSearch.value.trim().toLocaleLowerCase();
+    const buttons=[...el.eventMenu.querySelectorAll('button[data-event]')];
+    buttons.forEach(button=>button.hidden=!button.textContent.toLocaleLowerCase().includes(query));
+    el.eventMenu.querySelector('.event-menu-empty').hidden=buttons.some(button=>!button.hidden);
+    el.eventMenu.querySelectorAll('details').forEach(group=>{
+      if(query&&!group.dataset.searching){group.dataset.wasOpen=String(group.open);group.dataset.searching='true';}
+      group.hidden=!!query&&![...group.querySelectorAll('button[data-event]')].some(button=>!button.hidden);
+      if(query)group.open=true;
+      else if(group.dataset.searching){group.open=group.dataset.wasOpen==='true';delete group.dataset.searching;}
+    });
+  };
   el.eventMenu.insertAdjacentHTML('beforeend','<button id="newEvent" class="new-event-menu-item">＋ New rave room</button>');
   document.getElementById('newEvent').onclick=()=>{el.eventMenu.hidden=true;closeMenu();openNewEvent();};
-  el.eventMenu.querySelectorAll('button[data-event]').forEach(button=>button.onclick=()=>navigateTo(new URL(href('home',button.dataset.event),location.href)));
+  el.eventMenu.querySelectorAll('button[data-event]').forEach(button=>{
+    if(button.dataset.event===data.id){button.classList.add('active');button.setAttribute('aria-current','true');}
+    button.onclick=()=>navigateTo(new URL(href('home',button.dataset.event),location.href));
+  });
+  RallyHistory.mount(data);
 }
 function render() {
   window.RallyLineup?.hide();
@@ -299,7 +356,7 @@ function render() {
   el.eventName.textContent = data.name; el.mobileEventName.textContent = data.name; el.mobileCountdown.textContent = `${days} days away`;
   el.eventThumb.textContent = initials(data.name); el.topInvite.hidden = !data.isAdmin;
   renderAccountButton();
-  el.sideNav.innerHTML = views.filter(([id]) => (id !== 'meetups' || data.id === DEFAULT_EVENT) && (id !== "lineup" || data.id === DEFAULT_EVENT || data.lineup?.length || data.isAdmin)).map(([id,label,icon]) => `<a href="${href(id)}" class="${activeView === id ? "active" : ""}"><span class="nav-icon">${icon}</span>${label}</a>`).join("");
+  el.sideNav.innerHTML = views.filter(([id]) => (id !== 'meetups' || data.id === DEFAULT_EVENT) && (id !== "lineup" || data.id === DEFAULT_EVENT || data.lineup?.length || data.isAdmin)).map(([id,label]) => `<a href="${href(id)}" class="${activeView === id ? "active" : ""}" ${activeView === id ? 'aria-current="page"' : ''}><span class="nav-icon">${rallyIcon(id)}</span>${label}</a>`).join("");
   renderEventMenu();
   window.RallyCrewLocation?.unmount();
   const nativeLineup=activeView==='lineup';
@@ -308,7 +365,6 @@ function render() {
   document.getElementById('lineupView').hidden=!nativeLineup;
   const renderer = { home: renderHome, stay: renderStay, crew: renderCrew, travel: renderTravel, passes: renderPasses, tasks: renderTasks, lineup: renderLineup, notes: renderNotes, meetups: renderMeetups }[activeView] || renderHome;
   renderer();
-  RallyHistory.mount(data);
   const eventStatus=RallyEvents.lifecycle(data);
   if(eventStatus.finished||eventStatus.past){const label=eventStatus.finished?'Event finished':'Past rave';el.mobileCountdown.textContent=label;const countdown=el.page.querySelector('.countdown');if(countdown){countdown.querySelector('strong')?.remove();const caption=countdown.querySelector('span');if(caption)caption.textContent=label;}}
   if(activeView!=='meetups')resumeCrewLocation();
@@ -326,11 +382,8 @@ function renderAccountButton() {
 }
 
 function renderMobileNav() {
-  const icons = {home:'<path d="m3 10 9-7 9 7v10H3Z"/><path d="M9 20v-7h6v7"/>',lineup:'<path d="M9 18V5l11-2v13M9 8l11-2"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/>',crew:'<circle cx="9" cy="8" r="3"/><path d="M3 21v-3a6 6 0 0 1 12 0v3M16 5a3 3 0 0 1 0 6M18 15a5 5 0 0 1 3 5"/>',search:'<circle cx="10" cy="10" r="7"/><path d="m15 15 6 6"/>',more:'<path d="M4 6h16M4 12h16M4 18h16"/>'};
-  const icon = id => `<svg viewBox="0 0 24 24" aria-hidden="true">${icons[id]}</svg>`;
-  icons.meetups='<path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="3"/>';
+  const icon = rallyIcon;
   const tabs=[['home','Home'],['lineup','Lineup'],...(data.id===DEFAULT_EVENT?[['meetups','Meetups']]:[['notes','Notes']])];
-  icons.notes='<path d="M5 3h14v18H5ZM8 7h8M8 11h8M8 15h5"/>';
   const nav=document.getElementById('mobileNav');
   if(nav.dataset.eventId!==data.id){
     nav.dataset.eventId=data.id;
@@ -434,9 +487,9 @@ function renderHome() {
     ["tasks","✓","Tasks",`${data.tasks.filter((task)=>task.status!=="done").length} open`,"Loose ends, owners, and status"],
     ["notes","≡","Notes",`${(data.notes||[]).length} shared notes`,"Tidbits and updates from the crew"],
   ];
-  if (data.id === DEFAULT_EVENT || data.lineup?.length || data.isAdmin) cards.splice(4,0,["lineup","♫","Lineup",data.lineup?.length?`${data.lineup.length} performances`:"Lineup not added yet","Save favorites and see who else is interested"]);
-  if(data.id===DEFAULT_EVENT)cards.splice(5,0,['meetups','⌖','Meetups',`${(data.meetups||[]).filter(m=>m.status==='planned').length} planned`,'Festival map and shared meeting spots']);
-  el.page.innerHTML = `<section class="overview-header"><div><span class="eyebrow">${escapeHtml(data.presenter||"Project overview")}</span><h1>${escapeHtml(data.name)}</h1><p>⌖ ${escapeHtml(data.location)} · ${eventDateLine(data)}</p></div><div class="countdown"><strong>${days}</strong><span>days to go</span></div></section><div class="overview-grid">${cards.map(([view,icon,label,strong,small])=>`<a class="overview-tile" href="${href(view)}"><span class="overview-icon">${icon}</span><span><small>${label}</small><strong>${strong}</strong><em>${escapeHtml(small)}</em></span><b>→</b></a>`).join("")}</div><section class="section-card"><header><div><span class="eyebrow">Loose ends</span><h2>Open tickets</h2></div><a class="primary" href="${href("tasks")}">Open board →</a></header><div class="row-list">${data.tasks.filter((task)=>task.status!=="done").slice(0,4).map((task)=>`<div class="row"><strong>${escapeHtml(task.title)}</strong><span>${escapeHtml(memberMap()[task.assigneeId]?.name || "Unassigned")}</span></div>`).join("") || `<div class="empty">Nothing is waiting right now.</div>`}</div></section>`;
+  if (data.id === DEFAULT_EVENT || data.lineup?.length || data.isAdmin) cards.splice(0,0,["lineup","♫","Lineup",data.lineup?.length?`${data.lineup.length} performances`:"Lineup not added yet","Save favorites and see who else is interested"]);
+  if(data.id===DEFAULT_EVENT)cards.splice(1,0,['meetups','⌖','Meetups',`${(data.meetups||[]).filter(m=>m.status==='planned').length} planned`,'Festival map and shared meeting spots']);
+  el.page.innerHTML = `<section class="overview-header"><div><span class="eyebrow">${escapeHtml(data.presenter||"Project overview")}</span><h1>${escapeHtml(data.name)}</h1><p>⌖ ${escapeHtml(data.location)} · ${eventDateLine(data)}</p></div><div class="countdown"><strong>${days}</strong><span>days to go</span></div></section><div class="overview-grid">${cards.map(([view,icon,label,strong,small])=>`<a class="overview-tile" data-view="${view}" href="${href(view)}"><span class="overview-icon">${rallyIcon(view)}</span><span><small>${label}</small><strong>${strong}</strong><em>${escapeHtml(small)}</em></span><b>→</b></a>`).join("")}</div><section class="section-card"><header><div><span class="eyebrow">Loose ends</span><h2>Open tickets</h2></div><a class="primary" href="${href("tasks")}">Open board →</a></header><div class="row-list">${data.tasks.filter((task)=>task.status!=="done").slice(0,4).map((task)=>`<div class="row"><strong>${escapeHtml(task.title)}</strong><span>${escapeHtml(memberMap()[task.assigneeId]?.name || "Unassigned")}</span></div>`).join("") || `<div class="empty">Nothing is waiting right now.</div>`}</div></section>`;
   if(data.id===DEFAULT_EVENT)window.RallyDino?.home(el.page);
 }
 
@@ -710,10 +763,20 @@ async function handleLineupEvent(message) {
   } catch(error) { showToast(error.message || "Could not save lineup favorites"); }
 }
 
-function openDialog(title,description,formHtml,onSubmit,footerHtml=""){ el.dialogRoot.innerHTML=`<div class="dialog-backdrop"><section class="dialog"><button class="dialog-close">×</button><span class="eyebrow">Rally project room</span><h2>${title}</h2><p>${description}</p><form>${formHtml}<div class="dialog-actions${footerHtml?" split":""}"><button class="primary" type="submit">Save</button>${footerHtml}</div></form></section></div>`; const backdrop=el.dialogRoot.firstElementChild, form=backdrop.querySelector("form"); backdrop.querySelector(".dialog-close").onclick=closeDialog; backdrop.onmousedown=(event)=>{if(event.target===backdrop)closeDialog()}; form.onsubmit=async(event)=>{event.preventDefault();const button=form.querySelector("[type=submit]");button.disabled=true;try{await onSubmit(Object.fromEntries(new FormData(form)))}catch(error){showToast(error.message||"Could not save");button.disabled=false}}; }
+function openDialog(title,description,formHtml,onSubmit,footerHtml=""){ el.dialogRoot.innerHTML=`<div class="dialog-backdrop"><section class="dialog"><button class="dialog-close">×</button><span class="eyebrow">Rally project room</span><h2>${title}</h2><p>${description}</p><form>${formHtml}<div class="dialog-actions${footerHtml?" split":""}"><button class="primary" type="submit">Save</button>${footerHtml}</div></form></section></div>`; const backdrop=el.dialogRoot.firstElementChild, form=backdrop.querySelector("form"); enhanceDialogSelects(form); backdrop.querySelector(".dialog-close").onclick=closeDialog; backdrop.onmousedown=(event)=>{if(event.target===backdrop)closeDialog()}; form.onsubmit=async(event)=>{event.preventDefault();const button=form.querySelector("[type=submit]");button.disabled=true;try{await onSubmit(Object.fromEntries(new FormData(form)))}catch(error){showToast(error.message||"Could not save");button.disabled=false}}; }
 function wireDangerButton(id,onDelete){const button=document.getElementById(id);if(!button)return;button.onclick=async()=>{if(button.dataset.confirm!=="true"){button.dataset.confirm="true";button.classList.add("armed");button.textContent="Click again to delete";return}button.disabled=true;try{await onDelete()}catch(error){showToast(error.message||"Could not delete");button.disabled=false}};}
 function openDangerDialog(title,description,label,onDelete){el.dialogRoot.innerHTML=`<div class="dialog-backdrop"><section class="dialog confirm-dialog"><button class="dialog-close">×</button><span class="eyebrow">Rally project room</span><h2>${title}</h2><p>${description}</p><div class="dialog-actions split"><button id="cancelDanger" class="secondary" type="button">Cancel</button><button id="confirmDanger" class="danger-button armed" type="button">${label}</button></div></section></div>`;const backdrop=el.dialogRoot.firstElementChild;backdrop.querySelector(".dialog-close").onclick=closeDialog;document.getElementById("cancelDanger").onclick=closeDialog;backdrop.onmousedown=(event)=>{if(event.target===backdrop)closeDialog()};document.getElementById("confirmDanger").onclick=async(event)=>{event.currentTarget.disabled=true;try{await onDelete()}catch(error){showToast(error.message||"Could not remove");event.currentTarget.disabled=false}};}
-function closeDialog(){ el.dialogRoot.innerHTML=""; }
+function enhanceDialogSelects(form){
+  form.querySelectorAll('select').forEach((select,index)=>{
+    select.id ||= 'rally-dialog-select-'+index;
+    select.setAttribute('aria-label',select.closest('label')?.querySelector('span')?.textContent||select.name);
+    window.SearchableSelect?.enhance(select);
+  });
+}
+function closeDialog(){
+  el.dialogRoot.querySelectorAll('select').forEach(select=>window.SearchableSelect?.enhance(select).close());
+  el.dialogRoot.innerHTML="";
+}
 function field(label,name,value="",type="text",required=true){return `<label class="field"><span>${label}</span><input name="${name}" type="${type}" value="${escapeAttr(value)}" ${required?"required":""}></label>`}
 function selectField(label,name,options,value=""){return `<label class="field"><span>${label}</span><select name="${name}">${options.map(([id,text])=>`<option value="${escapeAttr(id)}" ${id===value?"selected":""}>${escapeHtml(text)}</option>`).join("")}</select></label>`}
 

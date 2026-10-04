@@ -202,6 +202,7 @@ test('linked cards expose the precise Lineup links and keep context in the offli
 test('Lineup is a primary bottom tab and Crew remains in More, without duplicate Lineup tabs',()=>{
  const app=read('app.js'),nav={dataset:{},querySelectorAll:()=>[],setAttribute(){},removeAttribute(){}};
  const ctx={data:{id:eventId},DEFAULT_EVENT:eventId,activeView:'crew',document:{getElementById:()=>nav},href:view=>'?view='+view,openProjectSearch(){},requestAnimationFrame(){},sendLineupLayout(){}};
+ vm.runInNewContext(app.slice(app.indexOf('function rallyIcon('),app.indexOf('const eventTemplates')),ctx);
  vm.runInNewContext(app.slice(app.indexOf('function renderMobileNav('),app.indexOf('function sendLineupLayout(')),ctx);
  ctx.renderMobileNav();
  assert.equal((nav.innerHTML.match(/href="\?view=lineup"/g)||[]).length,1);
