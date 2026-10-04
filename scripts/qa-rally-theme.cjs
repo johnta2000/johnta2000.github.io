@@ -70,7 +70,9 @@ const qaBootstrap=bootstrap.replace(/data=\{.*?\};events=/,`data=${JSON.stringif
     assert.equal(await source.getAttribute('href'),fixture.lineupSource);
     assert.equal(await source.evaluate(el=>getComputedStyle(el).backgroundColor),'rgba(0, 0, 0, 0)');
     await source.hover();contrastIssues.push(...await auditContrast(page,label+' official source hover'));
-    await source.focus();contrastIssues.push(...await auditContrast(page,label+' official source focus'));
+    await source.focus();await page.keyboard.press('Tab');await page.keyboard.press('Shift+Tab');
+    assert(await source.evaluate(el=>el.matches(':focus-visible')),'Source link needs visible keyboard focus');
+    contrastIssues.push(...await auditContrast(page,label+' official source focus'));
     await page.screenshot({path:`${output}/${label}-official-source.png`});
     await source.evaluate(el=>el.blur());
    }
