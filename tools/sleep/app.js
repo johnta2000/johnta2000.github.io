@@ -1772,7 +1772,12 @@ function drawGroupChart() {
     if (event.key in moves) { event.preventDefault(); showGroupDay(moves[event.key], true); }
     if (event.key === "Escape") $("#groupTooltip").hidden = true;
   };
-  $("#groupEmpty").hidden = groupHistory.members.length > 0;
+  $("#groupEmpty").hidden = values.length > 0;
+  $("#groupEmpty").textContent = !groupHistory.members.length
+    ? "Select a person above to show their history."
+    : !isDemo && !liveGroup.members.some(member => member.metrics.includes(metric))
+      ? "This metric isn’t shared yet. Open Your sharing to choose what to share."
+      : "No shared WHOOP nights in this period. Connect WHOOP or choose a longer history window.";
   $("#groupSummaryRows").innerHTML = groupHistory.members.map(member => {
     const delta = member.delta === null ? "Not enough history" : metric === "durationMinutes" ? `${member.delta > 0 ? "+" : member.delta < 0 ? "−" : ""}${Math.abs(Math.round(member.delta))} min` : `${member.delta > 0 ? "+" : member.delta < 0 ? "−" : ""}${Math.abs(member.delta).toFixed(1)} pts`;
     return `<tr><th scope="row"><span class="group-person-marker" style="background:${member.color}"></span>${escapeHtml(member.name.replace(' (sample)', ''))}</th><td>${formatMemberValue(member, member.average)}</td><td>${delta}<small class="group-coverage">${member.previousCount} / ${selectedDays} previous nights</small></td><td>${member.count} / ${selectedDays}</td></tr>`;
