@@ -153,6 +153,8 @@ export async function fetchWhoopCollection(accessToken: string, endpoint: string
   const start = new Date(Date.now() - 366 * 24 * 60 * 60 * 1000).toISOString();
   let nextToken: string | undefined;
   for (let page = 0; page < 64; page += 1) {
+    // Pace full-year backfills and sequential group syncs below the app’s 100/minute quota.
+    await new Promise(resolve => setTimeout(resolve, 700));
     const url = new URL(`${WHOOP_API_BASE}/developer/v2/${endpoint}`);
     url.searchParams.set("limit", "25");
     url.searchParams.set("start", start);
@@ -164,6 +166,7 @@ export async function fetchWhoopCollection(accessToken: string, endpoint: string
       message?: string;
     };
     if (!response.ok) {
+      if (response.status === 429) throw new Error("WHOOP rate limit reached. Please retry in a minute.");
       throw new Error(payload.message || `WHOOP sync failed (${response.status}).`);
     }
     records.push(...(payload.records || []));

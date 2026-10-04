@@ -356,6 +356,7 @@ async function handleWhoopAction() {
 async function syncWhoop() {
   els.whoopAction.disabled = true;
   els.whoopAction.textContent = "Syncing…";
+  els.whoopMessage.textContent = "Syncing your WHOOP history. A full-year sync can take about a minute.";
   try {
     const result = await convexAction("whoop:sync", {});
     els.whoopMessage.textContent = `Synced ${result.inserted + result.updated} nights from Whoop.`;
@@ -1748,9 +1749,9 @@ function drawGroupChart() {
   const values = groupHistory.members.flatMap(member => member.points.map(point => point.value)).filter(Number.isFinite);
   const maximum = Math.max(...values, percent ? 100 : metric === "strain" ? 21 : 1);
   const span = maximum - Math.min(...values, 0);
-  const rawStep = span / 4;
+  const rawStep = span / 5;
   const magnitude = 10 ** Math.floor(Math.log10(rawStep || 1));
-  const step = percent ? 25 : metric === "strain" ? 7 : unit === "min" ? (rawStep <= 30 ? 30 : rawStep <= 60 ? 60 : Math.ceil(rawStep / 120) * 120) : Math.max(metric === "workoutCount" ? 1 : .1, [1,2,5,10].find(n => n * magnitude >= rawStep) * magnitude);
+  const step = percent ? 25 : metric === "strain" ? 7 : unit === "min" ? (rawStep <= 30 ? 30 : rawStep <= 60 ? 60 : Math.ceil(rawStep / 60) * 60) : Math.max(metric === "workoutCount" ? 1 : .1, [1,2,5,10].find(n => n * magnitude >= rawStep) * magnitude);
   const lower = 0;
   const upper = percent ? Math.max(100, Math.ceil(maximum / step) * step) : Math.ceil(maximum / step) * step;
   const x = index => left + index / (selectedDays - 1) * (w - left - right);
