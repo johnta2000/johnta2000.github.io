@@ -83,13 +83,18 @@ init().catch((error) => showAuthError(error));
 
 async function init() {
   captureSleepInvite();
+  const cleanUrl = new URL(location.href);
+  if (cleanUrl.searchParams.has("release")) {
+    cleanUrl.searchParams.delete("release");
+    history.replaceState({}, "", cleanUrl.pathname + cleanUrl.search + cleanUrl.hash);
+  }
   buildRatingScale();
   els.manualDate.value = todayPacific();
   els.heroDate.textContent = formatLongDate(todayPacific());
   personalComparison = new DaylightComparison(document.querySelector("#personalComparison"));
   bindEvents();
   const requestedView = new URLSearchParams(location.search).get("view");
-  switchView(requestedView === "groups" ? "friends" : "overview");
+  switchView(requestedView === "groups" ? "friends" : ["trends", "connections"].includes(requestedView) ? requestedView : "overview");
   document
     .querySelectorAll("select")
     .forEach((select) => SearchableSelect.enhance(select));
@@ -383,6 +388,7 @@ function readableWhoopError(error) {
 function startPreview() {
   resetGroupsPreview();
   isDemo = true;
+  updateGroupPageIdentity();
   demoData =
     new URLSearchParams(location.search).get("demo") === "empty"
       ? { nights: [], alertness: [] }
@@ -415,7 +421,7 @@ function switchView(view) {
     ],
     friends: [
       "Groups",
-      "Your group",
+      "Groups",
       "Compare your trends. See who’s ahead this week.",
     ],
     connections: [
@@ -430,6 +436,13 @@ function switchView(view) {
   els.app.dataset.activeView = view;
   $("#pageLabel").textContent = views[view][0];
   $("#pageTitle").textContent = views[view][1];
+  document.title = `${views[view][0]} · Daylight`;
+  const pageUrl = new URL(location.href);
+  if (view === 'overview') pageUrl.searchParams.delete('view');
+  else pageUrl.searchParams.set('view', view === 'friends' ? 'groups' : view);
+  if (view !== 'friends') pageUrl.searchParams.delete('group');
+  history.replaceState({}, '', pageUrl.pathname + pageUrl.search + pageUrl.hash);
+  updateGroupPageIdentity();
   $("#pageSubtitle").textContent = views[view][2];
   document
     .querySelectorAll("[data-panels]")

@@ -128,22 +128,40 @@ async function initializeGroups() {
   $('.group-onboarding').hidden = false;
   try {
     const groups = await convexQuery('sleepGroups:list', {});
-    activeGroupId = activeGroupId || sessionStorage.getItem('daylightActiveGroup');
-    if (!groups.some(group => group.id === activeGroupId)) activeGroupId = groups[0]?.id || null;
+    const requestedGroup = new URLSearchParams(location.search).get('group');
+    const unavailableLink = !activeGroupId && requestedGroup && !groups.some(group => group.id === requestedGroup);
+    activeGroupId = unavailableLink ? null : activeGroupId || requestedGroup || sessionStorage.getItem('daylightActiveGroup');
+    if (!unavailableLink && !groups.some(group => group.id === activeGroupId)) activeGroupId = groups[0]?.id || null;
     const select = $('#groupSelect');
-    select.innerHTML = groups.map(group => `<option value="${escapeHtml(group.id)}">${escapeHtml(group.name)}</option>`).join('') + '<option value="__create__">＋ New group</option>';
+    select.innerHTML = (unavailableLink ? '<option value="" disabled>Choose a group</option>' : '') + groups.map(group => `<option value="${escapeHtml(group.id)}">${escapeHtml(group.name)}</option>`).join('') + '<option value="__create__">＋ New group</option>';
     select.disabled = !groups.length;
     select.value = activeGroupId || '';
     SearchableSelect.enhance(select).sync();
     $('#groupEmptyState').hidden = groups.length > 0;
     await refreshLiveGroup();
+    if (unavailableLink) $('#groupMessage').textContent = 'This group is not available to your account. Choose one of your groups or ask its owner for an invitation.';
     clearInterval(groupPoll);
     groupPoll = setInterval(() => { if (!document.hidden && activeView === 'friends' && activeGroupId) refreshLiveGroup(); }, 30000);
   } catch (error) { clearLiveGroup(); $('#groupMessage').textContent = groupError(error); }
 }
+function updateGroupPageIdentity() {
+  if (activeView !== 'friends') return;
+  const name = isDemo ? 'Sample group' : liveGroup?.name || 'Groups';
+  $('#pageTitle').textContent = name;
+  document.title = `${name} · Daylight`;
+  if (!isDemo && liveGroup) {
+    const url = new URL(location.href);
+    url.searchParams.set('view', 'groups');
+    url.searchParams.set('group', liveGroup.id);
+    url.searchParams.delete('release');
+    history.replaceState({}, '', url.pathname + url.search + url.hash);
+    sessionStorage.setItem('daylightActiveGroup', liveGroup.id);
+  }
+}
 function clearLiveGroup() {
   $('#invitationDialog').close();
   liveGroup = null; groupSample = null; groupHistory = null;
+  updateGroupPageIdentity();
   $('#friendSample').hidden = true; $('#groupStandings').hidden = true; $('#groupManagement').hidden = true;
   $('#invitationManager').hidden = true; $('#newInvite').hidden = true;
   $('#inviteFriend').hidden = true;
@@ -159,6 +177,7 @@ async function refreshLiveGroup() {
     if (request !== groupsRequest || activeGroupId !== id || isDemo) return;
     const oldIds = new Set(groupSample?.map(member => member.id) || []);
     liveGroup = data;
+    updateGroupPageIdentity();
     groupSample = data.members.map((member, index) => ({...member, color: GROUP_COLORS[index % GROUP_COLORS.length], dash: ['', '7 4', '2 5'][index % 3]}));
     for (const member of groupSample) if (!oldIds.has(member.id)) visibleGroupMembers.add(member.id);
     $('#groupMembers').replaceChildren();
