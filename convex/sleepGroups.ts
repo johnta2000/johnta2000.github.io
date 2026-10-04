@@ -62,21 +62,30 @@ export const create = mutation({args: {groupName: v.string(), ...sharing}, handl
   await ctx.db.insert("sleepMembers", {...settings, metrics: settings.metrics as any, subject: user.subject, groupId, joinedAt: Date.now()});
   return groupId;
 }});
-export const createInvite = action({args: {groupId: v.id("sleepGroups")}, handler: async (ctx, args): Promise<{token: string; expiresAt: number}> => {
+const inviteInput = {groupId: v.id("sleepGroups"), label: v.optional(v.string()), replaceInviteId: v.optional(v.id("sleepInvites"))};
+export const createInvite = action({args: inviteInput, handler: async (ctx, args): Promise<{token: string; expiresAt: number; id: string}> => {
   const token = crypto.randomUUID().replaceAll("-", "") + crypto.randomUUID().replaceAll("-", "");
-  const expiresAt = await ctx.runMutation(internal.sleepGroups.issueInvite, {groupId: args.groupId, tokenHash: await hashInvite(token)});
-  return {token, expiresAt};
+  const result = await ctx.runMutation(internal.sleepGroups.issueInvite, {...args, tokenHash: await hashInvite(token)});
+  return {token, ...result};
 }});
-export const issueInvite = internalMutation({args: {groupId: v.id("sleepGroups"), tokenHash: v.string()}, handler: async (ctx, args) => {
+export const issueInvite = internalMutation({args: {...inviteInput, tokenHash: v.string()}, handler: async (ctx, args) => {
   await owner(ctx, args.groupId);
+  const previous = args.replaceInviteId ? await ctx.db.get(args.replaceInviteId) : null;
+  if (args.replaceInviteId && (!previous || previous.groupId !== args.groupId)) throw new Error("Invitation not found in this group.");
+  if (previous?.usedAt) throw new Error("This invitation has already been accepted.");
+  if (previous?.replacedBy) throw new Error("This invitation already has a replacement. Use the newest link.");
+  const label = (args.label ?? previous?.label ?? "").trim();
+  if (label.length > 80) throw new Error("Keep the invitation label under 80 characters.");
   const members = await ctx.db.query("sleepMembers").withIndex("by_group", q => q.eq("groupId", args.groupId)).collect();
   if (members.length >= 10) throw new Error("This group has reached its 10-person limit.");
   const invites = await ctx.db.query("sleepInvites").withIndex("by_group", q => q.eq("groupId", args.groupId)).collect();
   const now = Date.now();
-  if (invites.filter(i => !i.usedAt && !i.revokedAt && i.expiresAt > now).length >= 5) throw new Error("Revoke an unused invitation before creating another.");
+  if (invites.filter(i => i._id !== previous?._id && !i.usedAt && !i.revokedAt && i.expiresAt > now).length >= 5) throw new Error("Revoke a pending invitation before creating another.");
   const expiresAt = now + 7 * 86400000;
-  await ctx.db.insert("sleepInvites", {...args, createdAt: now, expiresAt});
-  return expiresAt;
+  const id = await ctx.db.insert("sleepInvites", {groupId: args.groupId, tokenHash: args.tokenHash, label: label || undefined, createdAt: now, expiresAt});
+  // Atomic replacement: the old link stops working only when its successor exists.
+  if (previous) await ctx.db.patch(previous._id, {revokedAt: previous.revokedAt || now, replacedBy: id});
+  return {id, expiresAt};
 }});
 export const previewInvite = query({args: {token: v.string()}, handler: async (ctx, args) => {
   const user = await signedIn(ctx);
@@ -96,7 +105,7 @@ export const acceptInvite = mutation({args: {token: v.string(), ...sharing}, han
   if (own.length >= 20) throw new Error("You have reached the group membership limit.");
   await profile(ctx, user.subject, settings.name);
   await ctx.db.insert("sleepMembers", {...settings, metrics: settings.metrics as any, groupId: group._id, subject: user.subject, joinedAt: Date.now()});
-  await ctx.db.patch(invite._id, {usedAt: Date.now()});
+  await ctx.db.patch(invite._id, {usedAt: Date.now(), acceptedName: settings.name});
   return group._id;
 }});
 export const updateSharing = mutation({args: {groupId: v.id("sleepGroups"), ...sharing}, handler: async (ctx, args) => {
@@ -109,7 +118,8 @@ export const revokeInvite = mutation({args: {inviteId: v.id("sleepInvites")}, ha
   const invite = await ctx.db.get(args.inviteId);
   if (!invite) throw new Error("Invitation not found.");
   await owner(ctx, invite.groupId);
-  await ctx.db.patch(invite._id, {revokedAt: Date.now()});
+  if (invite.usedAt) throw new Error("An accepted invitation cannot be revoked. Manage the member instead.");
+  if (!invite.revokedAt) await ctx.db.patch(invite._id, {revokedAt: Date.now()});
 }});
 export const removeMember = mutation({args: {groupId: v.id("sleepGroups"), memberId: v.id("sleepMembers")}, handler: async (ctx, args) => {
   const {group} = await owner(ctx, args.groupId);
@@ -155,7 +165,7 @@ export const history = query({args: {groupId: v.id("sleepGroups")}, handler: asy
     visible.push({id: member._id, name: member.name, self: member.subject === user.subject, metrics: member.metrics, shareDays: member.shareDays, nights: [...merged.values()]});
   }
   const invites = group.ownerSubject === user.subject ? await ctx.db.query("sleepInvites").withIndex("by_group", q => q.eq("groupId", group._id)).collect() : [];
-  return {id: group._id, name: group.name, owner: group.ownerSubject === user.subject, own: {name: own.name, metrics: own.metrics, shareDays: own.shareDays}, members: visible, invites: invites.filter(i => !i.usedAt && !i.revokedAt && i.expiresAt > Date.now()).map(i => ({id: i._id, createdAt: i.createdAt, expiresAt: i.expiresAt}))};
+  return {id: group._id, name: group.name, owner: group.ownerSubject === user.subject, own: {name: own.name, metrics: own.metrics, shareDays: own.shareDays}, members: visible, invites: invites.filter(i => !i.usedAt && !i.revokedAt && i.expiresAt > Date.now()).map(i => ({id: i._id, createdAt: i.createdAt, expiresAt: i.expiresAt})), invitationHistory: invites.sort((a,b) => b.createdAt - a.createdAt).map(i => ({id: i._id, label: i.label || "Unlabeled invitation", createdAt: i.createdAt, expiresAt: i.expiresAt, usedAt: i.usedAt, revokedAt: i.revokedAt, acceptedName: i.acceptedName, replaced: Boolean(i.replacedBy), status: i.usedAt ? "accepted" : i.revokedAt ? "revoked" : i.expiresAt <= Date.now() ? "expired" : "pending"}))};
 }});
 export const migrateLegacy = internalMutation({args: {}, handler: async ctx => {
   const subject = process.env.SLEEP_LEGACY_OWNER_SUBJECT;

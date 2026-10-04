@@ -19,6 +19,6 @@ export const sleepTables = {
   sleepGroups: defineTable({ name: v.string(), ownerSubject: v.string(), createdAt: v.number(), closedAt: v.optional(v.number()) }).index("by_owner", ["ownerSubject"]),
   sleepMembers: defineTable({ groupId: v.id("sleepGroups"), subject: v.string(), name: v.string(), metrics: v.array(sharedMetric), shareDays: v.number(), joinedAt: v.number() })
     .index("by_group", ["groupId"]).index("by_group_subject", ["groupId", "subject"]).index("by_subject", ["subject"]),
-  sleepInvites: defineTable({ groupId: v.id("sleepGroups"), tokenHash: v.string(), createdAt: v.number(), expiresAt: v.number(), usedAt: v.optional(v.number()), revokedAt: v.optional(v.number()) })
+  sleepInvites: defineTable({ groupId: v.id("sleepGroups"), tokenHash: v.string(), label: v.optional(v.string()), acceptedName: v.optional(v.string()), replacedBy: v.optional(v.id("sleepInvites")), createdAt: v.number(), expiresAt: v.number(), usedAt: v.optional(v.number()), revokedAt: v.optional(v.number()) })
     .index("by_hash", ["tokenHash"]).index("by_group", ["groupId"]),
 };

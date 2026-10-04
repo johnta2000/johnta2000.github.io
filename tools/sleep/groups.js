@@ -28,7 +28,10 @@ function bindGroupEvents() {
   $('#createGroup').addEventListener('click', () => openGroupForm('create'));
   $('#createFirstGroup').addEventListener('click', () => openGroupForm('create'));
   $('#editSharing').addEventListener('click', () => openGroupForm('sharing'));
-  $('#inviteFriend').addEventListener('click', createGroupInvitation);
+  $('#inviteFriend').addEventListener('click', () => openInvitationForm());
+  $('#manageInviteFriend').addEventListener('click', () => openInvitationForm());
+  $('#cancelInvitation').addEventListener('click', () => $('#invitationDialog').close());
+  $('#invitationForm').addEventListener('submit', createGroupInvitation);
   $('#reviewInviteButton').addEventListener('click', reviewSleepInvite);
   $('#cancelGroupDialog').addEventListener('click', () => $('#groupDialog').close());
   $('#groupForm').addEventListener('submit', saveGroupForm);
@@ -139,6 +142,7 @@ async function initializeGroups() {
 function clearLiveGroup() {
   liveGroup = null; groupSample = null; groupHistory = null;
   $('#friendSample').hidden = true; $('#groupStandings').hidden = true; $('#groupManagement').hidden = true;
+  $('#invitationManager').hidden = true; $('#newInvite').hidden = true;
   $('#inviteFriend').hidden = true; $('#editSharing').hidden = true;
   $('#groupPlot').replaceChildren(); $('#groupSummaryRows').replaceChildren(); $('#groupMembers').replaceChildren();
 }
@@ -164,8 +168,7 @@ async function refreshLiveGroup() {
     $('#groupMemberList').querySelectorAll('[data-remove-member]').forEach(button => button.addEventListener('click', () => {
       if (confirm('Remove this person from the group? Their private records will remain in their account.')) groupOperation(async () => { await convexMutation('sleepGroups:removeMember', {groupId: id, memberId: button.dataset.removeMember}); await refreshLiveGroup(); });
     }));
-    $('#pendingInvites').innerHTML = data.invites.length ? `<h4>Unused invitations</h4>${data.invites.map(invite => `<div class="group-member-row"><span>Created ${formatShortDate(new Date(invite.createdAt).toISOString().slice(0,10))}<small>Expires ${formatShortDate(new Date(invite.expiresAt).toISOString().slice(0,10))}</small></span><button type="button" class="text-button" data-revoke-invite="${escapeHtml(invite.id)}">Revoke</button></div>`).join('')}` : '';
-    $('#pendingInvites').querySelectorAll('[data-revoke-invite]').forEach(button => button.addEventListener('click', () => groupOperation(async () => { await convexMutation('sleepGroups:revokeInvite', {inviteId: button.dataset.revokeInvite}); $('#newInvite').hidden = true; await refreshLiveGroup(); })));
+    renderInvitations();
     $('#leaveGroup').textContent = data.owner ? 'Close group' : 'Leave group';
     drawGroupChart();
   } catch (error) {
@@ -174,17 +177,88 @@ async function refreshLiveGroup() {
     $('#groupMessage').textContent = groupError(error);
   }
 }
-async function createGroupInvitation() {
-  const button = $('#inviteFriend'); button.disabled = true;
-  await groupOperation(async () => {
-    const invite = await convexAction('sleepGroups:createInvite', {groupId: activeGroupId});
-    const link = new URL(location.pathname, location.origin); link.searchParams.set('view', 'groups'); link.hash = `invite=${invite.token}`;
-    $('#inviteLink').value = link.toString();
-    $('#newInvite').hidden = false; $('#copyInviteStatus').textContent = '';
+let invitationFilter = 'all';
+let invitationFormGroup = null;
+let replacingInvitation = null;
+let shownInvitationId = null;
+let invitationLinks = {};
+try { invitationLinks = JSON.parse(sessionStorage.getItem('daylightInviteLinks') || '{}'); } catch {}
+if (!invitationLinks || typeof invitationLinks !== 'object' || Array.isArray(invitationLinks)) invitationLinks = {};
+function persistInvitationLinks() {
+  try { sessionStorage.setItem('daylightInviteLinks', JSON.stringify(invitationLinks)); } catch {}
+}
+function inviteTimestamp(value) {
+  return new Date(value).toLocaleString('en-US', {month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'});
+}
+function openInvitationForm(invite = null) {
+  if (!liveGroup?.owner) return;
+  invitationFormGroup = liveGroup.id;
+  replacingInvitation = invite?.id || null;
+  $('#invitationLabel').value = invite && invite.label !== 'Unlabeled invitation' ? invite.label : '';
+  $('#invitationError').textContent = '';
+  $('#invitationDialogTitle').textContent = invite ? 'Replace invitation link' : 'Invite a friend';
+  $('#saveInvitation').textContent = invite ? 'Replace link' : 'Create link';
+  $('#invitationExplanation').textContent = invite ? 'This creates a new 7-day link and disables the old one. Send the new link to your friend. The old invitation stays in your history.' : 'A label for your records. Anyone you send the link to can use it once. No email is sent.';
+  $('#invitationDialog').showModal();
+  $('#invitationLabel').focus();
+}
+function displayInvitation(invite, token) {
+  if (!/^[a-f0-9]{64}$/.test(token)) return;
+  const link = new URL(location.pathname, location.origin); link.searchParams.set('view', 'groups'); link.hash = `invite=${token}`;
+  shownInvitationId = invite.id;
+  $('#inviteLink').value = link.toString();
+  $('#newInvite h3').textContent = `Invitation for ${invite.label || 'your friend'}`;
+  $('#newInvite > p').textContent = `One person can use this link. Expires ${inviteTimestamp(invite.expiresAt)}. No email has been sent.`;
+  $('#newInvite').hidden = false; $('#copyInviteStatus').textContent = '';
+}
+async function createGroupInvitation(event) {
+  event.preventDefault();
+  if (!liveGroup?.owner || invitationFormGroup !== activeGroupId) { $('#invitationError').textContent = 'The selected group changed. Close this form and try again.'; return; }
+  const groupId = invitationFormGroup, label = $('#invitationLabel').value.trim();
+  if (!label) { $('#invitationError').textContent = 'Add a name or label so you can identify this invitation.'; return; }
+  const button = $('#saveInvitation'); button.disabled = true;
+  try {
+    const invite = await convexAction('sleepGroups:createInvite', {groupId, label, ...(replacingInvitation ? {replaceInviteId: replacingInvitation} : {})});
+    invitationLinks[invite.id] = invite.token;
+    if (replacingInvitation) delete invitationLinks[replacingInvitation];
+    persistInvitationLinks();
+    $('#invitationDialog').close();
+    if (groupId !== activeGroupId) return;
+    invitationFilter = 'pending';
+    displayInvitation({...invite, label}, invite.token);
     await refreshLiveGroup();
-    $('#inviteLink').focus(); $('#inviteLink').select();
+    $('#newInvite').scrollIntoView({block:'nearest',behavior:'smooth'});
+  } catch (error) { $('#invitationError').textContent = groupError(error); }
+  finally { button.disabled = false; }
+}
+function renderInvitations() {
+  const manager = $('#invitationManager'); manager.hidden = !liveGroup?.owner;
+  if (manager.hidden) return;
+  const invites = liveGroup.invitationHistory || [];
+  const states = {pending:'Pending',accepted:'Accepted',expired:'Expired',revoked:'Revoked'};
+  $('#invitationFilters').innerHTML = [['all','All'], ...Object.entries(states)].map(([key,label]) => `<button type="button" data-invite-filter="${key}" aria-pressed="${invitationFilter === key}">${label}<span>${key === 'all' ? invites.length : invites.filter(i => i.status === key).length}</span></button>`).join('');
+  $('#invitationFilters').querySelectorAll('button').forEach(button => button.onclick = () => { invitationFilter = button.dataset.inviteFilter; renderInvitations(); $('#invitationFilters').querySelector(`[data-invite-filter="${invitationFilter}"]`).focus(); });
+  for (const invite of invites) if (invite.status !== 'pending') delete invitationLinks[invite.id];
+  persistInvitationLinks();
+  if (shownInvitationId && !invites.some(i => i.id === shownInvitationId && i.status === 'pending')) { $('#newInvite').hidden = true; $('#inviteLink').value = ''; shownInvitationId = null; }
+  const filtered = invites.filter(i => invitationFilter === 'all' || i.status === invitationFilter);
+  $('#invitationRows').innerHTML = filtered.length ? filtered.map(invite => {
+    const state = invite.status, copyable = /^[a-f0-9]{64}$/.test(invitationLinks[invite.id] || '');
+    const detail = state === 'accepted' ? `${invite.acceptedName ? `Accepted by ${escapeHtml(invite.acceptedName)}` : 'Accepted · name not recorded for this older invitation'} · ${inviteTimestamp(invite.usedAt)}` : state === 'revoked' ? `${invite.replaced ? 'Replaced with a new link' : 'Revoked'} · ${inviteTimestamp(invite.revokedAt)}` : `${state === 'expired' ? 'Expired' : 'Expires'} ${inviteTimestamp(invite.expiresAt)}`;
+    return `<div class="invitation-row"><div class="invitation-identity"><strong>${escapeHtml(invite.label)}</strong><small>Created ${inviteTimestamp(invite.createdAt)}</small><p>${detail}</p>${state === 'pending' && !copyable ? '<small>Original link unavailable in this tab. Replace it to get a new link.</small>' : ''}</div><span class="invitation-status invitation-status-${state}">${states[state]}</span><div class="invitation-actions">${state === 'pending' && copyable ? `<button class="secondary-button" type="button" data-copy-invitation="${escapeHtml(invite.id)}">Copy link</button>` : ''}${state !== 'accepted' && !invite.replaced ? `<button class="text-button" type="button" data-replace-invitation="${escapeHtml(invite.id)}">Replace link</button>` : ''}${state === 'pending' ? `<button class="text-button" type="button" data-revoke-invitation="${escapeHtml(invite.id)}">Revoke</button>` : ''}</div></div>`;
+  }).join('') : `<p class="invitation-empty">${invites.length ? 'No ' + (invitationFilter === 'all' ? '' : invitationFilter + ' ') + 'invitations.' : 'No invitations yet. Create a labeled link for each friend.'}</p>`;
+  $('#invitationRows').querySelectorAll('[data-copy-invitation]').forEach(button => button.onclick = async () => {
+    const invite = invites.find(i => i.id === button.dataset.copyInvitation);
+    displayInvitation(invite, invitationLinks[invite.id]);
+    try { await navigator.clipboard.writeText($('#inviteLink').value); $('#invitationMessage').textContent = `Link for ${invite.label} copied.`; }
+    catch { $('#inviteLink').focus(); $('#inviteLink').select(); $('#invitationMessage').textContent = 'Select and copy the invitation link above.'; }
   });
-  button.disabled = false;
+  $('#invitationRows').querySelectorAll('[data-replace-invitation]').forEach(button => button.onclick = () => openInvitationForm(invites.find(i => i.id === button.dataset.replaceInvitation)));
+  $('#invitationRows').querySelectorAll('[data-revoke-invitation]').forEach(button => button.onclick = async () => {
+    button.disabled = true;
+    try { await convexMutation('sleepGroups:revokeInvite', {inviteId:button.dataset.revokeInvitation}); $('#invitationMessage').textContent = 'Invitation revoked. Its link no longer works.'; await refreshLiveGroup(); }
+    catch(error) { $('#invitationMessage').textContent = groupError(error); button.disabled = false; }
+  });
 }
 function groupError(error) {
   const message = String(error?.message || 'Could not finish. Please try again.');
@@ -204,6 +278,7 @@ function resetGroupsPreview() {
   ['you', 'alex', 'morgan'].forEach(id => visibleGroupMembers.add(id));
   $('#groupMembers').replaceChildren();
   $('#groupManagement').hidden = true;
+  $('#invitationManager').hidden = true;
   $('#groupEmptyState').hidden = true;
   $('#newInvite').hidden = true;
   $('#groupsPreviewBadge').hidden = false;

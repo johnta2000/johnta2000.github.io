@@ -2086,3 +2086,27 @@ footer {
 @media(min-width:701px){.app[data-active-view="overview"] .sidebar{width:184px;padding:28px 14px}.app[data-active-view="overview"] .workspace{margin-left:184px}.app[data-active-view="overview"] main{padding-left:24px;padding-right:24px}.app[data-active-view="overview"] .sidebar .brand-mark{font-size:24px}}
 @media(max-width:1100px){.comparison-layout{grid-template-columns:minmax(0,1fr)}.comparison-inspector{border-left:0;border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0 22px}.comparison-inspector>.comparison-kicker,.comparison-inspector>h2,.comparison-inspector>#comparisonPinState,.comparison-date-buttons{grid-column:1/-1}.comparison-date-buttons{max-width:238px}.comparison-inspector section{min-width:0}.comparison-value{flex-wrap:wrap}.comparison-coverage{flex-wrap:wrap}}
 @media(max-width:700px){.comparison-charts{padding:0 14px 10px}.comparison-toolbar{padding:10px 14px;gap:8px 12px}.comparison-toolbar>span{margin-left:0;order:3;width:100%}.comparison-providers{gap:14px}.comparison-providers button{min-height:44px}.comparison-provider-name{display:none}.comparison-readout{gap:12px}.comparison-inspector{grid-template-columns:1fr;padding:18px}.comparison-inspector section{grid-column:1/-1}.comparison-footnote{padding:12px 14px}.comparison-date-buttons button{min-height:44px;min-width:44px}.comparison-stage-bar{height:32px}.comparison-info summary{width:28px;height:28px}.app[data-active-view="overview"] main{padding-top:20px}}
+
+.invitation-manager {margin:20px 0;padding:24px}
+.invitation-manager .panel-heading {margin-bottom:16px;align-items:flex-start}
+.invitation-manager h2 {font-size:20px;margin:0 0 4px}
+.invitation-manager .small-note {margin:0}
+.invitation-filters {display:flex;gap:8px;flex-wrap:wrap;padding-bottom:16px;border-bottom:1px solid var(--line)}
+.invitation-filters button {display:flex;gap:8px;align-items:center;min-height:38px;padding:7px 12px;background:#fff;border:1px solid var(--line);border-radius:7px;font-size:12px;color:var(--ink)}
+.invitation-filters button[aria-pressed="true"] {background:#e9f1ec;border-color:#a2bcb0}
+.invitation-filters span {font-variant-numeric:tabular-nums;color:var(--muted)}
+.invitation-row {display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:18px;border-bottom:1px solid var(--line);padding:18px 0}
+.invitation-identity {min-width:0;overflow-wrap:anywhere}
+.invitation-identity>strong {font-size:14px;font-weight:600}
+.invitation-identity>small {display:block;font-size:11px;color:var(--muted);margin-top:5px}
+.invitation-identity p {font-size:12px;margin:7px 0 0}
+.invitation-status {font-size:11px;border-radius:20px;padding:5px 9px;background:#eff1f2;color:#5b666c;white-space:nowrap}
+.invitation-status-pending {background:#fff3dc;color:#886119}
+.invitation-status-accepted {background:#e8f3ec;color:#346f4f}
+.invitation-actions {display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.invitation-actions button {font-size:12px;min-height:38px}
+.invitation-empty {font-size:13px;color:var(--muted);padding:20px 0;margin:0}
+#invitationMessage:not(:empty) {padding-top:14px}
+#invitationError:not(:empty) {color:#a34237;font-size:13px}
+@media(max-width:900px){.invitation-row{grid-template-columns:minmax(0,1fr) auto}.invitation-actions{grid-column:1/-1}.invitation-manager .panel-heading{flex-wrap:wrap;gap:12px}}
+@media(max-width:650px){.invitation-manager{padding:18px}.invitation-filters{gap:6px}.invitation-filters button,.invitation-actions button{min-height:44px}.invitation-row{gap:12px}}

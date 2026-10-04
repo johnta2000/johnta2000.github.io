@@ -30,6 +30,14 @@ Run `node --test tools/sleep/tests/*.test.cjs` for calculations, import regressi
 - WHOOP requests `offline read:sleep read:recovery read:cycles read:workout`. Existing connections are shown an upgrade prompt and remain sleep-only until reconnecting. Recovery, HRV, resting heart rate, completed-cycle strain, and daily workout time/count are stored in owner-scoped `whoopDays`. Group projections combine these with explicitly shared sleep fields. Imported biometrics are not used for group comparisons.
 - Apple Watch is a manual Apple Health export/import today. Automatic HealthKit sync needs a separate Apple-platform integration.
 
+## Invitation manager
+
+Group owners see all invitations with Pending / Accepted / Expired / Revoked filters and counts. New invitations have a private recipient label, creation/expiry timestamps, and the joiner’s display name recorded on acceptance. Labels are organizational, not an email restriction. No emails are sent. Older accepted invitations remain visible but have no recorded recipient name.
+
+Links remain single-use with a seven-day lifetime. Only token hashes are stored server-side. Links created in the current tab can be copied again during that browser session; cached links are removed when no longer pending or on sign-out. When a link is unavailable, Replace link atomically revokes it and creates a new labeled invitation. Accepted invitations cannot be replaced/revoked; member access is managed separately. Invitation history is visible only to the group owner.
+
+Test the full manager locally with `INVITE_FIXTURE=1 node tools/sleep/tests/browser-harness.cjs`; this seeds synthetic pending, accepted, expired and revoked invitations in memory. Production records are not modified by the test.
+
 ## Accounts and migration
 
 Clerk verifies sign-in; Convex enforces access. `SLEEP_ALLOWED_EMAIL` authorizes existing operators to start a group. Valid invite acceptance registers a `sleepProfiles` account, granting only that subject access to its own dashboard. Leaving a group does not remove the personal account.

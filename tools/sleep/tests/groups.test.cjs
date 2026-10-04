@@ -82,3 +82,40 @@ test('personal dashboard biometrics are owner-scoped and date-bounded independen
   assert.equal(data.whoopDays.length,1);assert.equal(data.whoopDays[0].ownerSubject,subject);assert.equal(data.whoopDays[0].hrv,subject==='owner'?55:95);
  }
 });
+
+test('invitation history keeps lifecycle details, records acceptance, and is owner-only',async()=>{
+ const f=await setup();
+ const token='d'.repeat(64);const created=await f.group('issueInvite','owner',{groupId:f.id,tokenHash:await groups.hashInvite(token),label:'Dan label'});
+ let data=await f.group('history','owner',{groupId:f.id});assert.equal(data.invitationHistory[0].label,'Dan label');assert.equal(data.invitationHistory[0].status,'pending');
+ await f.group('acceptInvite','friend',{token,name:'Actual joiner',metrics:[],shareDays:28});
+ data=await f.group('history','owner',{groupId:f.id});assert.equal(data.invitationHistory[0].status,'accepted');assert.equal(data.invitationHistory[0].acceptedName,'Actual joiner');assert.ok(data.invitationHistory[0].usedAt);
+ assert.ok(!JSON.stringify(data.invitationHistory).includes('tokenHash'));assert.ok(!JSON.stringify(data.invitationHistory).includes(token));
+ assert.equal((await f.group('history','friend',{groupId:f.id})).invitationHistory.length,0);
+ await assert.rejects(f.group('revokeInvite','owner',{inviteId:created.id}),/accepted/);
+ await f.group('leave','friend',{groupId:f.id});assert.equal((await f.group('history','owner',{groupId:f.id})).invitationHistory[0].acceptedName,'Actual joiner');
+});
+test('replacement invalidates only the old link and preserves its audit row at the pending limit',async()=>{
+ const f=await setup(),oldToken=await invitation(f,'e');
+ for(const char of ['1','2','3','4'])await invitation(f,char);
+ const previous=f.tables.sleepInvites[0],token='f'.repeat(64);
+ const result=await f.group('issueInvite','owner',{groupId:f.id,replaceInviteId:previous._id,tokenHash:await groups.hashInvite(token),label:'Replacement'});
+ assert.equal(f.tables.sleepInvites.length,6);assert.equal(previous.replacedBy,result.id);
+ await assert.rejects(f.group('previewInvite','friend',{token:oldToken}),/invalid|expired/);
+ assert.equal((await f.group('previewInvite','friend',{token})).name,'Friends');
+ const invites=(await f.group('history','owner',{groupId:f.id})).invitationHistory;
+ assert.equal(invites.filter(i=>i.status==='pending').length,5);assert.equal(invites.filter(i=>i.status==='revoked').length,1);
+ await assert.rejects(f.group('issueInvite','owner',{groupId:f.id,replaceInviteId:previous._id,tokenHash:'new'}),/replacement/);
+});
+test('invitation history supports old rows and rejects non-owner or cross-group replacements',async()=>{
+ const f=await setup();await join(f);
+ const expired=await invitation(f,'e');f.tables.sleepInvites.at(-1).expiresAt=1;
+ const pending=await invitation(f,'f');const invite=f.tables.sleepInvites.at(-1);
+ await assert.rejects(f.group('issueInvite','friend',{groupId:f.id,replaceInviteId:invite._id,tokenHash:'x'}),/owner/);
+ const other=await f.group('create','owner',{groupName:'Other',...settings});
+ await assert.rejects(f.group('issueInvite','owner',{groupId:other,replaceInviteId:invite._id,tokenHash:'x'}),/not found/);
+ await f.group('revokeInvite','owner',{inviteId:invite._id});
+ const history=(await f.group('history','owner',{groupId:f.id})).invitationHistory;
+ assert.equal(history.find(i=>i.status==='expired').label,'Unlabeled invitation');
+ assert.ok(history.some(i=>i.status==='accepted'));assert.ok(history.some(i=>i.status==='revoked'));
+ await assert.rejects(f.group('issueInvite','owner',{groupId:f.id,tokenHash:'x',label:'x'.repeat(81)}),/80/);
+});

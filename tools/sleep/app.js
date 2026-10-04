@@ -206,6 +206,7 @@ async function signOut() {
   }
   sleepNights = [];
   alertnessRatings = [];
+  sessionStorage.removeItem("daylightInviteLinks");
   if (window.Clerk?.isSignedIn) await window.Clerk.signOut();
   window.location.assign(window.location.href.split("#")[0]);
 }

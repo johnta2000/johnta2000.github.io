@@ -14,6 +14,16 @@ const {getFunctionName}=require('convex/server');
  for(const subject of ['owner','friend']) await db.insert('sleepNights',{ownerSubject:subject,sleepDate:date,source:'whoop',score:subject==='owner'?90:80,scoreKind:'native',durationMinutes:subject==='owner'?480:420,efficiency:95});
  for(const subject of ['owner','friend']) await db.insert('whoopDays',{ownerSubject:subject,sleepDate:date,hrv:subject==='owner'?61:85,restingHeartRate:subject==='owner'?52:58});
  async function dispatch(actor,ref,args){const [mod,fn]=typeof ref==='string'?ref.split(':'):getFunctionName(ref).split(':');const ctx={db,auth:{getUserIdentity:async()=>({subject:actor,email:actor+'@example.com',emailVerified:true})},runQuery:(ref,args)=>dispatch(actor,ref,args),runMutation:(ref,args)=>dispatch(actor,ref,args)};return modules[mod][fn].handler(ctx,args);}
+ if(process.env.INVITE_FIXTURE==='1') {
+  const groupId=await dispatch('owner','sleepGroups:create',{groupName:'Test circle',name:'Owner',metrics:['score'],shareDays:28});
+  const invite=await dispatch('owner','sleepGroups:createInvite',{groupId,label:'Alex'});
+  await dispatch('friend','sleepGroups:acceptInvite',{token:invite.token,name:'Alex',metrics:[],shareDays:28});
+  for(const [label,state] of [['Sam','pending'],['Taylor','expired'],['Jordan','revoked']]) {
+   const invitation=await dispatch('owner','sleepGroups:createInvite',{groupId,label});
+   if(state==='expired')await db.patch(invitation.id,{expiresAt:Date.now()-1});
+   if(state==='revoked')await dispatch('owner','sleepGroups:revokeInvite',{inviteId:invitation.id});
+  }
+ }
  http.createServer(async(req,res)=>{
   try{
    const url=new URL(req.url,'http://127.0.0.1:8767');
