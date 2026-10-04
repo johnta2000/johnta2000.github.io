@@ -30,8 +30,13 @@ test('Niteharts official schedule includes both stages, keeps identities and sup
  assert.equal(lineup.filter(s=>s.stage==='VALORANT').length,11);
  assert(lineup.every(s=>s.start<s.end&&!('estimatedOrder' in s)));
  for(const mobile of [true,false]){
-  const ctx=setup(mobile,null,{...niteharts,lineup});
+  const ctx=setup(mobile,null,{...niteharts,lineup,source:'https://www.niteharts.com/schedule'});
   try{
+   const source=ctx.root.querySelector('.lineup-source');
+   assert.equal(source.textContent,'Official lineup ↗');
+   assert.equal(source.href,'https://www.niteharts.com/schedule');
+   assert.equal(source.target,'_blank');assert.equal(source.rel,'noopener');
+   assert(!source.classList.contains('text-button'));
    ctx.w.RallyLineup.show({...ctx.options,params:'view=timeline&days=Friday'});
    assert.equal(ctx.root.querySelectorAll('.timeline-lane').length,2);
    assert.equal(ctx.root.querySelectorAll('.timeline-set').length,10);

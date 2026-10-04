@@ -24,6 +24,7 @@ window.qaToast=showToast;
 window.qaHideToast=()=>{el.toast.hidePopover?.();el.toast.hidden=true;};
 `;
 fixture.lineup=JSON.parse(fs.readFileSync(process.env.RALLY_QA_LINEUP||path.join(__dirname,'fixtures/niteharts-2026.json'),'utf8'));
+fixture.lineupSource='https://www.niteharts.com/schedule';
 const qaBootstrap=bootstrap.replace(/data=\{.*?\};events=/,`data=${JSON.stringify(fixture)};events=`);
 (async()=>{
  const browser=await chromium.launch({headless:true,executablePath:'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'});
@@ -63,6 +64,16 @@ const qaBootstrap=bootstrap.replace(/data=\{.*?\};events=/,`data=${JSON.stringif
    contrastIssues.push(...await auditContrast(page,label+' '+view));
    const overflow=await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1);
    assert(!overflow,label+' '+view+' overflows viewport');
+   if(view==='lineup'){
+    const source=page.locator('rally-lineup .lineup-source');
+    assert(await source.isVisible(),'Real event source attribution must be in the audit fixture');
+    assert.equal(await source.getAttribute('href'),fixture.lineupSource);
+    assert.equal(await source.evaluate(el=>getComputedStyle(el).backgroundColor),'rgba(0, 0, 0, 0)');
+    await source.hover();contrastIssues.push(...await auditContrast(page,label+' official source hover'));
+    await source.focus();contrastIssues.push(...await auditContrast(page,label+' official source focus'));
+    await page.screenshot({path:`${output}/${label}-official-source.png`});
+    await source.evaluate(el=>el.blur());
+   }
   }
   // Notes' Tapback picker, rich-text link controls, and global search use their
   // real event handlers with fake data. No mutations are submitted.

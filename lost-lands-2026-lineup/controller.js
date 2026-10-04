@@ -351,7 +351,7 @@ if(!hasTimes){tableHeaders[2].remove();root.querySelector('.col-end')?.remove();
 if(!hasStages){tableHeaders[4].remove();root.querySelector('.col-stage')?.remove();}
 if(!hasGenres){tableHeaders[5].remove();root.querySelector('.col-genre')?.remove();}
 if(eventConfig?.source&&/^https?:\/\//.test(eventConfig.source)){
-  const source=document.createElement('a');source.className='text-button';source.textContent='Official lineup ↗';source.href=eventConfig.source;source.target='_blank';source.rel='noopener';root.querySelector('.header-copy').append(source);
+  const source=document.createElement('a');source.className='lineup-source';source.textContent='Official lineup ↗';source.href=eventConfig.source;source.target='_blank';source.rel='noopener';root.querySelector('.header-copy').append(source);
 }
 
 const currentIdsByLegacyId = new Map();

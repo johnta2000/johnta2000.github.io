@@ -1,4 +1,16 @@
 /* The desktop schedule stays tabular; phones use a single-day card list. */
+/* Source attribution is a quiet link, not one of the old poster-style buttons. */
+.lineup-source {
+  display:inline-flex;align-items:center;min-height:32px;margin-top:2px;padding:4px 0;
+  border:0;border-radius:4px;background:transparent;box-shadow:none;
+  color:#285f4a;font:550 13px/1.5 system-ui;text-decoration:underline;text-underline-offset:3px;
+}
+.lineup-source:visited {color:#285f4a;}
+.lineup-source:hover {color:#173e2d;text-decoration-thickness:2px;}
+.lineup-source:focus-visible {color:#173e2d;outline:3px solid #47795b;outline-offset:3px;}
+.text-button {background:#fff;color:#41573f;border-color:#dfe5dd;}
+.text-button:hover {background:#e8f0e9;color:#285f4a;border-color:#b9cbbb;}
+@media(max-width:760px){.lineup-source{min-height:44px;}}
 .segmented button:not(.group-control), .rally-mode .segmented .group-control {
   display:inline-flex;
   align-items:center;
