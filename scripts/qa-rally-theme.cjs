@@ -12,6 +12,7 @@ const fixture={id:'niteharts-festival-2026',name:'Niteharts',presenter:'Your fes
  travel:['alex','sam'].flatMap(memberId=>[{id:memberId+'out',memberId,airline:'Alaska',number:'501',origin:'SFO',destination:'SAN',departure:'2026-10-09T07:03',arrival:'2026-10-09T08:45',confirmation:''},{id:memberId+'back',memberId,airline:'Alaska',number:'453',origin:'SAN',destination:'SFO',departure:'2026-10-12T18:51',arrival:'2026-10-12T20:33',confirmation:''}]),
  cars:[],passes:[],tasks:[{id:'task1',title:'Book the airport ride',status:'todo',category:'Travel',assigneeId:'alex',dueDate:'2026-10-08'}],notes:[{id:'note1',section:'stay',body:'Check-in starts at 3 PM. We can leave our bags at the front desk before then.',authorId:'sam',createdAt:1791057600000,updatedAt:1791057600000,reactions:{like:['alex']}}],
  lineup:[{id:'fri-isoxo',name:'ISOxo',day:'Friday',date:'2026-10-09',estimatedOrder:3},{id:'sat-2hollis',name:'2hollis',day:'Saturday',date:'2026-10-10',estimatedOrder:2},{id:'sat-isoknock',name:'ISOKNOCK',day:'Saturday',date:'2026-10-10',estimatedOrder:3},{id:'sat-underscores',name:'underscores',day:'Saturday',date:'2026-10-10',estimatedOrder:1}],lineupInterests:{'sat-2hollis':[members[0],members[1]],'sat-isoknock':[members[2]]},currentLineupFavorites:['sat-2hollis']};
+fixture.notes.push({id:'general-note',section:'general',body:'Bring earplugs for the weekend.',authorId:'sam',createdAt:1791057600000,updatedAt:1791057600000});
 const bootstrap=`
 data=${JSON.stringify(fixture)};events=[data,{...data,id:'past-room',name:'Previous festival',startsAt:'2026-09-18',endsAt:'2026-09-20'}];
 activeEvent=data.id;activeView=new URLSearchParams(location.search).get('view')||'home';offlineMode=false;shellSaved=true;
@@ -60,6 +61,12 @@ const qaBootstrap=bootstrap.replace(/data=\{.*?\};events=/,`data=${JSON.stringif
   if(width<=900){await page.locator('#closeMenu').click();await page.waitForFunction(()=>document.getElementById('sidebar').getBoundingClientRect().right<=0);}
   for(const view of ['home','travel','stay','crew','passes','tasks','notes','lineup']){
    await page.evaluate(view=>window.qaShow(view),view);
+   if(view==='home'||view==='notes'){
+    assert.equal(await page.locator('#notesList').getAttribute('data-section'),'general');
+    assert.equal(await page.locator('#notesList [data-note-id="general-note"]').count(),1);
+    assert.equal(await page.locator('#notesList [data-note-id="note1"]').count(),0);
+    assert.equal(await page.locator('#noteComposer').count(),1);
+   }
    await page.screenshot({path:`${output}/${label}-${view}.png`,fullPage:view!=='lineup'});
    contrastIssues.push(...await auditContrast(page,label+' '+view));
    const overflow=await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1);

@@ -238,6 +238,7 @@ test('Rally tab navigation preserves the native lineup and routes meetup set lin
     w.matchMedia=()=>({matches:true,addEventListener(){}});w.scrollTo=()=>{};
     w.HTMLElement.prototype.scrollIntoView=function(){};
     w.RallyOffline={native:true,select(){},pendingCount:0};
+    w.RallyNoteEditor={mount(){}};
     w.fetch=()=>{throw Error('Unexpected network load while changing tabs');};
     for(const file of ['../../lost-lands-2026-lineup/set-times.js','../../lost-lands-2026-lineup/controller.js','lineup-template.js','lineup.js','meetups.js','event-lifecycle.js','event-history.js'])w.eval(read(file));
     w.fixture={id:'lost-lands-2026',name:'Lost Lands',location:'Ohio',startsAt:'2026-09-18',endsAt:'2026-09-20',currentMemberId:'john',members:[{id:'john',name:'John'}],isAdmin:true,lineupHiddenDays:['Wednesday','Thursday'],currentLineupFavorites:[],lineupInterests:{},rooms:[],travel:[],cars:[],tasks:[],passes:[],meetups:[],notes:[]};

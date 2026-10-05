@@ -368,7 +368,8 @@ function render() {
   const eventStatus=RallyEvents.lifecycle(data);
   if(eventStatus.finished||eventStatus.past){const label=eventStatus.finished?'Event finished':'Past rave';el.mobileCountdown.textContent=label;const countdown=el.page.querySelector('.countdown');if(countdown){countdown.querySelector('strong')?.remove();const caption=countdown.querySelector('span');if(caption)caption.textContent=label;}}
   if(activeView!=='meetups')resumeCrewLocation();
-  if (['stay','crew','travel','passes'].includes(activeView)) renderSectionNotes(activeView);
+  if (activeView==='home') renderSectionNotes('general');
+  else if (['stay','crew','travel','passes'].includes(activeView)) renderSectionNotes(activeView);
   renderMobileNav();
   focusSearchResult();
 }

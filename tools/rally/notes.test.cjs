@@ -125,6 +125,15 @@ test('posting from a section captures that project and section, not later naviga
   input.value='Keep this draft';ctx.saveNote=async()=>{throw new Error('No connection');};
   await form.onsubmit({preventDefault(){}});assert.equal(input.value,'Keep this draft');assert.equal(error.hidden,false);
 });
+test('Home posts use the existing General notes board and project',async()=>{
+  assert(app.includes("if (activeView==='home') renderSectionNotes('general');"));
+  const input={value:'Bring earplugs'},error={hidden:true},fieldset={disabled:false};
+  const form={elements:{body:input},querySelector:s=>s==='#noteError'?error:fieldset};let sent;
+  const ctx={window:{RallyNoteEditor:{mount(){}}},activeEvent:'midnight',activeView:'home',offlineMode:false,document:{getElementById:id=>id==='noteComposer'?form:{}},renderNoteList(){},updateNotesConnectivity(){},refreshNotes(){},showToast(){},saveNote:async(...args)=>{sent=args;}};
+  vm.createContext(ctx);vm.runInContext(app.slice(app.indexOf('function wireNotes('),app.indexOf('async function refreshNotes(')),ctx);
+  ctx.wireNotes('general');await form.onsubmit({preventDefault(){}});
+  assert.deepEqual(plain(sent),['midnight','add-note',{body:'Bring earplugs',section:'general'}]);
+});
 test('offline writes and late responses after changing projects cannot alter the current board',async()=>{
   let calls=0;
   const context={offlineMode:true,notesRevision:0,activeEvent:'lostlands',activeView:'notes',data:{id:'lostlands'},window:{Clerk:{user:{id:'user'}}},convexMutation:async()=>{calls++;return {id:'old'};}};
