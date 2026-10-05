@@ -1,3 +1,4 @@
+import { monthlyJournalTables } from "./monthlyJournalTables";
 import { statementTables } from './statementTables';
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
@@ -11,6 +12,7 @@ import { rentTables } from "./rentTables";
 import { sleepTables } from "./sleepTables";
 
 export default defineSchema({
+  ...monthlyJournalTables,
   ...statementTables,
   ...sleepTables,
   ...rentTables,

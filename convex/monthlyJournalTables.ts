@@ -1,0 +1,8 @@
+import { defineTable } from "convex/server";
+import { v } from "convex/values";
+
+export const monthlyJournalTables = {
+  monthlyJournalSecurity: defineTable({ owner: v.string(), salt: v.string(), hash: v.string(), attempts: v.number(), windowStart: v.number() }).index("by_owner", ["owner"]),
+  monthlyJournalSessions: defineTable({ owner: v.string(), tokenHash: v.string(), expiresAt: v.number() }).index("by_token", ["tokenHash"]),
+  monthlyJournalEntries: defineTable({ month: v.string(), answers: v.array(v.string()), notes: v.string(), followups: v.string(), revision: v.number(), updatedAt: v.number() }).index("by_month", ["month"]),
+};
