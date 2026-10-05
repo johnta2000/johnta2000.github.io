@@ -9,7 +9,7 @@ for (const [i, prompt] of prompts.entries()) {
   const input = document.createElement("textarea"); input.id = `answer${i}`; input.rows = 4; input.maxLength = 50000;
   section.append(label, input); $("questions").append(section);
 }
-const fields = [...prompts.map((_, i) => $(`answer${i}`)), $("notes"), $("followups")];
+const fields = [...prompts.map((_, i) => $(`answer${i}`)), $("notes"), $("followups")].map(field => JournalRichText.enhance(field));
 const now = new Date(); $("month").value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 
 async function getConvexToken() {
@@ -102,14 +102,14 @@ async function loadMonth(month, person = activePerson) {
   $("assignment").open = false;
   document.querySelectorAll("[data-assign]").forEach(button => { button.disabled = button.dataset.assign === person; });
   revision = data.current?.revision ?? 0; dirty = false;
-  fields.forEach((field, i) => { field.value = i < 5 ? data.current?.answers[i] ?? "" : data.current?.[i === 5 ? "notes" : "followups"] ?? ""; });
+  fields.forEach((field, i) => { JournalRichText.render(field, i < 5 ? data.current?.answers[i] ?? "" : data.current?.[i === 5 ? "notes" : "followups"] ?? "", data.current?.contentFormat || "plain"); });
   $("previous").replaceChildren();
   $("previousTitle").textContent = data.previous ? new Intl.DateTimeFormat("en", { month: "long", year: "numeric" }).format(new Date(`${data.previous.month}-15T12:00:00`)) : "A fresh start";
   if (data.previous) {
     const values = [data.previous.followups, data.previous.notes, ...data.previous.answers];
     ["Bring forward", "Scratchpad", ...prompts].forEach((label, i) => {
       const heading = document.createElement("h3"); heading.textContent = label;
-      const text = document.createElement("div"); text.className = "entry-text"; text.textContent = values[i] || "Nothing noted.";
+      const text = document.createElement("div"); text.className = "entry-text"; JournalRichText.render(text, values[i] || "Nothing noted.", data.previous.contentFormat || "plain");
       $("previous").append(heading, text);
     });
   } else $("previous").textContent = "Your earlier reflections will appear here once you’ve saved an entry in a previous month.";
@@ -124,7 +124,7 @@ async function save() {
   const values = fields.map(field => field.value), currentGeneration = generation;
   $("saveStatus").textContent = "Saving…";
   saving = (async () => {
-    const nextRevision = await call("mutation", "monthlyJournal:save", { token, month: activeMonth, person: activePerson || undefined, revision, answers: values.slice(0, 5), notes: values[5], followups: values[6] });
+    const nextRevision = await call("mutation", "monthlyJournal:save", { token, month: activeMonth, person: activePerson || undefined, revision, contentFormat: "html", answers: values.slice(0, 5), notes: values[5], followups: values[6] });
     if (currentGeneration !== generation) return;
     revision = nextRevision;
     dirty = fields.some((field, i) => field.value !== values[i]);

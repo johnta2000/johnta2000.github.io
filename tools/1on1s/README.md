@@ -28,3 +28,7 @@ If the password is forgotten, recovery requires a deliberate administrator opera
 ## Daily standup recap
 
 The private `monthlyJournalRecap:read` query requires both journal gates. It reads only the selected person's updates for the selected calendar month in the existing standup workspace, never writes to daily standups, and does not change the shared tool. Vish maps to daily standup keys `vishal` and `vish`; Jenny and Vivek map to their matching keys. It keeps work, plans, and blockers separate, groups exact repeated lines, and links each item to its dated source inside the private journal. It retains source wording rather than generating an AI assessment; no external summarization service receives the notes. The condensed view shows the latest reported items, with all fetched sources expandable below; any 100-update limit is disclosed. Refresh fetches the latest source data. A pending recap is discarded if the journal locks or the person/month changes.
+
+## Rich text
+
+All seven editors support bold, italic, underline, bulleted and numbered lists, indentation, undo/redo, and sanitized rich-text paste. Entries use `contentFormat: html`; legacy entries without this field are rendered as literal plain text so angle brackets and line breaks remain intact. Formatting survives month/person changes, assignments, and the previous-entry view. HTML is sanitized on paste, load, save, and rendering using a restricted tag/attribute allowlist; executable content and non-HTTP/mailto links are removed.

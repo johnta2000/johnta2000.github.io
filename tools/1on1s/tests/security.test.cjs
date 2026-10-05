@@ -125,3 +125,13 @@ test('monthly recap reads only selected person and month, deduplicates lines, an
   await assert.rejects(recap.read._handler(ctx,{token:'bad',month:'2026-10',person:'vish'}),/locked/);
   assert.equal((await recap.read._handler(ctx,{token,month:'2026-10',person:'vivek'})).updateCount,0);
 });
+
+test('rich formatting persists through saves and assignment without interpreting legacy text as HTML', async () => {
+  const {ctx} = fixture(); const {token} = await unlock(ctx,'x',true);
+  await journal.save._handler(ctx,{...entry(token),notes:'Literal <b>text</b>'});
+  assert.equal((await journal.read._handler(ctx,{token,month:'2026-10'})).current.contentFormat,'plain');
+  await journal.save._handler(ctx,{...entry(token),revision:1,contentFormat:'html',notes:'<ul><li><strong>A win</strong></li></ul>'});
+  await journal.assign._handler(ctx,{token,month:'2026-10',target:'vish',revision:2});
+  const {current}=await journal.read._handler(ctx,{token,month:'2026-10',person:'vish'});
+  assert.equal(current.contentFormat,'html'); assert.equal(current.notes,'<ul><li><strong>A win</strong></li></ul>');
+});

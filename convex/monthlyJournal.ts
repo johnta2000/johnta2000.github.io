@@ -56,7 +56,7 @@ export const read = query({ args: { token: v.string(), month: v.string(), person
 }});
 
 export const save = mutation({
-  args: { token: v.string(), month: v.string(), person: v.optional(personValidator), answers: v.array(v.string()), notes: v.string(), followups: v.string(), revision: v.number() },
+  args: { token: v.string(), month: v.string(), person: v.optional(personValidator), contentFormat: v.optional(v.union(v.literal("plain"), v.literal("html"))), answers: v.array(v.string()), notes: v.string(), followups: v.string(), revision: v.number() },
   handler: async (ctx, args) => {
     await requireUnlocked(ctx, args.token);
     if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(args.month) || args.answers.length !== 5) throw new Error("Invalid journal entry.");
@@ -65,7 +65,7 @@ export const save = mutation({
     if ((existing?.revision ?? 0) !== args.revision) throw new Error("This month changed in another tab. Copy your edits before reloading.");
     const { token, ...entry } = args;
     const revision = args.revision + 1;
-    const payload = { ...entry, revision, updatedAt: Date.now() };
+    const payload = { ...entry, contentFormat: args.contentFormat || "plain", revision, updatedAt: Date.now() };
     if (existing) await ctx.db.patch(existing._id, payload);
     else await ctx.db.insert("monthlyJournalEntries", payload);
     return revision;
