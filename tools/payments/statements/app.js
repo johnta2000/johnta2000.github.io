@@ -2,7 +2,7 @@
 'use strict';
 const API='https://rapid-shark-565.convex.cloud', FILE='https://rapid-shark-565.convex.site/statement-pdf';
 const $=id=>document.getElementById(id), people=['parents','john','other'];
-const token=location.hash.slice(1), pending=new Set(), expandedRows=new Set();
+const token=location.hash.slice(1), pending=new Map(), expandedRows=new Set(), failures=new Map(), needsRefresh=new Set();
 const pdfHome=$('pdf-panel').parentElement;
 let data=null,filter='all',editing=null,pdfUrl=null,pdfLoading=null,request=0,saveWarning='',managerEpoch=0;
 const money=n=>(n/100).toLocaleString('en-US',{style:'currency',currency:'USD'});
@@ -10,16 +10,35 @@ const title=s=>s[0].toUpperCase()+s.slice(1);
 function el(tag,text,cls){const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(cls)n.className=cls;return n;}
 function errorText(e){const m=(e?.message||'').match(/(?:This statement link is unavailable\.|This charge changed on another device\.[^\n]*|The split must[^\n]*|Keep notes[^\n]*|Charge not found\.)/);return m?.[0]||'Could not confirm the change. Check your connection and try again.';}
 async function call(kind,name,args,auth){const response=await fetch(`${API}/api/${kind}`,{method:'POST',cache:'no-store',signal:AbortSignal.timeout(20000),headers:{'Content-Type':'application/json',...(auth?{Authorization:`Bearer ${auth}`}:{})},body:JSON.stringify({path:`statements:${name}`,args,format:'json'})});const result=await response.json();if(!response.ok||result.status!=='success')throw Error(result.errorMessage||'Request failed');return result.value;}
-function saved(){ $('save-status').textContent=pending.size?'Saving…':saveWarning||'All changes saved';$('save-status').classList.toggle('error',!!saveWarning); }
-function clearReview(){closePdf();data=null;$('review').hidden=true;$('balance').hidden=true;$('copy-link').hidden=true;$('transactions').replaceChildren();if(pdfUrl)URL.revokeObjectURL(pdfUrl);pdfUrl=null;StatementPdf.reset();$('pdf-open').removeAttribute('href');$('edit-dialog').close();editing=null;}
-async function refresh(silent=false){if(pending.size||editing)return;const seq=++request;try{const value=await call('query','review',{token});if(seq!==request||pending.size||editing)return;data=value;$('status').textContent='';render();}catch(e){if(seq!==request)return;if(/unavailable/.test(e.message)){clearReview();$('status').textContent='This statement link is unavailable. Ask John for a current link.';}else if(!silent||!data){$('status').textContent='Could not load the statement. Check your connection, then reload this page.';}else{saveWarning='Could not refresh. Displaying the last loaded version.';saved();}}}
-function allocationLabel(row){if(!row.allocation)return null;return people.find(p=>row.allocation[p]===row.amountCents&&people.filter(x=>x!==p).every(x=>row.allocation[x]===0))||'split';}
-function render(){
- $('review').hidden=false;$('balance').hidden=false;$('copy-link').hidden=false;$('title').textContent=data.title;$('period').textContent=data.period;$('balance-amount').textContent=money(data.balanceCents);$('due-date').textContent='Due '+new Date(data.dueDate+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+function saved(){
+ const warning=failures.values().next().value||saveWarning;
+ $('save-status').textContent=pending.size?`Saving ${pending.size} ${pending.size===1?'change':'changes'}…${warning?' Some changes need review.':''}`:warning||'All changes saved';
+ $('save-status').classList.toggle('error',!!warning);
+}
+function updateTotals(){
  const totals={parents:0,john:0,other:0,unassigned:0};let assigned=0;
  for(const r of data.rows){if(r.allocation){assigned++;for(const p of people)totals[p]+=r.allocation[p];}else totals.unassigned+=r.amountCents;}
  for(const [p,n] of Object.entries(totals))$(p+'-total').textContent=money(n);
- $('progress').textContent=assigned===data.rows.length?'All items assigned':`${data.rows.length-assigned} ${data.rows.length-assigned===1?'item':'items'} left to assign`;$('progress-bar').max=data.rows.length;$('progress-bar').value=assigned;saved();
+ $('progress').textContent=assigned===data.rows.length?'All items assigned':`${data.rows.length-assigned} ${data.rows.length-assigned===1?'item':'items'} left to assign`;
+ $('progress-bar').max=data.rows.length;$('progress-bar').value=assigned;saved();
+}
+function updateRow(r){
+ const item=[...$('transactions').querySelectorAll('.row')].find(n=>n.dataset.id===r._id);if(!item)return;
+ const label=allocationLabel(r);item.classList.toggle('saving',pending.has(r._id));
+ for(const b of item.querySelectorAll('[data-label]')){b.setAttribute('aria-pressed',String(label===b.dataset.label));b.disabled=needsRefresh.has(r._id);}
+ item.querySelector('.edit-row').disabled=pending.has(r._id)||needsRefresh.has(r._id);
+ const clear=item.querySelector('.clear-row');clear.hidden=!r.allocation;clear.disabled=needsRefresh.has(r._id);
+ item.querySelector('.split-text').hidden=label!=='split';item.querySelector('.split-text').textContent=label==='split'?people.filter(p=>r.allocation[p]).map(p=>`${title(p)} ${money(r.allocation[p])}`).join(' · '):'';
+ item.querySelector('summary').textContent=r.note?'Details · Note added':'Details';
+ const note=item.querySelector('.row-note');note.hidden=!r.note;note.textContent=r.note;
+}
+
+function clearReview(){++request;for(const entry of pending.values())entry.resolve(false);pending.clear();needsRefresh.clear();failures.clear();closePdf();data=null;$('review').hidden=true;$('balance').hidden=true;$('copy-link').hidden=true;$('transactions').replaceChildren();if(pdfUrl)URL.revokeObjectURL(pdfUrl);pdfUrl=null;StatementPdf.reset();$('pdf-open').removeAttribute('href');$('edit-dialog').close();editing=null;}
+async function refresh(silent=false){if(pending.size||editing)return;const seq=++request;try{const value=await call('query','review',{token});if(seq!==request||pending.size||editing)return;const oldRows=new Map((data?.rows||[]).map(r=>[r._id,r]));const sameList=data&&data.rows.length===value.rows.length&&value.rows.every(r=>oldRows.has(r._id));value.rows=value.rows.map(r=>{const old=oldRows.get(r._id);if(old){delete old.allocation;Object.assign(old,r);return old;}return r;});data=value;needsRefresh.clear();$('status').textContent='';if(sameList&&filter==='all'&&!$('search').value){updateTotals();data.rows.forEach(updateRow);}else render();}catch(e){if(seq!==request)return;if(/unavailable/.test(e.message)){clearReview();$('status').textContent='This statement link is unavailable. Ask John for a current link.';}else if(!silent||!data){$('status').textContent='Could not load the statement. Check your connection, then reload this page.';}else{saveWarning='Could not refresh. Displaying the last loaded version.';saved();}}}
+function allocationLabel(row){if(!row.allocation)return null;return people.find(p=>row.allocation[p]===row.amountCents&&people.filter(x=>x!==p).every(x=>row.allocation[x]===0))||'split';}
+function render(){
+ $('review').hidden=false;$('balance').hidden=false;$('copy-link').hidden=false;$('title').textContent=data.title;$('period').textContent=data.period;$('balance-amount').textContent=money(data.balanceCents);$('due-date').textContent='Due '+new Date(data.dueDate+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+ updateTotals();
  const kinds={opening:'Opening balance',purchase:'Purchases',credit:'Credits & adjustments',payment:'Card payments',fee:'Fees',interest:'Interest'};
  $('breakdown').replaceChildren();for(const [kind,label] of Object.entries(kinds)){const sum=data.rows.filter(r=>r.kind===kind).reduce((s,r)=>s+r.amountCents,0);if(!sum)continue;const n=el('div',undefined,'breakdown-row');n.append(el('span',label),el('strong',money(sum)));$('breakdown').append(n);}
  const sum=data.rows.reduce((s,r)=>s+r.amountCents,0);$('reconciled').textContent=sum===data.balanceCents?'✓ Reconciled':'Needs review';
@@ -43,24 +62,53 @@ function row(r){
  const top=el('div',undefined,'row-top'),heading=el('div'),amount=el('div',money(r.amountCents),'amount'+(r.amountCents<0?' negative':''));
  heading.append(el('h3',merchantName(r.description),'merchant'),el('div',new Date(r.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}),'date'));top.append(heading,amount);item.append(top);
  const actions=el('div',undefined,'row-actions'),label=allocationLabel(r);
- for(const p of people){const b=el('button',title(p),'label-button');b.dataset.label=p;b.setAttribute('aria-pressed',String(label===p));b.setAttribute('aria-label',`Assign ${r.description} to ${title(p)}`);b.disabled=pending.has(r._id);b.onclick=()=>saveRow(r,Object.fromEntries(people.map(k=>[k,k===p?r.amountCents:0])),r.note);actions.append(b);}
+ for(const p of people){const b=el('button',title(p),'label-button');b.dataset.label=p;b.setAttribute('aria-pressed',String(label===p));b.setAttribute('aria-label',`Assign ${r.description} to ${title(p)}`);b.disabled=needsRefresh.has(r._id);b.onclick=()=>saveRow(r,Object.fromEntries(people.map(k=>[k,k===p?r.amountCents:0])),r.note);actions.append(b);}
  item.append(actions);
- if(label==='split')item.append(el('p',people.filter(p=>r.allocation[p]).map(p=>`${title(p)} ${money(r.allocation[p])}`).join(' · '),'split-text'));
+ const split=el('p',label==='split'?people.filter(p=>r.allocation[p]).map(p=>`${title(p)} ${money(r.allocation[p])}`).join(' · '):'','split-text');split.hidden=label!=='split';item.append(split);
  const details=el('details',undefined,'charge-details');details.open=expandedRows.has(r._id);
  details.append(el('summary',r.note?'Details · Note added':'Details'));
  details.append(el('p',r.description,'full-description'));
  const secondary=el('div',undefined,'secondary-actions');
- const edit=el('button','Split / note','quiet');edit.disabled=pending.has(r._id);edit.onclick=()=>openEditor(r);secondary.append(edit);
- if(r.allocation){const undo=el('button','Clear label','quiet');undo.disabled=pending.has(r._id);undo.setAttribute('aria-label','Clear assignment for '+r.description);undo.onclick=()=>saveRow(r,null,r.note);secondary.append(undo);}
+ const edit=el('button','Split / note','quiet edit-row');edit.disabled=pending.has(r._id)||needsRefresh.has(r._id);edit.onclick=()=>openEditor(r);secondary.append(edit);
+ {const undo=el('button','Clear label','quiet clear-row');undo.hidden=!r.allocation;undo.disabled=needsRefresh.has(r._id);undo.setAttribute('aria-label','Clear assignment for '+r.description);undo.onclick=()=>saveRow(r,null,r.note);secondary.append(undo);}
  const source=el('button',`PDF p. ${r.page} ↗`,'quiet source');source.onclick=()=>showPdf(r.page);secondary.append(source);details.append(secondary);
- if(r.note)details.append(el('p',r.note,'row-note'));
+ const noteText=el('p',r.note,'row-note');noteText.hidden=!r.note;details.append(noteText);
  details.addEventListener('toggle',()=>{if(!details.isConnected)return;if(details.open)expandedRows.add(r._id);else expandedRows.delete(r._id);});item.append(details);return item;
 }
-async function saveRow(r,allocation,note,fromEditor=false){
- if(pending.has(r._id))return false;++request;pending.add(r._id);saveWarning='';saved();if(!fromEditor)renderRows();
- try{const result=await call('mutation','save',{token,id:r._id,expectedVersion:r.version,allocation,note});Object.assign(r,{allocation:allocation||undefined,note:note.trim(),version:result.version});return true;}
- catch(e){saveWarning=errorText(e);if(fromEditor)$('edit-error').textContent=saveWarning;if(/unavailable/.test(e.message)){$('status').textContent='This statement link is unavailable.';clearReview();}return false;}
- finally{pending.delete(r._id);if(data)render();saved();}
+// Each charge has its own serial queue. The visible intent changes immediately;
+// later taps replace queued intent, while acknowledged versions advance in order.
+function saveRow(r,allocation,note,fromEditor=false){
+ if(needsRefresh.has(r._id))return Promise.resolve(false);
+ ++request;failures.delete(r._id);saveWarning='';
+ let entry=pending.get(r._id);
+ if(!entry){let resolve;const done=new Promise(r=>resolve=r);entry={row:r,confirmed:{allocation:r.allocation,note:r.note,version:r.version},revision:0,done,resolve,fromEditor,running:false};pending.set(r._id,entry);}
+ entry.desired={allocation:allocation||undefined,note:note.trim()};entry.revision++;
+ Object.assign(r,entry.desired);updateRow(r);updateTotals();
+ if(!entry.running){entry.running=true;void flushRow(entry);}
+ return entry.done;
+}
+async function flushRow(entry){
+ const r=entry.row;
+ while(pending.get(r._id)===entry){
+  const revision=entry.revision,desired={...entry.desired};
+  try{
+   const result=await call('mutation','save',{token,id:r._id,expectedVersion:entry.confirmed.version,allocation:desired.allocation||null,note:desired.note});
+   if(pending.get(r._id)!==entry)return;
+   entry.confirmed={...desired,version:result.version};r.version=result.version;
+   if(revision!==entry.revision)continue;
+   pending.delete(r._id);entry.resolve(true);updateRow(r);updateTotals();
+  }catch(e){
+   if(pending.get(r._id)!==entry)return;
+   Object.assign(r,entry.confirmed);pending.delete(r._id);needsRefresh.add(r._id);
+   const message=errorText(e);failures.set(r._id,message);
+   if(entry.fromEditor)$('edit-error').textContent=message;
+   entry.resolve(false);
+   if(/unavailable/.test(e.message)){clearReview();$('status').textContent='This statement link is unavailable.';return;}
+   updateRow(r);updateTotals();
+  }
+ }
+ // Read after an uncertain write before accepting a retry with an old version.
+ if(!pending.size&&needsRefresh.size&&!editing)void refresh(true);
 }
 function openEditor(r){editing=r;$('edit-description').textContent=r.description;$('edit-amount').textContent='Total: '+money(r.amountCents);for(const p of people)$('split-'+p).value=r.allocation?(r.allocation[p]/100).toFixed(2):'';$('edit-note').value=r.note;$('edit-error').textContent='';$('edit-dialog').showModal();}
 function closeEditor(){if(editing&&pending.has(editing._id))return;$('edit-dialog').close();editing=null;refresh(true);}

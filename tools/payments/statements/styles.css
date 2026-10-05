@@ -26,3 +26,7 @@
 @media(max-width:360px){main{padding-left:16px;padding-right:16px}.row{padding-left:16px;padding-right:16px}.summary-card{padding:12px}.summary-card strong{font-size:19px}.reconciliation summary span{font-size:10px}.amount{font-size:15px}}
 
 @media(max-width:700px){.filters{display:grid;grid-template-columns:1fr 1.5fr 1.1fr .8fr .9fr;gap:4px;overflow:visible}.filters button{min-width:0;padding:10px 4px;font-size:11px;white-space:nowrap}}
+
+/* Immediate press feedback; background saves never block the next label tap. */
+.label-button{touch-action:manipulation;-webkit-tap-highlight-color:transparent;transition:background-color 100ms ease,border-color 100ms ease,transform 80ms ease}.label-button:active{transform:scale(.96)}
+@media(prefers-reduced-motion:reduce){.label-button{transition:none}.label-button:active{transform:none}}
