@@ -2,7 +2,8 @@
 'use strict';
 const API='https://rapid-shark-565.convex.cloud', FILE='https://rapid-shark-565.convex.site/statement-pdf';
 const $=id=>document.getElementById(id), people=['parents','john','other'];
-const token=location.hash.slice(1), pending=new Set();
+const token=location.hash.slice(1), pending=new Set(), expandedRows=new Set();
+const pdfHome=$('pdf-panel').parentElement;
 let data=null,filter='all',editing=null,pdfUrl=null,pdfLoading=null,request=0,saveWarning='',managerEpoch=0;
 const money=n=>(n/100).toLocaleString('en-US',{style:'currency',currency:'USD'});
 const title=s=>s[0].toUpperCase()+s.slice(1);
@@ -10,7 +11,7 @@ function el(tag,text,cls){const n=document.createElement(tag);if(text!==undefine
 function errorText(e){const m=(e?.message||'').match(/(?:This statement link is unavailable\.|This charge changed on another device\.[^\n]*|The split must[^\n]*|Keep notes[^\n]*|Charge not found\.)/);return m?.[0]||'Could not confirm the change. Check your connection and try again.';}
 async function call(kind,name,args,auth){const response=await fetch(`${API}/api/${kind}`,{method:'POST',cache:'no-store',signal:AbortSignal.timeout(20000),headers:{'Content-Type':'application/json',...(auth?{Authorization:`Bearer ${auth}`}:{})},body:JSON.stringify({path:`statements:${name}`,args,format:'json'})});const result=await response.json();if(!response.ok||result.status!=='success')throw Error(result.errorMessage||'Request failed');return result.value;}
 function saved(){ $('save-status').textContent=pending.size?'Saving…':saveWarning||'All changes saved';$('save-status').classList.toggle('error',!!saveWarning); }
-function clearReview(){data=null;$('review').hidden=true;$('balance').hidden=true;$('copy-link').hidden=true;$('transactions').replaceChildren();if(pdfUrl)URL.revokeObjectURL(pdfUrl);pdfUrl=null;StatementPdf.reset();$('pdf-open').removeAttribute('href');$('edit-dialog').close();editing=null;}
+function clearReview(){closePdf();data=null;$('review').hidden=true;$('balance').hidden=true;$('copy-link').hidden=true;$('transactions').replaceChildren();if(pdfUrl)URL.revokeObjectURL(pdfUrl);pdfUrl=null;StatementPdf.reset();$('pdf-open').removeAttribute('href');$('edit-dialog').close();editing=null;}
 async function refresh(silent=false){if(pending.size||editing)return;const seq=++request;try{const value=await call('query','review',{token});if(seq!==request||pending.size||editing)return;data=value;$('status').textContent='';render();}catch(e){if(seq!==request)return;if(/unavailable/.test(e.message)){clearReview();$('status').textContent='This statement link is unavailable. Ask John for a current link.';}else if(!silent||!data){$('status').textContent='Could not load the statement. Check your connection, then reload this page.';}else{saveWarning='Could not refresh. Displaying the last loaded version.';saved();}}}
 function allocationLabel(row){if(!row.allocation)return null;return people.find(p=>row.allocation[p]===row.amountCents&&people.filter(x=>x!==p).every(x=>row.allocation[x]===0))||'split';}
 function render(){
@@ -18,10 +19,10 @@ function render(){
  const totals={parents:0,john:0,other:0,unassigned:0};let assigned=0;
  for(const r of data.rows){if(r.allocation){assigned++;for(const p of people)totals[p]+=r.allocation[p];}else totals.unassigned+=r.amountCents;}
  for(const [p,n] of Object.entries(totals))$(p+'-total').textContent=money(n);
- $('progress').textContent=`${assigned} of ${data.rows.length} items assigned${assigned===data.rows.length?' · Review complete':''}`;$('progress-bar').max=data.rows.length;$('progress-bar').value=assigned;saved();
+ $('progress').textContent=assigned===data.rows.length?'All items assigned':`${data.rows.length-assigned} ${data.rows.length-assigned===1?'item':'items'} left to assign`;$('progress-bar').max=data.rows.length;$('progress-bar').value=assigned;saved();
  const kinds={opening:'Opening balance',purchase:'Purchases',credit:'Credits & adjustments',payment:'Card payments',fee:'Fees',interest:'Interest'};
  $('breakdown').replaceChildren();for(const [kind,label] of Object.entries(kinds)){const sum=data.rows.filter(r=>r.kind===kind).reduce((s,r)=>s+r.amountCents,0);if(!sum)continue;const n=el('div',undefined,'breakdown-row');n.append(el('span',label),el('strong',money(sum)));$('breakdown').append(n);}
- const sum=data.rows.reduce((s,r)=>s+r.amountCents,0);$('reconciled').textContent=sum===data.balanceCents?'✓ Matches statement balance':'Needs review';
+ const sum=data.rows.reduce((s,r)=>s+r.amountCents,0);$('reconciled').textContent=sum===data.balanceCents?'✓ Reconciled':'Needs review';
  renderRows();
 }
 function renderRows(){
@@ -31,16 +32,29 @@ function renderRows(){
  for(const [kind,label,help] of groups){const group=rows.filter(r=>r.kind===kind);if(!group.length)continue;const heading=el('div',undefined,'group-heading');heading.append(el('h2',label),el('span',`${group.length} ${group.length===1?'item':'items'} · ${money(group.reduce((s,r)=>s+r.amountCents,0))}`));root.append(heading);if(help)root.append(el('p',help,'group-help'));for(const r of group)root.append(row(r));}
  if(!rows.length)root.append(el('p','No items match this view.','empty'));
 }
+function merchantName(description){
+ // Display-only shortening. The exact imported description stays in Details and export.
+ const known=[[/^Wellhub\b/i,'Wellhub'],[/^OURARING\b/i,'Oura'],[/^STARBUCKS\b/i,'Starbucks'],[/^BJS WHOLESALE\b/i,"BJ’s Wholesale"],[/^TRADER JOE[ ’]?S\b/i,'Trader Joe’s'],[/^WHOLEFDS\b/i,'Whole Foods']];
+ for(const [pattern,name] of known)if(pattern.test(description))return name;
+ return description.replace(/^TST\*\s*/i,'').split(/\s+\d{1,6}\s+(?=[A-Za-z])|\s+\d{7,}\b/)[0].trim()||description;
+}
 function row(r){
- const item=el('article',undefined,'row');item.dataset.id=r._id;const top=el('div',undefined,'row-top'),details=el('div'),amount=el('div',money(r.amountCents),'amount'+(r.amountCents<0?' negative':''));
- details.append(el('h3',r.description,'merchant'),el('div',new Date(r.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}),'date'));top.append(details,amount);item.append(top);
+ const item=el('article',undefined,'row');item.dataset.id=r._id;
+ const top=el('div',undefined,'row-top'),heading=el('div'),amount=el('div',money(r.amountCents),'amount'+(r.amountCents<0?' negative':''));
+ heading.append(el('h3',merchantName(r.description),'merchant'),el('div',new Date(r.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}),'date'));top.append(heading,amount);item.append(top);
  const actions=el('div',undefined,'row-actions'),label=allocationLabel(r);
  for(const p of people){const b=el('button',title(p),'label-button');b.dataset.label=p;b.setAttribute('aria-pressed',String(label===p));b.setAttribute('aria-label',`Assign ${r.description} to ${title(p)}`);b.disabled=pending.has(r._id);b.onclick=()=>saveRow(r,Object.fromEntries(people.map(k=>[k,k===p?r.amountCents:0])),r.note);actions.append(b);}
- const edit=el('button','Split / note','quiet');edit.disabled=pending.has(r._id);edit.onclick=()=>openEditor(r);actions.append(edit);
- if(r.allocation){const undo=el('button','Clear','quiet');undo.disabled=pending.has(r._id);undo.setAttribute('aria-label','Clear assignment for '+r.description);undo.onclick=()=>saveRow(r,null,r.note);actions.append(undo);}
- const source=el('button',`PDF p. ${r.page} ↗`,'quiet source');source.onclick=()=>showPdf(r.page);actions.append(source);item.append(actions);
+ item.append(actions);
  if(label==='split')item.append(el('p',people.filter(p=>r.allocation[p]).map(p=>`${title(p)} ${money(r.allocation[p])}`).join(' · '),'split-text'));
- if(r.note)item.append(el('p',r.note,'row-note'));return item;
+ const details=el('details',undefined,'charge-details');details.open=expandedRows.has(r._id);
+ details.append(el('summary',r.note?'Details · Note added':'Details'));
+ details.append(el('p',r.description,'full-description'));
+ const secondary=el('div',undefined,'secondary-actions');
+ const edit=el('button','Split / note','quiet');edit.disabled=pending.has(r._id);edit.onclick=()=>openEditor(r);secondary.append(edit);
+ if(r.allocation){const undo=el('button','Clear label','quiet');undo.disabled=pending.has(r._id);undo.setAttribute('aria-label','Clear assignment for '+r.description);undo.onclick=()=>saveRow(r,null,r.note);secondary.append(undo);}
+ const source=el('button',`PDF p. ${r.page} ↗`,'quiet source');source.onclick=()=>showPdf(r.page);secondary.append(source);details.append(secondary);
+ if(r.note)details.append(el('p',r.note,'row-note'));
+ details.addEventListener('toggle',()=>{if(!details.isConnected)return;if(details.open)expandedRows.add(r._id);else expandedRows.delete(r._id);});item.append(details);return item;
 }
 async function saveRow(r,allocation,note,fromEditor=false){
  if(pending.has(r._id))return false;++request;pending.add(r._id);saveWarning='';saved();if(!fromEditor)renderRows();
@@ -53,10 +67,12 @@ function closeEditor(){if(editing&&pending.has(editing._id))return;$('edit-dialo
 $('edit-close').onclick=closeEditor;$('edit-dialog').addEventListener('cancel',e=>{e.preventDefault();closeEditor();});
 $('edit-form').onsubmit=async e=>{e.preventDefault();if(!editing)return;let allocation=null;const values=people.map(p=>$('split-'+p).value.trim());if(values.some(Boolean)){allocation={};for(let i=0;i<people.length;i++){const raw=values[i]||'0';if(!/^-?\d+(\.\d{1,2})?$/.test(raw)){$('edit-error').textContent='Enter dollar amounts with up to two decimal places.';return;}const [whole,decimal='']=raw.replace('-','').split('.');allocation[people[i]]=(Number(whole)*100+Number(decimal.padEnd(2,'0')))*(raw.startsWith('-')?-1:1);}if(Object.values(allocation).some(n=>!Number.isSafeInteger(n)||(editing.amountCents>=0?n<0:n>0))||Object.values(allocation).reduce((s,n)=>s+n,0)!==editing.amountCents){$('edit-error').textContent='The split must add up to '+money(editing.amountCents)+', with the same sign.';return;}}
  $('edit-save').disabled=true;$('edit-close').disabled=true;const ok=await saveRow(editing,allocation,$('edit-note').value,true);$('edit-save').disabled=false;$('edit-close').disabled=false;if(ok)closeEditor();};
-async function showPdf(page=1){$('pdf-panel').hidden=false;$('pdf-status').textContent='Loading original PDF…';if(innerWidth<1050)$('pdf-panel').scrollIntoView({behavior:'smooth',block:'start'});try{if(!pdfUrl){if(!pdfLoading)pdfLoading=(async()=>{const res=await fetch(FILE,{headers:{'X-Statement-Token':token},cache:'no-store',signal:AbortSignal.timeout(20000)});if(!res.ok||!res.headers.get('content-type')?.includes('application/pdf'))throw Error('PDF unavailable');const blob=await res.blob();await StatementPdf.load(await blob.arrayBuffer());return URL.createObjectURL(blob);})();pdfUrl=await pdfLoading;}
+async function showPdf(page=1){$('pdf-panel').hidden=false;if(matchMedia('(max-width:700px)').matches&&!$('pdf-dialog').open){$('pdf-dialog').append($('pdf-panel'));$('pdf-dialog').showModal();}else if(!$('pdf-dialog').open&&innerWidth<1050)$('pdf-panel').scrollIntoView({block:'start'});$('pdf-status').textContent='Loading original PDF…';try{if(!pdfUrl){if(!pdfLoading)pdfLoading=(async()=>{const res=await fetch(FILE,{headers:{'X-Statement-Token':token},cache:'no-store',signal:AbortSignal.timeout(20000)});if(!res.ok||!res.headers.get('content-type')?.includes('application/pdf'))throw Error('PDF unavailable');const blob=await res.blob();await StatementPdf.load(await blob.arrayBuffer());return URL.createObjectURL(blob);})();pdfUrl=await pdfLoading;}
  $('pdf-open').href=`${pdfUrl}#page=${page}`;$('pdf-open').hidden=false;await StatementPdf.show(page);$('pdf-status').textContent='Original statement · All pages included';
  }catch(e){console.warn('Statement PDF preview:',e?.message||'Load failed');$('pdf-status').textContent='Could not load the PDF. Tap “View statement” to retry.';}finally{pdfLoading=null;}}
-$('show-pdf').onclick=()=>showPdf();$('close-pdf').onclick=()=>{$('pdf-panel').hidden=true;};
+function closePdf(){ $('pdf-panel').hidden=true; if($('pdf-dialog').open)$('pdf-dialog').close();pdfHome.append($('pdf-panel'));}
+$('show-pdf').onclick=()=>showPdf();$('close-pdf').onclick=closePdf;
+$('pdf-dialog').addEventListener('cancel',e=>{e.preventDefault();closePdf();});
 $('copy-link').onclick=async()=>{try{await navigator.clipboard.writeText(location.href);$('copy-link').textContent='Link copied';setTimeout(()=>$('copy-link').textContent='Copy review link',2000);}catch{$('status').textContent='Copy the full address from your browser to share this review.';}};
 for(const b of document.querySelectorAll('[data-filter]'))b.onclick=()=>{filter=b.dataset.filter;for(const other of document.querySelectorAll('[data-filter]')){other.classList.toggle('active',other===b);other.setAttribute('aria-pressed',String(other===b));}renderRows();};
 $('search').oninput=()=>{if(data)renderRows();};
