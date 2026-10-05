@@ -25,9 +25,11 @@ The backend was deployed on October 5, 2026, using the current live modules as i
 
 If the password is forgotten, recovery requires a deliberate administrator operation to remove the journal security record and revoke all journal sessions before configuring a new password. No client password-reset bypass is exposed.
 
-## Daily standup recap
+## Monthly overview
 
-The private `monthlyJournalRecap:read` query requires both journal gates. It reads only the selected person's updates for the selected calendar month in the existing standup workspace, never writes to daily standups, and does not change the shared tool. Vish maps to daily standup keys `vishal` and `vish`; Jenny and Vivek map to their matching keys. It keeps work, plans, and blockers separate, groups exact repeated lines, and links each item to its dated source inside the private journal. It retains source wording rather than generating an AI assessment; no external summarization service receives the notes. The condensed view shows the latest reported items, with all fetched sources expandable below; any 100-update limit is disclosed. Refresh fetches the latest source data. A pending recap is discarded if the journal locks or the person/month changes.
+The sidebar shows a saved editorial overview for the selected person and month: a short synthesis, progress themes, and open follow-ups. There is no AI API integration or API key requirement. Overview text is stored privately in Convex, never in the public repository. September 2026 summaries were prepared from the selected person's standups. Refresh reloads saved content; it does not regenerate a summary.
+
+`monthlyJournalRecap:read` requires both journal gates. An internal-only `publishOverview` mutation imports summaries into `monthlyJournalOverviews`, validates each source against person, month and team, and never edits journal notes or standups. Existing daily-source reads remain available in the backend. Pending responses are discarded when the journal locks or the person/month changes.
 
 ## Rich text
 

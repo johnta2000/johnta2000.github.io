@@ -177,43 +177,24 @@ async function loadRecap() {
   const request = ++recapRequest, version = generation;
   $("recap").replaceChildren(); $("refreshRecap").disabled = !activePerson;
   if (!activePerson) { $("recapStatus").textContent = "Choose Vish, Jenny, or Vivek to see their monthly progress."; return; }
-  $("recapStatus").textContent = `Reading ${people[activePerson]}’s daily updates…`;
+  $("recapStatus").textContent = `Reading ${people[activePerson]}’s monthly overview…`;
   try {
     const data = await call("query", "monthlyJournalRecap:read", { token, month: activeMonth, person: activePerson });
     if (request !== recapRequest || version !== generation || !token) return;
-    if (!data.updateCount) { $("recapStatus").textContent = `No daily updates from ${data.person} for this month yet.`; return; }
-    $("recapStatus").textContent = `${data.person} posted ${data.updateCount} update${data.updateCount === 1 ? "" : "s"}, ${shortDate(data.sources.at(-1).date)}–${shortDate(data.sources[0].date)}.${data.truncated ? " Showing the latest 100 updates." : ""}`;
-    const sources = new Map();
-    const sourceDetails = node("details", "", "recap-sources");
-    sourceDetails.append(node("summary", `Source updates (${data.updateCount})`));
-    for (const source of data.sources) {
-      const detail = node("details"); detail.id = `source-${source.id}`; detail.append(node("summary", shortDate(source.date)));
-      for (const [key, title] of [["work", "Reported work"], ["plans", "Plans"], ["blockers", "Blockers"], ["notes", "Notes"]]) {
-        if (!source[key].length) continue;
-        detail.append(node("h4", title), node("p", source[key].join("\n"), "entry-text"));
-      }
-      sources.set(source.id, detail); sourceDetails.append(detail);
+    if (!data.overview) { $("recapStatus").textContent = `No overview saved for ${data.person} this month.`; return; }
+    const summary = data.overview;
+    $("recapStatus").textContent = `Based on ${summary.sourceIds.length} September standups.`.replace("September", new Date(`${activeMonth}-15T12:00:00`).toLocaleDateString(undefined, { month: "long" }));
+    $("recap").append(node("p", summary.overview));
+    const list = node("ul");
+    for (const item of summary.highlights) {
+      const li = node("li"); li.append(node("strong", item.title), node("p", item.text)); list.append(li);
     }
-    for (const [key, title, limit] of [["work", "Reported progress", 10], ["plans", "Plans mentioned", 5], ["blockers", "Blockers mentioned", 5]]) {
-      const section = node("section", "", "recap-group"); section.append(node("h3", title));
-      if (!data[key].length) section.append(node("p", "Nothing recorded.", "hint"));
-      const list = node("ul");
-      for (const item of data[key].slice(0, limit)) {
-        const li = node("li"); li.append(node("p", item.text));
-        const refs = node("div", "", "source-links");
-        item.sourceIds.forEach((id, i) => {
-          const link = node("a", shortDate(item.dates[i])); link.href = `#source-${id}`;
-          link.onclick = event => { event.preventDefault(); sourceDetails.open = true; sources.get(id).open = true; sources.get(id).scrollIntoView({ block: "nearest", behavior: "smooth" }); };
-          refs.append(link);
-        });
-        li.append(refs); list.append(li);
-      }
-      section.append(list);
-      if (data[key].length > limit) section.append(node("p", `${data[key].length - limit} more items in the source updates below.`, "hint"));
-      $("recap").append(section);
+    const section = node("section", "", "recap-group"); section.append(node("h3", "Progress themes"), list); $("recap").append(section);
+    if (summary.openLoops.length) {
+      const section = node("section", "", "recap-group"), list = node("ul");
+      summary.openLoops.forEach(text => list.append(node("li", text)));
+      section.append(node("h3", "Carry into next month"), list); $("recap").append(section);
     }
-    $("recap").append(sourceDetails);
-    const daily = node("a", "Open daily standups", "daily-link"); daily.href = "/tools/standups/"; daily.target = "_blank"; daily.rel = "noopener noreferrer"; $("recap").append(daily);
   } catch (error) { if (request === recapRequest && version === generation) $("recapStatus").textContent = `Could not load recap: ${error.message}`; }
 }
 $("refreshRecap").onclick = loadRecap;

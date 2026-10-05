@@ -1,4 +1,4 @@
-import { query } from "./_generated/server";
+import { query, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 import { requireUnlocked } from "./monthlyJournal";
 
@@ -44,6 +44,23 @@ export const read = query({
       return [...items.values()];
     }
     const work = group("work"), plans = group("plans"), blockers = group("blockers");
-    return { person: person.label, month: args.month, updateCount: sources.length, truncated, work, plans, blockers, sources };
+    const overview = await ctx.db.query("monthlyJournalOverviews").withIndex("by_person_month", q => q.eq("person", args.person).eq("month", args.month)).unique();
+    return { overview, person: person.label, month: args.month, updateCount: sources.length, truncated, work, plans, blockers, sources };
+  },
+});
+
+// One-time editorial imports. No public write endpoint or AI provider connection.
+export const publishOverview = internalMutation({
+  args: { person: v.union(v.literal("vish"), v.literal("jenny"), v.literal("vivek")), month: v.string(), overview: v.string(), highlights: v.array(v.object({ title: v.string(), text: v.string() })), openLoops: v.array(v.string()), sourceIds: v.array(v.id("standupEntries")) },
+  handler: async (ctx, args) => {
+    if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(args.month) || !args.sourceIds.length) throw new Error("Invalid overview sources.");
+    for (const id of args.sourceIds) {
+      const source = await ctx.db.get(id);
+      if (!source || source.teamId !== (process.env.STANDUPS_TEAM_ID || "johns-website-default") || !people[args.person].keys.includes(source.personKey) || !source.standupDate.startsWith(args.month + "-")) throw new Error("Source does not match this person and month.");
+    }
+    const existing = await ctx.db.query("monthlyJournalOverviews").withIndex("by_person_month", q => q.eq("person", args.person).eq("month", args.month)).unique();
+    const value = { ...args, updatedAt: Date.now() };
+    if (existing) { await ctx.db.patch(existing._id, value); return existing._id; }
+    return await ctx.db.insert("monthlyJournalOverviews", value);
   },
 });

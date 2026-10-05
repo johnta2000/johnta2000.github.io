@@ -25,7 +25,7 @@ test('private journal autosaves, carries context, preserves failed edits and loc
         if(fn.endsWith(':status')) value={configured:false};
         if(fn.endsWith(':unlock')) value={token:'test-session',expiresAt:Date.now()+3600000};
         if(fn==='monthlyJournal:read') { reads++; value={current:records[key]||null,previous:Object.values(records).filter(r=>r.month<args.month && r.person===args.person).sort((a,b)=>b.month.localeCompare(a.month))[0]||null}; }
-        if(fn==='monthlyJournalRecap:read') value={person:args.person,updateCount:1,truncated:false,work:[{text:'Launched a feature',dates:[args.month+'-01'],sourceIds:['synthetic']}],plans:[],blockers:[],sources:[{id:'synthetic',date:args.month+'-01',work:['Launched a feature'],plans:[],blockers:[],notes:[]}]};
+        if(fn==='monthlyJournalRecap:read') value={overview:{overview:'Monthly progress',highlights:[{title:'Delivery',text:'Launched a feature'}],openLoops:['Review next steps'],sourceIds:['synthetic']},person:args.person,updateCount:1,truncated:false,work:[{text:'Launched a feature',dates:[args.month+'-01'],sourceIds:['synthetic']}],plans:[],blockers:[],sources:[{id:'synthetic',date:args.month+'-01',work:['Launched a feature'],plans:[],blockers:[],notes:[]}]};
         if(fn.endsWith(':assign')) { const destination=`${args.target}:${args.month}`; records[destination]={...records[key],person:args.target,revision:args.revision+1}; delete records[key]; }
         if(fn.endsWith(':save')) {
           if(failSave) return route.fulfill({json:{status:'error',errorMessage:'Offline test'}});
@@ -52,8 +52,8 @@ test('private journal autosaves, carries context, preserves failed edits and loc
       await page.waitForFunction(()=>document.querySelector('#conversationTitle').textContent.includes('Vish'));
       assert.equal(await page.locator('#notes').textContent(),'Keep my unsaved thought');
       await page.waitForFunction(()=>document.querySelector('#recap').textContent.includes('Launched a feature'));
-      await page.locator('#recap .source-links a').click();
-      assert.equal(await page.locator('#source-synthetic').getAttribute('open'),'');
+      assert.equal(await page.locator('#recap .source-links').count(),0);
+      assert.match(await page.locator('#recap').textContent(), /Carry into next month/);
       await page.click('[data-person="jenny"]');
       await page.waitForFunction(()=>document.querySelector('#conversationTitle').textContent.includes('Jenny'));
       assert.equal(await page.locator('#notes').textContent(),'');

@@ -135,3 +135,20 @@ test('rich formatting persists through saves and assignment without interpreting
   const {current}=await journal.read._handler(ctx,{token,month:'2026-10',person:'vish'});
   assert.equal(current.contentFormat,'html'); assert.equal(current.notes,'<ul><li><strong>A win</strong></li></ul>');
 });
+
+test('saved overviews validate sources, isolate person/month, and leave notes untouched', async () => {
+  const {ctx,tables}=fixture(); const {token}=await unlock(ctx,'x',true);
+  ctx.db.get=async id=>Object.values(tables).flat().find(row=>row._id===id)||null;
+  await journal.save._handler(ctx,entry(token));
+  const notes=JSON.stringify(tables.monthlyJournalEntries);
+  const id=await ctx.db.insert('standupEntries',{teamId:'johns-website-default',personKey:'vishal',standupDate:'2026-09-01',yesterday:'Done',today:'Next'});
+  const summary={person:'vish',month:'2026-09',overview:'Progress',highlights:[],openLoops:[],sourceIds:[id]};
+  await recap.publishOverview._handler(ctx,summary);
+  assert.equal((await recap.read._handler(ctx,{token,month:'2026-09',person:'vish'})).overview.overview,'Progress');
+  assert.equal((await recap.read._handler(ctx,{token,month:'2026-10',person:'vish'})).overview,null);
+  assert.equal((await recap.read._handler(ctx,{token,month:'2026-09',person:'jenny'})).overview,null);
+  await assert.rejects(recap.publishOverview._handler(ctx,{...summary,person:'jenny'}),/Source does not match/);
+  await recap.publishOverview._handler(ctx,{...summary,overview:'Revised'});
+  assert.equal(tables.monthlyJournalOverviews.length,1);
+  assert.equal(JSON.stringify(tables.monthlyJournalEntries),notes);
+});
