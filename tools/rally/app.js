@@ -7,6 +7,24 @@ const views = [
   ["meetups", "Meetups", "⌖"], ["notes", "Notes", "≡"],
 ];
 const noteSections = {general:'General',stay:'Stay',crew:'Crew',travel:'Travel',passes:'Passes'};
+const optionalSections = ['stay','travel','passes','tasks','meetups'];
+function sectionEnabled(view) { return !optionalSections.includes(view) || !(data.hiddenSections || []).includes(view); }
+function openSectionSettings() {
+  if (!data?.isAdmin) return;
+  if (offlineMode) return showToast('Reconnect to change project settings.');
+  const eventId=activeEvent, owner=window.Clerk?.user?.id;
+  const available=optionalSections.filter(id=>id!=='meetups'||data.id===DEFAULT_EVENT);
+  openDialog('Manage sections','Choose what everyone sees in this event. Turning a section off hides it without deleting any data. Home, Lineup, Crew, and Notes stay available.',
+    `<div class="lineup-day-settings">${available.map(id=>`<label><input type="checkbox" name="${id}" ${sectionEnabled(id)?'checked':''}><span>${views.find(v=>v[0]===id)[1]}</span></label>`).join('')}</div>`,async values=>{
+      if(offlineMode)throw new Error('Reconnect to change project settings.');
+      const hiddenSections=optionalSections.filter(id=>available.includes(id)?!values[id]:(data.hiddenSections||[]).includes(id));
+      await convexMutation('rallySections:save',{eventId,hiddenSections});
+      if(owner!==window.Clerk?.user?.id)return;
+      closeDialog();
+      if(activeEvent===eventId){data.hiddenSections=hiddenSections;render();}
+      showToast('Sections updated for everyone');
+    });
+}
 
 // One icon vocabulary for sidebar, overview, and mobile navigation.
 function rallyIcon(id) {
@@ -346,6 +364,10 @@ function renderEventMenu(){
   RallyHistory.mount(data);
 }
 function render() {
+  if(!sectionEnabled(activeView)){
+    activeView='home';
+    history.replaceState(null,'',href('home'));
+  }
   window.RallyLineup?.hide();
   window.RallyMeetups?.unmount();
   document.body.classList.remove('lineup-overlay');
@@ -356,7 +378,7 @@ function render() {
   el.eventName.textContent = data.name; el.mobileEventName.textContent = data.name; el.mobileCountdown.textContent = `${days} days away`;
   el.eventThumb.textContent = initials(data.name); el.topInvite.hidden = !data.isAdmin;
   renderAccountButton();
-  el.sideNav.innerHTML = views.filter(([id]) => (id !== 'meetups' || data.id === DEFAULT_EVENT) && (id !== "lineup" || data.id === DEFAULT_EVENT || data.lineup?.length || data.isAdmin)).map(([id,label]) => `<a href="${href(id)}" class="${activeView === id ? "active" : ""}" ${activeView === id ? 'aria-current="page"' : ''}><span class="nav-icon">${rallyIcon(id)}</span>${label}</a>`).join("");
+  el.sideNav.innerHTML = views.filter(([id]) => sectionEnabled(id) && (id !== 'meetups' || data.id === DEFAULT_EVENT) && (id !== "lineup" || data.id === DEFAULT_EVENT || data.lineup?.length || data.isAdmin)).map(([id,label]) => `<a href="${href(id)}" class="${activeView === id ? "active" : ""}" ${activeView === id ? 'aria-current="page"' : ''}><span class="nav-icon">${rallyIcon(id)}</span>${label}</a>`).join("");
   renderEventMenu();
   window.RallyCrewLocation?.unmount();
   const nativeLineup=activeView==='lineup';
@@ -384,10 +406,11 @@ function renderAccountButton() {
 
 function renderMobileNav() {
   const icon = rallyIcon;
-  const tabs=[['home','Home'],['lineup','Lineup'],...(data.id===DEFAULT_EVENT?[['meetups','Meetups']]:[['notes','Notes']])];
+  const tabs=[['home','Home'],['lineup','Lineup'],...(data.id===DEFAULT_EVENT&&sectionEnabled('meetups')?[['meetups','Meetups']]:[['notes','Notes']])];
   const nav=document.getElementById('mobileNav');
-  if(nav.dataset.eventId!==data.id){
-    nav.dataset.eventId=data.id;
+  const navKey=data.id+':'+tabs.map(tab=>tab[0]).join(',');
+  if(nav.dataset.eventId!==navKey){
+    nav.dataset.eventId=navKey;
     nav.innerHTML = `<div class="nav-glass-group">${tabs.map(([id,label])=>`<a data-nav-view="${id}" href="${href(id)}" class="${activeView===id?'active':''}" ${activeView===id?'aria-current="page"':''}>${icon(id)}${label}</a>`).join('')}<button type="button" id="quickMore" ${!tabs.some(([id])=>id===activeView)?'aria-current="page"':''}>${icon('more')}More</button></div><button type="button" id="quickSearch" aria-label="Search this rave">${icon('search')}</button>`;
     document.getElementById('quickSearch').onclick = openProjectSearch;
     document.getElementById('quickMore').onclick = () => el.openMenu.click();
@@ -424,7 +447,7 @@ function projectSearchItems() {
   (data.notes||[]).forEach(note=>items.push({view:noteSection(note)==='general'?'notes':noteSection(note),id:note.id,title:note.body,detail:`${noteSections[noteSection(note)]} note · ${map[note.authorId]?.name||note.authorName}`}));
   const sets=data.id===DEFAULT_EVENT?(window.LOST_LANDS_SET_TIMES||[]):(data.lineup||[]);
   sets.filter(r=>!(data.lineupHiddenDays||[]).includes(r.day||'Day TBD')).forEach(r=>items.push({view:'lineup',id:r.id,title:r.artist||r.name,day:r.day,detail:[r.day,r.stage,r.genre].filter(Boolean).join(' · '),artist:r.artist||r.name}));
-  return items;
+  return items.filter(item=>sectionEnabled(item.view));
 }
 
 function openProjectSearch() {
@@ -492,6 +515,12 @@ function renderHome() {
   if(data.id===DEFAULT_EVENT)cards.splice(1,0,['meetups','⌖','Meetups',`${(data.meetups||[]).filter(m=>m.status==='planned').length} planned`,'Festival map and shared meeting spots']);
   el.page.innerHTML = `<section class="overview-header"><div><span class="eyebrow">${escapeHtml(data.presenter||"Project overview")}</span><h1>${escapeHtml(data.name)}</h1><p>⌖ ${escapeHtml(data.location)} · ${eventDateLine(data)}</p></div><div class="countdown"><strong>${days}</strong><span>days to go</span></div></section><div class="overview-grid">${cards.map(([view,icon,label,strong,small])=>`<a class="overview-tile" data-view="${view}" href="${href(view)}"><span class="overview-icon">${rallyIcon(view)}</span><span><small>${label}</small><strong>${strong}</strong><em>${escapeHtml(small)}</em></span><b>→</b></a>`).join("")}</div><section class="section-card"><header><div><span class="eyebrow">Loose ends</span><h2>Open tickets</h2></div><a class="primary" href="${href("tasks")}">Open board →</a></header><div class="row-list">${data.tasks.filter((task)=>task.status!=="done").slice(0,4).map((task)=>`<div class="row"><strong>${escapeHtml(task.title)}</strong><span>${escapeHtml(memberMap()[task.assigneeId]?.name || "Unassigned")}</span></div>`).join("") || `<div class="empty">Nothing is waiting right now.</div>`}</div></section>`;
   if(data.id===DEFAULT_EVENT)window.RallyDino?.home(el.page);
+  el.page.querySelectorAll('.overview-tile').forEach(card=>{if(!sectionEnabled(card.dataset.view))card.remove();});
+  if(!sectionEnabled('tasks'))el.page.querySelector('.section-card')?.remove();
+  if(data.isAdmin){
+    el.page.querySelector('.overview-header').insertAdjacentHTML('afterend','<div class="section-settings-action"><button type="button" id="manageSections">Manage sections</button></div>');
+    document.getElementById('manageSections').onclick=openSectionSettings;
+  }
 }
 
 function renderMeetups() {

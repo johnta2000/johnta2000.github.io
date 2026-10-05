@@ -196,12 +196,17 @@ test('project search indexes current room only, including offline set times and 
   const data={id:'event-two',members:[{id:'j',name:'Jessi',email:'jessi@example.test'}],rooms:[{id:'r',hotel:'Hyatt',roomType:'Suite',memberIds:['j'],confirmation:'123'}],travel:[],cars:[],passes:[],tasks:[{id:'t',title:'Pack earplugs',assigneeId:'j'}],lineup:[{id:'a',name:'ILLENIUM',day:'Saturday'}]};
   const ctx={data,DEFAULT_EVENT:'lost-lands-2026',window:{LOST_LANDS_SET_TIMES:lineup},views:[['home','Home']],memberMap:()=>Object.fromEntries(data.members.map(x=>[x.id,x])),groupedFlights:()=>[],events:[{id:'private-event',name:'Not this room'}]};
   vm.createContext(ctx);
+  vm.runInContext(app.slice(app.indexOf('const optionalSections'),app.indexOf('function openSectionSettings')),ctx);
   vm.runInContext(app.slice(app.indexOf('function projectSearchItems('),app.indexOf('function openProjectSearch(')),ctx);
   let items=ctx.projectSearchItems();
   assert(items.some(x=>x.title==='Hyatt'&&x.detail.includes('Jessi')&&x.detail.includes('123')));
   assert(items.some(x=>x.title==='Pack earplugs'));
   assert.equal(items.filter(x=>x.view==='lineup').length,1);
   assert(!JSON.stringify(items).includes('Not this room'));
+  data.hiddenSections=['stay','tasks'];
+  assert(!ctx.projectSearchItems().some(item=>['stay','tasks'].includes(item.view)));
+  data.hiddenSections=[];
+  assert(ctx.projectSearchItems().some(item=>item.title==='Hyatt'));
   data.id='lost-lands-2026';items=ctx.projectSearchItems();
   assert.equal(items.filter(x=>x.view==='lineup').length,220);
 });

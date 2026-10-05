@@ -21,6 +21,7 @@ wireShell();const banner=document.createElement('div');banner.id='offlineStatus'
 render();el.accessGate.hidden=true;el.rallyApp.hidden=false;document.body.classList.remove('booting');
 window.qaShow=(view,lost=false)=>{if(lost){data={...data,id:DEFAULT_EVENT,name:"Lost Lands '26",startsAt:'2026-09-18',endsAt:'2026-09-20',timeZone:'America/New_York',lineup:window.LOST_LANDS_SET_TIMES,lineupHiddenDays:['Wednesday','Thursday']};activeEvent=data.id;}activeView=view;render();};
 window.qaDialog=()=>openTask();
+window.qaSections=(hidden,isAdmin=true)=>{data.hiddenSections=hidden;data.isAdmin=isAdmin;activeView='home';render();};
 window.qaToast=showToast;
 window.qaHideToast=()=>{el.toast.hidePopover?.();el.toast.hidden=true;};
 `;
@@ -86,6 +87,22 @@ const qaBootstrap=bootstrap.replace(/data=\{.*?\};events=/,`data=${JSON.stringif
   }
   // Notes' Tapback picker, rich-text link controls, and global search use their
   // real event handlers with fake data. No mutations are submitted.
+  await page.evaluate(()=>window.qaSections(['stay','travel','tasks']));
+  assert.equal(await page.locator('.overview-tile[data-view="stay"],.overview-tile[data-view="travel"]').count(),0);
+  assert.equal(await page.locator('#sideNav a[href*="view=stay"]').count(),0);
+  assert(!(await page.locator('#page').innerText()).includes('Open tickets'));
+  await page.locator('#manageSections').click();
+  assert(!await page.locator('#dialogRoot input[name="stay"]').isChecked());
+  assert(await page.locator('#dialogRoot input[name="passes"]').isChecked());
+  await page.screenshot({path:`${output}/${label}-section-settings.png`});
+  contrastIssues.push(...await auditContrast(page,label+' section settings'));
+  await page.locator('#dialogRoot .dialog-close').click();
+  await page.evaluate(()=>window.qaShow('stay'));
+  assert.equal(await page.locator('#notesList').getAttribute('data-section'),'general');
+  await page.evaluate(()=>window.qaSections([],false));
+  assert.equal(await page.locator('#manageSections').count(),0);
+  await page.evaluate(()=>window.qaSections([]));
+  assert.equal(await page.locator('.overview-tile[data-view="stay"]').count(),1);
   await page.evaluate(()=>window.qaShow('stay'));
   await page.locator('.reaction-picker > summary').first().scrollIntoViewIfNeeded();
   await page.locator('.reaction-picker > summary').first().click();
