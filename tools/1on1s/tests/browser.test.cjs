@@ -17,9 +17,10 @@ test('private journal autosaves, carries context, preserves failed edits and loc
       await page.route('https://clerk.john-ta.com/**', route => route.fulfill({body:'',contentType:'text/javascript'}));
       await page.addInitScript(() => {
         window.__internal_ClerkUICtor = {};
-        window.Clerk = { session:{id:'test',getToken:async()=>'jwt'},load:async()=>{},addListener:()=>{},mountSignIn:()=>{},signOut:async()=>{} };
+        window.Clerk = { session:{id:'test',getToken:async(options)=>{ if(options?.template) throw new Error('No JWT template exists with name: convex'); return 'jwt'; }},load:async()=>{},addListener:()=>{},mountSignIn:()=>{},signOut:async()=>{} };
       });
       await page.route('https://rapid-shark-565.convex.cloud/api/**', async route => {
+        assert.equal(route.request().headers().authorization, 'Bearer jwt');
         const {path:fn,args} = route.request().postDataJSON(); let value;
         if(fn.endsWith(':status')) value={configured:false};
         if(fn.endsWith(':unlock')) value={token:'test-session',expiresAt:Date.now()+3600000};

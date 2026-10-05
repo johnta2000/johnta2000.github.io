@@ -10,8 +10,35 @@ for (const [i, prompt] of prompts.entries()) {
 const fields = [...prompts.map((_, i) => $(`answer${i}`)), $("notes"), $("followups")];
 const now = new Date(); $("month").value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 
+async function getConvexToken() {
+  const session = window.Clerk?.session;
+  if (!session) return null;
+
+  const sessionToken = await session.getToken();
+  const audience = readJwtPayload(sessionToken)?.aud;
+  if (audience === "convex" || (Array.isArray(audience) && audience.includes("convex"))) {
+    return sessionToken;
+  }
+
+  try {
+    return await session.getToken({ template: "convex" });
+  } catch {
+    return sessionToken;
+  }
+}
+
+function readJwtPayload(token) {
+  if (!token) return null;
+  try {
+    const encoded = token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
+    return JSON.parse(decodeURIComponent(escape(atob(encoded))));
+  } catch {
+    return null;
+  }
+}
+
 async function call(kind, name, args = {}) {
-  const jwt = await window.Clerk.session?.getToken({ template: "convex" });
+  const jwt = await getConvexToken();
   if (!jwt) throw new Error("Please sign in again.");
   const response = await fetch(`https://rapid-shark-565.convex.cloud/api/${kind}`, {
     method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${jwt}` },
