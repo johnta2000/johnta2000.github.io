@@ -83,3 +83,10 @@ test('only the verified production issuer may omit email verification', async ()
   delete ctx.identity.emailVerified; ctx.identity.issuer = 'https://other.example';
   await assert.rejects(journal.status._handler(ctx,{}), /verified owner/);
 });
+
+test('a one-character password can be set and used to unlock', async () => {
+  const {ctx} = fixture();
+  const initial = await unlock(ctx, 'x', true);
+  await journal.lock._handler(ctx,{token:initial.token});
+  assert.ok((await unlock(ctx, 'x')).token);
+});

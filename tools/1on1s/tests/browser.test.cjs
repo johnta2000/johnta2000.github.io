@@ -35,7 +35,7 @@ test('private journal autosaves, carries context, preserves failed edits and loc
       await page.goto('https://journal.test/');
       await page.locator('#unlock').waitFor({state:'visible'});
       assert.equal(reads,0);
-      await page.fill('#password','test password here'); await page.fill('#confirmPassword','test password here'); await page.click('#unlockButton');
+      await page.fill('#password','x'); await page.fill('#confirmPassword','x'); await page.click('#unlockButton');
       await page.locator('#journal').waitFor({state:'visible'});
       await page.fill('#notes','Remember this win'); await page.fill('#answer0','Growth feels steady'); await page.fill('#followups','Ask about hiring');
       await page.click('#next');

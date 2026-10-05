@@ -63,7 +63,7 @@ async function authenticate() {
     $("unlock").hidden = false; $("confirmation").hidden = !setup;
     $("confirmPassword").required = setup;
     $("password").autocomplete = setup ? "new-password" : "current-password";
-    $("passwordLabel").textContent = setup ? "Choose your journal password (12+ characters)" : "Journal password";
+    $("passwordLabel").textContent = setup ? "Choose your journal password" : "Journal password";
     $("unlockButton").textContent = setup ? "Set password & open journal" : "Unlock journal";
     $("authStatus").textContent = setup ? "Choose a separate password for this private journal." : "One last check before opening your notes.";
   } catch (error) { $("unlock").hidden = true; $("authStatus").textContent = error.message; }
