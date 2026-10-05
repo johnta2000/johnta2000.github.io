@@ -1,5 +1,7 @@
 const $ = id => document.getElementById(id);
 const prompts = ["How do you feel about Affil so far? How is growth?", "Biggest personal wins?", "Biggest personal Ls?", "Any feedback for each other?", "Any general questions/curiosities?"];
+const people = { vish: "Vish", jenny: "Jenny", vivek: "Vivek", "": "Unassigned notes" };
+let activePerson = "", recapRequest = 0;
 let token = "", setup = false, revision = 0, dirty = false, generation = 0, saving = null, timer, expiry, activeMonth = "", authId, recovery = null;
 for (const [i, prompt] of prompts.entries()) {
   const section = document.createElement("div"); section.className = "question";
@@ -50,9 +52,9 @@ async function call(kind, name, args = {}) {
 }
 
 function clearJournal(message = "Journal locked.", preserveDraft = false) {
-  recovery = preserveDraft && dirty ? { values: fields.map(field => field.value), month: activeMonth, revision } : null;
+  recovery = preserveDraft && dirty ? { values: fields.map(field => field.value), month: activeMonth, person: activePerson, revision } : null;
   token = ""; generation++; clearTimeout(timer); clearTimeout(expiry); dirty = false;
-  fields.forEach(field => { field.value = ""; }); $("previous").replaceChildren();
+  fields.forEach(field => { field.value = ""; }); $("previous").replaceChildren(); $("recap").replaceChildren(); recapRequest++;
   $("journal").hidden = true; $("gate").hidden = false; $("authStatus").textContent = message;
 }
 
@@ -79,7 +81,7 @@ $("unlock").onsubmit = async event => {
     $("password").value = ""; $("confirmPassword").value = "";
     expiry = setTimeout(() => clearJournal("Your hour is up. Unlock again to continue. Unsaved edits are held in this tab until you unlock.", true), Math.max(0, result.expiresAt - Date.now()));
     const draft = recovery;
-    await loadMonth(draft?.month || $("month").value);
+    await loadMonth(draft?.month || $("month").value, draft?.person ?? activePerson);
     if (draft) {
       fields.forEach((field, i) => { field.value = draft.values[i]; });
       $("month").value = draft.month; revision = draft.revision; dirty = true; recovery = null;
@@ -90,11 +92,16 @@ $("unlock").onsubmit = async event => {
   finally { $("unlockButton").disabled = false; }
 };
 
-async function loadMonth(month) {
+async function loadMonth(month, person = activePerson) {
   const currentGeneration = generation;
-  const data = await call("query", "monthlyJournal:read", { token, month });
+  const data = await call("query", "monthlyJournal:read", { token, month, person: person || undefined });
   if (currentGeneration !== generation || !token) throw new Error("Journal locked.");
-  activeMonth = month; revision = data.current?.revision ?? 0; dirty = false;
+  activeMonth = month; activePerson = person;
+  document.querySelectorAll("[data-person]").forEach(button => button.setAttribute("aria-pressed", String(button.dataset.person === person)));
+  $("conversationTitle").textContent = person ? `Your 1-on-1 with ${people[person]}` : "Unassigned notes";
+  $("assignment").open = false;
+  document.querySelectorAll("[data-assign]").forEach(button => { button.disabled = button.dataset.assign === person; });
+  revision = data.current?.revision ?? 0; dirty = false;
   fields.forEach((field, i) => { field.value = i < 5 ? data.current?.answers[i] ?? "" : data.current?.[i === 5 ? "notes" : "followups"] ?? ""; });
   $("previous").replaceChildren();
   $("previousTitle").textContent = data.previous ? new Intl.DateTimeFormat("en", { month: "long", year: "numeric" }).format(new Date(`${data.previous.month}-15T12:00:00`)) : "A fresh start";
@@ -107,6 +114,7 @@ async function loadMonth(month) {
     });
   } else $("previous").textContent = "Your earlier reflections will appear here once you’ve saved an entry in a previous month.";
   $("saveStatus").textContent = "All changes saved";
+  loadRecap();
 }
 
 async function save() {
@@ -116,7 +124,7 @@ async function save() {
   const values = fields.map(field => field.value), currentGeneration = generation;
   $("saveStatus").textContent = "Saving…";
   saving = (async () => {
-    const nextRevision = await call("mutation", "monthlyJournal:save", { token, month: activeMonth, revision, answers: values.slice(0, 5), notes: values[5], followups: values[6] });
+    const nextRevision = await call("mutation", "monthlyJournal:save", { token, month: activeMonth, person: activePerson || undefined, revision, answers: values.slice(0, 5), notes: values[5], followups: values[6] });
     if (currentGeneration !== generation) return;
     revision = nextRevision;
     dirty = fields.some((field, i) => field.value !== values[i]);
@@ -133,19 +141,82 @@ fields.forEach(field => field.addEventListener("input", () => {
 }));
 $("save").onclick = () => save().catch(() => {});
 let navigating = false;
-async function navigate(month) {
+async function navigate(month, person = activePerson) {
   if (navigating || !/^\d{4}-(0[1-9]|1[0-2])$/.test(month)) { $("month").value = activeMonth; return; }
   navigating = true;
-  const controls = [$("prev"), $("next"), $("month"), ...fields]; controls.forEach(el => { el.disabled = true; });
-  try { await save(); await loadMonth(month); $("month").value = month; }
+  const controls = [$("prev"), $("next"), $("month"), ...document.querySelectorAll("[data-person], [data-assign]"), ...fields]; controls.forEach(el => { el.disabled = true; });
+  try { await save(); await loadMonth(month, person); $("month").value = month; }
   catch (error) { $("month").value = activeMonth; $("saveStatus").textContent = error.message; }
   finally { navigating = false; controls.forEach(el => { el.disabled = false; }); }
 }
+document.querySelectorAll("[data-person]").forEach(button => { button.onclick = () => navigate(activeMonth, button.dataset.person); });
+document.querySelectorAll("[data-assign]").forEach(button => { button.onclick = async () => {
+  if (navigating) return;
+  navigating = true;
+  const controls = [...document.querySelectorAll("[data-person], [data-assign]"), $("prev"), $("next"), $("month"), ...fields];
+  controls.forEach(control => { control.disabled = true; });
+  try {
+    await save();
+    await call("mutation", "monthlyJournal:assign", { token, month: activeMonth, person: activePerson || undefined, target: button.dataset.assign, revision });
+    await loadMonth(activeMonth, button.dataset.assign);
+  } catch (error) { $("saveStatus").textContent = error.message; }
+  finally { navigating = false; controls.forEach(control => { control.disabled = false; }); }
+}; });
 $("month").onchange = () => navigate($("month").value);
 for (const [id, delta] of [["prev", -1], ["next", 1]]) $(id).onclick = () => {
   const date = new Date(`${activeMonth}-15T12:00:00`); date.setMonth(date.getMonth() + delta);
   navigate(`${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`);
 };
+function shortDate(date) {
+  return new Intl.DateTimeFormat("en", { month: "short", day: "numeric" }).format(new Date(`${date}T12:00:00`));
+}
+function node(tag, text, className) {
+  const element = document.createElement(tag); if (text) element.textContent = text; if (className) element.className = className; return element;
+}
+async function loadRecap() {
+  const request = ++recapRequest, version = generation;
+  $("recap").replaceChildren(); $("refreshRecap").disabled = !activePerson;
+  if (!activePerson) { $("recapStatus").textContent = "Choose Vish, Jenny, or Vivek to see their monthly progress."; return; }
+  $("recapStatus").textContent = `Reading ${people[activePerson]}’s daily updates…`;
+  try {
+    const data = await call("query", "monthlyJournalRecap:read", { token, month: activeMonth, person: activePerson });
+    if (request !== recapRequest || version !== generation || !token) return;
+    if (!data.updateCount) { $("recapStatus").textContent = `No daily updates from ${data.person} for this month yet.`; return; }
+    $("recapStatus").textContent = `${data.person} posted ${data.updateCount} update${data.updateCount === 1 ? "" : "s"}, ${shortDate(data.sources.at(-1).date)}–${shortDate(data.sources[0].date)}.${data.truncated ? " Showing the latest 100 updates." : ""}`;
+    const sources = new Map();
+    const sourceDetails = node("details", "", "recap-sources");
+    sourceDetails.append(node("summary", `Source updates (${data.updateCount})`));
+    for (const source of data.sources) {
+      const detail = node("details"); detail.id = `source-${source.id}`; detail.append(node("summary", shortDate(source.date)));
+      for (const [key, title] of [["work", "Reported work"], ["plans", "Plans"], ["blockers", "Blockers"], ["notes", "Notes"]]) {
+        if (!source[key].length) continue;
+        detail.append(node("h4", title), node("p", source[key].join("\n"), "entry-text"));
+      }
+      sources.set(source.id, detail); sourceDetails.append(detail);
+    }
+    for (const [key, title, limit] of [["work", "Reported progress", 10], ["plans", "Plans mentioned", 5], ["blockers", "Blockers mentioned", 5]]) {
+      const section = node("section", "", "recap-group"); section.append(node("h3", title));
+      if (!data[key].length) section.append(node("p", "Nothing recorded.", "hint"));
+      const list = node("ul");
+      for (const item of data[key].slice(0, limit)) {
+        const li = node("li"); li.append(node("p", item.text));
+        const refs = node("div", "", "source-links");
+        item.sourceIds.forEach((id, i) => {
+          const link = node("a", shortDate(item.dates[i])); link.href = `#source-${id}`;
+          link.onclick = event => { event.preventDefault(); sourceDetails.open = true; sources.get(id).open = true; sources.get(id).scrollIntoView({ block: "nearest", behavior: "smooth" }); };
+          refs.append(link);
+        });
+        li.append(refs); list.append(li);
+      }
+      section.append(list);
+      if (data[key].length > limit) section.append(node("p", `${data[key].length - limit} more items in the source updates below.`, "hint"));
+      $("recap").append(section);
+    }
+    $("recap").append(sourceDetails);
+    const daily = node("a", "Open daily standups", "daily-link"); daily.href = "/tools/standups/"; daily.target = "_blank"; daily.rel = "noopener noreferrer"; $("recap").append(daily);
+  } catch (error) { if (request === recapRequest && version === generation) $("recapStatus").textContent = `Could not load recap: ${error.message}`; }
+}
+$("refreshRecap").onclick = loadRecap;
 $("lock").onclick = async () => {
   try { await save(); await call("mutation", "monthlyJournal:lock", { token }); clearJournal(); }
   catch (error) { $("saveStatus").textContent = `Could not lock: ${error.message}`; }

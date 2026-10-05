@@ -3,7 +3,7 @@ import { query, mutation, internalMutation } from "./_generated/server";
 import type { QueryCtx, MutationCtx } from "./_generated/server";
 import { v } from "convex/values";
 
-async function requireUnlocked(ctx: QueryCtx | MutationCtx, token: string) {
+export async function requireUnlocked(ctx: QueryCtx | MutationCtx, token: string) {
   const owner = await requireOwner(ctx);
   const bytes = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(token));
   const hash = Array.from(new Uint8Array(bytes), b => b.toString(16).padStart(2, "0")).join("");
@@ -46,20 +46,22 @@ export const finishUnlock = internalMutation({
   },
 });
 
-export const read = query({ args: { token: v.string(), month: v.string() }, handler: async (ctx, args) => {
+const personValidator = v.union(v.literal("vish"), v.literal("jenny"), v.literal("vivek"));
+
+export const read = query({ args: { token: v.string(), month: v.string(), person: v.optional(personValidator) }, handler: async (ctx, args) => {
   await requireUnlocked(ctx, args.token);
-  const current = await ctx.db.query("monthlyJournalEntries").withIndex("by_month", q => q.eq("month", args.month)).unique();
-  const previous = await ctx.db.query("monthlyJournalEntries").withIndex("by_month", q => q.lt("month", args.month)).order("desc").first();
+  const current = await ctx.db.query("monthlyJournalEntries").withIndex("by_person_month", q => q.eq("person", args.person).eq("month", args.month)).unique();
+  const previous = await ctx.db.query("monthlyJournalEntries").withIndex("by_person_month", q => q.eq("person", args.person).lt("month", args.month)).order("desc").first();
   return { current, previous };
 }});
 
 export const save = mutation({
-  args: { token: v.string(), month: v.string(), answers: v.array(v.string()), notes: v.string(), followups: v.string(), revision: v.number() },
+  args: { token: v.string(), month: v.string(), person: v.optional(personValidator), answers: v.array(v.string()), notes: v.string(), followups: v.string(), revision: v.number() },
   handler: async (ctx, args) => {
     await requireUnlocked(ctx, args.token);
     if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(args.month) || args.answers.length !== 5) throw new Error("Invalid journal entry.");
     if ([...args.answers, args.notes, args.followups].some(s => s.length > 50000)) throw new Error("Each field must be under 50,000 characters.");
-    const existing = await ctx.db.query("monthlyJournalEntries").withIndex("by_month", q => q.eq("month", args.month)).unique();
+    const existing = await ctx.db.query("monthlyJournalEntries").withIndex("by_person_month", q => q.eq("person", args.person).eq("month", args.month)).unique();
     if ((existing?.revision ?? 0) !== args.revision) throw new Error("This month changed in another tab. Copy your edits before reloading.");
     const { token, ...entry } = args;
     const revision = args.revision + 1;
@@ -74,3 +76,18 @@ export const lock = mutation({ args: { token: v.string() }, handler: async (ctx,
   const session = await requireUnlocked(ctx, args.token);
   await ctx.db.delete(session._id);
 }});
+
+// Existing entries without a person stay unassigned. Moving never replaces another entry.
+export const assign = mutation({
+  args: { token: v.string(), month: v.string(), person: v.optional(personValidator), target: personValidator, revision: v.number() },
+  handler: async (ctx, args) => {
+    await requireUnlocked(ctx, args.token);
+    if (args.person === args.target) throw new Error("Choose a different person.");
+    const entry = await ctx.db.query("monthlyJournalEntries").withIndex("by_person_month", q => q.eq("person", args.person).eq("month", args.month)).unique();
+    if (!entry) throw new Error("Write a note before assigning this entry, or choose a person above to start.");
+    if (entry.revision !== args.revision) throw new Error("This entry changed. Reload before assigning it.");
+    const target = await ctx.db.query("monthlyJournalEntries").withIndex("by_person_month", q => q.eq("person", args.target).eq("month", args.month)).unique();
+    if (target) throw new Error("That person already has an entry this month. Your notes have not been moved or overwritten.");
+    await ctx.db.patch(entry._id, { person: args.target, revision: entry.revision + 1, updatedAt: Date.now() });
+  },
+});
