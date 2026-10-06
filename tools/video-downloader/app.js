@@ -1,4 +1,4 @@
-const CONVEX_URL = "https://rapid-shark-565.convex.cloud";
+const CONVEX_URL = "https://dashing-heron-837.convex.cloud";
 const preview = new URLSearchParams(window.location.search).get("preview") === "1";
 const VISITOR_KEY = "john-ta-video-downloader-visitor";
 const REQUEST_TIMEOUT_MS = 10_000;
