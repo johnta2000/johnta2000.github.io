@@ -24,6 +24,394 @@
   "seededFrom": "Reconstructed source-thread CSV; legacy rows predate the durable monitor and may lack fields that were not recorded.",
   "runs": [
     {
+      "id": "2026-10-06T16:12:07.273Z",
+      "checkedAt": "2026-10-06T16:12:07.273Z",
+      "checkedUrl": "https://www.hertz.com/us/en/book/vehicles?CDP=2278478&age=25&ddate=2027-05-24T17%3A00%3A00&did=LAST11&ownershipType=CORPORATE&pdate=2027-05-20T19%3A00%3A00&pid=LAST11&travelType=LEISURE",
+      "itinerary": {
+        "pickupLocation": "Las Vegas - Harry Reid International Airport (LAS)",
+        "pickupAt": "2027-05-20T19:00:00-07:00",
+        "returnLocation": "Las Vegas - Harry Reid International Airport (LAS)",
+        "returnAt": "2027-05-24T17:00:00-07:00",
+        "timezone": "America/Los_Angeles",
+        "rateContext": "CDP 2278478 · leisure · corporate ownership · age 25"
+      },
+      "lowestVisibleDailyRateUsd": 81,
+      "vehicle": "7 Passenger Std 2WD SUV — Nissan Pathfinder or similar",
+      "estimatedTotalUsd": 459,
+      "passengerCapacity": 7,
+      "vehicleClass": "7 Passenger Std 2WD SUV",
+      "taxesFeesVisibility": "not_visible",
+      "rawEvidenceExcerpt": "7 Passenger Std 2WD SUV Nissan Pathfinder or similar 7 2 Auto 2WD Gasoline Pay now and save $81 /day $459 est. total Unlock member rates",
+      "status": "success",
+      "error": null,
+      "source": "regular_browser",
+      "renderedSnapshot": {
+        "capturedAt": "2026-10-06T16:12:07.273Z",
+        "cards": [
+          {
+            "featureText": "7\n4\n\nAuto\n\nAWD\n\nGasoline",
+            "key": "PFDR",
+            "pricingText": "Pay now and save\n\n$146\n\n/day\n\n$802\n \nest. total",
+            "text": "4WD/AWD Prem Xtra CAP SUV\nChevrolet Suburban or similar\n7\n4\n\nAuto\n\nAWD\n\nGasoline\n\nPay now and save\n\n$146\n\n/day\n\n$802\n \nest. total\n\nUnlock member rates",
+            "vehicleClass": "4WD/AWD Prem Xtra CAP SUV"
+          },
+          {
+            "featureText": "7\n6\n\nAuto\n\n2WD\n\nGasoline",
+            "key": "PFAR",
+            "pricingText": "Pay now and save\n\n$141\n\n/day\n\n$780\n \nest. total",
+            "text": "Extra Large 2WD SUV\nChevrolet Suburban or similar\n7\n6\n\nAuto\n\n2WD\n\nGasoline\n\nPay now and save\n\n$141\n\n/day\n\n$780\n \nest. total\n\nUnlock member rates",
+            "vehicleClass": "Extra Large 2WD SUV"
+          },
+          {
+            "featureText": "7\n3\n\nAuto\n\nAWD\n\nGasoline",
+            "key": "FFDR",
+            "pricingText": "Pay now and save\n\n$144\n\n/day\n\n$797\n \nest. total",
+            "text": "4WD/ AWD Large SUV\nFord Expedition or similar\n7\n3\n\nAuto\n\nAWD\n\nGasoline\n\nPay now and save\n\n$144\n\n/day\n\n$797\n \nest. total\n\nUnlock member rates",
+            "vehicleClass": "4WD/ AWD Large SUV"
+          },
+          {
+            "featureText": "5\n\nAuto\n\n2WD\n\nGasoline",
+            "key": "SPAR",
+            "pricingText": "Pay now and save\n\n$52\n\n/day\n\n$308\n \nest. total",
+            "text": "Standard Pickup Regular Cab\nFORD F-150 or similar\n5\n\nAuto\n\n2WD\n\nGasoline\n\nPay now and save\n\n$52\n\n/day\n\n$308\n \nest. total\n\nUnlock member rates",
+            "vehicleClass": "Standard Pickup Regular Cab"
+          },
+          {
+            "featureText": "7\n4\n\nAuto\n\n2WD\n\nGasoline",
+            "key": "FFAR",
+            "pricingText": "Pay now and save\n\n$140\n\n/day\n\n$775\n \nest. total",
+            "text": "Large 2WD SUV\nFord Expedition or similar\n7\n4\n\nAuto\n\n2WD\n\nGasoline\n\nPay now and save\n\n$140\n\n/day\n\n$775\n \nest. total\n\nUnlock member rates",
+            "vehicleClass": "Large 2WD SUV"
+          },
+          {
+            "featureText": "7\n4\n\nAuto\n\n2WD\n\nGasoline",
+            "key": "LFAR",
+            "pricingText": "Pay now and save\n\n$131\n\n/day\n\n$723\n \nest. total",
+            "text": "Large Elite SUV\nJeep Grand Wagoneer or similar\n7\n4\n\nAuto\n\n2WD\n\nGasoline\n\nPay now and save\n\n$131\n\n/day\n\n$723\n \nest. total\n\nUnlock member rates",
+            "vehicleClass": "Large Elite SUV"
+          },
+          {
+            "featureText": "5\n4\n\nAuto\n\n2WD\n\nGasoline",
+            "key": "LCAR",
+            "pricingText": "Pay now and save\n\n$78\n\n/day\n\n$447\n \nest. total",
+            "text": "Large Luxury Sedan\nGenesis G70 or similar\n5\n4\n\nAuto\n\n2WD\n\nGasoline\n\nPay now and save\n\n$78\n\n/day\n\n$447\n \nest. total\n\nUnlock member rates",
+            "vehicleClass": "Large Luxury Sedan"
+          },
+          {
+            "featureText": "5\n4\n\nAuto\n\n2WD\n\nGasoline",
+            "key": "RCAR",
+            "pricingText": "Pay now and save\n\n$78\n\n/day\n\n$447\n \nest. total",
+            "text": "Medium Elite Sedan\nCadillac CT4/CT5 - PRESTIGE or similar\n5\n4\n\nAuto\n\n2WD\n\nGasoline\n\nPay now and save\n\n$78\n\n/day\n\n$447\n \nest. total\n\nUnlock member rates",
+            "vehicleClass": "Medium Elite Sedan"
+          },
+          {
+            "featureText": "8\n5\n\nAuto\n\n2WD\n\nGasoline",
+            "key": "SVAR",
+            "pricingText": "Pay now and save\n\n$136\n\n/day\n\n$751\n \nest. total",
+            "text": "Standard 8 Passenger Van\nKia Carnival or similar\n8\n5\n\nAuto\n\n2WD\n\nGasoline\n\nPay now and save\n\n$136\n\n/day\n\n$751\n \nest. total\n\nUnlock member rates",
+            "vehicleClass": "Standard 8 Passenger Van"
+          },
+          {
+            "featureText": "5\n\nAuto\n\n2WD\n\nGasoline",
+            "key": "IPAR",
+            "pricingText": "Pay now and save\n\n$50\n\n/day\n\n$294\n \nest. total",
+            "text": "Midsize Pickup Regular Cab\nToyota Tacoma or similar\n5\n\nAuto\n\n2WD\n\nGasoline\n\nPay now and save\n\n$50\n\n/day\n\n$294\n \nest. total\n\nUnlock member rates",
+            "vehicleClass": "Midsize Pickup Regular Cab"
+          },
+          {
+            "featureText": "5\n4\n\nAuto\n\n2WD\n\nGasoline",
+            "key": "PCAR",
+            "pricingText": "Pay now and save\n\n$65\n\n/day\n\n$375\n \nest. total",
+            "text": "Large Premium Sedan\nNissan Maxima or similar\n5\n4\n\nAuto\n\n2WD\n\nGasoline\n\nPay now and save\n\n$65\n\n/day\n\n$375\n \nest. total\n\nUnlock member rates",
+            "vehicleClass": "Large Premium Sedan"
+          },
+          {
+            "featureText": "4\n2\n\nAuto\n\n2WD\n\nGasoline",
+            "key": "ECAR",
+            "pricingText": "Pay now and save\n\n$58\n\n/day\n\n$341\n \nest. total",
+            "text": "Economy 2/4 Door\nChevrolet Spark or similar\n4\n2\n\nAuto\n\n2WD\n\nGasoline\n\nPay now and save\n\n$58\n\n/day\n\n$341\n \nest. total\n\nUnlock member rates",
+            "vehicleClass": "Economy 2/4 Door"
+          },
+          {
+            "featureText": "7\n5\n\nAuto\n\n2WD\n\nGasoline",
+            "key": "MVAR",
+            "pricingText": "Pay now and save\n\n$124\n\n/day\n\n$686\n \nest. total",
+            "text": "Minivan\nChrysler Pacifica or similar\n7\n5\n\nAuto\n\n2WD\n\nGasoline\n\nPay now and save\n\n$124\n\n/day\n\n$686\n \nest. total\n\nUnlock member rates",
+            "vehicleClass": "Minivan"
+          },
+          {
+            "featureText": "5\n4\n\nAuto\n\nAWD\n\nGasoline",
+            "key": "SFDR",
+            "pricingText": "Pay now and save\n\n$76\n\n/day\n\n$432\n \nest. total",
+            "text": "Standard SUV AWD\nCHEVROLET BLAZER or similar\n5\n4\n\nAuto\n\nAWD\n\nGasoline\n\nPay now and save\n\n$76\n\n/day\n\n$432\n \nest. total\n\nUnlock member rates",
+            "vehicleClass": "Standard SUV AWD"
+          },
+          {
+            "featureText": "5\n3\n\nAuto\n\nAWD\n\nGasoline",
+            "key": "IFDR",
+            "pricingText": "Pay now and save\n\n$69\n\n/day\n\n$396\n \nest. total",
+            "text": "Midsize SUV AWD\nJeep Compass or similar\n5\n3\n\nAuto\n\nAWD\n\nGasoline\n\nPay now and save\n\n$69\n\n/day\n\n$396\n \nest. total\n\nUnlock member rates",
+            "vehicleClass": "Midsize SUV AWD"
+          },
+          {
+            "featureText": "6\n\nAuto\n\nAWD\n\nGasoline",
+            "key": "GPAR",
+            "pricingText": "Pay now and save\n\n$52\n\n/day\n\n$308\n \nest. total",
+            "text": "PICKUP\nRAM 2500 BIG HORN or similar\n6\n\nAuto\n\nAWD\n\nGasoline\n\nPay now and save\n\n$52\n\n/day\n\n$308\n \nest. total\n\nUnlock member rates",
+            "vehicleClass": "PICKUP"
+          },
+          {
+            "featureText": "5\n2\n\nAuto\n\n2WD\n\nGasoline",
+            "key": "CCAR",
+            "pricingText": "Pay now and save\n\n$58\n\n/day\n\n$341\n \nest. total",
+            "text": "Small Sedan\nFord Focus or similar\n5\n2\n\nAuto\n\n2WD\n\nGasoline\n\nPay now and save\n\n$58\n\n/day\n\n$341\n \nest. total\n\nUnlock member rates",
+            "vehicleClass": "Small Sedan"
+          },
+          {
+            "featureText": "7\n2\n\nAuto\n\nAWD\n\nGasoline",
+            "key": "FRDR",
+            "pricingText": "Pay now and save\n\n$83\n\n/day\n\n$471\n \nest. total",
+            "text": "7 Pass Std 4WD/ AWD SUV\nHyundai Santa Fe or similar\n7\n2\n\nAuto\n\nAWD\n\nGasoline\n\nPay now and save\n\n$83\n\n/day\n\n$471\n \nest. total\n\nUnlock member rates",
+            "vehicleClass": "7 Pass Std 4WD/ AWD SUV"
+          },
+          {
+            "featureText": "7\n4\n\nAuto\n\nAWD\n\nGasoline",
+            "key": "LFDR",
+            "pricingText": "Pay now and save\n\n$133\n\n/day\n\n$737\n \nest. total",
+            "text": "Elite 7 Passenger SUV\nMercedes GLS 450 Hybrid - PRESTIGE or similar\n7\n4\n\nAuto\n\nAWD\n\nGasoline\n\nPay now and save\n\n$133\n\n/day\n\n$737\n \nest. total\n\nUnlock member rates",
+            "vehicleClass": "Elite 7 Passenger SUV"
+          },
+          {
+            "featureText": "5\n4\n\nAuto\n\n2WD\n\nGasoline",
+            "key": "RFAR",
+            "pricingText": "Pay now and save\n\n$73\n\n/day\n\n$420\n \nest. total",
+            "text": "Medium Elite SUV\nMercedes GLE - PRESTIGE or similar\n5\n4\n\nAuto\n\n2WD\n\nGasoline\n\nPay now and save\n\n$73\n\n/day\n\n$420\n \nest. total\n\nUnlock member rates",
+            "vehicleClass": "Medium Elite SUV"
+          },
+          {
+            "featureText": "7\n2\n\nAuto\n\n2WD\n\nGasoline",
+            "key": "FRAR",
+            "pricingText": "Pay now and save\n\n$81\n\n/day\n\n$459\n \nest. total",
+            "text": "7 Passenger Std 2WD SUV\nNissan Pathfinder or similar\n7\n2\n\nAuto\n\n2WD\n\nGasoline\n\nPay now and save\n\n$81\n\n/day\n\n$459\n \nest. total\n\nUnlock member rates",
+            "vehicleClass": "7 Passenger Std 2WD SUV"
+          },
+          {
+            "featureText": "5\n4\n\nAuto\n\n2WD\n\nGasoline",
+            "key": "SFAR",
+            "pricingText": "Pay now and save\n\n$73\n\n/day\n\n$420\n \nest. total",
+            "text": "Standard 5 Passenger 2WD SUV\nChevrolet Blazer or similar\n5\n4\n\nAuto\n\n2WD\n\nGasoline\n\nPay now and save\n\n$73\n\n/day\n\n$420\n \nest. total\n\nUnlock member rates",
+            "vehicleClass": "Standard 5 Passenger 2WD SUV"
+          },
+          {
+            "featureText": "5\n2\n\nAuto\n\n2WD\n\nGasoline",
+            "key": "CFAR",
+            "pricingText": "Pay now and save\n\n$64\n\n/day\n\n$368\n \nest. total",
+            "text": "Small SUV 2WD\nChevrolet Trax or similar\n5\n2\n\nAuto\n\n2WD\n\nGasoline\n\nPay now and save\n\n$64\n\n/day\n\n$368\n \nest. total\n\nUnlock member rates",
+            "vehicleClass": "Small SUV 2WD"
+          },
+          {
+            "featureText": "5\n4\n\nAuto\n\n2WD\n\nGasoline",
+            "key": "IFAR",
+            "pricingText": "Pay now and save\n\n$67\n\n/day\n\n$386\n \nest. total",
+            "text": "Midsize SUV 2WD\nNissan Rogue or similar\n5\n4\n\nAuto\n\n2WD\n\nGasoline\n\nPay now and save\n\n$67\n\n/day\n\n$386\n \nest. total\n\nUnlock member rates",
+            "vehicleClass": "Midsize SUV 2WD"
+          },
+          {
+            "featureText": "5\n2\n\nAuto\n\n2WD\n\nGasoline",
+            "key": "DGAR",
+            "pricingText": "Pay now and save\n\n$67\n\n/day\n\n$386\n \nest. total",
+            "text": "Small Luxury SUV\nVolvo XC40 Hybrid - PRESTIGE or similar\n5\n2\n\nAuto\n\n2WD\n\nGasoline\n\nPay now and save\n\n$67\n\n/day\n\n$386\n \nest. total\n\nUnlock member rates",
+            "vehicleClass": "Small Luxury SUV"
+          },
+          {
+            "featureText": "5\n3\n\nAuto\n\n2WD\n\nGasoline",
+            "key": "SCAR",
+            "pricingText": "Pay now and save\n\n$60\n\n/day\n\n$350\n \nest. total",
+            "text": "Standard 2/4 Door\nKia K5 or similar\n5\n3\n\nAuto\n\n2WD\n\nGasoline\n\nPay now and save\n\n$60\n\n/day\n\n$350\n \nest. total\n\nUnlock member rates",
+            "vehicleClass": "Standard 2/4 Door"
+          },
+          {
+            "featureText": "5\n3\n\nAuto\n\n2WD\n\nGasoline",
+            "key": "ICAH",
+            "pricingText": "Pay now and save\n\n$64\n\n/day\n\n$370\n \nest. total",
+            "text": "Hybrid Medium Sedan\nToyota Camry Hybrid or similar\n5\n3\n\nAuto\n\n2WD\n\nGasoline\n\nPay now and save\n\n$64\n\n/day\n\n$370\n \nest. total\n\nUnlock member rates",
+            "vehicleClass": "Hybrid Medium Sedan"
+          },
+          {
+            "featureText": "5\n2\n\nAuto\n\nAWD\n\nGasoline",
+            "key": "CFDR",
+            "pricingText": "Pay now and save\n\n$66\n\n/day\n\n$379\n \nest. total",
+            "text": "Small SUV AWD\nBuick Encore GX or similar\n5\n2\n\nAuto\n\nAWD\n\nGasoline\n\nPay now and save\n\n$66\n\n/day\n\n$379\n \nest. total\n\nUnlock member rates",
+            "vehicleClass": "Small SUV AWD"
+          },
+          {
+            "featureText": "5\n4\n\nAuto\n\nAWD\n\nGasoline",
+            "key": "JFDR",
+            "pricingText": "Pay now and save\n\n$73\n\n/day\n\n$420\n \nest. total",
+            "text": "Medium Luxury SUV\nVolvo XC60 Hybrid - PRESTIGE or similar\n5\n4\n\nAuto\n\nAWD\n\nGasoline\n\nPay now and save\n\n$73\n\n/day\n\n$420\n \nest. total\n\nUnlock member rates",
+            "vehicleClass": "Medium Luxury SUV"
+          },
+          {
+            "featureText": "5\n3\n\nAuto\n\n2WD\n\nGasoline",
+            "key": "ICAR",
+            "pricingText": "Pay now and save\n\n$60\n\n/day\n\n$348\n \nest. total",
+            "text": "Medium Sedan\nKia K4 or similar\n5\n3\n\nAuto\n\n2WD\n\nGasoline\n\nPay now and save\n\n$60\n\n/day\n\n$348\n \nest. total\n\nUnlock member rates",
+            "vehicleClass": "Medium Sedan"
+          },
+          {
+            "featureText": "5\n4\n\nAuto\n\n2WD\n\nGasoline",
+            "key": "FCAR",
+            "pricingText": "Pay now and save\n\n$63\n\n/day\n\n$366\n \nest. total",
+            "text": "Large Sedan\nNissan Altima or similar\n5\n4\n\nAuto\n\n2WD\n\nGasoline\n\nPay now and save\n\n$63\n\n/day\n\n$366\n \nest. total\n\nUnlock member rates",
+            "vehicleClass": "Large Sedan"
+          },
+          {
+            "featureText": "5\n3\n\nAuto\n\n2WD\n\nGasoline",
+            "key": "CGAH",
+            "pricingText": "Pay now and save\n\n$74\n\n/day\n\n$421\n \nest. total",
+            "text": "Hybrid Small SUV\nKia Niro Hybrid or similar\n5\n3\n\nAuto\n\n2WD\n\nGasoline\n\nPay now and save\n\n$74\n\n/day\n\n$421\n \nest. total\n\nUnlock member rates",
+            "vehicleClass": "Hybrid Small SUV"
+          },
+          {
+            "featureText": "7\n3\n\nAuto\n\nAWD\n\nGasoline",
+            "key": "RGDR",
+            "pricingText": "Pay now and save\n\n$131\n\n/day\n\n$723\n \nest. total",
+            "text": "Luxury 7 Passenger SUV\nVolvo XC90 Hybrid - PRESTIGE or similar\n7\n3\n\nAuto\n\nAWD\n\nGasoline\n\nPay now and save\n\n$131\n\n/day\n\n$723\n \nest. total\n\nUnlock member rates",
+            "vehicleClass": "Luxury 7 Passenger SUV"
+          },
+          {
+            "featureText": "4\n1\n\nAuto\n\n2WD\n\nGasoline",
+            "key": "EXAR",
+            "pricingText": "Pay now and save\n\n$58\n\n/day\n\n$338\n \nest. total",
+            "text": "Vehicle determined upon pick-up\nManagers Special or similar\n4\n1\n\nAuto\n\n2WD\n\nGasoline\n\nPay now and save\n\n$58\n\n/day\n\n$338\n \nest. total\n\nUnlock member rates",
+            "vehicleClass": "Vehicle determined upon pick-up"
+          },
+          {
+            "featureText": "12\n8\n\nAuto\n\n2WD\n\nGasoline",
+            "key": "FVAR",
+            "pricingText": "Pay now and save\n\n$135\n\n/day\n\n$749\n \nest. total",
+            "text": "12 Passenger Van\nFord Transit (Extended Length) or similar\n12\n8\n\nAuto\n\n2WD\n\nGasoline\n\nPay now and save\n\n$135\n\n/day\n\n$749\n \nest. total\n\nUnlock member rates",
+            "vehicleClass": "12 Passenger Van"
+          }
+        ],
+        "checkedUrl": "https://www.hertz.com/us/en/book/vehicles?CDP=2278478&age=25&ddate=2027-05-24T17%3A00%3A00&did=LAST11&ownershipType=CORPORATE&pdate=2027-05-20T19%3A00%3A00&pid=LAST11&travelType=LEISURE",
+        "itineraryText": "Las Vegas - Harry Reid International Airport (LAS)\n\nMay 20 | 7:00 PM\n\nLas Vegas - Harry Reid International Airport (LAS)\n\nMay 24 | 5:00 PM",
+        "pageEvidence": "Las Vegas - Harry Reid International Airport (LAS)\n\nMay 20 | 7:00 PM\n\nLas Vegas - Harry Reid International Airport (LAS)\n\nMay 24 | 5:00 PM\n\nLog In\n\nJoin\nDon’t miss out on members-only rates!\n/\n\nSelect vehicle\n\nDrive the extraordinary\nSUVs\nCars\nTrucks\nVans\nSpecialties\n\nSort by: Most Popular\n\n35 Results\n\n4WD/AWD Prem Xtra CAP SUV\nChevrolet Suburban or similar\n7\n4\n\nAuto\n\nAWD\n\nGasoline\n\nPay now and save\n\n$146\n\n/day\n\n$802\n \nest. total\n\nUnlock member rates\n\nExtra Large 2WD SUV\nChevrolet Suburban or similar\n7\n6\n\nAuto\n\n2WD\n\nGasoline\n\nPay now and save\n\n$141\n\n/day\n\n$780\n \nest. total\n\nUnlock member rates\n\n4WD/ AWD Large SUV\nFord Expedition or similar\n7\n3\n\nAuto\n\nAWD\n\nGasoline\n\nPay now and save\n\n$144\n\n/day\n\n$797\n \nest. total\n\nUnlock member rates\n\nStandard Pickup Regular Cab\nFORD F-150 or similar\n5\n\nAut",
+        "pageTitle": "Book",
+        "resultCount": 35,
+        "schemaVersion": 1
+      },
+      "durationMs": 4,
+      "pageTitle": "Book",
+      "httpStatus": null,
+      "diagnostics": {
+        "transport": "regular_browser",
+        "resultCount": 35
+      },
+      "validVehicleCardCount": 12,
+      "eligibleVehicleCardCount": 12,
+      "visiblePricedVehicleCardCount": 35,
+      "eligibleVehicles": [
+        {
+          "vehicle": "7 Passenger Std 2WD SUV — Nissan Pathfinder or similar",
+          "vehicleClass": "7 Passenger Std 2WD SUV",
+          "passengerCapacity": 7,
+          "dailyRateUsd": 81,
+          "estimatedTotalUsd": 459,
+          "taxesFeesVisibility": "not_visible"
+        },
+        {
+          "vehicle": "7 Pass Std 4WD/ AWD SUV — Hyundai Santa Fe or similar",
+          "vehicleClass": "7 Pass Std 4WD/ AWD SUV",
+          "passengerCapacity": 7,
+          "dailyRateUsd": 83,
+          "estimatedTotalUsd": 471,
+          "taxesFeesVisibility": "not_visible"
+        },
+        {
+          "vehicle": "Minivan — Chrysler Pacifica or similar",
+          "vehicleClass": "Minivan",
+          "passengerCapacity": 7,
+          "dailyRateUsd": 124,
+          "estimatedTotalUsd": 686,
+          "taxesFeesVisibility": "not_visible"
+        },
+        {
+          "vehicle": "Large Elite SUV — Jeep Grand Wagoneer or similar",
+          "vehicleClass": "Large Elite SUV",
+          "passengerCapacity": 7,
+          "dailyRateUsd": 131,
+          "estimatedTotalUsd": 723,
+          "taxesFeesVisibility": "not_visible"
+        },
+        {
+          "vehicle": "Luxury 7 Passenger SUV — Volvo XC90 Hybrid - PRESTIGE or similar",
+          "vehicleClass": "Luxury 7 Passenger SUV",
+          "passengerCapacity": 7,
+          "dailyRateUsd": 131,
+          "estimatedTotalUsd": 723,
+          "taxesFeesVisibility": "not_visible"
+        },
+        {
+          "vehicle": "Elite 7 Passenger SUV — Mercedes GLS 450 Hybrid - PRESTIGE or similar",
+          "vehicleClass": "Elite 7 Passenger SUV",
+          "passengerCapacity": 7,
+          "dailyRateUsd": 133,
+          "estimatedTotalUsd": 737,
+          "taxesFeesVisibility": "not_visible"
+        },
+        {
+          "vehicle": "12 Passenger Van — Ford Transit (Extended Length) or similar",
+          "vehicleClass": "12 Passenger Van",
+          "passengerCapacity": 12,
+          "dailyRateUsd": 135,
+          "estimatedTotalUsd": 749,
+          "taxesFeesVisibility": "not_visible"
+        },
+        {
+          "vehicle": "Standard 8 Passenger Van — Kia Carnival or similar",
+          "vehicleClass": "Standard 8 Passenger Van",
+          "passengerCapacity": 8,
+          "dailyRateUsd": 136,
+          "estimatedTotalUsd": 751,
+          "taxesFeesVisibility": "not_visible"
+        },
+        {
+          "vehicle": "Large 2WD SUV — Ford Expedition or similar",
+          "vehicleClass": "Large 2WD SUV",
+          "passengerCapacity": 7,
+          "dailyRateUsd": 140,
+          "estimatedTotalUsd": 775,
+          "taxesFeesVisibility": "not_visible"
+        },
+        {
+          "vehicle": "Extra Large 2WD SUV — Chevrolet Suburban or similar",
+          "vehicleClass": "Extra Large 2WD SUV",
+          "passengerCapacity": 7,
+          "dailyRateUsd": 141,
+          "estimatedTotalUsd": 780,
+          "taxesFeesVisibility": "not_visible"
+        },
+        {
+          "vehicle": "4WD/ AWD Large SUV — Ford Expedition or similar",
+          "vehicleClass": "4WD/ AWD Large SUV",
+          "passengerCapacity": 7,
+          "dailyRateUsd": 144,
+          "estimatedTotalUsd": 797,
+          "taxesFeesVisibility": "not_visible"
+        },
+        {
+          "vehicle": "4WD/AWD Prem Xtra CAP SUV — Chevrolet Suburban or similar",
+          "vehicleClass": "4WD/AWD Prem Xtra CAP SUV",
+          "passengerCapacity": 7,
+          "dailyRateUsd": 146,
+          "estimatedTotalUsd": 802,
+          "taxesFeesVisibility": "not_visible"
+        }
+      ],
+      "criteriaVersion": 2
+    },
+    {
       "id": "2026-10-05T16:02:35.050Z",
       "checkedAt": "2026-10-05T16:02:35.050Z",
       "checkedUrl": "https://www.hertz.com/us/en/book/vehicles?CDP=2278478&age=25&ddate=2027-05-24T17%3A00%3A00&did=LAST11&ownershipType=CORPORATE&pdate=2027-05-20T19%3A00%3A00&pid=LAST11&travelType=LEISURE",
