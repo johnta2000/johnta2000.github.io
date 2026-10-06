@@ -2,7 +2,7 @@
 
 This Mac worker processes the private queue for `www.john-ta.com/tools/video-downloader/`.
 
-Double-click `setup-worker.command` once. It creates a private local worker secret, configures the Convex development deployment in `.env.local`, and installs a macOS LaunchAgent that starts automatically whenever this Mac is logged in.
+Double-click `setup-worker.command` once. It creates a private local worker secret, configures the production Convex deployment used by the website, and installs a macOS LaunchAgent that starts automatically whenever this Mac is logged in.
 
 Operational limits:
 

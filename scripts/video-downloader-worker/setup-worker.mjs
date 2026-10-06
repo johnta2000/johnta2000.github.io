@@ -6,9 +6,8 @@ import { spawnSync } from "node:child_process";
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const repoDir = join(scriptDir, "..", "..");
-const localEnv = await readFile(join(repoDir, ".env.local"), "utf8");
-const convexUrl = localEnv.match(/^CONVEX_URL=(.+)$/m)?.[1]?.trim();
-if (!convexUrl) throw new Error("CONVEX_URL is missing from .env.local.");
+// Keep this deployment in sync with tools/video-downloader/app.js.
+const convexUrl = "https://dashing-heron-837.convex.cloud";
 
 let secret = crypto.randomBytes(32).toString("hex");
 try {
@@ -16,7 +15,7 @@ try {
   secret = existing.match(/^DOWNLOADER_WORKER_SECRET=(.+)$/m)?.[1]?.trim() || secret;
 } catch {}
 
-const result = spawnSync("npx", ["convex", "env", "set", "DOWNLOADER_WORKER_SECRET", secret], {
+const result = spawnSync("npx", ["convex", "env", "set", "--prod", "DOWNLOADER_WORKER_SECRET", secret], {
   cwd: repoDir,
   encoding: "utf8",
 });
