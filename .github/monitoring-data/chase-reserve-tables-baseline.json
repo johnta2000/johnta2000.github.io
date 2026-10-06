@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "collectionVersion": 2,
   "monitorId": "chase-sapphire-reserve-tables",
-  "capturedAt": "2026-10-06T11:22:09.244Z",
+  "capturedAt": "2026-10-06T18:29:02.497Z",
   "sources": [
     {
       "id": "atlanta",
@@ -2740,11 +2740,6 @@
           "key": "opentable:1034035"
         },
         {
-          "id": "1189165",
-          "name": "República",
-          "key": "opentable:1189165"
-        },
-        {
           "id": "1197115",
           "name": "Shalom Y'all",
           "key": "opentable:1197115"
@@ -2796,7 +2791,7 @@
         }
       ],
       "completeness": {
-        "total": 13,
+        "total": 12,
         "pages": 1,
         "complete": true
       }
