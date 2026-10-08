@@ -72,6 +72,24 @@ test('untimed events share mobile filters, likes and estimated order without fab
   ctx.root.getElementById('heat-view-button').click();assert(ctx.root.querySelector('.mobile-stage-heat'));
  }finally{ctx.w.close();}
 });
+test('untimed event blocks show event hours and stage groups without becoming timed sets',()=>{
+ const event=JSON.parse(read('../../scripts/fixtures/midnight-carnival-2026.json'));
+ for(const mobile of [false,true]){
+  const ctx=setup(mobile,'2026-11-01T01:00:00Z',event);
+  try{
+   assert.equal(ctx.root.querySelectorAll('.lineup-blocks article').length,2);
+   assert(ctx.root.querySelector('.lineup-blocks').textContent.includes('4 PM – 10 PM PT'));
+   assert(ctx.root.querySelector('.lineup-blocks').textContent.includes('10 PM – 2 AM PT'));
+   assert(ctx.root.querySelector('.lineup-blocks').textContent.includes('Individual set times have not been announced'));
+   assert(ctx.root.getElementById('timeline-view-button').hidden);
+   assert(!ctx.root.querySelector('.schedule-now'));
+   if(!mobile){assert.equal(ctx.root.querySelectorAll('.stage-divider').length,4);assert(!ctx.root.querySelector('.stage-cell'));assert.equal(ctx.root.querySelectorAll('#table-body [data-set-start=""]').length,19);}
+   const first=ctx.root.querySelector(mobile?'#mobile-schedule [data-favorite-id]':'#table-body [data-favorite-id]');first.click();
+   const ids=ctx.events.filter(e=>e.type==='rally-lineup-favorites-changed').at(-1).artistIds;
+   assert(ids.includes('midnight-2026-stage1-rl-grime'));assert(!ids.includes('midnight-2026-afterparty-rl-grime'));
+  }finally{ctx.w.close();}
+ }
+});
 test('every event gets day board, heat matrix, admin edits and event-isolated favorites',()=>{
  const ctx=setup(false,null,niteharts);try{
   ctx.w.RallyLineup.show({...ctx.options,params:'view=board'});

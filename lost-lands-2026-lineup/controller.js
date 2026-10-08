@@ -315,6 +315,9 @@ const lineup = (eventConfig?.lineup || window.LOST_LANDS_SET_TIMES || []).map((e
 const timedLineup=lineup.filter(entry=>entry.start&&entry.end);
 const hasTimes=lineup.some(entry=>entry.start);
 const hasTimeline=timedLineup.length>0;
+const lineupBlocks=(eventConfig?.lineupBlocks||[]).filter(block=>block?.id&&block.label&&/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(block.start||'')&&/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(block.end||'')&&block.end>block.start);
+function blockFor(entry){return lineupBlocks.find(block=>block.id===entry.blockId);}
+function blockHours(block){return `${formatClock(block.start).replace(':00','')} – ${formatClock(block.end).replace(':00','')} ${zoneLabel}`;}
 const hasEstimate=lineup.some(entry=>Number.isFinite(entry.estimatedOrder));
 const dayOrder = [...new Set([...lineup].sort((a,b)=>a.festivalDate.localeCompare(b.festivalDate)).map(entry=>entry.day))];
 let hiddenLineupDays = new Set();
@@ -330,12 +333,17 @@ const timeBounds = {
   max: hasTimes?Math.max(...lineup.filter(entry=>entry.start).map(entry=>entry.startMinutes)):1440,
 };
 const runningOrderLabel=hasEstimate&&!hasTimes?'Estimated order':hasTimes?'Set time':'Lineup order';
-function timeLabel(entry){return entry.start?`${formatClock(entry.start)}${entry.end?' – '+formatClock(entry.end):' · End TBA'}`:'Time TBA';}
+function timeLabel(entry){const block=blockFor(entry);return entry.start?`${formatClock(entry.start)}${entry.end?' – '+formatClock(entry.end):' · End TBA'}`:block?`${block.label} · ${blockHours(block)}`:'Set time TBA';}
 if(eventConfig){
   root.getElementById('page-title').textContent='Lineup';
   const dates=[eventConfig.startsAt,eventConfig.endsAt].filter(Boolean).map(formatFestivalDate);
   root.querySelector('.lineup-meta').textContent=`${[...new Set(dates)].join(' – ')}${hasTimes?' · All times '+zoneLabel:' · Set times TBA'}`;
   if(hasEstimate){const note=document.createElement('p');note.className='mobile-section-note';note.textContent=eventConfig.orderNote||'Estimated running order · earlier → later. Not official set times.';root.querySelector('.app-header').after(note);}
+  if(lineupBlocks.length){
+    const summary=document.createElement('section');summary.className='lineup-blocks';summary.setAttribute('aria-label','Event hours');
+    summary.innerHTML=`${lineupBlocks.map(block=>`<article><strong>${escapeHtml(block.label)}</strong><span>${escapeHtml(blockHours(block))}</span>${block.ticketNote?`<small>${escapeHtml(block.ticketNote)}</small>`:''}</article>`).join('')}<p>Event hours shown. Individual set times ${hasTimes?'are shown where announced':'have not been announced'}.</p>`;
+    root.querySelector('.app-header').after(summary);
+  }
 }
 root.querySelector('[data-filter="times"]').hidden=!hasTimes;
 root.querySelector('[data-filter="genres"]').hidden=!genreOrder.length;
@@ -344,11 +352,11 @@ const adaptiveStyle=document.createElement('style');
 adaptiveStyle.textContent=`.set-note{font-size:12px;color:var(--muted);font-weight:400;margin:6px 0;white-space:normal}.lineup-admin-actions{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}.lineup-editor-search{width:100%;padding:12px;margin-bottom:8px}.lineup-editor-list{max-height:50dvh;overflow:auto}.lineup-editor-list button{width:100%;text-align:left;padding:12px}.lineup-editor-list small{display:block;color:var(--muted)}`;
 container.append(adaptiveStyle);
 adaptiveStyle.textContent+=`.lineup-admin-actions button{background:#fffef9;color:#47533d;border:1px solid #d9ddcf;border-radius:8px;min-height:36px;padding:6px 10px}.toolbar.no-extra-filters{grid-template-columns:minmax(0,1fr)}.app-header .text-button{font-size:12px}.lineup-editor-list button{color:var(--text);background:var(--panel);border:1px solid var(--line);border-radius:8px;margin:4px 0}`;
-if(!hasTimes)root.querySelector('#table-view thead th:nth-child(2)').textContent='Time';
+if(!hasTimes)root.querySelector('#table-view thead th:nth-child(2)').textContent=lineupBlocks.length?'Event hours':'Set time';
 // Remove unavailable columns instead of leaving blank cells or duplicated TBA.
 const tableHeaders=[...root.querySelectorAll('#table-view thead th')];
 if(!hasTimes){tableHeaders[2].remove();root.querySelector('.col-end')?.remove();}
-if(!hasStages){tableHeaders[4].remove();root.querySelector('.col-stage')?.remove();}
+if(!hasStages||!hasTimes){tableHeaders[4].remove();root.querySelector('.col-stage')?.remove();}
 if(!hasGenres){tableHeaders[5].remove();root.querySelector('.col-genre')?.remove();}
 if(eventConfig?.source&&/^https?:\/\//.test(eventConfig.source)){
   const source=document.createElement('a');source.className='lineup-source';source.textContent='Official lineup ↗';source.href=eventConfig.source;source.target='_blank';source.rel='noopener';root.querySelector('.header-copy').append(source);
@@ -410,7 +418,7 @@ const validFavoriteIds = new Set(lineup.map((entry) => entry.id));
 const lineupById = new Map(lineup.map((entry) => [entry.id, entry]));
 const mobileViewQuery = window.matchMedia("(max-width: 760px)");
 const rallyManagedFavorites = Boolean(integration) || window.parent !== window && new URLSearchParams(window.location.search).get("rally") === "1";
-const tableColumnCount=3+Number(hasTimes)+Number(hasStages)+Number(hasGenres)+Number(rallyManagedFavorites);
+const tableColumnCount=3+Number(hasTimes)+Number(hasStages&&hasTimes)+Number(hasGenres)+Number(rallyManagedFavorites);
 surface.classList.toggle("rally-mode", rallyManagedFavorites);
 let favorites = new Set();
 let unavailableFavoriteIds=[];
@@ -738,7 +746,7 @@ function renderTable(entries) {
     return;
   }
 
-  let renderedDay = "";
+  let renderedDay = "", renderedStage = "";
   els.tableBody.innerHTML = entries
     .map((entry) => {
       const dayEntries = entries.filter((candidate) => candidate.day === entry.day);
@@ -746,7 +754,10 @@ function renderTable(entries) {
         <tr class="day-divider"><td colspan="${tableColumnCount}">${escapeHtml(entry.day)} · ${escapeHtml(formatFestivalDate(entry.festivalDate))} · ${dayEntries.length} set${dayEntries.length === 1 ? "" : "s"}</td></tr>
       `;
       renderedDay = entry.day;
-      return `${dayDivider}
+      const groupKey=entry.day+':'+entry.stage+':'+(entry.blockId||'');
+      const stageDivider=!hasTimes&&hasStages&&sortMode==='time'&&renderedStage!==groupKey?`<tr class="stage-divider"><th colspan="${tableColumnCount}" scope="rowgroup">${escapeHtml(entry.stage)}</th></tr>`:'';
+      renderedStage=groupKey;
+      return `${dayDivider}${stageDivider}
         <tr data-set-start="${entry.start}" data-set-end="${entry.end}" data-festival-date="${entry.festivalDate}">
           <td>
             <button
@@ -757,10 +768,10 @@ function renderTable(entries) {
               aria-label="${favorites.has(entry.id) ? "Remove" : "Add"} ${escapeHtml(entry.artist)} favorite"
             >★</button>
           </td>
-          <td class="time-cell"><span class="schedule-time">${escapeHtml(formatClock(entry.start))}</span></td>
+          <td class="time-cell"><span class="schedule-time">${escapeHtml(entry.start?formatClock(entry.start):blockFor(entry)?blockHours(blockFor(entry)).replace(' '+zoneLabel,''):'Set time TBA')}</span>${!entry.start&&blockFor(entry)?`<small class="block-time-label">${escapeHtml(blockFor(entry).label)}</small>`:''}</td>
           ${hasTimes?`<td class="time-cell"><span class="schedule-time">${escapeHtml(formatClock(entry.end))}</span></td>`:''}
-          <td class="artist-cell" title="${escapeHtml(entry.artist)}">${escapeHtml(entry.artist)}${entry.notes?`<p class="set-note">${escapeHtml(entry.notes)}</p>`:''}${mostLiked ? `<small class="rank-day">${escapeHtml(entry.day.slice(0, 3))} · ${escapeHtml(formatFestivalDate(entry.festivalDate))}</small>` : ""}</td>
-          ${hasStages?`<td class="stage-cell">${escapeHtml(entry.stage)}</td>`:''}
+          <td class="artist-cell" title="${escapeHtml(entry.artist)}">${escapeHtml(entry.artist)}${!hasTimes&&hasStages&&sortMode!=='time'?`<small class="block-time-label">${escapeHtml(entry.stage)}</small>`:''}${entry.notes?`<p class="set-note">${escapeHtml(entry.notes)}</p>`:''}${mostLiked ? `<small class="rank-day">${escapeHtml(entry.day.slice(0, 3))} · ${escapeHtml(formatFestivalDate(entry.festivalDate))}</small>` : ""}</td>
+          ${hasStages&&hasTimes?`<td class="stage-cell">${escapeHtml(entry.stage)}</td>`:''}
           ${hasGenres?`<td class="genre-cell genre-column">${escapeHtml(entry.genre)}</td>`:''}
           <td class="rally-only">${renderInterest(entry.id)}</td>
         </tr>

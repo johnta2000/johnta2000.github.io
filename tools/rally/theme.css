@@ -169,6 +169,22 @@ h1, h2, h3 { color: var(--ink); }
 :host .app-header { gap: 20px; align-items: center; }
 :host #page-title { color: var(--ink); font-size: 32px; letter-spacing: -.045em; line-height: 1.16; }
 :host .lineup-meta { color: var(--muted); font-size: 13px; }
+.lineup-blocks { display:flex; flex-wrap:wrap; gap:12px; margin:0 0 24px; }
+.lineup-blocks article { flex:1 1 220px; padding:16px 18px; border:1px solid #d7e0d3; border-radius:14px; background:#edf2eb; color:#293f32; }
+.lineup-blocks strong,.lineup-blocks span,.lineup-blocks small { display:block; }
+.lineup-blocks span { margin-top:6px; font-size:15px; }
+.lineup-blocks small { margin-top:6px; font-size:12px; color:#53654f; }
+.lineup-blocks p { flex-basis:100%; margin:0; font-size:12px; color:#53654f; }
+.block-time-label { display:block; margin-top:4px; font-size:11px; color:#53654f; font-weight:400; }
+.stage-divider th { text-align:left; padding:12px 16px; background:#edf2eb; color:#365744; font-size:12px; letter-spacing:.02em; }
+@media(max-width:760px){
+  .lineup-blocks { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin-bottom:16px; }
+  .lineup-blocks article { padding:12px; min-width:0; }
+  .lineup-blocks strong { font-size:14px; }
+  .lineup-blocks span { font-size:12px; line-height:1.5; }
+  .lineup-blocks small { font-size:11px; }
+  .lineup-blocks p { grid-column:1 / -1; font-size:11px; line-height:1.5; }
+}
 :host .toolbar { gap: 10px; }
 :host .search-field, :host .filter-trigger, :host .filter-toggle, :host .ghost, :host .popularity-sort, :host .manage-days, :host .timeline-day { border-color: var(--line); background: #fff; color: #41573f; border-radius: 10px; }
 :host .search-field { min-height: 44px; }

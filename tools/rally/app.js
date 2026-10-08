@@ -736,7 +736,7 @@ function renderLineup(){
   window.RallyLineup.show({
     container:document.getElementById('lineupView'),key:`${data.id}:${data.currentMemberId}`,
     state:lineupState(),params:filters.size?filters.toString():null,
-    event:{id:data.id,name:data.name,startsAt:data.startsAt,endsAt:data.endsAt,timeZone:RallyEvents.zoneFor(data)||'UTC',lineup:data.id===DEFAULT_EVENT?window.LOST_LANDS_SET_TIMES||data.lineup||[]:data.lineup||[],orderNote:data.lineupOrderNote||'',source:data.lineupSource||''},
+    event:{id:data.id,name:data.name,startsAt:data.startsAt,endsAt:data.endsAt,timeZone:RallyEvents.zoneFor(data)||'UTC',lineup:data.id===DEFAULT_EVENT?window.LOST_LANDS_SET_TIMES||data.lineup||[]:data.lineup||[],lineupBlocks:data.lineupBlocks||[],orderNote:data.lineupOrderNote||'',source:data.lineupSource||''},
     shareUrl:`https://www.john-ta.com${href('lineup')}`,
     onEvent:handleLineupEvent,
     onToast:showToast,
@@ -752,7 +752,7 @@ function renderLineup(){
 }
 function lineupState(){const currentMember=data.members.find((member)=>member.id===data.currentMemberId);return {type:"rally-lineup-state",reviewMode:RallyEvents.lifecycle(data).finished||RallyEvents.lifecycle(data).past,artistIds:data.currentLineupFavorites||[],interests:data.lineupInterests||{},currentMember,hiddenDays:data.lineupHiddenDays||[],canManageDays:data.isAdmin&&!offlineMode};}
 function sendLineupState(){window.RallyLineup?.receive(lineupState());}
-async function refreshLineupState(){if(activeView!=="lineup")return;const eventId=activeEvent;try{const updated=await convexQuery("rally:get",{eventId});if(!updated||activeEvent!==eventId||activeView!=="lineup")return;const changed=JSON.stringify(data.lineup)!==JSON.stringify(updated.lineup);data=updated;if(changed&&data.id!==DEFAULT_EVENT){clearInterval(lineupRefreshTimer);renderLineup();}else sendLineupState()}catch(error){console.warn("Could not refresh lineup interests",error)}}
+async function refreshLineupState(){if(activeView!=="lineup")return;const eventId=activeEvent;try{const updated=await convexQuery("rally:get",{eventId});if(!updated||activeEvent!==eventId||activeView!=="lineup")return;const changed=JSON.stringify([data.lineup,data.lineupBlocks])!==JSON.stringify([updated.lineup,updated.lineupBlocks]);data=updated;if(changed&&data.id!==DEFAULT_EVENT){clearInterval(lineupRefreshTimer);renderLineup();}else sendLineupState()}catch(error){console.warn("Could not refresh lineup interests",error)}}
 function openLineupDays() {
   if (!data?.isAdmin) return;
   if (offlineMode) return showToast('Reconnect to change project settings.');

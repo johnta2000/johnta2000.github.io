@@ -112,6 +112,9 @@ function context() {
     vm.runInContext(html.slice(html.indexOf(start),html.indexOf(end)),ctx);
   }
   ctx.sortMode='time';ctx.mostLiked=false;
+  ctx.lineupBlocks=[];
+  vm.runInContext(html.match(/function blockFor\(entry\)\{[^\n]+/)[0],ctx);
+  vm.runInContext(html.match(/function blockHours\(block\)\{[^\n]+/)[0],ctx);
   vm.runInContext(html.match(/function timeLabel\(entry\)\{[^\n]+/)[0],ctx);
   vm.runInContext(html.slice(html.indexOf('function compareSets('),html.indexOf('function renderHeatMap(')),ctx);
   return {ctx,container};

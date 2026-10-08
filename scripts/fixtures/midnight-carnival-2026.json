@@ -1,0 +1,176 @@
+{
+  "id": "midnight-carnival-rl-grime-2026",
+  "name": "Midnight Carnival Block Party ft. RL GRIME",
+  "startsAt": "2026-10-31",
+  "endsAt": "2026-10-31",
+  "timeZone": "America/Los_Angeles",
+  "lineupBlocks": [
+    {
+      "id": "block-party",
+      "label": "Block party",
+      "start": "2026-10-31T16:00",
+      "end": "2026-10-31T22:00"
+    },
+    {
+      "id": "afterparty",
+      "label": "Afterparty",
+      "start": "2026-10-31T22:00",
+      "end": "2026-11-01T02:00",
+      "ticketNote": "Separate ticket required"
+    }
+  ],
+  "lineup": [
+    {
+      "id": "midnight-2026-stage1-rl-grime",
+      "name": "RL GRIME",
+      "stage": "Stage 1 · Outdoors · Midway Block Party",
+      "day": "Saturday",
+      "date": "2026-10-31",
+      "blockId": "block-party"
+    },
+    {
+      "id": "midnight-2026-stage1-nghtmre",
+      "name": "NGHTMRE",
+      "stage": "Stage 1 · Outdoors · Midway Block Party",
+      "day": "Saturday",
+      "date": "2026-10-31",
+      "blockId": "block-party"
+    },
+    {
+      "id": "midnight-2026-stage1-imanu-b2b-nitepunk",
+      "name": "IMANU B2B NITEPUNK",
+      "stage": "Stage 1 · Outdoors · Midway Block Party",
+      "day": "Saturday",
+      "date": "2026-10-31",
+      "blockId": "block-party"
+    },
+    {
+      "id": "midnight-2026-stage1-casey-club-b2b-2spade",
+      "name": "CASEY CLUB B2B 2SPADE",
+      "stage": "Stage 1 · Outdoors · Midway Block Party",
+      "day": "Saturday",
+      "date": "2026-10-31",
+      "blockId": "block-party"
+    },
+    {
+      "id": "midnight-2026-stage1-strobez-b2b-buns",
+      "name": "STROBEZ B2B BUNS",
+      "stage": "Stage 1 · Outdoors · Midway Block Party",
+      "day": "Saturday",
+      "date": "2026-10-31",
+      "blockId": "block-party"
+    },
+    {
+      "id": "midnight-2026-stage2-falldren",
+      "name": "FALLDREN",
+      "stage": "Stage 2 · Indoors · Ride",
+      "day": "Saturday",
+      "date": "2026-10-31",
+      "blockId": "block-party"
+    },
+    {
+      "id": "midnight-2026-stage2-odd-language",
+      "name": "ODD LANGUAGE",
+      "stage": "Stage 2 · Indoors · Ride",
+      "day": "Saturday",
+      "date": "2026-10-31",
+      "blockId": "block-party"
+    },
+    {
+      "id": "midnight-2026-stage2-ratchaelbeats",
+      "name": "RATCHAELBEATS",
+      "stage": "Stage 2 · Indoors · Ride",
+      "day": "Saturday",
+      "date": "2026-10-31",
+      "blockId": "block-party"
+    },
+    {
+      "id": "midnight-2026-stage2-reign",
+      "name": "REIGN",
+      "stage": "Stage 2 · Indoors · Ride",
+      "day": "Saturday",
+      "date": "2026-10-31",
+      "blockId": "block-party"
+    },
+    {
+      "id": "midnight-2026-stage2-silcrow",
+      "name": "SILCROW",
+      "stage": "Stage 2 · Indoors · Ride",
+      "day": "Saturday",
+      "date": "2026-10-31",
+      "blockId": "block-party"
+    },
+    {
+      "id": "midnight-2026-stage3-devyn",
+      "name": "DEVYN",
+      "stage": "Stage 3 · Indoors · Gods & Monsters",
+      "day": "Saturday",
+      "date": "2026-10-31",
+      "blockId": "block-party"
+    },
+    {
+      "id": "midnight-2026-stage3-dyan-b2b-viceversa",
+      "name": "DYAN B2B VICEVERSA",
+      "stage": "Stage 3 · Indoors · Gods & Monsters",
+      "day": "Saturday",
+      "date": "2026-10-31",
+      "blockId": "block-party"
+    },
+    {
+      "id": "midnight-2026-stage3-hiraeth",
+      "name": "HIRAETH",
+      "stage": "Stage 3 · Indoors · Gods & Monsters",
+      "day": "Saturday",
+      "date": "2026-10-31",
+      "blockId": "block-party"
+    },
+    {
+      "id": "midnight-2026-stage3-ike-b2b-jujuseph",
+      "name": "IKE B2B JUJUSEPH",
+      "stage": "Stage 3 · Indoors · Gods & Monsters",
+      "day": "Saturday",
+      "date": "2026-10-31",
+      "blockId": "block-party"
+    },
+    {
+      "id": "midnight-2026-stage3-nykoe",
+      "name": "NYKOE",
+      "stage": "Stage 3 · Indoors · Gods & Monsters",
+      "day": "Saturday",
+      "date": "2026-10-31",
+      "blockId": "block-party"
+    },
+    {
+      "id": "midnight-2026-afterparty-rl-grime",
+      "name": "RL GRIME",
+      "stage": "Afterparty · Indoors · Midway Ride",
+      "day": "Saturday",
+      "date": "2026-10-31",
+      "blockId": "afterparty"
+    },
+    {
+      "id": "midnight-2026-afterparty-control-freak",
+      "name": "CONTROL FREAK",
+      "stage": "Afterparty · Indoors · Midway Ride",
+      "day": "Saturday",
+      "date": "2026-10-31",
+      "blockId": "afterparty"
+    },
+    {
+      "id": "midnight-2026-afterparty-lucky",
+      "name": "LUCKY",
+      "stage": "Afterparty · Indoors · Midway Ride",
+      "day": "Saturday",
+      "date": "2026-10-31",
+      "blockId": "afterparty"
+    },
+    {
+      "id": "midnight-2026-afterparty-wink",
+      "name": "WINK",
+      "stage": "Afterparty · Indoors · Midway Ride",
+      "day": "Saturday",
+      "date": "2026-10-31",
+      "blockId": "afterparty"
+    }
+  ]
+}

@@ -22,6 +22,7 @@ render();el.accessGate.hidden=true;el.rallyApp.hidden=false;document.body.classL
 window.qaShow=(view,lost=false)=>{if(lost){data={...data,id:DEFAULT_EVENT,name:"Lost Lands '26",startsAt:'2026-09-18',endsAt:'2026-09-20',timeZone:'America/New_York',lineup:window.LOST_LANDS_SET_TIMES,lineupHiddenDays:['Wednesday','Thursday']};activeEvent=data.id;}activeView=view;render();};
 window.qaDialog=()=>openTask();
 window.qaSections=(hidden,isAdmin=true)=>{data.hiddenSections=hidden;data.isAdmin=isAdmin;activeView='home';render();};
+window.qaMidnight=()=>{data={...data,...${JSON.stringify(JSON.parse(fs.readFileSync(path.join(__dirname,'fixtures/midnight-carnival-2026.json'),'utf8')))},lineupSource:'',hiddenSections:['stay','travel']};activeEvent=data.id;activeView='lineup';render();};
 window.qaToast=showToast;
 window.qaHideToast=()=>{el.toast.hidePopover?.();el.toast.hidden=true;};
 `;
@@ -164,6 +165,17 @@ const qaBootstrap=bootstrap.replace(/data=\{.*?\};events=/,`data=${JSON.stringif
    await page.screenshot({path:`${output}/${label}-${view}.png`});
    contrastIssues.push(...await auditContrast(page,label+' '+view));
   }
+  await page.evaluate(()=>{window.qaHideToast();window.qaMidnight();window.scrollTo(0,0);});
+  await page.locator('rally-lineup #table-view-button').click();
+  await page.locator('rally-lineup').evaluate(el=>{el.scrollTop=0;});
+  assert.equal(await page.locator('rally-lineup .lineup-blocks article').count(),2);
+  assert(await page.locator('rally-lineup #page-title').isVisible());
+  assert(await page.locator('rally-lineup #timeline-view-button').isHidden());
+  assert(!await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1));
+  const lineupBounds=await page.locator('rally-lineup').evaluate(el=>({width:el.clientWidth,scrollWidth:el.scrollWidth}));
+  assert(lineupBounds.scrollWidth<=lineupBounds.width+1,label+' untimed lineup overflows');
+  await page.screenshot({path:`${output}/${label}-midnight.png`});
+  contrastIssues.push(...await auditContrast(page,label+' midnight'));
   await page.evaluate(()=>{document.getElementById('accessGate').hidden=false;document.getElementById('rallyApp').hidden=true;});
   await page.screenshot({path:`${output}/${label}-signin.png`});
   await context.close();
