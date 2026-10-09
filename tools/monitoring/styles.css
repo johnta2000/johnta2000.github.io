@@ -459,3 +459,33 @@ footer { display: flex; justify-content: space-between; gap: 20px; border-top: 1
   html { scroll-behavior: auto; }
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
+
+.query-chart-controls { display: flex; flex-wrap: wrap; align-items: end; gap: 16px; }
+.query-chart-picker { flex: 1 1 260px; min-width: 0; }
+.query-chart-picker > label { display: block; margin-bottom: 6px; color: var(--muted); font-size: 12px; font-weight: 700; }
+.query-chart-metrics { display: flex; flex-wrap: wrap; gap: 4px; }
+.query-chart-metrics button { min-height: 44px; border: 1px solid var(--line); border-radius: 7px; background: #fff; padding: 9px 11px; color: var(--muted); font-family: inherit; font-size: 12px; font-weight: 700; line-height: 1.3; cursor: pointer; }
+.query-chart-metrics button[aria-pressed="true"] { border-color: var(--blue); background: #edf3ff; color: var(--blue-dark); }
+.query-chart-metrics button:focus-visible { outline: 3px solid #246bfe55; outline-offset: 2px; }
+.query-chart-summary { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin: 22px 0 8px; }
+.query-chart-summary span { display: block; color: var(--muted); font-size: 12px; }
+.query-chart-summary strong { display: block; font-size: 28px; font-variant-numeric: tabular-nums; }
+.query-chart-summary p { margin: 0; color: var(--muted); font-size: 12px; text-align: right; }
+.query-chart-svg { display: block; width: 100%; height: auto; overflow: visible; }
+.query-chart-svg text { fill: var(--muted); font: 12px Inter, system-ui, sans-serif; }
+.query-chart-grid { stroke: var(--line); stroke-dasharray: 3 4; }
+.query-chart-line { fill: none; stroke: var(--blue); stroke-width: 2.5; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.query-chart-dot { fill: var(--blue); stroke: #fff; stroke-width: 1.5; }
+.query-chart-footnote, .query-chart-note { margin: 14px 0 0; color: var(--muted); font-size: 12px; }
+.query-chart-data { margin-top: 16px; font-size: 12px; }
+.query-chart-data summary { min-height: 44px; padding: 12px 0; color: var(--blue-dark); cursor: pointer; font-weight: 700; }
+.query-chart-data-scroll { overflow-x: auto; }
+.query-chart-data table { width: 100%; border-collapse: collapse; text-align: left; font-variant-numeric: tabular-nums; }
+.query-chart-data caption { padding: 8px 0; color: var(--muted); text-align: left; }
+.query-chart-data th, .query-chart-data td { padding: 9px 12px; border-bottom: 1px solid var(--line); }
+.query-chart-data thead { background: var(--bg); }
+@media (max-width: 620px) {
+  .query-chart-controls { display: grid; grid-template-columns: minmax(0, 1fr); }
+  .query-chart-summary { align-items: start; }
+  .query-chart-svg { min-height: 180px; }
+}

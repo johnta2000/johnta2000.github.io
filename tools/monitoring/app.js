@@ -17,6 +17,7 @@ const els = {
 
 let currentSnapshot = null;
 let refreshPromise = null;
+let queryChart = null;
 
 const escapeHtml = (value = "") => String(value)
   .replaceAll("&", "&amp;")
@@ -344,7 +345,7 @@ function rankingDialogMarkup(monitor) {
   const mapFirstCount = metrics.mapFirstCount ?? metrics.serpMapFirstCount;
   const queryCount = metrics.queryCount ?? metrics.serpQueryCount;
   const fourthMetric = isBilt
-    ? `<div><span>CTR · finalized 7d</span><strong>${percent(metrics.ctr)}</strong><small>${escapeHtml(metricDelta(metrics.ctr, metrics.previousCtr, { suffix: " pts" }))}</small></div>`
+    ? `<div><span>CTR · finalized 7d</span><strong>${percent(metrics.ctr * 100)}</strong><small>${escapeHtml(metricDelta(metrics.ctr * 100, metrics.previousCtr * 100, { suffix: " pts" }))}</small></div>`
     : `<div><span>Map impression share</span><strong>${percent(metrics.mapImpressionShare)}</strong><small>${escapeHtml(metricDelta(metrics.mapImpressionShare, metrics.previousMapImpressionShare, { suffix: " pts" }))}</small></div>`;
   const queryHeading = isBilt
     ? `<div><p class="eyebrow">Search performance</p><h3>Core Bilt calculator queries</h3></div><span class="count-bubble">${number((details.queries ?? []).length)}</span>`
@@ -358,7 +359,7 @@ function rankingDialogMarkup(monitor) {
       <div><span>Average position</span><strong>${Number.isFinite(metrics.position) ? metrics.position.toFixed(2) : "—"}</strong><small>${escapeHtml(metricDelta(metrics.position, metrics.previousPosition, { inverse: true }))}</small></div>
       ${fourthMetric}
     </section>
-    ${isBilt ? "" : positionHistoryMarkup(details.positionHistory)}
+    ${isBilt ? window.MonitorQueryChart.markup() : positionHistoryMarkup(details.positionHistory)}
     <section class="dialog-section">
       <div class="dialog-section-heading">${queryHeading}</div>
       ${queryRows(details.queries, isBilt ? "page" : "map")}
@@ -522,6 +523,7 @@ function placeholderDialogMarkup(monitor) {
 function openMonitorDialog(monitorId) {
   const monitor = currentSnapshot?.state.monitors.find((item) => item.id === monitorId);
   if (!monitor) return;
+  queryChart = null;
   els.monitorDialogTitle.textContent = monitor.name;
   els.monitorDialogEyebrow.textContent = monitor.configured ? "Active monitor" : "Collector placeholder";
   if (!monitor.configured) els.monitorDialogContent.innerHTML = placeholderDialogMarkup(monitor);
@@ -531,10 +533,21 @@ function openMonitorDialog(monitorId) {
   else if (monitor.id === "chase-sapphire-reserve-tables") els.monitorDialogContent.innerHTML = chaseDialogMarkup(monitor);
   else els.monitorDialogContent.innerHTML = placeholderDialogMarkup(monitor);
   els.monitorDialog.showModal();
+  if (monitor.id === "bilt-calculator-ranking" && monitor.configured) {
+    queryChart = window.MonitorQueryChart.mount(
+      els.monitorDialogContent.querySelector(".query-chart-section"),
+      monitor,
+      currentSnapshot.monitorHistory?.[monitor.id]?.runs ?? [],
+    );
+  }
 }
 
 function renderSnapshot(snapshot) {
     currentSnapshot = snapshot;
+    if (queryChart && els.monitorDialog.open) {
+      const monitor = snapshot.state.monitors.find((item) => item.id === "bilt-calculator-ranking");
+      if (monitor) queryChart.update(monitor, snapshot.monitorHistory?.[monitor.id]?.runs ?? []);
+    }
     const { state, feed } = snapshot;
     const configured = state.monitors.filter((monitor) => monitor.configured);
 
