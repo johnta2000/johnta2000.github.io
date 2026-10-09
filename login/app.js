@@ -102,6 +102,7 @@
         query(endpoints.tools, 'cardPayments:verify', token),
         query(endpoints.tools, 'rent:verify', token),
         query(endpoints.tools, 'paymentQuestions:verify', token),
+        query(endpoints.tools, 'packing:verify', token),
       ]);
       if (currentRevision !== revision) return;
       let incomplete = results.some(result => result.status === 'rejected');
@@ -119,6 +120,7 @@
         addApp('Statement splits', '../tools/payments/statements/', 'Review and split charges with your parents.');
       }
       if (values[6]) addApp('Payment questions', '../tools/payment/questions/', 'Notes and screenshots for charges and reimbursements.');
+      if (values[7]) addApp('Packing', '../tools/packing/', 'A fresh packing checklist for every trip.');
       if (values[5]) {
         addApp('Rent', '../tools/rent/', 'Monthly rent splits and shared payment history.');
         addApp('PG&E bills', '../tools/rent/#rent-records', 'Shared utility bills and payment records.');

@@ -6,6 +6,7 @@ After sign-in, existing read-only Convex queries determine which private app lin
 
 - Rally: `rally:listEvents` on `dashing-heron-837`; link to a room the user belongs to.
 - Standups: `standups:verify` on `rapid-shark-565`.
+- Packing: `packing:verify` on `rapid-shark-565`; restricted to the verified John Ta owner account. The destination independently authorizes every packing read and write.
 - Sleep: `sleep:verify` on `rapid-shark-565`.
 - Monitoring: `monitoring:verify` on `rapid-shark-565`.
 - Card payments and Statement splits: `cardPayments:verify` on `rapid-shark-565`; both destinations use the same Payments allowlist. The splits link opens the authenticated library, which lists statement reviews without putting private review secrets in this directory.

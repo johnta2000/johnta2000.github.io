@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <meta name="theme-color" content="#f7f7f2">
+  <title>Packing — John Ta</title>
+  <link rel="icon" href="../../assets/img/jt-mark.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+  <script async data-clerk-script crossorigin="anonymous" src="https://clerk.john-ta.com/npm/@clerk/ui@1/dist/ui.browser.js"></script>
+  <script async data-clerk-script crossorigin="anonymous" data-clerk-publishable-key="pk_live_Y2xlcmsuam9obi10YS5jb20k" src="https://clerk.john-ta.com/npm/@clerk/clerk-js@6/dist/clerk.browser.js"></script>
+  <script defer src="app.js"></script>
+  <script defer src="auth.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#workspace">Skip to checklist</a>
+  <main>
+    <nav class="breadcrumb" aria-label="Site"><a href="../../login/">← Your apps</a><button id="sign-out" type="button" hidden>Sign out</button></nav>
+    <header class="page-header">
+      <div><p class="eyebrow">Ready when you are</p><h1>Packing<span>.</span></h1><p>A fresh checklist for every trip.</p></div>
+      <button id="add-trip" class="primary" type="button" hidden><span aria-hidden="true">＋</span> Add trip</button>
+    </header>
+    <section id="gate" data-auth-panel class="auth-gate" aria-labelledby="gate-title">
+      <h2 id="gate-title">Your private packing list</h2>
+      <p id="gate-message" role="status">Loading sign-in…</p>
+      <div id="sign-in" data-clerk-mount></div>
+      <button id="retry-auth" type="button" hidden>Try again</button>
+    </section>
+    <div id="app" hidden>
+    <p id="storage-error" class="error" role="alert" hidden></p>
+    <div id="save-actions" class="save-actions" hidden><button id="retry-save" type="button">Retry save</button><button id="download-draft" type="button">Download unsaved list</button></div>
+    <div class="layout">
+      <aside aria-label="Packing navigation">
+        <div class="sidebar-heading"><h2>Your trips</h2><span id="trip-count">0</span></div>
+        <div id="trips" class="trips"></div>
+        <p id="no-trips" class="muted no-trips">Your next trip starts here.</p>
+        <button id="edit-default" class="default-button" type="button"><span aria-hidden="true">☷</span><span>Default checklist<small>Make it yours for next time</small></span><span aria-hidden="true">→</span></button>
+        <p class="storage-note" id="save-status" role="status">All changes saved.</p>
+      </aside>
+      <section id="workspace" class="workspace" aria-label="Packing checklist" tabindex="-1"></section>
+    </div>
+    </div>
+    <noscript><p>Enable JavaScript to sign in and use your private packing lists.</p></noscript>
+  </main>
+  <dialog id="delete-dialog" aria-labelledby="delete-title">
+    <form method="dialog">
+      <h2 id="delete-title">Delete this trip?</h2>
+      <p id="delete-detail"></p>
+      <div class="dialog-actions"><button value="cancel" autofocus>Keep trip</button><button id="confirm-delete" value="delete" class="danger">Delete trip</button></div>
+    </form>
+  </dialog>
+  <div id="announcement" class="sr-only" role="status" aria-live="polite"></div>
+</body>
+</html>
