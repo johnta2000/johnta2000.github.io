@@ -2,7 +2,7 @@ import { query, mutation, internalQuery, internalMutation } from './_generated/s
 import { v } from 'convex/values';
 import type { QueryCtx, MutationCtx } from './_generated/server';
 import { authorized } from './cardPayments';
-import { allocation, statementRow } from './statementTables';
+import { allocation, statementRow, statementView } from './statementTables';
 
 const money = (n: number) => Number.isSafeInteger(n) && Math.abs(n) <= 100000000;
 async function access(ctx: QueryCtx | MutationCtx, token: string) {
@@ -14,7 +14,15 @@ async function access(ctx: QueryCtx | MutationCtx, token: string) {
 export const review = query({ args: { token: v.string() }, handler: async (ctx, { token }) => {
   const s = await access(ctx, token);
   const rows = await ctx.db.query('paymentStatementRows').withIndex('by_statement', q => q.eq('statementId', s._id)).collect();
-  return { title: s.title, period: s.period, dueDate: s.dueDate, balanceCents: s.balanceCents, rows: rows.sort((a,b) => a.order-b.order).map(({ statementId, _creationTime, ...r }) => r) };
+  return { title: s.title, period: s.period, dueDate: s.dueDate, balanceCents: s.balanceCents, view: s.view ?? { filter: 'auto', search: '' }, viewVersion: s.viewVersion ?? 0, rows: rows.sort((a,b) => a.order-b.order).map(({ statementId, _creationTime, ...r }) => r) };
+} });
+export const saveView = mutation({ args: { token: v.string(), expectedVersion: v.number(), view: statementView }, handler: async (ctx, args) => {
+  const s = await access(ctx, args.token), version = s.viewVersion ?? 0;
+  if (!Number.isSafeInteger(args.expectedVersion) || version !== args.expectedVersion) throw Error('The shared view changed on another device. Reload before saving your view.');
+  if (args.view.search.length > 160) throw Error('Keep the shared search under 160 characters.');
+  const view = { ...args.view, search: args.view.search.trim() };
+  await ctx.db.patch(s._id, { view, viewVersion: version + 1 });
+  return { view, viewVersion: version + 1 };
 } });
 export const save = mutation({ args: { token: v.string(), id: v.id('paymentStatementRows'), expectedVersion: v.number(), allocation: v.union(allocation, v.null()), note: v.string() }, handler: async (ctx, args) => {
   const s = await access(ctx, args.token), row = await ctx.db.get(args.id);

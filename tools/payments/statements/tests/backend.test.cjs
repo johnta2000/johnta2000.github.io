@@ -3,6 +3,28 @@ const token='a'.repeat(43),otherToken='b'.repeat(43);
 before(async()=>{const result=await esbuild.build({entryPoints:[path.join(__dirname,'../../../../convex/statements.ts')],bundle:true,write:false,platform:'node',format:'cjs',plugins:[{name:'test',setup(build){build.onResolve({filter:/\.\/_generated\/server$/},()=>({path:'server',namespace:'test'}));build.onLoad({filter:/.*/,namespace:'test'},()=>({contents:'export const query=x=>x, mutation=x=>x, internalQuery=x=>x, internalMutation=x=>x;'}));}}]});const module={exports:{}};vm.runInNewContext(result.outputFiles[0].text,{module,exports:module.exports,require,process:{env:{CARD_PAYMENTS_WORKSPACE_OWNER:'owner',CARD_PAYMENTS_ALLOWED_EMAIL:'owner@example.com'}},console,TextEncoder,TextDecoder});api=module.exports;});
 function fixture(identity=null){const tables={paymentStatements:[{_id:'s1',owner:'owner',token,enabled:true,title:'Sample',period:'Sample period',dueDate:'2026-10-12',balanceCents:7000,storageId:'private-file',fingerprint:'old'},{_id:'s2',owner:'other',token:otherToken,enabled:true}],paymentStatementRows:[{_id:'r1',statementId:'s1',date:'2026-09-01',description:'Test merchant',kind:'purchase',page:1,order:0,amountCents:10000,version:0,note:''},{_id:'r2',statementId:'s1',date:'2026-09-02',description:'Test refund',kind:'credit',page:2,order:1,amountCents:-3000,version:0,note:''},{_id:'r3',statementId:'s2',amountCents:5000,version:0,note:''}]};let seq=0;const ctx={auth:{getUserIdentity:async()=>identity},db:{system:{get:async()=>({contentType:'application/pdf',size:500})},query(table){const filters=[];const q={eq(k,v){filters.push(r=>r[k]===v);return q;}};const b={withIndex(_,fn){fn(q);return b;},async collect(){return tables[table].filter(r=>filters.every(f=>f(r)));},async unique(){const rows=await b.collect();assert.ok(rows.length<=1);return rows[0]||null;}};return b;},async get(id){return Object.values(tables).flat().find(r=>r._id===id)||null;},async patch(id,data){const row=await ctx.db.get(id);for(const[k,v]of Object.entries(data)){if(v===undefined)delete row[k];else row[k]=v;}},async insert(table,data){const id='new'+(++seq);tables[table].push({_id:id,...data});return id;}}};return {tables,ctx,run:(name,args={})=>api[name].handler(ctx,args)};}
 const assign={token,id:'r1',expectedVersion:0,allocation:{parents:10000,john:0,other:0},note:''};
+test('legacy statements open to automatic unassigned without changing their records',async()=>{
+ const f=fixture(),before=JSON.stringify(f.tables);
+ const result=await f.run('review',{token});
+ assert.deepEqual(JSON.parse(JSON.stringify(result.view)),{filter:'auto',search:''});assert.equal(result.viewVersion,0);
+ assert.equal(JSON.stringify(f.tables),before);
+});
+test('saved views are shared per statement, versioned and independent of charge assignments',async()=>{
+ const f=fixture(),before=JSON.stringify(f.tables.paymentStatementRows);
+ await f.run('saveView',{token,expectedVersion:0,view:{filter:'parents',search:' groceries '}});
+ const result=await f.run('review',{token});assert.equal(result.view.filter,'parents');assert.equal(result.view.search,'groceries');assert.equal(result.viewVersion,1);
+ const other=await f.run('review',{token:otherToken});assert.equal(other.view.filter,'auto');assert.equal(other.viewVersion,0);
+ await assert.rejects(f.run('saveView',{token,expectedVersion:0,view:{filter:'all',search:''}}),/changed on another device/);
+ await f.run('saveView',{token,expectedVersion:1,view:{filter:'auto',search:''}});assert.equal((await f.run('review',{token})).view.filter,'auto');
+ assert.equal(JSON.stringify(f.tables.paymentStatementRows),before);
+});
+test('invalid and revoked links cannot change a shared view; oversized searches are rejected',async()=>{
+ const args={token,expectedVersion:0,view:{filter:'auto',search:''}};
+ for(const bad of ['', 'x'.repeat(43)])await assert.rejects(fixture().run('saveView',{...args,token:bad}),/unavailable/);
+ const f=fixture();f.tables.paymentStatements[0].enabled=false;await assert.rejects(f.run('saveView',args),/unavailable/);
+ await assert.rejects(fixture().run('saveView',{...args,view:{filter:'all',search:'x'.repeat(161)}}),/160 characters/);
+ await assert.rejects(fixture().run('saveView',{...args,expectedVersion:0.5}),/changed on another device/);
+});
 test('Jevin supports whole charges, exact shared splits and negative credits while legacy allocations stay valid',async()=>{
  assert.equal(api.save.args.allocation.members[0].fields.jevin.isOptional,'optional');
  const f=fixture();
