@@ -1,8 +1,19 @@
 // Browser-side computed contrast audit, including the native lineup shadow root.
 // Explicitly dimmed/disabled content is excluded; active text must remain readable.
 module.exports = async function audit(page, label) {
+ // Let style/layout settle after a palette switch, including reduced-motion
+ // transitions. Auditing in the same frame can read the previous palette.
+ await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
  return page.evaluate(label => {
-  const rgb=value=>{const m=value.match(/rgba?\(([^)]+)\)/);return m?m[1].split(/[,\s/]+/).filter(Boolean).map(Number):[255,255,255,1];};
+  const canvas=document.createElement('canvas');canvas.width=canvas.height=1;
+  const colorContext=canvas.getContext('2d',{willReadFrequently:true}),colors=new Map();
+  const rgb=value=>{
+   const m=value.match(/rgba?\(([^)]+)\)/);if(m)return m[1].split(/[,\s/]+/).filter(Boolean).map(Number);
+   // color-mix() computes to color(srgb …), not rgb(). Let the browser
+   // normalize modern CSS colors rather than treating them as white.
+   if(!colors.has(value)){colorContext.clearRect(0,0,1,1);colorContext.fillStyle=value;colorContext.fillRect(0,0,1,1);const c=colorContext.getImageData(0,0,1,1).data;colors.set(value,[c[0],c[1],c[2],c[3]/255]);}
+   return colors.get(value);
+  };
   const blend=(fg,bg)=>{const a=fg[3]??1;return fg.slice(0,3).map((v,i)=>v*a+bg[i]*(1-a));};
   const lum=c=>c.map(x=>{x/=255;return x<=.04045?x/12.92:((x+.055)/1.055)**2.4;}).reduce((s,v,i)=>s+v*[.2126,.7152,.0722][i],0);
   const parent=el=>el.parentElement||el.getRootNode().host;

@@ -22,6 +22,7 @@ render();el.accessGate.hidden=true;el.rallyApp.hidden=false;document.body.classL
 window.qaShow=(view,lost=false)=>{if(lost){data={...data,id:DEFAULT_EVENT,name:"Lost Lands '26",startsAt:'2026-09-18',endsAt:'2026-09-20',timeZone:'America/New_York',lineup:window.LOST_LANDS_SET_TIMES,lineupHiddenDays:['Wednesday','Thursday']};activeEvent=data.id;}activeView=view;render();};
 window.qaDialog=()=>openTask();
 window.qaSections=(hidden,isAdmin=true)=>{data.hiddenSections=hidden;data.isAdmin=isAdmin;activeView='home';render();};
+window.qaTheme=theme=>{data={...events[0],projectTheme:theme,hiddenSections:[]};activeEvent=data.id;activeView='home';render();};
 window.qaMidnight=()=>{data={...data,...${JSON.stringify(JSON.parse(fs.readFileSync(path.join(__dirname,'fixtures/midnight-carnival-2026.json'),'utf8')))},lineupSource:'',hiddenSections:['stay','travel']};activeEvent=data.id;activeView='lineup';render();};
 window.qaToast=showToast;
 window.qaHideToast=()=>{el.toast.hidePopover?.();el.toast.hidden=true;};
@@ -41,7 +42,7 @@ const qaBootstrap=bootstrap.replace(/data=\{.*?\};events=/,`data=${JSON.stringif
    return route.continue();
   });
   const page=await context.newPage();page.on('pageerror',e=>errors.push(label+': '+e.message));
-  await page.goto('http://127.0.0.1:8790/tools/rally/?view=home');
+  await page.goto((process.env.RALLY_QA_URL||'http://127.0.0.1:8790')+'/tools/rally/?view=home');
   await page.locator('.overview-tile').first().waitFor();
   if(width<=900)await page.locator('#openMenu').click();
   await page.locator('#eventSwitcher').click();
@@ -176,6 +177,43 @@ const qaBootstrap=bootstrap.replace(/data=\{.*?\};events=/,`data=${JSON.stringif
   assert(lineupBounds.scrollWidth<=lineupBounds.width+1,label+' untimed lineup overflows');
   await page.screenshot({path:`${output}/${label}-midnight.png`});
   contrastIssues.push(...await auditContrast(page,label+' midnight'));
+  for(const theme of ['niteharts','midnight','ocean']){
+   await page.evaluate(theme=>window.qaTheme(theme),theme);
+   for(const view of ['home','stay','travel','crew','passes','tasks','notes','lineup','meetups']){
+    await page.evaluate(view=>{window.qaShow(view,view==='meetups');window.scrollTo(0,0);},view);
+    if(view==='lineup')await page.locator('rally-lineup').evaluate(el=>el.scrollTop=0);
+    contrastIssues.push(...await auditContrast(page,label+' '+theme+' '+view));
+    assert(!await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),label+' '+theme+' '+view+' overflow');
+    if(['home','notes','lineup'].includes(view))await page.screenshot({path:`${output}/${label}-${theme}-${view}.png`});
+    if(view==='lineup'){
+     for(const [button,mode] of [['timeline-view-button','timeline'],['poster-view-button','board'],['heat-view-button','heat']]){
+      await page.locator('rally-lineup #'+button).click();
+      contrastIssues.push(...await auditContrast(page,label+' '+theme+' '+mode));
+      if(width===390)await page.screenshot({path:`${output}/${label}-${theme}-${mode}.png`});
+     }
+     if(width<=760){
+      await page.locator('rally-lineup #filter-toggle').click();
+      contrastIssues.push(...await auditContrast(page,label+' '+theme+' filters'));
+      await page.screenshot({path:`${output}/${label}-${theme}-filters.png`});
+      await page.keyboard.press('Escape');
+     }
+    }
+   }
+   await page.evaluate(()=>window.qaShow('home'));
+   await page.locator('#projectThemeButton').click();
+   await page.locator('#dialogRoot .search-select-trigger').click();
+   await page.locator('.search-select-input:visible').fill('midnight');
+   assert.equal(await page.locator('.search-select-option:visible').count(),1);
+   await page.locator('.search-select-input:visible').press('Enter');
+   assert.equal(await page.evaluate(()=>document.documentElement.dataset.projectTheme),'midnight');
+   contrastIssues.push(...await auditContrast(page,label+' theme preview'));
+   await page.screenshot({path:`${output}/${label}-theme-picker.png`});
+   await page.locator('#dialogRoot .dialog-close').click();
+   assert.equal(await page.evaluate(()=>document.documentElement.dataset.projectTheme),theme);
+   await page.evaluate(()=>{window.qaDialog();window.qaToast('Could not save. Reconnect and try again.');});
+   contrastIssues.push(...await auditContrast(page,label+' '+theme+' dialog toast'));
+   await page.locator('#dialogRoot .dialog-close').click();await page.evaluate(()=>window.qaHideToast());
+  }
   await page.evaluate(()=>{document.getElementById('accessGate').hidden=false;document.getElementById('rallyApp').hidden=true;});
   await page.screenshot({path:`${output}/${label}-signin.png`});
   await context.close();

@@ -9,6 +9,43 @@ const views = [
 const noteSections = {general:'General',stay:'Stay',crew:'Crew',travel:'Travel',passes:'Passes'};
 const optionalSections = ['stay','travel','passes','tasks','meetups'];
 function sectionEnabled(view) { return !optionalSections.includes(view) || !(data.hiddenSections || []).includes(view); }
+function applyProjectTheme() {
+  if(themePreview&&(themePreview.eventId!==activeEvent||themePreview.owner!==window.Clerk?.user?.id))themePreview=null;
+  const theme=themePreview?.theme||data?.projectTheme||'warm';
+  window.RallyProjectThemes?.apply(theme);
+  window.RallyLineup?.setTheme(theme);
+}
+function openProjectTheme() {
+  if(!data?.isAdmin)return;
+  if(offlineMode)return showToast('Reconnect to change the project theme.');
+  const eventId=activeEvent, owner=window.Clerk?.user?.id;
+  const themes=window.RallyProjectThemes.presets;
+  openDialog('Project theme','Choose a palette for everyone in this project. Preview it here, then save to apply it across all tabs.',
+    selectField('Color palette','projectTheme',themes.map(theme=>[theme.id,theme.name+' · '+theme.description]),data.projectTheme||'warm')+'<div class="theme-preview" id="themePreview" aria-live="polite"></div>',
+    async values=>{
+      const result=await convexMutation('rallyThemes:save',{eventId,theme:values.projectTheme});
+      if(owner!==window.Clerk?.user?.id)return;
+      if(activeEvent===eventId){data.projectTheme=result.projectTheme;RallyOffline.save?.(data);}
+      closeDialog();
+      showToast('Project theme saved for everyone');
+    });
+  const select=el.dialogRoot.querySelector('select[name="projectTheme"]');
+  const preview=()=>{
+    const theme=window.RallyProjectThemes.themeFor(select.value);
+    themePreview={eventId,owner,theme:theme.id};applyProjectTheme();
+    document.getElementById('themePreview').innerHTML=`<div class="theme-swatches" aria-hidden="true">${['paper','card','soft','accent'].map(key=>`<i style="background:${theme.colors[key]}"></i>`).join('')}</div><strong>${escapeHtml(theme.name)}</strong><p>${escapeHtml(theme.description)}</p><span class="theme-preview-sample">Your crew. Your weekend.</span>`;
+  };
+  select.addEventListener('change',preview);preview();
+}
+async function refreshProjectTheme() {
+  if(!data||offlineMode||document.hidden||!window.Clerk?.isSignedIn)return;
+  const eventId=activeEvent,owner=window.Clerk.user.id;
+  try{
+    const room=await convexQuery('rally:get',{eventId});
+    if(activeEvent!==eventId||owner!==window.Clerk?.user?.id)return;
+    if((data.projectTheme||'warm')!==(room.projectTheme||'warm')){data.projectTheme=room.projectTheme||'warm';applyProjectTheme();}
+  }catch{ /* Keep the current saved palette when offline or reconnecting. */ }
+}
 function openSectionSettings() {
   if (!data?.isAdmin) return;
   if (offlineMode) return showToast('Reconnect to change project settings.');
@@ -62,6 +99,7 @@ let lineupRefreshTimer = null;
 let offlineMode = RallyOffline.native || !navigator.onLine;
 let shellSaved = RallyOffline.native || !!window.webkit?.messageHandlers?.rallyOffline;
 let notesRevision = 0;
+let themePreview = null;
 
 const el = Object.fromEntries(["accessGate","clerkSignIn","authStatus","authSignOut","rallyApp","sidebar","closeMenu","openMenu","menuBackdrop","eventSwitcher","eventMenu","eventName","eventThumb","mobileEventName","mobileCountdown","sideNav","page","topInvite","accountButton","signOut","newEvent","dialogRoot","toast"].map((id) => [id, document.getElementById(id)]));
 
@@ -114,6 +152,8 @@ function setupOffline() {
     navigator.serviceWorker.register('/rally-sw.js', {scope:'/'}).then(() => navigator.serviceWorker.ready).then(() => { shellSaved = true; updateOfflineStatus(); }).catch(() => { shellSaved = false; updateOfflineStatus(); });
   }
   setInterval(() => { if (navigator.onLine && !RallyOffline.native && window.Clerk?.isSignedIn) void syncFavorites(); }, 15000);
+  setInterval(refreshProjectTheme,30000);
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)void refreshProjectTheme();});
 }
 async function reconnect() {
   if (!window.Clerk?.isSignedIn) return initializeClerk();
@@ -364,6 +404,7 @@ function renderEventMenu(){
   RallyHistory.mount(data);
 }
 function render() {
+  applyProjectTheme();
   if(!sectionEnabled(activeView)){
     activeView='home';
     history.replaceState(null,'',href('home'));
@@ -518,8 +559,9 @@ function renderHome() {
   el.page.querySelectorAll('.overview-tile').forEach(card=>{if(!sectionEnabled(card.dataset.view))card.remove();});
   if(!sectionEnabled('tasks'))el.page.querySelector('.section-card')?.remove();
   if(data.isAdmin){
-    el.page.querySelector('.overview-header').insertAdjacentHTML('afterend','<div class="section-settings-action"><button type="button" id="manageSections">Manage sections</button></div>');
+    el.page.querySelector('.overview-header').insertAdjacentHTML('afterend','<div class="section-settings-action"><button type="button" id="projectThemeButton">Project theme</button><button type="button" id="manageSections">Manage sections</button></div>');
     document.getElementById('manageSections').onclick=openSectionSettings;
+    document.getElementById('projectThemeButton').onclick=openProjectTheme;
   }
 }
 
@@ -750,8 +792,8 @@ function renderLineup(){
   lineupRefreshTimer=setInterval(refreshLineupState,15000);
   return;
 }
-function lineupState(){const currentMember=data.members.find((member)=>member.id===data.currentMemberId);return {type:"rally-lineup-state",reviewMode:RallyEvents.lifecycle(data).finished||RallyEvents.lifecycle(data).past,artistIds:data.currentLineupFavorites||[],interests:data.lineupInterests||{},currentMember,hiddenDays:data.lineupHiddenDays||[],canManageDays:data.isAdmin&&!offlineMode};}
-function sendLineupState(){window.RallyLineup?.receive(lineupState());}
+function lineupState(){const currentMember=data.members.find((member)=>member.id===data.currentMemberId);return {type:"rally-lineup-state",projectTheme:data.projectTheme||'warm',reviewMode:RallyEvents.lifecycle(data).finished||RallyEvents.lifecycle(data).past,artistIds:data.currentLineupFavorites||[],interests:data.lineupInterests||{},currentMember,hiddenDays:data.lineupHiddenDays||[],canManageDays:data.isAdmin&&!offlineMode};}
+function sendLineupState(){window.RallyLineup?.receive(lineupState());applyProjectTheme();}
 async function refreshLineupState(){if(activeView!=="lineup")return;const eventId=activeEvent;try{const updated=await convexQuery("rally:get",{eventId});if(!updated||activeEvent!==eventId||activeView!=="lineup")return;const changed=JSON.stringify([data.lineup,data.lineupBlocks])!==JSON.stringify([updated.lineup,updated.lineupBlocks]);data=updated;if(changed&&data.id!==DEFAULT_EVENT){clearInterval(lineupRefreshTimer);renderLineup();}else sendLineupState()}catch(error){console.warn("Could not refresh lineup interests",error)}}
 function openLineupDays() {
   if (!data?.isAdmin) return;
@@ -807,6 +849,7 @@ function enhanceDialogSelects(form){
 function closeDialog(){
   el.dialogRoot.querySelectorAll('select').forEach(select=>window.SearchableSelect?.enhance(select).close());
   el.dialogRoot.innerHTML="";
+  if(themePreview){themePreview=null;applyProjectTheme();}
 }
 function field(label,name,value="",type="text",required=true){return `<label class="field"><span>${label}</span><input name="${name}" type="${type}" value="${escapeAttr(value)}" ${required?"required":""}></label>`}
 function selectField(label,name,options,value=""){return `<label class="field"><span>${label}</span><select name="${name}">${options.map(([id,text])=>`<option value="${escapeAttr(id)}" ${id===value?"selected":""}>${escapeHtml(text)}</option>`).join("")}</select></label>`}

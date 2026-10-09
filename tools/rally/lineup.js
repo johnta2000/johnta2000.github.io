@@ -29,6 +29,7 @@
   function receive(message){
     if(!instance)return;
     if(message.type==='rally-lineup-state'){
+      window.RallyProjectThemes?.apply(message.projectTheme||'warm',instance.element);
       const signature=JSON.stringify(message);
       if(signature===instance.stateSignature)return;
       instance.stateSignature=signature;
@@ -39,5 +40,6 @@
     if(!instance)return;
     instance.scroll=instance.element.scrollTop;instance.controller.suspend();
   }
-  window.RallyLineup={show,hide,receive,destroy};
+  function setTheme(theme){if(instance)window.RallyProjectThemes?.apply(theme,instance.element);}
+  window.RallyLineup={show,hide,receive,destroy,setTheme};
 })();

@@ -13,7 +13,8 @@ function setup(){
 test('one theme is loaded last in the shell and baked into the native lineup',()=>{
  const html=read('index.html');assert(html.indexOf('theme.css')>html.indexOf('</style>'));
  const vm=require('node:vm'),ctx={window:{}};vm.runInNewContext(read('lineup-template.js'),ctx);
- assert(ctx.window.RallyLineupTemplate.css.endsWith(read('theme.css')));
+ assert(ctx.window.RallyLineupTemplate.css.endsWith(read('project-theme.css')));
+ assert(ctx.window.RallyLineupTemplate.css.includes(read('theme.css')));
  const sw=read('../../rally-sw.js');for(const asset of ['theme.css','searchable-select.js','searchable-select.css'])assert(sw.includes(asset));
 });
 test('toast announcements are neutral, readable, replaceable and dismissed without stealing focus',()=>{
@@ -28,7 +29,7 @@ test('toast announcements are neutral, readable, replaceable and dismissed witho
   assert.equal(toast.hidden,false);assert.equal(w.document.activeElement,focus);
   w.showToast('Saved');assert.equal(w.document.querySelectorAll('#toast').length,1);
   dismiss();assert.equal(toast.hidden,true);
-  const css=read('theme.css');assert.match(css,/background: #fff; color: #202b25/);
+  const css=read('theme.css');assert.match(css,/background: var\(--card\); color: var\(--ink\)/);
   assert.match(css,/bottom: var\(--rally-nav-clearance/);
  }finally{w.close();}
 });
