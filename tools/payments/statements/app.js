@@ -1,7 +1,7 @@
 (() => {
 'use strict';
 const API='https://rapid-shark-565.convex.cloud', FILE='https://rapid-shark-565.convex.site/statement-pdf';
-const $=id=>document.getElementById(id), people=['parents','john','other'];
+const $=id=>document.getElementById(id), people=['parents','john','jevin','other'];
 const token=location.hash.slice(1), pending=new Map(), expandedRows=new Set(), failures=new Map(), needsRefresh=new Set();
 const pdfHome=$('pdf-panel').parentElement;
 let data=null,filter='all',editing=null,pdfUrl=null,pdfLoading=null,request=0,saveWarning='',managerEpoch=0;
@@ -16,8 +16,8 @@ function saved(){
  $('save-status').classList.toggle('error',!!warning);
 }
 function updateTotals(){
- const totals={parents:0,john:0,other:0,unassigned:0};let assigned=0;
- for(const r of data.rows){if(r.allocation){assigned++;for(const p of people)totals[p]+=r.allocation[p];}else totals.unassigned+=r.amountCents;}
+ const totals={parents:0,john:0,jevin:0,other:0,unassigned:0};let assigned=0;
+ for(const r of data.rows){if(r.allocation){assigned++;for(const p of people)totals[p]+=r.allocation[p]??0;}else totals.unassigned+=r.amountCents;}
  for(const [p,n] of Object.entries(totals))$(p+'-total').textContent=money(n);
  $('progress').textContent=assigned===data.rows.length?'All items assigned':`${data.rows.length-assigned} ${data.rows.length-assigned===1?'item':'items'} left to assign`;
  $('progress-bar').max=data.rows.length;$('progress-bar').value=assigned;saved();
@@ -35,7 +35,7 @@ function updateRow(r){
 
 function clearReview(){++request;for(const entry of pending.values())entry.resolve(false);pending.clear();needsRefresh.clear();failures.clear();closePdf();data=null;$('review').hidden=true;$('balance').hidden=true;$('copy-link').hidden=true;$('transactions').replaceChildren();if(pdfUrl)URL.revokeObjectURL(pdfUrl);pdfUrl=null;StatementPdf.reset();$('pdf-open').removeAttribute('href');$('edit-dialog').close();editing=null;}
 async function refresh(silent=false){if(pending.size||editing)return;const seq=++request;try{const value=await call('query','review',{token});if(seq!==request||pending.size||editing)return;const oldRows=new Map((data?.rows||[]).map(r=>[r._id,r]));const sameList=data&&data.rows.length===value.rows.length&&value.rows.every(r=>oldRows.has(r._id));value.rows=value.rows.map(r=>{const old=oldRows.get(r._id);if(old){delete old.allocation;Object.assign(old,r);return old;}return r;});data=value;needsRefresh.clear();$('status').textContent='';if(sameList&&filter==='all'&&!$('search').value){updateTotals();data.rows.forEach(updateRow);}else render();}catch(e){if(seq!==request)return;if(/unavailable/.test(e.message)){clearReview();$('status').textContent='This statement link is unavailable. Ask John for a current link.';}else if(!silent||!data){$('status').textContent='Could not load the statement. Check your connection, then reload this page.';}else{saveWarning='Could not refresh. Displaying the last loaded version.';saved();}}}
-function allocationLabel(row){if(!row.allocation)return null;return people.find(p=>row.allocation[p]===row.amountCents&&people.filter(x=>x!==p).every(x=>row.allocation[x]===0))||'split';}
+function allocationLabel(row){if(!row.allocation)return null;return people.find(p=>row.allocation[p]===row.amountCents&&people.filter(x=>x!==p).every(x=>(row.allocation[x]??0)===0))||'split';}
 function render(){
  $('review').hidden=false;$('balance').hidden=false;$('copy-link').hidden=false;$('title').textContent=data.title;$('period').textContent=data.period;$('balance-amount').textContent=money(data.balanceCents);$('due-date').textContent='Due '+new Date(data.dueDate+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
  updateTotals();
@@ -110,7 +110,7 @@ async function flushRow(entry){
  // Read after an uncertain write before accepting a retry with an old version.
  if(!pending.size&&needsRefresh.size&&!editing)void refresh(true);
 }
-function openEditor(r){editing=r;$('edit-description').textContent=r.description;$('edit-amount').textContent='Total: '+money(r.amountCents);for(const p of people)$('split-'+p).value=r.allocation?(r.allocation[p]/100).toFixed(2):'';$('edit-note').value=r.note;$('edit-error').textContent='';$('edit-dialog').showModal();}
+function openEditor(r){editing=r;$('edit-description').textContent=r.description;$('edit-amount').textContent='Total: '+money(r.amountCents);for(const p of people)$('split-'+p).value=r.allocation?((r.allocation[p]??0)/100).toFixed(2):'';$('edit-note').value=r.note;$('edit-error').textContent='';$('edit-dialog').showModal();}
 function closeEditor(){if(editing&&pending.has(editing._id))return;$('edit-dialog').close();editing=null;refresh(true);}
 $('edit-close').onclick=closeEditor;$('edit-dialog').addEventListener('cancel',e=>{e.preventDefault();closeEditor();});
 $('edit-form').onsubmit=async e=>{e.preventDefault();if(!editing)return;let allocation=null;const values=people.map(p=>$('split-'+p).value.trim());if(values.some(Boolean)){allocation={};for(let i=0;i<people.length;i++){const raw=values[i]||'0';if(!/^-?\d+(\.\d{1,2})?$/.test(raw)){$('edit-error').textContent='Enter dollar amounts with up to two decimal places.';return;}const [whole,decimal='']=raw.replace('-','').split('.');allocation[people[i]]=(Number(whole)*100+Number(decimal.padEnd(2,'0')))*(raw.startsWith('-')?-1:1);}if(Object.values(allocation).some(n=>!Number.isSafeInteger(n)||(editing.amountCents>=0?n<0:n>0))||Object.values(allocation).reduce((s,n)=>s+n,0)!==editing.amountCents){$('edit-error').textContent='The split must add up to '+money(editing.amountCents)+', with the same sign.';return;}}
@@ -124,7 +124,7 @@ $('pdf-dialog').addEventListener('cancel',e=>{e.preventDefault();closePdf();});
 $('copy-link').onclick=async()=>{try{await navigator.clipboard.writeText(location.href);$('copy-link').textContent='Link copied';setTimeout(()=>$('copy-link').textContent='Copy review link',2000);}catch{$('status').textContent='Copy the full address from your browser to share this review.';}};
 for(const b of document.querySelectorAll('[data-filter]'))b.onclick=()=>{filter=b.dataset.filter;for(const other of document.querySelectorAll('[data-filter]')){other.classList.toggle('active',other===b);other.setAttribute('aria-pressed',String(other===b));}renderRows();};
 $('search').oninput=()=>{if(data)renderRows();};
-$('export').onclick=()=>{const cell=(value,index)=>'"'+String(value??'').replace(index===1||index===8?/^[=+@\t\r-]/:/^[=+@\t\r]/,"'$&").replaceAll('"','""')+'"';const rows=[['Date','Description','Type','Amount','Parents','John','Other','Unassigned','Note','PDF page'],...data.rows.map(r=>[r.date,r.description,r.kind,(r.amountCents/100).toFixed(2),...people.map(p=>r.allocation?(r.allocation[p]/100).toFixed(2):''),r.allocation?'':(r.amountCents/100).toFixed(2),r.note,r.page])];const url=URL.createObjectURL(new Blob(['\uFEFF'+rows.map(r=>r.map(cell).join(',')).join('\r\n')],{type:'text/csv;charset=utf-8'}));const a=el('a');a.href=url;a.download='statement-split.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};
+$('export').onclick=()=>{const cell=(value,index)=>'"'+String(value??'').replace(index===1||index===people.length+5?/^[=+@\t\r-]/:/^[=+@\t\r]/,"'$&").replaceAll('"','""')+'"';const rows=[['Date','Description','Type','Amount',...people.map(title),'Unassigned','Note','PDF page'],...data.rows.map(r=>[r.date,r.description,r.kind,(r.amountCents/100).toFixed(2),...people.map(p=>r.allocation?((r.allocation[p]??0)/100).toFixed(2):''),r.allocation?'':(r.amountCents/100).toFixed(2),r.note,r.page])];const url=URL.createObjectURL(new Blob(['\uFEFF'+rows.map(r=>r.map(cell).join(',')).join('\r\n')],{type:'text/csv;charset=utf-8'}));const a=el('a');a.href=url;a.download='statement-split.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};
 async function manager(){
  $('manager').hidden=false;$('status').textContent='Sign in to see your statement library. Shared review links open without sign-in.';
  async function script(src,attributes={}){await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src=src;s.crossOrigin='anonymous';Object.entries(attributes).forEach(([k,v])=>s.setAttribute(k,v));s.onload=resolve;s.onerror=reject;document.head.append(s);});}

@@ -61,3 +61,43 @@ test('a later failed queued save restores the last acknowledged label and keeps 
  assert.match(await page.locator('#save-status').textContent(),/Could not confirm/);
  }finally{await browser.close();}
 });
+
+for(const browserType of [chromium,webkit])test(`${browserType.name()}: Jevin, legacy splits, mobile editor, filters and CSV stay consistent`,async()=>{
+ const browser=await browserType.launch();try{for(const width of [320,390,430,768,1280]){
+  const {page,db,errors}=await setup(browser,width,844);
+  db.rows[0].allocation={parents:14321,john:0,other:0};
+  await page.reload();await page.locator('.row').first().waitFor();
+  assert.equal(await page.locator('#parents-total').textContent(),'$143.21');
+  assert.equal(await page.locator('#jevin-total').textContent(),'$0.00');
+  assert.equal(await page.locator('[data-id="1"] [data-label="parents"]').getAttribute('aria-pressed'),'true');
+  const buttons=await page.locator('[data-id="1"] .label-button').evaluateAll(nodes=>nodes.map(n=>({text:n.textContent,width:n.getBoundingClientRect().width,height:n.getBoundingClientRect().height,y:n.getBoundingClientRect().y})));
+  assert.deepEqual(buttons.map(b=>b.text),['Parents','John','Jevin','Other']);
+  assert.ok(buttons.every(b=>b.height>=46&&b.width>=44));
+  if(width<=430){assert.equal(buttons[0].y,buttons[1].y);assert.equal(buttons[2].y,buttons[3].y);assert.ok(buttons[2].y>buttons[0].y);}
+  const filters=await page.locator('.filters button').evaluateAll(nodes=>nodes.map(n=>({x:n.getBoundingClientRect().x,right:n.getBoundingClientRect().right,height:n.getBoundingClientRect().height})));
+  assert.equal(filters.length,6);assert.ok(filters.every(b=>b.x>=0&&b.right<=width&&b.height>=44));
+  await page.locator('[data-id="1"] summary').click();await page.locator('[data-id="1"] .edit-row').click();
+  assert.equal(await page.locator('#split-jevin').inputValue(),'0.00');
+  assert.ok(await page.locator('#edit-dialog').evaluate(n=>n.scrollWidth<=n.clientWidth));
+  await page.locator('#split-parents').fill('100.00');await page.locator('#split-jevin').fill('43.21');await page.locator('#edit-note').fill('=confirm shared groceries');
+  await page.screenshot({path:`/private/tmp/statement-jevin-${browserType.name()}-${width}-editor.png`});
+  await page.locator('#edit-save').click();await page.locator('#edit-dialog').waitFor({state:'hidden'});
+  assert.equal(await page.locator('#jevin-total').textContent(),'$43.21');
+  assert.equal(await page.locator('#john-total').textContent(),'$0.00');
+  await page.locator('[data-filter="jevin"]').click();assert.equal(await page.locator('.row').count(),1);
+  assert.match(await page.locator('[data-id="1"] .split-text').textContent(),/Jevin \$43.21/);
+  await page.locator('[data-id="1"] [data-label="jevin"]').click();await page.waitForFunction(()=>document.getElementById('save-status').textContent==='All changes saved');
+  assert.equal(db.rows[0].allocation.jevin,14321);assert.equal(db.rows[0].allocation.parents,0);
+  await page.locator('[data-filter="all"]').click();
+  await page.locator('[data-id="3"] [data-label="jevin"]').click();await page.waitForFunction(()=>document.getElementById('save-status').textContent==='All changes saved');
+  assert.equal(await page.locator('#jevin-total').textContent(),'-$856.79');
+  await page.locator('.reconciliation summary').click();const downloading=page.waitForEvent('download');await page.locator('#export').click();
+  const csv=await fs.readFile(await (await downloading).path(),'utf8');
+  assert.ok(csv.includes('"Parents","John","Jevin","Other","Unassigned","Note"'));
+  assert.ok(csv.includes('"0.00","0.00","143.21","0.00","","\'=confirm shared groceries"'));
+  for(const line of csv.trim().split('\r\n'))assert.equal(line.split(',').length,11);
+  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));assert.deepEqual(errors,[]);
+  await page.locator('.reconciliation summary').click();await page.evaluate(()=>scrollTo(0,0));
+  await page.screenshot({path:`/private/tmp/statement-jevin-${browserType.name()}-${width}.png`});await page.close();
+ }}finally{await browser.close();}
+});
