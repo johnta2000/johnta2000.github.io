@@ -4,25 +4,23 @@ const API='https://rapid-shark-565.convex.cloud', FILE='https://rapid-shark-565.
 const $=id=>document.getElementById(id), people=['parents','john','jevin','other'];
 const token=location.hash.slice(1), pending=new Map(), expandedRows=new Set(), failures=new Map(), needsRefresh=new Set();
 const pdfHome=$('pdf-panel').parentElement;
-let data=null,filter='auto',editing=null,pdfUrl=null,pdfLoading=null,request=0,saveWarning='',managerEpoch=0,sharedViewVersion=null,viewSaving=false;
+let data=null,filter='unassigned',editing=null,pdfUrl=null,pdfLoading=null,request=0,saveWarning='',managerEpoch=0,sharedViewVersion=null,viewSaving=false,desiredView=null,viewRevision=0,viewTimer=null,viewRetryDelay=1000,viewReading=false;
 const money=n=>(n/100).toLocaleString('en-US',{style:'currency',currency:'USD'});
 const title=s=>s[0].toUpperCase()+s.slice(1);
 function el(tag,text,cls){const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(cls)n.className=cls;return n;}
 function errorText(e){const m=(e?.message||'').match(/(?:This statement link is unavailable\.|This charge changed on another device\.[^\n]*|The split must[^\n]*|Keep notes[^\n]*|Charge not found\.)/);return m?.[0]||'Could not confirm the change. Check your connection and try again.';}
-async function call(kind,name,args,auth){const response=await fetch(`${API}/api/${kind}`,{method:'POST',cache:'no-store',signal:AbortSignal.timeout(20000),headers:{'Content-Type':'application/json',...(auth?{Authorization:`Bearer ${auth}`}:{})},body:JSON.stringify({path:`statements:${name}`,args,format:'json'})});const result=await response.json();if(!response.ok||result.status!=='success')throw Error(result.errorMessage||'Request failed');return result.value;}
+async function call(kind,name,args,auth){const response=await fetch(`${API}/api/${kind}`,{method:'POST',cache:'no-store',signal:AbortSignal.timeout(20000),headers:{'Content-Type':'application/json',...(auth?{Authorization:`Bearer ${auth}`}:{})},body:JSON.stringify({path:`statements:${name}`,args,format:'json'}),keepalive:name==='saveView'});const result=await response.json();if(!response.ok||result.status!=='success')throw Error(result.errorMessage||'Request failed');return result.value;}
 function saved(){
  const warning=failures.values().next().value||saveWarning;
- $('save-status').textContent=pending.size?`Saving ${pending.size} ${pending.size===1?'change':'changes'}…${warning?' Some changes need review.':''}`:warning||'All changes saved';
+ $('save-status').textContent=pending.size?`Saving ${pending.size} ${pending.size===1?'change':'changes'}…${warning?' Some changes need review.':''}`:desiredView||viewSaving?'Saving view…':warning||'All changes saved';
  $('save-status').classList.toggle('error',!!warning);
 }
-function effectiveFilter(){return filter==='auto'?(data.rows.some(r=>!r.allocation)?'unassigned':'all'):filter;}
+function effectiveFilter(){return filter;}
+function normalizeFilter(value){return value==='auto'?'unassigned':value||'unassigned';}
 function syncViewControls(){
  const current=effectiveFilter();
  for(const b of document.querySelectorAll('[data-filter]')){const active=b.dataset.filter===current;b.classList.toggle('active',active);b.setAttribute('aria-pressed',String(active));}
- const view=data.view||{filter:'auto',search:''};
- const name=view.filter==='auto'?'Unassigned first (all items when finished)':view.filter==='all'?'All items':title(view.filter);
- $('view-summary').textContent='Shared opening view: '+name+(view.search?' · Search: “'+view.search+'”':'');
- $('save-view').disabled=viewSaving;
+ $('view-summary').textContent='Shared view · Filter and search save automatically for everyone.';
 }
 function updateTotals(){
  const totals={parents:0,john:0,jevin:0,other:0,unassigned:0};let assigned=0;
@@ -42,8 +40,8 @@ function updateRow(r){
  const note=item.querySelector('.row-note');note.hidden=!r.note;note.textContent=r.note;
 }
 
-function clearReview(){++request;for(const entry of pending.values())entry.resolve(false);pending.clear();needsRefresh.clear();failures.clear();closePdf();data=null;sharedViewVersion=null;$('review').hidden=true;$('balance').hidden=true;$('copy-link').hidden=true;$('transactions').replaceChildren();if(pdfUrl)URL.revokeObjectURL(pdfUrl);pdfUrl=null;StatementPdf.reset();$('pdf-open').removeAttribute('href');$('edit-dialog').close();editing=null;}
-async function refresh(silent=false){if(pending.size||editing||viewSaving)return;const seq=++request;try{const value=await call('query','review',{token});if(seq!==request||pending.size||editing||viewSaving)return;const oldRows=new Map((data?.rows||[]).map(r=>[r._id,r]));const sameList=data&&data.rows.length===value.rows.length&&value.rows.every(r=>oldRows.has(r._id));value.rows=value.rows.map(r=>{const old=oldRows.get(r._id);if(old){delete old.allocation;Object.assign(old,r);return old;}return r;});const viewChanged=sharedViewVersion!==(value.viewVersion??0);data=value;if(viewChanged){sharedViewVersion=value.viewVersion??0;filter=value.view?.filter||'auto';$('search').value=value.view?.search||'';}needsRefresh.clear();$('status').textContent='';syncViewControls();if(sameList&&!viewChanged&&filter==='all'&&!$('search').value){updateTotals();data.rows.forEach(updateRow);}else render();}catch(e){if(seq!==request)return;if(/unavailable/.test(e.message)){clearReview();$('status').textContent='This statement link is unavailable. Ask John for a current link.';}else if(!silent||!data){$('status').textContent='Could not load the statement. Check your connection, then reload this page.';}else{saveWarning='Could not refresh. Displaying the last loaded version.';saved();}}}
+function clearReview(){++request;for(const entry of pending.values())entry.resolve(false);pending.clear();needsRefresh.clear();failures.clear();closePdf();data=null;sharedViewVersion=null;desiredView=null;clearTimeout(viewTimer);$('review').hidden=true;$('balance').hidden=true;$('copy-link').hidden=true;$('transactions').replaceChildren();if(pdfUrl)URL.revokeObjectURL(pdfUrl);pdfUrl=null;StatementPdf.reset();$('pdf-open').removeAttribute('href');$('edit-dialog').close();editing=null;}
+async function refresh(silent=false){if(pending.size||editing||viewSaving||desiredView)return;const seq=++request;try{const value=await call('query','review',{token});if(seq!==request||pending.size||editing||viewSaving||desiredView)return;const oldRows=new Map((data?.rows||[]).map(r=>[r._id,r]));const sameList=data&&data.rows.length===value.rows.length&&value.rows.every(r=>oldRows.has(r._id));value.rows=value.rows.map(r=>{const old=oldRows.get(r._id);if(old){delete old.allocation;Object.assign(old,r);return old;}return r;});const viewChanged=sharedViewVersion!==(value.viewVersion??0);data=value;if(viewChanged){sharedViewVersion=value.viewVersion??0;filter=normalizeFilter(value.view?.filter);$('search').value=value.view?.search||'';}needsRefresh.clear();$('status').textContent='';syncViewControls();if(sameList&&!viewChanged&&filter==='all'&&!$('search').value){updateTotals();data.rows.forEach(updateRow);}else render();}catch(e){if(seq!==request)return;if(/unavailable/.test(e.message)){clearReview();$('status').textContent='This statement link is unavailable. Ask John for a current link.';}else if(!silent||!data){$('status').textContent='Could not load the statement. Check your connection, then reload this page.';}else{saveWarning='Could not refresh. Displaying the last loaded version.';saved();}}}
 function allocationLabel(row){if(!row.allocation)return null;return people.find(p=>row.allocation[p]===row.amountCents&&people.filter(x=>x!==p).every(x=>(row.allocation[x]??0)===0))||'split';}
 function render(){
  $('review').hidden=false;$('balance').hidden=false;$('copy-link').hidden=false;$('title').textContent=data.title;$('period').textContent=data.period;$('balance-amount').textContent=money(data.balanceCents);$('due-date').textContent='Due '+new Date(data.dueDate+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
@@ -59,7 +57,7 @@ function renderRows(){
  const rows=data.rows.filter(r=>(current==='all'||current==='unassigned'&&!r.allocation||people.includes(current)&&r.allocation?.[current]!==0&&r.allocation?.[current]!==undefined)&&(!search||`${r.description} ${r.date} ${r.note} ${money(r.amountCents)}`.toLowerCase().includes(search)));
  const groups=[['purchase','Purchases',''],['credit','Credits & adjustments','Assign the rent adjustment to the same person as the corresponding rent charge if it offsets that charge.'],['fee','Fees',''],['interest','Interest',''],['opening','Opening balance','Allocate the carried balance based on the previous month’s split.'],['payment','Card payments','Assign payments to the share they paid down. They reduce the amount still owed.']];
  for(const [kind,label,help] of groups){const group=rows.filter(r=>r.kind===kind);if(!group.length)continue;const heading=el('div',undefined,'group-heading');heading.append(el('h2',label),el('span',`${group.length} ${group.length===1?'item':'items'} · ${money(group.reduce((s,r)=>s+r.amountCents,0))}`));root.append(heading);if(help)root.append(el('p',help,'group-help'));for(const r of group)root.append(row(r));}
- if(!rows.length)root.append(el('p','No items match this view.','empty'));
+ if(!rows.length)root.append(el('p',current==='unassigned'&&!search?'All items are assigned. Choose All items to review them.':'No items match this view.','empty'));
 }
 function merchantName(description){
  // Display-only shortening. The exact imported description stays in Details and export.
@@ -134,17 +132,41 @@ function closePdf(){ $('pdf-panel').hidden=true; if($('pdf-dialog').open)$('pdf-
 $('show-pdf').onclick=()=>showPdf();$('close-pdf').onclick=closePdf;
 $('pdf-dialog').addEventListener('cancel',e=>{e.preventDefault();closePdf();});
 $('copy-link').onclick=async()=>{try{await navigator.clipboard.writeText(location.href);$('copy-link').textContent='Link copied';setTimeout(()=>$('copy-link').textContent='Copy review link',2000);}catch{$('status').textContent='Copy the full address from your browser to share this review.';}};
-for(const b of document.querySelectorAll('[data-filter]'))b.onclick=()=>{filter=b.dataset.filter==='unassigned'?'auto':b.dataset.filter;$('view-status').textContent='';renderRows();};
-$('search').oninput=()=>{if(data){$('view-status').textContent='';renderRows();}};
-$('save-view').onclick=async()=>{
- if(!data||viewSaving)return;
- const view={filter,search:$('search').value.trim()},expectedVersion=data.viewVersion??0;
- viewSaving=true;++request;syncViewControls();$('view-status').classList.remove('error');$('view-status').textContent='Saving the shared opening view…';
- let failed=false;
- try{const result=await call('mutation','saveView',{token,expectedVersion,view});if(!data)return;data.view=result.view;data.viewVersion=result.viewVersion;sharedViewVersion=result.viewVersion;$('view-status').textContent='Saved. Everyone using this link will see this view.';}
- catch(e){failed=true;if(/unavailable/.test(e.message)){clearReview();$('status').textContent='This statement link is unavailable.';}else{$('view-status').classList.add('error');$('view-status').textContent=e.message.match(/(?:The shared view changed on another device\. Reload before saving your view\.|Keep the shared search under 160 characters\.)/)?.[0]||'Could not confirm the shared view. Check your connection and try again.';}}
- finally{viewSaving=false;if(data){syncViewControls();if(failed)void refresh(true);}}
-};
+function queueView(delay=0){
+ if(!data)return;
+ ++request;++viewRevision;desiredView={filter,search:$('search').value};clearTimeout(viewTimer);
+ $('view-status').classList.remove('error');$('view-status').textContent='Saving view…';saved();
+ if(delay)viewTimer=setTimeout(flushView,delay);else void flushView();
+}
+async function flushView(){
+ clearTimeout(viewTimer);
+ if(!data||!desiredView||viewSaving)return;
+ viewSaving=true;
+ try{while(data&&desiredView){
+  const revision=viewRevision,view={...desiredView};
+  const result=await call('mutation','saveView',{token,view});
+  if(!data)return;
+  data.view=result.view;data.viewVersion=result.viewVersion;sharedViewVersion=result.viewVersion;viewRetryDelay=1000;
+  if(revision!==viewRevision)continue;
+  desiredView=null;$('view-status').classList.remove('error');$('view-status').textContent='View saved';
+ }}catch(e){
+  if(!data)return;
+  if(/unavailable/.test(e.message)){clearReview();$('status').textContent='This statement link is unavailable.';return;}
+  $('view-status').classList.add('error');$('view-status').textContent='View could not sync. Retrying automatically…';
+  viewTimer=setTimeout(flushView,viewRetryDelay);viewRetryDelay=Math.min(viewRetryDelay*2,15000);
+ }finally{viewSaving=false;if(data)saved();}
+}
+async function syncSharedView(){
+ if(!data||document.hidden||desiredView||viewSaving||viewReading||pending.size||editing)return;
+ const revision=viewRevision;viewReading=true;
+ try{const result=await call('query','view',{token});
+  if(!data||desiredView||viewSaving||revision!==viewRevision||pending.size||editing)return;
+  if(result.viewVersion!==sharedViewVersion){data.view=result.view;data.viewVersion=result.viewVersion;sharedViewVersion=result.viewVersion;filter=normalizeFilter(result.view.filter);$('search').value=result.view.search;$('view-status').textContent='View synced';renderRows();}
+ }catch(e){if(/unavailable/.test(e.message)){clearReview();$('status').textContent='This statement link is unavailable.';}}
+ finally{viewReading=false;}
+}
+for(const b of document.querySelectorAll('[data-filter]'))b.onclick=()=>{filter=b.dataset.filter;renderRows();queueView();};
+$('search').oninput=()=>{if(data){renderRows();queueView(200);}};
 $('export').onclick=()=>{const cell=(value,index)=>'"'+String(value??'').replace(index===1||index===people.length+5?/^[=+@\t\r-]/:/^[=+@\t\r]/,"'$&").replaceAll('"','""')+'"';const rows=[['Date','Description','Type','Amount',...people.map(title),'Unassigned','Note','PDF page'],...data.rows.map(r=>[r.date,r.description,r.kind,(r.amountCents/100).toFixed(2),...people.map(p=>r.allocation?((r.allocation[p]??0)/100).toFixed(2):''),r.allocation?'':(r.amountCents/100).toFixed(2),r.note,r.page])];const url=URL.createObjectURL(new Blob(['\uFEFF'+rows.map(r=>r.map(cell).join(',')).join('\r\n')],{type:'text/csv;charset=utf-8'}));const a=el('a');a.href=url;a.download='statement-split.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};
 async function manager(){
  $('manager').hidden=false;$('status').textContent='Sign in to see your statement library. Shared review links open without sign-in.';
@@ -155,6 +177,6 @@ async function manager(){
  }catch{$('status').textContent='Could not load sign-in. Reload this page to try again.';}
 }
 window.addEventListener('hashchange',()=>location.reload());
-window.addEventListener('beforeunload',e=>{if(pending.size){e.preventDefault();e.returnValue='';}});
-if(token){if(/^[A-Za-z0-9_-]{43}$/.test(token)){refresh();setInterval(()=>{if(!document.hidden)refresh(true);},20000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh(true);});window.addEventListener('online',()=>refresh(true));}else $('status').textContent='This statement link is unavailable. Ask John for a current link.';}else manager();
+window.addEventListener('beforeunload',e=>{if(desiredView)void flushView();if(pending.size||desiredView||viewSaving){e.preventDefault();e.returnValue='';}});
+if(token){if(/^[A-Za-z0-9_-]{43}$/.test(token)){refresh();setInterval(()=>{if(!document.hidden)refresh(true);},20000);setInterval(syncSharedView,3000);document.addEventListener('visibilitychange',()=>{if(document.hidden){if(desiredView)void flushView();}else{if(desiredView)void flushView();refresh(true);void syncSharedView();}});window.addEventListener('online',()=>{if(desiredView)void flushView();refresh(true);void syncSharedView();});}else $('status').textContent='This statement link is unavailable. Ask John for a current link.';}else manager();
 })();

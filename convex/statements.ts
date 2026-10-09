@@ -14,13 +14,17 @@ async function access(ctx: QueryCtx | MutationCtx, token: string) {
 export const review = query({ args: { token: v.string() }, handler: async (ctx, { token }) => {
   const s = await access(ctx, token);
   const rows = await ctx.db.query('paymentStatementRows').withIndex('by_statement', q => q.eq('statementId', s._id)).collect();
-  return { title: s.title, period: s.period, dueDate: s.dueDate, balanceCents: s.balanceCents, view: s.view ?? { filter: 'auto', search: '' }, viewVersion: s.viewVersion ?? 0, rows: rows.sort((a,b) => a.order-b.order).map(({ statementId, _creationTime, ...r }) => r) };
+  return { title: s.title, period: s.period, dueDate: s.dueDate, balanceCents: s.balanceCents, view: { filter: s.view?.filter === 'auto' ? 'unassigned' : s.view?.filter ?? 'unassigned', search: s.view?.search ?? '' }, viewVersion: s.viewVersion ?? 0, rows: rows.sort((a,b) => a.order-b.order).map(({ statementId, _creationTime, ...r }) => r) };
 } });
-export const saveView = mutation({ args: { token: v.string(), expectedVersion: v.number(), view: statementView }, handler: async (ctx, args) => {
+export const view = query({ args: { token: v.string() }, handler: async (ctx, { token }) => {
+  const s = await access(ctx, token);
+  return { view: { filter: s.view?.filter === 'auto' ? 'unassigned' : s.view?.filter ?? 'unassigned', search: s.view?.search ?? '' }, viewVersion: s.viewVersion ?? 0 };
+} });
+export const saveView = mutation({ args: { token: v.string(), expectedVersion: v.optional(v.number()), view: statementView }, handler: async (ctx, args) => {
   const s = await access(ctx, args.token), version = s.viewVersion ?? 0;
-  if (!Number.isSafeInteger(args.expectedVersion) || version !== args.expectedVersion) throw Error('The shared view changed on another device. Reload before saving your view.');
   if (args.view.search.length > 160) throw Error('Keep the shared search under 160 characters.');
-  const view = { ...args.view, search: args.view.search.trim() };
+  // View state follows the latest change. Charge allocations still reject stale writes.
+  const view = { ...args.view };
   await ctx.db.patch(s._id, { view, viewVersion: version + 1 });
   return { view, viewVersion: version + 1 };
 } });
