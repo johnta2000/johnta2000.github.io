@@ -1,0 +1,22 @@
+/* Keep the owner gate self-contained on the public static site. */
+main:has(> #gate:not([hidden])) { display:flex; flex-direction:column; min-height:calc(100svh - 64px); }
+main:has(> #gate:not([hidden])) > .page-header { text-align:center; }
+[data-auth-panel] { width:min(480px,100%); max-width:480px; margin:auto; padding:clamp(20px,5vw,32px); text-align:center; }
+[data-auth-panel] h2 { font-size:20px; }
+[data-clerk-mount] { text-align:left; margin-top:24px; }
+[data-clerk-mount]:empty { display:none; }
+[data-clerk-mount], [data-clerk-mount] .cl-rootBox, [data-clerk-mount] .cl-cardBox { box-sizing:border-box; width:100%; max-width:400px; min-width:0; margin-inline:auto; }
+[data-clerk-mount] .cl-cardBox, [data-clerk-mount] .cl-card { border:0; box-shadow:none; background:transparent; overflow:visible; }
+[data-clerk-mount] .cl-card { box-sizing:border-box; width:100%; min-width:0; max-width:100%; margin:0; padding:16px 0; gap:24px; text-align:left; }
+[data-clerk-mount] .cl-header { display:block; margin:0; padding:0; text-align:center; }
+[data-clerk-mount] .cl-headerTitle { margin:0; font-family:inherit; font-size:22px; font-weight:600; line-height:1.3; letter-spacing:-.4px; color:inherit; overflow-wrap:anywhere; }
+[data-clerk-mount] .cl-headerSubtitle { margin:8px 0 0; font-size:14px; line-height:1.5; overflow-wrap:anywhere; }
+[data-clerk-mount] .cl-main, [data-clerk-mount] .cl-form, [data-clerk-mount] .cl-formFieldRow, [data-clerk-mount] .cl-formField { min-width:0; max-width:100%; }
+[data-clerk-mount] label, [data-clerk-mount] .cl-formFieldLabel { display:block; margin:0; font-size:14px; line-height:1.5; }
+[data-clerk-mount] input, [data-clerk-mount] .cl-formFieldInput { box-sizing:border-box; width:100%; min-width:0; min-height:44px; margin:0; padding:10px 12px; font-size:16px; line-height:1.5; border-radius:8px; }
+[data-clerk-mount] button { min-height:44px; font-size:14px; line-height:1.5; text-transform:none; }
+[data-clerk-mount] .cl-formButtonPrimary { background-image:none; box-shadow:none; border-radius:8px; }
+[data-clerk-mount] .cl-footer { margin:0; padding:16px 0; font-size:13px; line-height:1.5; text-align:center; background:transparent; background-image:none; }
+[data-clerk-mount] .cl-otpCodeFieldInputs { display:flex; justify-content:center; gap:6px; width:100%; min-width:0; }
+[data-clerk-mount] .cl-otpCodeFieldInput { box-sizing:border-box; flex:1 1 0; width:100%; max-width:44px; min-width:0; min-height:44px; margin:0; padding:4px; font-size:16px; text-align:center; }
+@media(max-width:540px) { .search input { font-size:16px; } }

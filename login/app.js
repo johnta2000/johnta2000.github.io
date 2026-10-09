@@ -94,37 +94,40 @@
       const token = await withTimeout(tokenFor(session));
       if (!token) throw new Error('No session token.');
       // Each app's existing Convex function decides access; no client-side email allowlist.
-      const results = await Promise.allSettled([
-        query(endpoints.rally, 'rally:listEvents', token),
-        query(endpoints.tools, 'standups:verify', token),
-        query(endpoints.tools, 'sleep:verify', token),
-        query(endpoints.tools, 'monitoring:verify', token),
-        query(endpoints.tools, 'cardPayments:verify', token),
-        query(endpoints.tools, 'rent:verify', token),
-        query(endpoints.tools, 'paymentQuestions:verify', token),
-        query(endpoints.tools, 'packing:verify', token),
-      ]);
+      const checks = [
+        ['rally', endpoints.rally, 'rally:listEvents'],
+        ['standups', endpoints.tools, 'standups:verify'],
+        ['sleep', endpoints.tools, 'sleep:verify'],
+        ['monitoring', endpoints.tools, 'monitoring:verify'],
+        ['cardPayments', endpoints.tools, 'cardPayments:verify'],
+        ['rent', endpoints.tools, 'rent:verify'],
+        ['paymentQuestions', endpoints.tools, 'paymentQuestions:verify'],
+        ['packing', endpoints.tools, 'packing:verify'],
+        ['accessOverview', endpoints.tools, 'accessOverview:verify'],
+      ];
+      const results = await Promise.allSettled(checks.map(([, endpoint, path]) => query(endpoint, path, token)));
       if (currentRevision !== revision) return;
       let incomplete = results.some(result => result.status === 'rejected');
-      const values = results.map(result => result.status === 'fulfilled' ? result.value : null);
-      if (values[0] !== null && !Array.isArray(values[0])) incomplete = true;
-      if (Array.isArray(values[0]) && values[0].length) {
-        addApp('Rally', '../tools/rally/?event=' + encodeURIComponent(values[0][0].id), 'Trips and festivals with your crew.');
+      const values = Object.fromEntries(results.map((result, index) => [checks[index][0], result.status === 'fulfilled' ? result.value : null]));
+      if (values.rally !== null && !Array.isArray(values.rally)) incomplete = true;
+      if (Array.isArray(values.rally) && values.rally.length) {
+        addApp('Rally', '../tools/rally/?event=' + encodeURIComponent(values.rally[0].id), 'Trips and festivals with your crew.');
       }
-      if (values[1]) addApp('Standups', '../tools/standups/', 'Team updates.');
-      if (values[2]) addApp('Sleep', '../tools/sleep/', 'Your sleep dashboard.');
-      if (values[3]) addApp('Monitoring', '../tools/monitoring/', 'Your monitors and updates.');
-      if (values[4]) {
+      if (values.standups) addApp('Standups', '../tools/standups/', 'Team updates.');
+      if (values.sleep) addApp('Sleep', '../tools/sleep/', 'Your sleep dashboard.');
+      if (values.monitoring) addApp('Monitoring', '../tools/monitoring/', 'Your monitors and updates.');
+      if (values.cardPayments) {
         addApp('Card payments', '../tools/payments/', 'Your monthly payment checklist.');
         // The statement library uses the same server authorization as Payments.
         addApp('Statement splits', '../tools/payments/statements/', 'Review and split charges with your parents.');
       }
-      if (values[6]) addApp('Payment questions', '../tools/payment/questions/', 'Notes and screenshots for charges and reimbursements.');
-      if (values[7]) addApp('Packing', '../tools/packing/', 'A fresh packing checklist for every trip.');
-      if (values[5]) {
+      if (values.paymentQuestions) addApp('Payment questions', '../tools/payment/questions/', 'Notes and screenshots for charges and reimbursements.');
+      if (values.packing) addApp('Packing', '../tools/packing/', 'A fresh packing checklist for every trip.');
+      if (values.rent) {
         addApp('Rent', '../tools/rent/', 'Monthly rent splits and shared payment history.');
         addApp('PG&E bills', '../tools/rent/#rent-records', 'Shared utility bills and payment records.');
       }
+      if (values.accessOverview) addApp('Site access', '../tools/access/', 'Owner overview of accounts, permissions, and areas to review.');
       el.directory.hidden = false;
       el.empty.hidden = el.apps.children.length > 0 || incomplete;
       status(incomplete ? 'Some apps could not be checked. Try again to load the rest.' : '');

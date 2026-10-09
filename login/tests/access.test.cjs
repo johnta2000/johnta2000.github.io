@@ -74,7 +74,7 @@ test('only server-authorized apps appear, with an accessible Rally event', async
   assert.equal(links[0].href, '../tools/rally/?event=my-room%20%26%20friends');
   assert.equal(p.element('directory').hidden, false);
   assert.equal(p.mounts, 0);
-  assert.equal(p.requests.length, 8);
+  assert.equal(p.requests.length, 9);
   assert.ok(p.requests.every(req => req.token.startsWith('Bearer test.')));
   assert.ok(p.requests.find(req => req.path === 'rally:listEvents').url.includes('dashing-heron-837'));
   assert.ok(p.requests.find(req => req.path === 'standups:verify').url.includes('rapid-shark-565'));
@@ -111,7 +111,7 @@ test('signing in updates the directory without a reload; session refreshes do no
   p.change({ session: p.session, user: p.user }); await settle();
   assert.equal(p.element('apps').children[0].children[0].textContent, 'Monitoring');
   p.change({ session: p.session, user: p.user }); await settle();
-  assert.equal(p.requests.length, 8);
+  assert.equal(p.requests.length, 9);
 });
 test('an unavailable identity provider fails closed with a retry', async () => {
   const p = setup({ loadError: true }); await settle();
@@ -136,4 +136,12 @@ test('payment questions can appear independently of the Payments allowlist', asy
   assert.deepEqual(links.map(link => [link.textContent, link.href]), [
     ['Payment questions', '../tools/payment/questions/'],
   ]);
+});
+
+test('the owner overview appears only when its own server guard approves', async () => {
+  const owner = setup({ signedIn: true, responses: { 'accessOverview:verify': success({ email: 'owner@example.com' }) } }); await settle();
+  assert.deepEqual(owner.element('apps').children.map(item => item.children[0].textContent), ['Site access']);
+  assert.equal(owner.element('apps').children[0].children[0].href, '../tools/access/');
+  const member = setup({ signedIn: true, responses: { 'cardPayments:verify': success({ email: 'member@example.com' }) } }); await settle();
+  assert.ok(!member.element('apps').children.some(item => item.children[0].textContent === 'Site access'));
 });

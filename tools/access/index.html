@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex,nofollow">
+  <meta name="referrer" content="no-referrer">
+  <meta name="theme-color" content="#f7f8fa">
+  <title>Site access — John Ta</title>
+  <link rel="icon" href="../../assets/img/jt-mark.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css?v=20261009-1">
+  <link rel="stylesheet" href="auth.css?v=20261009-1">
+  <script async data-clerk-script crossorigin="anonymous" src="https://clerk.john-ta.com/npm/@clerk/ui@1/dist/ui.browser.js"></script>
+  <script async data-clerk-script crossorigin="anonymous" data-clerk-publishable-key="pk_live_Y2xlcmsuam9obi10YS5jb20k" src="https://clerk.john-ta.com/npm/@clerk/clerk-js@6/dist/clerk.browser.js"></script>
+  <script defer src="app.js?v=20261009-1"></script>
+</head>
+<body>
+  <main>
+    <nav aria-label="Page navigation"><a class="back" href="../../login/">← Your apps</a><span class="owner-label">Owner overview</span><button id="sign-out" type="button" class="text-button" hidden>Sign out</button></nav>
+    <header class="page-header"><p class="eyebrow">Your website, at a glance</p><h1>Site access<span>.</span></h1><p class="subtitle">Who can get in. What they can do. Where to look closer.</p></header>
+    <section id="gate" data-auth-panel class="gate">
+      <h2>A private view of your site</h2><p id="gate-message" role="status">Loading sign-in…</p>
+      <div id="sign-in" data-clerk-mount></div><button id="retry-auth" class="secondary" type="button" hidden>Try again</button>
+    </section>
+    <section id="overview" hidden aria-label="Site permissions overview">
+      <div class="overview-bar"><span class="badge owner">Only you</span><p id="updated"></p><button id="refresh" class="text-button" type="button">Refresh</button></div>
+      <p id="connection" role="status" hidden></p>
+      <div class="stats" aria-label="Access summary">
+        <div><span id="tool-count" class="stat-value">—</span><span>Areas mapped</span></div>
+        <div><span id="private-count" class="stat-value">—</span><span>Areas with account rules</span></div>
+        <div><span id="shared-count" class="stat-value">—</span><span>Public, link, or password access</span></div>
+        <div><span id="attention-count" class="stat-value">—</span><span>Items to review</span></div>
+      </div>
+      <section class="how" aria-labelledby="how-title"><h2 id="how-title">How access works</h2><ol><li><span class="step">1</span><div><strong>Public pages</strong><p>The page itself can load for anyone.</p></div></li><li><span class="step">2</span><div><strong>Sign-in identifies the person</strong><p>A new account doesn't unlock private tools.</p></div></li><li><span class="step">3</span><div><strong>Each tool checks its own rules</strong><p>Approved emails, ownership, or membership.</p></div></li></ol><p class="how-note">Some tools use a secret link, password, or device credential instead. Those scopes are called out below.</p></section>
+      <section class="attention" aria-labelledby="attention-title"><div class="section-heading"><h2 id="attention-title">Needs a closer look</h2><span>Findings from the access review</span></div><div id="findings"></div></section>
+      <section class="inventory" aria-labelledby="inventory-title">
+        <div class="section-heading"><div><h2 id="inventory-title">The access map</h2><p>Open an area to see its read, edit, and management permissions.</p></div></div>
+        <div class="filters"><label class="search"><span class="sr-only">Search tools, accounts, or permissions</span><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"></circle><path d="m16 16 4.5 4.5"></path></svg><input id="search" type="search" placeholder="Search a tool, email, or permission" autocomplete="off"></label><div id="scope-filters" role="group" aria-label="Filter access scope"><button type="button" data-scope="all" aria-pressed="true">Everything</button><button type="button" data-scope="account" aria-pressed="false">Account access</button><button type="button" data-scope="shared" aria-pressed="false">Other access</button><button type="button" data-scope="attention" aria-pressed="false">Needs review</button></div></div>
+        <p id="result-count" class="result-count" aria-live="polite"></p>
+        <div class="map-heading" aria-hidden="true"><span>Area</span><span>Who gets access</span><span>Scope</span></div><div id="tools"></div><p id="empty" class="empty" hidden>No areas match. Try another tool name, email, or scope.</p>
+      </section>
+      <footer class="coverage"><h2>What this view covers</h2><p id="limitations"></p><p class="privacy-note">This page is read-only. It contains no passwords, service secrets, statement links, private notes, or health records.</p></footer>
+    </section>
+    <noscript><p>Enable JavaScript to sign in and load your private overview.</p></noscript>
+  </main>
+</body>
+</html>

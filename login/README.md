@@ -12,6 +12,7 @@ After sign-in, existing read-only Convex queries determine which private app lin
 - Card payments and Statement splits: `cardPayments:verify` on `rapid-shark-565`; both destinations use the same Payments allowlist. The splits link opens the authenticated library, which lists statement reviews without putting private review secrets in this directory.
 - Payment questions: its separate `paymentQuestions:verify` on `rapid-shark-565`, independent of Card payments access.
 - Rent and its PG&E bills section: `rent:verify` on `rapid-shark-565`.
+- Site access: `accessOverview:verify` on `rapid-shark-565`, available only to the two site owner accounts. Its overview is read-only and separately authorized by the backend.
 
 Signing up does not grant private app access. Each destination still enforces its own server permissions. Sign-out or a session change clears the directory and invalidates outstanding access checks.
 
