@@ -8,10 +8,13 @@ After sign-in, existing read-only Convex queries determine which private app lin
 - Standups: `standups:verify` on `rapid-shark-565`.
 - Sleep: `sleep:verify` on `rapid-shark-565`.
 - Monitoring: `monitoring:verify` on `rapid-shark-565`.
+- Card payments and Statement splits: `cardPayments:verify` on `rapid-shark-565`; both destinations use the same Payments allowlist. The splits link opens the authenticated library, which lists statement reviews without putting private review secrets in this directory.
+- Payment questions: its separate `paymentQuestions:verify` on `rapid-shark-565`, independent of Card payments access.
+- Rent and its PG&E bills section: `rent:verify` on `rapid-shark-565`.
 
 Signing up does not grant private app access. Each destination still enforces its own server permissions. Sign-out or a session change clears the directory and invalidates outstanding access checks.
 
-Menu Index and Burgery are listed only after sign-in here, but their existing direct URLs and static assets remain public. This directory is not a new access-control layer for those public tools.
+Menu Index, its individual SF Organica and Hẻm by Lê Quý menus, and Burgery are listed only after sign-in here, but their existing direct URLs and static assets remain public. This directory is not a new access-control layer for those public tools.
 
 Apartment Navigation is also linked after sign-in. Its directions remain encrypted behind its separate password; a Clerk account does not unlock them.
 
