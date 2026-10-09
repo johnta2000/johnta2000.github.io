@@ -29,7 +29,22 @@ window.qaHideToast=()=>{el.toast.hidePopover?.();el.toast.hidden=true;};
 `;
 fixture.lineup=JSON.parse(fs.readFileSync(process.env.RALLY_QA_LINEUP||path.join(__dirname,'fixtures/niteharts-2026.json'),'utf8'));
 fixture.lineupSource='https://www.niteharts.com/schedule';
+fixture.rooms[0].notes='One-night stay\n\nHotel benefits:\n• Early check-in when available.\n• Breakfast for two, subject to the booking allowance.\n• Food and beverage credit applied to eligible charges.\n• Complimentary Wi-Fi.\n• Late checkout included with this booking.\n\nParking and arrival: contact the front desk before arrival to confirm availability. Keep the booking details handy, and leave bags with the hotel if the room is not ready.';
 const qaBootstrap=bootstrap.replace(/data=\{.*?\};events=/,`data=${JSON.stringify(fixture)};events=`);
+async function checkBookingNotes(page,label,width,output){
+ await page.locator('[data-room-edit]').first().click();
+ const notes=page.locator('textarea[name="notes"]');
+ assert.equal(await notes.inputValue(),fixture.rooms[0].notes);
+ await notes.scrollIntoViewIfNeeded();
+ const bounds=await notes.boundingBox();assert(bounds.height>=160&&bounds.height<=321,label+' booking notes height');
+ assert(bounds.x>=0&&bounds.x+bounds.width<=width,label+' booking notes clipped');
+ assert(!await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1));
+ contrastIssues.push(...await auditContrast(page,label+' booking notes'));
+ await page.screenshot({path:`${output}/${label}-booking-notes.png`});
+ await page.locator('#dialogRoot [type="submit"]').scrollIntoViewIfNeeded();
+ assert(await page.locator('#dialogRoot [type="submit"]').isVisible());
+ await page.locator('#dialogRoot .dialog-close').click();
+}
 (async()=>{
  const browser=await chromium.launch({headless:true,executablePath:'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'});
  const errors=[];const output=process.env.RALLY_QA_OUTPUT||'/tmp/rally-ui-qa';fs.mkdirSync(output,{recursive:true});
@@ -74,6 +89,7 @@ const qaBootstrap=bootstrap.replace(/data=\{.*?\};events=/,`data=${JSON.stringif
    contrastIssues.push(...await auditContrast(page,label+' '+view));
    const overflow=await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1);
    assert(!overflow,label+' '+view+' overflows viewport');
+   if(view==='stay')await checkBookingNotes(page,label,width,output);
    if(view==='lineup'){
     const source=page.locator('rally-lineup .lineup-source');
     assert(await source.isVisible(),'Real event source attribution must be in the audit fixture');
@@ -185,6 +201,7 @@ const qaBootstrap=bootstrap.replace(/data=\{.*?\};events=/,`data=${JSON.stringif
     contrastIssues.push(...await auditContrast(page,label+' '+theme+' '+view));
     assert(!await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),label+' '+theme+' '+view+' overflow');
     if(['home','notes','lineup'].includes(view))await page.screenshot({path:`${output}/${label}-${theme}-${view}.png`});
+    if(view==='stay')await checkBookingNotes(page,label+'-'+theme,width,output);
     if(view==='lineup'){
      for(const [button,mode] of [['timeline-view-button','timeline'],['poster-view-button','board'],['heat-view-button','heat']]){
       await page.locator('rally-lineup #'+button).click();

@@ -23,6 +23,8 @@ body, .main-column, #lineupView, :host { background:var(--paper); color:var(--in
 .field > span,.invite-section > span,.field .search-select-value { color:var(--ink); }
 .dialog-backdrop { background:rgba(0,0,0,.55); }
 .room-card .room-note { color:var(--muted)!important; }
+.room-card .room-note { white-space:pre-wrap; overflow-wrap:anywhere; }
+.field .booking-notes-input { display:block; width:100%; max-width:100%; min-height:160px; max-height:320px; resize:vertical; overflow-y:auto; line-height:1.6; font-family:inherit; }
 .theme-preview { margin:18px 0; padding:18px; border:1px solid var(--line); background:var(--paper); border-radius:14px; }
 .theme-swatches { display:flex; gap:8px; margin-bottom:16px; }
 .theme-swatches i { width:38px; height:38px; border:1px solid var(--line); border-radius:50%; }
