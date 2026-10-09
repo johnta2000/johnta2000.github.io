@@ -7,7 +7,7 @@ ASSETS.push('/tools/rally/note-rich-text.js','/tools/rally/note-editor.js','/too
 ASSETS.push('/tools/rally/crew-location.js','/tools/rally/crew-location.css');
 ASSETS.push('/tools/rally/mascot.js','/tools/rally/assets/dancing-dino.png','/tools/rally/assets/dancing-dino.gif');
 ASSETS.push('/tools/rally/event-lifecycle.js','/tools/rally/event-history.js','/tools/rally/event-history.css');
-ASSETS.push('/tools/rally/theme.css','/assets/js/searchable-select.js','/assets/css/searchable-select.css');
+ASSETS.push('/tools/rally/theme.css','/assets/js/searchable-select.js','/assets/css/searchable-select.css','/assets/css/clerk-auth.css');
 ASSETS.push('/tools/rally/project-theme.css','/tools/rally/project-theme.js');
 self.addEventListener('install', event => event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS)).then(() => self.skipWaiting())));
 self.addEventListener('activate', event => event.waitUntil((async () => {
