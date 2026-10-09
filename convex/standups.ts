@@ -55,7 +55,7 @@ function normalizePersonKey(name: string) {
 async function requireAuthorizedUser(ctx: QueryCtx | MutationCtx) {
   const identity = await ctx.auth.getUserIdentity();
   const allowedEmails = new Set(
-    (process.env.STANDUPS_ALLOWED_EMAIL || process.env.SLEEP_ALLOWED_EMAIL || "")
+    (process.env.STANDUPS_ALLOWED_EMAIL || "")
       .split(",")
       .map((value) => value.trim().toLowerCase())
       .filter(Boolean),
@@ -75,7 +75,7 @@ async function requireAuthorizedUser(ctx: QueryCtx | MutationCtx) {
 async function requireAuthorizedIdentity(ctx: QueryCtx | MutationCtx | ActionCtx) {
   const identity = await ctx.auth.getUserIdentity();
   const allowedEmails = new Set(
-    (process.env.STANDUPS_ALLOWED_EMAIL || process.env.SLEEP_ALLOWED_EMAIL || "")
+    (process.env.STANDUPS_ALLOWED_EMAIL || "")
       .split(",")
       .map((value) => value.trim().toLowerCase())
       .filter(Boolean),

@@ -2,7 +2,7 @@
   'use strict';
   const API = 'https://rapid-shark-565.convex.cloud';
   const $ = id => document.getElementById(id);
-  const scopes = { owner: 'Owner only', allowlist: 'Approved emails', membership: 'Membership', share: 'Secret link', password: 'Password', device: 'Device credential', public: 'Public / legacy' };
+  const scopes = { owner: 'Only you', allowlist: 'Tool guest list', membership: 'Invited members', share: 'Shared by link', password: 'Shared password', device: 'Approved device', public: 'Public / legacy' };
   const accountScopes = new Set(['owner', 'allowlist', 'membership']);
   let session = null, sessionId, epoch = 0, requestId = 0, mounted = false, snapshot = null, scope = 'all', controller;
 
@@ -56,7 +56,6 @@
       const part = node('div'); part.append(node('dt', label), node('dd', value)); powers.append(part);
     }
     body.append(powers, node('p', tool.boundary, 'boundary'));
-    if (tool.fallback) body.append(node('p', 'Currently inherits ' + tool.source + '.', 'link-count'));
     if (tool.configured === false) body.append(node('p', 'Required access settings are missing. The intended access guard denies access until configured.', 'link-count'));
     if (typeof tool.linkCount === 'number') body.append(node('p', `${tool.linkCountCapped ? 'At least ' : ''}${tool.linkCount} enabled statement review ${tool.linkCount === 1 ? 'link' : 'links'}${tool.linkCountCapped ? ' in the first 501 records' : ''}.`, 'link-count'));
     const footer = node('div', undefined, 'tool-footer');

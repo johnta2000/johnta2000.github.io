@@ -44,19 +44,21 @@ test('only the two owner emails pass, normalized, with verified or pinned email-
     assert.equal((await f.run('verify')).email, email.trim().toLowerCase()); assert.equal(f.reads, 0);
   }
 });
-test('current allowlists, deduplication, empty configuration, and fallbacks are faithfully reported', async () => {
+test('dedicated guest lists fail closed and never inherit Sleep, even with stale fallback metadata', async () => {
   configure({ SLEEP_ALLOWED_EMAIL: ' OWNER@example.com,friend@example.com,owner@example.com ', CARD_PAYMENTS_ALLOWED_EMAIL: 'pay@example.com', PAYMENT_QUESTIONS_ALLOWED_EMAIL: 'question@example.com' });
   const result = await fixture().run('overview');
   const row = id => result.tools.find(t => t.id === id);
-  assert.deepEqual(Array.from(row('standups').audience), ['friend@example.com', 'owner@example.com']);
-  assert.equal(row('standups').source, 'SLEEP_ALLOWED_EMAIL'); assert.equal(row('standups').fallback, true);
-  assert.equal(row('monitoring').fallback, true); assert.equal(row('payments').configured, false);
+  assert.deepEqual(Array.from(row('standups').audience), []);
+  assert.equal(row('standups').source, 'STANDUPS_ALLOWED_EMAIL'); assert.equal(row('standups').fallback, undefined);
+  assert.deepEqual(Array.from(row('monitoring').audience), []);
+  assert.equal(row('monitoring').configured, false); assert.equal(row('payments').configured, false);
   assert.deepEqual(Array.from(row('questions').audience), ['question@example.com']);
   assert.equal(row('questions').configured, true);
-  assert.ok(result.findings.some(f => f.id === 'fallback'));
-  env.STANDUPS_ALLOWED_EMAIL = 'separate@example.com'; env.MONITORING_ALLOWED_EMAIL = 'monitor@example.com';
+  assert.ok(!result.findings.some(f => f.id === 'fallback'));
+  env.STANDUPS_ALLOWED_EMAIL = ' SEPARATE@example.com,separate@example.com '; env.MONITORING_ALLOWED_EMAIL = 'monitor@example.com';
   const updated = await fixture().run('overview');
   assert.deepEqual(Array.from(updated.tools.find(t => t.id === 'standups').audience), ['separate@example.com']);
+  assert.deepEqual(Array.from(updated.tools.find(t => t.id === 'monitoring').audience), ['monitor@example.com']);
   assert.ok(!updated.findings.some(f => f.id === 'fallback'));
 });
 test('the statement projection returns counts only, without secrets or private record fields', async () => {

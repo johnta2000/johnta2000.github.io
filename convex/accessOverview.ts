@@ -7,7 +7,7 @@ const SETTINGS = new Set(["CARD_PAYMENTS_ALLOWED_EMAIL", "PAYMENT_QUESTIONS_ALLO
 type Area = {
   id: string; name: string; href: string; scope: string; audience: string[];
   source: string; evidence: string; read: string; edit: string; manage: string; boundary: string;
-  setting?: string; fallbackSetting?: string; extraAudience?: string[]; requiredSettings?: string[];
+  setting?: string; extraAudience?: string[]; requiredSettings?: string[];
   attention?: boolean;
 };
 type Finding = { id: string; severity: string; title: string; detail: string; next: string; evidence: string; affects: string[] };
@@ -53,13 +53,11 @@ export const overview = query({ args: {}, handler: async ctx => {
   // This report does not replace or change any tool's enforcement.
   const inventory = policy();
   const tools = inventory.tools.map(tool => {
-    const { setting: key, fallbackSetting, extraAudience = [], requiredSettings } = tool;
+    const { setting: key, extraAudience = [], requiredSettings } = tool;
     const reviewed = { id: tool.id, name: tool.name, href: tool.href, scope: tool.scope, audience: tool.audience, source: tool.source, evidence: tool.evidence, read: tool.read, edit: tool.edit, manage: tool.manage, boundary: tool.boundary, ...(tool.attention ? { attention: true } : {}) };
     if (!key) return reviewed;
-    const direct = setting(key), fallback = !direct && !!fallbackSetting;
-    const source = fallback ? fallbackSetting! : key;
-    const approved = emails(setting(source));
-    return { ...reviewed, audience: [...approved, ...extraAudience], source, fallback,
+    const approved = emails(setting(key));
+    return { ...reviewed, audience: [...approved, ...extraAudience], source: key,
       ...(requiredSettings ? { configured: approved.length > 0 && requiredSettings.every(name => !!setting(name)?.trim()) } : {}),
     };
   });
@@ -68,8 +66,6 @@ export const overview = query({ args: {}, handler: async ctx => {
   const statements = workspace ? await ctx.db.query("paymentStatements").withIndex("by_owner", q => q.eq("owner", workspace)).take(501) : [];
   const linkRow = tools.find(tool => tool.id === "statement-links");
   if (linkRow) Object.assign(linkRow, { linkCount: statements.filter(statement => statement.enabled).length, linkCountCapped: statements.length > 500 });
-  const inherited = tools.filter(tool => "fallback" in tool && tool.fallback);
   const findings = inventory.findings.map(finding => ({ id: finding.id, severity: finding.severity, title: finding.title, detail: finding.detail, next: finding.next, evidence: finding.evidence, affects: finding.affects }));
-  if (inherited.length) findings.push({ id: "fallback", severity: "review", title: "Some tools inherit another tool's allowlist", detail: `${inherited.map(tool => tool.name).join(" and ")} currently fall back to ${[...new Set(inherited.map(tool => tool.source))].join(", ")}. Changing that setting can affect multiple tools.`, affects: inherited.map(tool => tool.id), evidence: "Live configuration", next: "Use dedicated allowlists when these tools should have independent audiences." });
   return { viewer, loadedAt: Date.now(), policyReviewedAt: inventory.policyReviewedAt, tools, findings, limitations: inventory.limitations };
 } });

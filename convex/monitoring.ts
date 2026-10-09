@@ -61,7 +61,7 @@ function isRecord(value: unknown): value is JsonRecord {
 
 function allowedEmails() {
   return new Set(
-    (process.env.MONITORING_ALLOWED_EMAIL || process.env.SLEEP_ALLOWED_EMAIL || "")
+    (process.env.MONITORING_ALLOWED_EMAIL || "")
       .split(",")
       .map((value) => value.trim().toLowerCase())
       .filter(Boolean),
