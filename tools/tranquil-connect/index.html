@@ -8,14 +8,15 @@
     <meta name="theme-color" content="#f3f0e8">
     <title>Connect Tranquil</title>
     <link rel="stylesheet" href="./styles.css?v=1">
+  <link rel="stylesheet" href="../../assets/css/clerk-auth.css?v=20261008-1">
   </head>
-  <body>
+  <body data-auth-page="tranquil">
     <main>
       <div class="mark">◌</div>
       <p class="eyebrow">Tranquil account sync</p>
       <h1>Keep your focus history.</h1>
       <p id="description">Sign in to connect Tranquil on this device to your existing account.</p>
-      <div id="clerk-sign-in"></div>
+      <div id="clerk-sign-in" data-clerk-mount></div>
       <section id="result" hidden>
         <strong id="result-title"></strong>
         <p id="result-copy"></p>

@@ -4,12 +4,13 @@
 <meta name="robots" content="noindex,nofollow,noarchive"><meta name="referrer" content="no-referrer"><meta name="theme-color" content="#f5f5f1">
 <title>Statement review — Payments</title>
 <link rel="icon" href="../../../assets/img/jt-mark.svg" type="image/svg+xml"><link rel="stylesheet" href="styles.css?v=20261008-sharedview1">
-<script defer src="pdf-viewer.js?v=20261004-fast1"></script><script defer src="app.js?v=20261008-sharedview1"></script>
+<script defer src="pdf-viewer.js?v=20261004-fast1"></script><script defer src="app.js?v=20261008-sharedview-auth1"></script>
+<link rel="stylesheet" href="../../../assets/css/clerk-auth.css?v=20261008-1">
 </head><body><main>
 <nav><a href="../">← Payments</a><span>STATEMENT REVIEW</span><button id="copy-link" hidden>Copy review link</button></nav>
 <header><div><p class="eyebrow">A little clarity, every month</p><h1 id="title">Statement splits<span>.</span></h1><p id="period" class="muted">Review together. Know who owes what.</p></div><div id="balance" hidden><span>Statement balance</span><strong id="balance-amount"></strong><small id="due-date"></small></div></header>
 <p id="status" role="status" aria-live="polite">Loading…</p>
-<section id="manager" hidden><p>Send your next statement to John’s assistant to import it here. Each statement gets its own shared review link.</p><div id="sign-in"></div><div id="statement-list"></div></section>
+<section id="manager" hidden><p>Send your next statement to John’s assistant to import it here. Each statement gets its own shared review link.</p><div id="sign-in" data-clerk-mount></div><div id="statement-list"></div></section>
 <div id="review" hidden>
 <section class="summary" aria-label="Allocated balance"><div class="summary-card parents"><span>Parents</span><strong id="parents-total">$0.00</strong></div><div class="summary-card john"><span>John</span><strong id="john-total">$0.00</strong></div><div class="summary-card jevin"><span>Jevin</span><strong id="jevin-total">$0.00</strong></div><div class="summary-card other"><span>Other</span><strong id="other-total">$0.00</strong></div><div class="summary-card remaining"><span>Unassigned</span><strong id="unassigned-total"></strong></div></section>
 <div class="review-progress"><div class="progress-line"><span id="progress"></span><span id="save-status" role="status" aria-live="polite"></span></div><progress id="progress-bar" value="0" max="1" aria-label="Items assigned"></progress></div>

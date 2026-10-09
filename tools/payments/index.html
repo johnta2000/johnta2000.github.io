@@ -16,15 +16,16 @@
   <script defer src="../../assets/js/searchable-select.js"></script>
   <script defer src="screenshots.js"></script>
   <script defer src="app.js"></script>
+<link rel="stylesheet" href="../../assets/css/clerk-auth.css?v=20261008-1">
 </head>
 <body>
   <main>
     <nav><a href="../../login/">← Your apps</a><a href="../payment/questions/">Payment questions ↗</a><a href="statements/">Statement splits ↗</a><button id="sign-out" class="text-button" hidden>Sign out</button></nav>
     <header><h1>Payments<span>.</span></h1><p class="subtitle">Your monthly payment checklist.</p></header>
     <p id="connection" class="notice" role="status" hidden></p>
-    <section id="gate" class="panel">
+    <section data-auth-panel id="gate" class="panel">
       <h2>Your private checklist</h2><p id="gate-message">Loading sign-in…</p>
-      <div id="sign-in"></div><button id="retry-auth" hidden>Try again</button>
+      <div id="sign-in" data-clerk-mount></div><button id="retry-auth" hidden>Try again</button>
     </section>
     <section id="app" hidden aria-label="Payment tracker">
       <div class="overview">

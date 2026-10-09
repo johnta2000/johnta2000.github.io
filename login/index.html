@@ -12,8 +12,9 @@
   <script async data-clerk-script crossorigin="anonymous" src="https://clerk.john-ta.com/npm/@clerk/ui@1/dist/ui.browser.js"></script>
   <script async data-clerk-script crossorigin="anonymous" data-clerk-publishable-key="pk_live_Y2xlcmsuam9obi10YS5jb20k" src="https://clerk.john-ta.com/npm/@clerk/clerk-js@6/dist/clerk.browser.js"></script>
   <script defer src="app.js?v=20261008-subapps"></script>
+<link rel="stylesheet" href="../assets/css/clerk-auth.css?v=20261008-1">
 </head>
-<body>
+<body data-auth-page="login">
   <main>
     <a class="back-link" href="../">John Ta</a>
     <header>
@@ -21,7 +22,7 @@
       <p id="intro">Sign in to access your apps.</p>
     </header>
     <p id="status" role="status">Loading sign-in…</p>
-    <div id="sign-in"></div>
+    <div id="sign-in" data-clerk-mount></div>
     <button id="retry" type="button" hidden>Try again</button>
     <div id="directory" hidden>
       <section aria-labelledby="apps-title">

@@ -6,11 +6,12 @@
 <script async data-clerk-script crossorigin="anonymous" src="https://clerk.john-ta.com/npm/@clerk/ui@1/dist/ui.browser.js"></script>
 <script async data-clerk-script crossorigin="anonymous" data-clerk-publishable-key="pk_live_Y2xlcmsuam9obi10YS5jb20k" src="https://clerk.john-ta.com/npm/@clerk/clerk-js@6/dist/clerk.browser.js"></script>
 <script defer src="../../rally/note-rich-text.js"></script><script defer src="../../rally/note-editor.js"></script><script defer src="app.js"></script>
+<link rel="stylesheet" href="../../../assets/css/clerk-auth.css?v=20261008-1">
 </head><body><main>
 <nav><a href="../../payments/">← Payments</a><button id="sign-out" class="quiet" hidden>Sign out</button></nav>
 <header><div><h1>Payment questions<span>.</span></h1><p class="muted">A note, a screenshot, and somewhere to leave it.</p></div><button id="new" class="primary" hidden>+ New note</button></header>
 <p id="notice" role="status" hidden></p>
-<section id="gate" class="card"><h2>Your private notes</h2><p id="gate-message">Loading sign-in…</p><div id="sign-in"></div><button id="retry-auth" hidden>Try again</button></section>
+<section data-auth-panel id="gate" class="card"><h2>Your private notes</h2><p id="gate-message">Loading sign-in…</p><div id="sign-in" data-clerk-mount></div><button id="retry-auth" hidden>Try again</button></section>
 <section id="app" hidden aria-label="Payment notes">
 <div class="workspace"><aside class="queue" aria-label="Note queue">
 <div class="queue-tabs" role="group" aria-label="Queue"><button data-queue="open" aria-pressed="true">Inbox <span></span></button><button data-queue="waiting" aria-pressed="false">Waiting <span></span></button><button data-queue="resolved" aria-pressed="false">Done <span></span></button></div>

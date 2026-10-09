@@ -8,14 +8,15 @@
     <title>October 1, 2026 · Launch War Room</title>
     <link rel="stylesheet" href="../assets/css/searchable-select.css" />
     <link rel="stylesheet" href="./styles.css?v=11" />
+  <link rel="stylesheet" href="../assets/css/clerk-auth.css?v=20261008-1">
   </head>
   <body>
-    <section id="accessGate" class="password-gate" aria-labelledby="accessGateTitle" role="dialog" aria-modal="true">
+    <section data-auth-screen="war-room" id="accessGate" class="password-gate" aria-labelledby="accessGateTitle" role="dialog" aria-modal="true">
       <div class="password-card auth-card">
         <p class="eyebrow">nextcard · Launch operations</p>
         <h1 id="accessGateTitle">Sign in to the war room</h1>
         <p class="auth-copy">Use your approved affil.ai account to continue.</p>
-        <div id="clerkSignIn"></div>
+        <div id="clerkSignIn" data-clerk-mount></div>
         <p id="authStatus" role="status">Loading secure sign-in…</p>
         <button id="authRetry" type="button" hidden>Retry sign-in</button>
         <button id="authSignOut" type="button" hidden>Use another account</button>

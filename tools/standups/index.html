@@ -7,14 +7,15 @@
     <meta name="robots" content="noindex, nofollow" />
     <title>Daily Standups Tracker</title>
     <link rel="stylesheet" href="./styles.css?v=53" />
+  <link rel="stylesheet" href="../../assets/css/clerk-auth.css?v=20261008-1">
   </head>
   <body>
-    <section id="accessGate" class="access-gate" aria-labelledby="accessTitle" role="dialog" aria-modal="true">
+    <section data-auth-screen="standups" id="accessGate" class="access-gate" aria-labelledby="accessTitle" role="dialog" aria-modal="true">
       <div class="access-card">
         <p class="eyebrow">Restricted tool</p>
         <h1 id="accessTitle">Daily Standups Tracker</h1>
         <p class="access-copy">Sign in with your approved email to view and edit standups.</p>
-        <div id="clerkSignIn" class="clerk-sign-in" aria-live="polite"></div>
+        <div id="clerkSignIn" data-clerk-mount class="clerk-sign-in" aria-live="polite"></div>
         <p id="authStatus" class="auth-status" role="status">Loading secure sign-in...</p>
         <button id="authSignOut" class="auth-sign-out" type="button" hidden>Use a different email</button>
         <p class="access-footnote">Passwordless sign-in by Clerk · Server-verified access</p>

@@ -6,12 +6,13 @@
 <script async data-clerk-script crossorigin="anonymous" src="https://clerk.john-ta.com/npm/@clerk/ui@1/dist/ui.browser.js"></script>
 <script async data-clerk-script crossorigin="anonymous" data-clerk-publishable-key="pk_live_Y2xlcmsuam9obi10YS5jb20k" src="https://clerk.john-ta.com/npm/@clerk/clerk-js@6/dist/clerk.browser.js"></script>
 <script defer src="/assets/js/searchable-select.js"></script><script defer src="math.js"></script><script defer src="sheet.js?v=20261003-details4"></script><script defer src="bills.js?v=20261003-details4"></script><script defer src="records.js?v=20261003-proofflags2"></script><script defer src="app.js?v=20261003-details4"></script>
+<link rel="stylesheet" href="../../assets/css/clerk-auth.css?v=20261008-1">
 </head><body>
 <main>
 <nav><a href="/login/" class="wordmark"><span class="home-icon">⌂</span> john ta <span class="nav-slash">/</span> tools</a><div><span class="private-label">◈ Private workspace</span><button id="sign-out" class="quiet" hidden>Sign out</button></div></nav>
 <header><div class="eyebrow">HOME FINANCES</div><h1>Rent, in one place<span>.</span></h1><p>A monthly sheet for the numbers. A clearer picture of what’s covered.</p></header>
 <p id="notice" role="status" hidden></p>
-<section id="gate" class="panel gate"><span class="gate-icon">⌂</span><h2>A place for your rent.</h2><p id="gate-message">Loading secure sign-in…</p><div id="sign-in"></div><button id="retry" hidden>Try again</button></section>
+<section data-auth-panel id="gate" class="panel gate"><span class="gate-icon">⌂</span><h2>A place for your rent.</h2><p id="gate-message">Loading secure sign-in…</p><div id="sign-in" data-clerk-mount></div><button id="retry" hidden>Try again</button></section>
 <section id="app" hidden aria-label="Rent dashboard">
 <div class="rent-sections" aria-label="Page sections"><a href="#rent-sheet">Rent ledger</a><a href="#rent-records">PG&E bills</a></div>
 <div id="rent-sheet"></div><div id="rent-records"></div><div class="detail-heading"><h2>Month details</h2><p>Room calculations, individual receipts, and original spreadsheet entries.</p></div>

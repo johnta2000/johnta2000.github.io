@@ -1352,6 +1352,7 @@
     </style>
     <link rel="stylesheet" href="./mobile.css?v=13">
     <script defer src="../tools/rally/keyboard.js?v=1"></script>
+  <link rel="stylesheet" href="../assets/css/clerk-auth.css?v=20261008-1">
   </head>
   <body>
     <main class="app-page">
@@ -1461,7 +1462,7 @@
         </div>
         <button class="dialog-close" id="account-dialog-close" type="button" aria-label="Close">×</button>
       </div>
-      <div class="account-content" id="account-content"></div>
+      <div class="account-content" id="account-content" data-clerk-mount></div>
     </dialog>
 
     <script defer crossorigin="anonymous" src="https://clerk.john-ta.com/npm/@clerk/ui@1/dist/ui.browser.js"></script>

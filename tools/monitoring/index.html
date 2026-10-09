@@ -10,15 +10,16 @@
     <link rel="icon" href="../../assets/img/favicon.png" />
     <link rel="stylesheet" href="../../assets/css/searchable-select.css" />
     <link rel="stylesheet" href="styles.css?v=20261008.1" />
+  <link rel="stylesheet" href="../../assets/css/clerk-auth.css?v=20261008-1">
   </head>
   <body>
-    <section id="access-gate" class="access-gate" aria-labelledby="gate-title">
+    <section data-auth-screen="monitoring" id="access-gate" class="access-gate" aria-labelledby="gate-title">
       <div class="gate-card">
         <a class="wordmark gate-wordmark" href="/" aria-label="John Ta home">JT<span aria-hidden="true">/</span>MONITOR</a>
         <p class="eyebrow">Private monitoring</p>
         <h1 id="gate-title">Sign in to see<br /><span>what changed.</span></h1>
         <p class="gate-copy">Use your approved email and the secure sign-in code. Monitor state and history are returned only after Convex verifies your Clerk identity.</p>
-        <div id="clerk-sign-in" class="clerk-sign-in" aria-live="polite"></div>
+        <div id="clerk-sign-in" data-clerk-mount class="clerk-sign-in" aria-live="polite"></div>
         <p id="auth-status" class="auth-status" role="status">Loading secure sign-in…</p>
         <button id="auth-sign-out" class="secondary-button" type="button" hidden>Use a different email</button>
         <p class="gate-footnote"><span aria-hidden="true">●</span> Clerk sign-in · Convex authorization · Approved accounts only</p>

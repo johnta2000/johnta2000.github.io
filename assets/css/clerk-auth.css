@@ -1,0 +1,205 @@
+/* Shared signed-out layouts. Data attributes survive Clerk replacing mount classes. */
+[data-clerk-mount][id],
+[data-clerk-mount] .cl-rootBox,
+[data-clerk-mount] .cl-cardBox {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 400px;
+  min-width: 0;
+  margin-inline: auto;
+}
+[data-clerk-mount] { display: block; text-align: left; }
+[data-clerk-mount]:empty { display: none; }
+[data-clerk-mount] .cl-card {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  padding: clamp(20px, 5vw, 32px);
+  text-align: left;
+  gap: 24px;
+}
+[data-clerk-mount] .cl-header {
+  display: block;
+  margin: 0;
+  padding: 0;
+  text-align: center;
+}
+/* Page headline selectors must not enlarge Clerk's sign-in / verification title. */
+[data-clerk-mount] .cl-header .cl-headerTitle {
+  margin: 0;
+  font-family: inherit;
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -0.4px;
+  color: inherit;
+  overflow-wrap: anywhere;
+}
+[data-clerk-mount] .cl-header .cl-headerSubtitle {
+  margin: 8px 0 0;
+  font-size: 14px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+[data-clerk-mount] .cl-main,
+[data-clerk-mount] .cl-form,
+[data-clerk-mount] .cl-formFieldRow,
+[data-clerk-mount] .cl-formField {
+  min-width: 0;
+  max-width: 100%;
+}
+[data-clerk-mount] .cl-formFieldLabel {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+}
+[data-clerk-mount] .cl-formFieldInput {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  margin: 0;
+  padding: 10px 12px;
+  font-size: 16px;
+  line-height: 1.5;
+  border-radius: 8px;
+}
+[data-clerk-mount] .cl-formButtonPrimary,
+[data-clerk-mount] .cl-socialButtonsBlockButton {
+  min-height: 44px;
+  font-size: 14px;
+  line-height: 1.5;
+  text-transform: none;
+}
+[data-clerk-mount] .cl-formButtonPrimary { background-image: none; box-shadow: none; border-radius: 8px; }
+[data-clerk-mount] .cl-footer {
+  margin: 0;
+  padding: 16px;
+  font-size: 13px;
+  line-height: 1.5;
+  text-align: center;
+}
+[data-clerk-mount] .cl-otpCodeFieldInputs {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+}
+[data-clerk-mount] .cl-otpCodeFieldInput {
+  box-sizing: border-box;
+  flex: 1 1 0;
+  width: 100%;
+  max-width: 44px;
+  min-width: 0;
+  min-height: 44px;
+  margin: 0;
+  padding: 4px;
+  font-size: 16px;
+  text-align: center;
+}
+
+/* Full-screen gates center when they fit, and scroll from the top when taller. */
+[data-auth-screen] {
+  min-height: 100svh;
+  padding: max(32px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(32px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+  align-content: safe center;
+  align-items: safe center;
+  justify-items: center;
+}
+body:has([data-auth-screen]:not([hidden])) { padding-bottom: 0; }
+[data-auth-screen] > :is(.access-card, .gate-card, .auth-card) { min-width: 0; }
+[data-auth-screen="rally"] { overflow: auto; padding-top: 80px; }
+[data-auth-screen="rally"]::after { position: fixed; pointer-events: none; }
+[data-auth-screen="rally"] .access-card > h1 { font-size: clamp(36px, 5vw, 56px); }
+[data-auth-screen="war-room"] { overflow: auto; }
+[data-auth-screen="war-room"] .auth-card { max-height: none; overflow: visible; text-align: center; }
+[data-auth-screen="standups"] .access-heading,
+[data-auth-screen="standups"] .access-card > :is(h1, p),
+[data-auth-screen="standups"] .auth-status,
+[data-auth-screen="standups"] .access-footnote { text-align: center; }
+/* Standups already embeds a borderless form in its own card. */
+[data-auth-screen="standups"] [data-clerk-mount] .cl-card { padding: 0; }
+[data-auth-screen="standups"] [data-clerk-mount] .cl-header { margin-bottom: 24px; }
+/* Embedded gates have one outer surface, with no second card shadow inside it. */
+:is([data-auth-panel], [data-auth-screen="standups"], [data-auth-screen="monitoring"], [data-auth-screen="war-room"], body[data-auth-page="tranquil"]) [data-clerk-mount] :is(.cl-cardBox, .cl-card) {
+  border: 0;
+  box-shadow: none;
+  background: transparent;
+  overflow: visible;
+}
+:is([data-auth-panel], [data-auth-screen="standups"], [data-auth-screen="monitoring"], [data-auth-screen="war-room"], body[data-auth-page="tranquil"]) [data-clerk-mount] .cl-card { margin: 0; }
+:is([data-auth-panel], [data-auth-screen="monitoring"], [data-auth-screen="war-room"], body[data-auth-page="tranquil"]) [data-clerk-mount] .cl-card { padding: 16px 0; }
+:is([data-auth-panel], [data-auth-screen="standups"], [data-auth-screen="monitoring"], [data-auth-screen="war-room"], body[data-auth-page="tranquil"]) [data-clerk-mount] .cl-footer {
+  background: transparent;
+  background-image: none;
+  padding-inline: 0;
+}
+[data-auth-screen="monitoring"] .gate-card { width: min(520px, 100%); text-align: center; }
+[data-auth-screen="monitoring"] .gate-wordmark { margin-bottom: 28px; }
+[data-auth-screen="monitoring"] .gate-card > h1 { font-size: clamp(34px, 6vw, 48px); }
+[data-auth-screen="sleep"] { grid-template-columns: minmax(0, 600px) minmax(0, 450px); justify-content: center; gap: clamp(24px, 5vw, 60px); }
+
+/* Tools with a nav and header center their gate in the remaining page space. */
+main:has(> [data-auth-panel]:not([hidden])),
+main:has(> #manager [data-clerk-mount]:not(:empty)) {
+  display: flex;
+  flex-direction: column;
+  min-height: 100svh;
+}
+main:has(> [data-auth-panel]:not([hidden])) > :is(nav, header),
+main:has(> #manager [data-clerk-mount]:not(:empty)) > :is(nav, header) { flex-shrink: 0; }
+main:has(> [data-auth-panel]:not([hidden])) > header,
+main:has(> #manager [data-clerk-mount]:not(:empty)) > header { text-align: center; justify-content: center; }
+[data-auth-panel] {
+  width: min(480px, 100%);
+  max-width: 480px;
+  margin: auto;
+  padding: clamp(20px, 5vw, 32px);
+  text-align: center;
+}
+[data-auth-panel] > [data-clerk-mount] { margin-top: 24px; }
+[data-auth-panel] > :is(h1, h2) { margin-bottom: 12px; }
+[data-auth-panel] > :is(p, button) { overflow-wrap: anywhere; }
+[data-auth-panel] #unlock { margin-top: 24px; text-align: left; }
+#manager:has([data-clerk-mount]:not(:empty)) {
+  width: min(440px, 100%);
+  margin: auto;
+  padding-block: 24px;
+  text-align: center;
+}
+#manager > [data-clerk-mount]:not(:empty) { margin-top: 24px; }
+
+/* The public login directory expands again once the apps become visible. */
+body[data-auth-page="login"] main:has(#directory[hidden]) {
+  display: flex;
+  flex-direction: column;
+  justify-content: safe center;
+  min-height: 100svh;
+  margin-block: 0;
+  padding-block: 32px;
+}
+body[data-auth-page="login"] main:has(#directory[hidden]) .back-link { align-self: center; margin-bottom: 28px; }
+body[data-auth-page="login"] #status:empty { display: none; }
+body[data-auth-page="login"] #retry { align-self: center; margin-top: 20px; min-height: 44px; }
+
+body[data-auth-page="tranquil"] {
+  min-height: 100svh;
+  padding: 24px 16px;
+  align-items: safe center;
+}
+body[data-auth-page="tranquil"] main {
+  min-height: 0;
+  padding: clamp(20px, 5vw, 32px);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  text-align: center;
+}
+body[data-auth-page="tranquil"] .mark { margin-inline: auto; }
+
+@media (max-width: 800px) {
+  [data-auth-screen="sleep"] { display: grid; grid-template-columns: minmax(0, 1fr); }
+  [data-auth-screen="sleep"] .gate-orbit { display: none; }
+  [data-auth-screen="sleep"] .gate-card { width: min(450px, 100%); text-align: center; }
+}

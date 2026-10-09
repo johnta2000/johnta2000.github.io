@@ -24,7 +24,6 @@
         .access-card{width:100%;max-width:420px;margin:auto}
         .access-card h1{font-size:36px;line-height:1.05;letter-spacing:-.05em}
         .access-card>p:not(.eyebrow){margin:14px auto;line-height:1.45}
-        .access-gate:has(input:focus) .access-card>h1,.access-gate:has(input:focus) .access-card>.eyebrow,.access-gate:has(input:focus) .access-card>p:not(.auth-status){display:none}
         .dialog-backdrop{align-items:start;overflow-y:auto;max-height:var(--rally-viewport-height,100dvh);padding:16px}
         .dialog{max-height:calc(var(--rally-viewport-height,100dvh) - 32px);overflow-y:auto}
         .page-heading h1{font-size:32px}.page-heading p{font-size:14px;line-height:1.5}
@@ -123,15 +122,16 @@
     </style>
     <link rel="stylesheet" href="../../assets/css/searchable-select.css?v=1">
     <link rel="stylesheet" href="./theme.css?v=4">
+  <link rel="stylesheet" href="../../assets/css/clerk-auth.css?v=20261008-1">
   </head>
   <body class="booting">
-    <section id="accessGate" class="access-gate" hidden>
+    <section data-auth-screen="rally" id="accessGate" class="access-gate" hidden>
       <div class="gate-brand"><span class="brand-mark"><i></i><i></i><i></i></span> Rally</div>
       <div class="access-card">
         <p class="eyebrow">Private rave rooms</p>
         <h1>Everyone on the<br><em>same wavelength.</em></h1>
         <p>Rooms, flights, passes, people, and loose ends—together in one place.</p>
-        <div id="clerkSignIn"></div>
+        <div id="clerkSignIn" data-clerk-mount></div>
         <h2 id="authTitle" hidden></h2>
         <p id="authStatus" class="auth-status" role="status">Loading secure sign-in…</p>
         <div id="authOptions" hidden></div>

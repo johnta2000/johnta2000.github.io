@@ -18,9 +18,10 @@
     <title>Daylight — Your sleep, in perspective</title>
     <link rel="stylesheet" href="/assets/css/searchable-select.css" />
     <link rel="stylesheet" href="./styles.css?v=20261004-7" />
+  <link rel="stylesheet" href="../../assets/css/clerk-auth.css?v=20261008-1">
   </head>
   <body>
-    <section id="accessGate" class="access-gate" aria-labelledby="gateTitle">
+    <section data-auth-screen="sleep" id="accessGate" class="access-gate" aria-labelledby="gateTitle">
       <div class="gate-orbit" aria-hidden="true"><span></span></div>
       <div class="gate-card">
         <div class="brand-mark"><span></span> Daylight</div>
@@ -31,7 +32,7 @@
           place. Sign in to open your private dashboard.
         </p>
         <button id="reviewInviteButton" type="button" class="primary-button" hidden>Review invitation</button>
-        <div id="clerkSignIn" class="clerk-sign-in" aria-live="polite"></div>
+        <div id="clerkSignIn" data-clerk-mount class="clerk-sign-in" aria-live="polite"></div>
         <p id="authStatus" class="auth-status" role="status">
           Loading secure sign-in…
         </p>
