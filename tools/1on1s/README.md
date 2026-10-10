@@ -34,3 +34,7 @@ The sidebar shows a saved editorial overview for the selected person and month: 
 ## Rich text
 
 All seven editors support bold, italic, underline, bulleted and numbered lists, indentation, undo/redo, and sanitized rich-text paste. Entries use `contentFormat: html`; legacy entries without this field are rendered as literal plain text so angle brackets and line breaks remain intact. Formatting survives month/person changes, assignments, and the previous-entry view. HTML is sanitized on paste, load, save, and rendering using a restricted tag/attribute allowlist; executable content and non-HTTP/mailto links are removed.
+
+## Editor interface
+
+The private frontend presents each monthly entry as a document with a scratchpad, the five conversation prompts, and follow-ups. Each section has a visible formatting toolbar with headings, bold/italic/underline, lists, quotes, links, undo/redo, and clear formatting. The link control supports Ctrl/Cmd+K and accepts only HTTP(S) or mailto links. The editor shows a word count and active formatting state. Mobile controls wrap so every command remains reachable without horizontal scrolling. The existing autosave, rich HTML format, and backend access policy are unchanged.

@@ -1,13 +1,147 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><meta name="referrer" content="no-referrer"><title>1-on-1s</title><link rel="stylesheet" href="styles.css?v=20261005-overview1">
-<link rel="stylesheet" href="../../assets/css/clerk-auth.css?v=20261008-1">
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <meta name="referrer" content="no-referrer">
+  <title>1-on-1s · Affil</title>
+  <link rel="stylesheet" href="styles.css?v=20261010-editor1">
+  <link rel="stylesheet" href="../../assets/css/clerk-auth.css?v=20261008-1">
 </head>
-<body><main>
-<section data-auth-panel id="gate" class="gate"><p class="eyebrow">A little space to reflect</p><h1>1-on-1s</h1><p>Private notes for your monthly Affil 1-on-1s.</p><div id="signin" data-clerk-mount></div><form id="unlock" hidden><label for="password" id="passwordLabel">Journal password</label><input id="password" type="password" maxlength="256" autocomplete="current-password" required><div id="confirmation" hidden><label for="confirmPassword">Confirm password</label><input id="confirmPassword" type="password" autocomplete="new-password"></div><button id="unlockButton">Unlock journal</button><p class="hint">Your journal locks after one hour or when you reload.</p></form><p id="authStatus" role="status">Loading secure sign-in…</p><button id="signout" type="button" hidden>Sign out</button></section>
-<section id="journal" hidden><header><div><p class="eyebrow">Just for you · Affil</p><h1>1-on-1s</h1><p>Capture the small things. See the bigger picture.</p></div><button id="lock" type="button">Lock journal</button></header>
-<div class="people" role="group" aria-label="Conversation with"><span>Conversation with</span><button type="button" data-person="vish" aria-pressed="false">Vish</button><button type="button" data-person="jenny" aria-pressed="false">Jenny</button><button type="button" data-person="vivek" aria-pressed="false">Vivek</button><button type="button" data-person="" aria-pressed="true">Unassigned</button></div>
-<div class="conversation-heading"><h2 id="conversationTitle">Unassigned notes</h2><details id="assignment"><summary>Assign this entry</summary><p class="hint">Move this month’s notes to a person. Existing entries won’t be overwritten.</p><div class="assign-actions"><button type="button" data-assign="vish">Move to Vish</button><button type="button" data-assign="jenny">Move to Jenny</button><button type="button" data-assign="vivek">Move to Vivek</button></div></details></div>
-<nav aria-label="Choose a month"><button id="prev" type="button" aria-label="Previous month">←</button><label for="month">Month</label><input id="month" type="month"><button id="next" type="button" aria-label="Next month">→</button><span id="saveStatus" role="status">All changes saved</span><button id="save" type="button">Save now</button></nav>
-<div class="layout"><div><section class="card"><p class="eyebrow">Throughout the month</p><h2>Your scratchpad</h2><p class="hint">Drop thoughts, moments, and links here as they happen. These notes stay with this month.</p><label class="sr-only" for="notes">Notes for this month</label><textarea id="notes" rows="6" placeholder="Something worth remembering…"></textarea></section><section class="card"><p class="eyebrow">The monthly check-in</p><h2>Five questions, room to think.</h2><div id="questions"></div></section><section class="card"><h2>Bring into next month</h2><p class="hint">Commitments, open questions, and things to follow up on.</p><label class="sr-only" for="followups">Follow-ups</label><textarea id="followups" rows="5" placeholder="Next time, check in on…"></textarea></section></div>
-<aside><section class="card recap-card"><p class="eyebrow">From daily standups</p><div class="recap-heading"><h2>Monthly overview</h2><button id="refreshRecap" type="button">Refresh</button></div><p class="hint">A saved summary of this person’s progress, based on their monthly standups.</p><p id="recapStatus" role="status">Choose a person to see their month.</p><div id="recap"></div></section><section class="card"><p class="eyebrow">A look back</p><h2 id="previousTitle">Previous entry</h2><p class="hint">The previous conversation with this person.</p><div id="previous"></div></section></aside></div></section>
-</main><script async crossorigin="anonymous" src="https://clerk.john-ta.com/npm/@clerk/ui@1/dist/ui.browser.js"></script><script async crossorigin="anonymous" data-clerk-publishable-key="pk_live_Y2xlcmsuam9obi10YS5jb20k" src="https://clerk.john-ta.com/npm/@clerk/clerk-js@6/dist/clerk.browser.js"></script><script defer src="rich-text.js?v=20261005-overview1"></script><script defer src="app.js?v=20261005-overview1"></script></body></html>
+<body>
+  <main>
+    <section data-auth-panel id="gate" class="gate">
+      <div class="brand-mark" aria-hidden="true">1:1</div>
+      <p class="eyebrow">Your private workspace</p>
+      <h1>1-on-1s</h1>
+      <p class="gate-intro">A quiet place to prepare for each conversation and keep track of what matters.</p>
+      <div id="signin" data-clerk-mount></div>
+      <form id="unlock" hidden>
+        <label for="password" id="passwordLabel">Journal password</label>
+        <input id="password" type="password" maxlength="256" autocomplete="current-password" required>
+        <div id="confirmation" hidden>
+          <label for="confirmPassword">Confirm password</label>
+          <input id="confirmPassword" type="password" autocomplete="new-password">
+        </div>
+        <button id="unlockButton" class="primary-button">Unlock journal</button>
+        <p class="hint">Your journal locks after one hour or when you reload.</p>
+      </form>
+      <p id="authStatus" role="status">Loading secure sign-in…</p>
+      <button id="signout" type="button" hidden>Sign out</button>
+    </section>
+
+    <section id="journal" hidden>
+      <header class="app-header">
+        <div class="header-identity">
+          <div class="brand-mark" aria-hidden="true">1:1</div>
+          <div>
+            <p class="eyebrow">Affil · Private workspace</p>
+            <h1>1-on-1s</h1>
+          </div>
+        </div>
+        <button id="lock" type="button" class="quiet-button">Lock journal</button>
+      </header>
+
+      <div class="workspace-top">
+        <div class="workspace-context">
+          <p class="eyebrow">Monthly conversations</p>
+          <h2 id="conversationTitle">Unassigned notes</h2>
+          <p class="hint">A living document for your next conversation.</p>
+        </div>
+        <div class="people" role="group" aria-label="Conversation with">
+          <button type="button" data-person="vish" aria-pressed="false">Vish</button>
+          <button type="button" data-person="jenny" aria-pressed="false">Jenny</button>
+          <button type="button" data-person="vivek" aria-pressed="false">Vivek</button>
+          <button type="button" data-person="" aria-pressed="true">Unassigned</button>
+        </div>
+      </div>
+
+      <div class="workspace-controls">
+        <nav class="month-control" aria-label="Choose a month">
+          <button id="prev" type="button" aria-label="Previous month">←</button>
+          <label for="month">Month</label>
+          <input id="month" type="month">
+          <button id="next" type="button" aria-label="Next month">→</button>
+        </nav>
+        <div class="save-controls">
+          <span id="saveStatus" role="status">All changes saved</span>
+          <button id="save" type="button" class="primary-button">Save now</button>
+        </div>
+      </div>
+
+      <div class="layout">
+        <div class="document-stack">
+          <section class="document-sheet" aria-labelledby="documentTitle">
+            <div class="sheet-heading">
+              <p class="eyebrow">Conversation notes</p>
+              <h2 id="documentTitle">Your 1-on-1 document</h2>
+              <p>Write freely. Formatting and changes carry over when you return.</p>
+            </div>
+
+            <section class="document-section scratchpad-section" aria-labelledby="scratchpadTitle">
+              <div class="section-number" aria-hidden="true">01</div>
+              <div class="section-body">
+                <h3 id="scratchpadTitle">Scratchpad</h3>
+                <p class="hint">Capture moments and thoughts as the month unfolds.</p>
+                <label class="sr-only" for="notes">Notes for this month</label>
+                <textarea id="notes" rows="6" placeholder="Start writing anything you want to remember…"></textarea>
+              </div>
+            </section>
+
+            <section class="document-section" aria-labelledby="questionsTitle">
+              <div class="section-number" aria-hidden="true">02</div>
+              <div class="section-body">
+                <h3 id="questionsTitle">The five questions</h3>
+                <p class="hint">A guide for the conversation, with room to follow the interesting threads.</p>
+                <div id="questions"></div>
+              </div>
+            </section>
+
+            <section class="document-section followups-section" aria-labelledby="followupsTitle">
+              <div class="section-number" aria-hidden="true">03</div>
+              <div class="section-body">
+                <h3 id="followupsTitle">Bring into next month</h3>
+                <p class="hint">Commitments, open questions, and things to revisit.</p>
+                <label class="sr-only" for="followups">Follow-ups</label>
+                <textarea id="followups" rows="5" placeholder="Next time, check in on…"></textarea>
+              </div>
+            </section>
+          </section>
+          <details id="assignment" class="assignment-card">
+            <summary>Assign this entry to a person</summary>
+            <p class="hint">Move this month’s notes to a person. Existing entries won’t be overwritten.</p>
+            <div class="assign-actions">
+              <button type="button" data-assign="vish">Move to Vish</button>
+              <button type="button" data-assign="jenny">Move to Jenny</button>
+              <button type="button" data-assign="vivek">Move to Vivek</button>
+            </div>
+          </details>
+        </div>
+
+        <aside aria-label="Conversation context">
+          <section class="side-card recap-card">
+            <div class="card-heading">
+              <div><p class="eyebrow">The bigger picture</p><h2>Monthly overview</h2></div>
+              <button id="refreshRecap" type="button" class="quiet-button">Refresh</button>
+            </div>
+            <p class="hint">Progress from this person’s standups, summarized for the month.</p>
+            <p id="recapStatus" role="status">Choose a person to see their month.</p>
+            <div id="recap"></div>
+          </section>
+          <section class="side-card previous-card">
+            <p class="eyebrow">Keep the thread</p>
+            <h2 id="previousTitle">Previous entry</h2>
+            <p class="hint">The previous conversation with this person.</p>
+            <div id="previous"></div>
+          </section>
+        </aside>
+      </div>
+    </section>
+  </main>
+  <script async crossorigin="anonymous" src="https://clerk.john-ta.com/npm/@clerk/ui@1/dist/ui.browser.js"></script>
+  <script async crossorigin="anonymous" data-clerk-publishable-key="pk_live_Y2xlcmsuam9obi10YS5jb20k" src="https://clerk.john-ta.com/npm/@clerk/clerk-js@6/dist/clerk.browser.js"></script>
+  <script defer src="rich-text.js?v=20261010-editor1"></script>
+  <script defer src="app.js?v=20261010-editor1"></script>
+</body>
+</html>
