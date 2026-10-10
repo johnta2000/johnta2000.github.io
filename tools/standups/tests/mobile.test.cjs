@@ -1,62 +1,10 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const fs = require('node:fs/promises');
-const path = require('node:path');
 const { chromium, webkit } = require('playwright');
 const browserType = process.env.STANDUPS_BROWSER === 'webkit' ? webkit : chromium;
 const screenshotSuffix = process.env.STANDUPS_BROWSER === 'webkit' ? '-webkit' : '';
 
-async function openStandups(browser, width, height = 844) {
-  const page = await browser.newPage({ viewport: { width, height }, isMobile: width <= 760, hasTouch: true });
-  page.setDefaultTimeout(10000);
-  const errors = [];
-  page.on('pageerror', error => errors.push(error.message));
-  const entries = new Map();
-  const comments = [];
-  const mutations = [];
-  await page.addInitScript(() => {
-    localStorage.setItem('standups:last-person-name', 'Jenny');
-      window.__internal_ClerkUICtor = {};
-    window.Clerk = { load: async () => {}, isSignedIn: true,
-      session: { getToken: async () => 'test-token' } };
-  });
-  await page.route('**/*', async route => {
-    const url = new URL(route.request().url());
-    if (url.hostname === 'localhost') {
-      if (url.pathname === '/assets/js/analytics.js') return route.fulfill({ body: '', contentType: 'text/javascript' });
-      const name = url.pathname.endsWith('/') ? 'index.html' : path.basename(url.pathname);
-      let body = await fs.readFile(path.join(__dirname, '..', name), 'utf8');
-      if (name === 'index.html') body = body.replace(/<script\b[^>]*src="https:[\s\S]*?<\/script>/g, '');
-      return route.fulfill({ body, contentType: name.endsWith('.css') ? 'text/css' : name.endsWith('.js') ? 'text/javascript' : 'text/html' });
-    }
-    if (!url.hostname.endsWith('.convex.cloud')) return route.abort();
-    const { path: endpoint, args } = route.request().postDataJSON();
-    const key = `${args.personName}:${args.standupDate}`;
-    let value = null;
-    if (url.pathname.endsWith('/mutation')) mutations.push({ endpoint, args });
-    if (endpoint === 'standups:verify') value = { email: 'a.long.account.address@example.com' };
-    else if (endpoint === 'standups:getForPersonAndDate') value = entries.get(key) || {
-      personName: args.personName, standupDate: args.standupDate, updatedAt: Date.now(),
-      yesterday: '<ul><li>Reviewed launch plans</li></ul>', today: '<ul><li>Schedule posts for the week</li><li>Review campaign strategy</li></ul>', blockers: '', notes: '',
-    };
-    else if (endpoint === 'standups:getPreviousForPerson') value = { personName: args.personName, standupDate: '2026-09-14', today: '<ul><li>Follow up on the previous plan</li></ul>' };
-    else if (endpoint === 'standups:save') { entries.set(key, { ...args, updatedAt: Date.now() }); value = 'entry-1'; }
-    else if (endpoint === 'standups:saveItemComment') {
-      value = `comment-${comments.length}`;
-      comments.push({ ...args, _id: value, personKey: args.personName.toLowerCase(), authorEmail: 'tester@example.com', createdAt: Date.now() });
-    } else if (endpoint === 'standups:listItemComments') value = comments.filter(c => c.personName === args.personName && c.standupDate === args.standupDate);
-    else if (endpoint.includes('list')) value = [];
-    return route.fulfill({ json: { status: 'success', value } });
-  });
-  await page.goto('http://localhost/');
-  await page.waitForFunction(() => document.querySelector('#today').textContent.includes('Schedule posts') && !document.querySelector('#previousContent').textContent.includes('Looking for'));
-  return { page, errors, comments, mutations };
-}
-
-async function assertNoOverflow(page) {
-  const sizes = await page.evaluate(() => ({ document: document.documentElement.scrollWidth, viewport: innerWidth }));
-  assert.ok(sizes.document <= sizes.viewport + 1, `Page overflows: ${JSON.stringify(sizes)}`);
-}
+const { openStandups, assertNoOverflow } = require('./fixtures.cjs');
 
 test('phone and tablet layouts keep headings, editors, and date controls in bounds', async () => {
   const browser = await browserType.launch({ headless: true });
@@ -66,7 +14,7 @@ test('phone and tablet layouts keep headings, editors, and date controls in boun
       await assertNoOverflow(page);
       const heading = await page.locator('.topbar h1').boundingBox();
       assert.ok(heading.height < 110, `Title wraps excessively at ${width}px`);
-      for (const selector of ['#standupDate', '#lockButton', '#personName', '#today', '.form-actions']) {
+      for (const selector of ['#standupDate', '#lockButton', '#personName-trigger', '#today', '.form-actions']) {
         const box = await page.locator(selector).boundingBox();
         assert.ok(box.x >= 0 && box.x + box.width <= width + 1, `${selector} outside ${width}px viewport`);
       }
@@ -98,7 +46,9 @@ test('phone editing, autosave, dates, comments, and reduced keyboard viewport', 
   const browser = await browserType.launch({ headless: true });
   try {
     const { page, mutations, comments, errors } = await openStandups(browser, 390);
-    await page.locator('#personName').selectOption('John');
+    await page.locator('#personName-trigger').tap();
+    await page.getByRole('combobox', { name: 'Search team member' }).fill('John');
+    await page.getByRole('option', { name: 'John', exact: true }).tap();
     await page.waitForFunction(() => document.querySelector('#todayTitle').textContent === "John's updates");
     await page.locator('#today').fill('Writing an update from my phone');
     await page.waitForFunction(() => document.querySelector('#saveStatus').textContent.startsWith('Last saved'));
@@ -116,7 +66,7 @@ test('phone editing, autosave, dates, comments, and reduced keyboard viewport', 
       const range = document.createRange(); range.selectNodeContents(node);
       const selection = getSelection(); selection.removeAllRanges(); selection.addRange(range);
     });
-    const toolbar = page.locator('.rich-field').filter({ has: page.locator('#today') });
+    const toolbar = page.locator('#documentToolbar');
     await toolbar.locator('[data-command="bold"]').tap();
     await page.waitForFunction(() => [...document.querySelectorAll('#today b, #today strong')].some(node => node.textContent.includes('Writing an update from my phone')));
     await toolbar.locator('[data-comment-editor]').tap();

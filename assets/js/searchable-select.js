@@ -47,7 +47,8 @@
         const text = make('span', 'search-select-option-text'); text.textContent = option.textContent;
         const check = make('span', 'search-select-check'); check.textContent = option.selected ? '✓' : ''; check.setAttribute('aria-hidden', 'true');
         item.append(text, check);
-        item.addEventListener('pointerdown', event => event.preventDefault());
+        // Safari suppresses the synthesized click when touch pointerdown is cancelled.
+        item.addEventListener('pointerdown', event => { if (event.pointerType === 'mouse') event.preventDefault(); });
         item.addEventListener('click', () => choose(i)); list.append(item);
       });
       empty.hidden = matches.length > 0;

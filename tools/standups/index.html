@@ -5,51 +5,91 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="robots" content="noindex, nofollow" />
-    <title>Daily Standups Tracker</title>
-    <link rel="stylesheet" href="./styles.css?v=53" />
-  <link rel="stylesheet" href="../../assets/css/clerk-auth.css?v=20261008-1">
-  </head>
+    <title>Daily Standups</title>
+    <link rel="stylesheet" href="../../assets/css/searchable-select.css?v=20261010-1" />
+    <link rel="stylesheet" href="./styles.css?v=20261010-3" />
+    <link rel="stylesheet" href="../../assets/css/clerk-auth.css?v=20261008-1">
+</head>
   <body>
-    <section data-auth-screen="standups" id="accessGate" class="access-gate" aria-labelledby="accessTitle" role="dialog" aria-modal="true">
+    <section data-auth-screen="standups" id="accessGate" class="access-gate" data-state="loading" aria-labelledby="accessTitle" role="dialog" aria-modal="true">
       <div class="access-card">
-        <p class="eyebrow">Restricted tool</p>
-        <h1 id="accessTitle">Daily Standups Tracker</h1>
-        <p class="access-copy">Sign in with your approved email to view and edit standups.</p>
-        <div id="clerkSignIn" data-clerk-mount class="clerk-sign-in" aria-live="polite"></div>
-        <p id="authStatus" class="auth-status" role="status">Loading secure sign-in...</p>
+        <header class="access-heading">
+          <p class="eyebrow">Team workspace</p>
+          <h1 id="accessTitle">Daily Standups</h1>
+          <p class="access-copy">Sign in with your approved email to open your team's updates.</p>
+        </header>
+        <div id="authBody" class="auth-body" aria-busy="true">
+          <div id="authLoading" class="auth-loading" aria-hidden="true">
+            <span class="auth-skeleton auth-skeleton-heading"></span>
+            <span class="auth-skeleton auth-skeleton-label"></span>
+            <span class="auth-skeleton auth-skeleton-input"></span>
+            <span class="auth-skeleton auth-skeleton-button"></span>
+          </div>
+          <div id="clerkSignIn" data-clerk-mount></div>
+        </div>
+        <p id="authStatus" class="auth-status" role="status">Loading secure sign-in…</p>
+        <button id="authRetry" class="auth-retry" type="button" hidden>Try again</button>
         <button id="authSignOut" class="auth-sign-out" type="button" hidden>Use a different email</button>
-        <p class="access-footnote">Passwordless sign-in by Clerk · Server-verified access</p>
+        <p class="access-footnote">Access is limited to approved team members.</p>
       </div>
     </section>
 
     <main id="standupsApp" class="app-shell" hidden>
       <header class="topbar">
         <div>
-          <p class="eyebrow">Daily standups</p>
-          <h1>Daily Standups Tracker</h1>
-        </div>
-        <div class="date-control">
-          <label for="standupDate">Standup date</label>
-          <input id="standupDate" type="date" />
+          <p class="eyebrow">Team workspace</p>
+          <h1>Daily Standups</h1>
+          <p class="workspace-subtitle">A little context. A clearer day.</p>
         </div>
         <button id="lockButton" class="lock-button" type="button">Sign out</button>
       </header>
 
+      <section id="meetingControls" class="meeting-controls" aria-label="Standup navigation">
+        <div class="identity-row">
+          <label class="field name-field">
+            <span id="personNameLabel">Team member</span>
+            <select id="personName" form="standupForm" aria-labelledby="personNameLabel" name="personName" required>
+              <option value="">Select a person</option>
+              <option value="John">John</option>
+              <option value="Vivek">Vivek</option>
+              <option value="Vishal">Vishal</option>
+              <option value="Jenny">Jenny</option>
+            </select>
+          </label>
+          <div class="date-control">
+            <label for="standupDate">Standup date</label>
+            <input id="standupDate" type="date" />
+          </div>
+          <div class="meeting-actions">
+            <button id="spotlightToggle" class="spotlight-toggle" type="button" aria-label="Spotlight" aria-pressed="false" aria-controls="standupForm"><span class="meeting-button-label">Spotlight</span><kbd data-shortcut-hint="spotlight" aria-hidden="true"></kbd></button>
+            <button id="spotlightCommentsToggle" class="spotlight-comments-toggle" type="button" aria-label="Show comments" aria-pressed="false" aria-controls="commentsOverview" hidden><span class="meeting-button-label">Show comments</span><kbd data-shortcut-hint="discussions" aria-hidden="true"></kbd></button>
+            <button id="shortcutSettingsButton" type="button" aria-haspopup="dialog">Shortcuts</button>
+          </div>
+        </div>
+
+        <div class="meeting-navigation">
+          <nav class="member-navigation" aria-label="Team members">
+            <button type="button" data-person-jump="John" aria-pressed="false">John<span class="submission-dot" aria-hidden="true"></span></button>
+            <button type="button" data-person-jump="Vivek" aria-pressed="false">Vivek<span class="submission-dot" aria-hidden="true"></span></button>
+            <button type="button" data-person-jump="Vishal" aria-pressed="false">Vishal<span class="submission-dot" aria-hidden="true"></span></button>
+            <button type="button" data-person-jump="Jenny" aria-pressed="false">Jenny<span class="submission-dot" aria-hidden="true"></span></button>
+          </nav>
+          <div class="member-step-controls">
+            <button id="previousPerson" type="button" aria-label="Previous teammate" title="Previous teammate">←</button>
+            <span id="memberPosition" class="member-position" aria-live="polite"></span>
+            <button id="nextPerson" type="button" aria-label="Next teammate" title="Next teammate">→</button>
+          </div>
+          <nav class="section-navigation" aria-label="Submission sections">
+            <a href="#yesterday" data-section-jump="yesterday">Yesterday</a>
+            <a href="#today" data-section-jump="today">Today</a>
+            <a href="#blockers" data-section-jump="blockers">Blockers</a>
+            <a href="#notes" data-section-jump="notes">Notes</a>
+          </nav>
+        </div>
+      </section>
+
       <section class="workspace" aria-label="Standup entry workspace">
         <form id="standupForm" class="entry-form">
-          <div class="identity-row">
-            <label class="field name-field">
-              <span>Your name</span>
-              <select id="personName" name="personName" required>
-                <option value="">Select a person</option>
-                <option value="John">John</option>
-                <option value="Vivek">Vivek</option>
-                <option value="Vishal">Vishal</option>
-                <option value="Jenny">Jenny</option>
-              </select>
-            </label>
-          </div>
-
           <div class="compare-grid">
             <section class="previous-panel" aria-labelledby="previousTitle">
               <div class="panel-heading">
@@ -66,60 +106,51 @@
                 <p id="todayEyebrow" class="eyebrow">Today</p>
                 <h2 id="todayTitle">Select a person</h2>
               </div>
-              <section class="field rich-field completion-target">
-                <span>Yesterday / things I did</span>
-                <div class="editor-toolbar" aria-label="Yesterday formatting">
-                  <button type="button" data-command="bold" title="Bold"><strong>B</strong></button>
-                  <button type="button" data-command="strikeThrough" title="Strikethrough"><s>S</s></button>
-                  <button type="button" data-command="insertUnorderedList" title="Bulleted list, Command Shift 8">•</button>
-                  <button type="button" data-command="insertOrderedList" title="Numbered list, Command Shift 7">1.</button>
-                  <button type="button" data-command="toggleChecklist" title="Checklist, type [ ] then space">☐</button>
-                  <button class="comment-editor-button" type="button" data-comment-editor title="Comment on selected item, Command Option M">Comment</button>
-                  <button class="copy-editor-button" type="button" data-copy-editor title="Copy contents">Copy</button>
+              <div id="documentToolbar" class="editor-toolbar document-toolbar" role="toolbar" aria-label="Standup formatting" aria-controls="yesterday today blockers notes">
+                <div class="toolbar-group" aria-label="History">
+                  <button type="button" data-command="undo" aria-label="Undo" title="Undo (⌘/Ctrl Z)">↶</button>
+                  <button type="button" data-command="redo" aria-label="Redo" title="Redo (⌘/Ctrl Shift Z)">↷</button>
                 </div>
-                <div id="yesterday" class="rich-editor" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Yesterday / things I did" data-placeholder="What changed since your last update?"></div>
+                <div class="toolbar-group" aria-label="Text formatting">
+                  <button type="button" data-command="bold" aria-label="Bold" title="Bold (⌘/Ctrl B)" aria-pressed="false"><strong>B</strong></button>
+                  <button type="button" data-command="italic" aria-label="Italic" title="Italic (⌘/Ctrl I)" aria-pressed="false"><i>I</i></button>
+                  <button type="button" data-command="underline" aria-label="Underline" title="Underline (⌘/Ctrl U)" aria-pressed="false"><u>U</u></button>
+                  <button type="button" data-command="strikeThrough" aria-label="Strikethrough" title="Strikethrough" aria-pressed="false"><s>S</s></button>
+                </div>
+                <div class="toolbar-group" aria-label="Lists">
+                  <button type="button" data-command="insertUnorderedList" aria-label="Bulleted list" title="Bulleted list (⌘/Ctrl Shift 8)" aria-pressed="false">≡•</button>
+                  <button type="button" data-command="insertOrderedList" aria-label="Numbered list" title="Numbered list (⌘/Ctrl Shift 7)" aria-pressed="false">1.</button>
+                  <button type="button" data-command="toggleChecklist" aria-label="Checklist" title="Checklist — type [ ] then space" aria-pressed="false">☑</button>
+                </div>
+                <div class="toolbar-group" aria-label="Insert and clean up">
+                  <button type="button" data-link-editor aria-label="Insert link" title="Insert link (⌘/Ctrl K)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-2 2M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l2-2"/></svg></button>
+                  <button type="button" data-command="removeFormat" aria-label="Clear formatting" title="Clear formatting">T̸</button>
+                </div>
+                <div class="toolbar-group toolbar-actions">
+                  <button class="comment-editor-button" type="button" data-comment-editor title="Comment (⌘/Ctrl Option M)">Comment</button>
+                  <button class="copy-editor-button" type="button" data-copy-editor title="Copy active section">Copy</button>
+                </div>
+              </div>
+              <p id="editorContext" class="editor-context" aria-live="polite">Editing Today · select text to format or comment</p>
+              <section class="field rich-field completion-target">
+                <span>Yesterday <small>What moved forward</small></span>
+                <div id="yesterday" class="rich-editor" contenteditable="true" spellcheck="true" role="textbox" aria-multiline="true" aria-label="Yesterday / things I did" data-placeholder="What changed since your last update?"></div>
               </section>
               <section class="field rich-field">
-                <span>Today / things to do</span>
-                <div class="editor-toolbar" aria-label="Today formatting">
-                  <button type="button" data-command="bold" title="Bold"><strong>B</strong></button>
-                  <button type="button" data-command="strikeThrough" title="Strikethrough"><s>S</s></button>
-                  <button type="button" data-command="insertUnorderedList" title="Bulleted list, Command Shift 8">•</button>
-                  <button type="button" data-command="insertOrderedList" title="Numbered list, Command Shift 7">1.</button>
-                  <button type="button" data-command="toggleChecklist" title="Checklist, type [ ] then space">☐</button>
-                  <button class="comment-editor-button" type="button" data-comment-editor title="Comment on selected item, Command Option M">Comment</button>
-                  <button class="copy-editor-button" type="button" data-copy-editor title="Copy contents">Copy</button>
-                </div>
-                <div id="today" class="rich-editor" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Today / things to do" data-placeholder="What are you moving forward today?"></div>
+                <span>Today <small>What comes next</small></span>
+                <div id="today" class="rich-editor" contenteditable="true" spellcheck="true" role="textbox" aria-multiline="true" aria-label="Today / things to do" data-placeholder="What are you moving forward today?"></div>
               </section>
               <section class="field rich-field">
                 <span>Blockers <em>(Optional)</em></span>
-                <div class="editor-toolbar" aria-label="Blockers formatting">
-                  <button type="button" data-command="bold" title="Bold"><strong>B</strong></button>
-                  <button type="button" data-command="strikeThrough" title="Strikethrough"><s>S</s></button>
-                  <button type="button" data-command="insertUnorderedList" title="Bulleted list, Command Shift 8">•</button>
-                  <button type="button" data-command="insertOrderedList" title="Numbered list, Command Shift 7">1.</button>
-                  <button type="button" data-command="toggleChecklist" title="Checklist, type [ ] then space">☐</button>
-                  <button class="comment-editor-button" type="button" data-comment-editor title="Comment on selected item, Command Option M">Comment</button>
-                  <button class="copy-editor-button" type="button" data-copy-editor title="Copy contents">Copy</button>
-                </div>
-                <div id="blockers" class="rich-editor" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Blockers" data-placeholder="Anything stuck, waiting, or risky?"></div>
+                <div id="blockers" class="rich-editor" contenteditable="true" spellcheck="true" role="textbox" aria-multiline="true" aria-label="Blockers" data-placeholder="Anything stuck, waiting, or risky?"></div>
               </section>
               <section class="field rich-field">
                 <span>Notes <em>(Optional)</em></span>
-                <div class="editor-toolbar" aria-label="Notes formatting">
-                  <button type="button" data-command="bold" title="Bold"><strong>B</strong></button>
-                  <button type="button" data-command="strikeThrough" title="Strikethrough"><s>S</s></button>
-                  <button type="button" data-command="insertUnorderedList" title="Bulleted list, Command Shift 8">•</button>
-                  <button type="button" data-command="insertOrderedList" title="Numbered list, Command Shift 7">1.</button>
-                  <button type="button" data-command="toggleChecklist" title="Checklist, type [ ] then space">☐</button>
-                  <button class="comment-editor-button" type="button" data-comment-editor title="Comment on selected item, Command Option M">Comment</button>
-                  <button class="copy-editor-button" type="button" data-copy-editor title="Copy contents">Copy</button>
-                </div>
-                <div id="notes" class="rich-editor" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Notes" data-placeholder="Useful context, links, or handoff notes."></div>
+                <div id="notes" class="rich-editor" contenteditable="true" spellcheck="true" role="textbox" aria-multiline="true" aria-label="Notes" data-placeholder="Useful context, links, or handoff notes."></div>
               </section>
               <div class="form-actions">
                 <p id="saveStatus" class="save-status" role="status">Autosave ready</p>
+                <button id="saveRetry" class="save-retry" type="button" hidden>Retry save</button>
                 <nav class="date-jump" aria-label="Standup date shortcuts">
                   <button class="date-jump-compact" type="button" data-date-jump="-3" aria-label="Open update from three days ago"><strong id="olderTwoShortcutDate"></strong></button>
                   <button class="date-jump-compact" type="button" data-date-jump="-2" aria-label="Open update from two days ago"><strong id="olderOneShortcutDate"></strong></button>
@@ -136,7 +167,7 @@
           <section class="notetaker-card" aria-labelledby="notetakerTitle">
             <div class="panel-heading">
               <p id="notetakerDate" class="eyebrow"></p>
-              <h2 id="notetakerTitle">Notetaker Notes</h2>
+              <h2 id="notetakerTitle">Meeting notes</h2>
             </div>
             <p id="notetakerSummary" class="notetaker-summary">Loading Fathom notes...</p>
             <div class="notetaker-actions">
@@ -160,7 +191,7 @@
           <section class="daily-notes-card" aria-labelledby="dailyNotesTitle">
             <div class="panel-heading">
               <p id="dailyNotesDate" class="eyebrow"></p>
-              <h2 id="dailyNotesTitle">Daily Notes</h2>
+              <h2 id="dailyNotesTitle">Team notes</h2>
             </div>
             <section class="field rich-field daily-notes-field">
               <span>Shared notes for this date</span>
@@ -176,18 +207,45 @@
             </section>
             <p id="dailyNotesStatus" class="daily-notes-status" role="status">Daily notes ready</p>
           </section>
+          <section class="roster-card" aria-labelledby="dailyListTitle">
           <div class="panel-heading">
             <p id="rosterDate" class="eyebrow"></p>
-            <h2 id="dailyListTitle">Submitted Updates</h2>
+            <h2 id="dailyListTitle">Team updates</h2>
           </div>
           <div id="entriesList" class="entries-list"></div>
           <div class="panel-heading roster-subhead">
-            <h2 id="unsubmittedTitle">Unsubmitted</h2>
+            <h2 id="unsubmittedTitle">Awaiting updates</h2>
           </div>
           <div id="unsubmittedList" class="entries-list"></div>
+          </section>
         </aside>
       </section>
     </main>
+
+    <dialog id="shortcutDialog" class="shortcut-dialog" aria-labelledby="shortcutDialogTitle">
+      <form id="shortcutForm">
+        <div class="link-dialog-heading"><h2 id="shortcutDialogTitle">Call shortcuts</h2><button id="shortcutClose" type="button" aria-label="Close shortcut settings">×</button></div>
+        <label class="shortcut-enable"><input id="shortcutsEnabled" type="checkbox" checked /> Enable call shortcuts</label>
+        <p>Hold <strong id="shortcutModifiers">Command + Option + Shift</strong>, then press the letter. Change any letter below.</p>
+        <div class="shortcut-binding"><label for="shortcutSpotlight">Spotlight on / off</label><input id="shortcutSpotlight" data-shortcut-letter="spotlight" maxlength="1" pattern="[A-Za-z]" required autocomplete="off" autocapitalize="characters" spellcheck="false" /></div>
+        <div class="shortcut-binding"><label for="shortcutDiscussions">Discussions show / hide <small>In Spotlight</small></label><input id="shortcutDiscussions" data-shortcut-letter="discussions" maxlength="1" pattern="[A-Za-z]" required autocomplete="off" autocapitalize="characters" spellcheck="false" /></div>
+        <div class="shortcut-binding"><label for="shortcutNext">Next teammate</label><input id="shortcutNext" data-shortcut-letter="next" maxlength="1" pattern="[A-Za-z]" required autocomplete="off" autocapitalize="characters" spellcheck="false" /></div>
+        <div class="shortcut-binding"><label for="shortcutPrevious">Previous teammate</label><input id="shortcutPrevious" data-shortcut-letter="previous" maxlength="1" pattern="[A-Za-z]" required autocomplete="off" autocapitalize="characters" spellcheck="false" /></div>
+        <p class="shortcut-help">Shortcuts pause while typing or using a menu or dialog. Escape closes a popup, then hides discussions, then exits Spotlight.</p>
+        <p id="shortcutError" class="link-error" role="alert"></p>
+        <div class="shortcut-dialog-actions"><button id="shortcutReset" type="button">Reset defaults</button><button type="submit">Save shortcuts</button></div>
+      </form>
+    </dialog>
+
+    <dialog id="linkDialog" class="link-dialog" aria-labelledby="linkDialogTitle">
+      <form id="linkForm">
+        <div class="link-dialog-heading"><h2 id="linkDialogTitle">Insert link</h2><button id="linkCancel" type="button" aria-label="Close insert link">×</button></div>
+        <label for="linkUrl">Web address</label>
+        <input id="linkUrl" type="url" placeholder="https://example.com" required autocomplete="off" />
+        <p id="linkError" class="link-error" role="status"></p>
+        <button type="submit">Apply link</button>
+      </form>
+    </dialog>
 
     <template id="commentThreadTemplate">
       <section id="commentThreadPanel" role="dialog" class="comment-thread-panel" aria-labelledby="commentPanelTitle">
@@ -232,18 +290,21 @@
     </template>
 
     <script
-      defer
+      async
+      data-clerk-script
       crossorigin="anonymous"
       src="https://clerk.john-ta.com/npm/@clerk/ui@1/dist/ui.browser.js"
       type="text/javascript"
     ></script>
     <script
-      defer
+      async
+      data-clerk-script
       crossorigin="anonymous"
       data-clerk-publishable-key="pk_live_Y2xlcmsuam9obi10YS5jb20k"
       src="https://clerk.john-ta.com/npm/@clerk/clerk-js@6/dist/clerk.browser.js"
       type="text/javascript"
     ></script>
-    <script defer src="./app.js?v=53"></script>
+    <script defer src="../../assets/js/searchable-select.js?v=20261010-2"></script>
+    <script defer src="./app.js?v=20261010-3"></script>
   </body>
 </html>

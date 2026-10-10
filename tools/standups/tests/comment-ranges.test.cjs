@@ -22,7 +22,7 @@ test('comments highlight exact selections across formatting, repeated text, relo
     await page.route('**/*', async route => {
       const url = new URL(route.request().url());
       if (url.hostname === 'localhost') {
-      if (url.pathname === '/assets/js/analytics.js') return route.fulfill({ body: '', contentType: 'text/javascript' });
+      if (url.pathname.startsWith('/assets/')) return route.fulfill({ body: await fs.readFile(path.join(__dirname, '../../..', url.pathname)), contentType: url.pathname.endsWith('.js') ? 'text/javascript' : 'text/css' });
         const file = url.pathname.endsWith('/') ? 'index.html' : path.basename(url.pathname);
         let body = await fs.readFile(path.join(__dirname, '..', file), 'utf8');
         if (file === 'index.html') body = body.replace(/<script\b[^>]*src="https:[\s\S]*?<\/script>/g, '');
@@ -44,7 +44,7 @@ test('comments highlight exact selections across formatting, repeated text, relo
     await page.goto('http://localhost/');
     await page.waitForFunction(() => document.querySelectorAll('#today li').length === 3);
     const active = page.locator('.comment-thread-panel:visible');
-    const add = () => page.locator('.rich-field').filter({ has: page.locator('#today') }).locator('[data-comment-editor]').click();
+    const add = () => page.locator('#documentToolbar').locator('[data-comment-editor]').click();
     const readRanges = () => page.evaluate(() => [...CSS.highlights.get('standup-comments')].map(range => ({ text: range.toString(), row: [...document.querySelectorAll('#today li')].indexOf(range.startContainer.parentElement.closest('li')) })));
     assert.deepEqual(await readRanges(), [{ text: 'Jenny', row: 0 }]);
     // Select the second occurrence of the same word, not the first match.

@@ -2,10 +2,11 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs/promises');
 const path = require('node:path');
-const { chromium } = require('playwright');
+const { chromium, webkit } = require('playwright');
+const browserType = process.env.STANDUPS_BROWSER === 'webkit' ? webkit : chromium;
 
 test('one visible comment at a time preserves drafts, replies, and responsive positioning', async () => {
-  const browser = await chromium.launch({ headless: true });
+  const browser = await browserType.launch({ headless: true });
   try {
     const page = await browser.newPage({ viewport: { width: 1600, height: 1100 } });
     const errors = [];
@@ -22,7 +23,7 @@ test('one visible comment at a time preserves drafts, replies, and responsive po
     await page.route('**/*', async route => {
       const url = new URL(route.request().url());
       if (url.hostname === 'localhost') {
-      if (url.pathname === '/assets/js/analytics.js') return route.fulfill({ body: '', contentType: 'text/javascript' });
+      if (url.pathname.startsWith('/assets/')) return route.fulfill({ body: await fs.readFile(path.join(__dirname, '../../..', url.pathname)), contentType: url.pathname.endsWith('.js') ? 'text/javascript' : 'text/css' });
         const file = url.pathname.endsWith('/') ? 'index.html' : path.basename(url.pathname);
         let body = await fs.readFile(path.join(__dirname, '..', file), 'utf8');
         if (file === 'index.html') body = body.replace(/<script\b[^>]*src="https:[\s\S]*?<\/script>/g, '');
@@ -57,7 +58,7 @@ test('one visible comment at a time preserves drafts, replies, and responsive po
         selection.removeAllRanges();
         selection.addRange(range);
       });
-      await page.locator('.rich-field').filter({ has: page.locator('#today') }).getByRole('button', { name: 'Comment', exact: true }).click();
+      await page.locator('#documentToolbar').getByRole('button', { name: 'Comment', exact: true }).click();
     };
     await add();
     assert.equal(await cards.count(), 1);
@@ -133,7 +134,9 @@ test('one visible comment at a time preserves drafts, replies, and responsive po
     const request = page.waitForRequest(req => req.postData()?.includes('Save while switching person'));
     await cards.first().getByRole('button', { name: 'Reply', exact: true }).click();
     await request;
-    await page.locator('#personName').selectOption('John');
+    await page.locator('#personName-trigger').click();
+    await page.getByRole('combobox', { name: 'Search team member' }).fill('John');
+    await page.getByRole('option', { name: 'John', exact: true }).click();
     assert.equal(await cards.count(), 0);
     finishSave();
     await page.waitForFunction(() => document.querySelector('#saveStatus').textContent.includes('Comment saved'));

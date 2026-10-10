@@ -1,6 +1,12 @@
 const CONVEX_URL = "https://rapid-shark-565.convex.cloud";
 const TEAM_ID = "johns-website-default";
 const LOCAL_NAME_KEY = "standups:last-person-name";
+const CALL_SHORTCUTS_KEY = "standups:call-shortcuts:v1";
+const DEFAULT_CALL_LETTERS = { spotlight: "S", discussions: "D", next: "N", previous: "P" };
+// These combinations have system/browser actions even with all three modifiers.
+const RESERVED_CALL_LETTERS = new Set(["Q", "I", "A", "V"]);
+const isMacKeyboard = /Mac|iPhone|iPad/.test(navigator.platform);
+let callShortcuts = readCallShortcuts();
 const TEAM_MEMBERS = ["John", "Vivek", "Vishal", "Jenny"];
 const COMMENT_FIELDS = ["yesterday", "today", "blockers", "notes"];
 const COMMENT_FIELD_LABELS = {
@@ -15,6 +21,9 @@ const els = {
   accessGate: document.querySelector("#accessGate"),
   clerkSignIn: document.querySelector("#clerkSignIn"),
   authStatus: document.querySelector("#authStatus"),
+  authBody: document.querySelector("#authBody"),
+  authLoading: document.querySelector("#authLoading"),
+  authRetry: document.querySelector("#authRetry"),
   authSignOut: document.querySelector("#authSignOut"),
   lockButton: document.querySelector("#lockButton"),
   date: document.querySelector("#standupDate"),
@@ -75,22 +84,44 @@ let midnightResetTimer;
 let activeDailyNotesDate = "";
 let isHydrating = false;
 let shouldResetNewChecklistItem = false;
+let activePersonEditor = els.today;
+let personPicker;
+let linkEditor;
+let activeEntryContext;
+let personLoadVersion = 0;
+let standupDirty = false;
+let standupRevision = 0;
+let pendingStandupSave = Promise.resolve(true);
+let dailyNotesDirty = false;
+let dailyNotesRevision = 0;
+let pendingDailyNotesSave = Promise.resolve(true);
+let dateLoadVersion = 0;
+let spotlightMode = false;
+let spotlightCommentsVisible = false;
+let personEditingAvailable = false;
 
 init();
 
 function init() {
+  els.authRetry.addEventListener("click", () => window.location.reload());
+  els.authSignOut.addEventListener("click", signOut);
   initializeClerk();
 }
 
 function initStandups() {
   els.date.value = toDateInputValue(new Date());
   els.personName.value = localStorage.getItem(LOCAL_NAME_KEY) || "";
+  personPicker = window.SearchableSelect.enhance(els.personName);
+  document.querySelector("#saveRetry").addEventListener("click", () => flushAutosave());
   configureRichTextCommands();
+  configureEditorTools();
+  configureMeetingControls();
+  setPersonEditingEnabled(false);
   updateDateShortcuts();
   els.date.addEventListener("click", openDatePicker);
   els.date.addEventListener("focus", openDatePicker);
   els.date.addEventListener("change", handleDateChange);
-  els.personName.addEventListener("change", loadPersonContext);
+  els.personName.addEventListener("change", () => loadPersonContext({ scrollToUpdate: true }));
   els.notetakerViewButton.addEventListener("click", openNotetakerModal);
   els.notetakerCloseButton.addEventListener("click", closeNotetakerModal);
   window.addEventListener("resize", scheduleCommentLayout);
@@ -101,11 +132,26 @@ function initStandups() {
     if (event.target === els.notetakerModal) closeNotetakerModal();
   });
   document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape" && !els.notetakerModal.hasAttribute("hidden")) closeNotetakerModal();
-    if (event.key === "Escape" && activeCommentKey) closeCommentThread(activeCommentKey);
+    if (event.key !== "Escape" || event.defaultPrevented || event.isComposing || event.repeat) return;
+    // Native dialogs and the searchable picker handle their own Escape first.
+    if (document.querySelector("dialog[open]")) return;
+    if (!els.notetakerModal.hidden) {
+      event.preventDefault();
+      closeNotetakerModal();
+      return;
+    }
+    if (activeCommentKey) {
+      event.preventDefault();
+      if (spotlightMode) activateCommentThread(null);
+      else closeCommentThread(activeCommentKey);
+      return;
+    }
+    if (callShortcutContextBlocked(event) || !spotlightMode) return;
+    event.preventDefault();
+    if (spotlightCommentsVisible) setSpotlightCommentsVisible(false);
+    else if (!document.querySelector("#spotlightToggle").disabled) toggleSpotlight();
   });
   els.lockButton.addEventListener("click", signOut);
-  els.authSignOut.addEventListener("click", signOut);
   els.form.addEventListener("submit", (event) => event.preventDefault());
   document.querySelectorAll("[data-date-jump]").forEach((button) => {
     button.addEventListener("click", () => jumpToRelativeDate(Number(button.dataset.dateJump)));
@@ -132,8 +178,14 @@ function initStandups() {
       editor.classList.remove("is-invalid");
       normalizeChecklists(editor);
       queueEditorAutosave(editor);
+      updateToolbarState();
       scheduleCommentLayout();
     });
+    editor.addEventListener("focus", () => {
+      if (personEditors.includes(editor)) activePersonEditor = editor;
+      updateToolbarState();
+    });
+    editor.addEventListener("paste", handleEditorPaste);
     editor.addEventListener("click", handleChecklistClick);
     editor.addEventListener("click", handleCommentHighlightClick);
     editor.addEventListener("keydown", handleEditorKeydown);
@@ -149,6 +201,314 @@ function initStandups() {
   });
 }
 
+function configureMeetingControls() {
+  const controls = document.querySelector("#meetingControls");
+  const updateHeight = () => {
+    document.documentElement.style.setProperty("--meeting-controls-height", `${Math.ceil(controls.getBoundingClientRect().height)}px`);
+  };
+  new ResizeObserver(updateHeight).observe(controls);
+  updateHeight();
+  document.querySelector("#spotlightToggle").addEventListener("click", toggleSpotlight);
+  document.querySelector("#spotlightCommentsToggle").addEventListener("click", () => {
+    setSpotlightCommentsVisible(!spotlightCommentsVisible);
+  });
+  document.querySelectorAll("[data-person-jump]").forEach((button) => {
+    button.addEventListener("click", () => selectMeetingPerson(button.dataset.personJump));
+  });
+  document.querySelector("#previousPerson").addEventListener("click", () => stepMeetingPerson(-1));
+  document.querySelector("#nextPerson").addEventListener("click", () => stepMeetingPerson(1));
+  document.querySelectorAll("[data-section-jump]").forEach((link) => {
+    link.addEventListener("click", (event) => {
+      event.preventDefault();
+      scrollToSubmission(els[link.dataset.sectionJump]);
+    });
+  });
+  configureCallShortcuts();
+}
+
+function validCallLetters(letters) {
+  const values = Object.keys(DEFAULT_CALL_LETTERS).map((action) => letters?.[action]);
+  return values.every((letter) => typeof letter === "string" && /^[A-Z]$/.test(letter) && !RESERVED_CALL_LETTERS.has(letter))
+    && new Set(values).size === values.length;
+}
+
+function readCallShortcuts() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(CALL_SHORTCUTS_KEY));
+    if (typeof saved?.enabled === "boolean" && validCallLetters(saved.letters)) return saved;
+  } catch { /* Use defaults if preferences are unavailable or outdated. */ }
+  return { enabled: true, letters: { ...DEFAULT_CALL_LETTERS } };
+}
+
+function callShortcutContextBlocked(event) {
+  return els.app.hidden || event.defaultPrevented || event.isComposing || event.repeat
+    || event.keyCode === 229
+    || Boolean(event.target.closest?.('input, textarea, select, [contenteditable="true"], [role="textbox"]:not([aria-readonly="true"]), [role="combobox"]'))
+    || Boolean(document.querySelector('dialog[open], .search-select-trigger[aria-expanded="true"]'))
+    || !els.notetakerModal.hidden || Boolean(activeCommentKey);
+}
+
+function updateCallShortcutHints() {
+  const prefix = isMacKeyboard ? "⌘⌥⇧" : "Ctrl+Alt+Shift+";
+  const buttons = { spotlight: "#spotlightToggle", discussions: "#spotlightCommentsToggle", next: "#nextPerson", previous: "#previousPerson" };
+  for (const [action, selector] of Object.entries(buttons)) {
+    const button = document.querySelector(selector);
+    const shortcut = `${prefix}${callShortcuts.letters[action]}`;
+    const hint = button.querySelector("[data-shortcut-hint]");
+    if (hint) { hint.textContent = shortcut; hint.hidden = !callShortcuts.enabled; }
+    button.title = `${button.getAttribute("aria-label")}${callShortcuts.enabled ? ` (${shortcut})` : ""}`;
+    if (callShortcuts.enabled) {
+      button.setAttribute("aria-keyshortcuts", `${isMacKeyboard ? "Meta" : "Control"}+Alt+Shift+${callShortcuts.letters[action]}`);
+    } else button.removeAttribute("aria-keyshortcuts");
+  }
+}
+
+function configureCallShortcuts() {
+  const dialog = document.querySelector("#shortcutDialog");
+  const fields = [...dialog.querySelectorAll("[data-shortcut-letter]")];
+  const error = document.querySelector("#shortcutError");
+  const populate = (settings) => {
+    document.querySelector("#shortcutsEnabled").checked = settings.enabled;
+    fields.forEach((input) => { input.value = settings.letters[input.dataset.shortcutLetter]; });
+    error.textContent = "";
+  };
+  document.querySelector("#shortcutModifiers").textContent = isMacKeyboard ? "Command + Option + Shift" : "Control + Alt + Shift";
+  document.querySelector("#shortcutSettingsButton").addEventListener("click", () => { populate(callShortcuts); dialog.showModal(); });
+  document.querySelector("#shortcutClose").addEventListener("click", () => dialog.close());
+  dialog.addEventListener("close", () => document.querySelector("#shortcutSettingsButton").focus({ preventScroll: true }));
+  document.querySelector("#shortcutReset").addEventListener("click", () => populate({ enabled: true, letters: DEFAULT_CALL_LETTERS }));
+  document.querySelector("#shortcutForm").addEventListener("submit", (event) => {
+    event.preventDefault();
+    const letters = Object.fromEntries(fields.map((input) => [input.dataset.shortcutLetter, input.value.trim().toUpperCase()]));
+    if (!validCallLetters(letters)) {
+      error.textContent = "Use a different letter A–Z for each action. A, I, Q and V are reserved for browser or system commands.";
+      return;
+    }
+    const settings = { enabled: document.querySelector("#shortcutsEnabled").checked, letters };
+    try { localStorage.setItem(CALL_SHORTCUTS_KEY, JSON.stringify(settings)); }
+    catch { error.textContent = "Couldn’t save these preferences. Your current shortcuts are still active."; return; }
+    callShortcuts = settings;
+    updateCallShortcutHints();
+    dialog.close();
+  });
+  document.addEventListener("keydown", (event) => {
+    if (!callShortcuts.enabled || callShortcutContextBlocked(event)) return;
+    const primaryModifier = isMacKeyboard ? event.metaKey && !event.ctrlKey : event.ctrlKey && !event.metaKey;
+    if (!primaryModifier || !event.altKey || !event.shiftKey) return;
+    const action = Object.keys(DEFAULT_CALL_LETTERS).find((key) => event.code === `Key${callShortcuts.letters[key]}`);
+    if (!action || (action === "discussions" && !spotlightMode)) return;
+    if (document.querySelector("#spotlightToggle").disabled || !personEditingAvailable) return;
+    event.preventDefault();
+    if (action === "spotlight") toggleSpotlight();
+    else if (action === "discussions") setSpotlightCommentsVisible(!spotlightCommentsVisible);
+    else stepMeetingPerson(action === "next" ? 1 : -1);
+  });
+  updateCallShortcutHints();
+}
+
+async function toggleSpotlight() {
+  const button = document.querySelector("#spotlightToggle");
+  button.disabled = true;
+  try {
+    if (!spotlightMode && (!await flushAutosave() || !await flushDailyNotesAutosave())) return;
+    rememberEditorSelection();
+    spotlightMode = !spotlightMode;
+    document.body.classList.toggle("is-spotlight", spotlightMode);
+    const label = spotlightMode ? "Exit spotlight" : "Spotlight";
+    button.querySelector(".meeting-button-label").textContent = label;
+    button.setAttribute("aria-label", label);
+    button.setAttribute("aria-pressed", String(spotlightMode));
+    setPersonEditingEnabled(personEditingAvailable);
+    setSpotlightCommentsVisible(false);
+    updateSpotlightSections();
+    if (spotlightMode) {
+      window.getSelection()?.removeAllRanges();
+      if (!els.notetakerModal.hidden) closeNotetakerModal();
+    }
+    button.disabled = false;
+    button.focus({ preventScroll: true });
+    scrollToSubmission();
+    scheduleCommentLayout();
+  } finally {
+    button.disabled = false;
+  }
+}
+
+function setSpotlightCommentsVisible(visible) {
+  spotlightCommentsVisible = spotlightMode && visible;
+  document.body.classList.toggle("spotlight-comments-visible", spotlightCommentsVisible);
+  const button = document.querySelector("#spotlightCommentsToggle");
+  button.hidden = !spotlightMode;
+  const label = spotlightCommentsVisible ? "Hide comments" : "Show comments";
+  button.querySelector(".meeting-button-label").textContent = label;
+  button.setAttribute("aria-label", label);
+  button.setAttribute("aria-pressed", String(spotlightCommentsVisible));
+  updateCallShortcutHints();
+  // Hide open panels without destroying comment drafts when toggling views.
+  if (!spotlightCommentsVisible) activateCommentThread(null);
+  renderItemComments();
+  renderGlobalComments();
+  scheduleCommentLayout();
+}
+
+function updateSpotlightSections() {
+  for (const id of ["blockers", "notes"]) {
+    const empty = !els[id].textContent.trim();
+    els[id].closest(".rich-field").classList.toggle("spotlight-empty", empty);
+    const link = document.querySelector(`[data-section-jump="${id}"]`);
+    link.hidden = spotlightMode && empty;
+  }
+}
+
+function updateMeetingNavigation() {
+  const selected = els.personName.value;
+  const index = TEAM_MEMBERS.indexOf(selected);
+  document.querySelector("#memberPosition").textContent = index >= 0 ? `${index + 1} of ${TEAM_MEMBERS.length}` : "Choose a person";
+  const submitted = new Set(entriesForDate.map((entry) => entry.personName));
+  document.querySelectorAll("[data-person-jump]").forEach((button) => {
+    const person = button.dataset.personJump;
+    button.setAttribute("aria-pressed", String(person === selected));
+    button.classList.toggle("has-submission", submitted.has(person));
+    button.title = `${person} · ${submitted.has(person) ? "Update submitted" : "No update yet"}`;
+    button.setAttribute("aria-label", button.title);
+  });
+}
+
+async function selectMeetingPerson(personName) {
+  if (els.personName.value === personName && activeEntryContext?.personName === personName && personEditingAvailable) {
+    scrollToSubmission();
+    return;
+  }
+  els.personName.value = personName;
+  personPicker.sync();
+  await loadPersonContext({ scrollToUpdate: true });
+}
+
+function stepMeetingPerson(direction) {
+  const index = TEAM_MEMBERS.indexOf(els.personName.value);
+  const next = index < 0 ? (direction > 0 ? 0 : TEAM_MEMBERS.length - 1)
+    : (index + direction + TEAM_MEMBERS.length) % TEAM_MEMBERS.length;
+  selectMeetingPerson(TEAM_MEMBERS[next]);
+}
+
+function scrollToSubmission(target = document.querySelector(".today-panel")) {
+  const bar = document.querySelector("#meetingControls");
+  const height = bar.getBoundingClientRect().height;
+  document.documentElement.style.setProperty("--meeting-controls-height", `${Math.ceil(height)}px`);
+  const isSection = target.classList.contains("rich-editor");
+  const scrollTarget = isSection ? target.closest(".rich-field") : target;
+  const toolbarOffset = isSection && !spotlightMode ? document.querySelector("#documentToolbar").getBoundingClientRect().height + 28 : 16;
+  window.scrollTo({ top: Math.max(0, window.scrollY + scrollTarget.getBoundingClientRect().top - height - toolbarOffset), behavior: "instant" });
+}
+
+function getToolbarEditor(button) {
+  return button.closest(".rich-field")?.querySelector(".rich-editor") || activePersonEditor;
+}
+
+function setPersonEditingEnabled(enabled) {
+  personEditingAvailable = enabled;
+  document.querySelector(".today-panel").setAttribute("aria-busy", String(!enabled));
+  personEditors.forEach((editor) => {
+    editor.contentEditable = String(enabled && !spotlightMode);
+    editor.setAttribute("aria-readonly", String(spotlightMode));
+    editor.setAttribute("aria-disabled", String(!enabled));
+  });
+  document.querySelectorAll("#documentToolbar button").forEach((button) => { button.disabled = !enabled; });
+  document.querySelector("#editorContext").textContent = enabled
+    ? `Editing ${COMMENT_FIELD_LABELS[activePersonEditor.id].split(" /")[0]} · select text to format or comment`
+    : els.personName.value ? "Loading update…" : "Choose a team member to start writing";
+}
+
+function updateToolbarState() {
+  const selection = window.getSelection();
+  document.querySelectorAll(".editor-toolbar").forEach((toolbar) => {
+    const editor = getToolbarEditor(toolbar);
+    const hasSelection = editorContainsSelection(editor, selection);
+    toolbar.querySelectorAll("[data-command][aria-pressed]").forEach((button) => {
+      const command = button.dataset.command;
+      let pressed = false;
+      if (hasSelection) {
+        const checklist = Boolean(getCurrentListItem()?.closest("ul.check-list"));
+        pressed = command === "toggleChecklist" ? checklist
+          : command === "insertUnorderedList" ? !checklist && document.queryCommandState(command)
+          : document.queryCommandState(command);
+      }
+      button.setAttribute("aria-pressed", String(pressed));
+    });
+  });
+  if (activePersonEditor.isContentEditable) {
+    document.querySelector("#editorContext").textContent = `Editing ${COMMENT_FIELD_LABELS[activePersonEditor.id].split(" /")[0]} · select text to format or comment`;
+  }
+}
+
+function configureEditorTools() {
+  document.querySelectorAll(".editor-toolbar button").forEach((button) => {
+    if (!button.hasAttribute("aria-label")) button.setAttribute("aria-label", button.textContent.trim() === "Comment" || button.hasAttribute("data-copy-editor") ? button.textContent.trim() : button.title || button.textContent);
+  });
+  document.querySelectorAll("[data-link-editor]").forEach((button) => {
+    button.addEventListener("click", () => openLinkDialog(getToolbarEditor(button)));
+  });
+  document.querySelectorAll(".editor-toolbar").forEach((toolbar) => {
+    toolbar.setAttribute("role", "toolbar");
+    toolbar.addEventListener("keydown", (event) => {
+      if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+      const buttons = [...toolbar.querySelectorAll("button:not(:disabled)")];
+      const index = buttons.indexOf(document.activeElement);
+      if (index < 0) return;
+      event.preventDefault();
+      const next = event.key === "Home" ? 0 : event.key === "End" ? buttons.length - 1
+        : (index + (event.key === "ArrowRight" ? 1 : -1) + buttons.length) % buttons.length;
+      buttons[next]?.focus();
+    });
+  });
+  const dialog = document.querySelector("#linkDialog");
+  document.querySelector("#linkCancel").addEventListener("click", () => dialog.close());
+  dialog.addEventListener("close", () => { if (linkEditor) restoreEditorSelection(linkEditor); });
+  document.querySelector("#linkForm").addEventListener("submit", (event) => {
+    event.preventDefault();
+    const url = document.querySelector("#linkUrl").value.trim();
+    if (!/^https?:\/\//i.test(url)) {
+      document.querySelector("#linkError").textContent = "Use a web address starting with https:// or http://.";
+      return;
+    }
+    dialog.close();
+    restoreEditorSelection(linkEditor);
+    if (window.getSelection()?.isCollapsed) {
+      document.execCommand("insertHTML", false, `<a href="${escapeHtml(url).replace(/"/g, "&quot;")}">${escapeHtml(url)}</a>`);
+    } else {
+      document.execCommand("createLink", false, url);
+    }
+    rememberEditorSelection();
+    queueEditorAutosave(linkEditor);
+  });
+}
+
+function openLinkDialog(editor) {
+  if (!editor.isContentEditable) return;
+  rememberEditorSelection();
+  linkEditor = editor;
+  const node = window.getSelection()?.anchorNode;
+  const anchor = (node?.nodeType === Node.TEXT_NODE ? node.parentElement : node)?.closest?.("a");
+  document.querySelector("#linkUrl").value = anchor?.getAttribute("href") || "";
+  document.querySelector("#linkError").textContent = "";
+  document.querySelector("#linkDialog").showModal();
+  document.querySelector("#linkUrl").focus();
+}
+
+function handleEditorPaste(event) {
+  const data = event.clipboardData;
+  if (!data) return;
+  event.preventDefault();
+  const html = data.getData("text/html");
+  const text = data.getData("text/plain");
+  if (html) document.execCommand("insertHTML", false, sanitizeRichText(html));
+  else document.execCommand("insertText", false, text);
+  normalizeChecklists(event.currentTarget);
+  rememberEditorSelection();
+  queueEditorAutosave(event.currentTarget);
+  scheduleCommentLayout();
+}
+
 function configureRichTextCommands() {
   try {
     document.execCommand("styleWithCSS", false, false);
@@ -158,17 +518,68 @@ function configureRichTextCommands() {
   }
 }
 
+function setAuthState(state, message = "") {
+  els.accessGate.dataset.state = state;
+  els.authBody.hidden = state === "error";
+  els.authBody.setAttribute("aria-busy", String(state === "loading" || state === "verifying"));
+  els.authLoading.hidden = state !== "loading" && state !== "verifying";
+  els.authStatus.hidden = false;
+  els.authStatus.textContent = message;
+  els.authRetry.hidden = state !== "error" || Boolean(window.Clerk?.isSignedIn);
+}
+
+function waitForClerkScripts() {
+  return new Promise((resolve, reject) => {
+    const scripts = [...document.querySelectorAll("script[data-clerk-script]")];
+    const finish = (error) => {
+      clearTimeout(timer);
+      scripts.forEach((script) => {
+        script.removeEventListener("load", check);
+        script.removeEventListener("error", failed);
+      });
+      if (error) reject(error);
+      else resolve();
+    };
+    const check = () => {
+      if (window.Clerk && window.__internal_ClerkUICtor) finish();
+    };
+    const failed = () => finish(new Error("Sign-in could not load."));
+    const timer = window.setTimeout(failed, 20000);
+    scripts.forEach((script) => {
+      script.addEventListener("load", check);
+      script.addEventListener("error", failed);
+    });
+    check();
+  });
+}
+
 async function initializeClerk() {
+  let observer;
+  let mountTimeout;
   try {
-    if (!window.Clerk) throw new Error("Secure sign-in did not load. Refresh the page and try again.");
-    await window.Clerk.load({ ui: { ClerkUI: window.__internal_ClerkUICtor } });
+    await waitForClerkScripts();
+    await window.Clerk.load({
+      ui: { ClerkUI: window.__internal_ClerkUICtor },
+      localization: { signIn: { start: { title: "Sign in", titleCombined: "Sign in" } } },
+    });
 
     if (window.Clerk.isSignedIn) {
       await unlockApp();
       return;
     }
 
-    els.authStatus.hidden = true;
+    const revealSignIn = () => {
+      if (!els.clerkSignIn.querySelector("input, button, [role='alert']")) return;
+      observer.disconnect();
+      clearTimeout(mountTimeout);
+      setAuthState("ready");
+    };
+    observer = new MutationObserver(revealSignIn);
+    observer.observe(els.clerkSignIn, { childList: true, subtree: true });
+    mountTimeout = window.setTimeout(() => {
+      observer.disconnect();
+      showAuthError(new Error("Sign-in did not become ready."));
+    }, 20000);
     window.Clerk.mountSignIn(els.clerkSignIn, {
       routing: "hash",
       withSignUp: true,
@@ -186,15 +597,17 @@ async function initializeClerk() {
         },
       },
     });
+    revealSignIn();
   } catch (error) {
+    observer?.disconnect();
+    clearTimeout(mountTimeout);
     console.error(error);
     showAuthError(error);
   }
 }
 
 async function unlockApp() {
-  els.authStatus.hidden = false;
-  els.authStatus.textContent = "Verifying your account...";
+  setAuthState("verifying", "Opening your workspace…");
   try {
     const viewer = await convexQuery("standups:verify", {});
     els.accessGate.setAttribute("hidden", "");
@@ -211,8 +624,8 @@ async function unlockApp() {
 
 async function signOut() {
   closeAllCommentThreads();
-  clearTimeout(autosaveTimer);
-  clearTimeout(dailyNotesAutosaveTimer);
+  await flushAutosave();
+  await flushDailyNotesAutosave();
   if (window.Clerk?.isSignedIn) await window.Clerk.signOut();
   window.location.assign(window.location.href.split("#")[0]);
 }
@@ -221,27 +634,28 @@ function showAuthError(error) {
   const message = String(error?.message || error || "");
   els.app.setAttribute("hidden", "");
   els.accessGate.removeAttribute("hidden");
-  els.authStatus.hidden = false;
+  setAuthState("error", /not authorized/i.test(message)
+    ? "This email doesn't have access to standups. Try a different email."
+    : "We couldn't open secure sign-in. Check your connection and try again.");
   els.authSignOut.hidden = !window.Clerk?.isSignedIn;
-  if (/not authorized/i.test(message)) {
-    els.authStatus.textContent = "This Clerk account is signed in, but it is not approved for standups.";
-  } else if (/auth provider|token|authenticated|verified email|jwt|invalidauthheader/i.test(message)) {
-    els.authStatus.textContent = "Clerk sign-in loaded, but the Convex auth integration needs attention.";
-  } else {
-    els.authStatus.textContent = "Secure sign-in could not finish loading. Refresh the page and try again.";
-  }
 }
 
 async function handleDateChange() {
-  clearTimeout(autosaveTimer);
-  await flushDailyNotesAutosave();
+  const version = ++dateLoadVersion;
+  ++personLoadVersion;
+  setPersonEditingEnabled(false);
+  const saved = await flushAutosave();
+  const dailySaved = await flushDailyNotesAutosave();
+  if (version !== dateLoadVersion) return;
+  if (!saved || !dailySaved) { restoreDocumentContext(); return; }
   closeAllCommentThreads();
   clearForm();
   clearItemComments();
   updateDateShortcuts();
   await Promise.all([refreshDailyList(), loadDailyNotes(), loadFathomNotes(), loadCommentsForDate()]);
+  if (version !== dateLoadVersion) return;
   updateTodayHeading();
-  if (els.personName.value.trim()) loadPersonContext();
+  if (els.personName.value.trim()) loadPersonContext({ scrollToUpdate: true });
 }
 
 async function refreshDailyList() {
@@ -259,11 +673,26 @@ async function refreshDailyList() {
   }
 }
 
-async function loadPersonContext() {
-  closeAllCommentThreads();
+async function loadPersonContext({ scrollToUpdate = false } = {}) {
+  if (spotlightMode) setSpotlightCommentsVisible(false);
+  const version = ++personLoadVersion;
   const personName = els.personName.value.trim();
+  const standupDate = els.date.value;
+  setPersonEditingEnabled(false);
+  const saved = await flushAutosave();
+  if (version !== personLoadVersion) return;
+  if (!saved) { restoreDocumentContext(); return; }
+  closeAllCommentThreads();
+  personPicker.sync();
   updateTodayHeading();
-  if (!personName) return;
+  if (!personName) {
+    clearForm();
+    activeEntryContext = null;
+    els.previousTitle.textContent = "No person selected";
+    els.previousContent.className = "previous-content empty-state";
+    els.previousContent.textContent = "Choose a team member to view their previous update.";
+    return;
+  }
 
   clearTimeout(autosaveTimer);
   localStorage.setItem(LOCAL_NAME_KEY, personName);
@@ -287,12 +716,19 @@ async function loadPersonContext() {
       }),
     ]);
 
+    if (version !== personLoadVersion || personName !== els.personName.value || standupDate !== els.date.value) return;
+    activeEntryContext = { personName, standupDate };
     activePrevious = previous;
+    setPersonEditingEnabled(true);
     standupComments = commentsForDate.filter((comment) => comment.personName === personName);
     fillCurrent(current);
     renderPrevious(previous, personName);
     renderItemComments();
+    renderGlobalComments();
+    updateMeetingNavigation();
+    if (scrollToUpdate) scrollToSubmission();
   } catch (error) {
+    if (version !== personLoadVersion || personName !== els.personName.value || standupDate !== els.date.value) return;
     console.error(error);
     els.previousTitle.textContent = "Convex unavailable";
     els.previousContent.className = "previous-content empty-state";
@@ -302,38 +738,42 @@ async function loadPersonContext() {
 }
 
 async function saveStandup({ silent = false } = {}) {
-  const personName = els.personName.value.trim();
-  if (!personName) return;
-  if (!hasSavableContent()) {
-    els.saveStatus.textContent = "Autosave ready";
-    return;
-  }
-
-  if (!silent) els.saveStatus.textContent = "Saving...";
-  localStorage.setItem(LOCAL_NAME_KEY, personName);
-
-  try {
-    await convexMutation("standups:save", {
-      teamId: TEAM_ID,
-      standupDate: els.date.value,
-      personName,
-      yesterday: getEditorHtml(els.yesterday),
-      today: getEditorHtml(els.today),
-      blockers: getEditorHtml(els.blockers),
-      notes: getEditorHtml(els.notes),
-    });
-
-    els.saveStatus.textContent = `Last saved ${formatTime(Date.now())}`;
-    await refreshDailyList();
-    renderPrevious(activePrevious, personName);
-  } catch (error) {
-    console.error(error);
-    els.saveStatus.textContent = "Save failed. Check Convex and try again.";
-  }
+  if (!activeEntryContext) return true;
+  const context = { ...activeEntryContext };
+  const revision = standupRevision;
+  const payload = {
+    teamId: TEAM_ID, ...context,
+    yesterday: getEditorHtml(els.yesterday), today: getEditorHtml(els.today),
+    blockers: getEditorHtml(els.blockers), notes: getEditorHtml(els.notes),
+  };
+  if (!silent) els.saveStatus.textContent = "Saving…";
+  pendingStandupSave = pendingStandupSave.then(async () => {
+    try {
+      await convexMutation("standups:save", payload);
+      if (revision === standupRevision) {
+        standupDirty = false;
+        els.saveStatus.textContent = `Last saved ${formatTime(Date.now())}`;
+        document.querySelector("#saveRetry").hidden = true;
+      }
+      await refreshDailyList();
+      if (activeEntryContext?.personName === context.personName && activeEntryContext?.standupDate === context.standupDate) {
+        renderPrevious(activePrevious, context.personName);
+      }
+      return true;
+    } catch (error) {
+      console.error(error);
+      els.saveStatus.textContent = "Couldn't save. Your edits are still here.";
+      document.querySelector("#saveRetry").hidden = false;
+      return false;
+    }
+  });
+  return pendingStandupSave;
 }
 
 async function loadDailyNotes() {
-  activeDailyNotesDate = els.date.value;
+  const standupDate = els.date.value;
+  activeDailyNotesDate = standupDate;
+  els.dailyNotes.contentEditable = "false";
   els.dailyNotesDate.textContent = formatDate(els.date.value);
   els.dailyNotesStatus.textContent = "Loading daily notes...";
 
@@ -343,6 +783,10 @@ async function loadDailyNotes() {
       standupDate: els.date.value,
     });
 
+    if (standupDate !== els.date.value) return;
+    dailyNotesDirty = false;
+    dailyNotesRevision++;
+    els.dailyNotes.contentEditable = "true";
     isHydrating = true;
     setEditorHtml(els.dailyNotes, entry?.notes || "");
     isHydrating = false;
@@ -386,21 +830,25 @@ function renderFathomNotesSummary() {
 
 async function saveDailyNotes({ silent = false } = {}) {
   const standupDate = activeDailyNotesDate || els.date.value;
-  if (!standupDate) return;
-  if (!silent) els.dailyNotesStatus.textContent = "Saving daily notes...";
-
-  try {
-    await convexMutation("standups:saveDayNotes", {
-      teamId: TEAM_ID,
-      standupDate,
-      notes: getEditorHtml(els.dailyNotes),
-    });
-
-    els.dailyNotesStatus.textContent = `Last saved ${formatTime(Date.now())}`;
-  } catch (error) {
-    console.error(error);
-    els.dailyNotesStatus.textContent = getConvexMissingFunctionMessage(error) || "Daily notes save failed.";
-  }
+  if (!standupDate) return true;
+  const revision = dailyNotesRevision;
+  const payload = { teamId: TEAM_ID, standupDate, notes: getEditorHtml(els.dailyNotes) };
+  if (!silent) els.dailyNotesStatus.textContent = "Saving team notes…";
+  pendingDailyNotesSave = pendingDailyNotesSave.then(async () => {
+    try {
+      await convexMutation("standups:saveDayNotes", payload);
+      if (revision === dailyNotesRevision) {
+        dailyNotesDirty = false;
+        els.dailyNotesStatus.textContent = `Last saved ${formatTime(Date.now())}`;
+      }
+      return true;
+    } catch (error) {
+      console.error(error);
+      els.dailyNotesStatus.textContent = "Couldn't save team notes. Edit again to retry.";
+      return false;
+    }
+  });
+  return pendingDailyNotesSave;
 }
 
 function openNotetakerModal() {
@@ -755,12 +1203,16 @@ function getConvexMissingFunctionMessage(error) {
 }
 
 function fillCurrent(entry) {
+  standupDirty = false;
+  standupRevision++;
+  document.querySelector("#saveRetry").hidden = true;
   isHydrating = true;
   setEditorHtml(els.yesterday, entry?.yesterday || "");
   setEditorHtml(els.today, entry?.today || "");
   setEditorHtml(els.blockers, entry?.blockers || "");
   setEditorHtml(els.notes, entry?.notes || "");
   isHydrating = false;
+  updateSpotlightSections();
   if (entry) {
     els.saveStatus.textContent = `Last saved ${formatTime(entry.updatedAt)}`;
   } else {
@@ -774,6 +1226,7 @@ async function reloadItemComments() {
 
 function renderItemComments() {
   clearEditorCommentMarkers();
+  if (spotlightMode && !spotlightCommentsVisible) return;
   COMMENT_FIELDS.forEach((fieldName) => {
     const editor = els[fieldName];
     const groups = groupComments(standupComments.filter((comment) => comment.fieldName === fieldName));
@@ -823,15 +1276,17 @@ async function loadCommentsForDate() {
 }
 
 function renderGlobalComments() {
-  const groups = groupComments(commentsForDate);
+  const visibleComments = spotlightMode ? commentsForDate.filter((comment) => comment.personName === els.personName.value) : commentsForDate;
+  const groups = groupComments(visibleComments);
   const drafts = [...openCommentThreads.values()]
+    .filter((thread) => !spotlightMode || thread.target.personName === els.personName.value)
     .filter((thread) => !groups.some((group) => group.key === thread.target.key))
     .map((thread) => thread.target);
   els.commentsCount.textContent = String(groups.length);
   els.commentsCount.setAttribute("aria-label", `${groups.length} comment thread${groups.length === 1 ? "" : "s"}`);
-  els.commentsSummary.textContent = groups.length
-    ? `${groups.length} comment thread${groups.length === 1 ? "" : "s"} across this date's standups.`
-    : "No comments for this date yet.";
+  els.commentsSummary.textContent = spotlightMode
+    ? groups.length ? `${groups.length} thread${groups.length === 1 ? "" : "s"} for ${els.personName.value}.` : "No comments on this update."
+    : groups.length ? `${groups.length} comment thread${groups.length === 1 ? "" : "s"} across this date's standups.` : "No comments for this date yet.";
   els.commentsOverview.replaceChildren(...[...drafts, ...groups].map(renderGlobalCommentButton));
 }
 
@@ -991,6 +1446,11 @@ function findCommentTargetBlock(editor, group) {
 
 function renderCommentHighlights() {
   commentHitTargets.clear();
+  if (spotlightMode && !spotlightCommentsVisible) {
+    window.CSS?.highlights?.delete("standup-comments");
+    window.CSS?.highlights?.delete("standup-active-comment");
+    return;
+  }
   const targets = new Map(groupComments(standupComments).map((group) => [group.key, group]));
   const active = openCommentThreads.get(activeCommentKey);
   if (active?.target.personName === els.personName.value) targets.set(activeCommentKey, active.target);
@@ -1035,8 +1495,9 @@ function clearEditorCommentMarkers() {
 }
 
 function addCommentForEditor(source) {
-  const field = source.closest(".rich-field");
-  const editor = source.classList.contains("rich-editor") ? source : field.querySelector(".rich-editor");
+  if (spotlightMode) return;
+  const editor = source.classList.contains("rich-editor") ? source : getToolbarEditor(source);
+  if (!personEditors.includes(editor)) return;
   const personName = els.personName.value.trim();
   if (!personName) {
     els.saveStatus.textContent = "Select a person before commenting.";
@@ -1077,6 +1538,7 @@ async function deleteItemComment(commentId) {
 }
 
 function openCommentThread(target, { opener, focusReply = false, anchor } = {}) {
+  if (spotlightMode && !spotlightCommentsVisible) return;
   let thread = openCommentThreads.get(target.key);
   if (!thread) {
     const panel = els.commentThreadTemplate.content.firstElementChild.cloneNode(true);
@@ -1183,11 +1645,14 @@ function positionCommentThreads() {
     const edge = editor?.getBoundingClientRect() || rect;
     const width = thread.panel.offsetWidth;
     let left = edge.right + 16;
-    if (left + width > window.innerWidth - 16) {
+    const sidebar = document.querySelector(".daily-list").getBoundingClientRect();
+    const coversSidebar = sidebar.width > 0 && sidebar.left >= edge.right && left < sidebar.right && left + width > sidebar.left;
+    if (left + width > window.innerWidth - 16 || coversSidebar) {
       left = edge.left - width - 16;
     }
     left = Math.max(16, Math.min(left, window.innerWidth - width - 16));
-    const top = Math.max(16, window.scrollY + rect.top - 12);
+    const controlsBottom = document.querySelector("#meetingControls").getBoundingClientRect().bottom;
+    const top = Math.max(window.scrollY + controlsBottom + 12, window.scrollY + rect.top - 12);
     thread.panel.style.left = `${left + window.scrollX}px`;
     thread.panel.style.top = `${top}px`;
   });
@@ -1340,6 +1805,7 @@ function renderPreviousDetails(entry) {
 }
 
 function renderEntries(entries) {
+  updateMeetingNavigation();
   const sorted = [...entries].sort((a, b) => a.personName.localeCompare(b.personName));
   const submittedNames = new Set(sorted.map((entry) => entry.personName));
   const unsubmitted = TEAM_MEMBERS.filter((name) => !submittedNames.has(name));
@@ -1364,11 +1830,14 @@ function renderEntries(entries) {
 function renderRosterButton(name, meta, status) {
   const row = els.entryTemplate.content.firstElementChild.cloneNode(true);
   row.classList.add(`entry-row-${status}`);
+  row.classList.toggle("is-selected", name === els.personName.value);
+  row.setAttribute("aria-pressed", String(name === els.personName.value));
   row.querySelector(".entry-name").textContent = name;
   row.querySelector(".entry-time").textContent = meta;
   row.addEventListener("click", () => {
     els.personName.value = name;
-    loadPersonContext();
+    personPicker.sync();
+    loadPersonContext({ scrollToUpdate: true });
   });
   return row;
 }
@@ -1403,16 +1872,14 @@ function queueEditorAutosave(editor) {
 function queueAutosave() {
   if (isHydrating) return;
   clearTimeout(autosaveTimer);
-  const personName = els.personName.value.trim();
+  const personName = activeEntryContext?.personName;
   if (!personName) {
     els.saveStatus.textContent = "Select a person to autosave";
     return;
   }
-  if (!hasSavableContent()) {
-    els.saveStatus.textContent = "Autosave ready";
-    return;
-  }
-
+  standupDirty = true;
+  standupRevision++;
+  document.querySelector("#saveRetry").hidden = true;
   els.saveStatus.textContent = "Saving soon...";
   autosaveTimer = window.setTimeout(() => {
     autosaveTimer = null;
@@ -1421,17 +1888,18 @@ function queueAutosave() {
 }
 
 async function flushAutosave() {
-  if (!autosaveTimer) return;
   clearTimeout(autosaveTimer);
   autosaveTimer = null;
-  if (els.personName.value.trim() && hasSavableContent()) {
-    await saveStandup();
-  }
+  await pendingStandupSave;
+  if (activeEntryContext && standupDirty) return saveStandup();
+  return true;
 }
 
 function queueDailyNotesAutosave() {
   if (isHydrating) return;
   clearTimeout(dailyNotesAutosaveTimer);
+  dailyNotesDirty = true;
+  dailyNotesRevision++;
   els.dailyNotesStatus.textContent = "Saving daily notes soon...";
   dailyNotesAutosaveTimer = window.setTimeout(() => {
     dailyNotesAutosaveTimer = null;
@@ -1440,19 +1908,26 @@ function queueDailyNotesAutosave() {
 }
 
 async function flushDailyNotesAutosave() {
-  if (!dailyNotesAutosaveTimer) return;
   clearTimeout(dailyNotesAutosaveTimer);
   dailyNotesAutosaveTimer = null;
-  await saveDailyNotes();
+  await pendingDailyNotesSave;
+  if (dailyNotesDirty) return saveDailyNotes();
+  return true;
 }
 
-function hasSavableContent() {
-  return personEditors.some((editor) => editor.textContent.trim());
+function restoreDocumentContext() {
+  if (activeEntryContext) {
+    els.personName.value = activeEntryContext.personName;
+    els.date.value = activeEntryContext.standupDate;
+    personPicker.sync();
+    updateTodayHeading();
+    updateDateShortcuts();
+    setPersonEditingEnabled(true);
+  }
 }
 
 async function jumpToRelativeDate(offsetDays) {
-  await flushAutosave();
-  await flushDailyNotesAutosave();
+  if (!await flushAutosave() || !await flushDailyNotesAutosave()) return;
   const date = new Date(`${toDateInputValue(new Date())}T12:00:00`);
   date.setDate(date.getDate() + offsetDays);
   els.date.value = toDateInputValue(date);
@@ -1532,12 +2007,22 @@ function updateTodayHeading() {
   const personName = els.personName.value.trim();
   els.todayEyebrow.textContent = `Today ${formatDate(els.date.value)}`;
   els.todayTitle.textContent = personName ? `${personName}'s updates` : "Select a person";
+  updateMeetingNavigation();
+  document.querySelectorAll(".entry-row").forEach((row) => {
+    const selected = row.querySelector(".entry-name").textContent === personName;
+    row.classList.toggle("is-selected", selected);
+    row.setAttribute("aria-pressed", String(selected));
+  });
 }
 
 function rememberEditorSelection() {
   const selection = window.getSelection();
   const editor = allEditors.find((candidate) => editorContainsSelection(candidate, selection));
-  if (editor) savedEditorSelections.set(editor, selection.getRangeAt(0).cloneRange());
+  if (editor) {
+    savedEditorSelections.set(editor, selection.getRangeAt(0).cloneRange());
+    if (personEditors.includes(editor)) activePersonEditor = editor;
+    updateToolbarState();
+  }
 }
 
 function restoreEditorSelection(editor) {
@@ -1550,14 +2035,18 @@ function restoreEditorSelection(editor) {
 }
 
 function runEditorCommand(button) {
-  const editor = button.closest(".rich-field").querySelector(".rich-editor");
+  const editor = getToolbarEditor(button);
   restoreEditorSelection(editor);
   applyEditorCommand(button.dataset.command);
+  normalizeChecklists(editor);
+  rememberEditorSelection();
+  updateToolbarState();
   queueEditorAutosave(editor);
+  scheduleCommentLayout();
 }
 
 async function copyEditorContents(button) {
-  const editor = button.closest(".rich-field").querySelector(".rich-editor");
+  const editor = getToolbarEditor(button);
   const html = getEditorHtml(editor);
   const text = getEditorText(editor);
 
@@ -1611,6 +2100,18 @@ function copyTextFallback(text) {
 }
 
 function handleEditorKeydown(event) {
+  if (spotlightMode && personEditors.includes(event.currentTarget)) return;
+  if ((event.metaKey || event.ctrlKey) && !event.altKey && event.code === "KeyK") {
+    event.preventDefault();
+    openLinkDialog(event.currentTarget);
+    return;
+  }
+  if ((event.metaKey || event.ctrlKey) && !event.altKey && event.code === "KeyS") {
+    event.preventDefault();
+    queueEditorAutosave(event.currentTarget);
+    event.currentTarget === els.dailyNotes ? flushDailyNotesAutosave() : flushAutosave();
+    return;
+  }
   if (event.key === "Enter") {
     const item = getCurrentListItem();
     shouldResetNewChecklistItem = item?.closest("ul.check-list") && item.dataset.checked === "true";
@@ -1638,6 +2139,7 @@ function handleEditorKeydown(event) {
 
 function handleEditorKeyup(event) {
   normalizeChecklists(event.currentTarget);
+  updateToolbarState();
   if (event.key === "Enter" && shouldResetNewChecklistItem) {
     setCurrentChecklistItemChecked(false);
     shouldResetNewChecklistItem = false;
@@ -1681,6 +2183,7 @@ function applyEditorCommand(command) {
 }
 
 function handleChecklistClick(event) {
+  if (spotlightMode && personEditors.includes(event.currentTarget)) return;
   const item = event.target.closest("li");
   if (!item?.closest("ul.check-list")) return;
 
@@ -1850,9 +2353,27 @@ function sanitizeRichText(html) {
   const template = document.createElement("template");
   template.innerHTML = html;
   const allowedTags = new Set(["A", "B", "STRONG", "I", "EM", "U", "S", "STRIKE", "DEL", "UL", "OL", "LI", "DIV", "P", "BR"]);
+  template.content.querySelectorAll("script, style, iframe, object, embed, svg, img, input, button").forEach((node) => node.remove());
+  template.content.querySelectorAll("b[style], strong[style]").forEach((node) => {
+    if (node.style.fontWeight === "normal" || node.style.fontWeight === "400") node.replaceWith(...node.childNodes);
+  });
+  template.content.querySelectorAll("span").forEach((node) => {
+    const weight = node.style.fontWeight;
+    const tags = [];
+    if (weight === "bold" || Number(weight) >= 600) tags.push("strong");
+    if (node.style.fontStyle === "italic") tags.push("em");
+    if (node.style.textDecoration.includes("underline")) tags.push("u");
+    if (node.style.textDecoration.includes("line-through")) tags.push("s");
+    for (const tag of tags) {
+      const wrapper = document.createElement(tag);
+      wrapper.append(...node.childNodes);
+      node.append(wrapper);
+    }
+    node.replaceWith(...node.childNodes);
+  });
   template.content.querySelectorAll("*").forEach((node) => {
     if (!allowedTags.has(node.tagName)) {
-      node.replaceWith(document.createTextNode(node.textContent || ""));
+      node.replaceWith(...node.childNodes);
       return;
     }
 
