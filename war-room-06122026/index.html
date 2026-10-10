@@ -1,21 +1,25 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-war-room-board="war-room-06122026">
   <head>
   <script defer src="/assets/js/analytics.js?v=20260927-3" data-app="war-room-06122026"></script>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>June 12 Business Cards War Room</title>
     <link rel="stylesheet" href="./styles.css?v=22" />
+    <link rel="stylesheet" href="../assets/css/clerk-auth.css?v=20261008-1" />
   </head>
   <body>
-    <section id="passwordGate" class="password-gate" aria-labelledby="passwordGateTitle" role="dialog" aria-modal="true">
-      <form id="passwordForm" class="password-card">
-        <p class="eyebrow">Restricted project</p>
-        <h1 id="passwordGateTitle">War Room Access</h1>
-        <input id="passwordInput" type="password" autocomplete="current-password" placeholder="Password" aria-label="Password" />
-        <button type="submit">Enter war room</button>
-        <p id="passwordError" class="password-error" role="alert" hidden>Wrong password.</p>
-      </form>
+    <section id="passwordGate" data-auth-screen="war-room" class="password-gate" aria-labelledby="passwordGateTitle" role="dialog" aria-modal="true">
+      <div class="password-card auth-card">
+        <p class="eyebrow">War room archive</p>
+        <h1 id="passwordGateTitle">Sign in to your archive</h1>
+        <p class="auth-copy">Saved progress is available only to the site owner.</p>
+        <div id="clerkSignIn" data-clerk-mount></div>
+        <p id="authStatus" role="status">Loading secure sign-in…</p>
+        <button id="authRetry" type="button" hidden>Retry sign-in</button>
+        <button id="authSignOut" type="button" hidden>Use another account</button>
+        <a id="hostedSignIn" href="https://www.john-ta.com/war-room-06122026/" hidden>Open the hosted archive ↗</a>
+      </div>
     </section>
     <section id="stickerLoader" class="sticker-loader" aria-label="Entering war room" hidden></section>
     <section id="sirenLayer" class="siren-layer" aria-hidden="true" hidden>
@@ -70,6 +74,7 @@
             <button id="expandAll" type="button">Expand all</button>
             <button id="collapseDone" type="button">Hide done</button>
             <button id="exportState" type="button">Export progress</button>
+            <button id="archiveSignOut" type="button">Sign out</button>
             <button id="resetState" class="danger" type="button">Reset checks</button>
           </section>
         </div>
@@ -176,6 +181,7 @@
       </li>
     </template>
 
-    <script src="./app.js?v=4"></script>
+    <script src="../war-room-10012026/auth.js?v=20261010-private-boards"></script>
+    <script src="./app.js?v=20261010-private-boards"></script>
   </body>
 </html>

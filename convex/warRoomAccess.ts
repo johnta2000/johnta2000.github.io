@@ -2,6 +2,8 @@ import { ConvexError } from "convex/values";
 import type { QueryCtx, MutationCtx } from "./_generated/server";
 
 export const PRIVATE_LAUNCH_BOARD = "war-room-10012026";
+const ARCHIVED_BOARDS = new Set(["war-room-06122026", "war-room-06152026"]);
+const ARCHIVE_OWNERS = new Set(["john@affil.ai", "johnta2018@gmail.com"]);
 const APPROVED_EMAILS = new Set([
   "john@affil.ai",
   "johnta2018@gmail.com",
@@ -29,6 +31,17 @@ export async function requireLaunchUser(ctx: Pick<QueryCtx | MutationCtx, "auth"
 }
 
 export async function requireWarRoomAccess(ctx: Pick<QueryCtx | MutationCtx, "auth">, boardId: string) {
-  // Preserve the historical rooms' behavior. The October room is always private.
-  if (boardId === PRIVATE_LAUNCH_BOARD) await requireLaunchUser(ctx);
+  // This API serves only explicitly registered war rooms. Other tools must use
+  // their own endpoints, which apply membership, roles, and field-level privacy.
+  if (boardId === PRIVATE_LAUNCH_BOARD) {
+    await requireLaunchUser(ctx);
+    return;
+  }
+  if (ARCHIVED_BOARDS.has(boardId)) {
+    const identity = await ctx.auth.getUserIdentity();
+    const verified = identity?.emailVerified === true ||
+      (identity?.emailVerified === undefined && identity?.issuer === "https://clerk.john-ta.com");
+    if (identity?.subject && verified && ARCHIVE_OWNERS.has(identity.email?.trim().toLowerCase() || "")) return;
+  }
+  throw new ConvexError({ code: "FORBIDDEN", message: "This board is not available through the war-room API. Open its own tool with an approved account." });
 }

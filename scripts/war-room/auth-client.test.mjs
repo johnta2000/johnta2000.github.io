@@ -4,7 +4,7 @@ import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
 const source=readFileSync(new URL('../../war-room-10012026/auth.js',import.meta.url),'utf8');
 const token='test.'+Buffer.from(JSON.stringify({aud:'convex'})).toString('base64url')+'.test';
-function harness({signedIn=true,hostname='www.john-ta.com',denied=false}={}){
+function harness({signedIn=true,hostname='www.john-ta.com',denied=false,boardId='war-room-10012026'}={}){
  const nodes=new Map();
  const node=id=>{if(!nodes.has(id))nodes.set(id,{hidden:false,textContent:'',addEventListener(){}});return nodes.get(id)};
  const events=[],requests=[];
@@ -16,7 +16,7 @@ function harness({signedIn=true,hostname='www.john-ta.com',denied=false}={}){
   const body=JSON.parse(options.body);requests.push({...body,authorized:options.headers.Authorization===`Bearer ${token}`});
   return {ok:true,status:200,json:async()=>denied?{status:'error',errorData:{code:'FORBIDDEN'}}:{status:'success',value:body.path==='warRoom:verify'?{email:'john@affil.ai',subject:'john',seedBuckets:[]}:null}};
  };
- vm.runInNewContext(source,{window,document:{querySelector:node},location:{hostname,href:`https://${hostname}/war-room-10012026/`,assign(){}},fetch,AbortSignal,setTimeout,clearTimeout,atob:s=>Buffer.from(s,'base64').toString('binary'),console});
+ vm.runInNewContext(source,{window,document:{documentElement:{dataset:{warRoomBoard:boardId}},querySelector:node},location:{hostname,href:`https://${hostname}/${boardId}/`,assign(){}},fetch,AbortSignal,setTimeout,clearTimeout,atob:s=>Buffer.from(s,'base64').toString('binary'),console});
  return {auth:window.WarRoomAuth,Clerk,events,requests,node,
   start:()=>window.WarRoomAuth.start({onAuthorized:async()=>events.push('authorized'),onLocked:()=>events.push('locked')}),
   updateSession(session){Clerk.session=session;listener({session})}};
@@ -55,4 +55,22 @@ test('localhost has no password bypass and does not try to use a production Cler
  const h=harness({hostname:'127.0.0.1'});await h.start();
  assert.equal(h.auth.isAuthorized(),false);assert.equal(h.requests.length,0);
  assert.equal(h.node('#hostedSignIn').hidden,false);
+});
+
+test('each archive verifies its own board with a signed-in query before granting access',async()=>{
+ for(const boardId of ['war-room-06122026','war-room-06152026']){
+  const h=harness({boardId});await h.start();
+  assert.equal(h.requests[0].path,'warRoom:get');
+  assert.equal(h.requests[0].args.boardId,boardId);
+  assert.equal(h.requests[0].authorized,true);
+  assert.equal(h.auth.isAuthorized(),true);
+ }
+});
+test('denied archive accounts cannot write or treat another board as a verification request',async()=>{
+ const h=harness({boardId:'war-room-06122026',denied:true});await h.start();
+ assert.equal(h.auth.isAuthorized(),false);
+ assert.match(h.node('#authStatus').textContent,/only to the site owner/);
+ await assert.rejects(h.auth.call('mutation','warRoom:save',{boardId:'war-room-06122026'}));
+ await assert.rejects(h.auth.call('query','warRoom:get',{boardId:'monitoring:dashboard'}));
+ assert.equal(h.requests.length,1);
 });

@@ -48,7 +48,8 @@
     const audience = node('span', tool.audience.length ? tool.audience.join(' · ') : 'No approved accounts configured', 'audience');
     const scopeCell = node('span', undefined, 'scope-cell');
     scopeCell.append(badge(scopes[tool.scope] || 'Review scope', tool.scope));
-    if (tool.attention || tool.configured === false) scopeCell.append(badge(tool.configured === false ? 'Not configured' : 'Review', 'review'));
+    const decision = snapshot?.findings.some(finding => finding.severity === 'decision' && finding.affects.includes(tool.id));
+    if (tool.attention || tool.configured === false) scopeCell.append(badge(tool.configured === false ? 'Not configured' : decision ? 'Access decision' : 'Review', 'review'));
     summary.append(title, audience, scopeCell);
     const body = node('div', undefined, 'tool-body');
     const powers = node('dl', undefined, 'powers');
@@ -91,7 +92,7 @@
     $('findings').replaceChildren(...data.findings.map(finding => {
       const card = node('article', undefined, 'finding ' + finding.severity);
       const heading = node('div', undefined, 'finding-heading');
-      heading.append(badge(finding.severity === 'high' ? 'Priority' : 'Review', 'review'), node('h3', finding.title));
+      heading.append(badge(finding.severity === 'high' ? 'Permission gap' : finding.severity === 'decision' ? 'Access decision' : 'Review', 'review'), node('h3', finding.title));
       card.append(heading, node('p', finding.detail), node('p', 'Next: ' + finding.next, 'next'), node('p', finding.evidence, 'evidence'));
       return card;
     }));

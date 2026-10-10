@@ -45,10 +45,12 @@ test('allowlist normalizes verified email casing without allowing a different ad
  const {ctx}=context(' JOHN@AFFIL.AI ');
  assert.equal((await api.verify._handler(ctx,{boardId})).email,'john@affil.ai');
 });
-test('historical rooms retain their existing access and private bootstrap stays board-scoped',async()=>{
- const {ctx}=context(null);
- assert.equal(await api.get._handler(ctx,{boardId:'war-room-06152026'}),null);
+test('archived rooms require their explicit owners and private bootstrap stays board-scoped',async()=>{
+ const {ctx,counts}=context(null);
+ await assert.rejects(api.get._handler(ctx,{boardId:'war-room-06152026'}));
+ assert.deepEqual(counts(),{reads:0,writes:0});
  const allowed=context('john@affil.ai');
+ assert.equal(await api.get._handler(allowed.ctx,{boardId:'war-room-06152026'}),null);
  await assert.rejects(api.verify._handler(allowed.ctx,{boardId:'war-room-06152026'}));
 });
 test('public frontend no longer embeds the access password or launch checklist',()=>{

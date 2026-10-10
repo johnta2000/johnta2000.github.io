@@ -1,8 +1,6 @@
 const STORAGE_KEY = "john-ta-war-room-06122026-progress-v1";
-const ACCESS_KEY = "john-ta-war-room-06122026-access-v1";
-const ACCESS_PASSWORD = "corgi124";
 const BOARD_ID = "war-room-06122026";
-const CONVEX_URL = "https://rapid-shark-565.convex.cloud";
+let remoteSaveTimer;
 
 const seedBuckets = [
   {
@@ -178,35 +176,13 @@ const linkModalTask = document.querySelector("#linkModalTask");
 const deleteTicket = document.querySelector("#deleteTicket");
 const warCat = document.querySelector("#warCat");
 const passwordGate = document.querySelector("#passwordGate");
-const passwordForm = document.querySelector("#passwordForm");
-const passwordInput = document.querySelector("#passwordInput");
-const passwordError = document.querySelector("#passwordError");
 const stickerLoader = document.querySelector("#stickerLoader");
 const sirenLayer = document.querySelector("#sirenLayer");
 let catActionTimeout;
 let sirenTimeout;
 let activeLinkTaskId = "";
 
-if (sessionStorage.getItem(ACCESS_KEY) === "granted") {
-  unlockWarRoom();
-} else {
-  document.body.classList.add("locked");
-  passwordInput.focus();
-}
-
-passwordForm.addEventListener("submit", (event) => {
-  event.preventDefault();
-  if (passwordInput.value === ACCESS_PASSWORD) {
-    sessionStorage.setItem(ACCESS_KEY, "granted");
-    passwordInput.value = "";
-    passwordError.setAttribute("hidden", "");
-    playStickerLoader();
-    return;
-  }
-
-  passwordError.removeAttribute("hidden");
-  passwordInput.select();
-});
+document.body.classList.add("locked");
 
 warCat.addEventListener("click", () => {
   window.clearTimeout(catActionTimeout);
@@ -298,9 +274,23 @@ linkForm.addEventListener("submit", (event) => {
 });
 deleteTicket.addEventListener("click", deleteActiveTicket);
 
-render();
-populateAddControls();
-syncFromRemote();
+document.querySelector("#archiveSignOut").addEventListener("click", () => void window.WarRoomAuth.signOut());
+window.WarRoomAuth.start({
+  onLocked() {
+    clearTimeout(remoteSaveTimer);
+    warRoomApp.hidden = true;
+    passwordGate.hidden = false;
+    stickerLoader.hidden = true;
+    document.querySelector("#board").replaceChildren();
+    document.body.classList.add("locked");
+  },
+  async onAuthorized(saved) {
+    state = mergeSeedWithSaved(createFallbackState(), saved || loadState());
+    render();
+    populateAddControls();
+    playStickerLoader();
+  },
+});
 
 function createFallbackState() {
   return {
@@ -551,53 +541,19 @@ function saveState() {
   saveRemoteState();
 }
 
-async function syncFromRemote() {
-  try {
-    const response = await fetch(`${CONVEX_URL}/api/query`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ path: "warRoom:get", args: { boardId: BOARD_ID } }),
-    });
-    const result = await response.json();
-    if (result.status !== "success") throw new Error(result.errorMessage || "Unable to load war room state");
-
-    if (result.value) {
-      state = mergeSeedWithSaved(createFallbackState(), result.value);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-      render();
-      populateAddControls();
-      return;
-    }
-
-    saveRemoteState();
-  } catch (error) {
-    console.warn("War room shared sync unavailable; using local progress.", error);
-  }
-}
-
-let remoteSaveTimer;
-
 function saveRemoteState() {
   clearTimeout(remoteSaveTimer);
   remoteSaveTimer = window.setTimeout(async () => {
+    if (!window.WarRoomAuth.isAuthorized()) return;
     try {
-      const response = await fetch(`${CONVEX_URL}/api/mutation`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          path: "warRoom:save",
-          args: {
-            boardId: BOARD_ID,
-            completed: state.completed,
-            linearLinks: state.linearLinks,
-            docLinks: state.docLinks,
-            deletedTasks: state.deletedTasks,
-            buckets: state.buckets,
-          },
-        }),
+      await window.WarRoomAuth.call("mutation", "warRoom:save", {
+        boardId: BOARD_ID,
+        completed: state.completed,
+        linearLinks: state.linearLinks,
+        docLinks: state.docLinks,
+        deletedTasks: state.deletedTasks,
+        buckets: state.buckets,
       });
-      const result = await response.json();
-      if (result.status !== "success") throw new Error(result.errorMessage || "Unable to save war room state");
     } catch (error) {
       console.warn("War room shared save failed; local progress is still saved.", error);
     }
@@ -892,6 +848,7 @@ function flashButton(button, label) {
 }
 
 function unlockWarRoom() {
+  if (!window.WarRoomAuth.isAuthorized()) return;
   passwordGate.setAttribute("hidden", "");
   stickerLoader.setAttribute("hidden", "");
   stickerLoader.textContent = "";

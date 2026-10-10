@@ -1,6 +1,7 @@
 (() => {
   const API_URL = "https://rapid-shark-565.convex.cloud";
-  const BOARD_ID = "war-room-10012026";
+  const BOARD_ID = document.documentElement?.dataset.warRoomBoard || "war-room-10012026";
+  const AUTH_QUERY = BOARD_ID === "war-room-10012026" ? "warRoom:verify" : "warRoom:get";
   const PUBLISHABLE_KEY = "pk_live_Y2xlcmsuam9obi10YS5jb20k";
   const CLERK_ORIGIN = "https://clerk.john-ta.com";
   let callbacks;
@@ -36,7 +37,8 @@
 
   async function call(kind, path, args) {
     const session = window.Clerk?.session;
-    if (!session || (path !== "warRoom:verify" && !isAuthorized())) {
+    const checkingAccess = kind === "query" && path === AUTH_QUERY && args?.boardId === BOARD_ID;
+    if (!session || (!checkingAccess && !isAuthorized())) {
       lock("Please sign in to continue.");
       throw new Error("UNAUTHENTICATED");
     }
@@ -61,7 +63,7 @@
     if (window.Clerk?.session?.id !== currentId) throw new Error("Session changed");
     if (!response.ok || result.status !== "success") {
       const code = result.errorData?.code;
-      if (code === "FORBIDDEN") lock("This account isn’t approved for this war room. Sign in with your approved affil.ai email.");
+      if (code === "FORBIDDEN") lock(BOARD_ID === "war-room-10012026" ? "This account isn’t approved for this war room. Sign in with your approved affil.ai email." : "This archive is available only to the site owner. Use your approved owner account.");
       else if (code === "UNAUTHENTICATED" || response.status === 401 || /InvalidAuthHeader|Unauthenticated|InvalidAuthToken/.test(result.code || "")) lock("Please sign in with a verified email to continue.");
       throw new Error(code || "Unable to connect to the war room.");
     }
@@ -100,7 +102,7 @@
       mounted = false;
     }
     try {
-      const viewer = await call("query", "warRoom:verify", { boardId: BOARD_ID });
+      const viewer = await call("query", AUTH_QUERY, { boardId: BOARD_ID });
       if (currentGeneration !== generation || window.Clerk?.session?.id !== nextId) return;
       verifiedSessionId = nextId;
       await callbacks.onAuthorized(viewer);

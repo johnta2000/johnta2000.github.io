@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="auth.css?v=20261009-1">
   <script async data-clerk-script crossorigin="anonymous" src="https://clerk.john-ta.com/npm/@clerk/ui@1/dist/ui.browser.js"></script>
   <script async data-clerk-script crossorigin="anonymous" data-clerk-publishable-key="pk_live_Y2xlcmsuam9obi10YS5jb20k" src="https://clerk.john-ta.com/npm/@clerk/clerk-js@6/dist/clerk.browser.js"></script>
-  <script defer src="app.js?v=20261009-2"></script>
+  <script defer src="app.js?v=20261010-board-gap"></script>
 </head>
 <body>
   <main>
@@ -32,7 +32,7 @@
         <div><span id="attention-count" class="stat-value">—</span><span>Items to review</span></div>
       </div>
       <section class="how" aria-labelledby="how-title"><h2 id="how-title">One sign-in. A separate guest list for each tool.</h2><ol><li><span class="step">1</span><div><strong>Sign in once</strong><p>Signing in tells the site who you are.</p></div></li><li><span class="step">2</span><div><strong>Get approved for a tool</strong><p>Its own guest list or invitation decides whether you can get in.</p></div></li><li><span class="step">3</span><div><strong>Access stays in that tool</strong><p>Being invited to one tool doesn't approve you for another.</p></div></li></ol><p class="how-note"><strong>For example:</strong> a Sleep invitation gives someone access to Sleep. Standups requires separate approval. Shared links, passwords, and public pages are explicit exceptions shown below. This is the intended rule; known gaps appear in the review items.</p></section>
-      <section class="attention" aria-labelledby="attention-title"><div class="section-heading"><h2 id="attention-title">Permission gaps to fix</h2><span>Known gaps from the access review</span></div><div id="findings"></div></section>
+      <section class="attention" aria-labelledby="attention-title"><div class="section-heading"><h2 id="attention-title">Access items to review</h2><span>Known gaps and access decisions</span></div><div id="findings"></div></section>
       <section class="inventory" aria-labelledby="inventory-title">
         <div class="section-heading"><div><h2 id="inventory-title">The access map</h2><p>Open an area to see its read, edit, and management permissions.</p></div></div>
         <div class="filters"><label class="search"><span class="sr-only">Search tools, accounts, or permissions</span><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"></circle><path d="m16 16 4.5 4.5"></path></svg><input id="search" type="search" placeholder="Search a tool, email, or permission" autocomplete="off"></label><div id="scope-filters" role="group" aria-label="Filter access scope"><button type="button" data-scope="all" aria-pressed="true">Everything</button><button type="button" data-scope="account" aria-pressed="false">Account access</button><button type="button" data-scope="shared" aria-pressed="false">Other access</button><button type="button" data-scope="attention" aria-pressed="false">Needs review</button></div></div>
