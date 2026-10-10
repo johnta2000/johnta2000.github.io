@@ -5,7 +5,7 @@ const {lifecycle,configureLifecycle,localInstant}=ctx.module.exports;
 test('review mode removes live markers and undims ended sets',()=>{
  const fs=require('node:fs'),{JSDOM}=require('jsdom'),dom=new JSDOM('<article data-set-start="x" class="set-ended set-live"></article><div class="schedule-now"></div><div class="timeline-now"></div>');
  const source=fs.readFileSync(__dirname+'/../../lost-lands-2026-lineup/controller.js','utf8');
- const context={root:dom.window.document,reviewMode:()=>true};vm.createContext(context);
+ const context={root:dom.window.document,reviewMode:()=>true,easternNow:()=> '2026-10-12T12:00',updatePastDayDisclosures(){}};vm.createContext(context);
  vm.runInContext(source.slice(source.indexOf('function updateScheduleProgress()'),source.indexOf('function renderTable(')),context);context.updateScheduleProgress();
  assert.equal(dom.window.document.querySelector('.set-ended,.set-live,.schedule-now'),null);assert.equal(dom.window.document.querySelector('.timeline-now').hidden,true);dom.window.close();
 });

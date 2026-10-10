@@ -143,7 +143,7 @@ test('likes filter separates personal and crew picks and follows every view',()=
   ctx.root.querySelector('[data-likes-filter="all"]').click();assert(ctx.root.querySelectorAll('.timeline-set').length>2);
  }finally{ctx.w.close();}
 });
-test('Eastern 5 PM marker dims ended sets but preserves favorites and active sets',()=>{
+test('Eastern 5 PM marker mutes ended set times but preserves favorites and active sets',()=>{
  const ctx=setup(true,'2026-09-18T21:00:00Z');try{
   const marker=ctx.root.querySelector('.schedule-now');assert(marker.textContent.includes('5:00 PM ET'));
   const cards=[...ctx.root.querySelectorAll('#mobile-schedule .set-card')];
@@ -174,9 +174,70 @@ test('timeline aligns sets, preserves horizontal position on favorites, and foll
   assert(ctx.events.some(e=>e.type==='rally-lineup-favorites-changed'&&e.artistIds.includes(id)));
   assert.equal(view.querySelector('.timeline-scroll').scrollLeft,480);
   assert(ctx.routes.at(-1).includes('view=timeline'));
-  ctx.root.querySelector('[data-day="Saturday"]').click();assert.equal(view.querySelector('h3').textContent,'Saturday');
+  ctx.root.querySelector('[data-day="Saturday"]').click();assert(view.querySelector('summary').textContent.includes('Saturday'));
   ctx.root.getElementById('table-view-button').click();assert.equal(view.hidden,true);
   assert(ctx.root.querySelector('.set-meta .set-time'));assert(ctx.root.querySelector('.set-meta .set-stage'));
+ }finally{ctx.w.close();}
+});
+test('completed days collapse on phones and desktop, reopen in normal colors, and retain likes and expansion',()=>{
+ const event={...niteharts,lineup:JSON.parse(read('../../scripts/fixtures/niteharts-2026.json'))};
+ for(const mobile of [true,false]){
+  const ctx=setup(mobile,'2026-10-10T18:28:00Z',event);try{
+   if(!mobile)ctx.w.RallyLineup.show({...ctx.options,params:''});
+   const selector=mobile?'#mobile-schedule .schedule-day':'#table-body .day-divider';
+   let day=ctx.root.querySelector(selector),toggle=day.querySelector('[data-past-day-toggle]');
+   assert(day.classList.contains('is-completed'));assert.equal(toggle.getAttribute('aria-expanded'),'false');
+   if(mobile)assert.equal(day.open,false);
+   else {
+    assert([...ctx.root.querySelectorAll('#table-body [data-festival-date="2026-10-09"]')].every(row=>row.hidden));
+    assert([...ctx.root.querySelectorAll('#table-body [data-festival-date="2026-10-10"]')].every(row=>!row.hidden));
+   }
+   toggle.click();day=ctx.root.querySelector(selector);
+   assert.equal(day.querySelector('[data-past-day-toggle]').getAttribute('aria-expanded'),'true');
+   assert.equal(ctx.root.querySelectorAll('.set-ended').length,0,'Expanded completed days must not be washed out');
+   const star=ctx.root.querySelector(mobile?'#mobile-schedule [data-favorite-id]':'#table-body [data-favorite-id]');
+   const id=star.dataset.favoriteId;star.click();
+   assert(ctx.events.some(e=>e.type==='rally-lineup-favorites-changed'&&e.artistIds.includes(id)));
+   assert.equal(ctx.root.querySelector(selector+' [data-past-day-toggle]').getAttribute('aria-expanded'),'true');
+   ctx.root.getElementById('timeline-view-button').click();
+   const timelineDay=ctx.root.querySelector('#timeline-view .schedule-day');assert(timelineDay.open);
+   timelineDay.querySelector('summary').click();assert.equal(timelineDay.open,false);
+   ctx.root.getElementById('table-view-button').click();
+   assert.equal(ctx.root.querySelector(selector+' [data-past-day-toggle]').getAttribute('aria-expanded'),'false');
+   ctx.w.RallyLineup.receive({...ctx.state,artistIds:[id]});
+   assert.equal(ctx.root.querySelector(selector+' [data-past-day-toggle]').getAttribute('aria-expanded'),'false');
+   assert.equal(ctx.root.querySelector(`[data-favorite-id="${id}"]`).getAttribute('aria-pressed'),'true');
+   // Full-event review is deliberately expanded and readable.
+   ctx.w.RallyLineup.receive({...ctx.state,artistIds:[id],reviewMode:true});
+   assert.equal(ctx.root.querySelector(selector+' [data-past-day-toggle]').getAttribute('aria-expanded'),'true');
+  }finally{ctx.w.close();}
+ }
+});
+test('day completion follows the final overnight set, not filtered earlier sets, and refreshes when time advances',()=>{
+ const event={...niteharts,lineup:[
+  {id:'early',name:'Early',day:'Friday',date:'2026-10-09',start:'2026-10-09T20:00',end:'2026-10-09T21:00',stage:'Main'},
+  {id:'overnight',name:'Overnight',day:'Friday',date:'2026-10-09',start:'2026-10-10T00:00',end:'2026-10-10T02:00',stage:'Main'},
+  {id:'next',name:'Next day',day:'Saturday',date:'2026-10-10',start:'2026-10-10T20:00',end:'2026-10-10T21:00',stage:'Main'}
+ ]};
+ const ctx=setup(true,'2026-10-10T08:59:00Z',event);try{
+  const search=ctx.root.getElementById('search');search.value='Early';search.dispatchEvent(new ctx.w.Event('input'));
+  let day=ctx.root.querySelector('#mobile-schedule .schedule-day');assert(day.open);assert(!day.classList.contains('is-completed'));
+  const Clock=ctx.w.Date;ctx.w.Date=class extends Clock{constructor(...args){super(...(args.length?args:['2026-10-10T09:00:00Z']));}};
+  ctx.w.document.dispatchEvent(new ctx.w.Event('visibilitychange'));
+  day=ctx.root.querySelector('#mobile-schedule .schedule-day');assert.equal(day.open,false);assert(day.classList.contains('is-completed'));
+  day.querySelector('summary').click();assert(day.open);
+  ctx.w.document.dispatchEvent(new ctx.w.Event('visibilitychange'));assert(day.open,'Progress refresh must respect an explicit expansion');
+  ctx.root.querySelector('[data-day="Saturday"]').click();
+  search.value='';search.dispatchEvent(new ctx.w.Event('input'));
+  assert(ctx.root.querySelector('#mobile-schedule .schedule-day').open);
+ }finally{ctx.w.close();}
+});
+test('untimed days are never collapsed based on guessed times, and current-day ended sets do not fade whole rows',()=>{
+ const ctx=setup(true,'2026-10-10T18:28:00Z',niteharts);try{
+  assert(ctx.root.querySelector('#mobile-schedule .schedule-day').open);
+  assert(!ctx.root.querySelector('.is-completed'));
+  const css=read('../../lost-lands-2026-lineup/mobile.css');
+  assert(!/\.set-ended\s*\{[^}]*opacity/.test(css));
  }finally{ctx.w.close();}
 });
 test('switching away and back preserves the same component, day, search, and scroll',()=>{

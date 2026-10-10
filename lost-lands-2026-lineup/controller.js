@@ -703,29 +703,76 @@ function easternNow() {
 }
 let forcedReview=false;
 function reviewMode(){return forcedReview || !hasTimeline || easternNow() >= timedLineup.reduce((latest,set)=>set.end>latest?set.end:latest,'');}
+// Completion uses the full day, not the currently filtered sets, and includes
+// sets ending after midnight. A user's expansion choice survives re-renders.
+const pastDayExpanded = new Map();
+function completedFestivalDay(date, now = easternNow()) {
+  const sets = lineup.filter(set => set.festivalDate === date);
+  return sets.length > 0 && sets.every(set => set.start && set.end && set.end <= now);
+}
+function scheduleDayLabel(entry, count) {
+  return `${escapeHtml(entry.day)} · ${escapeHtml(formatFestivalDate(entry.festivalDate))} · ${count} set${count === 1 ? '' : 's'}`;
+}
+function scheduleDaySummary(entry, count) {
+  return `<summary data-past-day-toggle="${escapeHtml(entry.festivalDate)}"><span>${scheduleDayLabel(entry,count)}</span><small class="past-day-status">Completed</small><span class="past-day-chevron" aria-hidden="true">⌄</span></summary>`;
+}
+function updatePastDayDisclosures(now = easternNow(), reviewing = reviewMode()) {
+  root.querySelectorAll('[data-schedule-day]').forEach(node => {
+    const date = node.dataset.scheduleDay;
+    const completed = !reviewing && completedFestivalDay(date,now);
+    const expanded = !completed || pastDayExpanded.get(date) === true;
+    node.classList.toggle('is-completed',completed);
+    if (node.tagName === 'DETAILS') {
+      node.open = expanded;
+      const summary = node.querySelector(':scope > summary');
+      summary.hidden = !completed && !node.classList.contains('timeline-day');
+      summary.setAttribute('aria-expanded',String(expanded));
+      summary.querySelector('.past-day-status').hidden = !completed;
+      summary.querySelector('.past-day-chevron').hidden = !completed;
+    } else {
+      node.querySelector('.day-label').hidden = completed;
+      const button = node.querySelector('[data-past-day-toggle]');
+      button.hidden = !completed;
+      button.setAttribute('aria-expanded',String(expanded));
+      els.tableBody.querySelectorAll('[data-festival-date]').forEach(row => {
+        if (row.dataset.festivalDate === date) row.hidden = !expanded;
+      });
+    }
+  });
+}
+function handlePastDayClick(event) {
+  const trigger = event.target.closest('[data-past-day-toggle]');
+  if (!trigger) return;
+  event.preventDefault();
+  const date = trigger.dataset.pastDayToggle;
+  if (reviewMode() || !completedFestivalDay(date)) return;
+  pastDayExpanded.set(date,trigger.getAttribute('aria-expanded') !== 'true');
+  updateScheduleProgress();
+}
 function updateScheduleProgress() {
-  if (reviewMode()) {
+  const now=easternNow(), reviewing=reviewMode();
+  updatePastDayDisclosures(now,reviewing);
+  if (reviewing) {
     root.querySelectorAll('[data-set-start]').forEach(node=>node.classList.remove('set-ended','set-live'));
     root.querySelectorAll('.schedule-now').forEach(node=>node.remove());
     root.querySelectorAll('.timeline-now').forEach(node=>{node.hidden=true;});
     return;
   }
-  const now=easternNow();
   root.querySelectorAll('[data-set-start]').forEach(node=>{
     if(!node.dataset.setStart||!node.dataset.setEnd)return;
-    node.classList.toggle('set-ended',node.dataset.setEnd<=now);
+    node.classList.toggle('set-ended',node.dataset.setEnd<=now&&!completedFestivalDay(node.dataset.festivalDate,now));
     node.classList.toggle('set-live',node.dataset.setStart<=now&&node.dataset.setEnd>now);
   });
   root.querySelectorAll('.schedule-now').forEach(node=>node.remove());
   if(activeView==='table'&&sortMode==='time'){
     const parent=mobileViewQuery.matches?root.getElementById('mobile-schedule'):els.tableBody;
-      const rows=[...parent.querySelectorAll('[data-set-start]')].filter(node=>node.dataset.setStart&&node.dataset.setEnd);
+      const rows=[...parent.querySelectorAll('[data-set-start]')].filter(node=>node.dataset.setStart&&node.dataset.setEnd&&!completedFestivalDay(node.dataset.festivalDate,now));
     // Use the festival-day window, including its after-midnight sets.
     const dates=[...new Set(rows.map(node=>node.dataset.festivalDate))];
     const relevant=dates.some(date=>now>=date+'T00:00'&&now<new Date(Date.parse(date+'T00:00Z')+28*3600000).toISOString().slice(0,16));
     if(rows.length&&relevant){
       const marker=document.createElement(mobileViewQuery.matches?'div':'tr');marker.className='schedule-now';
-      const label=`Now · ${formatClock(now)} ${zoneLabel} · ended sets are dimmed`;
+      const label=`Now · ${formatClock(now)} ${zoneLabel} · ended set times are muted`;
       marker.innerHTML=mobileViewQuery.matches?`<span>${label}</span>`:`<td colspan="${tableColumnCount}">${label}</td>`;
       const next=rows.find(node=>node.dataset.setEnd>now);
       if(next)next.before(marker);else parent.append(marker);
@@ -751,11 +798,11 @@ function renderTable(entries) {
     .map((entry) => {
       const dayEntries = entries.filter((candidate) => candidate.day === entry.day);
       const dayDivider = sortMode !== 'time' || renderedDay === entry.day ? "" : `
-        <tr class="day-divider"><td colspan="${tableColumnCount}">${escapeHtml(entry.day)} · ${escapeHtml(formatFestivalDate(entry.festivalDate))} · ${dayEntries.length} set${dayEntries.length === 1 ? "" : "s"}</td></tr>
+        <tr class="day-divider" data-schedule-day="${escapeHtml(entry.festivalDate)}"><td colspan="${tableColumnCount}"><span class="day-label">${scheduleDayLabel(entry,dayEntries.length)}</span><button type="button" class="past-day-toggle" data-past-day-toggle="${escapeHtml(entry.festivalDate)}" aria-expanded="false" hidden><span>${scheduleDayLabel(entry,dayEntries.length)}</span><small class="past-day-status">Completed</small><span class="past-day-chevron" aria-hidden="true">⌄</span></button></td></tr>
       `;
       renderedDay = entry.day;
       const groupKey=entry.day+':'+entry.stage+':'+(entry.blockId||'');
-      const stageDivider=!hasTimes&&hasStages&&sortMode==='time'&&renderedStage!==groupKey?`<tr class="stage-divider"><th colspan="${tableColumnCount}" scope="rowgroup">${escapeHtml(entry.stage)}</th></tr>`:'';
+      const stageDivider=!hasTimes&&hasStages&&sortMode==='time'&&renderedStage!==groupKey?`<tr class="stage-divider" data-festival-date="${escapeHtml(entry.festivalDate)}"><th colspan="${tableColumnCount}" scope="rowgroup">${escapeHtml(entry.stage)}</th></tr>`:'';
       renderedStage=groupKey;
       return `${dayDivider}${stageDivider}
         <tr data-set-start="${entry.start}" data-set-end="${entry.end}" data-festival-date="${entry.festivalDate}">
@@ -920,14 +967,14 @@ function renderTimeline(entries) {
     const end=Math.ceil(Math.max(...sets.map(e=>minutes(e.end)))/30)*30;
     const scale=4,width=(end-start)*scale;
     const ticks=[];for(let t=start;t<=end;t+=30)ticks.push(`<span style="left:${(t-start)*scale}px">${escapeHtml(formatClock(new Date(t*60000).toISOString().slice(0,16)))}</span>`);
-return `<section class="timeline-day"><h3>${escapeHtml(day)}</h3><div class="timeline-scroll" tabindex="0" aria-label="${escapeHtml(day)} set times. Scroll horizontally to explore."><div class="timeline-track" style="width:${width+100}px"><div class="timeline-now" data-start="${start}" data-end="${end}" hidden aria-label="Current Eastern time"></div><div class="timeline-ruler">${ticks.join('')}</div>${stageOrder.filter(stage=>sets.some(e=>e.stage===stage)).map(stage=>{
+return `<details class="timeline-day schedule-day" data-schedule-day="${escapeHtml(sets[0].festivalDate)}" open>${scheduleDaySummary(sets[0],sets.length)}<div class="timeline-scroll" tabindex="0" aria-label="${escapeHtml(day)} set times. Scroll horizontally to explore."><div class="timeline-track" style="width:${width+100}px"><div class="timeline-now" data-start="${start}" data-end="${end}" hidden aria-label="Current ${escapeHtml(zoneLabel)} time"></div><div class="timeline-ruler">${ticks.join('')}</div>${stageOrder.filter(stage=>sets.some(e=>e.stage===stage)).map(stage=>{
       const laneEnds=[];
       const cards=sets.filter(e=>e.stage===stage).sort((a,b)=>a.start.localeCompare(b.start)).map(e=>{
         const from=minutes(e.start),to=minutes(e.end);let lane=laneEnds.findIndex(end=>end<=from);if(lane<0)lane=laneEnds.length;laneEnds[lane]=to;
         return `<button type="button" class="timeline-set${favorites.has(e.id)?' is-active':''}" data-favorite-id="${escapeHtml(e.id)}" aria-pressed="${favorites.has(e.id)}" aria-label="${escapeHtml(e.artist+' · '+formatClock(e.start)+' to '+formatClock(e.end)+' · Toggle favorite')}" style="left:${(from-start)*scale}px;width:${Math.max(20,(to-from)*scale-4)}px;top:${38+lane*84}px"><strong>${escapeHtml(e.artist)}</strong><span>${escapeHtml(formatClock(e.start))} – ${escapeHtml(formatClock(e.end))}</span><small>${favorites.has(e.id)?'★ Saved':'☆ Favorite'}</small></button>`;
       }).join('');
       return `<div class="timeline-lane" style="height:${42+laneEnds.length*84}px"><h4>${escapeHtml(stage)}</h4>${cards}</div>`;
-    }).join('')}</div></div></section>`;
+    }).join('')}</div></div></details>`;
   }).join('')||`<p class="mobile-empty">${dinoEmpty}</p>`;
   container.querySelectorAll('.timeline-scroll').forEach(el=>{
     const marker=el.querySelector('.timeline-now'),start=Number(marker.dataset.start),end=Number(marker.dataset.end);
@@ -955,6 +1002,7 @@ function renderMobileSchedule(entries) {
       return `<details class="mobile-stage" data-stage="${escapeHtml(stage)}" ${closed.has(stage)?'':'open'}><summary>${escapeHtml(stage)}<span>${sets.length} sets</span></summary><div>${sets.map(entry=>mobileSetCard(entry)).join('')}</div></details>`;
     }).join('');
   } else html = entries.map(entry=>mobileSetCard(entry)).join('');
+  if (entries.length) html = `<details class="schedule-day mobile-schedule-day" data-schedule-day="${escapeHtml(entries[0].festivalDate)}" open>${scheduleDaySummary(entries[0],entries.length)}<div>${html}</div></details>`;
   if (container.renderedHTML !== html) {
     const focused = container.contains(root.activeElement) ? root.activeElement?.dataset.favoriteId : null;
     container.innerHTML = html; container.renderedHTML = html;
@@ -1441,10 +1489,13 @@ function bindEvents() {
     if (wasViewingSharedFavorites) showToast("Edited list saved as yours.");
   };
   els.tableBody.addEventListener("click", handleFavoriteClick);
+  els.tableBody.addEventListener("click", handlePastDayClick);
   els.posterContent.addEventListener("click", handleFavoriteClick);
   els.heatContent.addEventListener("click", handleFavoriteClick);
   root.getElementById('mobile-schedule').addEventListener('click', handleFavoriteClick);
+  root.getElementById('mobile-schedule').addEventListener('click', handlePastDayClick);
   timeline.addEventListener('click',handleFavoriteClick);
+  timeline.addEventListener('click',handlePastDayClick);
   root.getElementById('mobile-days').addEventListener('click', event => {
     const button = event.target.closest('[data-day]');
     if (!button) return;

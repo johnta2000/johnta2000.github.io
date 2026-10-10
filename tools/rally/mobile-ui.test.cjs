@@ -112,6 +112,8 @@ function context() {
     vm.runInContext(html.slice(html.indexOf(start),html.indexOf(end)),ctx);
   }
   ctx.sortMode='time';ctx.mostLiked=false;
+  vm.runInContext(html.slice(html.indexOf('function scheduleDayLabel('),html.indexOf('function updatePastDayDisclosures(')),ctx);
+  vm.runInContext(html.slice(html.indexOf('function formatFestivalDate('),html.indexOf('function renderInterest(')),ctx);
   ctx.lineupBlocks=[];
   vm.runInContext(html.match(/function blockFor\(entry\)\{[^\n]+/)[0],ctx);
   vm.runInContext(html.match(/function blockHours\(block\)\{[^\n]+/)[0],ctx);

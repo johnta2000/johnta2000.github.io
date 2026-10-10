@@ -96,6 +96,7 @@ body, .main-column, #lineupView, :host { background:var(--paper); color:var(--in
 :host .timeline-now,:host .timeline-now::before { background:var(--rally-accent); }
 :host .set-live { box-shadow:inset 3px 0 var(--rally-accent); }
 :host .schedule-now td { border-top-color:var(--rally-accent); }
+:host .clear-action { color:var(--muted); }
 .sort-dialog,.filters-dialog,.filter-panel { color:var(--ink); background:var(--card); }
 .sort-dialog button,.filters-dialog button,.filters-dialog .filter-trigger { color:var(--ink); background:var(--card); border-color:var(--line); }
 .sort-dialog button[aria-pressed="true"],.filter-option.selected { background:var(--rally-soft); color:var(--rally-accent); }
