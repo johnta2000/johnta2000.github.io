@@ -32,7 +32,14 @@ window.convexMutation=async(path,args)=>{if(path!=='rallyTickets:update')throw E
     assert(!await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1));
     findings.push(...await auditContrast(page,label+' tickets'));
     await page.screenshot({path:`${output}/${label}-tickets.png`,fullPage:true,animations:'disabled'});
-    await page.locator('.ticket-coverage-list>summary').click();assert.equal(await page.locator('.ticket-coverage-list li').count(),10);
+    assert(await page.locator('.ticket-distribution-table').isVisible());
+    assert.equal(await page.locator('.ticket-distribution-table tbody tr').count(),10);
+    assert.equal(await page.locator('.ticket-distribution-table thead th').count(),3);
+    const distribution=page.locator('.ticket-distribution-scroll');
+    const initialNameX=(await page.locator('.ticket-distribution-table tbody th').first().boundingBox()).x;
+    await distribution.evaluate(el=>{el.scrollLeft=120;});
+    assert.equal((await page.locator('.ticket-distribution-table tbody th').first().boundingBox()).x,initialNameX,'Crew column remains pinned while scrolling');
+    await distribution.evaluate(el=>{el.scrollLeft=0;});
     findings.push(...await auditContrast(page,label+' coverage'));
     await page.locator('.ticket-coverage-list>summary').click();
     await menu.click();assert(await page.locator('[name=quantity]').isVisible());

@@ -55,7 +55,7 @@ test('legacy purchase edits cannot shrink away assigned tickets or reset assignm
 });
 function ui(){
  const dom=new JSDOM(fs.readFileSync(__dirname+'/index.html','utf8'),{url:'https://example.test/tools/rally/',runScripts:'outside-only',pretendToBeVisual:true}),w=dom.window;
- w.RallyOffline={save(){}};w.eval(fs.readFileSync(__dirname+'/app.js','utf8').replace('\ninit();','')+'\ndata='+JSON.stringify({...makeState(),currentMemberId:'b',isAdmin:false,travel:[]})+';activeEvent=data.id;activeView="passes";offlineMode=false;window.qaMove=()=>activeEvent="other";window.qaOffline=()=>offlineMode=true;');
+ w.RallyOffline={save(){}};w.eval(fs.readFileSync(__dirname+'/app.js','utf8').replace('\ninit();','')+'\ndata='+JSON.stringify({...makeState(),currentMemberId:'b',isAdmin:false,travel:[]})+';activeEvent=data.id;activeView="passes";offlineMode=false;window.qaMove=()=>activeEvent="other";window.qaOffline=()=>offlineMode=true;window.qaState=value=>data=value;');
  return {w,close:()=>w.close()};
 }
 test('UI renders one available slot per ticket, includes unclaimed crew, and keeps buyer separate from assignments',async()=>{
@@ -83,5 +83,26 @@ test('ticket refresh preserves note drafts, expansion, and stale project respons
   let resolve;w.convexQuery=()=>new Promise(r=>resolve=r);const pending=w.refreshTickets();w.qaMove();resolve(makeState());await pending;
   assert.match(w.document.querySelector('.ticket-coverage').textContent,/1 of 3/);
   w.qaOffline();w.openTicketAssignment(makeState().passes[0],0);assert.equal(w.document.querySelector('#dialogRoot form'),null);
+ }finally{close();}
+});
+test('distribution matrix includes every crew member and purchase, counts multiple tickets, and ignores departed or invalid slots',()=>{
+ const {w,close}=ui();try{
+  const state={...makeState(),currentMemberId:'b',travel:[]};
+  state.members[2].name='<script>not markup</script>';
+  state.passes[0].ticketAssignments=[{slot:0,memberId:'b'},{slot:1,memberId:'b'},{slot:2,memberId:'departed'},{slot:5,memberId:'a'}];
+  state.passes.push({id:'shuttle',name:'Shuttle',category:'Shuttle',quantity:2,ownerId:'a',ticketAssignments:[{slot:0,memberId:'c'}]});
+  w.qaState(state);w.renderPasses();
+  const table=w.document.querySelector('.ticket-distribution-table');
+  assert(w.document.querySelector('.ticket-coverage-list').open,'The table is visible by default');
+  assert.equal(table.querySelectorAll('tbody tr').length,3);assert.equal(table.querySelectorAll('thead th').length,3);
+  const rows=[...table.querySelectorAll('tbody tr')];
+  assert.equal(rows[0].querySelector('td').textContent,'—','Being the buyer does not imply ticket ownership');
+  assert.equal(rows[1].querySelector('td').textContent,'2');assert.equal(rows[2].querySelectorAll('td')[1].textContent,'1');
+  assert.equal(rows[2].querySelector('th span').textContent,state.members[2].name);assert.equal(table.querySelector('script'),null);
+  assert.deepEqual([...table.querySelectorAll('tfoot tr:first-child td')].map(cell=>cell.textContent),['2','1']);
+  assert.deepEqual([...table.querySelectorAll('tfoot tr:last-child td')].map(cell=>cell.textContent),['2','1']);
+  const scroll=w.document.querySelector('.ticket-distribution-scroll');scroll.scrollLeft=100;scroll.scrollTop=80;
+  w.renderTicketBoard();assert.equal(w.document.querySelector('.ticket-distribution-scroll').scrollLeft,100);assert.equal(w.document.querySelector('.ticket-distribution-scroll').scrollTop,80);
+  w.document.querySelector('.ticket-coverage-list').open=false;w.renderTicketBoard();assert(!w.document.querySelector('.ticket-coverage-list').open);
  }finally{close();}
 });

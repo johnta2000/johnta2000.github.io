@@ -773,10 +773,25 @@ function renderTravel(){const map=memberMap(),itineraries=flightItineraries();el
 function passQuantity(pass){return Math.min(500,Math.max(1,Math.floor(Number(pass.quantity)||1)));}
 function ticketAssignee(pass,slot){return (pass.ticketAssignments||[]).find(item=>item.slot===slot)?.memberId||'';}
 function memberHasTicket(id){return data.passes.some(pass=>(pass.category||'Pass')==='Pass'&&(pass.ticketAssignments||[]).some(item=>item.memberId===id&&item.slot>=0&&item.slot<passQuantity(pass)));}
+function ticketDistributionMarkup(){
+  if(!data.passes.length)return '<p class="ticket-distribution-empty">Add a purchase to start the distribution table.</p>';
+  const map=memberMap();
+  const columns=data.passes.map(pass=>{
+    const quantities=new Map();
+    for(let slot=0;slot<passQuantity(pass);slot++){
+      const id=ticketAssignee(pass,slot);if(map[id])quantities.set(id,(quantities.get(id)||0)+1);
+    }
+    return {pass,quantities,assigned:[...quantities.values()].reduce((sum,count)=>sum+count,0)};
+  });
+  return `<div class="ticket-distribution-scroll" tabindex="0" role="region" aria-label="Ticket distribution by crew member; scroll to see all purchases"><table class="ticket-distribution-table" style="min-width:${(columns.length+1)*180}px"><caption>Ticket assignments by person and purchase</caption><thead><tr><th scope="col">Crew member</th>${columns.map(({pass})=>`<th scope="col"><strong>${escapeHtml(pass.name)}</strong><small>${escapeHtml(pass.category||'Pass')} · ${passQuantity(pass)} purchased</small><small>Buyer: ${escapeHtml(map[pass.ownerId]?.name||'Unassigned')}</small></th>`).join('')}</tr></thead><tbody>${data.members.map(member=>`<tr><th scope="row"><span>${escapeHtml(member.name)}</span><small>${memberHasTicket(member.id)?'Festival ticket assigned':'No festival ticket assigned'}</small></th>${columns.map(({quantities})=>{
+    const count=quantities.get(member.id)||0;
+    return `<td>${count?`<span class="ticket-distribution-count" aria-label="${count} ticket${count===1?'':'s'} assigned">${count}</span>`:'<span class="ticket-distribution-none" aria-label="No tickets assigned">—</span>'}</td>`;
+  }).join('')}</tr>`).join('')}</tbody><tfoot><tr><th scope="row">Assigned</th>${columns.map(({assigned})=>`<td>${assigned}</td>`).join('')}</tr><tr><th scope="row">Available</th>${columns.map(({pass,assigned})=>`<td>${passQuantity(pass)-assigned}</td>`).join('')}</tr></tfoot></table></div><p class="ticket-distribution-help">Numbers show how many tickets each person has. Edit individual assignments in the purchases below.</p>`;
+}
 function ticketCoverageMarkup(){
   const covered=new Set(data.passes.filter(pass=>(pass.category||'Pass')==='Pass').flatMap(pass=>(pass.ticketAssignments||[]).filter(item=>item.slot>=0&&item.slot<passQuantity(pass)).map(item=>item.memberId)));
   const count=data.members.filter(member=>covered.has(member.id)).length;
-  return `<section class="ticket-coverage" aria-label="Crew ticket coverage"><header><div><h2>Crew ticket coverage</h2><p>${count} of ${data.members.length} people assigned a festival ticket</p></div><button class="secondary" type="button" id="refreshTickets" ${offlineMode?'disabled':''}>Refresh tickets</button></header><details class="ticket-coverage-list"><summary>View everyone <span aria-hidden="true">⌄</span></summary><ul>${data.members.map(member=>`<li class="${covered.has(member.id)?'has-ticket':''}"><span>${escapeHtml(member.name)}</span><small>${covered.has(member.id)?'Assigned':'Not assigned in Rally'}</small></li>`).join('')}</ul></details><p class="ticket-coverage-note">Assignments don’t transfer tickets or record payment. Missing someone? <a href="${href('crew')}">Add them in Crew.</a></p></section>`;
+  return `<section class="ticket-coverage" aria-label="Crew ticket coverage"><header><div><h2>Ticket distribution</h2><p>${count} of ${data.members.length} people assigned a festival ticket</p></div><button class="secondary" type="button" id="refreshTickets" ${offlineMode?'disabled':''}>Refresh tickets</button></header><details class="ticket-coverage-list"><summary>Assignments by person <span aria-hidden="true">⌄</span></summary>${ticketDistributionMarkup()}</details><p class="ticket-coverage-note">Assignments don’t transfer tickets or record payment. Missing someone? <a href="${href('crew')}">Add them in Crew.</a></p></section>`;
 }
 function renderPasses(){
   el.page.innerHTML=heading('Purchase ledger','Passes & shuttles','Track the original buyer, then assign each ticket to someone in your crew.',`<button id="addPass" class="primary" ${offlineMode?'disabled':''}>＋ Add purchase</button>`)+'<div id="ticketPurchaseBoard"></div>';
@@ -786,6 +801,8 @@ function renderPasses(){
 function renderTicketBoard(){
   const board=document.getElementById('ticketPurchaseBoard');if(!board)return;
   const expanded=board.querySelector('.ticket-coverage-list')?.open;
+  const tableScroll=board.querySelector('.ticket-distribution-scroll');
+  const scroll={left:tableScroll?.scrollLeft||0,top:tableScroll?.scrollTop||0};
   const focused=board.contains(document.activeElement)?{passId:document.activeElement.dataset.ticketPass,slot:document.activeElement.dataset.ticketSlot}:null;
   const map=memberMap();
   board.innerHTML=ticketCoverageMarkup()+`<div class="pass-grid">${data.passes.map(pass=>{
@@ -796,7 +813,9 @@ function renderTicketBoard(){
       return `<li><button type="button" data-ticket-pass="${escapeAttr(pass.id)}" data-ticket-slot="${slot}" ${offlineMode?'disabled':''} aria-label="${member?'Change':'Assign'} ticket ${slot+1} for ${escapeAttr(pass.name)}${member?' · '+escapeAttr(member.name):''}"><span class="ticket-slot-number">${slot+1}</span><span class="ticket-slot-person">${member?escapeHtml(member.name):'<span class="ticket-unassigned">Assign to someone</span>'}${id&&!member?'<small>Previous person left the crew</small>':''}</span><span aria-hidden="true">${member?'↗':'+'}</span></button></li>`;
     }).join('')}</ol></section><footer>${pass.status?`<span class="purchase-status">${escapeHtml(pass.status)}</span>`:''}${pass.notes?`<small>${escapeHtml(pass.notes)}</small>`:''}</footer></article>`;
   }).join('')||'<div class="empty">No purchases yet. Add a purchase to start assigning tickets.</div>'}</div>`;
-  board.querySelector('.ticket-coverage-list').open=Boolean(expanded);
+  board.querySelector('.ticket-coverage-list').open=expanded===undefined?true:expanded;
+  const newTableScroll=board.querySelector('.ticket-distribution-scroll');
+  if(newTableScroll){newTableScroll.scrollLeft=scroll.left;newTableScroll.scrollTop=scroll.top;}
   document.querySelectorAll('[data-pass-edit]').forEach(button=>button.onclick=()=>openPass(data.passes.find(pass=>pass.id===button.dataset.passEdit)));
   document.querySelectorAll('[data-ticket-slot]').forEach(button=>button.onclick=()=>openTicketAssignment(data.passes.find(pass=>pass.id===button.dataset.ticketPass),Number(button.dataset.ticketSlot)));
   document.getElementById('refreshTickets').onclick=()=>refreshTickets();
