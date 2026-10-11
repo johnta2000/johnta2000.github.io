@@ -8,6 +8,8 @@ Keep Burgery fun and direct: one compact header, actions, stats, and rankings. S
 
 The four primary ranking tabs are Patties, Burgers, Patties/Trip, and Burgers/Trip. Trips and Receipts are separate header links. Burger totals use known entries; burger averages require complete known counts for a person on a trip.
 
+Keep Log order and Upload receipt under one Add action in the navbar. Public superlatives cover total patties and patties per trip; omit an attendance award while the ledger is owner-led.
+
 Overview cards show breakdowns on hover, keyboard focus, or tap. Patties and nutrition show totals by trip, averages per trip and distinct person, and the top three contributors. Nutrition uses the existing patty-only estimates (110 kcal, 90 mg sodium, 6 g fat, and 10 g protein per patty). Trips shows distinct people and places, average attendance, and each trip's attendance and patties. Keep these details in a dismissible popover so the overview stays compact.
 
 ## Data conventions
