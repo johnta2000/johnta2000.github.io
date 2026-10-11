@@ -1016,8 +1016,10 @@ button svg {
   border-color: var(--line);
   background: #f1f2ee;
   color: #8a9088;
-  cursor: wait;
+  cursor: default;
 }
+
+.notetaker-actions button[aria-busy="true"] { cursor: wait; }
 
 .modal-backdrop {
   position: fixed;

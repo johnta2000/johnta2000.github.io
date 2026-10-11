@@ -73,6 +73,8 @@ const openCommentThreads = new Map();
 let activeCommentKey = null;
 let commentLayoutFrame;
 let fathomNotesForDate = [];
+let fathomNotesLoadVersion = 0;
+let fathomNotesError = "";
 let autosaveTimer;
 let dailyNotesAutosaveTimer;
 let midnightResetTimer;
@@ -821,29 +823,43 @@ async function loadDailyNotes() {
 }
 
 async function loadFathomNotes() {
-  els.notetakerDate.textContent = formatDate(els.date.value);
-  els.notetakerModalDate.textContent = formatDate(els.date.value);
+  const version = ++fathomNotesLoadVersion;
+  const standupDate = els.date.value;
+  fathomNotesForDate = [];
+  fathomNotesError = "";
+  closeNotetakerModal();
+  els.notetakerDate.textContent = formatDate(standupDate);
+  els.notetakerModalDate.textContent = formatDate(standupDate);
   els.notetakerSummary.textContent = "Loading Fathom notes...";
   els.notetakerStatus.textContent = "Loading notetaker notes...";
   els.notetakerViewButton.disabled = true;
+  els.notetakerViewButton.setAttribute("aria-busy", "true");
 
   try {
-    fathomNotesForDate = await convexQuery("standups:listFathomNotesForDate", {
+    const notes = await convexQuery("standups:listFathomNotesForDate", {
       teamId: TEAM_ID,
-      standupDate: els.date.value,
+      standupDate,
     });
+    if (version !== fathomNotesLoadVersion || standupDate !== els.date.value) return;
+    fathomNotesForDate = notes || [];
     renderFathomNotesSummary();
   } catch (error) {
+    if (version !== fathomNotesLoadVersion || standupDate !== els.date.value) return;
     console.error(error);
     fathomNotesForDate = [];
+    fathomNotesError = "Couldn't load meeting notes. Choose this date again to retry.";
     els.notetakerSummary.textContent = "Could not load Fathom notes.";
     els.notetakerStatus.textContent = getConvexMissingFunctionMessage(error) || "Notetaker notes unavailable.";
+  } finally {
+    if (version === fathomNotesLoadVersion) {
+      els.notetakerViewButton.disabled = false;
+      els.notetakerViewButton.setAttribute("aria-busy", "false");
+    }
   }
 }
 
 function renderFathomNotesSummary() {
   const count = fathomNotesForDate.length;
-  els.notetakerViewButton.disabled = count === 0;
   els.notetakerSummary.textContent = count
     ? `${count} Affilignment meeting${count === 1 ? "" : "s"} imported for this date.`
     : "No Affilignment meeting notes imported for this date.";
@@ -880,14 +896,16 @@ function openNotetakerModal() {
 }
 
 function closeNotetakerModal() {
+  const wasOpen = !els.notetakerModal.hidden;
   els.notetakerModal.setAttribute("hidden", "");
+  if (wasOpen) els.notetakerViewButton.focus({ preventScroll: true });
 }
 
 function renderFathomNotesModal() {
   if (!fathomNotesForDate.length) {
     const empty = document.createElement("p");
     empty.className = "empty-state";
-    empty.textContent = "No notetaker notes imported for this date yet.";
+    empty.textContent = fathomNotesError || "No meeting notes imported for this date yet.";
     els.notetakerModalContent.replaceChildren(empty);
     return;
   }

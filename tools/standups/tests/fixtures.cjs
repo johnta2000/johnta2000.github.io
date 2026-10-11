@@ -2,7 +2,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs/promises');
 const path = require('node:path');
 
-async function openStandups(browser, width, height = 844, { platform } = {}) {
+async function openStandups(browser, width, height = 844, { platform, fathomNotes = [] } = {}) {
   const page = await browser.newPage({ viewport: { width, height }, isMobile: width <= 760, hasTouch: true });
   page.setDefaultTimeout(10000);
   const errors = [];
@@ -50,6 +50,7 @@ async function openStandups(browser, width, height = 844, { platform } = {}) {
       value = `comment-${comments.length}`;
       comments.push({ ...args, _id: value, personKey: args.personName.toLowerCase(), authorEmail: 'tester@example.com', createdAt: Date.now() });
     } else if (endpoint === 'standups:listItemComments') value = comments.filter(c => c.personName === args.personName && c.standupDate === args.standupDate);
+    else if (endpoint === 'standups:listFathomNotesForDate') value = fathomNotes;
     else if (endpoint.includes('list')) value = [];
     return route.fulfill({ json: { status: 'success', value } });
   });
