@@ -66,3 +66,41 @@ test('receipt uploads require auth and real supported image bytes; reads have no
  const denied=await a.receipt({...c,runQuery:async()=>{throw Error('Sign in to add entries or receipts.');}},new Request('https://rapid-shark-565.convex.site/burgery-receipt?id=receipt-1'));assert.equal(denied.status,401);
 });
 test('saved human drafts keep machine extraction unchanged and require an up-to-date revision',async()=>{const a=await api,c=context({burgeryReceipts:[receipt({scan:draft([item({person:''})])})]});await a.saveReceiptDraft.handler(c,{id:'receipt-1',draft:draft(),expectedUpdatedAt:10});assert.equal(c.tables.burgeryReceipts[0].status,'review');assert.equal(c.tables.burgeryReceipts[0].scan.items[0].person,'');assert.equal(c.tables.burgeryReceipts[0].reviewed.items[0].person,'John Ta');await assert.rejects(a.saveReceiptDraft.handler(c,{id:'receipt-1',draft:draft(),expectedUpdatedAt:10}),/changed/);});
+
+const customization=load('burgery/customizations.js');
+const choice=(id,amount='regular')=>({id,amount});
+test('customization aliases normalize spelling and amounts without guessing pepper preparation',async()=>{
+ const c=await customization,p=c.parseCustomizations(['chopped chilis, grilled onions; extra toasted buns','whole peppers','extra spread','light tomato','no lettuce','peppers','double toast']);
+ assert.deepEqual(JSON.parse(JSON.stringify(p.customizations)),[choice('chopped_chilies'),choice('grilled_onions'),choice('extra_toast'),choice('whole_peppers'),choice('spread','extra'),choice('tomato','light'),choice('lettuce','no'),choice('peppers')]);assert.equal(p.unknown[0],'double toast');
+ const merged=c.prepareReceiptItem(item({modifiers:['extra spread','unrecognized note'],customizations:[choice('spread','light')]}));assert.equal(merged.customizations[0].amount,'light');assert.equal(merged.modifiers[0],'unrecognized note');
+});
+test('customization validation rejects unknown IDs, duplicates and incompatible preparations',async()=>{
+ const c=await customization;for(const selections of [[choice('invented')],[choice('extra_toast','extra')],[choice('spread'),choice('spread','extra')],[choice('extra_toast'),choice('no_toast')],[choice('standard'),choice('pickles')],[choice('onions','no'),choice('grilled_onions')]])assert.throws(()=>c.validateCustomizations(selections));
+ assert.equal(c.validateCustomizations([choice('whole_peppers','extra')])[0].amount,'extra');
+});
+test('San Diego customization stats weight each burger and retain separate John recipes',async()=>{
+ const c=await customization,seeds=JSON.parse(fs.readFileSync(path.join(root,'burgery/seed.json'))),s=c.customizationStats(seeds),john=seeds.at(-1).entries.find(e=>e.name==='John Ta');assert.equal(john.items.length,2);assert.equal(john.items.reduce((n,i)=>n+i.quantity,0),4);assert.equal(s.trackedBurgers,6);
+ for(const [id,n,people]of [['grilled_onions',6,3],['chopped_chilies',5,2],['extra_toast',4,1],['whole_peppers',1,1]]){const row=s.choices.find(r=>r.id===id);assert.equal(row.burgers,n);assert.equal(row.people,people);assert.equal(row.trips,1);}
+});
+test('missing choices remain unrecorded and Animal Style components respect explicit overrides',async()=>{
+ const c=await customization,s=c.customizationStats([{key:'test',entries:[{name:'Synthetic',items:[{quantity:3,customizations:[]},{quantity:2,customizations:[choice('standard')]}]}]}]);assert.equal(s.trackedBurgers,2);assert.equal(s.choices.length,1);
+ const implied=c.effectiveCustomizations([choice('animal_style'),choice('spread','no'),choice('whole_grilled_onion')]);assert.equal(implied.find(i=>i.id==='spread').amount,'no');assert(!implied.some(i=>i.id==='grilled_onions'));assert(implied.some(i=>i.id==='mustard_grilled'));
+});
+test('typed manual recipes reconcile totals, validate amounts and preserve unknown cheese',async()=>{
+ const l=await logic,a=await api,recipe={label:'2×1',quantity:2,pattiesEach:2,cheeseEach:1,customizations:[choice('chopped_chilies')]};
+ assert.equal(l.validateBurgerItems([recipe],4,2,2).length,1);for(const args of [[3,2,2],[4,3,2],[4,2,1]])assert.throws(()=>l.validateBurgerItems([recipe],...args));assert.throws(()=>l.validateBurgerItems([{...recipe,quantity:1.5}],3,1.5));assert.throws(()=>l.validateBurgerItems([{...recipe,cheeseEach:null}],4,2,0));
+ const c=context({burgeryTrips:[{_id:'trip-1'}]}),args={tripId:'trip-1',person:'Synthetic',patties:4,burgers:2,cheese:2,log:'',items:[recipe],requestKey:'typed-request-123'};await a.addEntry.handler(c,args);assert.equal(c.tables.burgeryEntries[0].items[0].customizations[0].id,'chopped_chilies');await assert.rejects(a.addEntry.handler(context({burgeryTrips:[{_id:'trip-1'}]},null),args),/Sign in/);
+});
+test('receipt allocations preserve typed recipes and public projection excludes nested private fields',async()=>{
+ const l=await logic,a=await api,rows=l.allocations(draft([item({quantity:2,customizations:[choice('whole_peppers')]}),item({label:'Hamburger',pattiesEach:1,cheeseEach:0,customizations:[choice('extra_toast')]})]));assert.equal(rows[0].items.length,2);assert.equal(rows[0].items[0].quantity,2);
+ const c=context({burgeryTrips:[{_id:'trip-1',key:'one'}],burgeryEntries:[{_id:'entry-1',tripId:'trip-1',person:'Synthetic',patties:5,burgers:3,log:'',items:rows[0].items.map(i=>({...i,lineTotalCents:999,privateNote:'private-data',customizations:i.customizations.map(v=>({...v,privateNote:'private-data'}))}))}]});const json=JSON.stringify(await a.ledger.handler(c,{}));assert(!json.includes('private-data'));assert(!json.includes('lineTotalCents'));assert(json.includes('whole_peppers'));
+ const attached=context({burgeryEntries:[{_id:'entry-1',tripId:'trip-1',person:'John Ta',personKey:'john ta',patties:2,source:'legacy',owner:'seed'}],burgeryReceipts:[receipt({targetEntryId:'entry-1'})]});await a.confirmReceipt.handler(attached,{id:'receipt-1',draft:draft([item({customizations:[choice('whole_peppers')]})]),expectedUpdatedAt:10});assert.equal(attached.tables.burgeryEntries[0].items[0].customizations[0].id,'whole_peppers');assert.equal(attached.tables.burgeryEntries.length,1);
+});
+test('Niteharts amendment is idempotent and refuses to overwrite a receipt-linked original',async()=>{
+ const a=await api,c=context();await a.seed.handler(c,{});const trip=c.tables.burgeryTrips.find(t=>t.key==='niteharts-2026-10'),entries=c.tables.burgeryEntries.filter(e=>e.tripId===trip._id);for(const e of entries){delete e.items;e.log='old';}const first=await a.updateNitehartsDetails.handler(c,{});assert.equal(first.updated,4);assert.equal((await a.updateNitehartsDetails.handler(c,{})).updated,0);assert.equal(c.tables.burgeryEntries.length,29);assert.equal(entries.reduce((n,e)=>n+e.patties,0),10);entries[0].receiptId='receipt-original';await assert.rejects(a.updateNitehartsDetails.handler(c,{}),/changed/);
+});
+test('scanner schema constrains customization IDs and requires both ID and amount',async()=>{
+ let schema;const saved=[];const a=await load('convex/burgeryScanner.ts',{process:{env:{OPENAI_API_KEY:'synthetic-key'}},fetch:async(url,options)=>{schema=JSON.parse(options.body).text.format.schema;return {ok:true,json:async()=>({status:'completed',output:[{content:[{type:'output_text',text:JSON.stringify(draft([item({person:'',customizations:[choice('whole_peppers')]} )]))}]}]})};}});
+ await a.scan.handler({storage:{get:async()=>new Blob(['synthetic'],{type:'image/png'})},runMutation:async(name,args)=>{if(getFunctionName(name).includes('claimScan'))return {storageId:'file-1',type:'image/png',attempts:1};saved.push(args);}}, {id:'receipt-1'});
+ const i=schema.properties.items.items;assert(i.required.includes('customizations'));assert(i.properties.customizations.items.properties.id.enum.includes('whole_peppers'));assert.deepEqual(Array.from(i.properties.customizations.items.required),['id','amount']);assert.equal(saved[0].draft.items[0].customizations[0].id,'whole_peppers');assert.equal(saved[0].draft.items[0].person,'');
+});

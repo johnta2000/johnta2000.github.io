@@ -2,8 +2,9 @@ import { query, mutation, internalQuery, internalMutation } from "./_generated/s
 import type { QueryCtx, MutationCtx } from "./_generated/server";
 import { anyApi } from "convex/server";
 import { v } from "convex/values";
-import { receiptDraft } from "./burgeryTables";
-import { allocations, personKey, text, validateCounts, validateDraft } from "./burgeryLogic";
+import { receiptDraft, burgerItem } from "./burgeryTables";
+import { allocations, personKey, text, validateCounts, validateDraft, validateBurgerItems } from "./burgeryLogic";
+import type { BurgerItem } from "./burgeryLogic";
 import { starterTrips } from "./burgerySeed";
 
 export async function requireMember(ctx: { auth: QueryCtx["auth"] }) {
@@ -23,7 +24,7 @@ export const ledger = query({ args: {}, handler: async ctx => {
   const trips = await ctx.db.query("burgeryTrips").collect();
   const entries = await ctx.db.query("burgeryEntries").collect();
   return trips.map(trip => ({ id: trip._id, key: trip.key, name: trip.name, month: trip.month, location: trip.location,
-    entries: entries.filter(e => e.tripId === trip._id).map(e => ({ id: e._id, name: e.person, patties: e.patties, burgers: e.burgers ?? null, cheese: e.cheese ?? null, log: e.log, receiptBacked: !!e.receiptId })),
+    entries: entries.filter(e => e.tripId === trip._id).map(e => ({ id: e._id, name: e.person, patties: e.patties, burgers: e.burgers ?? null, cheese: e.cheese ?? null, log: e.log, items:e.items?.map(i=>({label:i.label,quantity:i.quantity,pattiesEach:i.pattiesEach,cheeseEach:i.cheeseEach,customizations:i.customizations.map(c=>({id:c.id,amount:c.amount}))}))??null, receiptBacked: !!e.receiptId })),
   }));
 } });
 export const mine = query({ args: {}, handler: async ctx => {
@@ -46,16 +47,17 @@ export const createTrip = mutation({ args: { name: v.string(), month: v.string()
   if (trips.length >= 500) throw Error("The trip limit has been reached.");
   return await ctx.db.insert("burgeryTrips", { key, name, month: args.month, location, createdAt: Date.now() });
 } });
-export const addEntry = mutation({ args: { tripId: v.id("burgeryTrips"), person: v.string(), patties: v.number(), burgers: v.optional(v.number()), cheese: v.optional(v.number()), log: v.string(), requestKey: v.string() }, handler: async (ctx, args) => {
+export const addEntry = mutation({ args: { tripId: v.id("burgeryTrips"), person: v.string(), patties: v.number(), burgers: v.optional(v.number()), cheese: v.optional(v.number()), log: v.string(), items:v.optional(v.array(burgerItem)),requestKey: v.string() }, handler: async (ctx, args) => {
   const owner = await requireMember(ctx); requestKey(args.requestKey);
   const existing = await ctx.db.query("burgeryEntries").withIndex("by_request", q => q.eq("owner", owner).eq("requestKey", args.requestKey)).unique();
   if (existing) return existing._id;
   if (!await ctx.db.get(args.tripId)) throw Error("Trip not found.");
   validateCounts(args.patties, args.burgers, args.cheese);
   const person = text(args.person, 80, "Person"), log = text(args.log, 2000, "Order", true);
+  const items=args.items===undefined?undefined:validateBurgerItems(args.items,args.patties,args.burgers,args.cheese);
   const recent = await ctx.db.query("burgeryEntries").withIndex("by_owner_created", q => q.eq("owner", owner).gte("createdAt", Date.now() - 86400000)).take(51);
   if (recent.length >= 50) throw Error("Daily entry limit reached. Try again tomorrow.");
-  return await ctx.db.insert("burgeryEntries", { ...args, person, personKey: personKey(person), log, owner, source: "manual", createdAt: Date.now() });
+  return await ctx.db.insert("burgeryEntries", { ...args, ...(items?{items}:{}),person, personKey: personKey(person), log, owner, source: "manual", createdAt: Date.now() });
 } });
 export const checkUpload = query({ args: { tripId: v.id("burgeryTrips"), targetEntryId: v.optional(v.id("burgeryEntries")) }, handler: async (ctx, args) => {
   const owner = await requireMember(ctx);
@@ -127,7 +129,7 @@ export const confirmReceipt = mutation({ args: { id: v.id("burgeryReceipts"), dr
     const target = await ctx.db.get(r.targetEntryId);
     if (!target || target.receiptId || (target.source !== "legacy" && target.owner !== r.owner)) throw Error("This entry cannot accept a receipt.");
     if (entries.length !== 1 || entries[0].personKey !== target.personKey || entries[0].patties !== target.patties || (target.burgers !== undefined && entries[0].burgers !== target.burgers)) throw Error("To attach this receipt, its burgers must match this person’s existing entry. Submit a group receipt separately.");
-    await ctx.db.patch(target._id, { receiptId: r._id, burgers: entries[0].burgers, cheese: entries[0].cheese });
+    await ctx.db.patch(target._id, { receiptId: r._id, burgers: entries[0].burgers, cheese: entries[0].cheese,items:entries[0].items });
   } else {
     for (const e of entries) await ctx.db.insert("burgeryEntries", { ...e, tripId: r.tripId, receiptId: r._id, owner: r.owner, requestKey: `receipt_${r._id}_${e.personKey}`, source: "receipt", createdAt: Date.now() });
   }
@@ -146,9 +148,27 @@ export const seed = internalMutation({ args: {}, handler: async ctx => {
     for (const e of t.entries) {
       const key = `seed_${t.key}_${personKey(e.name)}`;
       if (await ctx.db.query("burgeryEntries").withIndex("by_request", q => q.eq("owner", "seed").eq("requestKey", key)).unique()) continue;
-      const more = e as typeof e & { burgers?: number; cheese?: number };
-      await ctx.db.insert("burgeryEntries", { tripId: trip._id, person: e.name, personKey: personKey(e.name), patties: e.patties, burgers: more.burgers, cheese: more.cheese, log: e.log, source: "legacy", owner: "seed", requestKey: key, createdAt: Date.now() });
+      const more = e as typeof e & { burgers?: number; cheese?: number;items?:BurgerItem[] };
+      if(more.items)validateBurgerItems(more.items,e.patties,more.burgers,more.cheese);
+      await ctx.db.insert("burgeryEntries", { tripId: trip._id, person: e.name, personKey: personKey(e.name), patties: e.patties, burgers: more.burgers, cheese: more.cheese,items:more.items, log: e.log, source: "legacy", owner: "seed", requestKey: key, createdAt: Date.now() });
     }
   }
   return { trips: starterTrips.length };
 } });
+
+// Only the four original San Diego imports are amended. Counts and unrelated records stay intact.
+export const updateNitehartsDetails = internalMutation({args:{},handler:async ctx=>{
+  const trip=await ctx.db.query("burgeryTrips").withIndex("by_key",q=>q.eq("key","niteharts-2026-10")).unique();
+  if(!trip)throw Error("Niteharts trip not found.");
+  const seedTrip=starterTrips.find(t=>t.key==="niteharts-2026-10")!;
+  let updated=0;
+  for(const source of seedTrip.entries){
+    const entry=await ctx.db.query("burgeryEntries").withIndex("by_request",q=>q.eq("owner","seed").eq("requestKey",`seed_${trip.key}_${personKey(source.name)}`)).unique();
+    if(!entry||entry.tripId!==trip._id||entry.source!=="legacy"||entry.receiptId)throw Error("The original Niteharts entry changed; review it before updating.");
+    const details=source as typeof source&{burgers:number;cheese:number;items:BurgerItem[]};
+    if(entry.patties!==source.patties||entry.burgers!==details.burgers)throw Error("Niteharts counts changed; review them before updating.");
+    const items=validateBurgerItems(details.items,entry.patties,entry.burgers,details.cheese);
+    if(JSON.stringify(entry.items)!==JSON.stringify(items)||entry.log!==source.log){await ctx.db.patch(entry._id,{items,log:source.log});updated++;}
+  }
+  return {updated};
+}});

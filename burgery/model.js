@@ -58,7 +58,7 @@ export function tripStats(trip) {
   return {patties, burgers:trip.entries.every(e=>known(e.burgers)) ? trip.entries.reduce((s,e)=>s+e.burgers,0) : null, people:people.length, average:people.length ? patties/people.length : 0, top:people[0]?.name};
 }
 export function emptyDraft() { return {merchant:'',location:'',purchasedAt:'',currency:'USD',subtotalCents:null,taxCents:null,totalCents:null,items:[],warnings:[],confidence:'low'}; }
-export function emptyItem() { return {label:'',category:'burger',quantity:1,pattiesEach:null,cheeseEach:null,lineTotalCents:null,modifiers:[],person:''}; }
+export function emptyItem() { return {label:'',category:'burger',quantity:1,pattiesEach:null,cheeseEach:null,lineTotalCents:null,modifiers:[],customizations:[],person:''}; }
 export function receiptTotals(items) {
   const burgers=items.filter(i=>i.category==='burger');
   return {burgers:burgers.reduce((s,i)=>s+i.quantity,0),patties:burgers.every(i=>known(i.pattiesEach)) ? burgers.reduce((s,i)=>s+i.quantity*i.pattiesEach,0) : null,unassigned:burgers.filter(i=>!i.person.trim()).length};

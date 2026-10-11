@@ -160,31 +160,110 @@
     "entries": [
       {
         "name": "Henry Trinh",
-        "log": "1 \u00d7 2\u00d70",
+        "log": "2×0 · grilled onions, chopped chilies",
         "patties": 2,
         "burgers": 1,
-        "cheese": 0
+        "cheese": 0,
+        "items": [
+          {
+            "label": "Double-Meat (2×0)",
+            "quantity": 1,
+            "pattiesEach": 2,
+            "cheeseEach": 0,
+            "customizations": [
+              {
+                "id": "grilled_onions",
+                "amount": "regular"
+              },
+              {
+                "id": "chopped_chilies",
+                "amount": "regular"
+              }
+            ]
+          }
+        ]
       },
       {
         "name": "Jessi Hu",
         "log": "No burgers",
         "patties": 0,
         "burgers": 0,
-        "cheese": 0
+        "cheese": 0,
+        "items": []
       },
       {
         "name": "John Ta",
-        "log": "2 \u00d7 2\u00d71 + 2 hamburgers",
+        "log": "2 × 2×1 + 2 hamburgers · chopped chilies, grilled onions, extra toasted buns (all four)",
         "patties": 6,
         "burgers": 4,
-        "cheese": 2
+        "cheese": 2,
+        "items": [
+          {
+            "label": "2×1",
+            "quantity": 2,
+            "pattiesEach": 2,
+            "cheeseEach": 1,
+            "customizations": [
+              {
+                "id": "chopped_chilies",
+                "amount": "regular"
+              },
+              {
+                "id": "grilled_onions",
+                "amount": "regular"
+              },
+              {
+                "id": "extra_toast",
+                "amount": "regular"
+              }
+            ]
+          },
+          {
+            "label": "Hamburger",
+            "quantity": 2,
+            "pattiesEach": 1,
+            "cheeseEach": 0,
+            "customizations": [
+              {
+                "id": "chopped_chilies",
+                "amount": "regular"
+              },
+              {
+                "id": "grilled_onions",
+                "amount": "regular"
+              },
+              {
+                "id": "extra_toast",
+                "amount": "regular"
+              }
+            ]
+          }
+        ]
       },
       {
         "name": "Danny Tang",
-        "log": "Double-Double",
+        "log": "Double-Double · grilled onions, whole peppers",
         "patties": 2,
         "burgers": 1,
-        "cheese": 2
+        "cheese": 2,
+        "items": [
+          {
+            "label": "Double-Double",
+            "quantity": 1,
+            "pattiesEach": 2,
+            "cheeseEach": 2,
+            "customizations": [
+              {
+                "id": "grilled_onions",
+                "amount": "regular"
+              },
+              {
+                "id": "whole_peppers",
+                "amount": "regular"
+              }
+            ]
+          }
+        ]
       }
     ]
   }

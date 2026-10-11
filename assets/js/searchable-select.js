@@ -5,6 +5,7 @@
   let sequence = 0, current = null;
   function enhance(select) {
     if (instances.has(select)) return instances.get(select);
+    const listeners = new AbortController(), wasHidden = select.hidden;
     const id = select.id || `picker-${++sequence}`;
     const label = select.getAttribute('aria-label') || document.getElementById(select.getAttribute('aria-labelledby'))?.textContent || 'Choose an option';
     const make = (tag, className) => Object.assign(document.createElement(tag), { className });
@@ -101,7 +102,8 @@
       if (select.disabled) close();
       if (opened) { filter(); position(); }
     }
-    const api = { sync, close }; instances.set(select, api);
+    function destroy() { close(); listeners.abort(); observer.disconnect(); wrapper.remove(); select.hidden = wasHidden; instances.delete(select); }
+    const api = { sync, close, destroy }; instances.set(select, api);
     trigger.addEventListener('click', () => opened ? close() : open());
     trigger.addEventListener('keydown', event => {
       if (['ArrowDown', 'ArrowUp'].includes(event.key)) { event.preventDefault(); open(); }
@@ -121,16 +123,16 @@
       // Return to the trigger before the browser advances focus to the next/previous control.
       if (event.key === 'Tab') close(true);
     });
-    document.addEventListener('pointerdown', event => { if (opened && !wrapper.contains(event.target)) close(); });
-    document.addEventListener('focusin', event => { if (opened && !wrapper.contains(event.target)) close(); });
-    window.addEventListener('resize', position);
-    document.addEventListener('scroll', event => { if (!panel.contains(event.target)) position(); }, true);
-    window.visualViewport?.addEventListener('resize', position);
-    window.visualViewport?.addEventListener('scroll', position);
-    select.closest('dialog')?.addEventListener('close', () => close());
-    select.addEventListener('change', sync);
-    select.form?.addEventListener('reset', () => { close(); queueMicrotask(sync); });
-    new MutationObserver(sync).observe(select, { childList: true, subtree: true, attributes: true, attributeFilter: ['disabled', 'label', 'selected', 'hidden'], characterData: true });
+    document.addEventListener('pointerdown', event => { if (opened && !wrapper.contains(event.target)) close(); }, { signal: listeners.signal });
+    document.addEventListener('focusin', event => { if (opened && !wrapper.contains(event.target)) close(); }, { signal: listeners.signal });
+    window.addEventListener('resize', position, { signal: listeners.signal });
+    document.addEventListener('scroll', event => { if (!panel.contains(event.target)) position(); }, { capture: true, signal: listeners.signal });
+    window.visualViewport?.addEventListener('resize', position, { signal: listeners.signal });
+    window.visualViewport?.addEventListener('scroll', position, { signal: listeners.signal });
+    select.closest('dialog')?.addEventListener('close', () => close(), { signal: listeners.signal });
+    select.addEventListener('change', sync, { signal: listeners.signal });
+    select.form?.addEventListener('reset', () => { close(); queueMicrotask(sync); }, { signal: listeners.signal });
+    const observer = new MutationObserver(sync); observer.observe(select, { childList: true, subtree: true, attributes: true, attributeFilter: ['disabled', 'label', 'selected', 'hidden'], characterData: true });
     sync(); return api;
   }
   window.SearchableSelect = { enhance };

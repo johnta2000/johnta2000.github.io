@@ -313,3 +313,36 @@ dialog{padding:20px;max-height:calc(100dvh - 24px);border-radius:16px}
 .stat-detail-amount strong{color:var(--red-dark);font-weight:700}
 .stat-detail-note{font-size:10px;line-height:1.6;color:var(--muted);margin:0}
 @media(max-width:600px){.stat-detail-header{padding:16px}.stat-detail-body{padding:14px 16px 16px}.stat-detail-averages>div{padding:10px}.stat-detail-row{gap:8px}.stat-detail-row small{font-size:9px}}
+/* Typed burger recipes and reusable customization fields. */
+.burger-details{border:1px solid var(--line);border-radius:12px;padding:0 14px;margin:4px 0 20px;background:var(--yellow-pale)}
+.burger-details>summary{cursor:pointer;min-height:48px;align-content:center;font-size:12px;font-weight:700}
+.burger-details>p{margin:0 0 14px}
+.burger-details>#add-entry-item{margin-bottom:14px;width:100%}
+.burger-item-editor{background:var(--white);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:14px;min-width:0}
+.burger-item-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}
+.burger-item-heading h4,.customization-editor h4{margin:0;font-size:12px}
+.burger-item-editor>label{margin-bottom:12px}
+.customization-editor{border-top:1px solid var(--line);padding-top:14px;margin-top:2px;min-width:0}
+.customization-editor>.muted{margin:6px 0 12px;line-height:1.5}
+.customization-row{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(0,1fr) 44px;gap:8px;align-items:end;margin-bottom:10px}
+.customization-row.binary{grid-template-columns:minmax(0,1fr) 44px}
+.customization-row label{margin:0;font-size:11px;min-width:0}
+.customization-row .search-select-trigger{font-size:12px;padding-left:10px;padding-right:28px}
+.customization-row .icon-button{font-size:20px}
+.customization-preview{font-size:11px;line-height:1.6;color:var(--red-dark);margin:12px 0;overflow-wrap:anywhere}
+.customization-editor>button{font-size:12px;width:100%;margin-bottom:4px}
+.burger-line+.burger-line{margin-top:12px}
+.burger-line>p{margin:6px 0;font-size:11px}
+.customization-tags{display:flex;gap:5px;flex-wrap:wrap;margin-top:7px}
+.customization-tag{font-size:10px;font-weight:500;line-height:1.5;background:var(--yellow-pale);color:var(--red-dark);border:1px solid var(--line);padding:3px 7px;border-radius:6px}
+.customization-stat{display:flex;align-items:center;justify-content:space-between;gap:14px;border-bottom:1px solid var(--line);padding:10px 0;font-size:12px;line-height:1.5}
+.customization-stat:last-child{border:0}.customization-stat span{text-align:right;font-size:11px}
+.order-row>div:first-child{min-width:0}
+@media(max-width:600px){
+ .burger-details{padding:0 10px}.burger-item-editor{padding:10px}
+ .customization-row:not(.binary){grid-template-columns:minmax(0,1fr) 44px}
+ .customization-row:not(.binary)>label:first-child{grid-column:1/-1}
+ .customization-row:not(.binary)>label:nth-child(2){grid-column:1}
+ .customization-stat{align-items:flex-start}.customization-stat span{max-width:150px}
+ .order-row{align-items:flex-start}.order-row .order-counts{max-width:100px}
+}
