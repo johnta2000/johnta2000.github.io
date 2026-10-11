@@ -99,6 +99,7 @@ let dateLoadVersion = 0;
 let spotlightMode = false;
 let spotlightCommentsVisible = false;
 let personEditingAvailable = false;
+const spotlightReservedHeights = new Map();
 
 init();
 
@@ -312,6 +313,14 @@ async function toggleSpotlight() {
   try {
     if (!spotlightMode && (!await flushAutosave() || !await flushDailyNotesAutosave())) return;
     rememberEditorSelection();
+    const scrollPosition = { top: window.scrollY, left: window.scrollX, behavior: "instant" };
+    // Keep filtered comments from shortening the page or moving nearby sidebar cards.
+    if (!spotlightMode) {
+      document.querySelectorAll(".daily-list, .comments-card").forEach((element) => {
+        spotlightReservedHeights.set(element, element.style.minHeight);
+        element.style.minHeight = `${element.getBoundingClientRect().height}px`;
+      });
+    }
     spotlightMode = !spotlightMode;
     document.body.classList.toggle("is-spotlight", spotlightMode);
     const label = spotlightMode ? "Exit spotlight" : "Spotlight";
@@ -321,13 +330,20 @@ async function toggleSpotlight() {
     setPersonEditingEnabled(personEditingAvailable);
     setSpotlightCommentsVisible(false);
     updateSpotlightSections();
+    document.querySelectorAll(".topbar, .previous-panel, #documentToolbar, #editorContext, .form-actions, .daily-list > :not(.comments-card)").forEach((element) => {
+      element.inert = spotlightMode;
+    });
+    if (!spotlightMode) {
+      spotlightReservedHeights.forEach((minHeight, element) => { element.style.minHeight = minHeight; });
+      spotlightReservedHeights.clear();
+    }
     if (spotlightMode) {
       window.getSelection()?.removeAllRanges();
       if (!els.notetakerModal.hidden) closeNotetakerModal();
     }
     button.disabled = false;
     button.focus({ preventScroll: true });
-    scrollToSubmission();
+    window.scrollTo(scrollPosition);
     scheduleCommentLayout();
   } finally {
     button.disabled = false;
@@ -338,7 +354,9 @@ function setSpotlightCommentsVisible(visible) {
   spotlightCommentsVisible = spotlightMode && visible;
   document.body.classList.toggle("spotlight-comments-visible", spotlightCommentsVisible);
   const button = document.querySelector("#spotlightCommentsToggle");
-  button.hidden = !spotlightMode;
+  button.inert = !spotlightMode;
+  button.setAttribute("aria-hidden", String(!spotlightMode));
+  document.querySelector(".daily-list").inert = spotlightMode && !spotlightCommentsVisible;
   const label = spotlightCommentsVisible ? "Hide comments" : "Show comments";
   button.querySelector(".meeting-button-label").textContent = label;
   button.setAttribute("aria-label", label);
@@ -356,7 +374,8 @@ function updateSpotlightSections() {
     const empty = !els[id].textContent.trim();
     els[id].closest(".rich-field").classList.toggle("spotlight-empty", empty);
     const link = document.querySelector(`[data-section-jump="${id}"]`);
-    link.hidden = spotlightMode && empty;
+    link.classList.toggle("spotlight-empty", empty);
+    link.inert = spotlightMode && empty;
   }
 }
 
@@ -1226,7 +1245,6 @@ async function reloadItemComments() {
 
 function renderItemComments() {
   clearEditorCommentMarkers();
-  if (spotlightMode && !spotlightCommentsVisible) return;
   COMMENT_FIELDS.forEach((fieldName) => {
     const editor = els[fieldName];
     const groups = groupComments(standupComments.filter((comment) => comment.fieldName === fieldName));

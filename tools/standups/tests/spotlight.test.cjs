@@ -62,10 +62,9 @@ test('spotlight hides side content and highlights, allows deliberate comments an
     }
     assert.equal(await page.locator('#today').getAttribute('contenteditable'), 'false');
     assert.equal(await page.locator('#today').getAttribute('aria-readonly'), 'true');
-    assert.equal(await page.locator('#today .comment-marker').count(), 0);
+    assert.equal(await page.locator('#today .comment-marker:visible').count(), 0);
     assert.equal(await page.evaluate(() => CSS.highlights?.get('standup-comments')?.size || 0), 0);
     assert.equal(await page.locator('#blockers').isVisible(), false);
-    await assertAtSubmissionStart(page);
     await page.screenshot({ path: `/tmp/standup-spotlight-desktop${suffix}.png` });
     await page.getByRole('button', { name: 'Show comments', exact: true }).click();
     assert.equal(await page.locator('.comments-card').isVisible(), true);
@@ -87,6 +86,65 @@ test('spotlight hides side content and highlights, allows deliberate comments an
     assert.equal(await page.locator('#documentToolbar').isVisible(), true);
     assert.equal(mutations.length, 0, 'Presentation controls do not change standup data');
     assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});
+
+async function captureWorkspacePositions(page) {
+  return page.evaluate(() => {
+    const selectors = ['#meetingControls', '#spotlightToggle', '#spotlightCommentsToggle', '#shortcutSettingsButton', '#standupDate', '#nextPerson', '#previousPerson', '.today-panel', '#todayTitle', '#yesterday', '#today', '#blockers', '#notes'];
+    const boxes = Object.fromEntries(selectors.map(selector => {
+      const { x, y, width, height } = document.querySelector(selector).getBoundingClientRect();
+      return [selector, { x, y, width, height }];
+    }));
+    const range = document.createRange();
+    const text = document.querySelector('#today li').firstChild;
+    range.selectNodeContents(text);
+    const { x, y, width, height } = range.getBoundingClientRect();
+    return { boxes, text: { x, y, width, height }, scrollY, pageHeight: document.documentElement.scrollHeight };
+  });
+}
+
+function assertUnmoved(before, after, context) {
+  for (const [selector, box] of Object.entries(before.boxes)) {
+    for (const key of ['x', 'y', 'width', 'height']) {
+      assert.ok(Math.abs(box[key] - after.boxes[selector][key]) <= 1, `${context}: ${selector} ${key} changed from ${box[key]} to ${after.boxes[selector][key]}`);
+    }
+  }
+  for (const key of ['x', 'y', 'width', 'height']) assert.ok(Math.abs(before.text[key] - after.text[key]) <= 1, `${context}: submission text ${key} moved`);
+  assert.equal(after.scrollY, before.scrollY, `${context}: scroll position stays fixed`);
+  assert.equal(after.pageHeight, before.pageHeight, `${context}: page height stays fixed`);
+}
+
+test('Spotlight, discussions and exit preserve document geometry and scroll position', async () => {
+  const browser = await browserType.launch();
+  try {
+    for (const width of [320, 390, 768, 1280, 1440]) {
+      const fixture = await openStandups(browser, width, 900);
+      const { page, errors } = fixture;
+      await addMockComments(fixture);
+      await page.locator('#notes').fill(Array.from({ length: 35 }, (_, i) => `Long discussion context ${i}`).join('\n'));
+      await page.evaluate(() => scrollToSubmission(document.querySelector('#today')));
+      const before = await captureWorkspacePositions(page);
+      await page.locator('#spotlightToggle').click();
+      await page.getByRole('button', { name: 'Exit spotlight', exact: true }).waitFor();
+      assertUnmoved(before, await captureWorkspacePositions(page), `${width}px: enter`);
+      assert.equal(await page.locator('.previous-panel').evaluate(element => element.inert), true);
+      assert.equal(await page.locator('.daily-list').evaluate(element => element.inert), true);
+      await page.locator('#spotlightCommentsToggle').click();
+      assertUnmoved(before, await captureWorkspacePositions(page), `${width}px: show discussions`);
+      assert.equal(await page.locator('.daily-list').evaluate(element => element.inert), false);
+      await page.locator('#spotlightCommentsToggle').click();
+      assertUnmoved(before, await captureWorkspacePositions(page), `${width}px: hide discussions`);
+      if (width === 1440) await page.screenshot({ path: `/tmp/standup-stable-spotlight${suffix}.png` });
+      await page.locator('#spotlightToggle').click();
+      await page.getByRole('button', { name: 'Spotlight', exact: true }).waitFor();
+      assertUnmoved(before, await captureWorkspacePositions(page), `${width}px: exit`);
+      assert.equal(await page.locator('.previous-panel').evaluate(element => element.inert), false);
+      assert.equal(await page.locator('#spotlightCommentsToggle').isVisible(), false);
+      await assertNoOverflow(page);
+      assert.deepEqual(errors, []);
+      await page.close();
+    }
   } finally { await browser.close(); }
 });
 
