@@ -2114,3 +2114,43 @@ body:not(.is-spotlight) .spotlight-comments-toggle { visibility: hidden; }
   .meeting-controls { gap: 8px; }
   .meeting-controls .member-navigation button { padding-inline: 6px; }
 }
+
+/* Give navigation and view controls clear, compact groups. */
+.meeting-controls { background: #fff; }
+.date-navigation { gap: 0; border: 1px solid var(--line); border-radius: 9px; overflow: hidden; background: #fff; }
+.date-navigation button, .date-navigation input { border: 0; border-radius: 0; background: transparent; }
+.date-navigation .date-today { margin: 0; border-left: 1px solid var(--line); }
+.member-navigation { padding: 2px; border-radius: 9px; background: #f1f4f9; }
+.member-navigation button[aria-pressed=true] { box-shadow: 0 1px 3px #3c404312; }
+.member-step-controls button { display: inline-flex; align-items: center; justify-content: center; gap: 5px; width: auto; padding-inline: 8px; font-size: 11px; }
+.member-step-controls button span { font-size: 16px; }
+.section-navigation-label { align-self: center; padding-right: 8px; color: #8a929f; font-size: 11px; white-space: nowrap; }
+.meeting-controls .meeting-actions { align-items: center; gap: 6px; }
+.meeting-actions #shortcutSettingsButton { display: inline-flex; align-items: center; justify-content: center; gap: 7px; }
+.meeting-actions .spotlight-comments-toggle { display: inline-flex; justify-content: center; width: 44px; min-width: 44px; padding: 0; }
+.meeting-actions .spotlight-comments-toggle::before { content: none; }
+.meeting-actions .spotlight-comments-toggle .meeting-button-label { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.meeting-actions .spotlight-comments-toggle kbd { display: none; }
+body:not(.is-spotlight) .spotlight-comments-toggle { visibility: visible; }
+.meeting-actions .spotlight-comments-toggle[aria-pressed=true] { color: var(--accent-strong); border-color: #c6dafb; background: #eef4ff; }
+.editing-comments-hidden .comments-card { visibility: hidden; }
+.editing-comments-hidden .comment-thread-panel { display: none; }
+.editing-comments-hidden .rich-editor .comment-marker { visibility: hidden; }
+@media (min-width: 1280px) {
+  .meeting-controls .date-control { width: 284px; padding-right: 12px; border-right: 1px solid var(--line); }
+  .meeting-controls .member-navigation button { min-height: 40px; }
+  .meeting-controls .member-step-controls { padding-right: 12px; border-right: 1px solid var(--line); }
+  .meeting-controls .member-step-controls button { width: auto; padding-inline: 7px; border: 0; }
+  .meeting-controls .section-navigation { margin-left: auto; }
+  .meeting-controls .meeting-actions { padding-left: 12px; border-left: 1px solid var(--line); }
+  .meeting-controls .meeting-actions .spotlight-comments-toggle { padding: 0; }
+}
+@media (max-width: 1519px) {
+  .meeting-actions .shortcuts-label { display: none; }
+  .meeting-actions #shortcutSettingsButton { width: 44px; min-width: 44px; padding: 0; }
+}
+@media (max-width: 760px) {
+  .meeting-controls .member-step-controls button { width: auto; padding-inline: 6px; }
+  .meeting-actions .spotlight-comments-toggle, .meeting-actions #shortcutSettingsButton { flex: 0 0 44px; }
+  .section-navigation-label { display: none; }
+}

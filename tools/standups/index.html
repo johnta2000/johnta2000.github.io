@@ -7,7 +7,7 @@
     <meta name="robots" content="noindex, nofollow" />
     <title>Daily Standups</title>
     <link rel="stylesheet" href="../../assets/css/searchable-select.css?v=20261010-1" />
-    <link rel="stylesheet" href="./styles.css?v=20261010-8" />
+    <link rel="stylesheet" href="./styles.css?v=20261010-9" />
     <link rel="stylesheet" href="../../assets/css/clerk-auth.css?v=20261008-1">
 </head>
   <body>
@@ -75,11 +75,11 @@
             <button type="button" data-person-jump="Jenny" aria-pressed="false">Jenny<kbd class="member-shortcut-hint" aria-hidden="true">4</kbd><span class="submission-dot" aria-hidden="true"></span></button>
           </nav>
           <div class="member-step-controls">
-            <button id="previousPerson" type="button" aria-label="Previous teammate" title="Previous teammate">←</button>
+            <button id="previousPerson" type="button" aria-label="Previous teammate" title="Previous teammate"><span aria-hidden="true">←</span> Prev</button>
             <span id="memberPosition" class="member-position" aria-live="polite"></span>
-            <button id="nextPerson" type="button" aria-label="Next teammate" title="Next teammate">→</button>
+            <button id="nextPerson" type="button" aria-label="Next teammate" title="Next teammate">Next <span aria-hidden="true">→</span></button>
           </div>
-          <nav class="section-navigation" aria-label="Submission sections">
+          <nav class="section-navigation" aria-label="Submission sections"><span class="section-navigation-label" aria-hidden="true">Jump to</span>
             <a href="#yesterday" data-section-jump="yesterday">Yesterday</a>
             <a href="#today" data-section-jump="today">Today</a>
             <a href="#blockers" data-section-jump="blockers">Blockers</a>
@@ -88,8 +88,8 @@
         </div>
         <div class="meeting-actions">
           <button id="spotlightToggle" class="spotlight-toggle" type="button" aria-label="Spotlight" aria-pressed="false" aria-controls="standupForm"><span class="meeting-button-label">Spotlight</span><kbd data-shortcut-hint="spotlight" aria-hidden="true"></kbd></button>
-          <button id="spotlightCommentsToggle" class="spotlight-comments-toggle" type="button" aria-label="Show comments" aria-pressed="false" aria-controls="commentsOverview" aria-hidden="true" inert><span class="meeting-button-label">Show comments</span><kbd data-shortcut-hint="discussions" aria-hidden="true"></kbd></button>
-          <button id="shortcutSettingsButton" type="button" aria-haspopup="dialog">Shortcuts</button>
+          <button id="spotlightCommentsToggle" class="spotlight-comments-toggle" type="button" aria-label="Show comments" aria-pressed="false" aria-controls="commentsOverview"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M20 15a3 3 0 0 1-3 3H8l-5 3V6a3 3 0 0 1 3-3h11a3 3 0 0 1 3 3z"/><path d="M7 8h9M7 12h6"/></svg><span class="meeting-button-label">Hide comments</span><kbd data-shortcut-hint="discussions" aria-hidden="true"></kbd></button>
+          <button id="shortcutSettingsButton" type="button" aria-haspopup="dialog" aria-label="Shortcuts" title="Keyboard shortcuts"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="5" width="20" height="14" rx="3"/><path d="M5 9h2m2 0h2m2 0h2m2 0h2M5 12h2m2 0h2m2 0h2m2 0h2M7 15h10"/></svg><span class="shortcuts-label">Shortcuts</span></button>
         </div>
       </section>
 
@@ -308,6 +308,6 @@
       type="text/javascript"
     ></script>
     <script defer src="../../assets/js/searchable-select.js?v=20261010-2"></script>
-    <script defer src="./app.js?v=20261010-8"></script>
+    <script defer src="./app.js?v=20261010-9"></script>
   </body>
 </html>

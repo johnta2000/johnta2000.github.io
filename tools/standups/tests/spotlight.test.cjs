@@ -140,7 +140,7 @@ test('Spotlight, discussions and exit preserve document geometry and scroll posi
       await page.getByRole('button', { name: 'Spotlight', exact: true }).waitFor();
       assertUnmoved(before, await captureWorkspacePositions(page), `${width}px: exit`);
       assert.equal(await page.locator('.previous-panel').evaluate(element => element.inert), false);
-      assert.equal(await page.locator('#spotlightCommentsToggle').isVisible(), false);
+      assert.equal(await page.locator('#spotlightCommentsToggle').isVisible(), true);
       await assertNoOverflow(page);
       assert.deepEqual(errors, []);
       await page.close();
@@ -209,7 +209,7 @@ test('desktop navigation uses one row without a duplicate picker or shifting com
       }, selectors);
       assert.ok(layout.height <= 72, `Compact toolbar at ${width}px`);
       for (const box of layout.boxes) {
-        assert.ok(Math.abs(box.y - layout.boxes[0].y) < 1, `All controls share one row at ${width}px`);
+        assert.ok(Math.abs(box.y + box.height / 2 - layout.boxes[0].y - layout.boxes[0].height / 2) < 1, `All controls share one row at ${width}px`);
         assert.ok(box.x >= layout.left && box.right <= layout.right, `Control fits toolbar at ${width}px`);
       }
       for (let i = 1; i < layout.boxes.length; i++) assert.ok(layout.boxes[i].left >= layout.boxes[i - 1].right, `Controls do not overlap at ${width}px`);
@@ -220,5 +220,55 @@ test('desktop navigation uses one row without a duplicate picker or shifting com
       assert.deepEqual(errors, []);
       await page.close();
     }
+  } finally { await browser.close(); }
+});
+
+test('Comments stays visible in the toolbar and toggles editing discussions without moving the document', async () => {
+  const browser = await browserType.launch();
+  try {
+    for (const width of [320, 390, 768, 1280, 1440]) {
+      const fixture = await openStandups(browser, width, 900);
+      const { page, errors } = fixture;
+      await addMockComments(fixture);
+      await page.evaluate(() => scrollToSubmission(document.querySelector('#today')));
+      const before = await captureWorkspacePositions(page);
+      await page.getByRole('button', { name: 'Hide comments', exact: true }).click();
+      assert.equal(await page.locator('.comments-card').isVisible(), false);
+      assert.equal(await page.locator('.comments-card').evaluate(node => node.inert), true);
+      assert.equal(await page.locator('#today .comment-marker:visible').count(), 0);
+      assertUnmoved(before, await captureWorkspacePositions(page), `${width}px: hide editing comments`);
+      await page.getByRole('button', { name: 'Show comments', exact: true }).click();
+      assert.equal(await page.locator('.comments-card').isVisible(), true);
+      assertUnmoved(before, await captureWorkspacePositions(page), `${width}px: show editing comments`);
+      assert.equal(await page.locator('#today').getAttribute('contenteditable'), 'true');
+      await assertNoOverflow(page);
+      assert.deepEqual(errors, []);
+      await page.close();
+    }
+  } finally { await browser.close(); }
+});
+
+test('adding a comment restores hidden discussions and keeps an unsaved reply when toggling the view', async () => {
+  const browser = await browserType.launch();
+  try {
+    const { page, errors } = await openStandups(browser, 1440, 900);
+    await page.getByRole('button', { name: 'Hide comments', exact: true }).click();
+    await page.locator('#today').evaluate(node => {
+      node.focus();
+      const range = document.createRange();
+      range.selectNodeContents(node.querySelector('li'));
+      getSelection().removeAllRanges();
+      getSelection().addRange(range);
+    });
+    await page.locator('[data-comment-editor]').click();
+    assert.equal(await page.locator('.comments-card').isVisible(), true);
+    const panel = page.locator('.comment-thread-panel:visible');
+    await panel.locator('textarea').fill('Preserve this discussion draft');
+    await page.getByRole('button', { name: 'Hide comments', exact: true }).click();
+    assert.equal(await page.locator('.comment-thread-panel:visible').count(), 0);
+    await page.getByRole('button', { name: 'Show comments', exact: true }).click();
+    await page.locator('#commentsOverview button').filter({ hasText: 'New comment' }).click();
+    assert.equal(await page.locator('.comment-thread-panel:visible textarea').inputValue(), 'Preserve this discussion draft');
+    assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 });

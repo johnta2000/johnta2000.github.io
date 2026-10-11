@@ -96,6 +96,7 @@ let pendingDailyNotesSave = Promise.resolve(true);
 let dateLoadVersion = 0;
 let spotlightMode = false;
 let spotlightCommentsVisible = false;
+let editingCommentsVisible = true;
 let personEditingAvailable = false;
 const spotlightReservedHeights = new Map();
 
@@ -217,7 +218,11 @@ function configureMeetingControls() {
   updateHeight();
   document.querySelector("#spotlightToggle").addEventListener("click", toggleSpotlight);
   document.querySelector("#spotlightCommentsToggle").addEventListener("click", () => {
-    setSpotlightCommentsVisible(!spotlightCommentsVisible);
+    if (spotlightMode) setSpotlightCommentsVisible(!spotlightCommentsVisible);
+    else {
+      editingCommentsVisible = !editingCommentsVisible;
+      setSpotlightCommentsVisible(false);
+    }
   });
   document.querySelectorAll("[data-person-jump]").forEach((button) => {
     button.addEventListener("click", () => selectMeetingPerson(button.dataset.personJump));
@@ -231,6 +236,7 @@ function configureMeetingControls() {
     });
   });
   configureCallShortcuts();
+  setSpotlightCommentsVisible(false);
 }
 
 function validCallLetters(letters) {
@@ -267,11 +273,12 @@ function updateCallShortcutHints() {
   const buttons = { spotlight: "#spotlightToggle", discussions: "#spotlightCommentsToggle", next: "#nextPerson", previous: "#previousPerson" };
   for (const [action, selector] of Object.entries(buttons)) {
     const button = document.querySelector(selector);
+    const enabled = callShortcuts.enabled && (action !== "discussions" || spotlightMode);
     const shortcut = `${prefix}${callShortcuts.letters[action]}`;
     const hint = button.querySelector("[data-shortcut-hint]");
-    if (hint) { hint.textContent = shortcut; hint.hidden = !callShortcuts.enabled; }
-    button.title = `${button.getAttribute("aria-label")}${callShortcuts.enabled ? ` (${shortcut})` : ""}`;
-    if (callShortcuts.enabled) {
+    if (hint) { hint.textContent = shortcut; hint.hidden = !enabled; }
+    button.title = `${button.getAttribute("aria-label")}${enabled ? ` (${shortcut})` : ""}`;
+    if (enabled) {
       button.setAttribute("aria-keyshortcuts", `${isMacKeyboard ? "Meta" : "Control"}+Alt+Shift+${callShortcuts.letters[action]}`);
     } else button.removeAttribute("aria-keyshortcuts");
   }
@@ -395,16 +402,17 @@ function setSpotlightCommentsVisible(visible) {
   spotlightCommentsVisible = spotlightMode && visible;
   document.body.classList.toggle("spotlight-comments-visible", spotlightCommentsVisible);
   const button = document.querySelector("#spotlightCommentsToggle");
-  button.inert = !spotlightMode;
-  button.setAttribute("aria-hidden", String(!spotlightMode));
+  const commentsVisible = spotlightMode ? spotlightCommentsVisible : editingCommentsVisible;
+  document.body.classList.toggle("editing-comments-hidden", !spotlightMode && !editingCommentsVisible);
+  document.querySelector(".comments-card").inert = !commentsVisible;
   document.querySelector(".daily-list").inert = spotlightMode && !spotlightCommentsVisible;
-  const label = spotlightCommentsVisible ? "Hide comments" : "Show comments";
+  const label = commentsVisible ? "Hide comments" : "Show comments";
   button.querySelector(".meeting-button-label").textContent = label;
   button.setAttribute("aria-label", label);
-  button.setAttribute("aria-pressed", String(spotlightCommentsVisible));
+  button.setAttribute("aria-pressed", String(commentsVisible));
   updateCallShortcutHints();
   // Hide open panels without destroying comment drafts when toggling views.
-  if (!spotlightCommentsVisible) activateCommentThread(null);
+  if (!commentsVisible) activateCommentThread(null);
   renderItemComments();
   renderGlobalComments();
   scheduleCommentLayout();
@@ -1522,7 +1530,7 @@ function findCommentTargetBlock(editor, group) {
 
 function renderCommentHighlights() {
   commentHitTargets.clear();
-  if (spotlightMode && !spotlightCommentsVisible) {
+  if (spotlightMode ? !spotlightCommentsVisible : !editingCommentsVisible) {
     window.CSS?.highlights?.delete("standup-comments");
     window.CSS?.highlights?.delete("standup-active-comment");
     return;
@@ -1615,6 +1623,10 @@ async function deleteItemComment(commentId) {
 
 function openCommentThread(target, { opener, focusReply = false, anchor } = {}) {
   if (spotlightMode && !spotlightCommentsVisible) return;
+  if (!spotlightMode && !editingCommentsVisible) {
+    editingCommentsVisible = true;
+    setSpotlightCommentsVisible(false);
+  }
   let thread = openCommentThreads.get(target.key);
   if (!thread) {
     const panel = els.commentThreadTemplate.content.firstElementChild.cloneNode(true);
