@@ -885,6 +885,8 @@ const record = { hotel: p.hotel, ...(p.address!==undefined?{address:p.address.tr
       const pass = state.passes.find((item: RallyState) => item.id === p.id);
       const record = { name: String(p.name || "").trim(), category: String(p.category || "Pass").trim(), ownerId: String(p.ownerId || ""), quantity: Number(p.quantity) || 1, unitCost: String(p.unitCost || "").trim(), totalCost: String(p.totalCost || "").trim(), status: String(p.status || "").trim(), notes: String(p.notes || "").trim() };
       if (!record.name) throw new Error("Purchase name is required.");
+      if (!Number.isInteger(record.quantity) || record.quantity < 1 || record.quantity > 500) throw new Error('Quantity must be a whole number from 1 to 500.');
+      if (pass?.ticketAssignments?.some((item: RallyState) => item.slot >= record.quantity)) throw new Error('Unassign the extra tickets before reducing the quantity.');
       if (pass) Object.assign(pass, record); else state.passes.push({ id: id(), ...record });
     } else if (args.action === "delete-pass") {
       if (!state.passes.some((item: RallyState) => item.id === p.id)) throw new Error("That pass no longer exists.");

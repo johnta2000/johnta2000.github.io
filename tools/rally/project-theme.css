@@ -24,6 +24,44 @@ body, .main-column, #lineupView, :host { background:var(--paper); color:var(--in
 .dialog-backdrop { background:rgba(0,0,0,.55); }
 .room-card .room-note { color:var(--muted)!important; }
 .room-card .room-note { white-space:pre-wrap; overflow-wrap:anywhere; }
+.card-menu { display:grid;place-items:center;width:44px;height:44px;padding:10px;background:var(--rally-soft);color:var(--muted);border-color:var(--line);border-radius:10px; }
+.card-menu svg { width:20px;height:20px; }
+.card-menu:hover,.card-menu:focus-visible { color:var(--ink);background:var(--paper); }
+.quantity-pill { background:var(--rally-soft);color:var(--muted); }
+.purchase-head { padding-right:48px; }
+.purchase-meta { border-color:var(--line); }
+.purchase-card footer>span { color:var(--muted);font-weight:500; }
+.purchase-card { min-height:0;color:var(--ink); }
+.purchase-meta strong { color:var(--ink); }
+.purchase-card h3 { overflow-wrap:anywhere; }
+.purchase-card footer:empty { display:none; }
+.purchase-assignments { margin-top:20px; }
+.purchase-assignments h4 { margin:0 0 10px;color:var(--muted);font-size:13px;font-weight:600; }
+.ticket-slots { list-style:none;padding:0;margin:0;display:grid;gap:6px;max-height:360px;overflow:auto; }
+.ticket-slots button { display:flex;align-items:center;gap:10px;width:100%;min-height:48px;padding:8px 10px;border:1px solid var(--line);border-radius:9px;background:var(--paper);color:var(--ink);text-align:left;cursor:pointer; }
+.ticket-slots button:hover { border-color:var(--rally-accent); }
+.ticket-slot-number { display:grid;place-items:center;flex:none;width:26px;height:26px;border-radius:7px;background:var(--rally-soft);color:var(--muted);font-size:12px; }
+.ticket-slot-person { flex:1;min-width:0;font-size:14px;overflow-wrap:anywhere; }
+.ticket-slot-person small { display:block;color:var(--muted);font-size:11px; }
+.ticket-unassigned { color:var(--muted); }
+.ticket-slots button>span:last-child { color:var(--rally-accent);font-size:18px; }
+.ticket-coverage { margin:0 0 24px;padding:20px;border:1px solid var(--line);border-radius:14px;background:var(--card); }
+.ticket-coverage header { display:flex;align-items:center;justify-content:space-between;gap:16px; }
+.ticket-coverage h2 { margin:0;font-size:18px; }
+.ticket-coverage p { margin:5px 0 0;color:var(--muted);font-size:13px;line-height:1.5; }
+.ticket-coverage ul { display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:8px;list-style:none;margin:18px 0;padding:0; }
+.ticket-coverage-list { margin:12px 0; }
+.ticket-coverage-list>summary { display:flex;align-items:center;gap:8px;min-height:44px;color:var(--rally-accent);cursor:pointer;list-style:none;font-size:13px; }
+.ticket-coverage-list>summary::-webkit-details-marker { display:none; }
+.ticket-coverage-list[open]>summary span { transform:rotate(180deg); }
+.ticket-coverage li { display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:5px 10px;padding:10px;border-radius:8px;background:var(--paper);font-size:13px; }
+.ticket-coverage li span { overflow-wrap:anywhere; }
+.ticket-coverage small { color:var(--muted);font-size:11px; }
+.ticket-coverage li.has-ticket { background:var(--rally-soft); }
+.ticket-coverage li.has-ticket small { color:var(--rally-accent); }
+.ticket-coverage a { color:var(--rally-accent); }
+.ticket-assignment-help { color:var(--muted);font-size:13px;line-height:1.5; }
+@media(max-width:600px){.ticket-coverage{padding:16px}.ticket-coverage header{align-items:flex-start;flex-direction:column;gap:12px}.ticket-coverage ul{grid-template-columns:1fr}.ticket-slots button{min-height:48px}}
 .field .booking-notes-input { display:block; width:100%; max-width:100%; min-height:160px; max-height:320px; resize:vertical; overflow-y:auto; line-height:1.6; font-family:inherit; }
 .theme-preview { margin:18px 0; padding:18px; border:1px solid var(--line); background:var(--paper); border-radius:14px; }
 .theme-swatches { display:flex; gap:8px; margin-bottom:16px; }
@@ -47,6 +85,7 @@ body, .main-column, #lineupView, :host { background:var(--paper); color:var(--in
 .note-reactions button span { color:var(--ink); }
 .search-select .search-select-trigger,.search-select-panel,.search-select-panel input.search-select-input { background:var(--card); color:var(--ink); border-color:var(--line); }
 .search-select-option,.search-select-empty,.search-select-check { color:var(--ink); }
+.field .search-select-option-text,.field .search-select-check { color:inherit; }
 .search-select-option:hover,.search-select-option.is-active,.search-select-option[aria-selected="true"] { background:var(--rally-soft); color:var(--rally-accent); }
 .search-select-input::placeholder, input::placeholder,textarea::placeholder { color:var(--muted); opacity:1; }
 .search-select-chevron { border-color:var(--muted); }
