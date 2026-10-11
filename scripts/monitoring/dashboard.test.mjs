@@ -29,8 +29,8 @@ test("public page does not reference repository JSON", () => {
 });
 
 test("dashboard assets and authenticated snapshot refresh cannot remain stale", () => {
-  assert.match(html, /styles\.css\?v=20261008\.1/);
-  assert.match(html, /app\.js\?v=20261008\.1/);
+  assert.match(html, /styles\.css\?v=20261011\.1/);
+  assert.match(html, /app\.js\?v=20261011\.1/);
   assert.match(html, /id="refresh-button"/);
   assert.match(app, /function refreshDashboard/);
   assert.match(app, /visibilitychange/);
@@ -49,7 +49,7 @@ test("overview keeps monitor-specific detail inside an accessible dialog", () =>
   assert.match(app, /monitorHistory/);
   assert.match(app, /function positionHistoryMarkup/);
   assert.match(app, />Position history</);
-  assert.match(app, /Latest day is partial/);
+  assert.match(app, /Starred dates are partial/);
 });
 
 test("reporting cards use the existing Codex monitor identities", () => {

@@ -6,6 +6,33 @@ const app = await readFile(new URL("../../tools/monitoring/app.js", import.meta.
 const source = app.slice(app.indexOf("function shortHistoryDate("), app.indexOf("function rankingDialogMarkup("));
 const render = runInNewContext(source + "\npositionHistoryMarkup", { escapeHtml: String });
 
+test("history defaults to 28 days and can switch to 7 or 90 without losing observations", () => {
+  const history = Array.from({ length: 90 }, (_, index) => ({
+    date: new Date(Date.UTC(2026, 6, 14 + index)).toISOString().slice(0, 10),
+    position: 3, exactPosition: 2, pazeMapPosition: 4,
+  }));
+  for (const [range, count] of [[undefined, 28], [7, 7], [90, 90]]) {
+    const chart = render(history, range);
+    assert.match(chart, new RegExp(`value="${count}" selected`));
+    assert.equal((chart.match(/<circle /g) ?? []).length, count * 3);
+    assert.ok((chart.match(/position-chart-date/g) ?? []).length <= 8);
+    assert.match(chart, /Summary cards above remain finalized 7-day totals/);
+  }
+});
+
+test("calendar gaps stay empty rather than joining disconnected observations", () => {
+  const chart = render([
+    { date: "2026-10-01", position: 2 },
+    { date: "2026-10-03", position: 4 },
+  ], 7);
+  assert.match(chart, /2 observed days · 3 calendar days shown/);
+  assert.match(chart, /less than 7 days of history available/);
+  const path = chart.match(/class="position-chart-line core" d="([^"]+)"/)[1];
+  assert.equal((path.match(/M/g) ?? []).length, 2);
+  assert.doesNotMatch(path, /L/);
+  assert.doesNotMatch(render([], 90), /NaN/);
+});
+
 test("three series retain visible, separated values at both chart extremes", () => {
   const chart = render([
     { date: "2026-09-26", position: 1, exactPosition: 1, pazeMapPosition: 1, pazeMapImpressions: 3 },

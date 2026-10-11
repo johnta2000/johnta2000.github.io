@@ -16,6 +16,7 @@ const els = {
 };
 
 let currentSnapshot = null;
+let positionHistoryDays = 28;
 let refreshPromise = null;
 let queryChart = null;
 
@@ -251,20 +252,33 @@ function shortHistoryDate(value) {
     : value;
 }
 
-function positionHistoryMarkup(history = []) {
+function positionHistoryMarkup(history = [], requestedDays = 28) {
+  const days = [7, 28, 90].includes(Number(requestedDays)) ? Number(requestedDays) : 28;
   const series = [
     { key: "position", css: "core", label: "All 5 core queries" },
     { key: "exactPosition", css: "exact", label: "“paze clover map”" },
     { key: "pazeMapPosition", css: "broad", label: "“paze map”" },
   ];
-  const rows = history
-    .filter((row) => row?.date && series.some(({ key }) => Number.isFinite(row[key])))
-    .slice(-7);
+  const observed = [...new Map(history
+    .filter((row) => /^\d{4}-\d{2}-\d{2}$/.test(row?.date) && series.some(({ key }) => Number.isFinite(row[key])))
+    .map((row) => [row.date, row])).values()].sort((a, b) => a.date.localeCompare(b.date));
+  const end = Date.parse(`${observed.at(-1)?.date}T00:00:00Z`);
+  const start = Math.max(Date.parse(`${observed[0]?.date}T00:00:00Z`), end - (days - 1) * 86400_000);
+  const byDate = new Map(observed.map((row) => [row.date, row]));
+  const rows = [];
+  for (let timestamp = start; timestamp <= end; timestamp += 86400_000) {
+    const date = new Date(timestamp).toISOString().slice(0, 10);
+    rows.push(byDate.get(date) ?? { date });
+  }
+  const controls = `<label class="position-history-range">History
+    <select data-position-range aria-label="Position history timeframe">
+      ${[7, 28, 90].map((value) => `<option value="${value}"${value === days ? " selected" : ""}>${value} days</option>`).join("")}
+    </select></label>`;
   if (rows.length < 2) {
     return `
-      <section class="dialog-section">
-        <div class="dialog-section-heading"><div><p class="eyebrow">Search trend</p><h3>Position history</h3></div></div>
-        <p class="empty-state">The daily position chart will appear after at least two days of hourly Search Console data are available.</p>
+      <section class="dialog-section position-history-section">
+        <div class="dialog-section-heading"><div><p class="eyebrow">Search trend</p><h3>Position history</h3></div>${controls}</div>
+        <p class="empty-state">The daily position chart will appear after at least two days of Search Console data are available.</p>
       </section>`;
   }
 
@@ -288,6 +302,9 @@ function positionHistoryMarkup(history = []) {
   }).filter(Boolean).join(" ");
   const tickValues = [...new Set([1, Math.ceil((maxPosition + 1) / 2), maxPosition])].sort((a, b) => a - b);
   const latest = rows.at(-1);
+  // Keep longer charts readable; every observation still retains hover details.
+  const labelEvery = Math.max(1, Math.ceil((rows.length - 1) / 6));
+  const showLabel = (index) => index % labelEvery === 0 || index === rows.length - 1;
   const pointLabels = (row, index) => {
     const labels = series.filter(({ key }) => Number.isFinite(row[key]))
       .map((item) => ({ ...item, labelY: y(row[item.key]) - 12 }))
@@ -305,7 +322,7 @@ function positionHistoryMarkup(history = []) {
     <section class="dialog-section position-history-section">
       <div class="dialog-section-heading">
         <div><p class="eyebrow">Search trend</p><h3>Position history</h3></div>
-        <span class="dialog-note">Last ${rows.length} days · lower is better</span>
+        <div class="position-history-controls">${controls}<span class="dialog-note">${escapeHtml(shortHistoryDate(rows[0].date))}–${escapeHtml(shortHistoryDate(latest.date))} · lower is better</span></div>
       </div>
       <figure class="position-chart-card">
         <div class="position-chart-legend" aria-hidden="true">
@@ -323,13 +340,14 @@ function positionHistoryMarkup(history = []) {
               ${Number.isFinite(row.position) ? `<circle class="core" cx="${x(index).toFixed(1)}" cy="${y(row.position).toFixed(1)}" r="4"><title>${escapeHtml(shortHistoryDate(row.date))}: all core queries position ${row.position.toFixed(2)}</title></circle>` : ""}
               ${Number.isFinite(row.exactPosition) ? `<circle class="exact" cx="${x(index).toFixed(1)}" cy="${y(row.exactPosition).toFixed(1)}" r="4"><title>${escapeHtml(shortHistoryDate(row.date))}: exact query position ${row.exactPosition.toFixed(2)}</title></circle>` : ""}
               ${Number.isFinite(row.pazeMapPosition) ? `<circle class="broad" cx="${x(index).toFixed(1)}" cy="${y(row.pazeMapPosition).toFixed(1)}" r="4"><title>${escapeHtml(shortHistoryDate(row.date))}: paze map position ${row.pazeMapPosition.toFixed(2)} · ${row.pazeMapImpressions ?? "—"} impressions</title></circle>` : ""}
-              <text class="position-chart-date" x="${x(index).toFixed(1)}" y="${height - 14}">${escapeHtml(shortHistoryDate(row.date))}${row.partial ? "*" : ""}</text>
+              ${showLabel(index) ? `<text class="position-chart-date" x="${x(index).toFixed(1)}" y="${height - 14}">${escapeHtml(shortHistoryDate(row.date))}${row.partial ? "*" : ""}</text>` : ""}
             </g>`).join("")}
-          ${rows.map(pointLabels).join("")}
+          ${rows.map((row, index) => showLabel(index) ? pointLabels(row, index) : "").join("")}
         </svg>
         <figcaption>
           <span>Latest: paze clover map <strong>${Number.isFinite(latest.exactPosition) ? latest.exactPosition.toFixed(2) : "—"}</strong> · paze map <strong>${Number.isFinite(latest.pazeMapPosition) ? latest.pazeMapPosition.toFixed(2) : "—"}</strong> · core <strong>${Number.isFinite(latest.position) ? latest.position.toFixed(2) : "—"}</strong></span>
-          <span>* Latest day is partial and may change as GSC finishes processing.</span>
+          <span>* Starred dates are partial and may change as GSC finishes processing. Hover over a point for its daily value.</span>
+          <span>${rows.filter((row) => series.some(({ key }) => Number.isFinite(row[key]))).length} observed days · ${rows.length} calendar days shown${rows.length < days ? ` (less than ${days} days of history available)` : ""}. Summary cards above remain finalized 7-day totals.</span>
           <span>Map URL only · worldwide · impression-weighted GSC Web positions, including AI appearances. Gaps mean no observed data, not delisting.</span>
         </figcaption>
       </figure>
@@ -359,7 +377,7 @@ function rankingDialogMarkup(monitor) {
       <div><span>Average position</span><strong>${Number.isFinite(metrics.position) ? metrics.position.toFixed(2) : "—"}</strong><small>${escapeHtml(metricDelta(metrics.position, metrics.previousPosition, { inverse: true }))}</small></div>
       ${fourthMetric}
     </section>
-    ${isBilt ? window.MonitorQueryChart.markup() : positionHistoryMarkup(details.positionHistory)}
+    ${isBilt ? window.MonitorQueryChart.markup() : positionHistoryMarkup(details.positionHistory, positionHistoryDays)}
     <section class="dialog-section">
       <div class="dialog-section-heading">${queryHeading}</div>
       ${queryRows(details.queries, isBilt ? "page" : "map")}
@@ -720,6 +738,15 @@ els.monitorList.addEventListener("click", (event) => {
   if (button) openMonitorDialog(button.dataset.monitorId);
 });
 els.monitorDialogClose.addEventListener("click", () => els.monitorDialog.close());
+els.monitorDialogContent.addEventListener("change", (event) => {
+  if (!event.target.matches("[data-position-range]")) return;
+  positionHistoryDays = Number(event.target.value);
+  const monitor = currentSnapshot?.state.monitors.find((item) => item.id === "paze-clover-map-ranking");
+  if (!monitor) return;
+  const section = event.target.closest(".position-history-section");
+  section.outerHTML = positionHistoryMarkup(monitor.details?.positionHistory, positionHistoryDays);
+  els.monitorDialogContent.querySelector("[data-position-range]")?.focus();
+});
 els.monitorDialog.addEventListener("click", (event) => {
   if (event.target === els.monitorDialog) els.monitorDialog.close();
 });

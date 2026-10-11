@@ -332,6 +332,10 @@ h3 { margin-bottom: 8px; font-size: 19px; letter-spacing: -0.02em; }
 .report-table-head { background: #f6f7f2; color: var(--muted); font-size: 10px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; }
 .report-table-row span:last-child { text-align: right; }
 .position-chart-card { margin: 0; overflow: hidden; border: 1px solid var(--line); border-radius: 8px; background: #fbfcfb; }
+.position-history-controls { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.position-history-range { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 12px; }
+.position-history-range select { border: 1px solid var(--line); border-radius: 6px; padding: 8px 30px 8px 10px; background: #fff; color: var(--ink); font: inherit; }
+.position-history-range select:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
 .position-chart-legend { display: flex; flex-wrap: wrap; gap: 18px; padding: 14px 16px 0; color: var(--muted); font-size: 11px; font-weight: 700; }
 .position-chart-legend span { display: inline-flex; align-items: center; gap: 7px; }
 .position-chart-legend i { width: 17px; height: 3px; border-radius: 999px; background: var(--blue); }
