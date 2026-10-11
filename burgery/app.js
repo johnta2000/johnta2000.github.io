@@ -7,10 +7,10 @@ const statPanel=$('stat-detail');
 const addMenu=$('add-menu'),addMenuButton=$('add-menu-button');
 let summaryMetrics=[],statTrigger=null,statPinned=false,statCloseTimer,statIgnoreFocus=false,statHoverBlockedUntil=0;
 const rankings={
-  patties:{title:'Patties',field:'patties',unit:'total patties'},
-  burgers:{title:'Burgers',field:'burgers',unit:'known burgers'},
-  'patties-per-trip':{title:'Patties/Trip',field:'pattyAverage',unit:'patties / trip'},
-  'burgers-per-trip':{title:'Burgers/Trip',field:'burgerAverage',unit:'burgers / trip'}
+  patties:{title:'Patties',field:'patties',unit:'total patties',compactUnit:'patties'},
+  burgers:{title:'Burgers',field:'burgers',unit:'known burgers',compactUnit:'burgers'},
+  'patties-per-trip':{title:'Patties/Trip',field:'pattyAverage',unit:'patties / trip',compactUnit:'/ trip'},
+  'burgers-per-trip':{title:'Burgers/Trip',field:'burgerAverage',unit:'burgers / trip',compactUnit:'/ trip'}
 };
 function node(tag, content, className) { const el=document.createElement(tag); if(content!==undefined)el.textContent=content; if(className)el.className=className; return el; }
 function errorAt(id,message) {$(id).textContent=message;$(id).hidden=!message;}
@@ -140,7 +140,18 @@ document.addEventListener('focusin',event=>{if(statTrigger&&!$('summary').contai
 document.addEventListener('keydown',event=>{if(event.key==='Escape'&&statTrigger){event.preventDefault();closeStat(statPanel.contains(document.activeElement),true);}});
 window.addEventListener('resize',positionStat);
 window.addEventListener('scroll',positionStat,{passive:true});
-function leaderRow(person,rank,value,max,detail,unit) {const row=node('button',undefined,`leader-row${rank===0?' leader':''}`);row.type='button';const name=node('span',person.name,'person-name');name.append(node('small',detail));const track=node('div',undefined,'bar-track');const bar=node('div',undefined,'bar-fill');bar.style.width=`${max?Math.max(0,value/max*100):0}%`;track.append(bar);track.setAttribute('aria-hidden','true');const amount=node('span',number(value),'leader-value');amount.append(node('small',unit));row.append(node('span',String(rank+1).padStart(2,'0'),'rank'),node('span',initials(person.name),'avatar'),name,track,amount);row.addEventListener('click',()=>openPerson(person));return row;}
+function leaderRow(person,rank,value,max,detail,unit,compactDetail,compactUnit) {
+  const row=node('button',undefined,`leader-row${rank===0?' leader':''}`);row.type='button';
+  row.setAttribute('aria-label',`${person.name}: ${number(value)} ${unit}. ${detail}. Rank ${rank+1}.`);
+  const name=node('span',undefined,'person-name');
+  name.append(node('span',person.name,'person-label'),node('small',detail,'desktop-detail'),node('small',compactDetail,'mobile-detail'));
+  const track=node('div',undefined,'bar-track'),bar=node('div',undefined,'bar-fill');
+  bar.style.width=`${max?Math.max(0,value/max*100):0}%`;track.append(bar);track.setAttribute('aria-hidden','true');
+  const amount=node('span',number(value),'leader-value');amount.append(node('small',unit,'desktop-detail'),node('small',compactUnit,'mobile-detail'));
+  const avatar=node('span',initials(person.name),'avatar');avatar.setAttribute('aria-hidden','true');
+  row.append(node('span',String(rank+1).padStart(2,'0'),'rank'),avatar,name,track,amount);
+  row.addEventListener('click',()=>openPerson(person));return row;
+}
 function renderLeaders(){
   const metric=rankings[currentView]?currentView:'patties',config=rankings[metric],burgerMetric=metric.startsWith('burgers'),average=metric.endsWith('-per-trip');
   const sorted=rankPeople(data.people,metric),search=key($('people-search').value),max=sorted[0]?.[config.field]||0;
@@ -154,7 +165,8 @@ function renderLeaders(){
     if(!key(p.name).includes(search))return;
     const trips=burgerMetric?p.burgerTrips:p.tripCount,knownOrders=p.entries.filter(e=>known(e.burgers)).length;
     const detail=burgerMetric?(average?`${trips} known ${trips===1?'trip':'trips'}`:`${knownOrders} known ${knownOrders===1?'order':'orders'}`):`${trips} ${trips===1?'trip':'trips'} · ${number(p.pattyAverage)} patties / trip`;
-    $('leaderboard').append(leaderRow(p,i,p[config.field],max,detail,config.unit));
+    const compactDetail=burgerMetric?detail:`${trips} ${trips===1?'trip':'trips'}${average?'':` · ${number(p.pattyAverage)}/trip`}`;
+    $('leaderboard').append(leaderRow(p,i,p[config.field],max,detail,config.unit,compactDetail,config.compactUnit));
   });
   if(!$('leaderboard').children.length)$('leaderboard').append(node('p',sorted.length?'No friends match that search. Try another name.':burgerMetric?'No known burger counts yet. Log an order to start this ranking.':'No orders yet. Log an order to start this ranking.','empty'));
 }

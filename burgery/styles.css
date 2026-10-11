@@ -73,6 +73,7 @@ h3{font-size:17px;letter-spacing:-.4px;margin-bottom:10px}
 .leader .bar-fill{background:var(--red)}
 .leader-value{text-align:right;font-size:21px;font-family:'Manrope',sans-serif;font-weight:800;letter-spacing:-.5px}
 .leader-value small{font:400 10px 'DM Sans',sans-serif;color:var(--muted);display:block;letter-spacing:0;margin-top:3px}
+.person-name .mobile-detail,.leader-value .mobile-detail{display:none}
 .awards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin:30px 0}
 .award{padding:22px;background:var(--yellow-pale);border:1px solid var(--line);border-radius:14px}
 .award small{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--red-dark);font-weight:700}
@@ -211,14 +212,16 @@ h1{font-size:44px;letter-spacing:-2.2px;margin-bottom:7px}
 .section-heading .muted{font-size:11px}
 .section-heading>.outline-pill{font-size:9px}
 .search-field{max-width:none;margin-bottom:14px}
-.leader-row{grid-template-columns:18px 32px minmax(0,1fr) 82px;gap:9px;padding:14px 12px;min-height:76px}
-.person-name{font-size:12px}
-.person-name small{font-size:9px}
-.avatar{width:30px;height:30px;font-size:9px}
+.leader-row{grid-template-columns:18px 26px minmax(0,1fr) auto;column-gap:7px;row-gap:5px;padding:8px 10px;min-height:52px}
+.person-name{display:flex;align-items:baseline;flex-wrap:wrap;column-gap:7px;row-gap:2px;font-size:12px;line-height:1.4}
+.person-label{min-width:0;max-width:100%}
+.person-name .desktop-detail,.leader-value .desktop-detail{display:none}
+.person-name .mobile-detail{display:inline;white-space:nowrap;font-size:9px;margin-top:0;line-height:1.4}
+.avatar{width:26px;height:26px;font-size:9px}
 .rank{font-size:10px}
-.bar-track{grid-column:3/5;grid-row:2;height:4px;margin-top:-4px}
-.leader-value{grid-row:1;grid-column:4;font-size:19px}
-.leader-value small{font-size:8px}
+.bar-track{grid-column:3/5;grid-row:2;height:3px;margin-top:0}
+.leader-value{grid-row:1;grid-column:4;display:flex;align-items:baseline;justify-content:flex-end;gap:4px;white-space:nowrap;font-size:18px;line-height:1.2}
+.leader-value .mobile-detail{display:inline;font-size:9px;margin-top:0}
 .awards{grid-template-columns:1fr;gap:10px;margin:24px 0}
 .award{padding:18px;display:grid;grid-template-columns:1fr 1fr;gap:3px 14px}
 .award small{grid-column:1;font-size:9px;align-self:center}
