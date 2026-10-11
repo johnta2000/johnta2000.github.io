@@ -1,0 +1,28 @@
+/* Clerk's visible code slots are divs; its transparent input handles typing/autofill. */
+[data-clerk-mount][id] .cl-otpCodeFieldInputs {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+}
+[data-clerk-mount][id] .cl-otpCodeFieldInput {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1 1 0;
+  width: 100%;
+  max-width: 48px;
+  min-width: 0;
+  height: 52px;
+  min-height: 52px;
+  margin: 0;
+  padding: 4px;
+  /* Also beat page-level 16px input rules when Clerk uses individual inputs. */
+  font-size: 24px !important;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  text-align: center;
+}

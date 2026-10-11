@@ -1,3 +1,4 @@
+@import url("./clerk-otp.css?v=20261011-1");
 /* Shared signed-out layouts. Data attributes survive Clerk replacing mount classes. */
 [data-clerk-mount][id],
 [data-clerk-mount] .cl-rootBox,
@@ -78,25 +79,6 @@
   padding: 16px;
   font-size: 13px;
   line-height: 1.5;
-  text-align: center;
-}
-[data-clerk-mount] .cl-otpCodeFieldInputs {
-  display: flex;
-  justify-content: center;
-  gap: 6px;
-  width: 100%;
-  min-width: 0;
-}
-[data-clerk-mount] .cl-otpCodeFieldInput {
-  box-sizing: border-box;
-  flex: 1 1 0;
-  width: 100%;
-  max-width: 44px;
-  min-width: 0;
-  min-height: 44px;
-  margin: 0;
-  padding: 4px;
-  font-size: 16px;
   text-align: center;
 }
 
