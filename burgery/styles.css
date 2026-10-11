@@ -162,6 +162,11 @@ label small{display:block;font-size:10px;color:var(--muted);font-weight:400;marg
 .person-stats div{border:1px solid var(--line);border-radius:12px;padding:15px;background:var(--white)}
 .person-stats strong{display:block;font-size:25px;font-family:'Manrope',sans-serif;margin-bottom:4px}
 .person-stats span{font-size:10px;color:var(--muted)}
+.person-trip+.person-trip{border-top:1px solid var(--line);margin-top:20px;padding-top:20px}
+.person-trip h3{margin:0 0 14px;line-height:1.4}
+.person-trip .order-row{align-items:flex-start;padding:14px 0}
+.person-trip h3+.order-row{padding-top:0}
+.person-trip .order-row:last-child{padding-bottom:0}
 #toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);z-index:50;background:var(--ink);color:var(--white);padding:14px 22px;border-radius:10px;max-width:calc(100% - 32px);font-size:12px;line-height:1.5;box-shadow:0 10px 30px #0003}
 .skip-link{position:fixed;top:8px;left:8px;z-index:60;background:var(--white);padding:12px;transform:translateY(-200%)}
 .skip-link:focus{transform:none}
