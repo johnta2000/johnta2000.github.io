@@ -2,6 +2,10 @@
 
 The public ledger lives at `/burgery/`. The UI is buildless HTML/CSS/ES modules; trips, orders, receipt photos, scan results, and reviewed data are stored in the existing `rapid-shark-565` Convex deployment.
 
+## Interface direction
+
+Keep Burgery fun and direct: one compact header, actions, stats, and rankings. Skip hero sections, duplicate branding, taglines, and promotional preambles; keep the fun in the rankings and superlatives. Put counting definitions in optional details, while keeping receipt privacy and confirmation instructions visible.
+
 ## Data conventions
 
 - A burger is one sandwich. Patties and cheese are separate counts.

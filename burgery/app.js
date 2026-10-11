@@ -26,9 +26,9 @@ document.querySelectorAll('dialog').forEach(dialog=>dialog.addEventListener('can
 function changeView() {const view=['leaderboard','burgers','trips','receipts'].includes(location.hash.slice(1)) ? location.hash.slice(1) : (mounted||location.hash.startsWith('#/')?'receipts':'leaderboard');document.querySelectorAll('[data-view]').forEach(a=>{if(a.dataset.view===view)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current');});document.querySelectorAll('#views>section').forEach(s=>s.hidden=s.id!==`view-${view}`);if(view==='receipts'){void startAuth();if(session)void refreshReceipts();}}
 window.addEventListener('hashchange',changeView);changeView();
 function render() {
-  data=stats(trips);$('hero-trips').textContent=`The In-N-Out patty ledger · ${data.people.length} friends · Est. 2024`;
+  data=stats(trips);
   $('summary').replaceChildren();
-  for(const [label,value,unit] of [['Total patties',data.patties,'patties'],['Calories',data.patties*110,'kcal'],['Sodium',data.patties*90,'mg'],['Fat',data.patties*6,'g'],['Protein',data.patties*10,'g'],['Trips',data.trips,'trips']]) {const card=node('div',undefined,'summary-stat');const amount=node('strong',number(value));if(label==='Total patties')amount.id='hero-total';card.append(node('small',label),amount,node('span',unit));$('summary').append(card);}
+  for(const [label,value,unit] of [['Total patties',data.patties,'patties'],['Calories',data.patties*110,'est. kcal'],['Sodium',data.patties*90,'est. mg'],['Fat',data.patties*6,'est. g'],['Protein',data.patties*10,'est. g'],['Trips',data.trips,'trips']]) {const card=node('div',undefined,'summary-stat');const amount=node('strong',number(value));if(label==='Total patties')amount.id='hero-total';card.append(node('small',label),amount,node('span',unit));$('summary').append(card);}
   $('known-people').replaceChildren(...data.people.map(p=>new Option(p.name,p.name)));
   $('nutrition-text').textContent=`${number(data.patties*110)} calories · ${number(data.patties*90)}mg sodium · ${number(data.patties*6)}g fat · ${number(data.patties*10)}g protein, from patties alone.`;
   renderLeaders();renderBurgers();renderTrips();renderAwards();updateTripPickers();
