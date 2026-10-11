@@ -30,7 +30,17 @@ function setBusy(value) {busy=value;document.querySelectorAll('dialog[open] butt
 function openDialog(id) {$(id).showModal();}
 function closeDialog(dialog) {if(busy)return;for(const p of pickers.values())p.close();dialog.close();if(dialog.id==='review-dialog'){activeReceipt=null;if(photoUrl)URL.revokeObjectURL(photoUrl);photoUrl=null;$('review-photo').removeAttribute('src');}}
 document.querySelectorAll('[data-close]').forEach(button=>button.addEventListener('click',()=>closeDialog(button.closest('dialog'))));
-document.querySelectorAll('dialog').forEach(dialog=>dialog.addEventListener('cancel',event=>{event.preventDefault();closeDialog(dialog);}));
+document.querySelectorAll('dialog').forEach(dialog=>{
+  let pressedBackdrop=false;
+  const outside=event=>{const box=dialog.getBoundingClientRect();return event.clientX<box.left||event.clientX>box.right||event.clientY<box.top||event.clientY>box.bottom;};
+  dialog.addEventListener('pointerdown',event=>{pressedBackdrop=event.target===dialog&&outside(event);});
+  dialog.addEventListener('pointercancel',()=>{pressedBackdrop=false;});
+  dialog.addEventListener('click',event=>{
+    const dismiss=pressedBackdrop&&event.target===dialog&&outside(event);pressedBackdrop=false;
+    if(dismiss)closeDialog(dialog);
+  });
+  dialog.addEventListener('cancel',event=>{event.preventDefault();closeDialog(dialog);});
+});
 function changeView() {
   closeStat();
   const hash=location.hash.slice(1);
