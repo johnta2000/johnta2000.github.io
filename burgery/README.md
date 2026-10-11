@@ -6,9 +6,9 @@ The public ledger lives at `/burgery/`. The UI is buildless HTML/CSS/ES modules;
 
 Keep Burgery fun and direct: one compact header, actions, stats, and rankings. Skip hero sections, duplicate branding, taglines, and promotional preambles; keep the fun in the rankings and superlatives. Put counting definitions in optional details, while keeping receipt privacy and confirmation instructions visible.
 
-The four primary ranking tabs are Patties, Burgers, Patties/Trip, and Burgers/Trip. Trips and Receipts are separate header links. Burger totals use known entries; burger averages require complete known counts for a person on a trip.
+The four primary ranking tabs are Patties, Burgers, Patties/Trip, and Burgers/Trip. Trips is the only header navigation link. Burger totals use known entries; burger averages require complete known counts for a person on a trip.
 
-Keep Log order and Upload receipt under one Add action in the navbar. Public superlatives cover total patties and patties per trip; omit an attendance award while the ledger is owner-led.
+Keep Log order, Upload receipt, and Receipt inbox under one Add action in the navbar. Show sign-in at the submission/private-inbox gate and sign-out inside the authenticated receipt inbox; keep the public navbar free of account controls. Stats remain public, while submissions and private receipt access require an account. Public superlatives cover total patties and patties per trip; omit an attendance award while the ledger is owner-led.
 
 Overview cards show breakdowns on hover, keyboard focus, or tap. Patties and nutrition show totals by trip, averages per trip and distinct person, and the top three contributors. Nutrition uses the existing patty-only estimates (110 kcal, 90 mg sodium, 6 g fat, and 10 g protein per patty). Trips shows distinct people and places, average attendance, and each trip's attendance and patties. Keep these details in a dismissible popover so the overview stays compact.
 
