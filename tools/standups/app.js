@@ -3,6 +3,7 @@ const TEAM_ID = "johns-website-default";
 const LOCAL_NAME_KEY = "standups:last-person-name";
 const CALL_SHORTCUTS_KEY = "standups:call-shortcuts:v1";
 const DEFAULT_CALL_LETTERS = { spotlight: "S", discussions: "D", next: "N", previous: "P" };
+const DEFAULT_MEMBER_KEYS = { John: "1", Vivek: "2", Vishal: "3", Jenny: "4" };
 // These combinations have system/browser actions even with all three modifiers.
 const RESERVED_CALL_LETTERS = new Set(["Q", "I", "A", "V"]);
 const isMacKeyboard = /Mac|iPhone|iPad/.test(navigator.platform);
@@ -241,9 +242,16 @@ function validCallLetters(letters) {
 function readCallShortcuts() {
   try {
     const saved = JSON.parse(localStorage.getItem(CALL_SHORTCUTS_KEY));
-    if (typeof saved?.enabled === "boolean" && validCallLetters(saved.letters)) return saved;
+    if (typeof saved?.enabled === "boolean" && validCallLetters(saved.letters)) {
+      return { ...saved, members: validMemberKeys(saved.members) ? saved.members : { ...DEFAULT_MEMBER_KEYS } };
+    }
   } catch { /* Use defaults if preferences are unavailable or outdated. */ }
-  return { enabled: true, letters: { ...DEFAULT_CALL_LETTERS } };
+  return { enabled: true, letters: { ...DEFAULT_CALL_LETTERS }, members: { ...DEFAULT_MEMBER_KEYS } };
+}
+
+function validMemberKeys(members) {
+  const values = Object.keys(DEFAULT_MEMBER_KEYS).map(person => members?.[person]);
+  return values.every(key => typeof key === "string" && /^[1-9]$/.test(key)) && new Set(values).size === values.length;
 }
 
 function callShortcutContextBlocked(event) {
@@ -267,22 +275,38 @@ function updateCallShortcutHints() {
       button.setAttribute("aria-keyshortcuts", `${isMacKeyboard ? "Meta" : "Control"}+Alt+Shift+${callShortcuts.letters[action]}`);
     } else button.removeAttribute("aria-keyshortcuts");
   }
+  updateMemberShortcutHints();
+}
+
+function updateMemberShortcutHints() {
+  document.querySelectorAll("[data-person-jump]").forEach(button => {
+    const digit = callShortcuts.members[button.dataset.personJump];
+    const hint = button.querySelector(".member-shortcut-hint");
+    hint.textContent = digit;
+    hint.hidden = !callShortcuts.enabled;
+    button.title = button.getAttribute("aria-label") + (callShortcuts.enabled ? ` (${isMacKeyboard ? "⌘⌥" : "Ctrl+Alt+"}${digit})` : "");
+    if (callShortcuts.enabled) button.setAttribute("aria-keyshortcuts", `${isMacKeyboard ? "Meta" : "Control"}+Alt+${digit}`);
+    else button.removeAttribute("aria-keyshortcuts");
+  });
 }
 
 function configureCallShortcuts() {
   const dialog = document.querySelector("#shortcutDialog");
   const fields = [...dialog.querySelectorAll("[data-shortcut-letter]")];
+  const memberFields = [...dialog.querySelectorAll("[data-shortcut-member]")];
   const error = document.querySelector("#shortcutError");
   const populate = (settings) => {
     document.querySelector("#shortcutsEnabled").checked = settings.enabled;
     fields.forEach((input) => { input.value = settings.letters[input.dataset.shortcutLetter]; });
+    memberFields.forEach(input => { input.value = settings.members[input.dataset.shortcutMember]; });
     error.textContent = "";
   };
   document.querySelector("#shortcutModifiers").textContent = isMacKeyboard ? "Command + Option + Shift" : "Control + Alt + Shift";
+  document.querySelector("#memberShortcutModifiers").textContent = isMacKeyboard ? "Command + Option" : "Control + Alt";
   document.querySelector("#shortcutSettingsButton").addEventListener("click", () => { populate(callShortcuts); dialog.showModal(); });
   document.querySelector("#shortcutClose").addEventListener("click", () => dialog.close());
   dialog.addEventListener("close", () => document.querySelector("#shortcutSettingsButton").focus({ preventScroll: true }));
-  document.querySelector("#shortcutReset").addEventListener("click", () => populate({ enabled: true, letters: DEFAULT_CALL_LETTERS }));
+  document.querySelector("#shortcutReset").addEventListener("click", () => populate({ enabled: true, letters: DEFAULT_CALL_LETTERS, members: DEFAULT_MEMBER_KEYS }));
   document.querySelector("#shortcutForm").addEventListener("submit", (event) => {
     event.preventDefault();
     const letters = Object.fromEntries(fields.map((input) => [input.dataset.shortcutLetter, input.value.trim().toUpperCase()]));
@@ -290,7 +314,12 @@ function configureCallShortcuts() {
       error.textContent = "Use a different letter A–Z for each action. A, I, Q and V are reserved for browser or system commands.";
       return;
     }
-    const settings = { enabled: document.querySelector("#shortcutsEnabled").checked, letters };
+    const members = Object.fromEntries(memberFields.map(input => [input.dataset.shortcutMember, input.value.trim()]));
+    if (!validMemberKeys(members)) {
+      error.textContent = "Use a different number 1–9 for each teammate.";
+      return;
+    }
+    const settings = { enabled: document.querySelector("#shortcutsEnabled").checked, letters, members };
     try { localStorage.setItem(CALL_SHORTCUTS_KEY, JSON.stringify(settings)); }
     catch { error.textContent = "Couldn’t save these preferences. Your current shortcuts are still active."; return; }
     callShortcuts = settings;
@@ -300,7 +329,14 @@ function configureCallShortcuts() {
   document.addEventListener("keydown", (event) => {
     if (!callShortcuts.enabled || callShortcutContextBlocked(event)) return;
     const primaryModifier = isMacKeyboard ? event.metaKey && !event.ctrlKey : event.ctrlKey && !event.metaKey;
-    if (!primaryModifier || !event.altKey || !event.shiftKey) return;
+    if (!primaryModifier || !event.altKey) return;
+    if (!event.shiftKey) {
+      const person = TEAM_MEMBERS.find(name => event.code === `Digit${callShortcuts.members[name]}`);
+      if (!person || document.querySelector("#spotlightToggle").disabled || !personEditingAvailable) return;
+      event.preventDefault();
+      selectMeetingPerson(person);
+      return;
+    }
     const action = Object.keys(DEFAULT_CALL_LETTERS).find((key) => event.code === `Key${callShortcuts.letters[key]}`);
     if (!action || (action === "discussions" && !spotlightMode)) return;
     if (document.querySelector("#spotlightToggle").disabled || !personEditingAvailable) return;
@@ -396,6 +432,7 @@ function updateMeetingNavigation() {
     button.title = `${person} · ${submitted.has(person) ? "Update submitted" : "No update yet"}`;
     button.setAttribute("aria-label", button.title);
   });
+  updateMemberShortcutHints();
 }
 
 async function selectMeetingPerson(personName) {

@@ -2105,3 +2105,12 @@ body:not(.is-spotlight) .spotlight-comments-toggle { visibility: hidden; }
 @media (max-width: 760px) {
   .meeting-controls .meeting-actions { justify-content: stretch; }
 }
+
+.member-shortcut-hint { display: inline-flex; align-items: center; justify-content: center; min-width: 14px; height: 18px; border: 1px solid #dce2eb; border-radius: 4px; color: #687386; background: #fff; font: 10px ui-monospace, monospace; }
+.member-navigation .submission-dot { display: none; }
+.member-navigation .has-submission .member-shortcut-hint { border-color: #b5d8bf; color: #188038; }
+.member-navigation .member-shortcut-hint[hidden] + .submission-dot { display: block; }
+@media (min-width: 1280px) {
+  .meeting-controls { gap: 8px; }
+  .meeting-controls .member-navigation button { padding-inline: 6px; }
+}

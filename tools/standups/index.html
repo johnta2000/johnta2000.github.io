@@ -7,7 +7,7 @@
     <meta name="robots" content="noindex, nofollow" />
     <title>Daily Standups</title>
     <link rel="stylesheet" href="../../assets/css/searchable-select.css?v=20261010-1" />
-    <link rel="stylesheet" href="./styles.css?v=20261010-7" />
+    <link rel="stylesheet" href="./styles.css?v=20261010-8" />
     <link rel="stylesheet" href="../../assets/css/clerk-auth.css?v=20261008-1">
 </head>
   <body>
@@ -69,10 +69,10 @@
 
         <div class="meeting-navigation">
           <nav class="member-navigation" aria-label="Team members">
-            <button type="button" data-person-jump="John" aria-pressed="false">John<span class="submission-dot" aria-hidden="true"></span></button>
-            <button type="button" data-person-jump="Vivek" aria-pressed="false">Vivek<span class="submission-dot" aria-hidden="true"></span></button>
-            <button type="button" data-person-jump="Vishal" aria-pressed="false">Vishal<span class="submission-dot" aria-hidden="true"></span></button>
-            <button type="button" data-person-jump="Jenny" aria-pressed="false">Jenny<span class="submission-dot" aria-hidden="true"></span></button>
+            <button type="button" data-person-jump="John" aria-pressed="false">John<kbd class="member-shortcut-hint" aria-hidden="true">1</kbd><span class="submission-dot" aria-hidden="true"></span></button>
+            <button type="button" data-person-jump="Vivek" aria-pressed="false">Vivek<kbd class="member-shortcut-hint" aria-hidden="true">2</kbd><span class="submission-dot" aria-hidden="true"></span></button>
+            <button type="button" data-person-jump="Vishal" aria-pressed="false">Vishal<kbd class="member-shortcut-hint" aria-hidden="true">3</kbd><span class="submission-dot" aria-hidden="true"></span></button>
+            <button type="button" data-person-jump="Jenny" aria-pressed="false">Jenny<kbd class="member-shortcut-hint" aria-hidden="true">4</kbd><span class="submission-dot" aria-hidden="true"></span></button>
           </nav>
           <div class="member-step-controls">
             <button id="previousPerson" type="button" aria-label="Previous teammate" title="Previous teammate">←</button>
@@ -224,6 +224,11 @@
       <form id="shortcutForm">
         <div class="link-dialog-heading"><h2 id="shortcutDialogTitle">Call shortcuts</h2><button id="shortcutClose" type="button" aria-label="Close shortcut settings">×</button></div>
         <label class="shortcut-enable"><input id="shortcutsEnabled" type="checkbox" checked /> Enable call shortcuts</label>
+        <p>Switch directly to a teammate: hold <strong id="memberShortcutModifiers">Command + Option</strong>, then press their number.</p>
+        <div class="shortcut-binding"><label for="shortcutMemberJohn">John</label><input id="shortcutMemberJohn" data-shortcut-member="John" maxlength="1" pattern="[1-9]" inputmode="numeric" required autocomplete="off" spellcheck="false" /></div>
+        <div class="shortcut-binding"><label for="shortcutMemberVivek">Vivek</label><input id="shortcutMemberVivek" data-shortcut-member="Vivek" maxlength="1" pattern="[1-9]" inputmode="numeric" required autocomplete="off" spellcheck="false" /></div>
+        <div class="shortcut-binding"><label for="shortcutMemberVishal">Vishal</label><input id="shortcutMemberVishal" data-shortcut-member="Vishal" maxlength="1" pattern="[1-9]" inputmode="numeric" required autocomplete="off" spellcheck="false" /></div>
+        <div class="shortcut-binding"><label for="shortcutMemberJenny">Jenny</label><input id="shortcutMemberJenny" data-shortcut-member="Jenny" maxlength="1" pattern="[1-9]" inputmode="numeric" required autocomplete="off" spellcheck="false" /></div>
         <p>Hold <strong id="shortcutModifiers">Command + Option + Shift</strong>, then press the letter. Change any letter below.</p>
         <div class="shortcut-binding"><label for="shortcutSpotlight">Spotlight on / off</label><input id="shortcutSpotlight" data-shortcut-letter="spotlight" maxlength="1" pattern="[A-Za-z]" required autocomplete="off" autocapitalize="characters" spellcheck="false" /></div>
         <div class="shortcut-binding"><label for="shortcutDiscussions">Discussions show / hide <small>In Spotlight</small></label><input id="shortcutDiscussions" data-shortcut-letter="discussions" maxlength="1" pattern="[A-Za-z]" required autocomplete="off" autocapitalize="characters" spellcheck="false" /></div>
@@ -303,6 +308,6 @@
       type="text/javascript"
     ></script>
     <script defer src="../../assets/js/searchable-select.js?v=20261010-2"></script>
-    <script defer src="./app.js?v=20261010-7"></script>
+    <script defer src="./app.js?v=20261010-8"></script>
   </body>
 </html>
