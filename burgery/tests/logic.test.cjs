@@ -26,6 +26,25 @@ test('four rankings distinguish totals and averages, retain known zeros, and han
  assert.equal(m.rankPeople(people,'burgers').find(p=>p.name==='Partial').burgers,2);
  assert.equal(m.rankPeople(people,'burgers-per-trip').find(p=>p.name==='Alpha').burgerAverage,2.5);
 });
+test('overview breakdowns reconcile trip and contributor totals and use distinct people for averages',async()=>{
+ const m=await model,cards=m.overviewStats([
+  {key:'one',name:'One',month:'2026-09',location:' Vegas ',entries:[{name:'Alpha',patties:2,burgers:1},{name:'alpha',patties:3,burgers:1},{name:'Beta',patties:1,burgers:1}]},
+  {key:'two',name:'Two',month:'2026-10',location:'vegas',entries:[{name:'Alpha',patties:4,burgers:2},{name:'Gamma',patties:0,burgers:0}]}
+ ]);
+ for(const [key,rate]of [['patties',1],['calories',110],['sodium',90],['fat',6],['protein',10]]){
+  const card=cards.find(c=>c.key===key);
+  assert.equal(card.value,10*rate);
+  assert.equal(card.trips.reduce((sum,t)=>sum+t.value,0),card.value);
+  assert.equal(card.averages[0].value,5*rate);
+  assert.equal(card.averages[1].value,10*rate/3);
+  assert.equal(card.contributors[0].name,'Alpha');assert.equal(card.contributors[0].value,9*rate);assert.equal(card.contributors[0].share,90);
+ }
+ const trips=cards.find(c=>c.key==='trips');assert.equal(trips.value,2);assert.deepEqual(Array.from(trips.averages.map(a=>a.value)),[3,1,2]);assert.equal(trips.trips[0].name,'Two');
+});
+test('empty overview breakdowns have zero totals and finite averages',async()=>{
+ const m=await model,cards=m.overviewStats([]);assert.equal(cards.length,6);
+ for(const card of cards){assert.equal(card.value,0);assert(card.averages.every(a=>Number.isFinite(a.value)&&a.value===0));assert.equal(card.trips.length,0);assert.equal(card.contributors.length,0);}
+});
 test('allocations count sandwiches separately from patties, coalesce names, and retain unknown cheese',async()=>{const l=await logic;const rows=l.allocations(draft([item({quantity:2,person:' John Ta '}),item({label:'Hamburger',person:'john ta',pattiesEach:1,cheeseEach:null}),item({label:'Fries',category:'fries',pattiesEach:null,cheeseEach:null,person:''})]));assert.equal(rows.length,1);assert.equal(rows[0].burgers,3);assert.equal(rows[0].patties,5);assert.equal(rows[0].cheese,undefined);});
 test('confirmation rejects unassigned burgers, unknown patties, fractional or negative counts and impossible dates',async()=>{const l=await logic;for(const bad of [item({person:''}),item({pattiesEach:null}),item({quantity:.5}),item({quantity:-1})])assert.throws(()=>l.allocations(draft([bad])));assert.throws(()=>l.validateDraft({...draft(),purchasedAt:'2026-02-31'}));for(const [p,b]of [[2,0],[1,2],[1.5,1],[-1,1]])assert.throws(()=>l.validateCounts(p,b));});
 test('private endpoints reject signed-out and different issuers; one user cannot read or confirm another receipt',async()=>{const a=await api;for(const identity of [null,{...member,issuer:'https://other.example'}, {...member,emailVerified:false}])await assert.rejects(a.mine.handler(context({},identity),{}),/Sign in/);const c=context({burgeryReceipts:[receipt({owner:'other-user'})]});await assert.rejects(a.receiptFile.handler(c,{id:'receipt-1'}),/not found/);await assert.rejects(a.confirmReceipt.handler(c,{id:'receipt-1',draft:draft(),expectedUpdatedAt:10}),/not found/);});

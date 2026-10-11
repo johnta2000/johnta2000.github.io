@@ -8,12 +8,12 @@
   <title>Burgery — The patty ledger</title>
   <link rel="icon" href="mark.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/assets/css/searchable-select.css">
-  <link rel="stylesheet" href="styles.css?v=20261011-5">
+  <link rel="stylesheet" href="styles.css?v=20261011-6">
   <script defer src="/assets/js/analytics.js?v=20260927-3" data-app="burgery"></script>
   <script defer src="/assets/js/searchable-select.js"></script>
   <script async data-clerk-script crossorigin="anonymous" src="https://clerk.john-ta.com/npm/@clerk/ui@1/dist/ui.browser.js"></script>
   <script async data-clerk-script crossorigin="anonymous" data-clerk-publishable-key="pk_live_Y2xlcmsuam9obi10YS5jb20k" src="https://clerk.john-ta.com/npm/@clerk/clerk-js@6/dist/clerk.browser.js"></script>
-  <script type="module" src="app.js?v=20261011-5"></script>
+  <script type="module" src="app.js?v=20261011-6"></script>
 </head>
 <body>
   <a href="#views" class="skip-link">Skip to the ledger</a>
@@ -21,6 +21,7 @@
     <header class="topbar"><a class="wordmark" href="#patties"><img src="mark.svg" width="32" height="32" alt=""><h1 id="title">Burgery</h1></a><nav class="tools-nav" aria-label="Trips and receipts"><a href="#trips" data-view="trips">Trips</a><a href="#receipts" data-view="receipts">Receipts</a></nav><div class="topbar-actions"><button class="primary" id="add-entry">＋ Log order</button><button class="secondary" id="hero-receipt">Upload receipt</button></div><button class="small-button" id="account-button">Sign in</button></header>
     <main>
       <div class="summary-grid" id="summary" aria-label="All-time patties, trips, and nutrition estimates"></div>
+      <div class="stat-detail" id="stat-detail" role="region" aria-labelledby="stat-detail-title" tabindex="-1" hidden><div class="stat-detail-header"><div><h2 id="stat-detail-title"></h2><p class="stat-detail-total" id="stat-detail-total"></p><p class="stat-detail-method" id="stat-detail-method"></p></div><button class="icon-button" id="stat-detail-close" aria-label="Close stat breakdown">×</button></div><div class="stat-detail-body" id="stat-detail-body" tabindex="0" aria-label="Breakdown details"></div></div>
       <p class="service-status" id="service-status" role="status">Opening the ledger…</p>
       <nav class="view-nav" aria-label="Ranking metric">
         <a href="#patties" data-view="patties" aria-current="page">Patties</a><a href="#burgers" data-view="burgers">Burgers</a><a href="#patties-per-trip" data-view="patties-per-trip">Patties/Trip</a><a href="#burgers-per-trip" data-view="burgers-per-trip">Burgers/Trip</a>

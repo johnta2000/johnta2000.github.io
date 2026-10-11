@@ -25,6 +25,31 @@ export function rankPeople(people, metric) {
     : metric === 'burgers-per-trip' ? known(person.burgerAverage) : true)
     .sort((a,b) => b[field]-a[field] || a.name.localeCompare(b.name));
 }
+export function overviewStats(trips) {
+  const all = stats(trips);
+  const byTrip = trips.map(trip => ({key:trip.key,name:trip.name,month:trip.month,location:trip.location,...tripStats(trip)}));
+  const definitions = [
+    {key:'patties',label:'Total patties',title:'Total patties',unit:'patties',perPatty:1},
+    {key:'calories',label:'Calories (kcal)',title:'Calories',unit:'kcal',perPatty:110},
+    {key:'sodium',label:'Sodium (mg)',title:'Sodium',unit:'mg',perPatty:90},
+    {key:'fat',label:'Fat (g)',title:'Fat',unit:'g',perPatty:6},
+    {key:'protein',label:'Protein (g)',title:'Protein',unit:'g',perPatty:10}
+  ];
+  const divide = (value,count) => count ? value/count : 0;
+  return [...definitions.map(metric => ({
+    ...metric,
+    value:all.patties*metric.perPatty,
+    averages:[{label:'Per trip',value:divide(all.patties*metric.perPatty,all.trips)},{label:'Per person',value:divide(all.patties*metric.perPatty,all.people.length)}],
+    trips:[...byTrip].sort((a,b)=>b.patties-a.patties||b.month.localeCompare(a.month)).map(trip=>({...trip,value:trip.patties*metric.perPatty,share:divide(trip.patties,all.patties)*100})),
+    contributors:all.people.slice(0,3).map(person=>({name:person.name,value:person.patties*metric.perPatty,share:divide(person.patties,all.patties)*100})),
+    note:metric.key==='patties'?`${all.people.length} people · ${all.entries.length} logged entries`:'Patty-only estimates. Buns, cheese, toppings, sides, and drinks are excluded.'
+  })),{
+    key:'trips',label:'Trips',title:'Trips',unit:'trips',value:all.trips,
+    averages:[{label:'People',value:all.people.length},{label:'Places',value:new Set(byTrip.map(trip=>key(trip.location||'')).filter(Boolean)).size},{label:'People / trip',value:divide(byTrip.reduce((sum,trip)=>sum+trip.people,0),all.trips)}],
+    trips:[...byTrip].sort((a,b)=>b.month.localeCompare(a.month)).map(trip=>({...trip,value:trip.people,share:0})),
+    contributors:[],note:`${all.patties} patties · ${all.entries.length} logged entries`
+  }];
+}
 export function tripStats(trip) {
   const groups = new Map();
   for (const e of trip.entries) { const p=groups.get(key(e.name)) || {name:e.name,patties:0}; p.patties+=e.patties; groups.set(key(e.name),p); }

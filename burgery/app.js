@@ -1,8 +1,10 @@
-import { key, known, stats, rankPeople, tripStats, dateLabel, number, initials, emptyDraft, emptyItem, receiptTotals } from './model.js?v=20261011-4';
+import { key, known, stats, rankPeople, overviewStats, tripStats, dateLabel, number, initials, emptyDraft, emptyItem, receiptTotals } from './model.js?v=20261011-6';
 const API='https://rapid-shark-565.convex.cloud', FILES='https://rapid-shark-565.convex.site/burgery-receipt';
 const $=id=>document.getElementById(id), uid=()=>crypto.randomUUID();
 let trips=[], data=stats([]), live=false, session=null, sessionId, epoch=0, mounted=false, currentView='patties', receipts=[], activeReceipt=null, reviewDraft=null, pendingTarget=null, entryId=null, entryRequest=uid(), uploadRequest=uid(), busy=false, uploadUrl=null, photoUrl=null, toastTimer, pollTimer, authStarted=false, authPromise=null, privateRequest=0;
 const pickers=new Map();
+const statPanel=$('stat-detail');
+let summaryMetrics=[],statTrigger=null,statPinned=false,statCloseTimer,statIgnoreFocus=false,statHoverBlockedUntil=0;
 const rankings={
   patties:{title:'Patties',field:'patties',unit:'total patties'},
   burgers:{title:'Burgers',field:'burgers',unit:'known burgers'},
@@ -30,6 +32,7 @@ function closeDialog(dialog) {if(busy)return;for(const p of pickers.values())p.c
 document.querySelectorAll('[data-close]').forEach(button=>button.addEventListener('click',()=>closeDialog(button.closest('dialog'))));
 document.querySelectorAll('dialog').forEach(dialog=>dialog.addEventListener('cancel',event=>{event.preventDefault();closeDialog(dialog);}));
 function changeView() {
+  closeStat();
   const hash=location.hash.slice(1);
   currentView=hash==='leaderboard'?'patties':([...Object.keys(rankings),'trips','receipts'].includes(hash)?hash:(mounted||location.hash.startsWith('#/')?'receipts':'patties'));
   document.querySelectorAll('[data-view]').forEach(a=>{if(a.dataset.view===currentView)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current');});
@@ -41,12 +44,90 @@ function changeView() {
 window.addEventListener('hashchange',changeView);changeView();
 function render() {
   data=stats(trips);
-  $('summary').replaceChildren();
-  for(const [label,value] of [['Total patties',data.patties],['Calories (kcal)',data.patties*110],['Sodium (mg)',data.patties*90],['Fat (g)',data.patties*6],['Protein (g)',data.patties*10],['Trips',data.trips]]) {const card=node('div',undefined,'summary-stat');const amount=node('strong',number(value));if(label==='Total patties')amount.id='hero-total';card.append(node('small',label),amount);$('summary').append(card);}
+  renderSummary();
   $('known-people').replaceChildren(...data.people.map(p=>new Option(p.name,p.name)));
   $('nutrition-text').textContent=`${number(data.patties*110)} calories · ${number(data.patties*90)}mg sodium · ${number(data.patties*6)}g fat · ${number(data.patties*10)}g protein, from patties alone.`;
   renderLeaders();renderTrips();renderAwards();updateTripPickers();
 }
+function renderSummary(){
+  closeStat();summaryMetrics=overviewStats(trips);$('summary').replaceChildren();
+  for(const metric of summaryMetrics){
+    const card=node('button',undefined,'summary-stat'),amount=node('strong',number(metric.value));
+    card.type='button';card.dataset.stat=metric.key;card.setAttribute('aria-label',`${metric.label}: ${number(metric.value)}. Show breakdown`);card.setAttribute('aria-expanded','false');card.setAttribute('aria-controls','stat-detail');
+    if(metric.key==='patties')amount.id='hero-total';
+    card.append(node('small',metric.label),amount);
+    card.addEventListener('pointerenter',event=>{if(event.pointerType==='mouse'&&!statPinned&&performance.now()>=statHoverBlockedUntil)openStat(metric,card);});
+    card.addEventListener('pointerleave',scheduleStatClose);
+    card.addEventListener('focus',()=>{if(!statIgnoreFocus)openStat(metric,card);});
+    card.addEventListener('blur',scheduleStatClose);
+    card.addEventListener('click',event=>{if(statTrigger===card&&statPinned)closeStat(false,true);else{openStat(metric,card,true);if(event.detail===0)statPanel.focus({preventScroll:true});}});
+    $('summary').append(card);
+  }
+}
+function openStat(metric,card,pin=false){
+  clearTimeout(statCloseTimer);
+  if(statTrigger===card&&!statPanel.hidden){if(pin)statPinned=true;positionStat();return;}
+  closeStat();statTrigger=card;statPinned=pin;card.setAttribute('aria-expanded','true');
+  $('stat-detail-title').textContent=metric.title;
+  $('stat-detail-total').textContent=`${number(metric.value)} ${metric.unit}`;
+  $('stat-detail-method').textContent=metric.key==='trips'?'Every logged trip':metric.key==='patties'?'All logged patties':`${number(metric.perPatty)} ${metric.unit} per patty × ${number(data.patties)} patties`;
+  const body=$('stat-detail-body'),averages=node('div',undefined,'stat-detail-averages');
+  for(const average of metric.averages){const item=node('div');item.append(node('small',average.label),node('strong',number(average.value)));averages.append(item);}
+  body.replaceChildren(averages);
+  const tripSection=node('section',undefined,'stat-detail-section');tripSection.append(node('h3','By trip'));
+  for(const trip of metric.trips){
+    const row=node('div',undefined,'stat-detail-row'),copy=node('div'),value=node('div',undefined,'stat-detail-amount');
+    copy.append(node('strong',trip.name),node('small',`${dateLabel(trip.month)} · ${metric.key==='trips'?`${trip.location} · ${number(trip.patties)} patties`:trip.location}`));
+    value.append(node('strong',`${number(trip.value)} ${metric.key==='trips'?'people':metric.unit}`));
+    if(metric.key!=='trips')value.append(node('small',`${number(trip.share)}% of total`));
+    row.append(copy,value);tripSection.append(row);
+  }
+  if(!metric.trips.length)tripSection.append(node('p','No trips logged yet.','stat-detail-note'));
+  body.append(tripSection);
+  if(metric.contributors.length){
+    const section=node('section',undefined,'stat-detail-section');section.append(node('h3','Top contributors'));
+    for(const person of metric.contributors){const row=node('div',undefined,'stat-detail-row'),value=node('div',undefined,'stat-detail-amount');value.append(node('strong',`${number(person.value)} ${metric.unit}`),node('small',`${number(person.share)}% of total`));row.append(node('strong',person.name),value);section.append(row);}
+    body.append(section);
+  }
+  body.append(node('p',metric.note,'stat-detail-note'));
+  statPanel.hidden=false;body.scrollTop=0;positionStat();
+}
+function positionStat(){
+  if(!statTrigger||statPanel.hidden)return;
+  if(!statTrigger.isConnected){closeStat();return;}
+  const anchor=statTrigger.getBoundingClientRect(),gap=10,edge=12;
+  if(anchor.bottom<0||anchor.top>innerHeight){closeStat();return;}
+  statPanel.style.maxHeight=`${innerHeight-edge*2}px`;
+  const width=statPanel.offsetWidth,fullHeight=statPanel.offsetHeight;
+  const left=Math.max(edge,Math.min(innerWidth-width-edge,anchor.left+anchor.width/2-width/2));
+  const below=innerHeight-edge-anchor.bottom-gap,above=anchor.top-gap-edge;
+  const placeAbove=fullHeight>below&&above>below,available=placeAbove?above:below;
+  if(available>=Math.min(fullHeight,240))statPanel.style.maxHeight=`${available}px`;
+  const height=statPanel.offsetHeight;
+  let top=placeAbove?anchor.top-height-gap:anchor.bottom+gap;
+  top=Math.max(edge,Math.min(top,innerHeight-height-edge));
+  statPanel.style.left=`${left}px`;statPanel.style.top=`${top}px`;
+}
+function closeStat(returnFocus=false,suppressHover=false){
+  // Hiding the panel can expose another card directly beneath the pointer.
+  if(suppressHover)statHoverBlockedUntil=performance.now()+300;
+  clearTimeout(statCloseTimer);const trigger=statTrigger;
+  trigger?.setAttribute('aria-expanded','false');statPanel.hidden=true;statTrigger=null;statPinned=false;
+  if(returnFocus&&trigger?.isConnected){statIgnoreFocus=true;trigger.focus({preventScroll:true});statIgnoreFocus=false;}
+}
+function scheduleStatClose(){
+  clearTimeout(statCloseTimer);statCloseTimer=setTimeout(()=>{
+    if(!statPinned&&statTrigger&&!statTrigger.matches(':hover')&&!statPanel.matches(':hover')&&document.activeElement!==statTrigger&&!statPanel.contains(document.activeElement))closeStat();
+  },200);
+}
+statPanel.addEventListener('pointerenter',()=>clearTimeout(statCloseTimer));
+statPanel.addEventListener('pointerleave',scheduleStatClose);
+$('stat-detail-close').addEventListener('click',()=>closeStat(true,true));
+document.addEventListener('pointerdown',event=>{if(statTrigger&&!statTrigger.contains(event.target)&&!statPanel.contains(event.target))closeStat();});
+document.addEventListener('focusin',event=>{if(statTrigger&&!$('summary').contains(event.target)&&!statPanel.contains(event.target))closeStat();});
+document.addEventListener('keydown',event=>{if(event.key==='Escape'&&statTrigger){event.preventDefault();closeStat(statPanel.contains(document.activeElement),true);}});
+window.addEventListener('resize',positionStat);
+window.addEventListener('scroll',positionStat,{passive:true});
 function leaderRow(person,rank,value,max,detail,unit) {const row=node('button',undefined,`leader-row${rank===0?' leader':''}`);row.type='button';const name=node('span',person.name,'person-name');name.append(node('small',detail));const track=node('div',undefined,'bar-track');const bar=node('div',undefined,'bar-fill');bar.style.width=`${max?Math.max(0,value/max*100):0}%`;track.append(bar);track.setAttribute('aria-hidden','true');const amount=node('span',number(value),'leader-value');amount.append(node('small',unit));row.append(node('span',String(rank+1).padStart(2,'0'),'rank'),node('span',initials(person.name),'avatar'),name,track,amount);row.addEventListener('click',()=>openPerson(person));return row;}
 function renderLeaders(){
   const metric=rankings[currentView]?currentView:'patties',config=rankings[metric],burgerMetric=metric.startsWith('burgers'),average=metric.endsWith('-per-trip');
