@@ -17,6 +17,14 @@ export function stats(trips) {
   }).sort((a,b) => b.patties-a.patties || a.name.localeCompare(b.name));
   return {entries, people, patties:entries.reduce((s,e)=>s+e.patties,0), burgers:entries.filter(e=>known(e.burgers)).reduce((s,e)=>s+e.burgers,0), knownEntries:entries.filter(e=>known(e.burgers)).length, receiptEntries:entries.filter(e=>e.receiptBacked).length, trips:trips.length};
 }
+export function rankPeople(people, metric) {
+  const field = {patties:'patties',burgers:'burgers','patties-per-trip':'pattyAverage','burgers-per-trip':'burgerAverage'}[metric];
+  if (!field) throw new Error('Unknown ranking metric.');
+  return people.filter(person => metric === 'burgers'
+    ? person.entries.some(entry => known(entry.burgers))
+    : metric === 'burgers-per-trip' ? known(person.burgerAverage) : true)
+    .sort((a,b) => b[field]-a[field] || a.name.localeCompare(b.name));
+}
 export function tripStats(trip) {
   const groups = new Map();
   for (const e of trip.entries) { const p=groups.get(key(e.name)) || {name:e.name,patties:0}; p.patties+=e.patties; groups.set(key(e.name),p); }

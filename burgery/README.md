@@ -6,6 +6,8 @@ The public ledger lives at `/burgery/`. The UI is buildless HTML/CSS/ES modules;
 
 Keep Burgery fun and direct: one compact header, actions, stats, and rankings. Skip hero sections, duplicate branding, taglines, and promotional preambles; keep the fun in the rankings and superlatives. Put counting definitions in optional details, while keeping receipt privacy and confirmation instructions visible.
 
+The four primary ranking tabs are Patties, Burgers, Patties/Trip, and Burgers/Trip. Trips and Receipts are separate header links. Burger totals use known entries; burger averages require complete known counts for a person on a trip.
+
 ## Data conventions
 
 - A burger is one sandwich. Patties and cheese are separate counts.
