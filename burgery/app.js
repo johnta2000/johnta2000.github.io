@@ -42,7 +42,7 @@ window.addEventListener('hashchange',changeView);changeView();
 function render() {
   data=stats(trips);
   $('summary').replaceChildren();
-  for(const [label,value,unit] of [['Total patties',data.patties,'patties'],['Calories',data.patties*110,'est. kcal'],['Sodium',data.patties*90,'est. mg'],['Fat',data.patties*6,'est. g'],['Protein',data.patties*10,'est. g'],['Trips',data.trips,'trips']]) {const card=node('div',undefined,'summary-stat');const amount=node('strong',number(value));if(label==='Total patties')amount.id='hero-total';card.append(node('small',label),amount,node('span',unit));$('summary').append(card);}
+  for(const [label,value] of [['Total patties',data.patties],['Calories (kcal)',data.patties*110],['Sodium (mg)',data.patties*90],['Fat (g)',data.patties*6],['Protein (g)',data.patties*10],['Trips',data.trips]]) {const card=node('div',undefined,'summary-stat');const amount=node('strong',number(value));if(label==='Total patties')amount.id='hero-total';card.append(node('small',label),amount);$('summary').append(card);}
   $('known-people').replaceChildren(...data.people.map(p=>new Option(p.name,p.name)));
   $('nutrition-text').textContent=`${number(data.patties*110)} calories · ${number(data.patties*90)}mg sodium · ${number(data.patties*6)}g fat · ${number(data.patties*10)}g protein, from patties alone.`;
   renderLeaders();renderTrips();renderAwards();updateTripPickers();

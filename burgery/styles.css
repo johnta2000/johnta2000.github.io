@@ -30,13 +30,12 @@ h1 span{color:var(--red)}
 .primary:hover{background:var(--red-dark);border-color:var(--red-dark)}
 .secondary{background:transparent}
 .summary-grid{margin-top:20px;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));border:1px solid var(--line);border-radius:var(--radius);background:var(--white);overflow:hidden}
-.summary-stat{padding:22px 20px;border-right:1px solid var(--line);min-width:0}
+.summary-stat{padding:18px 20px;border-right:1px solid var(--line);min-width:0}
 .summary-stat:last-child{border:0}
-.summary-stat small{display:block;font-size:11px;color:var(--muted);margin-bottom:8px}
+.summary-stat small{display:block;white-space:nowrap;font-size:11px;color:var(--muted);margin-bottom:8px}
 .summary-stat strong{display:block;font-family:'Manrope',sans-serif;font-size:clamp(26px,2.7vw,34px);letter-spacing:-1.4px;line-height:1.25;color:var(--red-dark)}
-.summary-stat span{display:block;font-size:11px;color:var(--muted);margin-top:5px}
 .summary-stat:first-child{background:var(--red);border-color:var(--red)}
-.summary-stat:first-child small,.summary-stat:first-child span{color:white}
+.summary-stat:first-child small{color:white}
 .summary-stat:first-child strong{color:var(--yellow)}
 .service-status:empty{display:none}
 .service-status{font-size:11px;color:var(--muted);min-height:18px;margin:12px 0 0}
@@ -186,14 +185,13 @@ h1{font-size:46px;letter-spacing:-2.4px}
 .eyebrow{font-size:9px;letter-spacing:1.2px;margin-bottom:16px}
 h1{font-size:44px;letter-spacing:-2.2px;margin-bottom:7px}
 .summary-grid{grid-template-columns:repeat(2,1fr);border-radius:14px}
-.summary-stat{padding:16px 18px;border-right:1px solid var(--line);border-bottom:1px solid var(--line)}
+.summary-stat{padding:14px 18px;border-right:1px solid var(--line);border-bottom:1px solid var(--line)}
 .summary-stat:nth-child(3n){border-right:1px solid var(--line)}
 .summary-stat:nth-child(2n){border-right:0}
 .summary-stat:nth-child(n+4){border-bottom:1px solid var(--line)}
 .summary-stat:nth-child(n+5){border-bottom:0}
 .summary-stat small{font-size:10px}
 .summary-stat strong{font-size:30px}
-.summary-stat span{font-size:9px}
 .view-nav{display:grid;grid-template-columns:1fr 1fr 1.35fr 1.45fr;gap:6px;margin:10px 0 20px;padding-top:0}
 .view-nav a{font-size:11px;padding:14px 0;gap:3px;justify-content:center}
 .section-heading{align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px}
