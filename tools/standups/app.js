@@ -55,11 +55,6 @@ const els = {
   notetakerModalContent: document.querySelector("#notetakerModalContent"),
   notetakerCloseButton: document.querySelector("#notetakerCloseButton"),
   saveStatus: document.querySelector("#saveStatus"),
-  olderTwoShortcutDate: document.querySelector("#olderTwoShortcutDate"),
-  olderOneShortcutDate: document.querySelector("#olderOneShortcutDate"),
-  yesterdayShortcutDate: document.querySelector("#yesterdayShortcutDate"),
-  todayShortcutDate: document.querySelector("#todayShortcutDate"),
-  tomorrowShortcutDate: document.querySelector("#tomorrowShortcutDate"),
   dateJumpButtons: document.querySelectorAll("[data-date-jump]"),
   entriesList: document.querySelector("#entriesList"),
   unsubmittedList: document.querySelector("#unsubmittedList"),
@@ -156,6 +151,14 @@ function initStandups() {
   els.form.addEventListener("submit", (event) => event.preventDefault());
   document.querySelectorAll("[data-date-jump]").forEach((button) => {
     button.addEventListener("click", () => jumpToRelativeDate(Number(button.dataset.dateJump)));
+  });
+  document.querySelectorAll("[data-date-step]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const selectedDate = new Date(`${els.date.value}T12:00:00`);
+      if (Number.isNaN(selectedDate.getTime())) return;
+      els.date.value = toDateInputValue(addDays(selectedDate, Number(button.dataset.dateStep)));
+      handleDateChange();
+    });
   });
   document.addEventListener("selectionchange", rememberEditorSelection);
   document.querySelectorAll(".editor-toolbar button").forEach((button) => {
@@ -1978,15 +1981,6 @@ async function resetDateAfterMidnight(previousToday) {
 
 function updateDateShortcuts() {
   const today = new Date();
-  const olderTwo = addDays(today, -3);
-  const olderOne = addDays(today, -2);
-  const yesterday = addDays(today, -1);
-  const tomorrow = addDays(today, 1);
-  els.olderTwoShortcutDate.textContent = formatShortDate(toDateInputValue(olderTwo));
-  els.olderOneShortcutDate.textContent = formatShortDate(toDateInputValue(olderOne));
-  els.yesterdayShortcutDate.textContent = formatShortDate(toDateInputValue(yesterday));
-  els.todayShortcutDate.textContent = formatShortDate(toDateInputValue(today));
-  els.tomorrowShortcutDate.textContent = formatShortDate(toDateInputValue(tomorrow));
   els.dateJumpButtons.forEach((button) => {
     const shortcutDate = toDateInputValue(addDays(today, Number(button.dataset.dateJump)));
     const isActive = shortcutDate === els.date.value;

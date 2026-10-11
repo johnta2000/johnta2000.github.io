@@ -18,7 +18,7 @@ test('phone and tablet layouts keep headings, editors, and date controls in boun
         const box = await page.locator(selector).boundingBox();
         assert.ok(box.x >= 0 && box.x + box.width <= width + 1, `${selector} outside ${width}px viewport`);
       }
-      const buttons = await page.locator('.date-jump button').evaluateAll(nodes => nodes.map(node => {
+      const buttons = await page.locator('.date-navigation button').evaluateAll(nodes => nodes.map(node => {
         const box = node.getBoundingClientRect();
         return { left: box.left, right: box.right, height: box.height, width: node.clientWidth, content: node.scrollWidth };
       }));
@@ -57,7 +57,7 @@ test('phone editing, autosave, dates, comments, and reduced keyboard viewport', 
     await page.waitForFunction(() => document.querySelector('#dailyNotesStatus').textContent.startsWith('Last saved'));
     assert.ok(mutations.some(m => m.endpoint === 'standups:saveDayNotes' && m.args.notes.includes('Shared context entered on a phone')));
     const initialDate = await page.locator('#standupDate').inputValue();
-    await page.locator('[data-date-jump="-1"]').tap();
+    await page.locator('[data-date-step="-1"]').tap();
     await page.waitForFunction(date => document.querySelector('#standupDate').value !== date && document.querySelector('#today').textContent.includes('Schedule posts'), initialDate);
     await page.locator('[data-date-jump="0"]').tap();
     await page.waitForFunction(() => document.querySelector('#today').textContent.includes('Writing an update from my phone'));

@@ -7,7 +7,7 @@
     <meta name="robots" content="noindex, nofollow" />
     <title>Daily Standups</title>
     <link rel="stylesheet" href="../../assets/css/searchable-select.css?v=20261010-1" />
-    <link rel="stylesheet" href="./styles.css?v=20261010-4" />
+    <link rel="stylesheet" href="./styles.css?v=20261010-5" />
     <link rel="stylesheet" href="../../assets/css/clerk-auth.css?v=20261008-1">
 </head>
   <body>
@@ -58,7 +58,12 @@
           </label>
           <div class="date-control">
             <label for="standupDate">Standup date</label>
-            <input id="standupDate" type="date" />
+            <div class="date-navigation" role="group" aria-label="Standup date navigation">
+              <button type="button" data-date-step="-1" aria-label="Previous day" title="Previous day">‹</button>
+              <input id="standupDate" type="date" />
+              <button type="button" data-date-step="1" aria-label="Next day" title="Next day">›</button>
+              <button type="button" data-date-jump="0" class="date-today" aria-label="Today" title="Go to today's standup">Today</button>
+            </div>
           </div>
           <div class="meeting-actions">
             <button id="spotlightToggle" class="spotlight-toggle" type="button" aria-label="Spotlight" aria-pressed="false" aria-controls="standupForm"><span class="meeting-button-label">Spotlight</span><kbd data-shortcut-hint="spotlight" aria-hidden="true"></kbd></button>
@@ -151,13 +156,6 @@
               <div class="form-actions">
                 <p id="saveStatus" class="save-status" role="status">Autosave ready</p>
                 <button id="saveRetry" class="save-retry" type="button" hidden>Retry save</button>
-                <nav class="date-jump" aria-label="Standup date shortcuts">
-                  <button class="date-jump-compact" type="button" data-date-jump="-3" aria-label="Open update from three days ago"><strong id="olderTwoShortcutDate"></strong></button>
-                  <button class="date-jump-compact" type="button" data-date-jump="-2" aria-label="Open update from two days ago"><strong id="olderOneShortcutDate"></strong></button>
-                  <button type="button" data-date-jump="-1"><span>Yesterday</span><strong id="yesterdayShortcutDate"></strong></button>
-                  <button type="button" data-date-jump="0"><span>Today</span><strong id="todayShortcutDate"></strong></button>
-                  <button type="button" data-date-jump="1"><span>Tomorrow</span><strong id="tomorrowShortcutDate"></strong></button>
-                </nav>
               </div>
             </section>
           </div>
@@ -305,6 +303,6 @@
       type="text/javascript"
     ></script>
     <script defer src="../../assets/js/searchable-select.js?v=20261010-2"></script>
-    <script defer src="./app.js?v=20261010-4"></script>
+    <script defer src="./app.js?v=20261010-5"></script>
   </body>
 </html>
