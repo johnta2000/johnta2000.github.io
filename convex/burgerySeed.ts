@@ -1,0 +1,191 @@
+export const starterTrips = [
+  {
+    "name": "Las Vegas",
+    "date": "Jan 2024",
+    "entries": [
+      {
+        "name": "John Ta",
+        "log": "4",
+        "patties": 4
+      },
+      {
+        "name": "Joshua Kim",
+        "log": "3",
+        "patties": 3
+      },
+      {
+        "name": "Rebecca Jiang",
+        "log": "2",
+        "patties": 2
+      },
+      {
+        "name": "Janice Jung",
+        "log": "2",
+        "patties": 2
+      }
+    ],
+    "key": "vegas-2024-01",
+    "month": "2024-01",
+    "location": "Las Vegas"
+  },
+  {
+    "name": "Utah Trip",
+    "date": "Feb 2026",
+    "entries": [
+      {
+        "name": "John Ta",
+        "log": "1+1+1+4",
+        "patties": 7
+      },
+      {
+        "name": "Vivek Olumbe",
+        "log": "4+2+2",
+        "patties": 8
+      },
+      {
+        "name": "Henry Trinh",
+        "log": "3+2",
+        "patties": 5
+      },
+      {
+        "name": "Helen Wang",
+        "log": "1",
+        "patties": 1
+      },
+      {
+        "name": "Jenny Yoo",
+        "log": "2",
+        "patties": 2
+      },
+      {
+        "name": "Kevin Tang",
+        "log": "3+2+2",
+        "patties": 7
+      },
+      {
+        "name": "Darren Gils",
+        "log": "4",
+        "patties": 4
+      },
+      {
+        "name": "Jessi Hu",
+        "log": "2+1",
+        "patties": 3
+      }
+    ],
+    "key": "utah-2026-02",
+    "month": "2026-02",
+    "location": "Utah"
+  },
+  {
+    "name": "Las Vegas",
+    "date": "May 2026",
+    "entries": [
+      {
+        "name": "Eleanor Pae",
+        "log": "2",
+        "patties": 2
+      },
+      {
+        "name": "Helen Wang",
+        "log": "2",
+        "patties": 2
+      },
+      {
+        "name": "Sherie Pan",
+        "log": "1",
+        "patties": 1
+      },
+      {
+        "name": "Pascal Le",
+        "log": "2",
+        "patties": 2
+      },
+      {
+        "name": "Edward Kim",
+        "log": "4",
+        "patties": 4
+      },
+      {
+        "name": "Kevin Tang",
+        "log": "4",
+        "patties": 4
+      },
+      {
+        "name": "Lucy Zhu",
+        "log": "2",
+        "patties": 2
+      },
+      {
+        "name": "John Ta",
+        "log": "4",
+        "patties": 4
+      },
+      {
+        "name": "Cynthia Gong",
+        "log": "1",
+        "patties": 1
+      },
+      {
+        "name": "Olivia An",
+        "log": "2",
+        "patties": 2
+      },
+      {
+        "name": "CC Huang",
+        "log": "2",
+        "patties": 2
+      },
+      {
+        "name": "Allen Huang",
+        "log": "4",
+        "patties": 4
+      },
+      {
+        "name": "Jessi Hu",
+        "log": "2",
+        "patties": 2
+      }
+    ],
+    "key": "vegas-2026-05",
+    "month": "2026-05",
+    "location": "Las Vegas"
+  },
+  {
+    "key": "niteharts-2026-10",
+    "name": "Niteharts",
+    "date": "Oct 2026",
+    "month": "2026-10",
+    "location": "San Diego",
+    "entries": [
+      {
+        "name": "Henry Trinh",
+        "log": "1 \u00d7 2\u00d70",
+        "patties": 2,
+        "burgers": 1,
+        "cheese": 0
+      },
+      {
+        "name": "Jessi Hu",
+        "log": "No burgers",
+        "patties": 0,
+        "burgers": 0,
+        "cheese": 0
+      },
+      {
+        "name": "John Ta",
+        "log": "2 \u00d7 2\u00d71 + 2 hamburgers",
+        "patties": 6,
+        "burgers": 4,
+        "cheese": 2
+      },
+      {
+        "name": "Danny Tang",
+        "log": "Double-Double",
+        "patties": 2,
+        "burgers": 1,
+        "cheese": 2
+      }
+    ]
+  }
+];

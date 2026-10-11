@@ -1,3 +1,4 @@
+import { burgeryTables } from "./burgeryTables";
 import { packingTables } from "./packingTables";
 import { monthlyJournalTables } from "./monthlyJournalTables";
 import { statementTables } from './statementTables';
@@ -13,6 +14,7 @@ import { rentTables } from "./rentTables";
 import { sleepTables } from "./sleepTables";
 
 export default defineSchema({
+  ...burgeryTables,
   ...packingTables,
   ...monthlyJournalTables,
   ...statementTables,

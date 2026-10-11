@@ -1,0 +1,32 @@
+export const key = name => name.trim().replace(/\s+/g, ' ').toLocaleLowerCase('en-US');
+export const known = n => typeof n === 'number' && Number.isFinite(n);
+export const dateLabel = month => new Date(`${month}-15T12:00:00`).toLocaleDateString('en-US', {month:'short',year:'numeric'});
+export const number = n => new Intl.NumberFormat('en-US', {maximumFractionDigits:1}).format(n);
+export const initials = name => name.split(/\s+/).map(n => n[0]).slice(0,2).join('').toUpperCase();
+export function stats(trips) {
+  const entries = trips.flatMap(trip => trip.entries.map(e => ({...e, trip})));
+  const names = [...new Set(entries.map(e => key(e.name)))];
+  const people = names.map(id => {
+    const logs = entries.filter(e => key(e.name) === id);
+    const byTrip = [...new Set(logs.map(e => e.trip.key))].map(tripKey => logs.filter(e => e.trip.key === tripKey));
+    const completeBurgerTrips = byTrip.filter(group => group.every(e => known(e.burgers)));
+    const patties = logs.reduce((s,e) => s + e.patties, 0);
+    const burgers = logs.filter(e => known(e.burgers)).reduce((s,e) => s + e.burgers, 0);
+    const burgerTripTotal = completeBurgerTrips.flat().reduce((s,e) => s + e.burgers, 0);
+    return {key:id, name:logs[0].name, entries:logs, patties, burgers, tripCount:byTrip.length, pattyAverage:patties / byTrip.length, burgerTrips:completeBurgerTrips.length, burgerAverage:completeBurgerTrips.length ? burgerTripTotal / completeBurgerTrips.length : null};
+  }).sort((a,b) => b.patties-a.patties || a.name.localeCompare(b.name));
+  return {entries, people, patties:entries.reduce((s,e)=>s+e.patties,0), burgers:entries.filter(e=>known(e.burgers)).reduce((s,e)=>s+e.burgers,0), knownEntries:entries.filter(e=>known(e.burgers)).length, receiptEntries:entries.filter(e=>e.receiptBacked).length, trips:trips.length};
+}
+export function tripStats(trip) {
+  const groups = new Map();
+  for (const e of trip.entries) { const p=groups.get(key(e.name)) || {name:e.name,patties:0}; p.patties+=e.patties; groups.set(key(e.name),p); }
+  const people=[...groups.values()].sort((a,b)=>b.patties-a.patties || a.name.localeCompare(b.name));
+  const patties=trip.entries.reduce((s,e)=>s+e.patties,0);
+  return {patties, burgers:trip.entries.every(e=>known(e.burgers)) ? trip.entries.reduce((s,e)=>s+e.burgers,0) : null, people:people.length, average:people.length ? patties/people.length : 0, top:people[0]?.name};
+}
+export function emptyDraft() { return {merchant:'',location:'',purchasedAt:'',currency:'USD',subtotalCents:null,taxCents:null,totalCents:null,items:[],warnings:[],confidence:'low'}; }
+export function emptyItem() { return {label:'',category:'burger',quantity:1,pattiesEach:null,cheeseEach:null,lineTotalCents:null,modifiers:[],person:''}; }
+export function receiptTotals(items) {
+  const burgers=items.filter(i=>i.category==='burger');
+  return {burgers:burgers.reduce((s,i)=>s+i.quantity,0),patties:burgers.every(i=>known(i.pattiesEach)) ? burgers.reduce((s,i)=>s+i.quantity*i.pattiesEach,0) : null,unassigned:burgers.filter(i=>!i.person.trim()).length};
+}
