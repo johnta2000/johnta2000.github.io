@@ -194,3 +194,31 @@ test('spotlight navigation stays usable on phone, tablet and desktop, including 
     }
   } finally { await browser.close(); }
 });
+
+
+test('desktop navigation uses one row without a duplicate picker or shifting comments controls', async () => {
+  const browser = await browserType.launch();
+  try {
+    for (const width of [1280, 1440, 2048]) {
+      const { page, errors } = await openStandups(browser, width, 900);
+      assert.equal(await page.locator('#personName-trigger').isVisible(), false);
+      const selectors = ['#standupDate', '[data-person-jump="John"]', '[data-person-jump="Jenny"]', '#previousPerson', '#nextPerson', '[data-section-jump="today"]', '#spotlightToggle', '#spotlightCommentsToggle', '#shortcutSettingsButton'];
+      const layout = await page.evaluate(selectors => {
+        const bar = document.querySelector('#meetingControls').getBoundingClientRect();
+        return { height: bar.height, left: bar.left, right: bar.right, boxes: selectors.map(selector => document.querySelector(selector).getBoundingClientRect().toJSON()) };
+      }, selectors);
+      assert.ok(layout.height <= 72, `Compact toolbar at ${width}px`);
+      for (const box of layout.boxes) {
+        assert.ok(Math.abs(box.y - layout.boxes[0].y) < 1, `All controls share one row at ${width}px`);
+        assert.ok(box.x >= layout.left && box.right <= layout.right, `Control fits toolbar at ${width}px`);
+      }
+      for (let i = 1; i < layout.boxes.length; i++) assert.ok(layout.boxes[i].left >= layout.boxes[i - 1].right, `Controls do not overlap at ${width}px`);
+      await page.locator('#spotlightToggle').click();
+      await page.getByRole('button', { name: 'Show comments', exact: true }).click();
+      if ([1280, 2048].includes(width)) await page.locator('#meetingControls').screenshot({ path: `/tmp/standup-single-row-${width}${suffix}.png` });
+      await assertNoOverflow(page);
+      assert.deepEqual(errors, []);
+      await page.close();
+    }
+  } finally { await browser.close(); }
+});

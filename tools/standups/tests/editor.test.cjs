@@ -22,9 +22,13 @@ async function selectText(page, editor, text) {
 }
 
 async function choosePerson(page, name) {
-  await page.locator('#personName-trigger').click();
-  await page.getByRole('combobox', { name: 'Search team member' }).fill(name);
-  await page.getByRole('option', { name, exact: true }).click();
+  if (await page.locator('#personName-trigger').isVisible()) {
+    await page.locator('#personName-trigger').click();
+    await page.getByRole('combobox', { name: 'Search team member' }).fill(name);
+    await page.getByRole('option', { name, exact: true }).click();
+  } else {
+    await page.locator(`[data-person-jump="${name}"]`).click();
+  }
   await page.waitForFunction(name => document.querySelector('#todayTitle').textContent === `${name}'s updates` && document.querySelector('#today').isContentEditable, name);
 }
 
@@ -107,10 +111,10 @@ test('changing a person or date immediately after typing saves to the original d
   } finally { await browser.close(); }
 });
 
-test('person picker supports search, empty results and keyboard selection at phone and desktop widths', async () => {
+test('person picker supports search, empty results and keyboard selection on compact screens', async () => {
   const browser = await browserType.launch();
   try {
-    for (const width of [320, 1440]) {
+    for (const width of [320, 768]) {
       const { page, errors } = await openStandups(browser, width);
       await page.locator('#personName-trigger').click();
       const search = page.getByRole('combobox', { name: 'Search team member' });
@@ -168,9 +172,7 @@ test('slow saves preserve newer edits and slow person loads cannot replace a new
     const date = await page.locator('#standupDate').inputValue();
     assert.ok(entries.get(`Jenny:${date}`).today.includes('Latest version while a save is in flight'));
     controls.loadDelays.set('Vivek', 650);
-    await page.locator('#personName-trigger').click();
-    await page.getByRole('combobox', { name: 'Search team member' }).fill('Vivek');
-    await page.getByRole('option', { name: 'Vivek', exact: true }).click();
+    await page.locator('[data-person-jump="Vivek"]').click();
     const olderLoad = page.waitForResponse(response => response.request().method() === 'POST' && response.request().postDataJSON()?.path === 'standups:getForPersonAndDate' && response.request().postDataJSON()?.args.personName === 'Vivek');
     await choosePerson(page, 'Jenny');
     await olderLoad;

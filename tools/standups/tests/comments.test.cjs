@@ -134,9 +134,7 @@ test('one visible comment at a time preserves drafts, replies, and responsive po
     const request = page.waitForRequest(req => req.postData()?.includes('Save while switching person'));
     await cards.first().getByRole('button', { name: 'Reply', exact: true }).click();
     await request;
-    await page.locator('#personName-trigger').click();
-    await page.getByRole('combobox', { name: 'Search team member' }).fill('John');
-    await page.getByRole('option', { name: 'John', exact: true }).click();
+    await page.locator('[data-person-jump="John"]').click();
     assert.equal(await cards.count(), 0);
     finishSave();
     await page.waitForFunction(() => document.querySelector('#saveStatus').textContent.includes('Comment saved'));

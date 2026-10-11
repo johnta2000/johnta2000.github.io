@@ -2077,3 +2077,29 @@ body:not(.is-spotlight) .spotlight-comments-toggle { visibility: hidden; }
   .date-navigation { gap: 2px; }
   .date-navigation .date-today { padding-inline: 6px; font-size: 11px; }
 }
+
+/* One compact desktop row: date, teammates, sections, and call controls. */
+.meeting-controls { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
+.meeting-controls .meeting-navigation { margin-top: 0; }
+.meeting-controls .meeting-actions { margin: 0; justify-content: flex-end; }
+@media (min-width: 1280px) {
+  .meeting-controls { display: flex; align-items: center; gap: 12px; }
+  .meeting-controls .identity-row,
+  .meeting-controls .meeting-navigation { display: contents; }
+  .meeting-controls .name-field { display: none; }
+  .meeting-controls .date-control { width: 280px; flex-shrink: 0; }
+  .meeting-controls .date-control > label { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .meeting-controls .member-navigation { flex-shrink: 0; gap: 2px; }
+  .meeting-controls .member-navigation button { min-height: 44px; padding-inline: 8px; font-size: 12px; gap: 6px; }
+  .meeting-controls .member-step-controls { gap: 4px; flex-shrink: 0; }
+  .meeting-controls .member-step-controls button { width: 36px; min-height: 44px; }
+  .meeting-controls .member-position { display: none; }
+  .meeting-controls .section-navigation { gap: 0; margin: 0 0 0 auto; flex-shrink: 0; }
+  .meeting-controls .section-navigation a { min-height: 44px; padding-inline: 6px; }
+  .meeting-controls .meeting-actions { flex-wrap: nowrap; flex-shrink: 0; gap: 6px; }
+  .meeting-controls .meeting-actions button { padding-inline: 10px; font-size: 12px; }
+  .meeting-controls .meeting-actions kbd { display: none; }
+}
+@media (max-width: 760px) {
+  .meeting-controls .meeting-actions { justify-content: stretch; }
+}

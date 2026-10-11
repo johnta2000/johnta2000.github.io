@@ -15,6 +15,10 @@ test('phone and tablet layouts keep headings, editors, and date controls in boun
       const heading = await page.locator('.topbar h1').boundingBox();
       assert.ok(heading.height < 110, `Title wraps excessively at ${width}px`);
       for (const selector of ['#standupDate', '#lockButton', '#personName-trigger', '#today', '.form-actions']) {
+        if (selector === '#personName-trigger' && width >= 1280) {
+          assert.equal(await page.locator(selector).isVisible(), false, 'Desktop teammate tabs replace the duplicate picker');
+          continue;
+        }
         const box = await page.locator(selector).boundingBox();
         assert.ok(box.x >= 0 && box.x + box.width <= width + 1, `${selector} outside ${width}px viewport`);
       }

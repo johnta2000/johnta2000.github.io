@@ -43,7 +43,7 @@ test('mnemonic call shortcuts switch states and teammates; Escape dismisses one 
 test('call shortcuts leave editing, composition, menus and already-handled events alone', async () => {
   const browser = await browserType.launch();
   try {
-    const { page, errors } = await openStandups(browser, 1280);
+    const { page, errors } = await openStandups(browser, 768);
     await page.locator('#today').focus();
     await page.keyboard.press(hotkey('S'));
     assert.equal(await inSpotlight(page), 'false');
