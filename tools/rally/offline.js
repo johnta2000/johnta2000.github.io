@@ -35,14 +35,15 @@
   }
   window.RallyOffline = {
     get userId() { return state.userId; },
+    get lastEvent() { return state.lastEvent || null; },
     get events() { return clone(state.events); },
     get pendingCount() { return Object.keys(state.pending).length; },
     get storageError() { return storageError || this.nativeSaveFailed; },
     get native() { return location.protocol === 'rally-cache:'; },
     select(id) { state.lastEvent = id; persist(); },
     merge,
-    identify(userId) { if (state.userId !== userId) state = empty(); state.userId = userId; persist(); },
-    clear() { state = empty(); persist(); },
+    identify(userId) { if (state.userId !== userId) {state = empty();window.RallyProjectThemes?.clear?.();} state.userId = userId; persist(); },
+    clear() { state = empty(); window.RallyProjectThemes?.clear?.(); persist(); },
     list(events) {
       state.events = clone(events);
       const allowed = new Set(events.map(event => event.id));

@@ -5,14 +5,22 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="robots" content="noindex, nofollow" />
-    <meta name="theme-color" content="#f7f7f2" />
+    <meta name="theme-color" content="#18181b" />
     <title>Rally · Rave project rooms</title>
+    <!-- Critical loading styles precede external assets: never paint another room. -->
+    <style>
+      html{background:#18181b}.booting{background:var(--rally-loading-paper,#18181b)!important}
+      #rallyApp{visibility:visible}.booting #rallyApp{visibility:hidden}.rally-loader{display:none}
+      .booting>.rally-loader{position:fixed;inset:0;z-index:150;display:grid;place-content:center;gap:14px;text-align:center;background:var(--rally-loading-paper,#18181b);color:var(--rally-loading-ink,#f1eefb);font:500 14px/1.5 system-ui}
+      .rally-loader p{margin:0;color:var(--rally-loading-muted,#bdb7d0)}
+    </style>
+    <script src="./project-theme.js?v=2"></script>
     <link rel="stylesheet" href="./styles.css?v=10" />
     <link rel="stylesheet" href="./event-history.css?v=1" />
     <link rel="stylesheet" href="./meetups.css?v=4" />
     <link rel="stylesheet" href="./crew-location.css?v=1" />
     <link rel="stylesheet" href="./note-editor.css?v=6" />
-    <link rel="stylesheet" href="./boot.css?v=1" />
+    <link rel="stylesheet" href="./boot.css?v=2" />
     <style>
       [hidden]{display:none!important}
       .event-menu{max-height:calc(100dvh - 145px);overflow-y:auto;z-index:40}
@@ -126,6 +134,7 @@
     <link rel="stylesheet" href="../../assets/css/clerk-auth.css?v=20261011-otp1">
   </head>
   <body class="booting">
+    <div class="rally-loader" role="status" aria-live="polite"><strong>Rally</strong><p>Loading project…</p></div>
     <section data-auth-screen="rally" id="accessGate" class="access-gate" hidden>
       <div class="gate-brand"><span class="brand-mark"><i></i><i></i><i></i></span> Rally</div>
       <div class="access-card">
@@ -143,7 +152,7 @@
     <div id="rallyApp" class="app-shell">
       <aside id="sidebar" class="sidebar">
         <div class="brand"><span class="brand-mark"><i></i><i></i><i></i></span><strong>Rally</strong><button id="closeMenu" class="mobile-only" aria-label="Close navigation">×</button></div>
-        <button id="eventSwitcher" class="event-switcher"><span id="eventThumb">LL</span><span><small>Project room</small><strong id="eventName">Lost Lands '26</strong></span><b>⌄</b></button>
+        <button id="eventSwitcher" class="event-switcher"><span id="eventThumb">⋯</span><span><small>Project room</small><strong id="eventName">Loading project…</strong></span><b>⌄</b></button>
         <div id="eventMenu" class="event-menu" hidden></div>
         <nav id="sideNav" aria-label="Rally sections"><span class="nav-skeleton"></span><span class="nav-skeleton"></span><span class="nav-skeleton short"></span></nav>
         <div class="sidebar-bottom"><button id="sidebarSearch">Search this rave</button><button id="signOut">Sign out</button><a href="/">← john-ta.com</a></div>
@@ -163,10 +172,9 @@
     <script defer src="./keyboard.js?v=2"></script>
     <script defer crossorigin="anonymous" src="https://clerk.john-ta.com/npm/@clerk/ui@1/dist/ui.browser.js"></script>
     <script defer crossorigin="anonymous" data-clerk-publishable-key="pk_live_Y2xlcmsuam9obi10YS5jb20k" src="https://clerk.john-ta.com/npm/@clerk/clerk-js@6/dist/clerk.browser.js"></script>
-    <script defer src="./offline.js?v=1"></script>
+    <script defer src="./offline.js?v=2"></script>
     <script defer src="../../lost-lands-2026-lineup/set-times.js?v=20260920-weather"></script>
     <script defer src="../../lost-lands-2026-lineup/controller.js?v=13"></script>
-    <script defer src="./project-theme.js?v=1"></script>
     <script defer src="./lineup-template.js?v=13"></script>
     <script defer src="./lineup.js?v=4"></script>
     <script defer src="./meetup-timing.js?v=1"></script>
@@ -178,6 +186,6 @@
     <script defer src="./event-lifecycle.js?v=1"></script>
     <script defer src="./event-history.js?v=2"></script>
     <script defer src="../../assets/js/searchable-select.js?v=1"></script>
-    <script defer src="./app.js?v=53"></script>
+    <script defer src="./app.js?v=54"></script>
   </body>
 </html>

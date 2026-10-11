@@ -14,6 +14,7 @@ function applyProjectTheme() {
   const theme=themePreview?.theme||data?.projectTheme||'warm';
   window.RallyProjectThemes?.apply(theme);
   window.RallyLineup?.setTheme(theme);
+  if(!themePreview&&data?.id===activeEvent)window.RallyProjectThemes?.remember?.(activeEvent,theme);
 }
 function openProjectTheme() {
   if(!data?.isAdmin)return;
@@ -95,8 +96,9 @@ const eventTemplates = [
 let data = null;
 let events = [];
 let activeView = "home";
-let activeEvent = DEFAULT_EVENT;
+let activeEvent = null;
 let unlockPending = null;
+let roomLoadRevision = 0;
 let draggedTask = null;
 let lineupSaveTimer = null;
 let lineupRefreshTimer = null;
@@ -112,7 +114,7 @@ init();
 async function init() {
   const params = new URLSearchParams(location.search);
   activeView = views.some(([id]) => id === params.get("view")) ? params.get("view") : "home";
-  activeEvent = params.get("event") || DEFAULT_EVENT;
+  activeEvent = params.get("event") || null;
   wireShell();
   setupOffline();
   if (offlineMode && openSavedRoom()) return;
@@ -120,6 +122,10 @@ async function init() {
 }
 
 function openSavedRoom() {
+  if(!activeEvent){
+    const savedEvents=RallyOffline.events||[];
+    activeEvent=savedEvents.some(event=>event.id===RallyOffline.lastEvent)?RallyOffline.lastEvent:(savedEvents.find(event=>!RallyEvents.lifecycle(event).past)||savedEvents[0])?.id||null;
+  }
   const saved = RallyOffline.room(activeEvent);
   if (!saved) return false;
   data = saved; events = RallyOffline.events; offlineMode = true;
@@ -218,7 +224,7 @@ function readRoute(url) {
   const params = url.searchParams;
   return {
     view: views.some(([id]) => id === params.get("view")) ? params.get("view") : "home",
-    eventId: params.get("event") || DEFAULT_EVENT,
+    eventId: params.get("event") || activeEvent,
   };
 }
 
@@ -237,9 +243,10 @@ async function navigateTo(url, { push = true } = {}) {
   if (push) history.pushState({}, "", `${url.pathname}${url.search}${url.hash}`);
   closeMenu();
   el.eventMenu.hidden = true;
-  const eventChanged = route.eventId !== activeEvent;
+  const eventChanged = route.eventId !== activeEvent || data?.id !== route.eventId;
   activeView = route.view;
   if (eventChanged) {
+    const revision=beginProjectLoading(route.eventId),owner=window.Clerk?.user?.id;
     window.RallyLineup?.destroy();
     document.getElementById('lineupView').hidden=true;
     el.page.hidden=false;
@@ -247,14 +254,18 @@ async function navigateTo(url, { push = true } = {}) {
     el.page.className = "page";
     el.page.innerHTML = `<div class="empty">Opening ${escapeHtml(events.find((event) => event.id === activeEvent)?.name || "rave room")}…</div>`;
     try {
-      data = await convexMutation("rally:bootstrap", { eventId: activeEvent });
-      events = await convexQuery("rally:listEvents", {});
+      const room = await convexMutation("rally:bootstrap", { eventId: route.eventId });
+      const available = await convexQuery("rally:listEvents", {});
+      if(revision!==roomLoadRevision||owner!==window.Clerk?.user?.id)return;
+      data=room;events=available;
     } catch (error) {
+      if(revision!==roomLoadRevision)return;
       showAuthError(error);
       return;
     }
   }
   render();
+  document.body.classList.remove('booting');
   window.scrollTo({ top: 0, behavior: "auto" });
 }
 
@@ -264,6 +275,7 @@ async function initializeClerk() {
     await window.Clerk.load({ ui: { ClerkUI: window.__internal_ClerkUICtor } });
     if (window.Clerk.isSignedIn) return unlock();
     RallyOffline.clear();
+    window.RallyProjectThemes?.apply('warm');
     window.RallyLineup?.destroy();
     document.body.classList.remove("booting");
     el.rallyApp.hidden = true;
@@ -288,7 +300,15 @@ function unlock() {
   return unlockPending;
 }
 
+function beginProjectLoading(eventId){
+  document.body.classList.add('booting');
+  el.accessGate.hidden=true;
+  window.RallyProjectThemes?.prepare?.(eventId);
+  return ++roomLoadRevision;
+}
+
 async function openAuthorizedRoom() {
+  const revision=beginProjectLoading(new URLSearchParams(location.search).get('event'));
   try {
     const owner = window.Clerk.user.id;
     RallyOffline.identify(owner);
@@ -297,7 +317,7 @@ async function openAuthorizedRoom() {
     // require membership in Lost Lands, and authorization errors are redacted
     // by Convex in production, so matching their error text isn't reliable.
     const knownEvents = await convexQuery("rally:listEvents", {});
-    if (window.Clerk.user?.id !== owner) return;
+    if (window.Clerk.user?.id !== owner || revision!==roomLoadRevision) return;
     events = knownEvents;
     if(!new URLSearchParams(location.search).has('event') && events.length){
       activeEvent=(events.find(event=>!RallyEvents.lifecycle(event).past)||[...events].sort((a,b)=>b.endsAt.localeCompare(a.endsAt))[0]).id;
@@ -314,8 +334,11 @@ async function openAuthorizedRoom() {
         return;
       }
     }
-    const room = await convexMutation("rally:bootstrap", { eventId: activeEvent });
-    if (window.Clerk.user?.id !== owner) return;
+    window.RallyProjectThemes?.prepare?.(activeEvent);
+    const requestedEvent=activeEvent;
+    const room = await convexMutation("rally:bootstrap", { eventId: requestedEvent });
+    if (window.Clerk.user?.id !== owner || revision!==roomLoadRevision) return;
+    if(activeEvent!==requestedEvent)return;
     data = room;
     render();
     el.accessGate.hidden = true;
@@ -329,6 +352,7 @@ async function openAuthorizedRoom() {
       await syncFavorites();
     })();
   } catch (error) {
+    if(revision!==roomLoadRevision)return;
     if ((!navigator.onLine || ['TypeError','TimeoutError','AbortError'].includes(error.name)) && openSavedRoom()) return;
     showAuthError(error);
   }
@@ -532,7 +556,7 @@ function focusSearchResult() {
 }
 
 function href(view, eventId = activeEvent) {
-  const params = new URLSearchParams(); if (view !== "home") params.set("view", view); if (eventId !== DEFAULT_EVENT) params.set("event", eventId);
+  const params = new URLSearchParams(); if (view !== "home") params.set("view", view); if (eventId) params.set("event", eventId);
   return `${BASE_PATH}${params.size ? `?${params}` : ""}`;
 }
 

@@ -14,8 +14,36 @@
     for(const [key,token] of Object.entries(tokens))target.style.setProperty('--'+token,theme.colors[key]);
     for(const [token,value] of Object.entries({text:'var(--ink)',border:'var(--line)',lime:'var(--rally-soft)',violet:'var(--rally-accent)','panel-solid':'var(--card)',gold:'var(--rally-favorite)'}))target.style.setProperty('--'+token,value);
     target.style.colorScheme=theme.scheme;
-    if(target===document.documentElement)document.querySelector('meta[name="theme-color"]')?.setAttribute('content',theme.colors.paper);
+    if(target===document.documentElement){target.style.backgroundColor=theme.colors.paper;document.querySelector('meta[name="theme-color"]')?.setAttribute('content',theme.colors.paper);}
     return theme;
   }
-  window.RallyProjectThemes={presets,themeFor,apply};
+  // First-paint cache contains palette IDs only, never names, room snapshots,
+  // membership, credentials, or tokens. Project content still waits for auth.
+  const paletteKey='rally-project-palettes-v1';
+  const valid=id=>presets.some(theme=>theme.id===id);
+  function storedPalettes(){
+    try{
+      const value=JSON.parse(localStorage.getItem(paletteKey));
+      return new Map((Array.isArray(value)?value:[]).filter(entry=>Array.isArray(entry)&&typeof entry[0]==='string'&&entry[0].length<=180&&valid(entry[1])));
+    }catch{return new Map();}
+  }
+  function remember(eventId,theme){
+    if(typeof eventId!=='string'||!eventId||eventId.length>180||!valid(theme))return;
+    try{const entries=storedPalettes();entries.delete(eventId);entries.set(eventId,theme);localStorage.setItem(paletteKey,JSON.stringify([...entries].slice(-100)));}catch{ /* Storage can be unavailable in private browsing. */ }
+  }
+  function prepare(eventId){
+    const palette=storedPalettes().get(eventId)||window.__RALLY_NATIVE_CACHE__?.rooms?.[eventId]?.room?.projectTheme;
+    const theme=valid(palette)?apply(palette):null;
+    const target=document.documentElement;
+    target.style.setProperty('--rally-loading-paper',theme?.colors.paper||'#18181b');
+    target.style.setProperty('--rally-loading-ink',theme?.colors.ink||'#f1eefb');
+    target.style.setProperty('--rally-loading-muted',theme?.colors.muted||'#bdb7d0');
+    // Style the document before any page CSS or body content is painted.
+    target.style.backgroundColor='var(--rally-loading-paper)';
+    if(!theme){target.style.colorScheme='dark';document.querySelector('meta[name="theme-color"]')?.setAttribute('content','#18181b');}
+    return theme;
+  }
+  function clear(){try{localStorage.removeItem(paletteKey);}catch{}}
+  window.RallyProjectThemes={presets,themeFor,apply,remember,prepare,clear};
+  prepare(new URLSearchParams(location.search).get('event'));
 })();

@@ -3,6 +3,8 @@
 .booting .sidebar-bottom {
   visibility: hidden;
 }
+.rally-loader strong{font-size:20px;letter-spacing:-.04em}
+.booting .bottom-nav{visibility:hidden;pointer-events:none}
 
 .nav-skeleton {
   display: block;
@@ -10,7 +12,7 @@
   height: 30px;
   margin: 5px 9px;
   border-radius: 7px;
-  background: #2c2d28;
+  background: var(--rally-soft);
   animation: rally-pulse 1.35s ease-in-out infinite alternate;
 }
 
@@ -28,7 +30,7 @@
 .boot-grid article {
   display: block;
   border-radius: 9px;
-  background: #e7e6de;
+  background: var(--rally-soft);
   animation: rally-pulse 1.35s ease-in-out infinite alternate;
 }
 
@@ -36,7 +38,7 @@
 .boot-heading b { width: min(420px, 72%); height: 51px; }
 .boot-heading span { width: min(310px, 60%); height: 14px; }
 .boot-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
-.boot-grid article { min-height: 105px; border: 1px solid #e0dfd7; background: #eeede6; }
+.boot-grid article { min-height: 105px; border: 1px solid var(--line); background: var(--card); }
 
 @keyframes rally-pulse {
   from { opacity: .45; }
