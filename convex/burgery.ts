@@ -12,9 +12,15 @@ export async function requireMember(ctx: { auth: QueryCtx["auth"] }) {
   if (!identity || identity.issuer !== "https://clerk.john-ta.com" || !identity.email || (identity.emailVerified !== true && identity.emailVerified !== undefined)) throw Error("Sign in to add entries or receipts.");
   return identity.subject;
 }
+// Chat-imported receipts can be addressed to a verified website email before
+// that person signs in. Ordinary submissions remain owned by their Clerk subject.
+async function receiptOwners(ctx: {auth:QueryCtx["auth"]}) {
+  const subject=await requireMember(ctx),identity=await ctx.auth.getUserIdentity();
+  return [subject,`email:${identity!.email!.trim().toLowerCase()}`];
+}
 async function ownedReceipt(ctx: QueryCtx | MutationCtx, id: any) {
-  const owner = await requireMember(ctx), record = await ctx.db.get("burgeryReceipts", id);
-  if (!record || record.owner !== owner) throw Error("Receipt not found.");
+  const owners=await receiptOwners(ctx),record=await ctx.db.get("burgeryReceipts",id);
+  if(!record||!owners.includes(record.owner))throw Error("Receipt not found.");
   return record;
 }
 function requestKey(value: string) { if (!/^[a-zA-Z0-9_-]{10,100}$/.test(value)) throw Error("Invalid submission identifier."); }
@@ -28,8 +34,9 @@ export const ledger = query({ args: {}, handler: async ctx => {
   }));
 } });
 export const mine = query({ args: {}, handler: async ctx => {
-  const owner = await requireMember(ctx);
-  const records = await ctx.db.query("burgeryReceipts").withIndex("by_owner_created", q => q.eq("owner", owner)).order("desc").take(100);
+  const owners=await receiptOwners(ctx);
+  const batches=await Promise.all(owners.map(owner=>ctx.db.query("burgeryReceipts").withIndex("by_owner_created",q=>q.eq("owner",owner)).order("desc").take(100)));
+  const records=batches.flat().sort((a,b)=>b.createdAt-a.createdAt).slice(0,100);
   return { scannerReady: !!process.env.OPENAI_API_KEY, receipts: records.map(({ storageId, sha256, owner: _owner, ...r }) => r) };
 } });
 export const receiptFile = query({ args: { id: v.id("burgeryReceipts") }, handler: async (ctx, { id }) => {

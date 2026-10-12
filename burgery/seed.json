@@ -264,6 +264,89 @@
             ]
           }
         ]
+      },
+      {
+        "name": "Jessi Hu",
+        "patties": 2,
+        "burgers": 1,
+        "cheese": 2,
+        "log": "1 × Double-Double (2×2)",
+        "items": [
+          {
+            "label": "Double-Double (2×2)",
+            "quantity": 1,
+            "pattiesEach": 2,
+            "cheeseEach": 2,
+            "customizations": [
+              {
+                "id": "grilled_onions",
+                "amount": "regular"
+              },
+              {
+                "id": "raw_onion",
+                "amount": "regular"
+              },
+              {
+                "id": "peppers",
+                "amount": "regular"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Henry Trinh",
+        "patties": 2,
+        "burgers": 1,
+        "cheese": 0,
+        "log": "1 × Double-Meat (2×0)",
+        "items": [
+          {
+            "label": "Double-Meat (2×0)",
+            "quantity": 1,
+            "pattiesEach": 2,
+            "cheeseEach": 0,
+            "customizations": [
+              {
+                "id": "grilled_onions",
+                "amount": "extra"
+              },
+              {
+                "id": "peppers",
+                "amount": "extra"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "John Ta",
+        "patties": 4,
+        "burgers": 2,
+        "cheese": 2,
+        "log": "2 × Double-Single (2×1)",
+        "items": [
+          {
+            "label": "Double-Single (2×1)",
+            "quantity": 2,
+            "pattiesEach": 2,
+            "cheeseEach": 1,
+            "customizations": [
+              {
+                "id": "grilled_onions",
+                "amount": "regular"
+              },
+              {
+                "id": "peppers",
+                "amount": "regular"
+              },
+              {
+                "id": "extra_toast",
+                "amount": "regular"
+              }
+            ]
+          }
+        ]
       }
     ]
   }

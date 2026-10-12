@@ -19,7 +19,7 @@ Overview cards show breakdowns on hover, keyboard focus, or tap. Patties and nut
 - A burger is one sandwich. Patties and cheese are separate counts.
 - The imported older trips track only patties. Their burger counts remain unknown and are excluded from burger averages. Zero is a known count and includes that trip in the denominator.
 - Burgers per trip counts only trips where all of that person's entries have known burger counts. Multiple orders on the same trip use one denominator.
-- Niteharts, San Diego, October 2026: Henry Trinh 1 burger / 2 patties; Jessi Hu 0 / 0; John Ta 4 / 6 (two 2×1s plus two hamburgers); Danny Tang 1 / 2 (Double-Double). Total: 6 burgers, 10 patties.
+- Niteharts, San Diego, October 2026: Henry Trinh 1 burger / 2 patties; Jessi Hu 0 / 0; John Ta 4 / 6 (two 2×1s plus two hamburgers); Danny Tang 1 / 2 (Double-Double). First submission: 6 burgers, 10 patties. A second receipt adds Jessi Hu 1 Double-Double (2×2), John Ta 2 Double-Singles (2×1), and Henry Trinh 1 Double-Meat (2×0): 4 burgers, 8 patties. Combined trip total: 10 burgers, 18 patties.
 - Public read endpoints project names, orders, counts, and receipt-confirmed flags. Original photos, receipt amounts, machine drafts, and submitter IDs stay private.
 
 ## Receipt workflow
@@ -50,3 +50,9 @@ Official implementation references: [Convex uploads](https://docs.convex.dev/fil
 The catalog separates chopped chilies from whole peppers, onion preparations, toast, wraps/styles, sauces, and vegetables. Official terminology and Animal Style components come from In-N-Out's nutrition and Not So Secret Menu pages. Generic peppers/onions retain an unspecified preparation; unrecognized scan text stays in Other notes for human review. Empty choices mean unrecorded; explicitly select No customizations only when confirmed. The collapsed customization stats count sandwiches by quantity and exclude missing details. Animal Style components are expanded for stats, with explicit choices taking precedence.
 
 The `updateNitehartsDetails` internal migration changes only the four original seed entries and refuses changed counts or receipt-linked entries. Publish with `node scripts/burgery/deploy.cjs --publish --update-niteharts`; the helper snapshots and namespaces existing dependencies separately by runtime, validates preservation and concurrent changes, and replaces only Burgery's schema tables and receipt routes. Run without flags for a dry-run.
+
+## Receipts supplied in chat
+
+Admin imports use the same typed receipt draft and explicit diner assignments. Add the counts idempotently, then use the internal `burgeryImports` functions to upload the original image and link the existing import entries to one confirmed receipt. Imports cannot replace unrelated entries or add duplicate counts. The receipt can be addressed to `email:<verified site email>` before the owner signs in; only that verified email or the ordinary Clerk subject can read its private records. No photo URLs, amounts, or payment details are added to the public ledger or repository.
+
+For the current automated scanner, create an OpenAI project API key and configure API billing separately, then set `OPENAI_API_KEY` under deployment Settings → Environment Variables in Convex. The current upload flow still asks the submitter to assign diners during review. A free-text assignment prompt would require a separate UI/scanner change; an API key alone does not add that field. ChatGPT plan usage is a different Sign in with ChatGPT integration; the open-source/local flow does not automatically authorize a remotely hosted Convex app. See the [official plan-usage overview](https://developers.openai.com/siwc/token-sharing-open-source).
