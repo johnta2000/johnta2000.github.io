@@ -482,7 +482,7 @@ function setPersonEditingEnabled(enabled) {
     editor.setAttribute("aria-readonly", String(spotlightMode));
     editor.setAttribute("aria-disabled", String(!enabled));
   });
-  document.querySelectorAll("#documentToolbar button").forEach((button) => { button.disabled = !enabled; });
+  document.querySelectorAll("#documentToolbar button, .today-panel [data-copy-editor]").forEach((button) => { button.disabled = !enabled; });
   document.querySelector("#editorContext").textContent = enabled
     ? `Editing ${COMMENT_FIELD_LABELS[activePersonEditor.id].split(" /")[0]} · select text to format or comment`
     : els.personName.value ? "Loading update…" : "Choose a team member to start writing";
@@ -843,6 +843,7 @@ async function loadDailyNotes() {
   const standupDate = els.date.value;
   activeDailyNotesDate = standupDate;
   els.dailyNotes.contentEditable = "false";
+  document.querySelector('[data-copy-editor][aria-controls="dailyNotes"]').disabled = true;
   els.dailyNotesDate.textContent = formatDate(els.date.value);
   els.dailyNotesStatus.textContent = "Loading daily notes...";
 
@@ -858,6 +859,7 @@ async function loadDailyNotes() {
     els.dailyNotes.contentEditable = "true";
     isHydrating = true;
     setEditorHtml(els.dailyNotes, entry?.notes || "");
+    document.querySelector('[data-copy-editor][aria-controls="dailyNotes"]').disabled = false;
     isHydrating = false;
     els.dailyNotesStatus.textContent = entry ? `Last saved ${formatTime(entry.updatedAt)}` : "Daily notes ready";
   } catch (error) {
@@ -2157,11 +2159,14 @@ async function copyEditorContents(button) {
 function flashCopyButton(button, label) {
   const originalLabel = button.dataset.originalLabel || button.textContent;
   button.dataset.originalLabel = originalLabel;
-  button.textContent = label;
+  const status = button.querySelector(".copy-button-status");
+  if (status) status.textContent = label;
+  else button.textContent = label;
   button.classList.toggle("is-copied", label === "Copied");
   window.clearTimeout(button.copyResetTimer);
   button.copyResetTimer = window.setTimeout(() => {
-    button.textContent = originalLabel;
+    if (status) status.textContent = "";
+    else button.textContent = originalLabel;
     button.classList.remove("is-copied");
   }, 1300);
 }

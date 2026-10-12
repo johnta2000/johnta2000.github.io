@@ -2142,3 +2142,18 @@ body:not(.is-spotlight) .spotlight-comments-toggle { visibility: visible; }
   .meeting-actions .spotlight-comments-toggle, .meeting-actions #shortcutSettingsButton { flex: 0 0 44px; }
   .section-navigation-label { display: none; }
 }
+
+/* Copy belongs to the top-right corner of its note, outside editable HTML. */
+.note-area { position: relative; min-width: 0; }
+.note-area .rich-editor { padding-right: 60px; }
+.note-area .copy-editor-button { position: absolute; top: 6px; right: 6px; display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 7px; border: 1px solid var(--line); border-radius: 6px; background: #fff; color: #5f6368; }
+.note-area .copy-editor-button:hover:not(:disabled), .note-area .copy-editor-button.is-copied { background: var(--accent-soft); border-color: #a8c7fa; color: var(--accent-strong); }
+.note-area .copy-editor-button:disabled { opacity: .4; cursor: default; }
+.copy-editor-button svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.copy-editor-button .copied-glyph, .copy-editor-button.is-copied .copy-glyph { display: none; }
+.copy-editor-button.is-copied .copied-glyph { display: block; }
+.copy-button-status { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.is-spotlight .note-area > .copy-editor-button { visibility: hidden; }
+@media (max-width: 760px) {
+  .note-area .copy-editor-button { width: 44px; height: 44px; }
+}

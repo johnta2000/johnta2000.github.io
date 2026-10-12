@@ -7,7 +7,7 @@
     <meta name="robots" content="noindex, nofollow" />
     <title>Daily Standups</title>
     <link rel="stylesheet" href="../../assets/css/searchable-select.css?v=20261010-1" />
-    <link rel="stylesheet" href="./styles.css?v=20261011-otp1" />
+    <link rel="stylesheet" href="./styles.css?v=20261012-copy2" />
     <link rel="stylesheet" href="../../assets/css/clerk-auth.css?v=20261011-otp1">
 </head>
   <body>
@@ -133,25 +133,36 @@
                 </div>
                 <div class="toolbar-group toolbar-actions">
                   <button class="comment-editor-button" type="button" data-comment-editor title="Comment (⌘/Ctrl Option M)">Comment</button>
-                  <button class="copy-editor-button" type="button" data-copy-editor title="Copy active section">Copy</button>
                 </div>
               </div>
               <p id="editorContext" class="editor-context" aria-live="polite">Editing Today · select text to format or comment</p>
               <section class="field rich-field completion-target">
                 <span>Yesterday <small>What moved forward</small></span>
-                <div id="yesterday" class="rich-editor" contenteditable="true" spellcheck="true" role="textbox" aria-multiline="true" aria-label="Yesterday / things I did" data-placeholder="What changed since your last update?"></div>
+                <div class="note-area">
+                  <div id="yesterday" class="rich-editor" contenteditable="true" spellcheck="true" role="textbox" aria-multiline="true" aria-label="Yesterday / things I did" data-placeholder="What changed since your last update?"></div>
+                  <button class="copy-editor-button" type="button" data-copy-editor aria-label="Copy Yesterday" aria-controls="yesterday" title="Copy Yesterday" data-copy-icon disabled><svg class="copy-glyph" viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h4"/></svg><svg class="copied-glyph" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg><span class="copy-button-status" role="status"></span></button>
+                </div>
               </section>
               <section class="field rich-field">
                 <span>Today <small>What comes next</small></span>
-                <div id="today" class="rich-editor" contenteditable="true" spellcheck="true" role="textbox" aria-multiline="true" aria-label="Today / things to do" data-placeholder="What are you moving forward today?"></div>
+                <div class="note-area">
+                  <div id="today" class="rich-editor" contenteditable="true" spellcheck="true" role="textbox" aria-multiline="true" aria-label="Today / things to do" data-placeholder="What are you moving forward today?"></div>
+                  <button class="copy-editor-button" type="button" data-copy-editor aria-label="Copy Today" aria-controls="today" title="Copy Today" data-copy-icon disabled><svg class="copy-glyph" viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h4"/></svg><svg class="copied-glyph" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg><span class="copy-button-status" role="status"></span></button>
+                </div>
               </section>
               <section class="field rich-field">
                 <span>Blockers <em>(Optional)</em></span>
-                <div id="blockers" class="rich-editor" contenteditable="true" spellcheck="true" role="textbox" aria-multiline="true" aria-label="Blockers" data-placeholder="Anything stuck, waiting, or risky?"></div>
+                <div class="note-area">
+                  <div id="blockers" class="rich-editor" contenteditable="true" spellcheck="true" role="textbox" aria-multiline="true" aria-label="Blockers" data-placeholder="Anything stuck, waiting, or risky?"></div>
+                  <button class="copy-editor-button" type="button" data-copy-editor aria-label="Copy Blockers" aria-controls="blockers" title="Copy Blockers" data-copy-icon disabled><svg class="copy-glyph" viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h4"/></svg><svg class="copied-glyph" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg><span class="copy-button-status" role="status"></span></button>
+                </div>
               </section>
               <section class="field rich-field">
                 <span>Notes <em>(Optional)</em></span>
-                <div id="notes" class="rich-editor" contenteditable="true" spellcheck="true" role="textbox" aria-multiline="true" aria-label="Notes" data-placeholder="Useful context, links, or handoff notes."></div>
+                <div class="note-area">
+                  <div id="notes" class="rich-editor" contenteditable="true" spellcheck="true" role="textbox" aria-multiline="true" aria-label="Notes" data-placeholder="Useful context, links, or handoff notes."></div>
+                  <button class="copy-editor-button" type="button" data-copy-editor aria-label="Copy Notes" aria-controls="notes" title="Copy Notes" data-copy-icon disabled><svg class="copy-glyph" viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h4"/></svg><svg class="copied-glyph" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg><span class="copy-button-status" role="status"></span></button>
+                </div>
               </section>
               <div class="form-actions">
                 <p id="saveStatus" class="save-status" role="status">Autosave ready</p>
@@ -199,9 +210,11 @@
                 <button type="button" data-command="insertUnorderedList" title="Bulleted list, Command Shift 8">•</button>
                 <button type="button" data-command="insertOrderedList" title="Numbered list, Command Shift 7">1.</button>
                 <button type="button" data-command="toggleChecklist" title="Checklist, type [ ] then space">☐</button>
-                <button class="copy-editor-button" type="button" data-copy-editor title="Copy contents">Copy</button>
               </div>
-              <div id="dailyNotes" class="rich-editor daily-notes-editor" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Daily notes" data-placeholder="General context for the whole team's standup."></div>
+              <div class="note-area">
+                <div id="dailyNotes" class="rich-editor daily-notes-editor" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Daily notes" data-placeholder="General context for the whole team's standup."></div>
+                <button class="copy-editor-button" type="button" data-copy-editor aria-label="Copy Team notes" aria-controls="dailyNotes" title="Copy Team notes" data-copy-icon disabled><svg class="copy-glyph" viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h4"/></svg><svg class="copied-glyph" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg><span class="copy-button-status" role="status"></span></button>
+              </div>
             </section>
             <p id="dailyNotesStatus" class="daily-notes-status" role="status">Daily notes ready</p>
           </section>
@@ -308,6 +321,6 @@
       type="text/javascript"
     ></script>
     <script defer src="../../assets/js/searchable-select.js?v=20261010-2"></script>
-    <script defer src="./app.js?v=20261010-9"></script>
+    <script defer src="./app.js?v=20261012-copy2"></script>
   </body>
 </html>
