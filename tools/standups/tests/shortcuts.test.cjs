@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const { chromium, webkit } = require('playwright');
 const { openStandups, assertNoOverflow } = require('./fixtures.cjs');
 const browserType = process.env.STANDUPS_BROWSER === 'webkit' ? webkit : chromium;
-const hotkey = letter => `Meta+Alt+Shift+${letter}`;
+const hotkey = letter => `Meta+Alt+${letter}`;
 const inSpotlight = page => page.locator('#spotlightToggle').getAttribute('aria-pressed');
 
 test('mnemonic call shortcuts switch states and teammates; Escape dismisses one layer', async () => {
@@ -15,7 +15,7 @@ test('mnemonic call shortcuts switch states and teammates; Escape dismisses one 
     assert.equal(await inSpotlight(page), 'false', 'Discussions shortcut only applies in Spotlight');
     await page.keyboard.press(hotkey('S'));
     await page.getByRole('button', { name: 'Exit spotlight', exact: true }).waitFor();
-    assert.equal(await page.locator('[data-shortcut-hint="spotlight"]').textContent(), '⌘⌥⇧S');
+    assert.equal(await page.locator('[data-shortcut-hint="spotlight"]').textContent(), '⌘⌥S');
     await page.keyboard.press(hotkey('D'));
     assert.equal(await page.locator('.comments-card').isVisible(), true);
     await page.keyboard.press(hotkey('D'));
@@ -53,7 +53,7 @@ test('call shortcuts leave editing, composition, menus and already-handled event
     await page.keyboard.press(hotkey('S'));
     assert.equal(await inSpotlight(page), 'false');
     await page.locator('#shortcutSettingsButton').focus();
-    for (const combination of ['s', 'Meta+s', 'Meta+Alt+s', 'Meta+Shift+s', 'Control+Meta+Alt+Shift+s']) {
+    for (const combination of ['s', 'Meta+s', 'Meta+Alt+Shift+s', 'Meta+Shift+s', 'Control+Meta+Alt+s']) {
       // Synthetic dispatch avoids invoking browser Save for deliberately unmatched combinations.
       const parts = combination.split('+');
       const consumed = await page.evaluate(parts => {
@@ -67,7 +67,7 @@ test('call shortcuts leave editing, composition, menus and already-handled event
     }
     for (const flags of [{ repeat: true }, { isComposing: true }, { handled: true }]) {
       await page.evaluate(flags => {
-        const event = new KeyboardEvent('keydown', { code: 'KeyS', key: 'S', metaKey: true, altKey: true, shiftKey: true, bubbles: true, cancelable: true, ...flags });
+        const event = new KeyboardEvent('keydown', { code: 'KeyS', key: 'S', metaKey: true, altKey: true, shiftKey: false, bubbles: true, cancelable: true, ...flags });
         if (flags.handled) event.preventDefault();
         document.querySelector('#shortcutSettingsButton').dispatchEvent(event);
       }, flags);
@@ -99,14 +99,14 @@ test('shortcut letters are remappable, validated, persisted and can be disabled'
     assert.ok((await page.locator('#shortcutError').textContent()).includes('reserved'));
     await page.locator('#shortcutSpotlight').fill('f');
     await page.getByRole('button', { name: 'Save shortcuts', exact: true }).click();
-    assert.equal(await page.locator('#spotlightToggle').getAttribute('aria-keyshortcuts'), 'Meta+Alt+Shift+F');
+    assert.equal(await page.locator('#spotlightToggle').getAttribute('aria-keyshortcuts'), 'Meta+Alt+F');
     await page.keyboard.press(hotkey('S'));
     assert.equal(await inSpotlight(page), 'false');
     await page.keyboard.press(hotkey('F'));
     await page.getByRole('button', { name: 'Exit spotlight', exact: true }).waitFor();
     await page.reload();
     await page.waitForFunction(() => document.querySelector('#today').getAttribute('aria-disabled') === 'false');
-    assert.equal(await page.locator('#spotlightToggle').getAttribute('aria-keyshortcuts'), 'Meta+Alt+Shift+F');
+    assert.equal(await page.locator('#spotlightToggle').getAttribute('aria-keyshortcuts'), 'Meta+Alt+F');
     await page.locator('#shortcutSettingsButton').click();
     await page.locator('#shortcutsEnabled').uncheck();
     await page.getByRole('button', { name: 'Save shortcuts', exact: true }).click();
@@ -172,13 +172,13 @@ test('non-Mac keyboards use Control instead of Command and show matching hints',
     await page.locator('#shortcutSettingsButton').focus();
     await page.keyboard.press(hotkey('S'));
     assert.equal(await inSpotlight(page), 'false');
-    await page.keyboard.press('Control+Alt+Shift+S');
+    await page.keyboard.press('Control+Alt+S');
     await page.getByRole('button', { name: 'Exit spotlight', exact: true }).waitFor();
-    assert.equal(await page.locator('[data-shortcut-hint="spotlight"]').textContent(), 'Ctrl+Alt+Shift+S');
-    await page.keyboard.press('Control+Alt+Shift+D');
+    assert.equal(await page.locator('[data-shortcut-hint="spotlight"]').textContent(), 'Ctrl+Alt+S');
+    await page.keyboard.press('Control+Alt+D');
     assert.equal(await page.locator('.comments-card').isVisible(), true);
     await page.locator('#shortcutSettingsButton').click();
-    assert.equal(await page.locator('#shortcutModifiers').textContent(), 'Control + Alt + Shift');
+    assert.equal(await page.locator('#shortcutModifiers').textContent(), 'Control + Alt');
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 });

@@ -4,7 +4,7 @@ const LOCAL_NAME_KEY = "standups:last-person-name";
 const CALL_SHORTCUTS_KEY = "standups:call-shortcuts:v1";
 const DEFAULT_CALL_LETTERS = { spotlight: "S", discussions: "D", next: "N", previous: "P" };
 const DEFAULT_MEMBER_KEYS = { John: "1", Vivek: "2", Vishal: "3", Jenny: "4" };
-// These combinations have system/browser actions even with all three modifiers.
+// Keep browser and system combinations out of the call shortcuts.
 const RESERVED_CALL_LETTERS = new Set(["Q", "I", "A", "V"]);
 const isMacKeyboard = /Mac|iPhone|iPad/.test(navigator.platform);
 let callShortcuts = readCallShortcuts();
@@ -269,7 +269,7 @@ function callShortcutContextBlocked(event) {
 }
 
 function updateCallShortcutHints() {
-  const prefix = isMacKeyboard ? "⌘⌥⇧" : "Ctrl+Alt+Shift+";
+  const prefix = isMacKeyboard ? "⌘⌥" : "Ctrl+Alt+";
   const buttons = { spotlight: "#spotlightToggle", discussions: "#spotlightCommentsToggle", next: "#nextPerson", previous: "#previousPerson" };
   for (const [action, selector] of Object.entries(buttons)) {
     const button = document.querySelector(selector);
@@ -279,7 +279,7 @@ function updateCallShortcutHints() {
     if (hint) { hint.textContent = shortcut; hint.hidden = !enabled; }
     button.title = `${button.getAttribute("aria-label")}${enabled ? ` (${shortcut})` : ""}`;
     if (enabled) {
-      button.setAttribute("aria-keyshortcuts", `${isMacKeyboard ? "Meta" : "Control"}+Alt+Shift+${callShortcuts.letters[action]}`);
+      button.setAttribute("aria-keyshortcuts", `${isMacKeyboard ? "Meta" : "Control"}+Alt+${callShortcuts.letters[action]}`);
     } else button.removeAttribute("aria-keyshortcuts");
   }
   updateMemberShortcutHints();
@@ -308,7 +308,7 @@ function configureCallShortcuts() {
     memberFields.forEach(input => { input.value = settings.members[input.dataset.shortcutMember]; });
     error.textContent = "";
   };
-  document.querySelector("#shortcutModifiers").textContent = isMacKeyboard ? "Command + Option + Shift" : "Control + Alt + Shift";
+  document.querySelector("#shortcutModifiers").textContent = isMacKeyboard ? "Command + Option" : "Control + Alt";
   document.querySelector("#memberShortcutModifiers").textContent = isMacKeyboard ? "Command + Option" : "Control + Alt";
   document.querySelector("#shortcutSettingsButton").addEventListener("click", () => { populate(callShortcuts); dialog.showModal(); });
   document.querySelector("#shortcutClose").addEventListener("click", () => dialog.close());
@@ -336,10 +336,10 @@ function configureCallShortcuts() {
   document.addEventListener("keydown", (event) => {
     if (!callShortcuts.enabled || callShortcutContextBlocked(event)) return;
     const primaryModifier = isMacKeyboard ? event.metaKey && !event.ctrlKey : event.ctrlKey && !event.metaKey;
-    if (!primaryModifier || !event.altKey) return;
-    if (!event.shiftKey) {
-      const person = TEAM_MEMBERS.find(name => event.code === `Digit${callShortcuts.members[name]}`);
-      if (!person || document.querySelector("#spotlightToggle").disabled || !personEditingAvailable) return;
+    if (!primaryModifier || !event.altKey || event.shiftKey) return;
+    const person = TEAM_MEMBERS.find(name => event.code === `Digit${callShortcuts.members[name]}`);
+    if (person) {
+      if (document.querySelector("#spotlightToggle").disabled || !personEditingAvailable) return;
       event.preventDefault();
       selectMeetingPerson(person);
       return;

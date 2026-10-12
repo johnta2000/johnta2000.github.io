@@ -83,7 +83,7 @@ test('existing shortcut preferences migrate and Windows uses Control Alt numbers
     await page.evaluate(() => localStorage.setItem('standups:call-shortcuts:v1', JSON.stringify({ enabled: true, letters: { spotlight: 'F', discussions: 'D', next: 'N', previous: 'P' } })));
     await page.reload();
     await waitPerson(page, 'Jenny');
-    assert.equal(await page.locator('#spotlightToggle').getAttribute('aria-keyshortcuts'), 'Control+Alt+Shift+F');
+    assert.equal(await page.locator('#spotlightToggle').getAttribute('aria-keyshortcuts'), 'Control+Alt+F');
     await page.locator('#shortcutSettingsButton').focus();
     await page.keyboard.press('Control+Alt+Digit3');
     await waitPerson(page, 'Vishal');
