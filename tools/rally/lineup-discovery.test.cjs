@@ -4,8 +4,8 @@ const fs=require('node:fs'),path=require('node:path');
 const {JSDOM}=require('jsdom');
 const read=file=>fs.readFileSync(path.join(__dirname,file),'utf8');
 const event={id:'discovery-qa',name:'Example Festival',startsAt:'2026-10-31',endsAt:'2026-10-31',timeZone:'America/Los_Angeles',lineup:[
- {id:'main-rl',name:'RL GRIME',day:'Saturday',date:'2026-10-31',stage:'Outdoors',genre:'Trap'},
- {id:'after-rl',name:'RL GRIME',day:'Saturday',date:'2026-10-31',stage:'Afterparty',genre:'Trap'},
+ {id:'main-rl',name:'RL GRIME',day:'Saturday',date:'2026-10-31',stage:'Outdoors',genre:'Trap',blockId:'block-party'},
+ {id:'after-rl',name:'RL GRIME',day:'Saturday',date:'2026-10-31',stage:'Afterparty',genre:'Trap',blockId:'afterparty'},
  {id:'b2b',name:'IMANU B2B NITEPUNK',day:'Saturday',date:'2026-10-31',stage:'Outdoors',genre:'Bass'},
  {id:'sun',name:'Other Artist',day:'Sunday',date:'2026-11-01',stage:'Main'},
 ]};
@@ -16,7 +16,9 @@ function setup(mobile=false,params='view=poster'){
  w.HTMLDialogElement.prototype.showModal=function(){this.setAttribute('open','');};
  w.HTMLDialogElement.prototype.close=function(){if(!this.open)return;this.removeAttribute('open');this.dispatchEvent(new w.Event('close'));};
  w.fetch=async()=>({ok:true,json:async()=>({results:[song(),song('RL Grime',2),song('RL Grime',3),song('Wrong Person',4)]})});
- for(const file of ['lineup-discovery.js','../../lost-lands-2026-lineup/controller.js','lineup-template.js','lineup.js'])w.eval(read(file));
+ for(const file of ['lineup-posters.js','lineup-discovery.js','../../lost-lands-2026-lineup/controller.js','lineup-template.js','lineup.js'])w.eval(read(file));
+ const originalGet=w.RallyLineupPosters.get;
+ w.RallyLineupPosters.get=id=>id==='discovery-qa'?{src:'/tools/rally/assets/midnight-carnival-2026-poster.png',width:510,height:638,alt:'Original fixture poster',spots:[{artist:'RL GRIME',box:[.255,.392,.5,.074],blockId:'block-party'},{artist:'RL GRIME',box:[.266,.808,.467,.067],blockId:'afterparty'},{artist:'IMANU B2B NITEPUNK',box:[.154,.532,.688,.053]},{artist:'Other Artist',box:[.065,.881,.465,.041]}]}:originalGet(id);
  const state={type:'rally-lineup-state',artistIds:['main-rl','unavailable-set'],interests:{'main-rl':[{id:'alex',name:'Alex'}],'b2b':[{id:'sam',name:'Sam'}]},currentMember:{id:'alex',name:'Alex'},hiddenDays:[]};
  const options={container:w.document.getElementById('preview'),key:'qa',event,state,params,onEvent:m=>changes.push(m),onParams:()=>{},shareUrl:'https://www.john-ta.com/tools/rally/?event=discovery-qa&view=lineup'};
  w.RallyLineup.show(options);return {w,root:options.container.firstElementChild.shadowRoot,state,options,changes};
@@ -38,19 +40,19 @@ test('poster works on phones and desktop with filters, hidden days and exact-set
  for(const mobile of [true,false]){const ctx=setup(mobile);try{
   assert.equal(ctx.root.getElementById('lineup-poster').hidden,false);
   assert.equal(ctx.root.getElementById('mobile-schedule').hidden,true);
-  const entries=ctx.root.querySelectorAll('.poster-artist');assert.equal(entries.length,4);
-  if(mobile){ctx.root.querySelector('[data-day="Saturday"]').click();assert.equal(ctx.root.querySelectorAll('.poster-artist').length,3);ctx.root.querySelector('[data-day="__all__"]').click();assert.equal(ctx.root.querySelectorAll('.poster-artist').length,4);}
-  assert.equal(ctx.root.querySelectorAll('.poster-artist.is-liked').length,1);
-  assert(!ctx.root.querySelector('[data-artist-id="after-rl"]').classList.contains('is-liked'));
-  ctx.root.querySelector('[data-likes-filter="mine"]').click();assert.equal(ctx.root.querySelectorAll('.poster-artist').length,1);
-  ctx.root.querySelector('[data-likes-filter="crew"]').click();assert.equal(ctx.root.querySelectorAll('.poster-artist').length,2);
-  assert(ctx.root.querySelector('.lineup-art .discovery-eyebrow').textContent.includes('Crew picks'));
+  const entries=ctx.root.querySelectorAll('.poster-hotspot');assert.equal(entries.length,4);
+  if(mobile){ctx.root.querySelector('[data-day="Saturday"]').click();assert.equal(ctx.root.querySelectorAll('.poster-hotspot').length,3);ctx.root.querySelector('[data-day="__all__"]').click();assert.equal(ctx.root.querySelectorAll('.poster-hotspot').length,4);}
+  assert.equal(ctx.root.querySelectorAll('.poster-hotspot.is-liked').length,1);
+  assert(!ctx.root.querySelector('[data-poster-spot="1"]').classList.contains('is-liked'));
+  ctx.root.querySelector('[data-likes-filter="mine"]').click();assert.equal(ctx.root.querySelectorAll('.poster-hotspot').length,1);
+  ctx.root.querySelector('[data-likes-filter="crew"]').click();assert.equal(ctx.root.querySelectorAll('.poster-hotspot').length,2);
+  assert(ctx.root.querySelector('.poster-actions').textContent.includes('Crew likes'));
   ctx.w.RallyLineup.receive({...ctx.state,hiddenDays:['Saturday']});assert(!ctx.root.querySelector('.poster-artist[data-artist-id="main-rl"]'));
  }finally{ctx.w.close();}}
 });
 test('clicking artist opens preview without liking; modal likes preserve repeated and unavailable IDs',async()=>{
  const ctx=setup();try{
-  ctx.root.querySelector('.poster-artist[data-artist-id="main-rl"]').click();
+  ctx.root.querySelector('[data-poster-spot="0"]').click();
   await new Promise(resolve=>setTimeout(resolve,5));
   const dialog=ctx.root.querySelector('.artist-dialog');assert(dialog.open);
   assert.equal(ctx.changes.filter(m=>m.type==='rally-lineup-favorites-changed').length,0);
@@ -60,7 +62,7 @@ test('clicking artist opens preview without liking; modal likes preserve repeate
   let ids=ctx.changes.filter(m=>m.type==='rally-lineup-favorites-changed').at(-1).artistIds;
   assert(ids.includes('unavailable-set'));assert(!ids.includes('main-rl'));assert(!ids.includes('after-rl'));
   dialog.querySelector('[data-artist-favorite]').click();
-  assert.equal(ctx.root.querySelectorAll('.poster-artist.is-liked').length,1);
+  assert.equal(ctx.root.querySelectorAll('.poster-hotspot.is-liked').length,1);
   ctx.w.RallyLineup.hide();assert(!ctx.root.querySelector('.artist-dialog'));assert.equal(ctx.root.querySelectorAll('iframe').length,0);
  }finally{ctx.w.close();}
 });
@@ -97,19 +99,32 @@ test('artist buttons are available in every schedule surface without nesting int
   }
  }finally{ctx.w.close();}
 });
-test('poster images include every filtered set but never export crew identities or private notes',async()=>{
+test('poster export draws original image pixels and like outlines, never reconstructed text or private data',async()=>{
  const ctx=setup();try{
   const drawn=[];
-  ctx.w.HTMLCanvasElement.prototype.getContext=()=>({measureText:t=>({width:t.length*15}),fillRect(){},fillText:t=>drawn.push(t)});
+  ctx.w.Image=class{set src(value){this.source=value;this.naturalWidth=510;this.naturalHeight=638;setTimeout(()=>this.onload(),0);}};
+  ctx.w.HTMLCanvasElement.prototype.getContext=()=>({drawImage:image=>drawn.push(image.source),strokeRect:(...box)=>drawn.push(box),fillText(){throw Error('Do not redraw poster typography');}});
   ctx.w.HTMLCanvasElement.prototype.toBlob=function(callback){callback(new ctx.w.Blob(['png'],{type:'image/png'}));};
   ctx.w.HTMLAnchorElement.prototype.click=function(){};
   ctx.w.URL.createObjectURL=()=> 'blob:qa';ctx.w.URL.revokeObjectURL=()=>{};
-  ctx.root.querySelector('[data-poster-save]').click();await new Promise(r=>setTimeout(r,5));
-  assert.equal(drawn.filter(t=>t==='★ RL GRIME'||t==='RL GRIME').length,2);
-  assert(drawn.includes('IMANU B2B NITEPUNK'));assert(drawn.includes('Other Artist'));
-  assert(!drawn.some(t=>t.includes('Alex')||t.includes('Sam')));
+  ctx.root.querySelector('[data-poster-save]').disabled=false;ctx.root.querySelector('[data-poster-save]').click();await new Promise(r=>setTimeout(r,5));
+  assert.equal(drawn[0],'/tools/rally/assets/midnight-carnival-2026-poster.png');
+  assert.equal(drawn.filter(Array.isArray).length,1);
   ctx.root.querySelector('[data-likes-filter="mine"]').click();drawn.length=0;
-  ctx.root.querySelector('[data-poster-save]').click();await new Promise(r=>setTimeout(r,5));
-  assert(!drawn.includes('Other Artist'));assert(!drawn.includes('IMANU B2B NITEPUNK'));
+  ctx.root.querySelector('[data-poster-save]').disabled=false;ctx.root.querySelector('[data-poster-save]').click();await new Promise(r=>setTimeout(r,5));
+  assert.equal(drawn[0],'/tools/rally/assets/midnight-carnival-2026-poster.png');assert.equal(drawn.filter(Array.isArray).length,1);
+ }finally{ctx.w.close();}
+});
+test('events without original artwork never get a generated poster substitute',()=>{
+ const ctx=setup();try{ctx.w.RallyLineup.show({...ctx.options,key:'missing',event:{...event,id:'no-poster'},params:'view=poster'});const root=ctx.options.container.firstElementChild.shadowRoot;assert(root.querySelector('.poster-empty').textContent.includes('original marketing poster'));assert.equal(root.querySelectorAll('.lineup-art,.official-poster-image').length,0);}finally{ctx.w.close();}
+});
+test('original artwork registrations bind repeated artists to exact performances',()=>{
+ const ctx=setup();try{
+  const api=ctx.w.RallyLineupPosters,carnival=JSON.parse(read('../../scripts/fixtures/midnight-carnival-2026.json'));
+  const spots=api.resolve(api.get(carnival.id),carnival.lineup);
+  assert.equal(spots.length,19);
+  const rl=spots.filter(s=>s.artist==='RL GRIME');assert.equal(rl.length,2);
+  assert.equal(rl[0].entries[0].blockId,'block-party');assert.equal(rl[1].entries[0].blockId,'afterparty');
+  const niteharts=JSON.parse(read('../../scripts/fixtures/niteharts-2026.json'));assert(api.resolve(api.get('niteharts-festival-2026'),niteharts).length>=20);
  }finally{ctx.w.close();}
 });

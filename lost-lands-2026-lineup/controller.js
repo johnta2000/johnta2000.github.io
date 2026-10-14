@@ -1454,7 +1454,7 @@ function bindEvents() {
   const timeline=document.createElement('section');timeline.id='timeline-view';timeline.hidden=true;timeline.setAttribute('aria-label','Set time timeline');els.tableView.after(timeline);
   const posterButton=document.createElement('button');posterButton.id='lineup-poster-button';posterButton.type='button';posterButton.textContent='Poster';timelineButton.after(posterButton);posterButton.onclick=()=>setView('poster');
   const poster=document.createElement('section');poster.id='lineup-poster';poster.hidden=true;poster.setAttribute('aria-label','Lineup poster');timeline.after(poster);
-  discovery=window.RallyLineupDiscovery?.create({root,container,poster,eventName:eventConfig?.name||'Lost Lands 2026',dateLabel:root.querySelector('.lineup-meta').textContent,timeLabel,getFavorites:()=>favorites,getPeople:groupPeople,onFavorite:toggleSetFavorite,showToast});
+  discovery=window.RallyLineupDiscovery?.create({root,container,poster,artwork:window.RallyLineupPosters?.get(LINEUP_EVENT_ID),eventName:eventConfig?.name||'Lost Lands 2026',dateLabel:root.querySelector('.lineup-meta').textContent,timeLabel,getFavorites:()=>favorites,getPeople:groupPeople,onFavorite:toggleSetFavorite,showToast});
   root.addEventListener('click',event=>{const button=event.target.closest('[data-artist-id]');if(button)discovery?.openArtist(lineupById.get(button.dataset.artistId),button);},{signal:lifetime.signal});
   els.popularitySort.addEventListener("click", () => {
     const dialog = document.createElement('dialog');

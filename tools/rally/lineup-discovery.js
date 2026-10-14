@@ -1,5 +1,5 @@
 // Artist discovery and shareable posters. No credentials or preview audio are
-// persisted: Apple hosts its own player, and the poster uses only lineup text.
+// persisted: Apple hosts its own player. Posters use original organizer images.
 (() => {
   const escape = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const normalize = value => String(value || '').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/æ/gi,'ae').toLowerCase().replace(/[^a-z0-9]/g,'');
@@ -54,8 +54,8 @@
       catalog.set(key,{time:Date.now(),tracks});return tracks;
     } finally {clearTimeout(timer);signal.removeEventListener('abort',abort);}
   }
-  function create({root,container,poster,eventName,dateLabel,timeLabel,getFavorites,getPeople,onFavorite,showToast}) {
-    let dialog=null, request=null, selectedEntry=null, revision=0, posterEntries=[], posterMode='mine';
+  function create({root,container,poster,artwork,eventName,dateLabel,timeLabel,getFavorites,getPeople,onFavorite,showToast}) {
+    let dialog=null, request=null, selectedEntry=null, revision=0, posterEntries=[], posterMode='mine', posterZoom=1;
     const stop = () => { revision++;request?.abort();request=null;dialog?.querySelectorAll('iframe').forEach(frame=>frame.remove()); };
     const close = () => { stop();dialog?.close(); };
     function updateArtist() {
@@ -89,7 +89,7 @@
         player.querySelector('[data-preview-retry]').onclick=()=>loadArtist(name);
       }
     }
-    function openArtist(entry, trigger) {
+    function openArtist(entry, trigger, related=[]) {
       if(!entry)return;
       close();dialog?.remove();selectedEntry=entry;
       const originId=trigger?.closest('#lineup-poster,#mobile-schedule,#table-body,#poster-content,#heat-content,#timeline-view')?.id;
@@ -97,6 +97,12 @@
       dialog=document.createElement('dialog');dialog.className='artist-dialog';dialog.setAttribute('aria-labelledby',title);
       dialog.innerHTML=`<header class="artist-dialog-head"><div><p class="discovery-eyebrow">Discover the lineup</p><h2 id="${title}">${escape(entry.artist)}</h2></div><button type="button" class="artist-close" aria-label="Close artist">×</button></header><p class="artist-set-detail">${escape(entry.day)} · ${escape(timeLabel(entry))}${entry.stage==='Stage TBA'?'':' · '+escape(entry.stage)}</p>${entry.genre?`<p class="artist-genre">${escape(entry.genre)}</p>`:''}<div class="artist-like-row"><button type="button" class="discovery-action" data-artist-favorite aria-pressed="false"></button><p class="artist-crew"></p></div>${names.length>1?`<div class="artist-collaborators" role="group" aria-label="Preview artist">${names.map(n=>`<button type="button" data-preview-artist="${escape(n)}" aria-pressed="false">${escape(n)}</button>`).join('')}</div>`:''}<section class="artist-music" aria-label="Music previews"><div class="artist-player"></div><div class="artist-tracks" aria-label="Choose a song"></div><p class="artist-credit">Music previews provided by Apple Music. Availability varies by artist and region.</p></section>${entry.notes?`<p class="artist-notes">${escape(entry.notes)}</p>`:''}`;
       container.append(dialog);updateArtist();
+      if(related.length>1){
+        const choices=document.createElement('div');choices.className='artist-set-choices';choices.setAttribute('role','group');choices.setAttribute('aria-label','Choose a performance to like');
+        choices.innerHTML=related.map(set=>`<button type="button" data-performance="${escape(set.id)}" aria-pressed="${set.id===entry.id}"><strong>${escape(set.day)} · ${escape(timeLabel(set))}</strong><small>${escape(set.stage)}</small></button>`).join('');
+        dialog.querySelector('.artist-like-row').before(choices);
+        choices.querySelectorAll('button').forEach(b=>b.onclick=()=>openArtist(related.find(set=>set.id===b.dataset.performance),trigger,related));
+      }
       dialog.querySelector('.artist-close').onclick=close;
       dialog.querySelector('[data-artist-favorite]').onclick=()=>{onFavorite(entry.id);updateArtist();};
       dialog.querySelectorAll('[data-preview-artist]').forEach(b=>b.onclick=()=>loadArtist(b.dataset.previewArtist));
@@ -106,77 +112,45 @@
       dialog.showModal();dialog.querySelector('.artist-close').focus({preventScroll:true});
       if(names[0])loadArtist(names[0]);
     }
-    function groups(entries) {
-      const days=[...new Set(entries.map(e=>e.day))];
-      return days.map(day=>({day,stages:[...new Set(entries.filter(e=>e.day===day).map(e=>e.stage))].map(stage=>({stage,entries:entries.filter(e=>e.day===day&&e.stage===stage).sort((a,b)=>(a.estimatedOrder??a.posterIndex)-(b.estimatedOrder??b.posterIndex))}))}));
-    }
     function highlighted(entry) { return posterMode==='crew'?getPeople(entry.id).length>0:getFavorites().has(entry.id); }
     function renderPoster(entries, {crew=false}={}) {
       posterEntries=entries;posterMode=crew?'crew':'mine';
-      const count=entries.filter(highlighted).length;
-      poster.innerHTML=`<div class="poster-actions"><p>Tap an artist to preview. ${crew?'Crew':'Your'} likes are highlighted.</p><div><button type="button" class="discovery-action" data-poster-save ${entries.length?'':'disabled'}>Save image</button><button type="button" class="discovery-action" data-poster-share ${entries.length?'':'disabled'}>Share poster</button></div></div><article class="lineup-art" aria-label="Interactive lineup poster"><header><p class="discovery-eyebrow">Rally · ${crew?'Crew picks':'Your lineup'}</p><h2>${escape(eventName)}</h2><p>${escape(dateLabel)}</p><span>${count} liked ${count===1?'set':'sets'} · ${entries.length} shown</span></header><div class="lineup-art-days">${groups(entries).map(group=>`<section class="lineup-art-day"><h3>${escape(group.day)}</h3>${group.stages.map(({stage,entries})=>`<section class="lineup-art-stage">${stage==='Stage TBA'?'':`<h4>${escape(stage)}</h4>`}<div class="lineup-art-names">${entries.map(entry=>`<button type="button" class="poster-artist${highlighted(entry)?' is-liked':''}" data-artist-id="${escape(entry.id)}" aria-label="Preview ${escape(entry.artist)}${highlighted(entry)?' · Liked':''}"><span>${escape(entry.artist)}</span>${highlighted(entry)?'<i aria-hidden="true">★</i>':''}</button>`).join('')}</div></section>`).join('')}</section>`).join('')||'<p class="poster-empty">No matching sets. Try different filters.</p>'}</div><footer>★ ${crew?'Liked by your crew':'Liked by you'} · Set times and filters in Rally</footer></article>`;
+      if(!artwork){poster.innerHTML='<p class="poster-empty">The original marketing poster hasn’t been added for this event yet. Schedule and artist previews are still available.</p>';updateArtist();return;}
+      const scroll=poster.querySelector('.official-poster-viewport'),position={left:scroll?.scrollLeft||0,top:scroll?.scrollTop||0};
+      const listOpen=poster.querySelector('.poster-artist-picker')?.open||false,query=poster.querySelector('.poster-artist-search')?.value||'';
+      const spots=window.RallyLineupPosters?.resolve(artwork,entries)||[];
+      const boxStyle=box=>`left:${box[0]*100}%;top:${box[1]*100}%;width:${box[2]*100}%;height:${box[3]*100}%`;
+      poster.innerHTML=`<div class="poster-actions"><p>Official artwork · Tap an artist to preview.<br>${crew?'Crew':'Your'} likes are outlined on the original poster.</p><div><button type="button" class="discovery-action" data-poster-zoom>Zoom in</button><button type="button" class="discovery-action" data-poster-save disabled>Save image</button><button type="button" class="discovery-action" data-poster-share disabled>Share poster</button></div></div><div class="official-poster-viewport"><div class="official-poster-image" style="width:${posterZoom*100}%"><img src="${escape(artwork.src)}" alt="${escape(artwork.alt)}" width="${artwork.width}" height="${artwork.height}">${spots.map(s=>`<button type="button" class="poster-hotspot${s.entries.some(highlighted)?' is-liked':''}" data-poster-spot="${s.index}" style="${boxStyle(s.box)}" aria-label="Preview ${escape(s.artist)}${s.entries.some(highlighted)?' · Liked':''}"><span>${escape(s.artist)}</span></button>`).join('')}</div></div><p class="poster-filter-note">The original artwork stays intact when filtering. Schedule has the latest set details.</p><details class="poster-artist-picker" ${listOpen?'open':''}><summary>Find an artist <span>${entries.length} sets</span></summary><label><span class="discovery-sr-only">Find artist on poster</span><input type="search" class="poster-artist-search" placeholder="Find an artist…" value="${escape(query)}"></label><div class="poster-artist-options">${entries.map(e=>`<button type="button" data-artist-id="${escape(e.id)}"><strong>${escape(e.artist)}</strong><small>${escape(e.day)} · ${escape(e.stage)}${highlighted(e)?' · ★ Liked':''}</small></button>`).join('')}</div><p class="poster-search-empty" hidden>No matching artists.</p></details>${entries.length?'':'<p class="poster-empty">No matching sets. Try different filters.</p>'}`;
+      const viewport=poster.querySelector('.official-poster-viewport'),image=poster.querySelector('img');
+      const zoom=()=>{viewport.classList.toggle('is-zoomed',posterZoom>1);poster.querySelector('.official-poster-image').style.width=posterZoom*100+'%';poster.querySelector('[data-poster-zoom]').textContent=posterZoom===1?'Zoom in':posterZoom===2?'Zoom 3×':'Fit poster';};zoom();
+      poster.querySelector('[data-poster-zoom]').onclick=()=>{posterZoom=posterZoom===3?1:posterZoom+1;zoom();};
+      viewport.scrollLeft=position.left;viewport.scrollTop=position.top;
+      image.onload=()=>poster.querySelectorAll('[data-poster-save],[data-poster-share]').forEach(b=>b.disabled=!entries.length);
+      image.onerror=()=>{poster.querySelector('.poster-filter-note').textContent='The original poster could not load. Reconnect and try again; artist previews are still listed below.';};
+      if(image.complete&&image.naturalWidth)image.onload();
+      poster.querySelectorAll('[data-poster-spot]').forEach(b=>b.onclick=()=>{const s=spots.find(s=>String(s.index)===b.dataset.posterSpot);if(s)openArtist(s.entries[0],b,s.entries);});
+      const search=poster.querySelector('.poster-artist-search');
+      search.oninput=()=>{let count=0;poster.querySelectorAll('.poster-artist-options button').forEach(b=>{b.hidden=!normalize(b.textContent).includes(normalize(search.value));if(!b.hidden)count++;});poster.querySelector('.poster-search-empty').hidden=count>0;};search.oninput();
       poster.querySelector('[data-poster-save]').onclick=()=>exportPoster(false);
       poster.querySelector('[data-poster-share]').onclick=()=>exportPoster(true);
       updateArtist();
     }
-    // A generated text poster avoids cross-origin canvas taint and never
-    // exports other people's names, private notes, or provider album artwork.
-    function posterCanvas() {
+    // Export the original pixels with only like outlines. No rebuilt typography,
+    // crew identities, private notes, or provider album artwork are included.
+    async function posterCanvas() {
+      if(!artwork)throw new Error('No original poster has been added for this event.');
       const canvas=document.createElement('canvas'), ctx=canvas.getContext('2d');if(!ctx)throw new Error('Canvas unavailable');
-      const style=getComputedStyle(root.host||document.documentElement), color=token=>style.getPropertyValue(token).trim();
-      const colors={paper:color('--paper')||'#f7f7f2',ink:color('--ink')||'#202b25',muted:color('--muted')||'#5d6c61',accent:color('--rally-accent')||'#285f4a',soft:color('--rally-soft')||'#e8f0e9'};
-      const width=1200, margin=72, max=width-margin*2, rows=[];
-      function wrap(text,font,limit=max){ctx.font=font;const lines=[];let line='';for(const word of String(text).split(/\s+/)){const next=line?line+' '+word:word;if(ctx.measureText(next).width>limit&&line){lines.push(line);line=word;}else line=next;}if(line)lines.push(line);return lines;}
-      function add(text,font,fill,height){for(const line of wrap(text,font))rows.push({line,font,fill,height});}
-      add(`RALLY / ${posterMode==='crew'?'CREW PICKS':'MY LINEUP'}`,'700 22px system-ui',colors.accent,45);
-      eventName.split(/\s+(?=ft\.|feat\.|featuring\b)/i).forEach((part,i)=>add(part,i?'700 42px system-ui':'800 60px system-ui',colors.ink,i?58:76));add(dateLabel,'400 26px system-ui',colors.muted,54);
-      const picked=posterEntries.filter(highlighted).length;
-      add(`★ ${picked} liked ${picked===1?'set':'sets'} · ${posterEntries.length} shown`,'500 24px system-ui',colors.accent,60);
-      const days=groups(posterEntries), columns=Math.min(3,days.length), gap=32, columnWidth=(max-gap*(columns-1))/columns;
-      const font=columns===1?'750 34px system-ui':'750 27px system-ui';
-      function layoutDay(group) {
-        const lines=[];
-        for(const line of wrap(group.day.toUpperCase(),'800 32px system-ui',columnWidth))lines.push({text:line,font:'800 32px system-ui',color:colors.accent,height:64});
-        for(const {stage,entries} of group.stages){
-          if(stage!=='Stage TBA')for(const line of wrap(stage.toUpperCase(),'600 18px system-ui',columnWidth))lines.push({text:line,font:'600 18px system-ui',color:colors.muted,height:30});
-          let items=[], used=0;ctx.font=font;
-          for(const entry of entries){
-            const text=(highlighted(entry)?'★ ':'')+entry.artist, itemWidth=Math.min(columnWidth,ctx.measureText(text).width+28);
-            if(used+itemWidth>columnWidth&&items.length){lines.push({items,height:56});items=[];used=0;}
-            items.push({text,width:itemWidth,liked:highlighted(entry)});used+=itemWidth;
-          }
-          if(items.length)lines.push({items,height:56});lines.push({height:26});
-        }
-        return lines;
-      }
-      const dayRows=[];
-      for(let i=0;i<days.length;i+=columns){const cells=days.slice(i,i+columns).map(layoutDay);dayRows.push({cells,height:Math.max(...cells.map(lines=>lines.reduce((n,line)=>n+line.height,0)))+30});}
-      const headingHeight=rows.reduce((n,row)=>n+row.height,0)+28;
-      const height=margin*2+headingHeight+dayRows.reduce((n,row)=>n+row.height,0)+80;
-      if(height>24000)throw new Error('Choose one day or stage to make a smaller poster.');
-      canvas.width=width;canvas.height=height;ctx.fillStyle=colors.paper;ctx.fillRect(0,0,width,height);ctx.textBaseline='middle';
-      ctx.textAlign='center';let y=margin;
-      for(const row of rows){ctx.font=row.font;ctx.fillStyle=row.fill;ctx.fillText(row.line,width/2,y+row.height/2,max);y+=row.height;}
-      y+=28;
-      for(const row of dayRows){
-        row.cells.forEach((lines,column)=>{
-          const center=margin+column*(columnWidth+gap)+columnWidth/2;let top=y;
-          for(const line of lines){
-            if(line.text){ctx.font=line.font;ctx.fillStyle=line.color;ctx.fillText(line.text,center,top+line.height/2,columnWidth);}
-            if(line.items){let x=center-line.items.reduce((n,item)=>n+item.width,0)/2;for(const item of line.items){
-              if(item.liked){ctx.fillStyle=colors.soft;ctx.fillRect(x+3,top+4,item.width-6,line.height-8);}
-              ctx.font=font;ctx.fillStyle=item.liked?colors.accent:colors.ink;ctx.fillText(item.text,x+item.width/2,top+line.height/2,item.width-22);x+=item.width;
-            }}top+=line.height;
-          }
-        });y+=row.height;
-      }
-      ctx.font='500 22px system-ui';ctx.fillStyle=colors.muted;ctx.fillText('★ '+(posterMode==='crew'?'Liked by the crew':'My picks')+'  /  Made in Rally',width/2,y+40,max);
+      const image=await new Promise((resolve,reject)=>{const img=new Image(),timer=setTimeout(()=>reject(new Error('The original poster could not load. Reconnect and try again.')),10000);img.onload=()=>{clearTimeout(timer);resolve(img);};img.onerror=()=>{clearTimeout(timer);reject(new Error('The original poster could not load.'));};img.src=artwork.src;});
+      canvas.width=image.naturalWidth;canvas.height=image.naturalHeight;ctx.drawImage(image,0,0);
+      ctx.strokeStyle='#ffe17a';ctx.lineWidth=Math.max(2,image.naturalWidth/300);
+      const spots=window.RallyLineupPosters?.resolve(artwork,posterEntries)||[];
+      for(const s of spots.filter(s=>s.entries.some(highlighted))){const [x,y,w,h]=s.box;ctx.strokeRect(x*canvas.width,y*canvas.height,w*canvas.width,h*canvas.height);}
       return canvas;
     }
     async function exportPoster(share) {
       const buttons=[...poster.querySelectorAll('[data-poster-save],[data-poster-share]')];buttons.forEach(b=>b.disabled=true);
       try {
-        const canvas=posterCanvas(), blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));if(!blob)throw new Error('Could not create the image.');
+        const canvas=await posterCanvas(), blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));if(!blob)throw new Error('Could not create the image.');
         const slug=eventName.toLowerCase().replace(/[^a-z0-9]+/g,'-').slice(0,70),days=[...new Set(posterEntries.map(e=>e.day))].join('-').toLowerCase().replace(/[^a-z0-9-]+/g,'-').slice(0,45),file=new File([blob],`${slug}-${days}-${posterMode}-picks.png`,{type:'image/png'});
         if(share&&navigator.canShare?.({files:[file]})){
           try{await navigator.share({files:[file],title:eventName});return;}

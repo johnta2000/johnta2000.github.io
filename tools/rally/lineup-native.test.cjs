@@ -12,7 +12,7 @@ function setup(mobile=true,now=null,event=null){
   w.HTMLElement.prototype.scrollIntoView=function(){};
   w.HTMLDialogElement.prototype.showModal=function(){this.setAttribute('open','');};
   w.HTMLDialogElement.prototype.close=function(){this.removeAttribute('open');this.dispatchEvent(new w.Event('close'));};
-  for(const file of ['lineup-discovery.js','../../lost-lands-2026-lineup/set-times.js','../../lost-lands-2026-lineup/controller.js','lineup-template.js','lineup.js'])w.eval(read(file));
+  for(const file of ['lost-lands-poster-spots.js','lineup-posters.js','lineup-discovery.js','../../lost-lands-2026-lineup/set-times.js','../../lost-lands-2026-lineup/controller.js','lineup-template.js','lineup.js'])w.eval(read(file));
   const container=w.document.getElementById('lineupView');
   const state={type:'rally-lineup-state',artistIds:[],interests:{},currentMember:{id:'john',name:'John'},hiddenDays:['Wednesday','Thursday'],canManageDays:true};
   const options={container,event,key:(event?.id||'lost-lands-2026')+':john',state,params:'days=Friday',shareUrl:'https://www.john-ta.com/tools/rally/?view=lineup&event='+(event?.id||'lost-lands-2026'),onEvent:message=>events.push(message),onParams:params=>routes.push(params.toString())};
