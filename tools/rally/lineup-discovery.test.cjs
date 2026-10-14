@@ -19,7 +19,7 @@ function setup(mobile=false,params='view=poster'){
  w.HTMLDialogElement.prototype.showModal=function(){this.setAttribute('open','');};
  w.HTMLDialogElement.prototype.close=function(){if(!this.open)return;this.removeAttribute('open');this.dispatchEvent(new w.Event('close'));};
  w.fetch=async()=>({ok:true,json:async()=>({results:[song(),song('RL Grime',2),song('RL Grime',3),song('Wrong Person',4)]})});
- for(const file of ['lineup-posters.js','lineup-discovery.js','../../lost-lands-2026-lineup/controller.js','lineup-template.js','lineup.js'])w.eval(read(file));
+ for(const file of ['../../assets/js/searchable-select.js','lineup-posters.js','lineup-discovery.js','../../lost-lands-2026-lineup/controller.js','lineup-template.js','lineup.js'])w.eval(read(file));
  const originalGet=w.RallyLineupPosters.get;
  w.RallyLineupPosters.get=id=>id==='discovery-qa'?{src:'/tools/rally/assets/midnight-carnival-2026-poster.png',width:510,height:638,alt:'Original fixture poster',spots:[{artist:'RL GRIME',box:[.255,.392,.5,.074],blockId:'block-party'},{artist:'RL GRIME',box:[.266,.808,.467,.067],blockId:'afterparty'},{artist:'IMANU B2B NITEPUNK',box:[.154,.532,.688,.053]},{artist:'Other Artist',box:[.065,.881,.465,.041]}]}:originalGet(id);
  const state={type:'rally-lineup-state',artistIds:['main-rl','unavailable-set'],interests:{'main-rl':[{id:'alex',name:'Alex'}],'b2b':[{id:'sam',name:'Sam'}]},currentMember:{id:'alex',name:'Alex'},hiddenDays:[]};

@@ -93,6 +93,7 @@ async function checkBookingNotes(page,label,width,output){
    assert(!overflow,label+' '+view+' overflows viewport');
    if(view==='stay')await checkBookingNotes(page,label,width,output);
    if(view==='lineup'){
+    await page.locator('rally-lineup #lineup-tools-button').click();
     const source=page.locator('rally-lineup .lineup-source');
     assert(await source.isVisible(),'Real event source attribution must be in the audit fixture');
     assert.equal(await source.getAttribute('href'),fixture.lineupSource);
@@ -103,6 +104,7 @@ async function checkBookingNotes(page,label,width,output){
     contrastIssues.push(...await auditContrast(page,label+' official source focus'));
     await page.screenshot({path:`${output}/${label}-official-source.png`});
     await source.evaluate(el=>el.blur());
+    await page.keyboard.press('Escape');
    }
   }
   // Notes' Tapback picker, rich-text link controls, and global search use their
@@ -175,6 +177,8 @@ async function checkBookingNotes(page,label,width,output){
   if(width<=900){const navBounds=await page.locator('#mobileNav').boundingBox();assert(toastBounds.y+toastBounds.height<=navBounds.y,label+' toast overlaps bottom navigation');}
   await page.screenshot({path:`${output}/${label}-timeline.png`});
   contrastIssues.push(...await auditContrast(page,label+' timeline toast'));
+  await page.locator('rally-lineup #table-view-button').click();
+  await page.locator('rally-lineup #lineup-tools-button').click();
   await page.locator('#popularity-sort').click();
   await page.screenshot({path:`${output}/${label}-sort.png`});
   contrastIssues.push(...await auditContrast(page,label+' sort'));

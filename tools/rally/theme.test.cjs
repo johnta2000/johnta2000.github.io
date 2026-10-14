@@ -13,7 +13,8 @@ function setup(){
 test('one theme is loaded last in the shell and baked into the native lineup',()=>{
  const html=read('index.html');assert(html.indexOf('theme.css')>html.indexOf('</style>'));
  const vm=require('node:vm'),ctx={window:{}};vm.runInNewContext(read('lineup-template.js'),ctx);
- assert(ctx.window.RallyLineupTemplate.css.endsWith(read('project-theme.css')));
+ assert(ctx.window.RallyLineupTemplate.css.includes(read('project-theme.css')));
+ assert(ctx.window.RallyLineupTemplate.css.endsWith(read('lineup-controls.css')));
  assert(ctx.window.RallyLineupTemplate.css.includes(read('theme.css')));
  const sw=read('../../rally-sw.js');for(const asset of ['theme.css','searchable-select.js','searchable-select.css'])assert(sw.includes(asset));
 });

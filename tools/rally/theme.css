@@ -253,11 +253,16 @@ h1, h2, h3 { color: var(--ink); }
   .brand #closeMenu { color: var(--muted); font-size: 24px; }
   #closeMenu { border: 1px solid var(--line); border-radius: 10px; width: 40px; height: 40px; background: var(--card); }
   .topbar { padding-left: 16px; padding-right: 16px; gap: 12px; }
-  .mobile-event strong { font-size: 14px; }
+  .topbar { grid-template-columns:44px minmax(0,1fr) 44px; }
+  .topbar>span { display:none; }
+  .topbar #topInvite { display:none; }
+  .topbar .mobile-event { min-width:0; }
+  .mobile-event strong { overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;line-height:1.4; }
+  .topbar #openMenu,.topbar #accountButton { width:44px;height:44px; }
   .mobile-event small { color: var(--muted); font-size: 11px; }
   .page { width: calc(100% - 32px); padding-top: 26px; }
   #offlineStatus { padding: 6px 16px !important; font-size: 10px !important; }
-  .bottom-nav .nav-glass-group, .bottom-nav #quickSearch { background: var(--card); border: 1px solid var(--line); box-shadow: 0 6px 28px #213b2524, inset 0 0 0 1px #d4dfcd66; backdrop-filter: blur(24px) saturate(1.3); }
+  .bottom-nav .nav-glass-group, .bottom-nav #quickSearch { background: var(--card); border: 1px solid var(--line); box-shadow: 0 6px 24px #0002; backdrop-filter: blur(24px) saturate(1.3); }
   .bottom-nav a, .bottom-nav button { color: var(--muted); font-weight: 550; }
   .bottom-nav .active, .bottom-nav button[aria-current="page"] { background: var(--rally-soft); color: var(--ink); box-shadow: none; }
   .bottom-nav svg { stroke-width: 1.7; }

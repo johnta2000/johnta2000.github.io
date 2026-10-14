@@ -123,8 +123,9 @@
       // Return to the trigger before the browser advances focus to the next/previous control.
       if (event.key === 'Tab') close(true);
     });
-    document.addEventListener('pointerdown', event => { if (opened && !wrapper.contains(event.target)) close(); }, { signal: listeners.signal });
-    document.addEventListener('focusin', event => { if (opened && !wrapper.contains(event.target)) close(); }, { signal: listeners.signal });
+    const inside = event => wrapper.contains(event.target) || event.composedPath().includes(wrapper);
+    document.addEventListener('pointerdown', event => { if (opened && !inside(event)) close(); }, { signal: listeners.signal });
+    document.addEventListener('focusin', event => { if (opened && !inside(event)) close(); }, { signal: listeners.signal });
     window.addEventListener('resize', position, { signal: listeners.signal });
     document.addEventListener('scroll', event => { if (!panel.contains(event.target)) position(); }, { capture: true, signal: listeners.signal });
     window.visualViewport?.addEventListener('resize', position, { signal: listeners.signal });

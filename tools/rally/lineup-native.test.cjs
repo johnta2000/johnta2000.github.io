@@ -12,7 +12,7 @@ function setup(mobile=true,now=null,event=null){
   w.HTMLElement.prototype.scrollIntoView=function(){};
   w.HTMLDialogElement.prototype.showModal=function(){this.setAttribute('open','');};
   w.HTMLDialogElement.prototype.close=function(){this.removeAttribute('open');this.dispatchEvent(new w.Event('close'));};
-  for(const file of ['lost-lands-poster-spots.js','lineup-posters.js','lineup-discovery.js','../../lost-lands-2026-lineup/set-times.js','../../lost-lands-2026-lineup/controller.js','lineup-template.js','lineup.js'])w.eval(read(file));
+  for(const file of ['../../assets/js/searchable-select.js','lost-lands-poster-spots.js','lineup-posters.js','lineup-discovery.js','../../lost-lands-2026-lineup/set-times.js','../../lost-lands-2026-lineup/controller.js','lineup-template.js','lineup.js'])w.eval(read(file));
   const container=w.document.getElementById('lineupView');
   const state={type:'rally-lineup-state',artistIds:[],interests:{},currentMember:{id:'john',name:'John'},hiddenDays:['Wednesday','Thursday'],canManageDays:true};
   const options={container,event,key:(event?.id||'lost-lands-2026')+':john',state,params:'days=Friday',shareUrl:'https://www.john-ta.com/tools/rally/?view=lineup&event='+(event?.id||'lost-lands-2026'),onEvent:message=>events.push(message),onParams:params=>routes.push(params.toString())};
@@ -24,6 +24,42 @@ const niteharts={id:'niteharts-festival-2026',name:'Niteharts',startsAt:'2026-10
  {id:'sat-2hollis',name:'2hollis',day:'Saturday',date:'2026-10-10',estimatedOrder:2},
  {id:'fri-isoxo',name:'ISOxo',day:'Friday',date:'2026-10-09',estimatedOrder:1},
 ]};
+test('mobile lineup chrome removes redundant day/admin bars and keeps tools permission-scoped',()=>{
+ const event=JSON.parse(read('../../scripts/fixtures/midnight-carnival-2026.json'));
+ const ctx=setup(true,null,event);try{
+  assert(ctx.root.getElementById('mobile-days').hidden);
+  assert(ctx.root.querySelector('[data-filter="days"]').hidden);
+  const tools=ctx.root.getElementById('lineup-tools');assert(!tools.open);
+  assert.equal(ctx.root.querySelector('.lineup-admin-actions').closest('dialog'),tools);
+  assert.equal(ctx.root.querySelector('.lineup-blocks').closest('dialog'),tools);
+  assert.equal(ctx.root.getElementById('manage-days').closest('dialog'),tools);
+  assert(ctx.root.querySelector('.lineup-meta').textContent.includes('4 PM – 2 AM PT'));
+  ctx.root.getElementById('lineup-tools-button').click();assert(tools.open);
+  const search=tools.querySelector('input');search.value='no-matches';search.dispatchEvent(new ctx.w.Event('input'));assert(!tools.querySelector('.lineup-tools-empty').hidden);
+  search.value='';search.dispatchEvent(new ctx.w.Event('input'));
+  ctx.root.querySelector('[data-add]').click();assert(!tools.open);assert(ctx.events.some(e=>e.type==='rally-lineup-add'));
+  ctx.w.RallyLineup.receive({...ctx.state,canManageDays:false});
+  assert(ctx.root.querySelector('.lineup-admin-actions').hidden);assert(ctx.root.getElementById('manage-days').hidden);
+  ctx.root.getElementById('lineup-tools-button').click();ctx.w.RallyLineup.hide();assert(!tools.open);
+ }finally{ctx.w.close();}
+});
+test('shared mobile likes picker survives shadow-root focus, searches, syncs and preserves exact favorite IDs',()=>{
+ const ctx=setup(true,null,niteharts);try{
+  ctx.root.querySelector('[data-day="Saturday"]').click();
+  ctx.w.RallyLineup.receive({...ctx.state,artistIds:['sat-2hollis','removed-set'],interests:{'sat-isoknock':[{id:'sam',name:'Sam'}]}});
+  const wrapper=ctx.root.querySelector('.lineup-mobile-likes .search-select'),trigger=wrapper.querySelector('button'),panel=wrapper.querySelector('.search-select-panel'),input=wrapper.querySelector('input');
+  trigger.click();assert(!panel.hidden,'Focus entering a shadow root must not immediately close the picker');
+  input.value='crew';input.dispatchEvent(new ctx.w.Event('input'));assert.equal(wrapper.querySelectorAll('[role="option"]').length,1);
+  input.dispatchEvent(new ctx.w.KeyboardEvent('keydown',{key:'Enter',bubbles:true,composed:true}));
+  assert(panel.hidden);assert.equal(ctx.root.getElementById('lineup-likes-select').value,'crew');
+  assert(ctx.root.getElementById('mobile-schedule').textContent.includes('ISOKNOCK'));
+  trigger.click();input.value='nothing-like-this';input.dispatchEvent(new ctx.w.Event('input'));assert(!wrapper.querySelector('.search-select-empty').hidden);
+  input.dispatchEvent(new ctx.w.KeyboardEvent('keydown',{key:'Escape',bubbles:true,composed:true}));assert(panel.hidden);
+  ctx.root.querySelector('[data-likes-filter="mine"]').click();assert.equal(ctx.root.getElementById('lineup-likes-select').value,'mine');assert(trigger.textContent.includes('My likes'));
+  assert.equal(ctx.events.filter(e=>e.type==='rally-lineup-favorites-changed').length,0,'Filtering must never alter favorites');
+  trigger.click();ctx.w.RallyLineup.hide();assert(panel.hidden);
+ }finally{ctx.w.close();}
+});
 test('Niteharts official schedule includes both stages, keeps identities and supports stage filters on phones and desktop',()=>{
  const lineup=JSON.parse(read('../../scripts/fixtures/niteharts-2026.json'));
  assert.equal(lineup.length,34);assert.equal(new Set(lineup.map(s=>s.id)).size,34);

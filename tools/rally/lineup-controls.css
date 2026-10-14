@@ -1,0 +1,81 @@
+/* Lineup chrome: one hierarchy and one set of palette roles, shared by every
+   project. Keep overrides here rather than adding more event-specific bars. */
+:root { --ink:var(--text,#202b25);--paper:var(--bg,#f7f7f2);--card:var(--panel-solid,#fff);--rally-accent:var(--fern,#285f4a);--rally-soft:var(--panel-soft,#e8f0e9);--rally-on-accent:#fff; }
+.app-header { align-items:center; }
+.app-header .header-copy { min-width:0; }
+.lineup-tools-button { display:grid;place-items:center;flex:none;width:44px;height:44px;padding:10px;border:1px solid var(--line);border-radius:10px;background:transparent;color:var(--ink);cursor:pointer; }
+.lineup-tools-button svg { width:24px;height:24px;fill:currentColor; }
+.lineup-tools { box-sizing:border-box;width:min(440px,calc(100% - 24px));max-height:calc(var(--rally-viewport-height,100dvh) - 32px);padding:20px;border:1px solid var(--line);border-radius:18px;background:var(--card);color:var(--ink);overflow:auto;overscroll-behavior:contain;box-shadow:0 20px 64px #0004; }
+.lineup-tools::backdrop { background:#0008;backdrop-filter:blur(4px); }
+.lineup-tools>header { display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px; }
+.lineup-tools h2 { margin:0;color:var(--ink);font:750 22px/1.2 system-ui;letter-spacing:-.03em; }
+.lineup-tools>header button { display:grid;place-items:center;flex:none;width:44px;height:44px;padding:0;border:1px solid var(--line);border-radius:10px;background:transparent;color:var(--ink);font:24px system-ui;cursor:pointer; }
+.lineup-tool-search { display:block;box-sizing:border-box;width:100%;min-height:44px;margin:0 0 12px;padding:10px 12px;border:1px solid var(--line);border-radius:9px;background:var(--paper);color:var(--ink);font:400 16px system-ui; }
+.lineup-tools-list { display:grid;gap:4px; }
+.lineup-tools .lineup-tools-list>button,.lineup-tools .lineup-tools-list>a,.lineup-tools .lineup-admin-actions button,.lineup-event-info>summary { display:flex;align-items:center;justify-content:space-between;width:100%;min-height:48px;margin:0;padding:12px;border:0!important;border-radius:9px;background:transparent!important;color:var(--ink)!important;text-align:left;text-decoration:none;font:550 14px/1.5 system-ui;cursor:pointer; }
+.lineup-tools .lineup-tools-list>button:hover,.lineup-tools .lineup-tools-list>a:hover,.lineup-tools .lineup-admin-actions button:hover,.lineup-event-info>summary:hover { background:var(--rally-soft)!important; }
+.lineup-tools .lineup-admin-actions { display:contents; }
+.lineup-event-info { border-top:1px solid var(--line); }
+.lineup-event-info>summary { list-style:none; }
+.lineup-event-info>summary::-webkit-details-marker { display:none; }
+.lineup-event-info[open]>summary>span { transform:rotate(180deg); }
+.lineup-tools .lineup-blocks { display:grid;grid-template-columns:1fr;gap:8px;margin:6px 0 12px; }
+.lineup-tools .lineup-blocks article { padding:12px;border-radius:10px;background:var(--rally-soft); }
+.lineup-tools .lineup-blocks strong { font-size:14px; }
+.lineup-tools .lineup-blocks span,.lineup-tools .lineup-blocks small,.lineup-tools .lineup-blocks p { margin-top:4px;color:var(--muted);font-size:12px;line-height:1.5; }
+.lineup-tools-empty { margin:12px 0;color:var(--muted);font:400 13px/1.5 system-ui; }
+.tool-search-hidden { display:none!important; }
+.schedule-actions { margin:0 0 12px; }
+.lineup-mobile-likes { display:none; }
+#lineup-timing-note { color:var(--muted);font-size:12px; }
+#lineup-timing-note::before { content:'·';margin:0 8px 0 0; }
+.filter-toggle svg { display:none; }
+.poster-actions { gap:8px;margin:0 0 10px; }
+.poster-actions p { font-size:12px;line-height:1.5; }
+.poster-actions p>small { display:block;color:var(--muted);font:400 11px/1.5 system-ui; }
+.poster-actions>div { display:flex;gap:4px;width:auto;flex:none; }
+.poster-actions .discovery-action { display:grid;place-items:center;flex:none;width:44px;height:44px;min-height:44px;padding:10px;border:0;border-radius:9px;background:transparent;color:var(--ink); }
+.poster-actions .discovery-action:hover { background:var(--rally-soft); }
+.poster-actions .discovery-action svg { display:block;width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round; }
+.poster-filter-note { margin:10px 0;font-size:11px; }
+@media(max-width:760px) {
+  :root { --ink:#202b25;--paper:#f7f7f2;--card:#fff;--line:#dfe5dd;--muted:#5d6c61;--rally-accent:#285f4a;--rally-soft:#e8f0e9; }
+  .shell,:host .shell { padding-top:14px; }
+  .app-header,:host .app-header { display:grid;grid-template-columns:minmax(0,1fr) 44px;gap:10px;margin:0 0 12px; }
+  .app-header .header-copy,.rally-mode .app-header .header-copy { grid-column:1;grid-row:1; }
+  .app-header .lineup-tools-button { grid-column:2;grid-row:1; }
+  .app-header .standalone-auth.account-button { grid-column:1/-1;grid-row:2;justify-self:start; }
+  .app-header h1,:host #page-title { margin:0;font:750 26px/1.15 system-ui;letter-spacing:-.035em; }
+  .lineup-meta,:host .lineup-meta { margin:5px 0 0;font:400 12px/1.45 system-ui;color:var(--muted); }
+  .mobile-days { gap:4px;margin:0 0 10px; }
+  .mobile-days button,:host .mobile-days button { display:flex;align-items:center;justify-content:center;gap:5px;min-height:44px;padding:8px 3px;border:0;border-radius:8px;background:transparent;color:var(--muted); }
+  .mobile-days strong { font-size:14px; }
+  .mobile-days span { font-size:11px; }
+  .mobile-days button[aria-pressed=true],:host .mobile-days button[aria-pressed=true] { background:var(--rally-soft);color:var(--rally-accent); }
+  .schedule-actions { display:flex;flex-direction:row;gap:0;margin:0 0 10px; }
+  .schedule-actions>.segmented:not(.likes-filter),:host .schedule-actions>.segmented:not(.likes-filter) { display:flex;flex:none;width:100%;min-width:0;gap:2px;padding:0;border:0;border-bottom:1px solid var(--line);border-radius:0;background:transparent; }
+  .schedule-actions>.segmented:not(.likes-filter)>button,:host .schedule-actions>.segmented:not(.likes-filter)>button { flex:1 1 0;min-width:0;min-height:44px;padding:0 3px;border:0;border-bottom:2px solid transparent;border-radius:0;background:transparent;box-shadow:none;color:var(--muted);font:600 12px/1.2 system-ui;white-space:nowrap; }
+  .schedule-actions>.segmented:not(.likes-filter)>button.is-active,:host .schedule-actions>.segmented:not(.likes-filter)>button.is-active { border-bottom-color:var(--rally-accent);color:var(--rally-accent);background:transparent;box-shadow:none; }
+  .schedule-actions>.likes-filter { display:none!important; }
+  .toolbar,:host .toolbar { display:grid;grid-template-columns:minmax(0,1fr) 105px 44px;gap:6px;margin:0 0 8px;padding:0; }
+  .toolbar.no-extra-filters { grid-template-columns:minmax(0,1fr) 105px; }
+  .lineup-mobile-likes { display:block;min-width:0; }
+  .lineup-mobile-likes .search-select-trigger { height:44px;min-height:44px;padding:8px;gap:6px;border-radius:9px;font:550 12px/1.3 system-ui;box-shadow:none; }
+  .toolbar>input#search,:host .toolbar>input#search { height:44px;min-height:44px;padding:0 10px;border-radius:9px;font-size:16px; }
+  .toolbar>input#search::placeholder { font-size:13px; }
+  .filter-toggle,:host .filter-toggle { position:relative;display:grid!important;place-items:center;min-height:44px!important;height:44px;width:44px;padding:10px!important;border-radius:9px!important; }
+  .filter-toggle[hidden],:host .filter-toggle[hidden] { display:none!important; }
+  .filter-toggle svg { display:block;width:22px;height:22px;fill:var(--card);stroke:currentColor;stroke-width:1.7;stroke-linecap:round; }
+  .filter-toggle .lineup-filter-label { position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap; }
+  .filter-toggle #filter-count { position:absolute;top:-4px;right:-4px;display:grid;place-items:center;min-width:17px;height:17px;padding:0 3px;border-radius:9px;background:var(--rally-accent);color:var(--rally-on-accent);font:600 10px/1 system-ui; }
+  .status-bar { gap:0;margin:0 0 8px; }
+  .result-summary { min-height:22px;gap:6px;font:400 11px/1.4 system-ui; }
+  #lineup-timing-note { font-size:11px; }
+  .result-summary .clear-action { margin-left:auto;min-height:32px;font-size:11px; }
+  .poster-actions { flex-wrap:nowrap;align-items:center;margin-bottom:8px; }
+  .poster-actions p { min-width:0;font-size:11px; }
+  .poster-actions p>small { font-size:10px; }
+  .poster-actions>div { width:auto; }
+  .lineup-tools { padding:18px; }
+  .search-select-panel { max-width:calc(100vw - 16px); }
+}

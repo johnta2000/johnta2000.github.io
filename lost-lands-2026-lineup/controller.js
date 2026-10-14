@@ -8,6 +8,7 @@ const zoneLabel=eventZone==='America/New_York'?'ET':eventZone==='America/Los_Ang
 const dinoEmpty = !eventConfig||eventConfig.id==='lost-lands-2026' ? '<img src="/tools/rally/assets/dancing-dino.png" alt="" width="56" height="56" style="display:block;margin:0 auto 8px;border-radius:12px">No dinosaurs spotted. Try different filters.' : 'No matching sets. Try different filters.';
 const lifetime = new AbortController();
 let overlayObserver;
+let likesPicker;
 let receive = () => {};
 const sendToRally = message => integration ? integration.onEvent(message) : window.parent.postMessage(message, location.origin === "null" ? "*" : location.origin);
 const CONVEX_URL = "https://dashing-heron-837.convex.cloud";
@@ -337,11 +338,12 @@ function timeLabel(entry){const block=blockFor(entry);return entry.start?`${form
 if(eventConfig){
   root.getElementById('page-title').textContent='Lineup';
   const dates=[eventConfig.startsAt,eventConfig.endsAt].filter(Boolean).map(formatFestivalDate);
-  root.querySelector('.lineup-meta').textContent=`${[...new Set(dates)].join(' – ')}${hasTimes?' · All times '+zoneLabel:' · Set times TBA'}`;
+  const hours=lineupBlocks.length&&dayOrder.length===1?blockHours({start:lineupBlocks.map(b=>b.start).sort()[0],end:lineupBlocks.map(b=>b.end).sort().at(-1)}):'';
+  root.querySelector('.lineup-meta').textContent=`${[...new Set(dates)].join(' – ')} · ${hasTimes?'All times '+zoneLabel:hours||'Set times TBA'}`;
   if(hasEstimate){const note=document.createElement('p');note.className='mobile-section-note';note.textContent=eventConfig.orderNote||'Estimated running order · earlier → later. Not official set times.';root.querySelector('.app-header').after(note);}
   if(lineupBlocks.length){
-    const summary=document.createElement('section');summary.className='lineup-blocks';summary.setAttribute('aria-label','Event hours');
-    summary.innerHTML=`${lineupBlocks.map(block=>`<article><strong>${escapeHtml(block.label)}</strong><span>${escapeHtml(blockHours(block))}</span>${block.ticketNote?`<small>${escapeHtml(block.ticketNote)}</small>`:''}</article>`).join('')}<p>Event hours shown. Individual set times ${hasTimes?'are shown where announced':'have not been announced'}.</p>`;
+    const summary=document.createElement('details');summary.className='lineup-event-info';summary.dataset.lineupTool='';
+    summary.innerHTML=`<summary>Event hours & ticket details <span aria-hidden="true">⌄</span></summary><section class="lineup-blocks" aria-label="Event hours">${lineupBlocks.map(block=>`<article><strong>${escapeHtml(block.label)}</strong><span>${escapeHtml(blockHours(block))}</span>${block.ticketNote?`<small>${escapeHtml(block.ticketNote)}</small>`:''}</article>`).join('')}<p>Event hours shown. Individual set times ${hasTimes?'are shown where announced':'have not been announced'}.</p></section>`;
     root.querySelector('.app-header').after(summary);
   }
 }
@@ -868,18 +870,21 @@ function updateViewButtons() {
   els.tableView.hidden = activeView !== "table";
   els.heatView.hidden = activeView !== "heat";
   els.heatViewButton.classList.toggle("is-active", activeView === "heat");
-  els.popularitySort.hidden = false;
+  els.popularitySort.hidden = ['poster','timeline'].includes(activeView);
   els.popularitySort.textContent = `Sort: ${{time:runningOrderLabel,popular:'Most liked',artist:'Artist A–Z'}[sortMode]} ↓`;
   els.posterViewButton.classList.toggle("is-active", isBoard);
   els.tableViewButton.classList.toggle("is-active", activeView === "table");
   [els.tableViewButton, els.posterViewButton, els.heatViewButton].forEach((button) => button.setAttribute("aria-pressed", String(button.classList.contains("is-active"))));
   els.favoritesFilterButton.setAttribute("aria-pressed", String(favoritesOnly));
   root.querySelectorAll('[data-likes-filter]').forEach(button=>{const selected=button.dataset.likesFilter===(crewLikesOnly?'crew':favoritesOnly?'mine':'all');button.classList.toggle('is-active',selected);button.setAttribute('aria-pressed',String(selected));});
+  const likesSelect=root.getElementById('lineup-likes-select');
+  if(likesSelect){likesSelect.value=crewLikesOnly?'crew':favoritesOnly?'mine':'all';likesPicker?.sync();}
+  const timingNote=root.getElementById('lineup-timing-note');if(timingNote){timingNote.hidden=lineup.every(entry=>entry.start);timingNote.textContent=hasTimes?'Some set times TBA':'Individual sets TBA';}
   els.saveFavoritesButton.hidden = !viewingSharedFavorites || favorites.size === 0;
   const mobile = mobileViewQuery.matches;
   root.getElementById('mobile-schedule').hidden = !mobile || ['timeline','poster'].includes(activeView);
   if (mobile) { els.posterView.hidden = true; els.tableView.hidden = true; els.heatView.hidden = true; }
-  els.posterViewButton.textContent = mobile ? 'By stage' : 'Day board';
+  els.posterViewButton.textContent = mobile ? 'Stages' : 'Day board';
   els.heatViewButton.textContent = 'Heat map';
   if (!rallyManagedFavorites) {
     els.accountButton.hidden = false;
@@ -890,6 +895,7 @@ function updateViewButtons() {
 
 function render() {
   selectedDays = new Set([...selectedDays].filter(day=>!hiddenLineupDays.has(day)));
+  root.querySelector('[data-filter="days"]').hidden=visibleLineupDays().length<=1;
   if (mobileViewQuery.matches) {
     if (activeView!=='poster' && selectedDays.size !== 1) selectedDays = new Set([[...selectedDays][0] || defaultMobileDay()]);
     renderMobileDays();
@@ -925,6 +931,7 @@ function defaultMobileDay() {
 }
 function renderMobileDays() {
   const days = root.getElementById('mobile-days');
+  days.hidden=visibleLineupDays().length<=1;
   const focused = days.contains(root.activeElement) ? root.activeElement?.dataset.day : null;
   const allDays=activeView==='poster'&&visibleLineupDays().length>1;
   days.style.setProperty('--day-count', String(visibleLineupDays().length+Number(allDays)));
@@ -1437,6 +1444,44 @@ function initFilterControls() {
   });
 }
 
+// Browsing controls stay on the page; infrequent tools and admin actions do not
+// consume the phone's first screen. Move existing controls, keeping their IDs,
+// handlers and server-provided permissions instead of maintaining duplicates.
+function setupLineupChrome() {
+  const header=root.querySelector('.app-header'),toolbar=root.querySelector('.toolbar');
+  const tools=document.createElement('dialog');tools.id='lineup-tools';tools.className='lineup-tools';tools.setAttribute('aria-labelledby','lineup-tools-title');
+  tools.innerHTML='<header><h2 id="lineup-tools-title">Lineup options</h2><button type="button" aria-label="Close lineup options">×</button></header><input class="lineup-tool-search" type="search" placeholder="Find an option…" aria-label="Find lineup option"><div class="lineup-tools-list"></div><p class="lineup-tools-empty" hidden>No matching options.</p>';
+  const list=tools.querySelector('.lineup-tools-list');
+  const source=root.querySelector('.lineup-source'),info=root.querySelector('.lineup-event-info'),admin=root.querySelector('.lineup-admin-actions');
+  els.shareButton.textContent='Copy lineup link';
+  for(const control of [els.shareButton,els.popularitySort,source,info,root.getElementById('manage-days'),admin].filter(Boolean))list.append(control);
+  list.querySelectorAll('button,a').forEach(button=>button.dataset.lineupTool='');
+  container.append(tools);
+  const more=document.createElement('button');more.id='lineup-tools-button';more.className='lineup-tools-button';more.type='button';more.setAttribute('aria-label','Lineup options');more.setAttribute('aria-haspopup','dialog');more.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg>';
+  header.querySelector('.header-copy').after(more);
+  const search=tools.querySelector('input'),empty=tools.querySelector('.lineup-tools-empty');
+  const filter=()=>{let count=0;list.querySelectorAll('button,a,details').forEach(control=>{if(control.closest('details')!==control&&control.closest('details'))return;const matches=normalizeText(control.textContent).includes(normalizeText(search.value));control.classList.toggle('tool-search-hidden',!matches);if(matches&&!control.hidden&&!control.closest('[hidden]'))count++;});empty.hidden=count>0;};
+  search.oninput=filter;
+  more.onclick=()=>{likesPicker?.close();closeFilterPopovers();search.value='';filter();tools.showModal();tools.querySelector('header button').focus({preventScroll:true});};
+  tools.querySelector('header button').onclick=()=>tools.close();
+  tools.addEventListener('click',event=>{if(event.target===tools){const box=tools.getBoundingClientRect();if(event.clientX<box.left||event.clientX>box.right||event.clientY<box.top||event.clientY>box.bottom)tools.close();}else if(event.target.closest('button[data-lineup-tool],a[data-lineup-tool]'))tools.close();},true);
+  tools.addEventListener('close',()=>{search.value='';filter();if(!root.querySelector('dialog[open]'))more.focus({preventScroll:true});});
+  // View choice precedes filters; phones replace the second full-width tab bar
+  // with the shared, searchable likes picker beside artist search.
+  const modes=root.querySelector('.schedule-actions');toolbar.before(modes);
+  const picker=document.createElement('div');picker.className='lineup-mobile-likes';
+  picker.innerHTML=`<select id="lineup-likes-select" aria-label="Filter by likes"><option value="all">All sets</option><option value="mine">My likes</option>${rallyManagedFavorites?'<option value="crew">Crew likes</option>':''}</select>`;
+  els.search.after(picker);const select=picker.querySelector('select');
+  select.onchange=()=>{favoritesOnly=select.value==='mine';crewLikesOnly=select.value==='crew';render();};
+  likesPicker=window.SearchableSelect?.enhance(select);
+  els.search.placeholder='Find an artist';
+  els.filterToggle.setAttribute('aria-label','Filters');els.filterToggle.title='Filter stages, genres and times';
+  const filterIcon=document.createElementNS('http://www.w3.org/2000/svg','svg');filterIcon.setAttribute('viewBox','0 0 24 24');filterIcon.setAttribute('aria-hidden','true');filterIcon.innerHTML='<path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="2"/><circle cx="15" cy="17" r="2"/>';
+  const filterLabel=document.createElement('span');filterLabel.className='lineup-filter-label';filterLabel.textContent='Filters';
+  els.filterToggle.replaceChildren(filterIcon,filterLabel,els.filterCount);
+  const note=document.createElement('span');note.id='lineup-timing-note';note.textContent='Individual sets TBA';note.hidden=hasTimes;els.resultCount.after(note);
+}
+
 function bindEvents() {
   els.search.addEventListener("input", render);
   els.filterToggle.addEventListener("click", () => {
@@ -1461,12 +1506,13 @@ function bindEvents() {
     dialog.className = 'sort-dialog';
     dialog.setAttribute('aria-label', 'Sort sets');
     const options = [['time',runningOrderLabel,hasEstimate&&!hasTimes?'Predicted earlier → later; not official':'Earliest known sets first; untimed sets follow'],['popular','Most liked','Your crew’s favorites first'],['artist','Artist A–Z','Alphabetical by artist']].filter(([id])=>id!=='popular'||rallyManagedFavorites);
-    dialog.innerHTML = `<header><h2>Sort sets</h2><button type="button" aria-label="Close sort">×</button></header>${options.map(([id,label,description])=>`<button type="button" data-sort="${id}" aria-pressed="${sortMode===id}"><span><strong>${label}</strong><small>${description}</small></span><b>${sortMode===id?'✓':''}</b></button>`).join('')}`;
+    dialog.innerHTML = `<header><h2>Sort sets</h2><button type="button" aria-label="Close sort">×</button></header><input class="lineup-tool-search" type="search" aria-label="Find sort order" placeholder="Find sort order…">${options.map(([id,label,description])=>`<button type="button" data-sort="${id}" aria-pressed="${sortMode===id}"><span><strong>${label}</strong><small>${description}</small></span><b>${sortMode===id?'✓':''}</b></button>`).join('')}<p class="lineup-tools-empty" hidden>No matching sort order.</p>`;
+    dialog.querySelector('input').oninput=event=>{let count=0;dialog.querySelectorAll('[data-sort]').forEach(button=>{button.hidden=!normalizeText(button.textContent).includes(normalizeText(event.target.value));if(!button.hidden)count++;});dialog.querySelector('.lineup-tools-empty').hidden=count>0;};
     container.append(dialog);
     dialog.querySelector('header button').onclick=()=>dialog.close();
     dialog.addEventListener('click', event=>{if(event.target===dialog)dialog.close();});
     dialog.querySelectorAll('[data-sort]').forEach(button=>button.onclick=()=>{sortMode=button.dataset.sort;mostLiked=sortMode==='popular';render();dialog.close();});
-    dialog.addEventListener('close',()=>{dialog.remove();els.popularitySort.focus({preventScroll:true});});
+    dialog.addEventListener('close',()=>{dialog.remove();root.getElementById('lineup-tools-button')?.focus({preventScroll:true});});
     dialog.showModal();
   });
   els.clearFiltersButton.addEventListener("click", clearScheduleFilters);
@@ -1581,6 +1627,7 @@ initFilterControls();
 setCanonicalUrl();
 readStateFromUrl();
 bindEvents();
+setupLineupChrome();
 placeMobileFilters();
 render();
 const progressTimer=window.setInterval(()=>{if(!integration||integration.isActive())updateScheduleProgress();},60000);
@@ -1590,7 +1637,7 @@ else window.addEventListener("load", initializeOptionalAccount, { once: true });
 return {
   receive: message => receive({data:message}),
   route(params) { integration.params=params; readStateFromUrl(); render(); },
-  suspend() { discovery?.close();root.querySelector('.toast')?.remove(); root.querySelectorAll('dialog[open]').forEach(dialog=>dialog.close()); root.activeElement?.blur(); closeFilterPopovers(); },
-  destroy() { discovery?.destroy();lifetime.abort(); overlayObserver?.disconnect(); window.clearTimeout(cloudSaveTimer); window.clearInterval(progressTimer); }
+  suspend() { discovery?.close();likesPicker?.close();root.querySelector('.toast')?.remove(); root.querySelectorAll('dialog[open]').forEach(dialog=>dialog.close()); root.activeElement?.blur(); closeFilterPopovers(); },
+  destroy() { discovery?.destroy();likesPicker?.destroy();lifetime.abort(); overlayObserver?.disconnect(); window.clearTimeout(cloudSaveTimer); window.clearInterval(progressTimer); }
 };
 };
