@@ -41,6 +41,7 @@ qaOpen();el.accessGate.hidden=true;el.rallyApp.hidden=false;document.body.classL
      for(const button of await lineup.locator('.schedule-actions button:visible,.poster-actions button:visible,.lineup-tools-button,.filter-toggle').all()){const b=await button.boundingBox();assert(b.height>=44&&b.width>=44,`Undersized control ${await button.getAttribute('id')}`);assert(b.x>=0&&b.x+b.width<=width+1);}
      // Opened picker must stay open through shadow-root focus/touch retargeting.
      const trigger=lineup.locator('.lineup-mobile-likes .search-select-trigger');await trigger.click();
+     const pickerBounds=await lineup.locator('.lineup-mobile-likes .search-select-panel').boundingBox();assert(pickerBounds.x>=0&&pickerBounds.x+pickerBounds.width<=width+1&&pickerBounds.y>=0&&pickerBounds.y+pickerBounds.height<=height+1);
      const input=lineup.getByRole('combobox',{name:'Search filter by likes'});await input.fill('crew');
      assert.equal(await lineup.getByRole('option').count(),1);await input.press('Enter');
      assert.equal(await lineup.locator('#lineup-likes-select').inputValue(),'crew');
@@ -68,7 +69,7 @@ qaOpen();el.accessGate.hidden=true;el.rallyApp.hidden=false;document.body.classL
     await page.locator('rally-lineup #table-view-button').click();
     if(width<=760)assert(await page.locator('rally-lineup #mobile-days').isVisible());
     await page.locator('rally-lineup #lineup-tools-button').click();await page.locator('rally-lineup #popularity-sort').click();
-    const sort=page.locator('rally-lineup .sort-dialog');await sort.getByRole('searchbox',{name:'Find sort order'}).fill('liked');assert.equal(await sort.locator('[data-sort]:visible').count(),1);await sort.locator('[data-sort]:visible').click();
+    const sort=page.locator('rally-lineup .sort-dialog');await sort.getByRole('searchbox',{name:'Find sort order'}).fill('liked');assert.equal(await sort.locator('[data-sort]:visible').count(),1);await sort.getByRole('searchbox').press('Enter');
     assert(await page.locator('rally-lineup #lineup-tools').isHidden());
     if(width<=760){await page.locator('rally-lineup #filter-toggle').click();await page.locator('rally-lineup [data-filter="stages"] .filter-trigger').click();await page.locator('rally-lineup [data-filter="stages"] .filter-search').fill(kind==='niteharts'?'valorant':'crater');assert.equal(await page.locator('rally-lineup [data-filter="stages"] .filter-option:visible').count(),1);await page.keyboard.press('Escape');}
     assert(!await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1));

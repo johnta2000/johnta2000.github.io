@@ -1512,6 +1512,7 @@ function bindEvents() {
     dialog.querySelector('header button').onclick=()=>dialog.close();
     dialog.addEventListener('click', event=>{if(event.target===dialog)dialog.close();});
     dialog.querySelectorAll('[data-sort]').forEach(button=>button.onclick=()=>{sortMode=button.dataset.sort;mostLiked=sortMode==='popular';render();dialog.close();});
+    dialog.addEventListener('keydown',event=>{const choices=[...dialog.querySelectorAll('[data-sort]:not([hidden])')],index=choices.indexOf(root.activeElement);if(!choices.length)return;if(event.key==='Enter'&&event.target.matches('input')){event.preventDefault();choices[0].click();}else if(event.key==='ArrowDown'||event.key==='ArrowUp'){event.preventDefault();choices[index<0?(event.key==='ArrowDown'?0:choices.length-1):(index+(event.key==='ArrowDown'?1:-1)+choices.length)%choices.length].focus();}});
     dialog.addEventListener('close',()=>{dialog.remove();root.getElementById('lineup-tools-button')?.focus({preventScroll:true});});
     dialog.showModal();
   });
