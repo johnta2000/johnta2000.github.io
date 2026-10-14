@@ -12,7 +12,7 @@ function setup(mobile=true,now=null,event=null){
   w.HTMLElement.prototype.scrollIntoView=function(){};
   w.HTMLDialogElement.prototype.showModal=function(){this.setAttribute('open','');};
   w.HTMLDialogElement.prototype.close=function(){this.removeAttribute('open');this.dispatchEvent(new w.Event('close'));};
-  for(const file of ['../../lost-lands-2026-lineup/set-times.js','../../lost-lands-2026-lineup/controller.js','lineup-template.js','lineup.js'])w.eval(read(file));
+  for(const file of ['lineup-discovery.js','../../lost-lands-2026-lineup/set-times.js','../../lost-lands-2026-lineup/controller.js','lineup-template.js','lineup.js'])w.eval(read(file));
   const container=w.document.getElementById('lineupView');
   const state={type:'rally-lineup-state',artistIds:[],interests:{},currentMember:{id:'john',name:'John'},hiddenDays:['Wednesday','Thursday'],canManageDays:true};
   const options={container,event,key:(event?.id||'lost-lands-2026')+':john',state,params:'days=Friday',shareUrl:'https://www.john-ta.com/tools/rally/?view=lineup&event='+(event?.id||'lost-lands-2026'),onEvent:message=>events.push(message),onParams:params=>routes.push(params.toString())};
@@ -44,7 +44,7 @@ test('Niteharts official schedule includes both stages, keeps identities and sup
    assert(valorant);valorant.checked=true;valorant.dispatchEvent(new ctx.w.Event('change',{bubbles:true}));
    assert.equal(ctx.root.querySelectorAll('.timeline-set').length,3);
    assert(ctx.root.querySelector('.timeline-set').textContent.includes('ACYAN'));
-   const star=ctx.root.querySelector('.timeline-set');star.click();
+   const star=ctx.root.querySelector('.timeline-set [data-favorite-id]');star.click();
    assert(ctx.events.some(e=>e.type==='rally-lineup-favorites-changed'&&e.artistIds.includes('fri-valorant-acyan')));
    ctx.w.RallyLineup.receive({type:'rally-lineup-favorites-saved'});
    assert.equal(ctx.root.querySelector('.toast').getAttribute('popover'),'manual');
@@ -149,7 +149,7 @@ test('Eastern 5 PM marker mutes ended set times but preserves favorites and acti
   const cards=[...ctx.root.querySelectorAll('#mobile-schedule .set-card')];
   const tynan=cards.find(el=>el.querySelector('h3').textContent==='TYNAN');assert(tynan.classList.contains('set-ended'));
   assert(cards.some(el=>el.classList.contains('set-live')));
-  tynan.querySelector('button').click();assert(ctx.events.some(e=>e.type==='rally-lineup-favorites-changed'));
+  tynan.querySelector('[data-favorite-id]').click();assert(ctx.events.some(e=>e.type==='rally-lineup-favorites-changed'));
  }finally{ctx.w.close();}
 });
 test('timeline initially opens at Eastern now and preserves manual scrolling on updates',()=>{

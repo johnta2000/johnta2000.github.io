@@ -57,6 +57,8 @@ async function checkBookingNotes(page,label,width,output){
    return route.continue();
   });
   const page=await context.newPage();page.on('pageerror',e=>errors.push(label+': '+e.message));
+  // Keep this pre-event fixture deterministic after its real calendar dates pass.
+  await page.clock.setFixedTime(new Date('2026-10-08T19:00:00Z'));
   await page.goto((process.env.RALLY_QA_URL||'http://127.0.0.1:8790')+'/tools/rally/?view=home');
   await page.locator('.overview-tile').first().waitFor();
   if(width<=900)await page.locator('#openMenu').click();

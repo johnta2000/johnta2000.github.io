@@ -4,6 +4,7 @@ module.exports = async function audit(page, label) {
  // Let style/layout settle after a palette switch, including reduced-motion
  // transitions. Auditing in the same frame can read the previous palette.
  await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+ await page.waitForTimeout(80); // Palette previews insert new content in the same frame as the style change.
  return page.evaluate(label => {
   const canvas=document.createElement('canvas');canvas.width=canvas.height=1;
   const colorContext=canvas.getContext('2d',{willReadFrequently:true}),colors=new Map();
@@ -23,6 +24,10 @@ module.exports = async function audit(page, label) {
    const ownText=[...el.childNodes].some(n=>n.nodeType===3&&n.textContent.trim());
    if(!ownText||['SCRIPT','STYLE','OPTION'].includes(el.tagName)||!el.checkVisibility({checkOpacity:true,checkVisibilityCSS:true})||el.closest('[disabled],[aria-disabled="true"]'))continue;
    const rect=el.getBoundingClientRect();if(rect.width<1||rect.height<1||rect.bottom<0||rect.top>innerHeight||rect.right<0||rect.left>innerWidth)continue;
+   // Backdrops obscure inactive page text. Audit the actual visible layer,
+   // including modal dialogs inside the lineup's shadow root, not text behind it.
+   const hit=root.elementFromPoint?.(Math.max(0,Math.min(innerWidth-1,rect.x+rect.width/2)),Math.max(0,Math.min(innerHeight-1,rect.y+rect.height/2)));
+   if(hit&&!el.contains(hit)&&!hit.contains(el))continue;
    let chain=[],faded=false;for(let p=el;p;p=parent(p)){const s=getComputedStyle(p);if(Number(s.opacity)<.7)faded=true;chain.push(rgb(s.backgroundColor));}
    if(faded)continue;
    const style=getComputedStyle(el),bg=chain.reverse().reduce((b,c)=>blend(c,b),[255,255,255]);

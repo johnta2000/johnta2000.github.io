@@ -546,7 +546,7 @@ function readStateFromUrl() {
     timeMin = timeBounds.min;
     timeMax = timeBounds.max;
   }
-  activeView = ["board", "poster"].includes(params.get("view")) ? "board" : "table";
+  activeView = params.get('view') === 'poster' ? 'poster' : params.get('view') === 'board' ? 'board' : 'table';
   if (rallyManagedFavorites && params.get("view") === "heat") activeView = "heat";
   if (hasTimeline && params.get('view') === 'timeline') activeView = 'timeline';
   mostLiked = rallyManagedFavorites && params.get("sort") === "popular";
@@ -617,6 +617,9 @@ function compareSets(left, right) {
     || left.posterIndex-right.posterIndex;
 }
 
+function artistPreviewButton(entry) {
+  return `<button type="button" class="artist-name-button" data-artist-id="${escapeHtml(entry.id)}" aria-label="Preview ${escapeHtml(entry.artist)}">${escapeHtml(entry.artist)}</button>`;
+}
 function renderHeatMap(entries) {
   const maximum = Math.max(0, ...lineup.filter(entry=>!hiddenLineupDays.has(entry.day)).map((entry) => groupPeople(entry.id).length));
   els.heatScale.textContent = maximum ? `0–${maximum} interested · stronger shading = more interest` : "No group favorites yet · star a set to get started";
@@ -654,7 +657,7 @@ function boardSetCard(entry, {maximum = 0, heat = false} = {}) {
   return `<article class="board-set${heat ? ' board-set-heat' : ''}" style="--stage-color:${boardStageColor(entry.stage)};--heat-tint:${Math.round(ratio*12)}%;--heat-strength:${Math.round(ratio*100)}%">
     <div class="board-set-heading"><div class="board-set-copy">
       <p class="board-set-time">${escapeHtml(timeLabel(entry))}</p>
-      <h3>${escapeHtml(entry.artist)}</h3>
+      <h3>${artistPreviewButton(entry)}</h3>
       ${entry.notes?`<p class="set-note">${escapeHtml(entry.notes)}</p>`:''}
     </div><button class="favorite-button${saved ? ' is-active' : ''}" type="button" data-favorite-id="${escapeHtml(entry.id)}" aria-pressed="${saved}" aria-label="${saved ? 'Remove' : 'Add'} ${escapeHtml(entry.artist)} favorite">★</button></div>
     ${overnight ? `<span class="board-set-overnight">${overnight}</span>` : ''}
@@ -817,7 +820,7 @@ function renderTable(entries) {
           </td>
           <td class="time-cell"><span class="schedule-time">${escapeHtml(entry.start?formatClock(entry.start):blockFor(entry)?blockHours(blockFor(entry)).replace(' '+zoneLabel,''):'Set time TBA')}</span>${!entry.start&&blockFor(entry)?`<small class="block-time-label">${escapeHtml(blockFor(entry).label)}</small>`:''}</td>
           ${hasTimes?`<td class="time-cell"><span class="schedule-time">${escapeHtml(formatClock(entry.end))}</span></td>`:''}
-          <td class="artist-cell" title="${escapeHtml(entry.artist)}">${escapeHtml(entry.artist)}${!hasTimes&&hasStages&&sortMode!=='time'?`<small class="block-time-label">${escapeHtml(entry.stage)}</small>`:''}${entry.notes?`<p class="set-note">${escapeHtml(entry.notes)}</p>`:''}${mostLiked ? `<small class="rank-day">${escapeHtml(entry.day.slice(0, 3))} · ${escapeHtml(formatFestivalDate(entry.festivalDate))}</small>` : ""}</td>
+          <td class="artist-cell" title="${escapeHtml(entry.artist)}">${artistPreviewButton(entry)}${!hasTimes&&hasStages&&sortMode!=='time'?`<small class="block-time-label">${escapeHtml(entry.stage)}</small>`:''}${entry.notes?`<p class="set-note">${escapeHtml(entry.notes)}</p>`:''}${mostLiked ? `<small class="rank-day">${escapeHtml(entry.day.slice(0, 3))} · ${escapeHtml(formatFestivalDate(entry.festivalDate))}</small>` : ""}</td>
           ${hasStages&&hasTimes?`<td class="stage-cell">${escapeHtml(entry.stage)}</td>`:''}
           ${hasGenres?`<td class="genre-cell genre-column">${escapeHtml(entry.genre)}</td>`:''}
           <td class="rally-only">${renderInterest(entry.id)}</td>
@@ -853,6 +856,10 @@ function updateCurrentMemberInterest(artistId) {
 }
 
 function updateViewButtons() {
+  root.getElementById('lineup-poster').hidden=activeView!=='poster';
+  const posterButton=root.getElementById('lineup-poster-button');
+  posterButton.classList.toggle('is-active',activeView==='poster');
+  posterButton.setAttribute('aria-pressed',String(activeView==='poster'));
   root.getElementById('timeline-view').hidden=activeView!=='timeline';
   root.getElementById('timeline-view-button').classList.toggle('is-active',activeView==='timeline');
   root.getElementById('timeline-view-button').setAttribute('aria-pressed',String(activeView==='timeline'));
@@ -870,7 +877,7 @@ function updateViewButtons() {
   root.querySelectorAll('[data-likes-filter]').forEach(button=>{const selected=button.dataset.likesFilter===(crewLikesOnly?'crew':favoritesOnly?'mine':'all');button.classList.toggle('is-active',selected);button.setAttribute('aria-pressed',String(selected));});
   els.saveFavoritesButton.hidden = !viewingSharedFavorites || favorites.size === 0;
   const mobile = mobileViewQuery.matches;
-  root.getElementById('mobile-schedule').hidden = !mobile || activeView==='timeline';
+  root.getElementById('mobile-schedule').hidden = !mobile || ['timeline','poster'].includes(activeView);
   if (mobile) { els.posterView.hidden = true; els.tableView.hidden = true; els.heatView.hidden = true; }
   els.posterViewButton.textContent = mobile ? 'By stage' : 'Day board';
   els.heatViewButton.textContent = 'Heat map';
@@ -884,10 +891,12 @@ function updateViewButtons() {
 function render() {
   selectedDays = new Set([...selectedDays].filter(day=>!hiddenLineupDays.has(day)));
   if (mobileViewQuery.matches) {
-    if (selectedDays.size !== 1) selectedDays = new Set([[...selectedDays][0] || defaultMobileDay()]);
+    if (activeView!=='poster' && selectedDays.size !== 1) selectedDays = new Set([[...selectedDays][0] || defaultMobileDay()]);
     renderMobileDays();
   }
   const entries = getFilteredLineup();
+  if(activeView==='poster')discovery?.renderPoster(entries,{crew:crewLikesOnly});
+  discovery?.updateArtist();
   if(activeView==='timeline')renderTimeline(entries);
   const available = lineup.filter(entry=>!hiddenLineupDays.has(entry.day));
   const favoriteTotal = available.filter(entry=>favorites.has(entry.id)).length;
@@ -917,8 +926,9 @@ function defaultMobileDay() {
 function renderMobileDays() {
   const days = root.getElementById('mobile-days');
   const focused = days.contains(root.activeElement) ? root.activeElement?.dataset.day : null;
-  days.style.setProperty('--day-count', String(visibleLineupDays().length));
-  const html = visibleLineupDays().map(day => {
+  const allDays=activeView==='poster'&&visibleLineupDays().length>1;
+  days.style.setProperty('--day-count', String(visibleLineupDays().length+Number(allDays)));
+  const html = (allDays?`<button type="button" data-day="__all__" aria-pressed="${!selectedDays.size}"><span>All</span><strong>days</strong></button>`:'')+visibleLineupDays().map(day => {
     const date = lineup.find(entry => entry.day === day)?.festivalDate;
     return `<button type="button" data-day="${escapeHtml(day)}" aria-pressed="${selectedDays.has(day)}"><span>${escapeHtml(day.slice(0,3))}</span><strong>${date ? Number(date.slice(-2)) : '—'}</strong></button>`;
   }).join('');
@@ -949,7 +959,7 @@ function mobileSetCard(entry, maximum = 0, rank = 0, heat = false) {
   return `<article data-set-start="${entry.start}" data-set-end="${entry.end}" data-festival-date="${entry.festivalDate}" class="set-card${favorites.has(entry.id) ? ' is-favorite' : ''}${heat ? ' set-card-heat' : ''}" style="--stage-color:${stageColor};--heat-tint:${maximum ? Math.round(count/maximum*12) : 0}%">
     <div class="set-card-main"><div class="set-card-copy">
       <div class="set-meta"><p class="set-time">${rank ? `<span class="set-rank">${rank}</span>` : ''}${escapeHtml(timeLabel(entry))}</p>${entry.stage==='Stage TBA'?'':`<span class="set-stage"><i aria-hidden="true"></i>${escapeHtml(entry.stage)}</span>`}</div>
-      <h3>${escapeHtml(entry.artist)}</h3>
+      <h3>${artistPreviewButton(entry)}</h3>
       ${entry.notes?`<p class="set-note">${escapeHtml(entry.notes)}</p>`:''}
       ${overnight ? `<small class="set-overnight">${overnight}</small>` : ''}
     </div><button class="favorite-button${favorites.has(entry.id) ? ' is-active' : ''}" type="button" data-favorite-id="${escapeHtml(entry.id)}" aria-pressed="${favorites.has(entry.id)}" aria-label="${favorites.has(entry.id)?'Remove':'Add'} ${escapeHtml(entry.artist)} favorite">★</button></div>
@@ -971,7 +981,7 @@ return `<details class="timeline-day schedule-day" data-schedule-day="${escapeHt
       const laneEnds=[];
       const cards=sets.filter(e=>e.stage===stage).sort((a,b)=>a.start.localeCompare(b.start)).map(e=>{
         const from=minutes(e.start),to=minutes(e.end);let lane=laneEnds.findIndex(end=>end<=from);if(lane<0)lane=laneEnds.length;laneEnds[lane]=to;
-        return `<button type="button" class="timeline-set${favorites.has(e.id)?' is-active':''}" data-favorite-id="${escapeHtml(e.id)}" aria-pressed="${favorites.has(e.id)}" aria-label="${escapeHtml(e.artist+' · '+formatClock(e.start)+' to '+formatClock(e.end)+' · Toggle favorite')}" style="left:${(from-start)*scale}px;width:${Math.max(20,(to-from)*scale-4)}px;top:${38+lane*84}px"><strong>${escapeHtml(e.artist)}</strong><span>${escapeHtml(formatClock(e.start))} – ${escapeHtml(formatClock(e.end))}</span><small>${favorites.has(e.id)?'★ Saved':'☆ Favorite'}</small></button>`;
+        return `<div class="timeline-set${favorites.has(e.id)?' is-active':''}" role="group" aria-label="${escapeHtml(e.artist)}" style="left:${(from-start)*scale}px;width:${Math.max(20,(to-from)*scale-4)}px;top:${38+lane*84}px"><strong>${artistPreviewButton(e)}</strong><span>${escapeHtml(formatClock(e.start))} – ${escapeHtml(formatClock(e.end))}</span><small>${favorites.has(e.id)?'Saved':'Preview artist'}</small><button type="button" class="timeline-favorite" data-favorite-id="${escapeHtml(e.id)}" aria-pressed="${favorites.has(e.id)}" aria-label="${favorites.has(e.id)?'Remove':'Add'} ${escapeHtml(e.artist)} favorite">${favorites.has(e.id)?'★':'☆'}</button></div>`;
       }).join('');
       return `<div class="timeline-lane" style="height:${42+laneEnds.length*84}px"><h4>${escapeHtml(stage)}</h4>${cards}</div>`;
     }).join('')}</div></div></details>`;
@@ -1036,6 +1046,16 @@ function saveFavorites() {
 function setView(view) {
   activeView = view==='timeline'&&!hasTimeline?'table':view;
   render();
+}
+
+let discovery;
+function toggleSetFavorite(id) {
+  if(!validFavoriteIds.has(id))return;
+  const shared=viewingSharedFavorites;
+  if(favorites.has(id))favorites.delete(id);else favorites.add(id);
+  updateCurrentMemberInterest(id);saveFavorites();render();
+  if(!rallyManagedFavorites&&!cloudAccount&&!anonymousHintShown){anonymousHintShown=true;showToast('Sign in to keep favorites across devices.');}
+  if(shared)showToast('Edited list saved as yours.');
 }
 
 function toggleFavoritesOnly() {
@@ -1432,6 +1452,10 @@ function bindEvents() {
   els.heatViewButton.addEventListener("click", () => setView("heat"));
   const timelineButton=document.createElement('button');timelineButton.id='timeline-view-button';timelineButton.type='button';timelineButton.textContent='Timeline';timelineButton.hidden=!hasTimeline;els.heatViewButton.after(timelineButton);timelineButton.onclick=()=>setView('timeline');
   const timeline=document.createElement('section');timeline.id='timeline-view';timeline.hidden=true;timeline.setAttribute('aria-label','Set time timeline');els.tableView.after(timeline);
+  const posterButton=document.createElement('button');posterButton.id='lineup-poster-button';posterButton.type='button';posterButton.textContent='Poster';timelineButton.after(posterButton);posterButton.onclick=()=>setView('poster');
+  const poster=document.createElement('section');poster.id='lineup-poster';poster.hidden=true;poster.setAttribute('aria-label','Lineup poster');timeline.after(poster);
+  discovery=window.RallyLineupDiscovery?.create({root,container,poster,eventName:eventConfig?.name||'Lost Lands 2026',dateLabel:root.querySelector('.lineup-meta').textContent,timeLabel,getFavorites:()=>favorites,getPeople:groupPeople,onFavorite:toggleSetFavorite,showToast});
+  root.addEventListener('click',event=>{const button=event.target.closest('[data-artist-id]');if(button)discovery?.openArtist(lineupById.get(button.dataset.artistId),button);},{signal:lifetime.signal});
   els.popularitySort.addEventListener("click", () => {
     const dialog = document.createElement('dialog');
     dialog.className = 'sort-dialog';
@@ -1471,22 +1495,7 @@ function bindEvents() {
     const button = event.target.closest("[data-favorite-id]");
     if (!button) return;
 
-    const id = button.dataset.favoriteId;
-    const wasViewingSharedFavorites = viewingSharedFavorites;
-    if (favorites.has(id)) {
-      favorites.delete(id);
-    } else {
-      favorites.add(id);
-    }
-
-    updateCurrentMemberInterest(id);
-    saveFavorites();
-    render();
-    if (!rallyManagedFavorites && !cloudAccount && !anonymousHintShown) {
-      anonymousHintShown = true;
-      showToast("Sign in to keep favorites across devices.");
-    }
-    if (wasViewingSharedFavorites) showToast("Edited list saved as yours.");
+    toggleSetFavorite(button.dataset.favoriteId);
   };
   els.tableBody.addEventListener("click", handleFavoriteClick);
   els.tableBody.addEventListener("click", handlePastDayClick);
@@ -1499,7 +1508,7 @@ function bindEvents() {
   root.getElementById('mobile-days').addEventListener('click', event => {
     const button = event.target.closest('[data-day]');
     if (!button) return;
-    selectedDays = new Set([button.dataset.day]); render();
+    selectedDays = new Set(button.dataset.day==='__all__'?[]:[button.dataset.day]); render();
   });
   const filtersDialog = root.getElementById('filters-dialog');
   root.getElementById('close-filters').onclick = () => filtersDialog.close();
@@ -1581,7 +1590,7 @@ else window.addEventListener("load", initializeOptionalAccount, { once: true });
 return {
   receive: message => receive({data:message}),
   route(params) { integration.params=params; readStateFromUrl(); render(); },
-  suspend() { root.querySelector('.toast')?.remove(); root.querySelectorAll('dialog[open]').forEach(dialog=>dialog.close()); root.activeElement?.blur(); closeFilterPopovers(); },
-  destroy() { lifetime.abort(); overlayObserver?.disconnect(); window.clearTimeout(cloudSaveTimer); window.clearInterval(progressTimer); }
+  suspend() { discovery?.close();root.querySelector('.toast')?.remove(); root.querySelectorAll('dialog[open]').forEach(dialog=>dialog.close()); root.activeElement?.blur(); closeFilterPopovers(); },
+  destroy() { discovery?.destroy();lifetime.abort(); overlayObserver?.disconnect(); window.clearTimeout(cloudSaveTimer); window.clearInterval(progressTimer); }
 };
 };

@@ -47,7 +47,7 @@ const ctx={lineup,hiddenLineupDays:new Set(['Wednesday','Thursday']),selectedDay
 });
 test('mobile day tabs adapt to visible days and a hidden-day URL falls back safely',()=>{
   const days={innerHTML:'',contains:()=>false,style:{setProperty(k,v){this[k]=v;}}};
-  const ctx={lineup,dayOrder:['Wednesday','Thursday','Friday','Saturday','Sunday'],hiddenLineupDays:new Set(['Wednesday','Thursday']),selectedDays:new Set(['Wednesday']),mobileViewQuery:{matches:true},document:{getElementById:()=>days,activeElement:null},escapeHtml:value=>value};
+  const ctx={lineup,dayOrder:['Wednesday','Thursday','Friday','Saturday','Sunday'],hiddenLineupDays:new Set(['Wednesday','Thursday']),selectedDays:new Set(['Wednesday']),activeView:'table',mobileViewQuery:{matches:true},document:{getElementById:()=>days,activeElement:null},escapeHtml:value=>value};
   ctx.root=ctx.document;
   ctx.easternNow=()=> '2026-09-18T17:00';
   vm.createContext(ctx);
