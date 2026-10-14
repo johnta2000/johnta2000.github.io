@@ -1,0 +1,7 @@
+get-it-on-itunes.svg is unmodified Apple-approved artwork from:
+https://www.apple.com/105/media/us/ipoditunes/itunes/2018/3a5387c5_1ebd_4993_9633_ff7264dc27bf/itunes-store-badges/us_uk.zip
+Archive path: US_UK/iTunes_Store_Badge/Get_it_on/SVG/US_UK_iTunes_Store_Get_Badge_RGB_012618.svg
+Guidelines: https://marketing.services.apple/itunes-identity-guidelines
+
+The badge links directly to the selected song. Promotional previews stream from
+Apple's servers only; they are not downloaded, saved, or cached by Rally.

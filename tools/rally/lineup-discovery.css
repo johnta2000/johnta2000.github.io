@@ -43,9 +43,25 @@
 .artist-crew { color:var(--muted,#5d6c61);font:500 12px/1.5 system-ui;overflow-wrap:anywhere;margin:0; }
 .artist-collaborators { display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px; }
 .artist-music { border-top:1px solid var(--line,#dfe5dd);padding-top:18px; }
-.artist-player iframe { display:block;width:100%;border:0;border-radius:12px;background:var(--rally-soft,#e8f0e9); }
-.artist-player>a { display:inline-flex;align-items:center;min-height:44px;color:var(--rally-accent,#285f4a);font:600 13px system-ui; }
-.artist-preview-hint,.artist-preview-status { color:var(--muted,#5d6c61);font:400 13px/1.5 system-ui;margin:10px 0 0; }
+.artist-preview-card { display:grid;grid-template-columns:52px minmax(0,1fr) 44px;gap:12px;align-items:center;padding:16px;border:1px solid var(--line,#dfe5dd);border-radius:14px;background:var(--rally-soft,#e8f0e9); }
+.artist-preview-cover { display:block;width:52px;height:52px;border-radius:8px;object-fit:cover; }
+.artist-preview-cover-empty { display:grid;place-items:center;background:var(--card,#fff);color:var(--rally-accent,#285f4a);font:28px system-ui; }
+.artist-preview-title strong,.artist-preview-title span { display:block;overflow-wrap:anywhere; }
+.artist-preview-title strong { color:var(--ink,#202b25);font:700 14px/1.4 system-ui; }
+.artist-preview-title span { margin-top:3px;color:var(--muted,#5d6c61);font:400 12px/1.4 system-ui; }
+.artist-preview-toggle { display:grid;place-items:center;width:44px;height:44px;padding:10px;border:0;border-radius:50%;background:var(--rally-accent,#285f4a);color:var(--rally-on-accent,#fff);cursor:pointer; }
+.artist-preview-toggle svg { width:24px;height:24px;fill:currentColor; }
+.artist-preview-toggle:focus-visible { outline:2px solid var(--ink,#202b25);outline-offset:3px; }
+.artist-preview-timing,.artist-playback-status { grid-column:1/-1; }
+.artist-preview-progress { display:block;width:100%;height:4px;overflow:hidden;border:0;border-radius:2px;background:var(--line,#dfe5dd);color:var(--rally-accent,#285f4a);accent-color:var(--rally-accent,#285f4a); }
+.artist-preview-progress::-webkit-progress-bar { background:var(--line,#dfe5dd); }
+.artist-preview-progress::-webkit-progress-value { background:var(--rally-accent,#285f4a); }
+.artist-preview-progress::-moz-progress-bar { background:var(--rally-accent,#285f4a); }
+.artist-preview-timing>div { display:flex;justify-content:space-between;margin-top:6px;color:var(--muted,#5d6c61);font:400 11px/1.4 system-ui;font-variant-numeric:tabular-nums; }
+.artist-playback-status { margin:0;color:var(--muted,#5d6c61);font:500 12px/1.4 system-ui; }
+.artist-store-link { display:inline-flex;align-items:center;min-height:48px;padding:4px 0;margin-top:8px; }
+.artist-store-link img { display:block;height:34px;width:auto;max-width:100%; }
+.artist-preview-status { color:var(--muted,#5d6c61);font:400 13px/1.5 system-ui;margin:10px 0 0; }
 .artist-preview-status { min-height:60px; }
 .artist-tracks { display:grid;gap:6px;margin-top:12px; }
 .artist-tracks button { display:block;text-align:left;min-height:48px;width:100%;padding:10px 12px;border:1px solid var(--line,#dfe5dd);border-radius:10px;background:var(--card,#fff);color:var(--ink,#202b25);cursor:pointer; }
