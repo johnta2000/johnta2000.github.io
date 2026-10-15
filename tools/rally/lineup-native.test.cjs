@@ -29,18 +29,20 @@ test('mobile lineup chrome removes redundant day/admin bars and keeps tools perm
  const ctx=setup(true,null,event);try{
   assert(ctx.root.getElementById('mobile-days').hidden);
   assert(ctx.root.querySelector('[data-filter="days"]').hidden);
-  const tools=ctx.root.getElementById('lineup-tools');assert(!tools.open);
-  assert.equal(ctx.root.querySelector('.lineup-admin-actions').closest('dialog'),tools);
-  assert.equal(ctx.root.querySelector('.lineup-blocks').closest('dialog'),tools);
-  assert.equal(ctx.root.getElementById('manage-days').closest('dialog'),tools);
+  const tools=ctx.root.getElementById('lineup-tools'),dialog=ctx.root.getElementById('filters-dialog');assert(!dialog.open);
+  assert.equal(ctx.root.querySelector('.lineup-admin-actions').closest('dialog'),dialog);
+  assert.equal(ctx.root.querySelector('.lineup-blocks').closest('dialog'),dialog);
+  assert.equal(ctx.root.getElementById('manage-days').closest('dialog'),dialog);
+  assert.equal(ctx.root.querySelectorAll('#lineup-tools-button').length,0);
   assert(ctx.root.querySelector('.lineup-meta').textContent.includes('4 PM – 2 AM PT'));
-  ctx.root.getElementById('lineup-tools-button').click();assert(tools.open);
+  ctx.root.getElementById('filter-toggle').click();assert(dialog.open);assert(tools.hidden);
+  ctx.root.querySelector('[data-controls-tab="tools"]').click();assert(!tools.hidden);assert(ctx.root.getElementById('lineup-controls-filters').hidden);
   const search=tools.querySelector('input');search.value='no-matches';search.dispatchEvent(new ctx.w.Event('input'));assert(!tools.querySelector('.lineup-tools-empty').hidden);
   search.value='';search.dispatchEvent(new ctx.w.Event('input'));
-  ctx.root.querySelector('[data-add]').click();assert(!tools.open);assert(ctx.events.some(e=>e.type==='rally-lineup-add'));
+  ctx.root.querySelector('[data-add]').click();assert(!dialog.open);assert(ctx.events.some(e=>e.type==='rally-lineup-add'));
   ctx.w.RallyLineup.receive({...ctx.state,canManageDays:false});
   assert(ctx.root.querySelector('.lineup-admin-actions').hidden);assert(ctx.root.getElementById('manage-days').hidden);
-  ctx.root.getElementById('lineup-tools-button').click();ctx.w.RallyLineup.hide();assert(!tools.open);
+  ctx.root.getElementById('filter-toggle').click();ctx.w.RallyLineup.hide();assert(!dialog.open);
  }finally{ctx.w.close();}
 });
 test('shared mobile likes picker survives shadow-root focus, searches, syncs and preserves exact favorite IDs',()=>{
@@ -49,6 +51,7 @@ test('shared mobile likes picker survives shadow-root focus, searches, syncs and
   ctx.w.RallyLineup.receive({...ctx.state,artistIds:['sat-2hollis','removed-set'],interests:{'sat-isoknock':[{id:'sam',name:'Sam'}]}});
   const wrapper=ctx.root.querySelector('.lineup-mobile-likes .search-select'),trigger=wrapper.querySelector('button'),panel=wrapper.querySelector('.search-select-panel'),input=wrapper.querySelector('input');
   trigger.click();assert(!panel.hidden,'Focus entering a shadow root must not immediately close the picker');
+  assert.notEqual(ctx.root.activeElement,input,'A pointer open should not request the software keyboard');
   input.value='crew';input.dispatchEvent(new ctx.w.Event('input'));assert.equal(wrapper.querySelectorAll('[role="option"]').length,1);
   input.dispatchEvent(new ctx.w.KeyboardEvent('keydown',{key:'Enter',bubbles:true,composed:true}));
   assert(panel.hidden);assert.equal(ctx.root.getElementById('lineup-likes-select').value,'crew');
@@ -58,6 +61,30 @@ test('shared mobile likes picker survives shadow-root focus, searches, syncs and
   ctx.root.querySelector('[data-likes-filter="mine"]').click();assert.equal(ctx.root.getElementById('lineup-likes-select').value,'mine');assert(trigger.textContent.includes('My likes'));
   assert.equal(ctx.events.filter(e=>e.type==='rally-lineup-favorites-changed').length,0,'Filtering must never alter favorites');
   trigger.click();ctx.w.RallyLineup.hide();assert(panel.hidden);
+ }finally{ctx.w.close();}
+});
+test('unified controls keep reset stable on desktop and support keyboard tab switching',()=>{
+ for(const mobile of [false,true]){
+  const ctx=setup(mobile,null,JSON.parse(read('../../scripts/fixtures/midnight-carnival-2026.json')));try{
+   const dialog=ctx.root.getElementById('filters-dialog'),reset=ctx.root.getElementById('reset-lineup-controls'),stage=ctx.root.querySelector('[data-filter="stages"]');
+   ctx.root.getElementById('filter-toggle').click();stage.querySelector('button').click();
+   const checkbox=stage.querySelector('input[type="checkbox"]');checkbox.checked=true;checkbox.dispatchEvent(new ctx.w.Event('change',{bubbles:true}));assert(!reset.disabled);
+   reset.dispatchEvent(new ctx.w.Event('pointerdown',{bubbles:true}));assert.equal(stage.querySelector('button').getAttribute('aria-expanded'),'true','Pointerdown must not shift the footer');
+   reset.click();assert(dialog.open);assert(reset.disabled);assert(!checkbox.checked);
+   const filtersTab=ctx.root.getElementById('lineup-filters-tab'),toolsTab=ctx.root.getElementById('lineup-tools-tab');filtersTab.focus();
+   filtersTab.dispatchEvent(new ctx.w.KeyboardEvent('keydown',{key:'ArrowRight',bubbles:true}));assert.equal(ctx.root.activeElement,toolsTab);assert.equal(toolsTab.getAttribute('aria-selected'),'true');assert(ctx.root.querySelector('#filters-dialog footer').hidden);
+   toolsTab.dispatchEvent(new ctx.w.KeyboardEvent('keydown',{key:'Home',bubbles:true}));assert.equal(ctx.root.activeElement,filtersTab);assert(!ctx.root.getElementById('lineup-controls-filters').hidden);
+  }finally{ctx.w.close();}
+ }
+});
+test('likes picker allows space in search and keyboard selection without forcing search focus on pointer open',()=>{
+ const ctx=setup(true,null,niteharts);try{
+  const wrapper=ctx.root.querySelector('.lineup-mobile-likes .search-select'),trigger=wrapper.querySelector('button'),panel=wrapper.querySelector('.search-select-panel'),search=wrapper.querySelector('input'),list=wrapper.querySelector('[role="listbox"]');
+  trigger.click();assert.equal(ctx.root.activeElement,list);
+  list.dispatchEvent(new ctx.w.KeyboardEvent('keydown',{key:'ArrowDown',bubbles:true}));list.dispatchEvent(new ctx.w.KeyboardEvent('keydown',{key:' ',bubbles:true}));assert(panel.hidden);assert.equal(ctx.root.getElementById('lineup-likes-select').value,'mine');
+  trigger.dispatchEvent(new ctx.w.KeyboardEvent('keydown',{key:'ArrowDown',bubbles:true}));assert.equal(ctx.root.activeElement,search);
+  const space=new ctx.w.KeyboardEvent('keydown',{key:' ',bubbles:true,cancelable:true});search.dispatchEvent(space);assert(!space.defaultPrevented);assert(!panel.hidden);
+  search.value='crew likes';search.dispatchEvent(new ctx.w.Event('input'));assert.equal(list.children.length,1);search.dispatchEvent(new ctx.w.KeyboardEvent('keydown',{key:'Enter',bubbles:true}));assert.equal(ctx.root.getElementById('lineup-likes-select').value,'crew');
  }finally{ctx.w.close();}
 });
 test('Niteharts official schedule includes both stages, keeps identities and supports stage filters on phones and desktop',()=>{
@@ -104,7 +131,9 @@ test('untimed events share mobile filters, likes and estimated order without fab
   ctx.root.querySelector('#mobile-schedule [data-favorite-id]').click();
   const change=ctx.events.filter(x=>x.type==='rally-lineup-favorites-changed').at(-1);
   assert(change.artistIds.includes('sat-2hollis'));assert(change.artistIds.includes('sat-isoknock'));assert(change.artistIds.includes('removed-set'));
-  assert(ctx.root.getElementById('filter-toggle').hidden,'Do not offer an empty filter sheet before stages or times are announced');
+  assert(!ctx.root.getElementById('filter-toggle').hidden,'Controls remain useful for likes and sharing even without announced stages');
+  ctx.root.getElementById('filter-toggle').click();assert(ctx.root.getElementById('filters-dialog').open);assert(ctx.root.querySelector('.lineup-controls-likes'));
+  ctx.root.getElementById('close-filters').click();
   ctx.root.getElementById('heat-view-button').click();assert(ctx.root.querySelector('.mobile-stage-heat'));
  }finally{ctx.w.close();}
 });

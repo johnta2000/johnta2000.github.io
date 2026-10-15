@@ -1,4 +1,4 @@
-@import url("./clerk-otp.css?v=20261011-1");
+@import url("./clerk-otp.css?v=20261014-2");
 /* Shared signed-out layouts. Data attributes survive Clerk replacing mount classes. */
 [data-clerk-mount][id],
 [data-clerk-mount] .cl-rootBox,

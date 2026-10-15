@@ -907,6 +907,7 @@ function render() {
   const available = lineup.filter(entry=>!hiddenLineupDays.has(entry.day));
   const favoriteTotal = available.filter(entry=>favorites.has(entry.id)).length;
   els.resultCount.textContent = entries.length === available.length ? `${available.length} sets` : `${entries.length} of ${available.length} sets`;
+  root.getElementById('apply-filters').textContent=`Show ${entries.length} sets`;
   els.favoriteCount.textContent = String(favoriteTotal);
   els.favoritesFilterButton.setAttribute("aria-label", `Show favorites only (${favoriteTotal} saved)`);
   if (mobileViewQuery.matches) renderMobileSchedule(entries);
@@ -942,21 +943,22 @@ function renderMobileDays() {
   if (days.innerHTML !== html) { days.innerHTML = html; if(focused) days.querySelector(`[data-day="${focused}"]`)?.focus({preventScroll:true}); }
 }
 function placeMobileFilters() {
-  const noExtraFilters=mobileViewQuery.matches&&!hasTimes&&!hasGenres&&!hasStages;
-  els.filterToggle.hidden=noExtraFilters;
-  root.querySelector('.toolbar').classList.toggle('no-extra-filters',noExtraFilters);
-  const dialog = root.getElementById('filters-dialog');
-  if (mobileViewQuery.matches) root.getElementById('mobile-filter-slot').append(els.filterFields);
-  else {
-    if (dialog.open) dialog.close();
-    els.filterToggle.after(els.filterFields);
-  }
+  els.filterToggle.hidden=false;
+  root.querySelector('.toolbar').classList.remove('no-extra-filters');
+  root.getElementById('mobile-filter-slot').append(els.filterFields);
   closeFilterPopovers();
 }
 function openMobileFilters() {
-  placeMobileFilters(); closeFilterPopovers();
+  likesPicker?.close();placeMobileFilters();selectControlsTab('filters');
   root.getElementById('filters-dialog').showModal();
   els.filterToggle.setAttribute('aria-expanded','true');
+  root.getElementById('close-filters').focus({preventScroll:true});
+}
+function selectControlsTab(name, focus=false) {
+  root.querySelectorAll('[data-controls-tab]').forEach(button=>{const active=button.dataset.controlsTab===name;button.setAttribute('aria-selected',String(active));button.tabIndex=active?0:-1;if(active&&focus)button.focus({preventScroll:true});});
+  root.getElementById('lineup-controls-filters').hidden=name!=='filters';
+  root.getElementById('lineup-tools').hidden=name!=='tools';
+  root.querySelector('#filters-dialog footer').hidden=name!=='filters';
 }
 function mobileSetCard(entry, maximum = 0, rank = 0, heat = false) {
   const people = groupPeople(entry.id), count = people.length;
@@ -1025,7 +1027,6 @@ function renderMobileSchedule(entries) {
     container.innerHTML = html; container.renderedHTML = html;
     if (focused) [...container.querySelectorAll('[data-favorite-id]')].find(button=>button.dataset.favoriteId===focused)?.focus({preventScroll:true});
   }
-  root.getElementById('apply-filters').textContent = `Show ${entries.length} sets`;
 }
 
 function saveFavorites() {
@@ -1303,10 +1304,11 @@ function updateFilterControls() {
     const search = option.closest('.filter-popover').querySelector('.filter-search').value;
     option.hidden = hiddenLineupDays.has(value) || !normalizeText(value).includes(normalizeText(search.trim()));
   });
-  const activeCount = (mobileViewQuery.matches ? 0 : selectedDays.size) + selectedStages.size + selectedGenres.size + Number(timeMin !== timeBounds.min || timeMax !== timeBounds.max);
+  const activeCount = (mobileViewQuery.matches ? 0 : selectedDays.size) + selectedStages.size + selectedGenres.size + Number(timeMin !== timeBounds.min || timeMax !== timeBounds.max) + Number(favoritesOnly||crewLikesOnly);
   els.filterCount.textContent = String(activeCount);
   els.filterCount.hidden = !activeCount;
   els.clearFiltersButton.hidden = !activeCount && !els.search.value.trim() && !favoritesOnly && !crewLikesOnly;
+  const reset=root.getElementById('reset-lineup-controls');if(reset)reset.disabled=els.clearFiltersButton.hidden;
   els.filterPopovers.forEach((popover) => {
     const name = popover.dataset.filter;
     const label = popover.querySelector(".filter-trigger-label");
@@ -1448,24 +1450,30 @@ function initFilterControls() {
 // consume the phone's first screen. Move existing controls, keeping their IDs,
 // handlers and server-provided permissions instead of maintaining duplicates.
 function setupLineupChrome() {
-  const header=root.querySelector('.app-header'),toolbar=root.querySelector('.toolbar');
-  const tools=document.createElement('dialog');tools.id='lineup-tools';tools.className='lineup-tools';tools.setAttribute('aria-labelledby','lineup-tools-title');
-  tools.innerHTML='<header><h2 id="lineup-tools-title">Lineup options</h2><button type="button" aria-label="Close lineup options">×</button></header><input class="lineup-tool-search" type="search" placeholder="Find an option…" aria-label="Find lineup option"><div class="lineup-tools-list"></div><p class="lineup-tools-empty" hidden>No matching options.</p>';
+  const toolbar=root.querySelector('.toolbar'),dialog=root.getElementById('filters-dialog');dialog.classList.add('lineup-controls');
+  root.getElementById('filters-title').textContent='Lineup controls';dialog.querySelector('header p').hidden=true;
+  root.getElementById('close-filters').setAttribute('aria-label','Close lineup controls');
+  const tabs=document.createElement('nav');tabs.className='lineup-controls-tabs';tabs.setAttribute('role','tablist');tabs.setAttribute('aria-label','Lineup controls');
+  tabs.innerHTML='<button id="lineup-filters-tab" type="button" role="tab" data-controls-tab="filters" aria-controls="lineup-controls-filters" aria-selected="true">Filters</button><button id="lineup-tools-tab" type="button" role="tab" data-controls-tab="tools" aria-controls="lineup-tools" aria-selected="false" tabindex="-1">Tools</button>';
+  const body=document.createElement('div');body.className='lineup-controls-body';
+  const filters=document.createElement('section');filters.id='lineup-controls-filters';filters.setAttribute('role','tabpanel');filters.setAttribute('aria-labelledby','lineup-filters-tab');
+  const likes=document.createElement('section');likes.className='lineup-controls-likes';likes.innerHTML='<h3>Show</h3>';likes.append(root.querySelector('.likes-filter'));filters.append(likes,root.getElementById('mobile-filter-slot'));
+  const tools=document.createElement('section');tools.id='lineup-tools';tools.className='lineup-tools';tools.hidden=true;tools.setAttribute('role','tabpanel');tools.setAttribute('aria-labelledby','lineup-tools-tab');
+  tools.innerHTML='<input class="lineup-tool-search" type="search" placeholder="Find an option…" aria-label="Find lineup option"><div class="lineup-tools-list"></div><p class="lineup-tools-empty" hidden>No matching options.</p>';
   const list=tools.querySelector('.lineup-tools-list');
   const source=root.querySelector('.lineup-source'),info=root.querySelector('.lineup-event-info'),admin=root.querySelector('.lineup-admin-actions');
   els.shareButton.textContent='Copy lineup link';
   for(const control of [els.shareButton,els.popularitySort,source,info,root.getElementById('manage-days'),admin].filter(Boolean))list.append(control);
   list.querySelectorAll('button,a').forEach(button=>button.dataset.lineupTool='');
-  container.append(tools);
-  const more=document.createElement('button');more.id='lineup-tools-button';more.className='lineup-tools-button';more.type='button';more.setAttribute('aria-label','Lineup options');more.setAttribute('aria-haspopup','dialog');more.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg>';
-  header.querySelector('.header-copy').after(more);
+  body.append(filters,tools);dialog.querySelector('header').after(tabs,body);
+  tabs.querySelectorAll('button').forEach(button=>button.onclick=()=>selectControlsTab(button.dataset.controlsTab));
+  tabs.onkeydown=event=>{if(!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;event.preventDefault();const current=event.target.dataset.controlsTab;selectControlsTab(event.key==='Home'?'filters':event.key==='End'?'tools':current==='filters'?'tools':'filters',true);};
+  const reset=document.createElement('button');reset.id='reset-lineup-controls';reset.type='button';reset.textContent='Reset';reset.onclick=clearScheduleFilters;dialog.querySelector('footer').prepend(reset);
   const search=tools.querySelector('input'),empty=tools.querySelector('.lineup-tools-empty');
-  const filter=()=>{let count=0;list.querySelectorAll('button,a,details').forEach(control=>{if(control.closest('details')!==control&&control.closest('details'))return;const matches=normalizeText(control.textContent).includes(normalizeText(search.value));control.classList.toggle('tool-search-hidden',!matches);if(matches&&!control.hidden&&!control.closest('[hidden]'))count++;});empty.hidden=count>0;};
+  const filter=()=>{let count=0;list.querySelectorAll('button,a,details').forEach(control=>{if(control.closest('details')!==control&&control.closest('details'))return;const matches=normalizeText(control.textContent).includes(normalizeText(search.value)),hiddenParent=control.closest('[hidden]');control.classList.toggle('tool-search-hidden',!matches);if(matches&&!control.hidden&&(!hiddenParent||hiddenParent===tools))count++;});empty.hidden=count>0;};
   search.oninput=filter;
-  more.onclick=()=>{likesPicker?.close();closeFilterPopovers();search.value='';filter();tools.showModal();tools.querySelector('header button').focus({preventScroll:true});};
-  tools.querySelector('header button').onclick=()=>tools.close();
-  tools.addEventListener('click',event=>{if(event.target===tools){const box=tools.getBoundingClientRect();if(event.clientX<box.left||event.clientX>box.right||event.clientY<box.top||event.clientY>box.bottom)tools.close();}else if(event.target.closest('button[data-lineup-tool],a[data-lineup-tool]'))tools.close();},true);
-  tools.addEventListener('close',()=>{search.value='';filter();if(!root.querySelector('dialog[open]'))more.focus({preventScroll:true});});
+  tools.addEventListener('click',event=>{if(event.target.closest('button[data-lineup-tool],a[data-lineup-tool]'))dialog.close();},true);
+  dialog.addEventListener('close',()=>{search.value='';filter();});
   // View choice precedes filters; phones replace the second full-width tab bar
   // with the shared, searchable likes picker beside artist search.
   const modes=root.querySelector('.schedule-actions');toolbar.before(modes);
@@ -1473,24 +1481,19 @@ function setupLineupChrome() {
   picker.innerHTML=`<select id="lineup-likes-select" aria-label="Filter by likes"><option value="all">All sets</option><option value="mine">My likes</option>${rallyManagedFavorites?'<option value="crew">Crew likes</option>':''}</select>`;
   els.search.after(picker);const select=picker.querySelector('select');
   select.onchange=()=>{favoritesOnly=select.value==='mine';crewLikesOnly=select.value==='crew';render();};
-  likesPicker=window.SearchableSelect?.enhance(select);
+  likesPicker=window.SearchableSelect?.enhance(select,{focusSearchOnOpen:false});
   els.search.placeholder='Find an artist';
-  els.filterToggle.setAttribute('aria-label','Filters');els.filterToggle.title='Filter stages, genres and times';
+  els.filterToggle.setAttribute('aria-label','Lineup controls');els.filterToggle.setAttribute('aria-controls','filters-dialog');els.filterToggle.setAttribute('aria-haspopup','dialog');els.filterToggle.title='Filters, sorting and lineup tools';
   const filterIcon=document.createElementNS('http://www.w3.org/2000/svg','svg');filterIcon.setAttribute('viewBox','0 0 24 24');filterIcon.setAttribute('aria-hidden','true');filterIcon.innerHTML='<path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="2"/><circle cx="15" cy="17" r="2"/>';
-  const filterLabel=document.createElement('span');filterLabel.className='lineup-filter-label';filterLabel.textContent='Filters';
+  const filterLabel=document.createElement('span');filterLabel.className='lineup-filter-label';filterLabel.textContent='Controls';
   els.filterToggle.replaceChildren(filterIcon,filterLabel,els.filterCount);
   const note=document.createElement('span');note.id='lineup-timing-note';note.textContent='Individual sets TBA';note.hidden=hasTimes;els.resultCount.after(note);
+  selectControlsTab('filters');
 }
 
 function bindEvents() {
   els.search.addEventListener("input", render);
-  els.filterToggle.addEventListener("click", () => {
-    if (mobileViewQuery.matches) { openMobileFilters(); return; }
-    const expanded = els.filterToggle.getAttribute("aria-expanded") !== "true";
-    els.filterToggle.setAttribute("aria-expanded", String(expanded));
-    els.filterFields.classList.toggle("is-open", expanded);
-    if (!expanded) closeFilterPopovers();
-  });
+  els.filterToggle.addEventListener("click", openMobileFilters);
 
   els.posterViewButton.addEventListener("click", () => setView("board"));
   els.tableViewButton.addEventListener("click", () => setView("table"));
@@ -1513,7 +1516,7 @@ function bindEvents() {
     dialog.addEventListener('click', event=>{if(event.target===dialog)dialog.close();});
     dialog.querySelectorAll('[data-sort]').forEach(button=>button.onclick=()=>{sortMode=button.dataset.sort;mostLiked=sortMode==='popular';render();dialog.close();});
     dialog.addEventListener('keydown',event=>{const choices=[...dialog.querySelectorAll('[data-sort]:not([hidden])')],index=choices.indexOf(root.activeElement);if(!choices.length)return;if(event.key==='Enter'&&event.target.matches('input')){event.preventDefault();choices[0].click();}else if(event.key==='ArrowDown'||event.key==='ArrowUp'){event.preventDefault();choices[index<0?(event.key==='ArrowDown'?0:choices.length-1):(index+(event.key==='ArrowDown'?1:-1)+choices.length)%choices.length].focus();}});
-    dialog.addEventListener('close',()=>{dialog.remove();root.getElementById('lineup-tools-button')?.focus({preventScroll:true});});
+    dialog.addEventListener('close',()=>{dialog.remove();els.filterToggle.focus({preventScroll:true});});
     dialog.showModal();
   });
   els.clearFiltersButton.addEventListener("click", clearScheduleFilters);
@@ -1531,7 +1534,9 @@ function bindEvents() {
     if (event.target === els.accountDialog) els.accountDialog.close();
   });
   root.addEventListener("pointerdown", (event) => {
-    if(mobileViewQuery.matches && event.target.closest('#filters-dialog'))return;
+    // The sheet owns its accordions. Collapsing them during pointerdown moves
+    // the footer before pointerup and can turn Reset into a backdrop click.
+    if(event.target.closest('#filters-dialog'))return;
     if (!event.target.closest(".filter-popover")) closeFilterPopovers();
   }, true);
   root.addEventListener("keydown", (event) => {
@@ -1560,8 +1565,8 @@ function bindEvents() {
   const filtersDialog = root.getElementById('filters-dialog');
   root.getElementById('close-filters').onclick = () => filtersDialog.close();
   root.getElementById('apply-filters').onclick = () => filtersDialog.close();
-  filtersDialog.addEventListener('click', event => { if(event.target === filtersDialog) filtersDialog.close(); });
-  filtersDialog.addEventListener('close', () => { els.filterToggle.setAttribute('aria-expanded','false'); closeFilterPopovers(); els.filterToggle.focus({preventScroll:true}); });
+  filtersDialog.addEventListener('click', event => { if(event.target!==filtersDialog)return;const box=filtersDialog.getBoundingClientRect();if(event.clientX<box.left||event.clientX>box.right||event.clientY<box.top||event.clientY>box.bottom)filtersDialog.close(); });
+  filtersDialog.addEventListener('close', () => { els.filterToggle.setAttribute('aria-expanded','false'); closeFilterPopovers(); if(!root.querySelector('dialog[open]'))els.filterToggle.focus({preventScroll:true}); });
 
   if (!integration) window.addEventListener("popstate", () => {
     readStateFromUrl();

@@ -1,6 +1,29 @@
-/* Clerk's visible code slots are divs; its transparent input handles typing/autofill. */
+/* Current Clerk wraps six visual slots in input-otp. Size those wrappers too:
+   percentage widths inside its shrink-to-fit container collapse empty digits.
+   Leave the real transparent input alone so paste / SMS autofill keep working. */
+[data-clerk-mount][id] .cl-form:has(.cl-otpCodeField) {
+  width: 100%;
+  align-self: stretch;
+}
+[data-clerk-mount][id] .cl-otpCodeField,
+[data-clerk-mount][id] .cl-otpCodeFieldInputContainer {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 318px;
+  min-width: 0;
+  align-self: stretch;
+  margin-inline: auto;
+}
+[data-clerk-mount][id] .cl-otpCodeFieldInputContainer > div:has(> .cl-otpCodeFieldInputs),
+[data-clerk-mount][id] [data-input-otp-container] {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
 [data-clerk-mount][id] .cl-otpCodeFieldInputs {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   justify-content: center;
   gap: 6px;
   width: 100%;
@@ -11,9 +34,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  flex: 1 1 0;
+  flex: none;
   width: 100%;
-  max-width: 48px;
+  max-width: none;
   min-width: 0;
   height: 52px;
   min-height: 52px;
@@ -25,4 +48,8 @@
   font-variant-numeric: tabular-nums;
   line-height: 1;
   text-align: center;
+}
+[data-clerk-mount][id] .cl-otpCodeFieldInput > div {
+  font: inherit;
+  color: inherit;
 }

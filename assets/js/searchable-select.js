@@ -3,7 +3,7 @@
   'use strict';
   const instances = new WeakMap();
   let sequence = 0, current = null;
-  function enhance(select) {
+  function enhance(select, { focusSearchOnOpen = true } = {}) {
     if (instances.has(select)) return instances.get(select);
     const listeners = new AbortController(), wasHidden = select.hidden;
     const id = select.id || `picker-${++sequence}`;
@@ -17,6 +17,7 @@
     const chevron = make('span', 'search-select-chevron'); chevron.setAttribute('aria-hidden', 'true');
     trigger.append(value, chevron);
     const panel = make('div', 'search-select-panel');
+    panel.tabIndex = -1;
     panel.id = `${id}-panel`; panel.hidden = true;
     if (typeof panel.showPopover === 'function') panel.setAttribute('popover', 'manual');
     const searchBox = make('div', 'search-select-search');
@@ -24,7 +25,7 @@
     search.type = 'text'; search.placeholder = `Search ${label.toLowerCase()}…`; search.autocomplete = 'off'; search.spellcheck = false;
     search.setAttribute('role', 'combobox'); search.setAttribute('aria-label', `Search ${label.toLowerCase()}`);
     search.setAttribute('aria-autocomplete', 'list'); search.setAttribute('aria-expanded', 'false');
-    const list = make('div', 'search-select-list'); list.id = `${id}-options`; list.setAttribute('role', 'listbox'); list.setAttribute('aria-label', label);
+    const list = make('div', 'search-select-list'); list.id = `${id}-options`; list.tabIndex=-1;list.setAttribute('role', 'listbox'); list.setAttribute('aria-label', label);
     const empty = make('p', 'search-select-empty'); empty.textContent = 'No matches. Try another search.'; empty.setAttribute('role', 'status'); empty.hidden = true;
     search.setAttribute('aria-controls', list.id); trigger.setAttribute('aria-controls', list.id);
     searchBox.append(search); panel.append(searchBox, list, empty); wrapper.append(trigger, panel); select.after(wrapper); select.hidden = true;
@@ -34,8 +35,8 @@
       active = index;
       Array.from(list.children).forEach((item, i) => item.classList.toggle('is-active', i === index));
       const item = list.children[index];
-      if (item) { search.setAttribute('aria-activedescendant', item.id); if (scroll) item.scrollIntoView({ block: 'nearest' }); }
-      else search.removeAttribute('aria-activedescendant');
+      if (item) { search.setAttribute('aria-activedescendant', item.id);list.setAttribute('aria-activedescendant',item.id); if (scroll) item.scrollIntoView({ block: 'nearest' }); }
+      else {search.removeAttribute('aria-activedescendant');list.removeAttribute('aria-activedescendant');}
     }
     function filter() {
       const query = normalized(search.value.trim());
@@ -78,16 +79,18 @@
       opened = false; if (current === api) current = null;
       if (panel.hidePopover && panel.matches(':popover-open')) panel.hidePopover();
       panel.hidden = true; trigger.setAttribute('aria-expanded', 'false'); search.setAttribute('aria-expanded', 'false');
-      search.removeAttribute('aria-activedescendant'); search.value = ''; list.replaceChildren(); matches = [];
+      search.removeAttribute('aria-activedescendant');list.removeAttribute('aria-activedescendant'); search.value = ''; list.replaceChildren(); matches = [];
       if (focus && !trigger.disabled) trigger.focus({ preventScroll: true });
     }
-    function open(query = '') {
+    function open(query = '', focusSearch = focusSearchOnOpen) {
       if (select.disabled) return;
       current?.close(); opened = true; current = api;
       search.value = query; filter(); panel.hidden = false;
       if (panel.showPopover) panel.showPopover();
       trigger.setAttribute('aria-expanded', 'true'); search.setAttribute('aria-expanded', 'true');
-      position(); search.focus({ preventScroll: true }); search.setSelectionRange(query.length, query.length);
+      position();
+      if (focusSearch) { search.focus({ preventScroll: true }); search.setSelectionRange(query.length, query.length); }
+      else list.focus({ preventScroll: true });
       activate(active); position();
     }
     function choose(index) {
@@ -106,8 +109,8 @@
     const api = { sync, close, destroy }; instances.set(select, api);
     trigger.addEventListener('click', () => opened ? close() : open());
     trigger.addEventListener('keydown', event => {
-      if (['ArrowDown', 'ArrowUp'].includes(event.key)) { event.preventDefault(); open(); }
-      else if (event.key.length === 1 && event.key !== ' ' && !event.ctrlKey && !event.metaKey && !event.altKey) { event.preventDefault(); open(event.key); }
+      if (['ArrowDown', 'ArrowUp'].includes(event.key)) { event.preventDefault(); open('', true); }
+      else if (event.key.length === 1 && event.key !== ' ' && !event.ctrlKey && !event.metaKey && !event.altKey) { event.preventDefault(); open(event.key, true); }
     });
     search.addEventListener('input', () => { filter(); position(); });
     search.addEventListener('keydown', event => {
@@ -122,6 +125,17 @@
       if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); close(true); }
       // Return to the trigger before the browser advances focus to the next/previous control.
       if (event.key === 'Tab') close(true);
+    });
+    panel.addEventListener('keydown', event => {
+      if (event.target === search) return;
+      if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); choose(active); }
+      if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+        event.preventDefault(); const step=event.key==='ArrowDown'?1:-1;
+        for(let n=1;n<=matches.length;n++){const index=(active+step*n+matches.length)%matches.length;if(!matches[index].disabled){activate(index);break;}}
+      }
+      if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); close(true); }
+      if (event.key === 'Tab') close(true);
+      if (event.key.length===1 && event.key!==' ' && !event.ctrlKey && !event.metaKey && !event.altKey) { event.preventDefault();search.value=event.key;filter();search.focus({preventScroll:true});search.setSelectionRange(1,1);position(); }
     });
     const inside = event => wrapper.contains(event.target) || event.composedPath().includes(wrapper);
     document.addEventListener('pointerdown', event => { if (opened && !inside(event)) close(); }, { signal: listeners.signal });

@@ -93,7 +93,8 @@ async function checkBookingNotes(page,label,width,output){
    assert(!overflow,label+' '+view+' overflows viewport');
    if(view==='stay')await checkBookingNotes(page,label,width,output);
    if(view==='lineup'){
-    await page.locator('rally-lineup #lineup-tools-button').click();
+    await page.locator('rally-lineup #filter-toggle').click();
+    await page.locator('rally-lineup [data-controls-tab="tools"]').click();
     const source=page.locator('rally-lineup .lineup-source');
     assert(await source.isVisible(),'Real event source attribution must be in the audit fixture');
     assert.equal(await source.getAttribute('href'),fixture.lineupSource);
@@ -178,7 +179,8 @@ async function checkBookingNotes(page,label,width,output){
   await page.screenshot({path:`${output}/${label}-timeline.png`});
   contrastIssues.push(...await auditContrast(page,label+' timeline toast'));
   await page.locator('rally-lineup #table-view-button').click();
-  await page.locator('rally-lineup #lineup-tools-button').click();
+  await page.locator('rally-lineup #filter-toggle').click();
+  await page.locator('rally-lineup [data-controls-tab="tools"]').click();
   await page.locator('#popularity-sort').click();
   await page.screenshot({path:`${output}/${label}-sort.png`});
   contrastIssues.push(...await auditContrast(page,label+' sort'));
