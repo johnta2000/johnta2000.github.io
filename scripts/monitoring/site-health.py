@@ -45,8 +45,10 @@ def main():
             page = jobs[job]
             try:
                 content_type, html = job.result()
-                if 'text/html' not in content_type or f'data-app="{page["app"]}"' not in html:
-                    raise ValueError('Expected app page/analytics marker missing')
+                marker = (f'<title>{page["title"]}</title>' if page.get('analytics') is False
+                          else f'data-app="{page["app"]}"')
+                if 'text/html' not in content_type or marker not in html:
+                    raise ValueError('Expected page identity marker missing')
                 parser = Assets()
                 parser.feed(html)
                 for src in parser.urls:

@@ -45,6 +45,24 @@
     "file": "teaching.html"
   },
   {
+    "path": "/tools/1on1s/",
+    "file": "tools/1on1s/index.html",
+    "analytics": false,
+    "title": "1-on-1s · Affil"
+  },
+  {
+    "path": "/tools/access/",
+    "file": "tools/access/index.html",
+    "analytics": false,
+    "title": "Site access — John Ta"
+  },
+  {
+    "path": "/tools/card-payments/",
+    "file": "tools/card-payments/index.html",
+    "analytics": false,
+    "title": "Payments — John Ta"
+  },
+  {
     "app": "menus-hem-by-lequy",
     "path": "/tools/menus/hem-by-lequy/",
     "file": "tools/menus/hem-by-lequy/index.html"
@@ -65,9 +83,39 @@
     "file": "tools/monitoring/index.html"
   },
   {
+    "path": "/tools/packing/",
+    "file": "tools/packing/index.html",
+    "analytics": false,
+    "title": "Packing — John Ta"
+  },
+  {
+    "path": "/tools/payment/questions/",
+    "file": "tools/payment/questions/index.html",
+    "analytics": false,
+    "title": "Payment questions — John Ta"
+  },
+  {
+    "path": "/tools/payments/",
+    "file": "tools/payments/index.html",
+    "analytics": false,
+    "title": "Payments — John Ta"
+  },
+  {
+    "path": "/tools/payments/statements/",
+    "file": "tools/payments/statements/index.html",
+    "analytics": false,
+    "title": "Statement review — Payments"
+  },
+  {
     "app": "rally",
     "path": "/tools/rally/",
     "file": "tools/rally/index.html"
+  },
+  {
+    "path": "/tools/rent/",
+    "file": "tools/rent/index.html",
+    "analytics": false,
+    "title": "Rent — John Ta"
   },
   {
     "app": "seometadata",
@@ -78,6 +126,12 @@
     "app": "sleep",
     "path": "/tools/sleep/",
     "file": "tools/sleep/index.html"
+  },
+  {
+    "path": "/tools/sleep/privacy/",
+    "file": "tools/sleep/privacy/index.html",
+    "analytics": false,
+    "title": "Daylight — Privacy"
   },
   {
     "app": "standups",
@@ -108,5 +162,11 @@
     "app": "war-room-06152026",
     "path": "/war-room-06152026/",
     "file": "war-room-06152026/index.html"
+  },
+  {
+    "path": "/war-room-10012026/",
+    "file": "war-room-10012026/index.html",
+    "analytics": false,
+    "title": "October 1, 2026 · Launch War Room"
   }
 ]

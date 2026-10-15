@@ -7,6 +7,7 @@ on:
   push:
     branches: [master]
     paths:
+      - '**/*.html'
       - 'assets/js/analytics.js'
       - 'tests/analytics.test.cjs'
       - 'scripts/monitoring/site-health.py'
@@ -22,6 +23,8 @@ concurrency:
 
 jobs:
   analytics-checks:
+    # Source checks only need to run when code changes or on manual request.
+    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

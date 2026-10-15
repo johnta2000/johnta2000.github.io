@@ -64,12 +64,18 @@ test('interaction capture ignores labels, values, and dynamic links', () => {
   assert.equal(captures[0][0], 'ui_interaction');
   assert.doesNotMatch(JSON.stringify(captures), /PRIVATE|SECRET/);
 });
-test('all published HTML pages have exactly one correctly named analytics script', () => {
+test('all published HTML pages declare their analytics policy and page identity', () => {
   const manifest = JSON.parse(fs.readFileSync('scripts/monitoring/site-pages.json'));
   const tracked = require('node:child_process').execFileSync('git', ['ls-files', '*.html'], {encoding:'utf8'}).trim().split('\n');
   assert.deepEqual(manifest.map(x=>x.file).sort(), tracked.sort());
   for (const page of manifest) {
     const html = fs.readFileSync(page.file,'utf8');
+    if (page.analytics === false) {
+      assert.ok(page.title, `${page.file}: pages without analytics need an identifying title`);
+      assert.ok(html.includes(`<title>${page.title}</title>`), page.file);
+      assert.doesNotMatch(html, /<script\b[^>]*\bsrc=["'][^"']*\/assets\/js\/analytics\.js(?:[?"'])/i, page.file);
+      continue;
+    }
     assert.equal(html.match(/src="\/assets\/js\/analytics.js\?v=20260927-3"/g)?.length, 1, page.file);
     assert.ok(html.includes(`data-app="${page.app}"`),page.file);
   }
