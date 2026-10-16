@@ -1,3 +1,4 @@
+import { nextcardLaunchTables } from "./nextcardLaunchTables";
 import { burgeryTables } from "./burgeryTables";
 import { packingTables } from "./packingTables";
 import { monthlyJournalTables } from "./monthlyJournalTables";
@@ -14,6 +15,7 @@ import { rentTables } from "./rentTables";
 import { sleepTables } from "./sleepTables";
 
 export default defineSchema({
+  ...nextcardLaunchTables,
   ...burgeryTables,
   ...packingTables,
   ...monthlyJournalTables,

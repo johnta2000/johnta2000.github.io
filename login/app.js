@@ -103,6 +103,7 @@
         ['rent', endpoints.tools, 'rent:verify'],
         ['paymentQuestions', endpoints.tools, 'paymentQuestions:verify'],
         ['packing', endpoints.tools, 'packing:verify'],
+        ['nextcardLaunches', endpoints.tools, 'nextcardLaunches:verify'],
         ['accessOverview', endpoints.tools, 'accessOverview:verify'],
       ];
       const results = await Promise.allSettled(checks.map(([, endpoint, path]) => query(endpoint, path, token)));
@@ -123,6 +124,7 @@
       }
       if (values.paymentQuestions) addApp('Payment questions', '../tools/payment/questions/', 'Notes and screenshots for charges and reimbursements.');
       if (values.packing) addApp('Packing', '../tools/packing/', 'A fresh packing checklist for every trip.');
+      if (values.nextcardLaunches) addApp('NextCard Launches', '../tools/launches/', 'Plan a launch, choose channels, and track distribution.');
       if (values.rent) {
         addApp('Rent', '../tools/rent/', 'Monthly rent splits and shared payment history.');
         addApp('PG&E bills', '../tools/rent/#rent-records', 'Shared utility bills and payment records.');
