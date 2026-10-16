@@ -63,6 +63,12 @@
     "title": "Payments — John Ta"
   },
   {
+    "path": "/tools/launches/",
+    "file": "tools/launches/index.html",
+    "analytics": false,
+    "title": "NextCard Launches"
+  },
+  {
     "app": "menus-hem-by-lequy",
     "path": "/tools/menus/hem-by-lequy/",
     "file": "tools/menus/hem-by-lequy/index.html"
