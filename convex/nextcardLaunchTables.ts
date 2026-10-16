@@ -23,6 +23,7 @@ export const launchValue = v.object({
     liveUrl: v.string(), outcome: v.string(), activityAt: v.number(),
   })),
   notes: v.string(),
+  hiddenChannelKeys: v.optional(v.array(v.string())),
 });
 const meta = { key: v.string(), version: v.number(), createdAt: v.number(), updatedAt: v.number(), updatedBy: v.string() };
 export const nextcardLaunchTables = {

@@ -173,11 +173,21 @@
   function removeChannelButton(key, name) {
     return `<button type="button" class="channel-remove" data-action="remove-launch-channel" data-key="${h(key)}" aria-label="Remove ${h(name)} from this launch">Remove</button>`;
   }
+  function hideChannelButton(record) {
+    return `<button type="button" class="channel-hide" data-action="hide-launch-channel" data-key="${h(record.key)}" aria-label="Hide ${h(record.value.name)} for this launch">Hide for this launch</button>`;
+  }
+  function channelLaunchContext(record) {
+    const launch = current();
+    if (!record || !launch) return '';
+    const selected = launch.value.tasks.some(task => task.channelKey === record.key);
+    const hidden = (launch.value.hiddenChannelKeys || []).includes(record.key);
+    return `<div class="launch-channel-context"><p>${selected ? 'Included in this launch.' : hidden ? 'Hidden from this launch’s choices.' : 'Available option · not included in this launch.'}</p>${selected ? removeChannelButton(record.key, record.value.name) : hidden ? `<button type="button" data-action="restore-launch-channel" data-key="${h(record.key)}">Restore for this launch</button>` : hideChannelButton(record)}<small>Channel details below are shared across all launches.</small></div>`;
+  }
   function compactChannels(records, selected, scope, grouped = false) {
     const renderRows = values => `<div class="compact-channel-grid">${values.map(record => {
       const value = record.value, suggestion = scope === 'chooser' ? M.suggestion(value, current().value) : null;
       const metadata = [value.archived ? 'Archived' : '', value.kind === 'owned' ? 'NextCard' : '', ...value.tags.filter(tag => tag !== 'general').slice(0, 2)].filter(Boolean).join(' · ') || 'General audience';
-      return `<article class="compact-channel${value.archived ? ' is-archived' : ''}"><label class="compact-channel-choice"><input type="checkbox" data-${scope === 'library' ? 'library-channel' : 'channel'}="${h(record.key)}" aria-label="Select ${h(value.name)}"${selected.has(record.key) ? ' checked' : ''}${value.archived && !selected.has(record.key) ? ' disabled' : ''}><span><strong>${h(value.name)}</strong><small>${h(metadata)}${suggestion ? ` · ${h(suggestion.label)}` : ''}</small></span></label><div class="channel-row-actions">${scope === 'chooser' && selected.has(record.key) ? removeChannelButton(record.key, value.name) : ''}<button type="button" class="channel-detail" data-action="${scope === 'library' ? 'edit-channel' : 'channel-guidance'}" data-key="${h(record.key)}" aria-label="Details for ${h(value.name)}">Details</button></div></article>`;
+      return `<article class="compact-channel${value.archived ? ' is-archived' : ''}"><label class="compact-channel-choice"><input type="checkbox" data-${scope === 'library' ? 'library-channel' : 'channel'}="${h(record.key)}" aria-label="Select ${h(value.name)}"${selected.has(record.key) ? ' checked' : ''}${value.archived && !selected.has(record.key) ? ' disabled' : ''}><span><strong>${h(value.name)}</strong><small>${h(metadata)}${suggestion ? ` · ${h(suggestion.label)}` : ''}</small></span></label><div class="channel-row-actions">${scope === 'chooser' ? selected.has(record.key) ? removeChannelButton(record.key, value.name) : hideChannelButton(record) : ''}<button type="button" class="channel-detail" data-action="${scope === 'library' ? 'edit-channel' : 'channel-guidance'}" data-key="${h(record.key)}" aria-label="Details for ${h(value.name)}">Details</button></div></article>`;
     }).join('')}</div>`;
     const sorted = [...records].sort((a, b) => a.value.name.localeCompare(b.value.name));
     if (!grouped) return renderRows(sorted);
@@ -189,22 +199,27 @@
   function showChannelGuidance(record) {
     editorRoute = { type: 'guidance', key: record.key };
     const value = record.value, suggestion = M.suggestion(value, current().value), history = M.history(record.key, data.launches, activeKey).slice(0, 3);
-    showDialog(value.name, `${M.media[M.medium(value)]} · ${M.kinds[value.kind]}`, `<p class="guidance-text">${h(suggestion.reason)}</p>${value.fit ? `<div><h3>Audience fit</h3><p class="guidance-text">${h(value.fit)}</p></div>` : ''}<div class="rule-note">${value.ruleStatus === 'verified' ? `Guidance checked ${h(value.verifiedDate)}.` : 'Posting rules need checking.'} ${value.linkPolicy === 'native' ? 'No external links; use a complete native post.' : value.linkPolicy === 'allowed' ? 'Links recorded as allowed.' : 'Link permissions are not recorded.'}${value.approval === 'required' ? ' Admin approval required.' : ''}</div>${value.rules ? `<p class="guidance-text">${h(value.rules)}</p>` : ''}${value.relationship ? `<p class="guidance-text">${h(value.relationship)}</p>` : ''}${value.notes ? `<p class="form-help">${h(value.notes)}</p>` : ''}${link(value.url, 'Open destination / contact reference')}${history.length ? `<div><h3>Previous activity</h3>${history.map(item => `<div class="history-item"><strong>${h(item.launch)}</strong><p>${h(activityText(item.task.activityAt))}</p>${item.task.outcome ? `<p>${h(item.task.outcome)}</p>` : ''}</div>`).join('')}</div>` : ''}<button type="button" data-action="edit-destination" data-key="${h(record.key)}">Edit channel guidance</button>`, () => {});
+    showDialog(value.name, `${M.media[M.medium(value)]} · ${M.kinds[value.kind]}`, `${channelLaunchContext(record)}<p class="guidance-text">${h(suggestion.reason)}</p>${value.fit ? `<div><h3>Audience fit</h3><p class="guidance-text">${h(value.fit)}</p></div>` : ''}<div class="rule-note">${value.ruleStatus === 'verified' ? `Guidance checked ${h(value.verifiedDate)}.` : 'Posting rules need checking.'} ${value.linkPolicy === 'native' ? 'No external links; use a complete native post.' : value.linkPolicy === 'allowed' ? 'Links recorded as allowed.' : 'Link permissions are not recorded.'}${value.approval === 'required' ? ' Admin approval required.' : ''}</div>${value.rules ? `<p class="guidance-text">${h(value.rules)}</p>` : ''}${value.relationship ? `<p class="guidance-text">${h(value.relationship)}</p>` : ''}${value.notes ? `<p class="form-help">${h(value.notes)}</p>` : ''}${link(value.url, 'Open destination / contact reference')}${history.length ? `<div><h3>Previous activity</h3>${history.map(item => `<div class="history-item"><strong>${h(item.launch)}</strong><p>${h(activityText(item.task.activityAt))}</p>${item.task.outcome ? `<p>${h(item.task.outcome)}</p>` : ''}</div>`).join('')}</div>` : ''}<button type="button" data-action="edit-destination" data-key="${h(record.key)}">Edit channel guidance</button>`, () => {});
   }
   function renderChooser() {
     const value = current().value;
-    $('step-content').innerHTML = `<h2>Choose your channels.</h2><p class="step-intro">Checked channels are included in this launch. Use Remove to drop any that don’t fit. Changes save automatically.</p><div class="chooser-selection"><span id="selected-count"></span><button type="button" class="primary" data-action="next-prepare">Prepare launch →</button></div><div id="chooser-media"></div><div class="channel-search-row"><input class="search-input" id="chooser-search" type="search" aria-label="Search channel choices" placeholder="Search across all media…" value="${h(channelQuery)}"><details class="audience-options"><summary>Audience tags</summary><label for="chooser-tags" class="audience-field"><span class="sr-only">Audience tags</span><input id="chooser-tags" value="${h(value.tags.join(', '))}" maxlength="1000" placeholder="chase, csr, dining"></label></details></div><div id="choice-list" class="choice-list"></div>`;
+    $('step-content').innerHTML = `<h2>Choose your channels.</h2><p class="step-intro">Check channels to include them. Hide irrelevant options for this launch, or Remove channels you already selected. Changes save automatically.</p><div class="chooser-selection"><span id="selected-count"></span><button type="button" class="primary" data-action="next-prepare">Prepare launch →</button></div><div id="chooser-media"></div><div class="channel-search-row"><input class="search-input" id="chooser-search" type="search" aria-label="Search channel choices" placeholder="Search across all media…" value="${h(channelQuery)}"><details class="audience-options"><summary>Audience tags</summary><label for="chooser-tags" class="audience-field"><span class="sr-only">Audience tags</span><input id="chooser-tags" value="${h(value.tags.join(', '))}" maxlength="1000" placeholder="chase, csr, dining"></label></details></div><div id="choice-list" class="choice-list"></div><details id="hidden-channels" class="hidden-channels" hidden><summary id="hidden-channels-summary"></summary><p class="form-help">Hidden only for this launch. Restore an option to choose it again.</p><div id="hidden-channel-list"></div></details>`;
     $('chooser-tags').addEventListener('change', event => { value.tags = M.tags(event.target.value); updateLaunch(); renderChoices(); });
     $('chooser-search').addEventListener('input', event => { channelQuery = event.target.value; renderChoices(); }); renderChoices();
   }
   function renderChoices() {
     const value = current().value, selected = new Set(value.tasks.map(task => task.channelKey));
-    const all = data.channels.filter(record => !record.value.archived || selected.has(record.key));
+    const hidden = new Set(value.hiddenChannelKeys || []);
+    const all = data.channels.filter(record => (!record.value.archived || selected.has(record.key)) && !hidden.has(record.key));
     const active = channelQuery ? 'all' : availableMedium(all, chooserMedium);
     const records = all.filter(record => (!channelQuery ? active === 'all' || (active === 'selected' ? selected.has(record.key) : M.medium(record.value) === active) : true) && `${record.value.name} ${record.value.tags.join(' ')} ${M.media[M.medium(record.value)]}`.toLowerCase().includes(channelQuery.toLowerCase()));
     mountMediumControls('chooser-media', all, selected, active, 'chooser');
     $('choice-list').innerHTML = records.length ? compactChannels(records, selected, 'chooser', active === 'all' || active === 'selected') : '<p class="muted channel-empty">No channels here. Try another medium or search.</p>';
     $('selected-count').textContent = `${value.tasks.length} channels selected`;
+    const hiddenRecords = data.channels.filter(record => hidden.has(record.key));
+    $('hidden-channels').hidden = !hiddenRecords.length;
+    $('hidden-channels-summary').textContent = `Hidden for this launch (${hiddenRecords.length})`;
+    $('hidden-channel-list').innerHTML = hiddenRecords.map(record => `<div class="hidden-channel-row"><span>${h(record.value.name)}</span><button type="button" data-action="restore-launch-channel" data-key="${h(record.key)}" aria-label="Restore ${h(record.value.name)} for this launch">Restore</button></div>`).join('');
   }
   function renderDistribution() {
     const value = current().value, pending = value.tasks.filter(task => !M.done(task));
@@ -224,7 +239,7 @@
   function editChannel(record = null) {
     editorRoute = record ? { type: 'channel', key: record.key } : { type: 'new-channel' };
     const value = record ? structuredClone(record.value) : M.newChannel(), history = record ? M.history(record.key, data.launches).slice(0, 3) : [];
-    showDialog(record ? value.name : 'Add a channel', 'Remember the audience, access, and guidance for next time.', `${field('channel-name', 'Channel or contact name', value.name, 'text', 150, true)}<div class="form-two">${select('channel-kind', 'Channel type', M.kinds, value.kind)}${field('channel-url', 'Destination / contact reference URL', value.url, 'url', 2000)}</div>${field('channel-tags', 'Audience tags, separated by commas', value.tags.join(', '), 'text', 1000)}${area('channel-fit', 'Best content fit', value.fit)}${area('channel-relationship', 'Who can post / contact details', value.relationship)}${area('channel-rules', 'Posting rules and source of guidance', value.rules)}<div class="form-two">${select('channel-links', 'External links', { unknown: 'Not checked', allowed: 'Allowed', native: 'Native post only / no external links' }, value.linkPolicy)}${select('channel-approval', 'Admin approval', { unknown: 'Not checked', required: 'Required', none: 'Not required' }, value.approval)}</div><div class="form-two">${select('channel-checked', 'Rules status', { unverified: 'Needs checking', verified: 'Checked' }, value.ruleStatus)}${field('channel-date', 'Rules checked on', value.verifiedDate, 'date')}</div>${area('channel-notes', 'Notes for next time', value.notes)}${record ? `<label class="check-row"><input id="channel-archived" type="checkbox"${value.archived ? ' checked' : ''}>Archive this channel (keep its history)</label>` : ''}${history.length ? `<div><h3>Recent activity</h3>${history.map(item => `<div class="history-item"><strong>${h(item.launch)}</strong><p class="muted">${h(activityText(item.task.activityAt))} · ${h(M.statusLabels[item.task.status])}</p>${link(item.task.liveUrl, 'Open post / coverage')}${item.task.outcome ? `<p>${h(item.task.outcome)}</p>` : ''}</div>`).join('')}</div>` : ''}`, form => {
+    showDialog(record ? value.name : 'Add a channel', 'Remember the audience, access, and guidance for next time.', `${channelLaunchContext(record)}${field('channel-name', 'Channel or contact name', value.name, 'text', 150, true)}<div class="form-two">${select('channel-kind', 'Channel type', M.kinds, value.kind)}${field('channel-url', 'Destination / contact reference URL', value.url, 'url', 2000)}</div>${field('channel-tags', 'Audience tags, separated by commas', value.tags.join(', '), 'text', 1000)}${area('channel-fit', 'Best content fit', value.fit)}${area('channel-relationship', 'Who can post / contact details', value.relationship)}${area('channel-rules', 'Posting rules and source of guidance', value.rules)}<div class="form-two">${select('channel-links', 'External links', { unknown: 'Not checked', allowed: 'Allowed', native: 'Native post only / no external links' }, value.linkPolicy)}${select('channel-approval', 'Admin approval', { unknown: 'Not checked', required: 'Required', none: 'Not required' }, value.approval)}</div><div class="form-two">${select('channel-checked', 'Rules status', { unverified: 'Needs checking', verified: 'Checked' }, value.ruleStatus)}${field('channel-date', 'Rules checked on', value.verifiedDate, 'date')}</div>${area('channel-notes', 'Notes for next time', value.notes)}${record ? `<label class="check-row"><input id="channel-archived" type="checkbox"${value.archived ? ' checked' : ''}>Archive this channel (keep its history)</label>` : ''}${history.length ? `<div><h3>Recent activity</h3>${history.map(item => `<div class="history-item"><strong>${h(item.launch)}</strong><p class="muted">${h(activityText(item.task.activityAt))} · ${h(M.statusLabels[item.task.status])}</p>${link(item.task.liveUrl, 'Open post / coverage')}${item.task.outcome ? `<p>${h(item.task.outcome)}</p>` : ''}</div>`).join('')}</div>` : ''}`, form => {
       const checked = form.get('channel-checked'), verifiedDate = form.get('channel-date'), rules = form.get('channel-rules').trim();
       if (checked === 'verified' && (!verifiedDate || !rules)) throw Error('Add the checked date and posting rules before marking them checked.');
       if (verifiedDate && verifiedDate > new Date().toISOString().slice(0, 10)) throw Error('The rules checked date cannot be in the future.');
@@ -301,9 +316,20 @@
     }
     if (!record) return;
     const value = record.value;
+    if (name === 'hide-launch-channel' || name === 'restore-launch-channel') {
+      if ($('editor').open && dialogDirty && !window.confirm('Leave these channel details without saving your changes?')) return;
+      const key = button.dataset.key;
+      if (value.tasks.some(task => task.channelKey === key)) return;
+      const hidden = new Set(value.hiddenChannelKeys || []);
+      if (name === 'hide-launch-channel') hidden.add(key); else hidden.delete(key);
+      value.hiddenChannelKeys = [...hidden]; updateLaunch(); closeDialog(); editorRoute = null;
+      if (step === 'choose' && $('choice-list')) renderChoices(); else renderLaunch();
+      return;
+    }
     if (name === 'remove-launch-channel') {
+      if ($('editor').open && dialogDirty && !window.confirm('Leave these channel details without saving your changes?')) return;
       if (removeLaunchChannel(button.dataset.key)) {
-        renderLaunch();
+        closeDialog(); editorRoute = null; renderLaunch();
       }
       return;
     }

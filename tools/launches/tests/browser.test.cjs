@@ -330,3 +330,41 @@ test('visible Remove actions save launch changes, preserve the library, and prot
     }
   } finally { await browser.close(); }
 });
+
+
+test('irrelevant unselected options can be hidden from a zero-selection launch and restored without changing the library or other launches', async () => {
+  const browser = await chromium.launch({ headless: true });
+  try {
+    for (const width of [1440, 390, 320]) {
+      const workspace = routeWorkspace(); workspace.launches[0].value.tasks = [];
+      delete workspace.launches[0].value.hiddenChannelKeys; // Existing launches predate this optional field.
+      workspace.launches.push({ ...structuredClone(workspace.launches[0]), key: 'other-launch' });
+      const f = await open(browser, { workspace, search: '?launch=launch-one&step=choose', viewport: { width, height: 1000 } }), { page } = f;
+      await page.locator('#app').waitFor();
+      const hide = page.getByRole('button', { name: 'Hide Synthetic Chase group for this launch', exact: true });
+      assert.equal(await hide.isVisible(), true); assert.equal(await page.locator('[data-action="remove-launch-channel"]').count(), 0);
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+      await page.screenshot({ path: `/private/tmp/nextcard-launches-hide-${width}.png`, fullPage: true });
+      if (width === 390) await page.locator('.compact-channel').first().screenshot({ path: '/private/tmp/nextcard-launches-hide-button.png' });
+      await hide.click(); await page.getByText('All changes saved', { exact: true }).waitFor();
+      assert.equal(await page.locator('[data-channel="chase"]').count(), 0); assert.deepEqual(f.store.launches[0].value.hiddenChannelKeys, ['chase']);
+      assert.equal(f.store.launches[0].value.tasks.length, 0); assert.equal(f.store.launches[1].value.hiddenChannelKeys, undefined); assert.equal(f.store.channels.length, 4);
+      await page.reload(); await page.locator('#app').waitFor(); assert.equal(await page.locator('[data-channel="chase"]').count(), 0);
+      await page.locator('#hidden-channels-summary').click(); await page.getByRole('button', { name: 'Restore Synthetic Chase group for this launch', exact: true }).click();
+      await page.getByText('All changes saved', { exact: true }).waitFor(); assert.deepEqual(f.store.launches[0].value.hiddenChannelKeys, []);
+      await page.locator('[data-action="channel-guidance"][data-key="chase"]').click();
+      assert.match(await page.locator('.launch-channel-context').textContent(), /not included/);
+      await page.getByRole('button', { name: 'Edit channel guidance', exact: true }).click();
+      const context = page.locator('.launch-channel-context'); assert.equal(await context.getByRole('button', { name: 'Hide Synthetic Chase group for this launch', exact: true }).isVisible(), true);
+      await page.locator('#channel-name').fill('Do not save this accidental library edit');
+      page.removeAllListeners('dialog'); page.on('dialog', dialog => dialog.dismiss());
+      await context.getByRole('button', { name: 'Hide Synthetic Chase group for this launch', exact: true }).click(); assert.equal(await page.locator('#editor').isVisible(), true);
+      assert.deepEqual(f.store.launches[0].value.hiddenChannelKeys, []);
+      page.removeAllListeners('dialog'); page.on('dialog', dialog => dialog.accept());
+      await context.getByRole('button', { name: 'Hide Synthetic Chase group for this launch', exact: true }).click(); await page.locator('#editor').waitFor({ state: 'hidden' });
+      await page.getByText('All changes saved', { exact: true }).waitFor(); assert.deepEqual(f.store.launches[0].value.hiddenChannelKeys, ['chase']);
+      assert.equal(f.store.channels[0].value.name, 'Synthetic Chase group'); assert.equal(new URL(page.url()).searchParams.has('channel'), false);
+      assert.ok(!f.requests.some(item => item.payload.path.endsWith(':saveChannel'))); assert.deepEqual(f.errors, []); await page.close();
+    }
+  } finally { await browser.close(); }
+});

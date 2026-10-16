@@ -96,3 +96,18 @@ test('launch writes validate owners, dates, links, task IDs, destination referen
   await assert.rejects(api.saveLaunch.handler(context(), { key: 'bad key', value: value(), expectedVersion: 0 }), /Invalid record key/);
   await assert.rejects(api.saveLaunch.handler(context(), { key: 'x', value: value(), expectedVersion: -1 }), /Invalid saved version/);
 });
+
+
+test('hidden channel choices are optional, saved per launch, bounded, and cannot overlap selected tasks', async () => {
+  const api = await backend, ctx = context(), old = value(); delete old.hiddenChannelKeys;
+  await api.saveLaunch.handler(ctx, { key: 'old', value: old, expectedVersion: 0 });
+  const hidden = value(); hidden.hiddenChannelKeys = ['irrelevant'];
+  await api.saveLaunch.handler(ctx, { key: 'hidden', value: hidden, expectedVersion: 0 });
+  assert.deepEqual(ctx.tables.nextcardLaunches[1].value.hiddenChannelKeys, ['irrelevant']);
+  assert.equal(ctx.tables.nextcardLaunches[0].value.hiddenChannelKeys, undefined);
+  for (const keys of [['bad key'], ['same', 'same'], Array.from({ length: 501 }, (_, i) => `key-${i}`)]) {
+    await assert.rejects(api.saveLaunch.handler(ctx, { key: 'invalid', value: { ...value(), hiddenChannelKeys: keys }, expectedVersion: 0 }));
+  }
+  const overlap = value(); overlap.hiddenChannelKeys = ['channel']; overlap.tasks.push(M.addTask({ key: 'channel', value: { name: 'Channel', kind: 'reddit' } }));
+  await assert.rejects(api.saveLaunch.handler(ctx, { key: 'invalid', value: overlap, expectedVersion: 0 }), /cannot also be hidden/);
+});

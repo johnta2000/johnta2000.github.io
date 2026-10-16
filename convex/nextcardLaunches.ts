@@ -50,8 +50,12 @@ function validateLaunch(value: Infer<typeof launchValue>, members: { email: stri
   const id = (valueId: string) => { key(valueId); if (ids.has(valueId)) throw Error("Launch item IDs must be unique."); ids.add(valueId); };
   for (const material of value.materials) { id(material.id); text(material.name, 150, true); url(material.url); if (!material.url) throw Error("Add a material link."); }
   for (const check of value.checks) { id(check.id); text(check.label, 300, true); owner(check.owner); }
+  const hidden = value.hiddenChannelKeys || [];
+  if (hidden.length > 500 || new Set(hidden).size !== hidden.length) throw Error("Use up to 500 unique hidden channels.");
+  for (const hiddenKey of hidden) key(hiddenKey);
   const channels = new Set<string>();
   for (const task of value.tasks) {
+    if (hidden.includes(task.channelKey)) throw Error("A selected channel cannot also be hidden.");
     id(task.id); key(task.channelKey); text(task.channelName, 150, true); text(task.angle, 2000); text(task.draft, 20000); text(task.outcome, 5000); owner(task.owner); date(task.dueDate); url(task.liveUrl);
     if (!Number.isSafeInteger(task.activityAt) || task.activityAt < 0 || task.activityAt > Date.now() + 60000) throw Error("Invalid activity date.");
     if (channels.has(task.channelKey)) throw Error("Each channel can appear only once per launch."); channels.add(task.channelKey);

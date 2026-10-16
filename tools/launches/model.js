@@ -23,7 +23,7 @@
   const safeUrl = value => { try { const url = new URL(value); return ['http:', 'https:'].includes(url.protocol) && !url.username && !url.password ? url.href : ''; } catch { return ''; } };
   const done = task => ['live', 'sent', 'skipped'].includes(task.status);
   function newLaunch(owner = '') {
-    return { name: 'Untitled launch', sourceUrl: '', summary: '', type: 'news', tags: [], owner, dueDate: '', status: 'active', materials: [], tasks: [], notes: '', checks: [
+    return { name: 'Untitled launch', sourceUrl: '', summary: '', type: 'news', tags: [], owner, dueDate: '', status: 'active', materials: [], tasks: [], hiddenChannelKeys: [], notes: '', checks: [
       { id: uid(), stage: 'prepare', label: 'Verify the source, dates, eligibility, and key facts', done: false, owner: '' },
       { id: uid(), stage: 'prepare', label: 'Check whether existing NextCard content or tools need an update', done: false, owner: '' },
       { id: uid(), stage: 'prepare', label: 'Gather the key takeaway, useful visuals, and supporting links', done: false, owner: '' },
