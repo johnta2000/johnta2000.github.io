@@ -303,7 +303,7 @@
     const value = record.value;
     if (name === 'remove-launch-channel') {
       if (removeLaunchChannel(button.dataset.key)) {
-        if (step === 'choose') renderChoices(); else renderLaunch();
+        renderLaunch();
       }
       return;
     }
@@ -356,9 +356,9 @@
       if (event.target.checked && !existing) value.tasks.push(M.addTask(channel(channelKey), value.owner));
       if (!event.target.checked && existing) {
         if (!removeLaunchChannel(channelKey)) { event.target.checked = true; return; }
-        renderChoices(); return;
+        renderLaunch(); return;
       }
-      updateLaunch(); renderChoices();
+      updateLaunch(); renderLaunch();
     }
   });
   document.querySelectorAll('[data-view]').forEach(button => button.addEventListener('click', () => { if (data) setView(button.dataset.view); }));

@@ -315,6 +315,7 @@ test('visible Remove actions save launch changes, preserve the library, and prot
       await page.getByRole('button', { name: 'Remove Synthetic editorial contact from this launch', exact: true }).click();
       await page.getByText('All changes saved', { exact: true }).waitFor();
       assert.equal(f.store.launches[0].value.tasks.length, 1); assert.equal(f.store.channels.length, 4);
+      assert.match(await page.locator('.launch-meta').textContent(), /0 of 6 actions/);
       assert.equal(await page.locator('[data-channel="outreach"]').count(), 0);
       await page.reload(); await page.locator('#app').waitFor(); assert.equal(f.store.launches[0].value.tasks.length, 1);
       await changeMedium(page, 'chooser', 'email'); await page.locator('[data-channel="outreach"]').check();
