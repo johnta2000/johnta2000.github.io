@@ -6,6 +6,17 @@
   'use strict';
   const types = { news: 'Quick news', targeted: 'Targeted update', tool: 'Tool update', flagship: 'Major launch' };
   const kinds = { facebook: 'Facebook', reddit: 'Reddit', outreach: 'Editorial outreach', owned: 'Owned channel' };
+  const media = { facebook: 'Facebook', reddit: 'Reddit', email: 'Email & outreach', tiktok: 'TikTok', instagram: 'Instagram', threads: 'Threads', linkedin: 'LinkedIn', website: 'Website / tools', other: 'Other channels' };
+  function medium(channel) {
+    if (channel.kind === 'facebook' || channel.kind === 'reddit') return channel.kind;
+    if (channel.kind === 'outreach') return 'email';
+    const context = `${channel.name} ${channel.url}`.toLowerCase();
+    if (/facebook\.com/.test(context)) return 'facebook';
+    if (/reddit\.com|\br\/nextcard\b/.test(context)) return 'reddit';
+    if (/newsletter|\bemail\b/.test(context)) return 'email';
+    for (const key of ['tiktok', 'instagram', 'threads', 'linkedin']) if (context.includes(key)) return key;
+    return /website|existing tool|\bblog\b/.test(context) ? 'website' : 'other';
+  }
   const statusLabels = { draft: 'To draft', ready: 'Ready', submitted: 'Submitted', waiting: 'Awaiting approval', live: 'Live', sent: 'Sent', skipped: 'Skipped' };
   const uid = () => crypto.randomUUID();
   const tags = value => [...new Set(String(value).split(',').map(tag => tag.trim().toLowerCase()).filter(Boolean))].slice(0, 20);
@@ -62,5 +73,5 @@
     const lines = [`${launch.name}`, '', launch.summary, launch.sourceUrl ? `Source: ${launch.sourceUrl}` : '', '', 'Preparation', ...launch.checks.filter(check => check.stage === 'prepare').map(check => `- [${check.done ? 'x' : ' '}] ${check.label}`), '', 'Channel deliverables', ...launch.tasks.filter(task => task.status !== 'skipped').map(task => `- [${done(task) ? 'x' : ' '}] ${task.channelName}: ${task.angle || (task.channelKind === 'outreach' ? 'Prepare a tailored news pitch' : 'Prepare a useful native post')}${task.owner ? ` (${task.owner})` : ''}`), '', 'Follow-up', ...launch.checks.filter(check => check.stage === 'followup').map(check => `- [${check.done ? 'x' : ' '}] ${check.label}`)];
     return lines.filter((line, index) => line || lines[index - 1]).join('\n');
   }
-  return { uid, tags, safeUrl, types, kinds, statusLabels, done, newLaunch, newChannel, duplicate, progress, suggestion, addTask, history, ticket };
+  return { uid, tags, safeUrl, types, kinds, media, medium, statusLabels, done, newLaunch, newChannel, duplicate, progress, suggestion, addTask, history, ticket };
 });

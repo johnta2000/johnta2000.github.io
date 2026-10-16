@@ -2,7 +2,10 @@
   'use strict';
   const M = window.LaunchModel, $ = id => document.getElementById(id);
   const h = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
-  let data = null, saveRecord, view = 'launches', activeKey = null, step = 'prepare', launchFilter = 'active', channelFilter = 'all', query = '', channelQuery = '', showArchived = false, pickerHandles = [], dialogDirty = false;
+  let data = null, saveRecord, view = 'channels', activeKey = null, step = 'choose', launchFilter = 'active', channelFilter = 'facebook', chooserMedium = 'facebook', query = '', channelQuery = '', showArchived = false, pickerHandles = [], dialogDirty = false;
+  const selectedChannels = new Set();
+  const mediumPickers = new Map();
+  function clearMediumPickers() { mediumPickers.forEach(picker => picker.destroy()); mediumPickers.clear(); }
   const dateText = value => value ? new Date(`${value}T12:00:00`).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '';
   const activityText = value => new Date(value).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
   const memberName = email => data?.members.find(member => member.email === email)?.name || (email ? 'Previous member' : 'Unassigned');
@@ -44,6 +47,7 @@
     if (view === 'channels') renderLibrary(); else if (activeKey && current()) renderLaunch(); else renderLaunches();
   }
   function renderLaunches() {
+    clearMediumPickers();
     activeKey = null;
     $('content').innerHTML = `<div class="page-heading"><div><p class="eyebrow">One launch at a time</p><h1>Your next launch starts here.</h1><p>A fresh plan, the right channels, and a clear next step.</p></div><button class="primary" type="button" data-action="add-launch">＋ Add launch</button></div><div class="toolbar"><div class="filter-buttons" aria-label="Launch status">${['active', 'complete', 'archived'].map(status => `<button type="button" data-action="launch-filter" data-filter="${status}" aria-pressed="${launchFilter === status}">${status === 'active' ? 'In progress' : status === 'complete' ? 'Completed' : 'Archived'}</button>`).join('')}</div><input id="launch-search" class="search-input" type="search" aria-label="Search launches" placeholder="Search launches…" value="${h(query)}"></div><div id="launch-list"></div>`;
     $('launch-search').addEventListener('input', event => { query = event.target.value; renderLaunchCards(); }); renderLaunchCards();
@@ -55,9 +59,10 @@
     }
     $('launch-list').innerHTML = `<div class="launch-grid">${records.map(record => { const value = record.value, progress = M.progress(value); return `<button type="button" class="launch-card" data-action="open-launch" data-key="${h(record.key)}"><div class="card-top">${badge(M.types[value.type])}${value.dueDate ? `<small>${h(dateText(value.dueDate))}</small>` : ''}</div><div><h2>${h(value.name)}</h2><p>${h(value.summary.slice(0, 125) || `${value.tasks.length} channels selected`)}</p></div>${tagList(value.tags.slice(0, 4))}<div class="card-bottom"><span>${h(memberName(value.owner))}</span><span>${progress.complete} / ${progress.total} done</span></div><div class="progress-track" aria-label="${progress.complete} of ${progress.total} complete"><div class="progress-fill" style="width:${progress.total ? 100 * progress.complete / progress.total : 0}%"></div></div></button>`; }).join('')}</div>`;
   }
-  function addLaunch(from = null) {
+  function addLaunch(from = null, channelKeys = []) {
     const record = { key: M.uid(), value: from ? M.duplicate(from.value) : M.newLaunch(data.email), version: 0, createdAt: Date.now(), updatedAt: Date.now(), updatedBy: data.email };
-    data.launches.push(record); save('launch', record); activeKey = record.key; view = 'launches'; step = 'prepare'; render(); editBrief(record, !from);
+    if (!from) record.value.tasks = channelKeys.map(key => channel(key)).filter(item => item && !item.value.archived).map(item => M.addTask(item, record.value.owner));
+    selectedChannels.clear(); data.launches.push(record); save('launch', record); activeKey = record.key; view = 'launches'; step = channelKeys.length ? 'prepare' : 'choose'; render(); editBrief(record, !from);
   }
   function editBrief(record, fresh = false) {
     const value = record.value;
@@ -68,31 +73,69 @@
     });
   }
   function renderLaunch() {
+    clearMediumPickers();
     const record = current(), value = record.value, progress = M.progress(value);
-    $('content').innerHTML = `<button type="button" class="text-button back" data-action="back-launches">← All launches</button><div class="launch-heading"><div class="launch-title"><p class="eyebrow">${h(M.types[value.type])}</p><h1>${h(value.name)}</h1><p class="launch-meta">${h(memberName(value.owner))}${value.dueDate ? ` · Target ${h(dateText(value.dueDate))}` : ''} · ${progress.complete} of ${progress.total} actions complete ${value.status !== 'active' ? ` · ${h(value.status)}` : ''}</p>${tagList(value.tags)}</div><div class="actions"><button type="button" data-action="edit-brief">Edit details</button><button class="quiet" type="button" data-action="launch-options" aria-label="More launch actions">More actions</button></div></div><div class="launch-layout"><section class="panel"><nav class="step-nav" role="tablist" aria-label="Launch stages">${[['prepare', 'Prepare'], ['choose', 'Channels'], ['distribute', 'Distribute'], ['followup', 'Follow up']].map(([key, label], index) => `<button id="tab-${key}" role="tab" aria-controls="step-content" aria-selected="${step === key}" type="button" data-action="step" data-step="${key}"><span class="step-number">${index + 1}</span>${label}</button>`).join('')}</nav><div id="step-content" role="tabpanel" aria-labelledby="tab-${h(step)}"></div></section><aside class="aside-stack"><section class="panel"><h2>The story</h2><p class="source-summary">${h(value.summary || 'Add the key takeaway and supporting facts in launch details.')}</p>${link(value.sourceUrl, 'Open source')}${!value.sourceUrl ? '<button type="button" class="text-button" data-action="edit-brief">＋ Add source</button>' : ''}</section><section class="panel"><div class="row-between"><h2>Materials</h2><button type="button" class="text-button" data-action="add-material">＋ Add</button></div><p class="muted">Links to visuals, docs, tools, and research.</p>${value.materials.map(item => `<div class="material">${link(item.url, item.name)}<button type="button" data-action="remove-material" data-id="${h(item.id)}" aria-label="Remove ${h(item.name)}">×</button></div>`).join('') || '<small>No materials added yet.</small>'}</section><section class="panel"><h2>Launch progress</h2><p><strong>${progress.complete}</strong> / ${progress.total} actions complete</p><div class="progress-track" role="progressbar" aria-label="Launch progress" aria-valuemin="0" aria-valuemax="${progress.total || 1}" aria-valuenow="${progress.complete}"><div class="progress-fill" style="width:${progress.total ? 100 * progress.complete / progress.total : 0}%"></div></div><button type="button" class="text-button" style="margin-top:14px" data-action="copy-checklist">Copy checklist</button></section></aside></div>`;
+    $('content').innerHTML = `<button type="button" class="text-button back" data-action="back-launches">← All launches</button><div class="launch-heading"><div class="launch-title"><p class="eyebrow">${h(M.types[value.type])}</p><h1>${h(value.name)}</h1><p class="launch-meta">${h(memberName(value.owner))}${value.dueDate ? ` · Target ${h(dateText(value.dueDate))}` : ''} · ${progress.complete} of ${progress.total} actions complete ${value.status !== 'active' ? ` · ${h(value.status)}` : ''}</p>${tagList(value.tags)}</div><div class="actions"><button type="button" data-action="edit-brief">Edit details</button><button class="quiet" type="button" data-action="launch-options" aria-label="More launch actions">More actions</button></div></div><div class="launch-layout"><section class="panel"><nav class="step-nav" role="tablist" aria-label="Launch stages">${[['choose', 'Channels'], ['prepare', 'Prepare'], ['distribute', 'Distribute'], ['followup', 'Follow up']].map(([key, label], index) => `<button id="tab-${key}" role="tab" aria-controls="step-content" aria-selected="${step === key}" type="button" data-action="step" data-step="${key}"><span class="step-number">${index + 1}</span>${label}</button>`).join('')}</nav><div id="step-content" role="tabpanel" aria-labelledby="tab-${h(step)}"></div></section><aside class="aside-stack"><section class="panel"><h2>The story</h2><p class="source-summary">${h(value.summary || 'Add the key takeaway and supporting facts in launch details.')}</p>${link(value.sourceUrl, 'Open source')}${!value.sourceUrl ? '<button type="button" class="text-button" data-action="edit-brief">＋ Add source</button>' : ''}</section><section class="panel"><div class="row-between"><h2>Materials</h2><button type="button" class="text-button" data-action="add-material">＋ Add</button></div><p class="muted">Links to visuals, docs, tools, and research.</p>${value.materials.map(item => `<div class="material">${link(item.url, item.name)}<button type="button" data-action="remove-material" data-id="${h(item.id)}" aria-label="Remove ${h(item.name)}">×</button></div>`).join('') || '<small>No materials added yet.</small>'}</section><section class="panel"><h2>Launch progress</h2><p><strong>${progress.complete}</strong> / ${progress.total} actions complete</p><div class="progress-track" role="progressbar" aria-label="Launch progress" aria-valuemin="0" aria-valuemax="${progress.total || 1}" aria-valuenow="${progress.complete}"><div class="progress-fill" style="width:${progress.total ? 100 * progress.complete / progress.total : 0}%"></div></div><button type="button" class="text-button" style="margin-top:14px" data-action="copy-checklist">Copy checklist</button></section></aside></div>`;
     if (step === 'choose') renderChooser(); else if (step === 'distribute') renderDistribution(); else renderChecks();
   }
   function renderChecks() {
     const value = current().value, checks = value.checks.filter(check => check.stage === step);
-    $('step-content').innerHTML = `<h2>${step === 'prepare' ? 'Get the story ready.' : 'Close the loop.'}</h2><p class="step-intro">${step === 'prepare' ? 'Verify the facts and gather what you need before distribution.' : 'Review submissions, collect responses, and leave a useful lesson for next time.'}</p><div>${checks.map(check => `<div class="check-row"><label><input type="checkbox" data-check="${h(check.id)}"${check.done ? ' checked' : ''}><span class="${check.done ? 'completed' : ''}">${h(check.label)}</span></label><button type="button" class="quiet" data-action="edit-check" data-id="${h(check.id)}" aria-label="Edit checklist item and owner">${check.owner ? h(memberName(check.owner)) : 'Edit'}</button><button type="button" class="remove" data-action="remove-check" data-id="${h(check.id)}" aria-label="Remove ${h(check.label)}">×</button></div>`).join('')}</div><form id="add-check-form" class="add-row"><input id="check-label" aria-label="New checklist item" placeholder="Add a checklist item…" maxlength="300" required><button type="submit">Add</button></form>${step === 'followup' ? `${area('launch-notes', 'Results & lessons', value.notes, 10000, 4)}<p class="form-help">Saved when you leave this field. Add channel-specific results inside each distribution task.</p>` : ''}<div class="next-row"><small>${checks.filter(check => check.done).length} of ${checks.length} checked</small><button type="button" class="primary" data-action="${step === 'prepare' ? 'next-choose' : 'complete-launch'}">${step === 'prepare' ? 'Choose channels →' : value.status === 'complete' ? 'Reopen launch' : 'Mark launch complete'}</button></div>`;
+    $('step-content').innerHTML = `<h2>${step === 'prepare' ? 'Get the story ready.' : 'Close the loop.'}</h2><p class="step-intro">${step === 'prepare' ? 'Verify the facts and gather what you need before distribution.' : 'Review submissions, collect responses, and leave a useful lesson for next time.'}</p><div>${checks.map(check => `<div class="check-row"><label><input type="checkbox" data-check="${h(check.id)}"${check.done ? ' checked' : ''}><span class="${check.done ? 'completed' : ''}">${h(check.label)}</span></label><button type="button" class="quiet" data-action="edit-check" data-id="${h(check.id)}" aria-label="Edit checklist item and owner">${check.owner ? h(memberName(check.owner)) : 'Edit'}</button><button type="button" class="remove" data-action="remove-check" data-id="${h(check.id)}" aria-label="Remove ${h(check.label)}">×</button></div>`).join('')}</div><form id="add-check-form" class="add-row"><input id="check-label" aria-label="New checklist item" placeholder="Add a checklist item…" maxlength="300" required><button type="submit">Add</button></form>${step === 'followup' ? `${area('launch-notes', 'Results & lessons', value.notes, 10000, 4)}<p class="form-help">Saved when you leave this field. Add channel-specific results inside each distribution task.</p>` : ''}<div class="next-row"><small>${checks.filter(check => check.done).length} of ${checks.length} checked</small><button type="button" class="primary" data-action="${step === 'prepare' ? 'next-distribute' : 'complete-launch'}">${step === 'prepare' ? 'Work on distribution →' : value.status === 'complete' ? 'Reopen launch' : 'Mark launch complete'}</button></div>`;
     $('add-check-form').addEventListener('submit', event => { event.preventDefault(); const label = $('check-label').value.trim(); if (!label) return; value.checks.push({ id: M.uid(), label, stage: step, done: false, owner: '' }); updateLaunch(); renderLaunch(); $('check-label').focus(); });
     if ($('launch-notes')) $('launch-notes').addEventListener('change', event => { value.notes = event.target.value; updateLaunch(); });
   }
+  function mediumControls(records, selected, active, scope) {
+    const available = new Set(records.map(record => M.medium(record.value)));
+    const options = [['all', 'All media'], ...Object.entries(M.media).filter(([key]) => available.has(key)), ['selected', 'Selected']];
+    const counts = Object.fromEntries(options.map(([key]) => [key, key === 'all' ? records.length : key === 'selected' ? records.filter(record => selected.has(record.key)).length : records.filter(record => M.medium(record.value) === key).length]));
+    return `<div class="medium-desktop"><div class="medium-tabs" role="group" aria-label="${scope === 'library' ? 'Channel' : 'Launch channel'} distribution medium">${options.map(([key, label]) => {
+      const count = key === 'all' ? records.length : key === 'selected' ? records.filter(record => selected.has(record.key)).length : records.filter(record => M.medium(record.value) === key).length;
+      return `<button type="button" data-action="${scope}-medium" data-medium="${key}" aria-pressed="${active === key}">${h(label)}<span>${count}</span></button>`;
+    }).join('')}</div></div><div class="medium-mobile">${select(`${scope}-medium-select`, 'Distribution medium', Object.fromEntries(options.map(([key, label]) => [key, `${label} (${counts[key]})`])), active)}</div>`;
+  }
+  function mountMediumControls(id, records, selected, active, scope) {
+    mediumPickers.get(scope)?.destroy(); mediumPickers.delete(scope);
+    $(id).innerHTML = mediumControls(records, selected, active, scope);
+    const input = $(`${scope}-medium-select`);
+    mediumPickers.set(scope, window.SearchableSelect.enhance(input));
+    input.addEventListener('change', () => {
+      if (scope === 'library') { channelFilter = input.value; query = ''; $('library-search').value = ''; renderLibraryRows(); }
+      else { chooserMedium = input.value; channelQuery = ''; $('chooser-search').value = ''; renderChoices(); }
+    });
+  }
+  function availableMedium(records, preferred) {
+    return ['all', 'selected'].includes(preferred) || records.some(record => M.medium(record.value) === preferred) ? preferred : records.length ? M.medium(records[0].value) : 'all';
+  }
+  function compactChannels(records, selected, scope, grouped = false) {
+    const renderRows = values => `<div class="compact-channel-grid">${values.map(record => {
+      const value = record.value, suggestion = scope === 'chooser' ? M.suggestion(value, current().value) : null;
+      const metadata = [value.archived ? 'Archived' : '', value.kind === 'owned' ? 'NextCard' : '', ...value.tags.filter(tag => tag !== 'general').slice(0, 2)].filter(Boolean).join(' · ') || 'General audience';
+      return `<article class="compact-channel${value.archived ? ' is-archived' : ''}"><label class="compact-channel-choice"><input type="checkbox" data-${scope === 'library' ? 'library-channel' : 'channel'}="${h(record.key)}" aria-label="Select ${h(value.name)}"${selected.has(record.key) ? ' checked' : ''}${value.archived && !selected.has(record.key) ? ' disabled' : ''}><span><strong>${h(value.name)}</strong><small>${h(metadata)}${suggestion ? ` · ${h(suggestion.label)}` : ''}</small></span></label><button type="button" class="channel-detail" data-action="${scope === 'library' ? 'edit-channel' : 'channel-guidance'}" data-key="${h(record.key)}" aria-label="Details for ${h(value.name)}">Details</button></article>`;
+    }).join('')}</div>`;
+    const sorted = [...records].sort((a, b) => a.value.name.localeCompare(b.value.name));
+    if (!grouped) return renderRows(sorted);
+    return Object.entries(M.media).map(([key, label]) => {
+      const group = sorted.filter(record => M.medium(record.value) === key);
+      return group.length ? `<section class="medium-section" aria-label="${h(label)}"><h3>${h(label)} <span>${group.length}</span></h3>${renderRows(group)}</section>` : '';
+    }).join('');
+  }
+  function showChannelGuidance(record) {
+    const value = record.value, suggestion = M.suggestion(value, current().value), history = M.history(record.key, data.launches, activeKey).slice(0, 3);
+    showDialog(value.name, `${M.media[M.medium(value)]} · ${M.kinds[value.kind]}`, `<p class="guidance-text">${h(suggestion.reason)}</p>${value.fit ? `<div><h3>Audience fit</h3><p class="guidance-text">${h(value.fit)}</p></div>` : ''}<div class="rule-note">${value.ruleStatus === 'verified' ? `Guidance checked ${h(value.verifiedDate)}.` : 'Posting rules need checking.'} ${value.linkPolicy === 'native' ? 'No external links; use a complete native post.' : value.linkPolicy === 'allowed' ? 'Links recorded as allowed.' : 'Link permissions are not recorded.'}${value.approval === 'required' ? ' Admin approval required.' : ''}</div>${value.rules ? `<p class="guidance-text">${h(value.rules)}</p>` : ''}${value.relationship ? `<p class="guidance-text">${h(value.relationship)}</p>` : ''}${value.notes ? `<p class="form-help">${h(value.notes)}</p>` : ''}${link(value.url, 'Open destination / contact reference')}${history.length ? `<div><h3>Previous activity</h3>${history.map(item => `<div class="history-item"><strong>${h(item.launch)}</strong><p>${h(activityText(item.task.activityAt))}</p>${item.task.outcome ? `<p>${h(item.task.outcome)}</p>` : ''}</div>`).join('')}</div>` : ''}<button type="button" data-action="edit-destination" data-key="${h(record.key)}">Edit channel guidance</button>`, () => {});
+  }
   function renderChooser() {
     const value = current().value;
-    $('step-content').innerHTML = `<h2>Pick the places this story belongs.</h2><p class="step-intro">Suggestions use audience tags and launch type. Check relevance and current rules before selecting.</p><label class="audience-field" for="chooser-tags">Audience tags<input id="chooser-tags" value="${h(value.tags.join(', '))}" maxlength="1000" placeholder="chase, csr, dining"></label><input class="search-input" id="chooser-search" type="search" aria-label="Search channel choices" placeholder="Search all channels…" value="${h(channelQuery)}"><div id="choice-list" class="choice-list"></div><div class="next-row"><small id="selected-count"></small><button type="button" class="primary" data-action="next-distribute">Work on distribution →</button></div>`;
+    $('step-content').innerHTML = `<h2>Choose your channels.</h2><p class="step-intro">Browse by medium. Your selections stay with you as you switch.</p><div class="chooser-selection"><span id="selected-count"></span><button type="button" class="primary" data-action="next-prepare">Prepare launch →</button></div><div id="chooser-media"></div><div class="channel-search-row"><input class="search-input" id="chooser-search" type="search" aria-label="Search channel choices" placeholder="Search across all media…" value="${h(channelQuery)}"><details class="audience-options"><summary>Audience tags</summary><label for="chooser-tags" class="audience-field"><span class="sr-only">Audience tags</span><input id="chooser-tags" value="${h(value.tags.join(', '))}" maxlength="1000" placeholder="chase, csr, dining"></label></details></div><div id="choice-list" class="choice-list"></div>`;
     $('chooser-tags').addEventListener('change', event => { value.tags = M.tags(event.target.value); updateLaunch(); renderChoices(); });
     $('chooser-search').addEventListener('input', event => { channelQuery = event.target.value; renderChoices(); }); renderChoices();
   }
   function renderChoices() {
-    const value = current().value;
-    const records = data.channels.filter(record => !record.value.archived && `${record.value.name} ${record.value.tags.join(' ')} ${M.kinds[record.value.kind]}`.toLowerCase().includes(channelQuery.toLowerCase()));
-    const selected = new Set(value.tasks.map(task => task.channelKey));
-    const groups = [['recommended', 'Suggested starting points'], ['maybe', 'Consider for this launch'], ['skip', 'Other saved channels']];
-    $('choice-list').innerHTML = records.length ? groups.map(([key, title]) => {
-      const filtered = records.filter(record => M.suggestion(record.value, value).group === key);
-      return filtered.length ? `<p class="subheading">${title}</p>${filtered.map(record => { const suggestion = M.suggestion(record.value, value), history = M.history(record.key, data.launches, activeKey); return `<label class="choose-row"><input type="checkbox" data-channel="${h(record.key)}"${selected.has(record.key) ? ' checked' : ''}><span><strong>${h(record.value.name)}</strong><small>${h(M.kinds[record.value.kind])} · ${h(suggestion.reason)}</small>${record.value.ruleStatus !== 'verified' && record.value.kind !== 'owned' ? '<span class="channel-note">Posting rules need checking</span>' : ''}${history.length ? `<small>Last activity: ${h(activityText(history[0].task.activityAt))} · ${h(history[0].launch)}</small>` : ''}</span></label>`; }).join('')}` : '';
-    }).join('') : '<p class="muted">No matching channels. Add a destination in the channel library.</p>';
+    const value = current().value, selected = new Set(value.tasks.map(task => task.channelKey));
+    const all = data.channels.filter(record => !record.value.archived || selected.has(record.key));
+    const active = channelQuery ? 'all' : availableMedium(all, chooserMedium);
+    const records = all.filter(record => (!channelQuery ? active === 'all' || (active === 'selected' ? selected.has(record.key) : M.medium(record.value) === active) : true) && `${record.value.name} ${record.value.tags.join(' ')} ${M.media[M.medium(record.value)]}`.toLowerCase().includes(channelQuery.toLowerCase()));
+    mountMediumControls('chooser-media', all, selected, active, 'chooser');
+    $('choice-list').innerHTML = records.length ? compactChannels(records, selected, 'chooser', active === 'all' || active === 'selected') : '<p class="muted channel-empty">No channels here. Try another medium or search.</p>';
     $('selected-count').textContent = `${value.tasks.length} channels selected`;
   }
   function renderDistribution() {
@@ -117,18 +160,30 @@
       if (verifiedDate && verifiedDate > new Date().toISOString().slice(0, 10)) throw Error('The rules checked date cannot be in the future.');
       Object.assign(value, { name: form.get('channel-name').trim(), url: form.get('channel-url').trim(), kind: form.get('channel-kind'), tags: M.tags(form.get('channel-tags')), fit: form.get('channel-fit').trim(), rules, ruleStatus: checked, verifiedDate, linkPolicy: form.get('channel-links'), approval: form.get('channel-approval'), relationship: form.get('channel-relationship').trim(), notes: form.get('channel-notes').trim(), archived: !!$('channel-archived')?.checked });
       const target = record || { key: M.uid(), value, version: 0, createdAt: Date.now(), updatedAt: Date.now() };
-      target.value = value; if (!record) data.channels.push(target); save('channel', target); render();
+      target.value = value; if (value.archived) selectedChannels.delete(target.key); if (!record) data.channels.push(target); save('channel', target); render();
     });
   }
   function renderLibrary() {
-    $('content').innerHTML = `<div class="page-heading"><div><p class="eyebrow">Your reusable launch kit</p><h1>The right audience is already here.</h1><p>Keep destinations, contacts, posting guidance, and lessons in one place.</p></div><button type="button" class="primary" data-action="add-channel">＋ Add channel</button></div><div class="toolbar"><div class="filter-buttons" aria-label="Channel type">${[['all', 'All channels'], ...Object.entries(M.kinds)].map(([key, label]) => `<button type="button" data-action="channel-filter" data-filter="${key}" aria-pressed="${channelFilter === key}">${h(label)}</button>`).join('')}</div><input id="library-search" type="search" class="search-input" aria-label="Search channel library" placeholder="Search names, tags, or contacts…" value="${h(query)}"></div><div class="row-between" style="margin-bottom:15px"><small id="library-count"></small><label style="display:flex;align-items:center;gap:8px;font-weight:400"><input type="checkbox" id="show-archived"${showArchived ? ' checked' : ''}>Include archived</label></div><div id="library-list" class="library"></div>`;
+    clearMediumPickers();
+    $('content').innerHTML = `<div class="channels-page"><div class="page-heading"><div><p class="eyebrow">Start with distribution</p><h1>Choose your channels.</h1><p>Pick the destinations for your next launch, then make a plan.</p></div><button type="button" data-action="add-channel">＋ Add channel</button></div><div class="channel-selection-bar"><div><strong id="home-selection-count">0 channels selected</strong><small id="home-selection-media">Choose from any medium below.</small></div><div class="actions"><button type="button" class="quiet" id="clear-selection" data-action="clear-channel-selection" disabled>Clear</button><button type="button" class="primary" id="create-selected-launch" data-action="launch-from-channels" disabled>Create launch →</button></div></div><div id="library-media"></div><div class="channel-search-row"><input id="library-search" type="search" class="search-input" aria-label="Search channel library" placeholder="Search across all media…" value="${h(query)}"><label class="archive-toggle"><input type="checkbox" id="show-archived"${showArchived ? ' checked' : ''}>Include archived</label></div><div class="channel-list-meta"><small id="library-count"></small><small>Details holds posting rules, contacts & history.</small></div><div id="library-list"></div></div>`;
     $('library-search').addEventListener('input', event => { query = event.target.value; renderLibraryRows(); });
     $('show-archived').addEventListener('change', event => { showArchived = event.target.checked; renderLibraryRows(); }); renderLibraryRows();
   }
+  function updateChannelSelection() {
+    const selected = data.channels.filter(record => selectedChannels.has(record.key) && !record.value.archived);
+    const mediumCount = new Set(selected.map(record => M.medium(record.value))).size;
+    $('home-selection-count').textContent = `${selected.length} channel${selected.length === 1 ? '' : 's'} selected`;
+    $('home-selection-media').textContent = mediumCount ? `Across ${mediumCount} distribution ${mediumCount === 1 ? 'medium' : 'media'}` : 'Choose from any medium below.';
+    $('create-selected-launch').disabled = selected.length === 0; $('clear-selection').disabled = selected.length === 0;
+  }
   function renderLibraryRows() {
-    const records = data.channels.filter(record => (showArchived || !record.value.archived) && (channelFilter === 'all' || record.value.kind === channelFilter) && `${record.value.name} ${record.value.tags.join(' ')} ${record.value.relationship} ${record.value.fit}`.toLowerCase().includes(query.toLowerCase())).sort((a, b) => a.value.name.localeCompare(b.value.name));
-    $('library-count').textContent = `${records.length} destinations & contacts`;
-    $('library-list').innerHTML = records.length ? records.map(record => { const value = record.value, history = M.history(record.key, data.launches), stale = value.ruleStatus !== 'verified' || !value.verifiedDate || Date.now() - Date.parse(value.verifiedDate) >= 90 * 86400000; return `<article class="channel-row"><div><h3>${h(value.name)}</h3><div class="channel-info"><span class="muted">${h(M.kinds[value.kind])}</span>${badge(value.archived ? 'Archived' : stale ? 'Rules need checking' : 'Rules checked', value.archived ? 'archived' : stale ? 'unverified' : 'verified')}${value.tags.slice(0, 4).map(tag => `<span class="tag">${h(tag)}</span>`).join('')}</div><p>${h(value.fit)}</p>${history.length ? `<p>Last activity ${h(activityText(history[0].task.activityAt))} · ${h(history[0].launch)}</p>` : ''}</div><div class="channel-actions"><button type="button" class="quiet" data-action="edit-channel" data-key="${h(record.key)}">Details →</button>${link(value.url, 'Open')}</div></article>`; }).join('') : '<div class="empty"><h2>No matching channels.</h2><p>Try another search or add a destination.</p><button type="button" data-action="add-channel">＋ Add channel</button></div>';
+    const all = data.channels.filter(record => showArchived || !record.value.archived);
+    const active = query ? 'all' : availableMedium(all, channelFilter);
+    const records = all.filter(record => (active === 'all' || (active === 'selected' ? selectedChannels.has(record.key) : M.medium(record.value) === active)) && `${record.value.name} ${record.value.tags.join(' ')} ${record.value.relationship} ${record.value.fit} ${M.media[M.medium(record.value)]}`.toLowerCase().includes(query.toLowerCase()));
+    mountMediumControls('library-media', all, selectedChannels, active, 'library');
+    $('library-count').textContent = `${records.length} ${records.length === 1 ? 'destination' : 'destinations'}${query ? ' found across all media' : active === 'selected' ? ' selected' : active === 'all' ? ' across all media' : ` on ${M.media[active]}`}`;
+    $('library-list').innerHTML = records.length ? compactChannels(records, selectedChannels, 'library', active === 'all' || active === 'selected') : '<p class="muted channel-empty">No matching channels. Try another medium or search.</p>';
+    updateChannelSelection();
   }
   function editCheck(check) {
     showDialog('Checklist item', '', `${field('check-name', 'What needs to happen?', check.label, 'text', 300, true)}${select('check-owner', 'Owner', people(), check.owner)}`, form => { check.label = form.get('check-name').trim(); check.owner = form.get('check-owner'); updateLaunch(); renderLaunch(); });
@@ -149,8 +204,12 @@
     if (name === 'library') { setView('channels'); return; }
     if (name === 'back-launches') { activeKey = null; render(); return; }
     if (name === 'launch-filter') { launchFilter = button.dataset.filter; renderLaunches(); return; }
-    if (name === 'channel-filter') { channelFilter = button.dataset.filter; renderLibrary(); return; }
-    if (name === 'open-launch') { activeKey = button.dataset.key; step = 'prepare'; render(); return; }
+    if (name === 'library-medium') { channelFilter = button.dataset.medium; query = ''; $('library-search').value = ''; renderLibraryRows(); return; }
+    if (name === 'chooser-medium') { chooserMedium = button.dataset.medium; channelQuery = ''; $('chooser-search').value = ''; renderChoices(); return; }
+    if (name === 'clear-channel-selection') { selectedChannels.clear(); renderLibraryRows(); return; }
+    if (name === 'launch-from-channels') { if (selectedChannels.size) addLaunch(null, [...selectedChannels]); return; }
+    if (name === 'channel-guidance') { showChannelGuidance(channel(button.dataset.key)); return; }
+    if (name === 'open-launch') { activeKey = button.dataset.key; step = 'choose'; render(); return; }
     if (name === 'add-channel') { editChannel(); return; }
     if (name === 'edit-channel' || name === 'edit-destination') {
       if (name === 'edit-destination' && dialogDirty && !window.confirm('Leave this task without saving your changes?')) return;
@@ -179,14 +238,24 @@
   $('content').addEventListener('click', event => { void action(event); });
   $('content').addEventListener('keydown', event => {
     if (!event.target.matches('[role="tab"]') || !['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
-    event.preventDefault(); const steps = ['prepare', 'choose', 'distribute', 'followup'];
+    event.preventDefault(); const steps = ['choose', 'prepare', 'distribute', 'followup'];
     step = event.key === 'Home' ? steps[0] : event.key === 'End' ? steps[3] : steps[(steps.indexOf(step) + (event.key === 'ArrowRight' ? 1 : 3)) % 4];
     renderLaunch(); $(`tab-${step}`).focus();
   });
   $('editor-content').addEventListener('click', event => { void action(event); });
   $('editor').addEventListener('close', () => { if (!$('editor').open) clearDialog(); });
   $('content').addEventListener('change', event => {
-    if (!data || !current()) return;
+    if (!data) return;
+    const libraryKey = event.target.dataset.libraryChannel;
+    if (libraryKey) {
+      if (event.target.checked) selectedChannels.add(libraryKey); else selectedChannels.delete(libraryKey);
+      updateChannelSelection();
+      const records = data.channels.filter(record => showArchived || !record.value.archived);
+      mountMediumControls('library-media', records, selectedChannels, query ? 'all' : availableMedium(records, channelFilter), 'library');
+      if (channelFilter === 'selected' && !query) renderLibraryRows();
+      return;
+    }
+    if (!current()) return;
     const checkId = event.target.dataset.check, channelKey = event.target.dataset.channel, value = current().value;
     if (checkId) { value.checks.find(item => item.id === checkId).done = event.target.checked; updateLaunch(); renderLaunch(); }
     if (channelKey) {
@@ -204,10 +273,11 @@
     open({ workspace, onSave }) {
       closeDialog();
       data = structuredClone(workspace); saveRecord = onSave;
+      for (const key of selectedChannels) if (!data.channels.some(record => record.key === key && !record.value.archived)) selectedChannels.delete(key);
       $('team-label').textContent = `Shared with ${data.members.map(member => member.name).join(', ')}`;
       render();
     },
-    lock() { closeDialog(); data = null; saveRecord = null; view = 'launches'; activeKey = null; step = 'prepare'; query = ''; channelQuery = ''; $('content').replaceChildren(); $('team-label').textContent = ''; },
+    lock() { closeDialog(); clearMediumPickers(); data = null; saveRecord = null; view = 'channels'; activeKey = null; step = 'choose'; channelFilter = 'facebook'; chooserMedium = 'facebook'; selectedChannels.clear(); query = ''; channelQuery = ''; $('content').replaceChildren(); $('team-label').textContent = ''; },
     exportData() { return structuredClone(data); },
     hasDraft() { return dialogDirty; },
   };

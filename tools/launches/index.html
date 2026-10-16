@@ -8,13 +8,13 @@
   <title>NextCard Launches</title>
   <link rel="icon" href="../../assets/img/jt-mark.svg" type="image/svg+xml">
   <link rel="stylesheet" href="../../assets/css/searchable-select.css?v=20261016">
-  <link rel="stylesheet" href="styles.css?v=20261016-1">
+  <link rel="stylesheet" href="styles.css?v=20261016-2">
   <link rel="stylesheet" href="../../assets/css/clerk-auth.css?v=20261011-otp1">
   <script async data-clerk-script crossorigin="anonymous" src="https://clerk.john-ta.com/npm/@clerk/ui@1/dist/ui.browser.js"></script>
   <script async data-clerk-script crossorigin="anonymous" data-clerk-publishable-key="pk_live_Y2xlcmsuam9obi10YS5jb20k" src="https://clerk.john-ta.com/npm/@clerk/clerk-js@6/dist/clerk.browser.js"></script>
   <script defer src="../../assets/js/searchable-select.js?v=20261016"></script>
-  <script defer src="model.js?v=20261016-1"></script>
-  <script defer src="app.js?v=20261016-1"></script>
+  <script defer src="model.js?v=20261016-2"></script>
+  <script defer src="app.js?v=20261016-2"></script>
   <script defer src="auth.js?v=20261016-1"></script>
 </head>
 <body>
@@ -30,7 +30,7 @@
       <div id="sign-in" data-clerk-mount></div><button id="retry-auth" type="button" hidden>Try again</button>
     </section>
     <div id="app" hidden>
-      <div class="workspace-bar"><nav class="main-nav" aria-label="Workspace"><button data-view="launches" type="button" aria-current="page">Launches</button><button data-view="channels" type="button">Channel library</button></nav><div class="sync"><span id="save-status" role="status"></span><button id="refresh" class="quiet" type="button">Refresh</button></div></div>
+      <div class="workspace-bar"><nav class="main-nav" aria-label="Workspace"><button data-view="channels" type="button" aria-current="page">Channels</button><button data-view="launches" type="button">Launches</button></nav><div class="sync"><span id="save-status" role="status"></span><button id="refresh" class="quiet" type="button">Refresh</button></div></div>
       <div id="storage-error" class="error" role="alert" hidden></div>
       <div id="save-actions" class="save-actions" hidden><button id="retry-save" type="button">Retry save</button><button id="download-draft" type="button">Download unsaved work</button><button id="load-latest" type="button">Load latest</button></div>
       <section id="content" tabindex="-1" aria-label="Launch workspace"></section>

@@ -2,6 +2,16 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 global.crypto ||= require('node:crypto').webcrypto;
 const M = require('../model.js');
+test('distribution medium is separate from whether NextCard owns the channel', () => {
+  for (const [name, url, expected] of [
+    ['r/nextcard', 'https://www.reddit.com/r/nextcard/', 'reddit'],
+    ['NextCard — email newsletter', '', 'email'],
+    ['Instagram — NextCard', 'https://www.instagram.com/findyournextcard/', 'instagram'],
+    ['Threads — John Ta', '', 'threads'],
+    ['NextCard — website / existing tool', '', 'website'],
+  ]) assert.equal(M.medium({ ...M.newChannel(), name, url, kind: 'owned' }), expected);
+  assert.equal(M.medium({ ...M.newChannel(), kind: 'outreach' }), 'email');
+});
 test('duplicating keeps reusable planning but resets every execution result', () => {
   const original = M.newLaunch('owner@example.com'); original.name = 'Synthetic launch'; original.dueDate = '2026-10-18'; original.status = 'complete'; original.notes = 'Old results'; original.checks.forEach(check => { check.done = true; });
   original.materials.push({ id: M.uid(), name: 'Reference', url: 'https://example.com/' });
