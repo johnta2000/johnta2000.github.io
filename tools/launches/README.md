@@ -10,6 +10,20 @@ Selecting a channel creates a task with a native angle, draft, owner, target dat
 
 Duplicating preserves audience, source context, channel selection, angles, materials, and checklist structure while clearing drafts, live links, outcomes, dates, notes, and checkmarks. Archive keeps a launch or channel and its history; it does not delete records. Refresh loads teammates' saved changes. The workspace does not subscribe to live updates.
 
+## Routes and sharing
+
+Every main view and editor has a query-based URL under `/tools/launches/`, so GitHub Pages can serve a direct link without path rewrites. Main navigation, media, launch-list status, launch stages, and dialogs update browser history. Back/Forward restores the matching screen; leaving an unsaved editor through Back asks before discarding its form. The shared Copy link controls include only navigation IDs and enum values, never drafts, labels, contact details, arbitrary query parameters, or Clerk authentication fragments.
+
+- Channels: `?view=channels&medium=reddit` (optional `archived=1`).
+- Launch list: `?view=launches` (optional `status=complete` or `status=archived`).
+- Launch stage: `?launch=<key>&step=choose|prepare|distribute|followup`.
+- Launch details editor: `?launch=<key>&step=prepare&edit=launch`.
+- Task editor: `?launch=<key>&task=<task-id>`.
+- Channel editor: `?channel=<channel-key>`; preserve `launch` and `step` for a launch context.
+- Other editors: `check=<check-id>`, `guidance=<channel-key>`, `edit=material`, `edit=actions`, or `edit=new-channel`.
+
+Main views and dialogs have Copy link controls. Recipients still need an approved team account. Sign-in and sign-up redirects retain the full destination query; the app resolves it only after an authenticated workspace read. Direct links and reloads open saved data without creating new launches or submitting forms. Invalid and missing record IDs show an unavailable screen. Search text and the not-yet-created home-page channel selection stay local rather than becoming shareable content. Clipboard failure falls back to a native copy-link prompt without replacing an unsaved editor.
+
 ## Identity and persistence
 
 The private `NEXTCARD_LAUNCH_TEAM` Convex environment variable is a JSON array of `{ "name": "Display name", "email": "approved@example.com" }` members. Missing, empty, or malformed configuration denies access. Membership is independent of all other private tools; there is no invitation or permission-management UI. The same members are offered as launch, task, and checklist owners. Every query and mutation verifies a subject, the pinned `https://clerk.john-ta.com` issuer, an approved normalized email, and no explicit failed email-verification claim. This issuer's email-code flow can omit the optional verification claim.

@@ -16,15 +16,17 @@ function initial() {
   ].map(([key, name, kind, tags]) => ({ key, value: { ...M.newChannel(), name, kind, tags, url: 'https://example.com/channel', fit: 'Useful information for this audience.' }, version: 1, createdAt: 1, updatedAt: 1, updatedBy: members[0].email }));
   return { email: members[0].email, members, channels, launches: [] };
 }
-async function open(browser, { signedIn = true, denied = false, pendingRead, failSaves = false, conflict = false, viewport = { width: 1440, height: 1000 }, workspace = initial() } = {}) {
+async function open(browser, { signedIn = true, denied = false, pendingRead, failSaves = false, conflict = false, viewport = { width: 1440, height: 1000 }, workspace = initial(), search = '' } = {}) {
   const page = await browser.newPage({ viewport }), errors = [], requests = [], store = structuredClone(workspace);
   page.on('pageerror', error => errors.push(error.message));
   page.on('dialog', dialog => dialog.accept());
   await page.addInitScript(({ signedIn }) => {
     const token = 'test.' + btoa(JSON.stringify({ aud: 'convex' })) + '.test', session = { id: 'synthetic-session', getToken: async () => token };
+    window.syntheticLaunchSession = session;
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText: async value => { window.copiedLaunchText = value; } }, configurable: true });
     window.__internal_ClerkUICtor = {};
     window.Clerk = { session: signedIn ? session : null, load: async () => {}, addListener(fn) { window.changeLaunchSession = fn; },
-      mountSignIn(mount) { mount.innerHTML = '<div class="cl-cardBox"><div class="cl-card"><h2 class="cl-headerTitle">Sign in</h2><label>Email<input type="email"></label><button>Continue</button></div></div>'; },
+      mountSignIn(mount, options) { window.launchSignInOptions = options; mount.innerHTML = '<div class="cl-cardBox"><div class="cl-card"><h2 class="cl-headerTitle">Sign in</h2><label>Email<input type="email"></label><button>Continue</button></div></div>'; },
       unmountSignIn(mount) { mount.replaceChildren(); }, async signOut() { this.session = null; window.changeLaunchSession({ session: null }); },
     };
   }, { signedIn });
@@ -49,7 +51,7 @@ async function open(browser, { signedIn = true, denied = false, pendingRead, fai
     const file = path.join(root, decodeURIComponent(url.pathname), url.pathname.endsWith('/') ? 'index.html' : '');
     try { return route.fulfill({ body: await fs.readFile(file), contentType: file.endsWith('.css') ? 'text/css' : file.endsWith('.js') ? 'text/javascript' : 'text/html' }); } catch { return route.abort(); }
   });
-  await page.goto('https://www.john-ta.com/tools/launches/');
+  await page.goto('https://www.john-ta.com/tools/launches/' + search);
   return { page, errors, requests, store, recover() { failSaves = false; conflict = false; } };
 }
 async function choose(page, label, value) {
@@ -62,6 +64,111 @@ async function changeMedium(page, scope, medium) {
   else await choose(page, 'Distribution medium', M.media[medium] || (medium === 'selected' ? 'Selected' : 'All media'));
 }
 async function save(page) { await page.getByRole('button', { name: 'Save changes', exact: true }).click(); await page.locator('#editor').waitFor({ state: 'hidden' }); }
+
+function routeWorkspace() {
+  const workspace = initial(), value = M.newLaunch(members[0].email);
+  value.name = 'Saved routing example'; value.summary = 'A saved private brief.';
+  value.tasks.push({ ...M.addTask(workspace.channels[0], members[0].email), id: 'task-one', draft: 'Saved private post copy.' });
+  value.checks[0].id = 'check-one';
+  workspace.launches.push({ key: 'launch-one', value, version: 1, createdAt: 1, updatedAt: 1 });
+  return workspace;
+}
+
+test('an edit link survives sign-in, opens in a fresh session, reloads, and updates the same saved launch', async () => {
+  const browser = await chromium.launch({ headless: true });
+  try {
+    const search = '?launch=launch-one&step=prepare&edit=launch';
+    const first = await open(browser, { signedIn: false, workspace: routeWorkspace(), search }), { page } = first;
+    await page.locator('#sign-in input').waitFor(); assert.equal(first.requests.length, 0); assert.equal(await page.locator('#launch-name').count(), 0);
+    const options = await page.evaluate(() => window.launchSignInOptions);
+    assert.equal(options.forceRedirectUrl, 'https://www.john-ta.com/tools/launches/' + search); assert.equal(options.signUpForceRedirectUrl, options.forceRedirectUrl);
+    await page.evaluate(() => { window.Clerk.session = window.syntheticLaunchSession; window.changeLaunchSession({ session: window.Clerk.session }); });
+    await page.locator('#launch-name').waitFor(); assert.equal(await page.locator('#launch-name').inputValue(), 'Saved routing example');
+    await page.getByRole('button', { name: 'Copy link to this screen', exact: true }).click(); const copied = await page.evaluate(() => window.copiedLaunchText);
+    assert.equal(new URL(copied).searchParams.get('edit'), 'launch'); assert.equal(new URL(copied).searchParams.get('launch'), 'launch-one');
+    const second = await open(browser, { workspace: first.store, search: new URL(copied).search });
+    await second.page.locator('#launch-name').waitFor(); assert.equal(await second.page.locator('#launch-name').inputValue(), 'Saved routing example');
+    await second.page.reload(); await second.page.locator('#launch-name').waitFor();
+    await second.page.locator('#launch-name').fill('Edited through a shared link'); await save(second.page); await second.page.getByText('All changes saved', { exact: true }).waitFor();
+    assert.equal(second.store.launches.length, 1); assert.equal(second.store.launches[0].key, 'launch-one'); assert.equal(second.store.launches[0].value.name, 'Edited through a shared link');
+    assert.equal(new URL(second.page.url()).searchParams.get('edit'), null); assert.equal(new URL(second.page.url()).searchParams.get('launch'), 'launch-one');
+    assert.deepEqual(first.errors, []); assert.deepEqual(second.errors, []); await page.close(); await second.page.close();
+  } finally { await browser.close(); }
+});
+
+test('all routed editors load directly without creating or changing records, and Escape restores their parent view', async () => {
+  const browser = await chromium.launch({ headless: true });
+  try {
+    for (const [search, selector, parameter] of [
+      ['?channel=chase', '#channel-name', 'channel'],
+      ['?view=channels&edit=new-channel', '#channel-name', 'edit'],
+      ['?launch=launch-one&task=task-one', '#task-draft', 'task'],
+      ['?launch=launch-one&step=prepare&check=check-one', '#check-name', 'check'],
+      ['?launch=launch-one&step=prepare&edit=material', '#material-name', 'edit'],
+      ['?launch=launch-one&edit=actions', '[data-action="duplicate-launch"]', 'edit'],
+      ['?launch=launch-one&guidance=chase', '.guidance-text', 'guidance'],
+      ['?launch=launch-one&step=choose&channel=chase', '#channel-name', 'channel'],
+    ]) {
+      const f = await open(browser, { workspace: routeWorkspace(), search }); await f.page.locator(selector).first().waitFor();
+      assert.ok(!f.requests.some(request => /:saveLaunch$|:saveChannel$/.test(request.payload.path)));
+      await f.page.keyboard.press('Escape'); await f.page.locator('#editor').waitFor({ state: 'hidden' });
+      await f.page.waitForFunction(parameter => !new URL(location.href).searchParams.has(parameter), parameter);
+      assert.deepEqual(f.errors, []); await f.page.close();
+    }
+  } finally { await browser.close(); }
+});
+
+test('view, medium, stage, modal, Back, and Forward stay synchronized with the address bar', async () => {
+  const browser = await chromium.launch({ headless: true });
+  try {
+    const { page, errors } = await open(browser, { workspace: routeWorkspace() }); await page.locator('#app').waitFor();
+    await changeMedium(page, 'library', 'email'); assert.equal(new URL(page.url()).searchParams.get('medium'), 'email');
+    await page.getByRole('button', { name: 'Launches', exact: true }).click(); assert.equal(new URL(page.url()).searchParams.get('view'), 'launches');
+    await page.locator('[data-action="open-launch"]').click(); await page.getByRole('tab', { name: /Prepare/ }).click();
+    assert.equal(new URL(page.url()).searchParams.get('step'), 'prepare'); await page.getByRole('button', { name: 'Edit details', exact: true }).click();
+    assert.equal(new URL(page.url()).searchParams.get('edit'), 'launch');
+    await page.getByRole('button', { name: 'Close dialog', exact: true }).click(); assert.equal(new URL(page.url()).searchParams.get('edit'), null);
+    await page.goBack(); await page.locator('#launch-name').waitFor(); assert.equal(new URL(page.url()).searchParams.get('edit'), 'launch');
+    await page.goForward(); await page.locator('#editor').waitFor({ state: 'hidden' }); assert.equal(new URL(page.url()).searchParams.get('edit'), null);
+    await page.reload(); await page.getByRole('tab', { name: /Prepare/ }).waitFor(); assert.equal(await page.getByRole('tab', { name: /Prepare/ }).getAttribute('aria-selected'), 'true');
+    await page.getByRole('button', { name: 'Launches', exact: true }).click(); await page.getByRole('button', { name: 'Completed', exact: true }).click();
+    await page.reload(); await page.locator('[data-action="launch-filter"][data-filter="complete"]').waitFor(); assert.equal(await page.locator('[data-filter="complete"]').getAttribute('aria-pressed'), 'true');
+    assert.deepEqual(errors, []); await page.close();
+  } finally { await browser.close(); }
+});
+
+test('Back can be cancelled while editing without losing typed changes', async () => {
+  const browser = await chromium.launch({ headless: true });
+  try {
+    const { page, errors } = await open(browser, { workspace: routeWorkspace(), search: '?launch=launch-one&step=prepare' }); await page.locator('#app').waitFor();
+    await page.getByRole('button', { name: 'Edit details', exact: true }).click(); await page.locator('#launch-name').fill('Keep these unsaved words');
+    page.removeAllListeners('dialog'); page.on('dialog', dialog => dialog.dismiss());
+    await page.goBack(); await page.waitForURL(url => url.searchParams.get('edit') === 'launch');
+    assert.equal(await page.locator('#launch-name').inputValue(), 'Keep these unsaved words');
+    await page.getByRole('button', { name: 'Close dialog', exact: true }).click(); assert.deepEqual(errors, []); await page.close();
+  } finally { await browser.close(); }
+});
+
+test('invalid and missing links show an unavailable page; access denial never opens a private editor', async () => {
+  const browser = await chromium.launch({ headless: true });
+  try {
+    for (const search of ['?launch=missing-launch&edit=launch', '?launch=%3Cimg%20src=x%3E', '?launch=launch-one&task=missing', '?channel=missing']) {
+      const f = await open(browser, { workspace: routeWorkspace(), search }); await f.page.getByRole('heading', { name: /unavailable$/ }).waitFor();
+      assert.equal(await f.page.locator('#editor').isVisible(), false); assert.ok(!f.requests.some(request => /:saveLaunch$|:saveChannel$/.test(request.payload.path))); assert.deepEqual(f.errors, []); await f.page.close();
+    }
+    const f = await open(browser, { denied: true, workspace: routeWorkspace(), search: '?launch=launch-one&edit=launch' }); await f.page.getByText(/doesn’t have access/).waitFor(); assert.equal(await f.page.locator('#launch-name').count(), 0); await f.page.close();
+  } finally { await browser.close(); }
+});
+
+test('copied routes omit authentication fragments, arbitrary tokens, and private content', async () => {
+  const browser = await chromium.launch({ headless: true });
+  try {
+    const { page, errors } = await open(browser, { workspace: routeWorkspace(), search: '?launch=launch-one&edit=launch&token=PRIVATE#clerk-secret' }); await page.locator('#launch-name').waitFor();
+    await page.getByRole('button', { name: 'Copy link to this screen', exact: true }).click();
+    const url = await page.evaluate(() => window.copiedLaunchText); assert.doesNotMatch(url, /PRIVATE|secret|routing|Saved|example\.com|token=/); assert.equal(new URL(url).hash, '');
+    assert.deepEqual(errors, []); await page.close();
+  } finally { await browser.close(); }
+});
 
 test('Channels is the starting view; medium changes and global searches keep selections until a launch is created', async () => {
   const browser = await chromium.launch({ headless: true });
@@ -152,7 +259,7 @@ test('failed saves retain the latest edit and retry successfully; conflicts pres
     for (const conflict of [false, true]) {
       const f = await open(browser, { failSaves: !conflict, conflict }), { page } = f; await page.locator('#app').waitFor(); await page.locator('[data-library-channel="chase"]').check(); await page.getByRole('button', { name: 'Create launch →', exact: true }).click(); await page.locator('#launch-name').fill('Keep this unsaved launch'); await save(page);
       await page.locator('#storage-error').waitFor(); assert.equal(await page.locator('#save-actions').isVisible(), true);
-      if (conflict) { assert.equal(await page.locator('#retry-save').isVisible(), false); assert.match(await page.locator('#storage-error').textContent(), /teammate/); await page.getByRole('button', { name: 'Load latest', exact: true }).click(); await page.locator('.empty').waitFor(); assert.equal(f.store.launches.length, 0); }
+      if (conflict) { assert.equal(await page.locator('#retry-save').isVisible(), false); assert.match(await page.locator('#storage-error').textContent(), /teammate/); await page.getByRole('button', { name: 'Load latest', exact: true }).click(); await page.getByRole('heading', { name: 'Launch unavailable', exact: true }).waitFor(); assert.equal(f.store.launches.length, 0); }
       else { f.recover(); await page.getByRole('button', { name: 'Retry save', exact: true }).click(); await page.getByText('All changes saved', { exact: true }).waitFor(); assert.equal(f.store.launches[0].value.name, 'Keep this unsaved launch'); }
       assert.deepEqual(f.errors, []); await page.close();
     }

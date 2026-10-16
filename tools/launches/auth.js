@@ -98,7 +98,7 @@
     if (!session) {
       message('gate-message', 'Sign in with your approved team email to open the shared launch workspace.'); $('sign-in').hidden = false;
       if (!mounted) {
-        const returnUrl = location.origin + location.pathname;
+        const returnUrl = location.origin + location.pathname + location.search;
         window.Clerk.mountSignIn($('sign-in'), {
           routing: 'hash', withSignUp: true, forceRedirectUrl: returnUrl, signUpForceRedirectUrl: returnUrl,
           appearance: { variables: { colorPrimary: '#285b43', colorBackground: '#ffffff', colorText: '#24332e', borderRadius: '9px', fontFamily: '-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif' }, elements: { cardBox: { boxShadow: 'none', maxWidth: '100%' } } },

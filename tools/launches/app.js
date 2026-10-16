@@ -1,9 +1,12 @@
 (() => {
   'use strict';
-  const M = window.LaunchModel, $ = id => document.getElementById(id);
+  const M = window.LaunchModel, R = window.LaunchRoutes, $ = id => document.getElementById(id);
   const h = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
   let data = null, saveRecord, view = 'channels', activeKey = null, step = 'choose', launchFilter = 'active', channelFilter = 'facebook', chooserMedium = 'facebook', query = '', channelQuery = '', showArchived = false, pickerHandles = [], dialogDirty = false;
   const selectedChannels = new Set();
+  let editorRoute = null, routeError = null, applyingRoute = false, ignoringPop = false;
+  let routePosition = Number.isInteger(history.state?.launchRoutePosition) ? history.state.launchRoutePosition : 0;
+  let lastRouteUrl = location.pathname + location.search + location.hash;
   const mediumPickers = new Map();
   function clearMediumPickers() { mediumPickers.forEach(picker => picker.destroy()); mediumPickers.clear(); }
   const dateText = value => value ? new Date(`${value}T12:00:00`).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '';
@@ -26,24 +29,75 @@
   function updateLaunch() { const record = current(); if (record) save('launch', record); }
   function enhance(container) { for (const element of container.querySelectorAll('select')) pickerHandles.push(window.SearchableSelect.enhance(element)); }
   function clearDialog() { pickerHandles.forEach(handle => handle.destroy()); pickerHandles = []; $('editor-content').replaceChildren(); dialogDirty = false; }
-  function closeDialog() { $('editor').close(); clearDialog(); }
+  function closeDialog(updateUrl = false) { $('editor').close(); clearDialog(); if (updateUrl) { editorRoute = null; writeRoute(); } }
   function showDialog(title, subtitle, body, onSubmit, footer = '') {
     closeDialog();
-    $('editor-content').innerHTML = `<form id="edit-form"><div class="dialog-header"><div><h2 id="editor-title">${h(title)}</h2>${subtitle ? `<p>${h(subtitle)}</p>` : ''}</div><button type="button" class="dialog-close" data-action="close-dialog" aria-label="Close dialog">×</button></div><div class="form-grid">${body}</div><div class="dialog-footer"><span id="form-error" class="form-error" role="alert"></span><div class="actions">${footer}<button type="button" data-action="close-dialog">Cancel</button><button type="submit" class="primary">Save changes</button></div></div></form>`;
+    $('editor-content').innerHTML = `<form id="edit-form"><div class="dialog-header"><div><h2 id="editor-title">${h(title)}</h2>${subtitle ? `<p>${h(subtitle)}</p>` : ''}</div><div class="dialog-tools"><button type="button" class="quiet" data-action="copy-page-link" aria-label="Copy link to this screen">Copy link</button><button type="button" class="dialog-close" data-action="close-dialog" aria-label="Close dialog">×</button></div></div><div class="form-grid">${body}</div><div class="dialog-footer"><span id="form-error" class="form-error" role="alert"></span><div class="actions">${footer}<button type="button" data-action="close-dialog">Cancel</button><button type="submit" class="primary">Save changes</button></div></div></form>`;
     const form = $('edit-form');
     form.addEventListener('input', () => { dialogDirty = true; });
     form.addEventListener('change', () => { dialogDirty = true; });
     form.addEventListener('submit', event => {
       event.preventDefault();
-      try { onSubmit(new FormData(form)); closeDialog(); announce('Changes updated. Saving to your workspace.'); }
+      try { onSubmit(new FormData(form)); closeDialog(true); announce('Changes updated. Saving to your workspace.'); }
       catch (error) { $('form-error').textContent = error.message; }
     });
-    enhance(form); $('editor').showModal();
+    enhance(form); $('editor').showModal(); writeRoute();
   }
-  function setView(next) { view = next; query = ''; render(); }
+  function currentRoute() {
+    return { view, launchKey: view === 'launches' ? activeKey : null, step, medium: view === 'channels' ? channelFilter : chooserMedium, status: launchFilter, archived: showArchived, editor: editorRoute };
+  }
+  function writeRoute(replace = false) {
+    if (!data || applyingRoute || routeError) return;
+    const url = location.pathname + R.serialize(currentRoute()) + location.hash;
+    if (url === location.pathname + location.search + location.hash) {
+      if (!Number.isInteger(history.state?.launchRoutePosition)) history.replaceState({ ...(history.state || {}), launchRoutePosition: routePosition }, '', url);
+    } else if (replace) history.replaceState({ ...(history.state || {}), launchRoutePosition: routePosition }, '', url);
+    else history.pushState({ launchRoutePosition: ++routePosition }, '', url);
+    lastRouteUrl = url;
+  }
+  function unavailable(label) {
+    clearMediumPickers(); routeError = label;
+    $('content').innerHTML = `<div class="empty"><h1>${h(label)} unavailable</h1><p>This link may be out of date, or the item may no longer be in this workspace.</p><button type="button" data-action="${view === 'launches' ? 'back-launches' : 'library'}">${view === 'launches' ? 'Back to launches' : 'Back to channels'}</button></div>`;
+  }
+  function applyRoute() {
+    if (!data) return;
+    const route = R.parse(location.search);
+    applyingRoute = true;
+    try {
+      closeDialog(); editorRoute = null; routeError = route.error;
+      view = route.view; activeKey = route.launchKey; step = route.step; launchFilter = route.status;
+      channelFilter = route.medium; chooserMedium = route.medium; showArchived = route.archived; query = ''; channelQuery = '';
+      if (activeKey && !current()) routeError = 'Launch';
+      render();
+      if (routeError || !route.editor) return;
+      const target = route.editor, launch = current();
+      if (target.type === 'launch' && launch) editBrief(launch);
+      else if (target.type === 'channel') { const record = channel(target.key); if (record) editChannel(record); else unavailable('Channel'); }
+      else if (target.type === 'new-channel') editChannel();
+      else if (target.type === 'task' && launch) { const task = launch.value.tasks.find(item => item.id === target.key); if (task) editTask(task); else unavailable('Task'); }
+      else if (target.type === 'check' && launch) { const check = launch.value.checks.find(item => item.id === target.key); if (check) editCheck(check); else unavailable('Checklist item'); }
+      else if (target.type === 'guidance' && launch) { const record = channel(target.key); if (record) showChannelGuidance(record); else unavailable('Channel'); }
+      else if (target.type === 'material' && launch) addMaterial();
+      else if (target.type === 'actions' && launch) launchOptions();
+    } finally { applyingRoute = false; lastRouteUrl = location.pathname + location.search + location.hash; }
+  }
+  window.addEventListener('popstate', event => {
+    if (ignoringPop) { ignoringPop = false; return; }
+    if (!data) return;
+    const target = event.state?.launchRoutePosition;
+    if (dialogDirty && !window.confirm('Leave this edit and discard your unsaved changes?')) {
+      if (Number.isInteger(target) && target !== routePosition) { ignoringPop = true; history.go(routePosition - target); }
+      else history.pushState({ launchRoutePosition: routePosition }, '', lastRouteUrl);
+      return;
+    }
+    if (Number.isInteger(target)) routePosition = target;
+    applyRoute();
+  });
+  function setView(next) { closeDialog(); editorRoute = null; routeError = null; view = next; activeKey = null; query = ''; render(); writeRoute(); }
   function render() {
     if (!data) return;
     document.querySelectorAll('[data-view]').forEach(button => button.setAttribute('aria-current', button.dataset.view === view ? 'page' : 'false'));
+    if (routeError) { unavailable(routeError); return; }
     if (view === 'channels') renderLibrary(); else if (activeKey && current()) renderLaunch(); else renderLaunches();
   }
   function renderLaunches() {
@@ -65,6 +119,7 @@
     selectedChannels.clear(); data.launches.push(record); save('launch', record); activeKey = record.key; view = 'launches'; step = channelKeys.length ? 'prepare' : 'choose'; render(); editBrief(record, !from);
   }
   function editBrief(record, fresh = false) {
+    editorRoute = { type: 'launch' };
     const value = record.value;
     showDialog(fresh ? 'Start your launch' : 'Launch details', fresh ? 'Give it a name. Everything else can wait.' : 'The shared source of truth for this launch.', `${field('launch-name', 'Launch name', value.name === 'Untitled launch' ? '' : value.name, 'text', 150, true)}${field('source-url', 'Source URL', value.sourceUrl, 'url', 2000)}${area('summary', 'What happened, and why does it matter?', value.summary, 10000)}<div class="form-two">${select('launch-type', 'Launch type', M.types, value.type)}${select('launch-owner', 'Launch owner', people(), value.owner)}</div>${field('audience-tags', 'Audience tags, separated by commas', value.tags.join(', '), 'text', 1000)}<p class="form-help">Use specific tags such as chase, csr, hyatt, amex, or venture x. Tags help shortlist communities.</p>${field('launch-date', 'Target date (optional)', value.dueDate, 'date')}`, form => {
       Object.assign(value, { name: form.get('launch-name').trim(), sourceUrl: form.get('source-url').trim(), summary: form.get('summary').trim(), type: form.get('launch-type'), owner: form.get('launch-owner'), tags: M.tags(form.get('audience-tags')), dueDate: form.get('launch-date') });
@@ -99,8 +154,8 @@
     const input = $(`${scope}-medium-select`);
     mediumPickers.set(scope, window.SearchableSelect.enhance(input));
     input.addEventListener('change', () => {
-      if (scope === 'library') { channelFilter = input.value; query = ''; $('library-search').value = ''; renderLibraryRows(); }
-      else { chooserMedium = input.value; channelQuery = ''; $('chooser-search').value = ''; renderChoices(); }
+      if (scope === 'library') { channelFilter = input.value; query = ''; $('library-search').value = ''; renderLibraryRows(); writeRoute(); }
+      else { chooserMedium = input.value; channelQuery = ''; $('chooser-search').value = ''; renderChoices(); writeRoute(); }
     });
   }
   function availableMedium(records, preferred) {
@@ -120,6 +175,7 @@
     }).join('');
   }
   function showChannelGuidance(record) {
+    editorRoute = { type: 'guidance', key: record.key };
     const value = record.value, suggestion = M.suggestion(value, current().value), history = M.history(record.key, data.launches, activeKey).slice(0, 3);
     showDialog(value.name, `${M.media[M.medium(value)]} · ${M.kinds[value.kind]}`, `<p class="guidance-text">${h(suggestion.reason)}</p>${value.fit ? `<div><h3>Audience fit</h3><p class="guidance-text">${h(value.fit)}</p></div>` : ''}<div class="rule-note">${value.ruleStatus === 'verified' ? `Guidance checked ${h(value.verifiedDate)}.` : 'Posting rules need checking.'} ${value.linkPolicy === 'native' ? 'No external links; use a complete native post.' : value.linkPolicy === 'allowed' ? 'Links recorded as allowed.' : 'Link permissions are not recorded.'}${value.approval === 'required' ? ' Admin approval required.' : ''}</div>${value.rules ? `<p class="guidance-text">${h(value.rules)}</p>` : ''}${value.relationship ? `<p class="guidance-text">${h(value.relationship)}</p>` : ''}${value.notes ? `<p class="form-help">${h(value.notes)}</p>` : ''}${link(value.url, 'Open destination / contact reference')}${history.length ? `<div><h3>Previous activity</h3>${history.map(item => `<div class="history-item"><strong>${h(item.launch)}</strong><p>${h(activityText(item.task.activityAt))}</p>${item.task.outcome ? `<p>${h(item.task.outcome)}</p>` : ''}</div>`).join('')}</div>` : ''}<button type="button" data-action="edit-destination" data-key="${h(record.key)}">Edit channel guidance</button>`, () => {});
   }
@@ -143,6 +199,7 @@
     $('step-content').innerHTML = `<h2>One useful post at a time.</h2><p class="step-intro">Open a task for its draft, destination, rules, and history. Publish in the channel, then update its status here.</p>${!value.tasks.length ? '<div class="task-empty"><p class="muted">Choose a few relevant channels to create your distribution tasks.</p><button type="button" data-action="next-choose">Choose channels</button></div>' : `<div class="task-list">${value.tasks.map(task => `<article class="task-row"><button type="button" class="task-open" data-action="edit-task" data-id="${h(task.id)}"><span><strong>${h(task.channelName)}</strong><small>${h(memberName(task.owner))}${task.dueDate ? ` · ${h(dateText(task.dueDate))}` : ''}${task.angle ? ` · ${h(task.angle.slice(0, 90))}` : ''}</small></span>${badge(M.statusLabels[task.status], task.status)}</button></article>`).join('')}</div>`}<div class="next-row"><small>${pending.length} remaining · ${value.tasks.filter(task => task.status === 'waiting').length} awaiting approval</small><button type="button" class="primary" data-action="next-followup">Follow up →</button></div>`;
   }
   function editTask(task) {
+    editorRoute = { type: 'task', key: task.id };
     const destination = channel(task.channelKey), details = destination?.value, previous = M.history(task.channelKey, data.launches, activeKey).slice(0, 3);
     const statuses = Object.fromEntries((task.channelKind === 'outreach' ? ['draft', 'ready', 'sent', 'skipped'] : ['draft', 'ready', 'submitted', 'waiting', 'live', 'skipped']).map(status => [status, M.statusLabels[status]]));
     const currentRules = details?.ruleStatus === 'verified' && details.verifiedDate && Date.now() - Date.parse(details.verifiedDate) < 90 * 86400000;
@@ -153,6 +210,7 @@
     });
   }
   function editChannel(record = null) {
+    editorRoute = record ? { type: 'channel', key: record.key } : { type: 'new-channel' };
     const value = record ? structuredClone(record.value) : M.newChannel(), history = record ? M.history(record.key, data.launches).slice(0, 3) : [];
     showDialog(record ? value.name : 'Add a channel', 'Remember the audience, access, and guidance for next time.', `${field('channel-name', 'Channel or contact name', value.name, 'text', 150, true)}<div class="form-two">${select('channel-kind', 'Channel type', M.kinds, value.kind)}${field('channel-url', 'Destination / contact reference URL', value.url, 'url', 2000)}</div>${field('channel-tags', 'Audience tags, separated by commas', value.tags.join(', '), 'text', 1000)}${area('channel-fit', 'Best content fit', value.fit)}${area('channel-relationship', 'Who can post / contact details', value.relationship)}${area('channel-rules', 'Posting rules and source of guidance', value.rules)}<div class="form-two">${select('channel-links', 'External links', { unknown: 'Not checked', allowed: 'Allowed', native: 'Native post only / no external links' }, value.linkPolicy)}${select('channel-approval', 'Admin approval', { unknown: 'Not checked', required: 'Required', none: 'Not required' }, value.approval)}</div><div class="form-two">${select('channel-checked', 'Rules status', { unverified: 'Needs checking', verified: 'Checked' }, value.ruleStatus)}${field('channel-date', 'Rules checked on', value.verifiedDate, 'date')}</div>${area('channel-notes', 'Notes for next time', value.notes)}${record ? `<label class="check-row"><input id="channel-archived" type="checkbox"${value.archived ? ' checked' : ''}>Archive this channel (keep its history)</label>` : ''}${history.length ? `<div><h3>Recent activity</h3>${history.map(item => `<div class="history-item"><strong>${h(item.launch)}</strong><p class="muted">${h(activityText(item.task.activityAt))} · ${h(M.statusLabels[item.task.status])}</p>${link(item.task.liveUrl, 'Open post / coverage')}${item.task.outcome ? `<p>${h(item.task.outcome)}</p>` : ''}</div>`).join('')}</div>` : ''}`, form => {
       const checked = form.get('channel-checked'), verifiedDate = form.get('channel-date'), rules = form.get('channel-rules').trim();
@@ -167,7 +225,7 @@
     clearMediumPickers();
     $('content').innerHTML = `<div class="channels-page"><div class="page-heading"><div><p class="eyebrow">Start with distribution</p><h1>Choose your channels.</h1><p>Pick the destinations for your next launch, then make a plan.</p></div><button type="button" data-action="add-channel">＋ Add channel</button></div><div class="channel-selection-bar"><div><strong id="home-selection-count">0 channels selected</strong><small id="home-selection-media">Choose from any medium below.</small></div><div class="actions"><button type="button" class="quiet" id="clear-selection" data-action="clear-channel-selection" disabled>Clear</button><button type="button" class="primary" id="create-selected-launch" data-action="launch-from-channels" disabled>Create launch →</button></div></div><div id="library-media"></div><div class="channel-search-row"><input id="library-search" type="search" class="search-input" aria-label="Search channel library" placeholder="Search across all media…" value="${h(query)}"><label class="archive-toggle"><input type="checkbox" id="show-archived"${showArchived ? ' checked' : ''}>Include archived</label></div><div class="channel-list-meta"><small id="library-count"></small><small>Details holds posting rules, contacts & history.</small></div><div id="library-list"></div></div>`;
     $('library-search').addEventListener('input', event => { query = event.target.value; renderLibraryRows(); });
-    $('show-archived').addEventListener('change', event => { showArchived = event.target.checked; renderLibraryRows(); }); renderLibraryRows();
+    $('show-archived').addEventListener('change', event => { showArchived = event.target.checked; renderLibraryRows(); writeRoute(); }); renderLibraryRows();
   }
   function updateChannelSelection() {
     const selected = data.channels.filter(record => selectedChannels.has(record.key) && !record.value.archived);
@@ -186,30 +244,44 @@
     updateChannelSelection();
   }
   function editCheck(check) {
+    editorRoute = { type: 'check', key: check.id };
     showDialog('Checklist item', '', `${field('check-name', 'What needs to happen?', check.label, 'text', 300, true)}${select('check-owner', 'Owner', people(), check.owner)}`, form => { check.label = form.get('check-name').trim(); check.owner = form.get('check-owner'); updateLaunch(); renderLaunch(); });
+  }
+  function addMaterial() {
+    editorRoute = { type: 'material' };
+    const value = current().value;
+    showDialog('Add a material', 'Keep source files and visuals in their existing shared location.', `${field('material-name', 'Name', '', 'text', 150, true)}${field('material-url', 'Link', '', 'url', 2000, true)}`, form => { value.materials.push({ id: M.uid(), name: form.get('material-name').trim(), url: form.get('material-url').trim() }); updateLaunch(); renderLaunch(); });
+  }
+  async function copyPageLink() {
+    if (!data) return;
+    const url = location.origin + location.pathname + R.serialize(currentRoute());
+    try { await navigator.clipboard.writeText(url); announce('Link copied. Approved teammates can open this screen after signing in.'); }
+    catch { window.prompt('Copy this link:', url); }
   }
   async function copy(text) {
     try { await navigator.clipboard.writeText(text); announce('Copied to clipboard.'); }
     catch { showDialog('Copy this text', 'Select and copy the text below.', area('copy-text', 'Checklist or draft', text, 100000, 14), () => {}); $('copy-text').focus(); $('copy-text').select(); }
   }
   function launchOptions() {
+    editorRoute = { type: 'actions' };
     const record = current(), value = record.value;
     showDialog('Launch actions', value.name, `<button type="button" data-action="duplicate-launch">Duplicate with fresh progress</button><p class="form-help">Keeps the channel choices, angles, materials, and checklist. Clears drafts, live links, outcomes, dates, and checkmarks.</p><button type="button" data-action="archive-launch">${value.status === 'archived' ? 'Restore launch' : 'Archive launch'}</button>`, () => {});
   }
   async function action(event) {
     const button = event.target.closest('[data-action]'); if (!button || !data) return;
     const name = button.dataset.action, record = current();
-    if (name === 'close-dialog') { closeDialog(); return; }
+    if (name === 'close-dialog') { closeDialog(true); return; }
+    if (name === 'copy-page-link') { await copyPageLink(); return; }
     if (name === 'add-launch') { addLaunch(); return; }
     if (name === 'library') { setView('channels'); return; }
-    if (name === 'back-launches') { activeKey = null; render(); return; }
+    if (name === 'back-launches') { routeError = null; editorRoute = null; view = 'launches'; activeKey = null; render(); return; }
     if (name === 'launch-filter') { launchFilter = button.dataset.filter; renderLaunches(); return; }
     if (name === 'library-medium') { channelFilter = button.dataset.medium; query = ''; $('library-search').value = ''; renderLibraryRows(); return; }
     if (name === 'chooser-medium') { chooserMedium = button.dataset.medium; channelQuery = ''; $('chooser-search').value = ''; renderChoices(); return; }
     if (name === 'clear-channel-selection') { selectedChannels.clear(); renderLibraryRows(); return; }
     if (name === 'launch-from-channels') { if (selectedChannels.size) addLaunch(null, [...selectedChannels]); return; }
     if (name === 'channel-guidance') { showChannelGuidance(channel(button.dataset.key)); return; }
-    if (name === 'open-launch') { activeKey = button.dataset.key; step = 'choose'; render(); return; }
+    if (name === 'open-launch') { routeError = null; editorRoute = null; view = 'launches'; activeKey = button.dataset.key; step = 'choose'; render(); return; }
     if (name === 'add-channel') { editChannel(); return; }
     if (name === 'edit-channel' || name === 'edit-destination') {
       if (name === 'edit-destination' && dialogDirty && !window.confirm('Leave this task without saving your changes?')) return;
@@ -220,7 +292,7 @@
     if (name === 'edit-brief') editBrief(record);
     if (name === 'launch-options') launchOptions();
     if (name === 'step' || name.startsWith('next-')) { step = name === 'step' ? button.dataset.step : name.slice(5); renderLaunch(); }
-    if (name === 'add-material') showDialog('Add a material', 'Keep source files and visuals in their existing shared location.', `${field('material-name', 'Name', '', 'text', 150, true)}${field('material-url', 'Link', '', 'url', 2000, true)}`, form => { value.materials.push({ id: M.uid(), name: form.get('material-name').trim(), url: form.get('material-url').trim() }); updateLaunch(); renderLaunch(); });
+    if (name === 'add-material') addMaterial();
     if (name === 'remove-material') { value.materials = value.materials.filter(item => item.id !== button.dataset.id); updateLaunch(); renderLaunch(); }
     if (name === 'remove-check') { value.checks = value.checks.filter(item => item.id !== button.dataset.id); updateLaunch(); renderLaunch(); }
     if (name === 'edit-check') editCheck(value.checks.find(item => item.id === button.dataset.id));
@@ -235,15 +307,18 @@
       value.status = value.status === 'complete' ? 'active' : 'complete'; updateLaunch(); renderLaunch();
     }
   }
-  $('content').addEventListener('click', event => { void action(event); });
+  function dispatch(event) {
+    void action(event).then(() => { if (!$('editor').open) editorRoute = null; writeRoute(); });
+  }
+  $('content').addEventListener('click', dispatch);
   $('content').addEventListener('keydown', event => {
     if (!event.target.matches('[role="tab"]') || !['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
     event.preventDefault(); const steps = ['choose', 'prepare', 'distribute', 'followup'];
     step = event.key === 'Home' ? steps[0] : event.key === 'End' ? steps[3] : steps[(steps.indexOf(step) + (event.key === 'ArrowRight' ? 1 : 3)) % 4];
-    renderLaunch(); $(`tab-${step}`).focus();
+    renderLaunch(); $(`tab-${step}`).focus(); writeRoute();
   });
-  $('editor-content').addEventListener('click', event => { void action(event); });
-  $('editor').addEventListener('close', () => { if (!$('editor').open) clearDialog(); });
+  $('editor-content').addEventListener('click', dispatch);
+  $('editor').addEventListener('close', () => { if (!$('editor').open) { clearDialog(); editorRoute = null; writeRoute(); } });
   $('content').addEventListener('change', event => {
     if (!data) return;
     const libraryKey = event.target.dataset.libraryChannel;
@@ -269,15 +344,16 @@
     }
   });
   document.querySelectorAll('[data-view]').forEach(button => button.addEventListener('click', () => { if (data) setView(button.dataset.view); }));
+  $('copy-view-link').addEventListener('click', () => { void copyPageLink(); });
   window.LaunchApp = {
     open({ workspace, onSave }) {
       closeDialog();
       data = structuredClone(workspace); saveRecord = onSave;
       for (const key of selectedChannels) if (!data.channels.some(record => record.key === key && !record.value.archived)) selectedChannels.delete(key);
       $('team-label').textContent = `Shared with ${data.members.map(member => member.name).join(', ')}`;
-      render();
+      applyRoute(); writeRoute(true);
     },
-    lock() { closeDialog(); clearMediumPickers(); data = null; saveRecord = null; view = 'channels'; activeKey = null; step = 'choose'; channelFilter = 'facebook'; chooserMedium = 'facebook'; selectedChannels.clear(); query = ''; channelQuery = ''; $('content').replaceChildren(); $('team-label').textContent = ''; },
+    lock() { closeDialog(); editorRoute = null; routeError = null; clearMediumPickers(); data = null; saveRecord = null; view = 'channels'; activeKey = null; step = 'choose'; channelFilter = 'facebook'; chooserMedium = 'facebook'; selectedChannels.clear(); query = ''; channelQuery = ''; $('content').replaceChildren(); $('team-label').textContent = ''; },
     exportData() { return structuredClone(data); },
     hasDraft() { return dialogDirty; },
   };
