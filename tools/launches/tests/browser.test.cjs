@@ -291,3 +291,41 @@ test('desktop and phone layouts, opened searchable pickers, and empty search res
     }
   } finally { await browser.close(); }
 });
+
+
+test('visible Remove actions save launch changes, preserve the library, and protect saved work on desktop and phones', async () => {
+  const browser = await chromium.launch({ headless: true });
+  try {
+    for (const width of [1440, 390, 320]) {
+      const workspace = routeWorkspace();
+      workspace.launches[0].value.tasks.push(M.addTask(workspace.channels[1], members[0].email));
+      const f = await open(browser, { workspace, search: '?launch=launch-one&step=choose', viewport: { width, height: 1000 } }), { page } = f;
+      await page.locator('#app').waitFor();
+      await changeMedium(page, 'chooser', 'selected');
+      const removeChase = page.getByRole('button', { name: 'Remove Synthetic Chase group from this launch', exact: true });
+      assert.equal(await removeChase.isVisible(), true);
+      const box = await removeChase.boundingBox(); assert.ok(box.height >= 44 && box.x >= 0 && box.x + box.width <= width);
+      assert.equal(await page.locator('[data-action="remove-launch-channel"]').count(), 2);
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, `Chooser overflow at ${width}`);
+      await page.screenshot({ path: `/private/tmp/nextcard-launches-remove-${width}.png`, fullPage: true });
+      page.removeAllListeners('dialog'); page.on('dialog', dialog => dialog.dismiss());
+      await removeChase.click(); assert.equal(await page.locator('[data-channel="chase"]').isChecked(), true);
+      assert.equal(f.store.launches[0].value.tasks.length, 2);
+      assert.ok(!f.requests.some(item => item.payload.path.endsWith(':saveLaunch')));
+      await page.getByRole('button', { name: 'Remove Synthetic editorial contact from this launch', exact: true }).click();
+      await page.getByText('All changes saved', { exact: true }).waitFor();
+      assert.equal(f.store.launches[0].value.tasks.length, 1); assert.equal(f.store.channels.length, 4);
+      assert.equal(await page.locator('[data-channel="outreach"]').count(), 0);
+      await page.reload(); await page.locator('#app').waitFor(); assert.equal(f.store.launches[0].value.tasks.length, 1);
+      await changeMedium(page, 'chooser', 'email'); await page.locator('[data-channel="outreach"]').check();
+      await page.getByText('All changes saved', { exact: true }).waitFor(); assert.equal(f.store.launches[0].value.tasks.length, 2);
+      await page.getByRole('tab', { name: /Distribute/ }).click();
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, `Distribution overflow at ${width}`);
+      page.removeAllListeners('dialog'); page.on('dialog', dialog => dialog.accept());
+      await page.getByRole('button', { name: 'Remove Synthetic Chase group from this launch', exact: true }).click();
+      await page.getByText('All changes saved', { exact: true }).waitFor();
+      assert.deepEqual(f.store.launches[0].value.tasks.map(task => task.channelKey), ['outreach']);
+      assert.equal(f.store.channels.length, 4); assert.deepEqual(f.errors, []); await page.close();
+    }
+  } finally { await browser.close(); }
+});

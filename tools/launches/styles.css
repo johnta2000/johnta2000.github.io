@@ -15,3 +15,6 @@
 @media(max-width:760px){.sync{display:grid;grid-template-columns:auto auto;gap:0 3px}.sync #save-status{grid-column:1 / -1;max-width:none;justify-self:end}.sync button{font-size:.74rem;min-height:34px;padding:5px}.dialog-tools{gap:0}.dialog-tools .quiet{font-size:.73rem;padding:5px}.dialog-header{gap:10px}}
 
 .dialog-header h2{overflow-wrap:anywhere}
+
+/* Keep launch removal visible beside guidance, including on narrow phones. */
+.channel-row-actions{display:flex;align-items:center;gap:3px;flex-shrink:0}.channel-remove{color:var(--red);font-size:.76rem;padding:6px 9px;min-height:44px;background:transparent;border-color:#ead9d9}.channel-remove:hover{color:var(--red);background:#fcf3f3;border-color:#d8b2b2}.compact-channel:has(.channel-remove) .channel-row-actions{flex-direction:column;align-items:stretch;gap:0;padding:5px}.compact-channel:has(.channel-remove) .channel-detail{min-height:32px;padding:3px 6px}.task-row{display:flex;align-items:center;gap:4px}.task-open{flex:1;min-width:0}.task-open>span:first-child{min-width:0}.task-row>.channel-remove{margin-right:10px;flex-shrink:0}

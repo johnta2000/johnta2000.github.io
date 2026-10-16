@@ -161,11 +161,23 @@
   function availableMedium(records, preferred) {
     return ['all', 'selected'].includes(preferred) || records.some(record => M.medium(record.value) === preferred) ? preferred : records.length ? M.medium(records[0].value) : 'all';
   }
+  function removeLaunchChannel(key) {
+    const value = current().value, task = value.tasks.find(item => item.channelKey === key);
+    if (!task) return false;
+    const hasWork = task.draft || task.angle || task.outcome || task.activityAt || task.liveUrl || task.dueDate || task.status !== 'draft';
+    if (hasWork && !window.confirm(`Remove ${task.channelName} from this launch? Its saved draft, planning details, and activity will also be removed. The channel stays in your library.`)) return false;
+    value.tasks = value.tasks.filter(item => item.channelKey !== key);
+    updateLaunch();
+    return true;
+  }
+  function removeChannelButton(key, name) {
+    return `<button type="button" class="channel-remove" data-action="remove-launch-channel" data-key="${h(key)}" aria-label="Remove ${h(name)} from this launch">Remove</button>`;
+  }
   function compactChannels(records, selected, scope, grouped = false) {
     const renderRows = values => `<div class="compact-channel-grid">${values.map(record => {
       const value = record.value, suggestion = scope === 'chooser' ? M.suggestion(value, current().value) : null;
       const metadata = [value.archived ? 'Archived' : '', value.kind === 'owned' ? 'NextCard' : '', ...value.tags.filter(tag => tag !== 'general').slice(0, 2)].filter(Boolean).join(' · ') || 'General audience';
-      return `<article class="compact-channel${value.archived ? ' is-archived' : ''}"><label class="compact-channel-choice"><input type="checkbox" data-${scope === 'library' ? 'library-channel' : 'channel'}="${h(record.key)}" aria-label="Select ${h(value.name)}"${selected.has(record.key) ? ' checked' : ''}${value.archived && !selected.has(record.key) ? ' disabled' : ''}><span><strong>${h(value.name)}</strong><small>${h(metadata)}${suggestion ? ` · ${h(suggestion.label)}` : ''}</small></span></label><button type="button" class="channel-detail" data-action="${scope === 'library' ? 'edit-channel' : 'channel-guidance'}" data-key="${h(record.key)}" aria-label="Details for ${h(value.name)}">Details</button></article>`;
+      return `<article class="compact-channel${value.archived ? ' is-archived' : ''}"><label class="compact-channel-choice"><input type="checkbox" data-${scope === 'library' ? 'library-channel' : 'channel'}="${h(record.key)}" aria-label="Select ${h(value.name)}"${selected.has(record.key) ? ' checked' : ''}${value.archived && !selected.has(record.key) ? ' disabled' : ''}><span><strong>${h(value.name)}</strong><small>${h(metadata)}${suggestion ? ` · ${h(suggestion.label)}` : ''}</small></span></label><div class="channel-row-actions">${scope === 'chooser' && selected.has(record.key) ? removeChannelButton(record.key, value.name) : ''}<button type="button" class="channel-detail" data-action="${scope === 'library' ? 'edit-channel' : 'channel-guidance'}" data-key="${h(record.key)}" aria-label="Details for ${h(value.name)}">Details</button></div></article>`;
     }).join('')}</div>`;
     const sorted = [...records].sort((a, b) => a.value.name.localeCompare(b.value.name));
     if (!grouped) return renderRows(sorted);
@@ -181,7 +193,7 @@
   }
   function renderChooser() {
     const value = current().value;
-    $('step-content').innerHTML = `<h2>Choose your channels.</h2><p class="step-intro">Browse by medium. Your selections stay with you as you switch.</p><div class="chooser-selection"><span id="selected-count"></span><button type="button" class="primary" data-action="next-prepare">Prepare launch →</button></div><div id="chooser-media"></div><div class="channel-search-row"><input class="search-input" id="chooser-search" type="search" aria-label="Search channel choices" placeholder="Search across all media…" value="${h(channelQuery)}"><details class="audience-options"><summary>Audience tags</summary><label for="chooser-tags" class="audience-field"><span class="sr-only">Audience tags</span><input id="chooser-tags" value="${h(value.tags.join(', '))}" maxlength="1000" placeholder="chase, csr, dining"></label></details></div><div id="choice-list" class="choice-list"></div>`;
+    $('step-content').innerHTML = `<h2>Choose your channels.</h2><p class="step-intro">Checked channels are included in this launch. Use Remove to drop any that don’t fit. Changes save automatically.</p><div class="chooser-selection"><span id="selected-count"></span><button type="button" class="primary" data-action="next-prepare">Prepare launch →</button></div><div id="chooser-media"></div><div class="channel-search-row"><input class="search-input" id="chooser-search" type="search" aria-label="Search channel choices" placeholder="Search across all media…" value="${h(channelQuery)}"><details class="audience-options"><summary>Audience tags</summary><label for="chooser-tags" class="audience-field"><span class="sr-only">Audience tags</span><input id="chooser-tags" value="${h(value.tags.join(', '))}" maxlength="1000" placeholder="chase, csr, dining"></label></details></div><div id="choice-list" class="choice-list"></div>`;
     $('chooser-tags').addEventListener('change', event => { value.tags = M.tags(event.target.value); updateLaunch(); renderChoices(); });
     $('chooser-search').addEventListener('input', event => { channelQuery = event.target.value; renderChoices(); }); renderChoices();
   }
@@ -196,7 +208,7 @@
   }
   function renderDistribution() {
     const value = current().value, pending = value.tasks.filter(task => !M.done(task));
-    $('step-content').innerHTML = `<h2>One useful post at a time.</h2><p class="step-intro">Open a task for its draft, destination, rules, and history. Publish in the channel, then update its status here.</p>${!value.tasks.length ? '<div class="task-empty"><p class="muted">Choose a few relevant channels to create your distribution tasks.</p><button type="button" data-action="next-choose">Choose channels</button></div>' : `<div class="task-list">${value.tasks.map(task => `<article class="task-row"><button type="button" class="task-open" data-action="edit-task" data-id="${h(task.id)}"><span><strong>${h(task.channelName)}</strong><small>${h(memberName(task.owner))}${task.dueDate ? ` · ${h(dateText(task.dueDate))}` : ''}${task.angle ? ` · ${h(task.angle.slice(0, 90))}` : ''}</small></span>${badge(M.statusLabels[task.status], task.status)}</button></article>`).join('')}</div>`}<div class="next-row"><small>${pending.length} remaining · ${value.tasks.filter(task => task.status === 'waiting').length} awaiting approval</small><button type="button" class="primary" data-action="next-followup">Follow up →</button></div>`;
+    $('step-content').innerHTML = `<h2>One useful post at a time.</h2><p class="step-intro">Open a task for its draft, destination, rules, and history. Publish in the channel, then update its status here.</p>${!value.tasks.length ? '<div class="task-empty"><p class="muted">Choose a few relevant channels to create your distribution tasks.</p><button type="button" data-action="next-choose">Choose channels</button></div>' : `<div class="task-list">${value.tasks.map(task => `<article class="task-row"><button type="button" class="task-open" data-action="edit-task" data-id="${h(task.id)}"><span><strong>${h(task.channelName)}</strong><small>${h(memberName(task.owner))}${task.dueDate ? ` · ${h(dateText(task.dueDate))}` : ''}${task.angle ? ` · ${h(task.angle.slice(0, 90))}` : ''}</small></span>${badge(M.statusLabels[task.status], task.status)}</button>${removeChannelButton(task.channelKey, task.channelName)}</article>`).join('')}</div>`}<div class="next-row"><small>${pending.length} remaining · ${value.tasks.filter(task => task.status === 'waiting').length} awaiting approval</small><button type="button" class="primary" data-action="next-followup">Follow up →</button></div>`;
   }
   function editTask(task) {
     editorRoute = { type: 'task', key: task.id };
@@ -289,6 +301,12 @@
     }
     if (!record) return;
     const value = record.value;
+    if (name === 'remove-launch-channel') {
+      if (removeLaunchChannel(button.dataset.key)) {
+        if (step === 'choose') renderChoices(); else renderLaunch();
+      }
+      return;
+    }
     if (name === 'edit-brief') editBrief(record);
     if (name === 'launch-options') launchOptions();
     if (name === 'step' || name.startsWith('next-')) { step = name === 'step' ? button.dataset.step : name.slice(5); renderLaunch(); }
@@ -337,8 +355,8 @@
       const existing = value.tasks.find(task => task.channelKey === channelKey);
       if (event.target.checked && !existing) value.tasks.push(M.addTask(channel(channelKey), value.owner));
       if (!event.target.checked && existing) {
-        if ((existing.draft || existing.outcome || existing.activityAt) && !window.confirm('Remove this channel and its saved draft from this launch?')) { event.target.checked = true; return; }
-        value.tasks = value.tasks.filter(task => task.channelKey !== channelKey);
+        if (!removeLaunchChannel(channelKey)) { event.target.checked = true; return; }
+        renderChoices(); return;
       }
       updateLaunch(); renderChoices();
     }
