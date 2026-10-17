@@ -84,6 +84,19 @@ test('every palette keeps text, actions, favorites, and maximum heat shading rea
   }
  }finally{w.close();}
 });
+test('festival presets save through the admin picker and restore on first paint for the same room',async()=>{
+ for(const theme of ['decadence','edc']){
+  const h=uiHarness(),{ctx,w}=h;try{
+   assert.equal(w.RallyProjectThemes.themeFor(theme).id,theme);
+   ctx.openProjectTheme();const select=w.document.querySelector('select');select.value=theme;select.dispatchEvent(new w.Event('change'));
+   assert.equal(w.document.documentElement.dataset.projectTheme,theme);
+   await w.document.querySelector('form').onsubmit({preventDefault(){}});assert.equal(ctx.request.args.theme,theme);assert.equal(ctx.data.projectTheme,theme);
+  }finally{h.close();}
+  const dom=new JSDOM('',{url:'https://www.john-ta.com/tools/rally/',runScripts:'outside-only'});try{const w=dom.window;w.eval(read('project-theme.js'));w.RallyProjectThemes.remember('festival',theme);w.RallyProjectThemes.apply('warm');assert.equal(w.RallyProjectThemes.prepare('festival').id,theme);assert.equal(w.document.documentElement.style.colorScheme,'dark');}finally{dom.window.close();}
+ }
+ const box={module:{exports:{}},require};vm.runInNewContext(buildSync({entryPoints:[__dirname+'/../../convex/rallyThemes.ts'],bundle:true,write:false,platform:'node',format:'cjs'}).outputFiles[0].text,box);
+ const args=box.module.exports.save.exportArgs();for(const id of ['decadence','edc'])assert(args.includes('"'+id+'"'),'Backend validator must accept '+id);
+});
 test('only the current project admin can set a theme, and theme writes preserve every other field',async()=>{
  const box={module:{exports:{}},require};
  vm.runInNewContext(buildSync({entryPoints:[__dirname+'/../../convex/rallyThemes.ts'],bundle:true,write:false,platform:'node',format:'cjs'}).outputFiles[0].text,box);

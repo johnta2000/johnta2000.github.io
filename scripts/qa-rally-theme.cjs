@@ -201,7 +201,7 @@ async function checkBookingNotes(page,label,width,output){
   assert(lineupBounds.scrollWidth<=lineupBounds.width+1,label+' untimed lineup overflows');
   await page.screenshot({path:`${output}/${label}-midnight.png`});
   contrastIssues.push(...await auditContrast(page,label+' midnight'));
-  for(const theme of ['niteharts','midnight','ocean']){
+  for(const theme of (process.env.RALLY_QA_THEMES||'niteharts,midnight,ocean').split(',')){
    await page.evaluate(theme=>window.qaTheme(theme),theme);
    for(const view of ['home','stay','travel','crew','passes','tasks','notes','lineup','meetups']){
     await page.evaluate(view=>{window.qaShow(view,view==='meetups');window.scrollTo(0,0);},view);
@@ -227,7 +227,7 @@ async function checkBookingNotes(page,label,width,output){
    await page.evaluate(()=>window.qaShow('home'));
    await page.locator('#projectThemeButton').click();
    await page.locator('#dialogRoot .search-select-trigger').click();
-   await page.locator('.search-select-input:visible').fill('midnight');
+   await page.locator('.search-select-input:visible').fill('deep ink');
    assert.equal(await page.locator('.search-select-option:visible').count(),1);
    await page.locator('.search-select-input:visible').press('Enter');
    assert.equal(await page.evaluate(()=>document.documentElement.dataset.projectTheme),'midnight');
