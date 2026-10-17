@@ -25,7 +25,8 @@ const targets=[['decadence-digital-city-2026','decadence'],['edc-las-vegas-2027'
   for(const [eventId,theme]of targets){
    const before=(await rooms()).find(room=>room.id===eventId).state;
    const admin=before.members.find(person=>['admin','leader'].includes(person.role)&&person.clerkSubject);assert(admin,'Existing provisioned room admin required');
-   const client=new ConvexHttpClient(auth.url);client.setAdminAuth(auth.adminKey,{subject:admin.clerkSubject,email:admin.email||'',emailVerified:true});
+   const issuer='https://clerk.john-ta.com',subject=admin.clerkSubject;
+   const client=new ConvexHttpClient(auth.url);client.setAdminAuth(auth.adminKey,{subject,issuer,tokenIdentifier:`${issuer}|${subject}`,email:admin.email||'',emailVerified:true});
    const saved=await client.mutation(anyApi.rallyThemes.save,{eventId,theme});assert.equal(saved.projectTheme,theme);
    const after=(await rooms()).find(room=>room.id===eventId).state;
    const withoutTheme=state=>{const {projectTheme,...rest}=state;return rest;};
