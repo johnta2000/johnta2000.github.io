@@ -16,7 +16,7 @@ test("dashboard starts locked and loads Clerk", () => {
   assert.match(html, /id="access-gate"/);
   assert.match(html, /id="app" hidden/);
   assert.match(html, /data-clerk-publishable-key=/);
-  assert.match(app, /monitoring:dashboard/);
+  assert.match(app, /monitoring:overview/);
   assert.match(app, /Authorization: `Bearer \$\{token\}`/);
 });
 
@@ -30,7 +30,7 @@ test("public page does not reference repository JSON", () => {
 
 test("dashboard assets and authenticated snapshot refresh cannot remain stale", () => {
   assert.match(html, /styles\.css\?v=20261011\.1/);
-  assert.match(html, /app\.js\?v=20261011\.1/);
+  assert.match(html, /app\.js\?v=20261018\.1/);
   assert.match(html, /id="refresh-button"/);
   assert.match(app, /function refreshDashboard/);
   assert.match(app, /visibilitychange/);
@@ -82,6 +82,6 @@ test("external heartbeat reports use a separate write-only credential", () => {
   assert.match(reporter, /monitoring:report/);
   assert.match(backend, /MONITORING_REPORT_SECRET/);
   assert.match(backend, /MAX_EXTERNAL_RUNS = 60/);
-  assert.match(backend, /mergeIngestSnapshot/);
+  assert.match(backend, /saveMonitor/);
   assert.match(backend, /bilt-calculator-ranking/);
 });

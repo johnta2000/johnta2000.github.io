@@ -4,6 +4,7 @@ import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { performance } from "node:perf_hooks";
+import { compactSnapshot } from "./compact-snapshot.mjs";
 
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(SCRIPT_DIR, "../..");
@@ -291,7 +292,7 @@ async function publishToConvex(snapshot) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       path: "monitoring:ingest",
-      args: { secret, snapshot },
+      args: { secret, monitorId:"paze-directory", snapshot:compactSnapshot(snapshot, "paze-directory") },
     }),
     signal: AbortSignal.timeout(20_000),
   });

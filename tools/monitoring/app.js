@@ -19,6 +19,10 @@ let currentSnapshot = null;
 let positionHistoryDays = 28;
 let refreshPromise = null;
 let queryChart = null;
+let activeMonitorId = null;
+let detailRequest = 0;
+let detailOwner = null;
+const detailCache = new Map();
 
 const escapeHtml = (value = "") => String(value)
   .replaceAll("&", "&amp;")
@@ -538,9 +542,53 @@ function placeholderDialogMarkup(monitor) {
     </section>`;
 }
 
-function openMonitorDialog(monitorId) {
-  const monitor = currentSnapshot?.state.monitors.find((item) => item.id === monitorId);
+function applyMonitorDetail(monitorId, result, revision) {
+  const index = currentSnapshot.state.monitors.findIndex(m => m.id === monitorId);
+  if (index < 0) return;
+  currentSnapshot.state.monitors[index] = {...result.monitor, detailRevision:revision};
+  if (monitorId === "paze-directory") {
+    currentSnapshot.history = result.history;
+    currentSnapshot.baseline = result.baseline;
+  } else {
+    currentSnapshot.monitorHistory ??= {};
+    currentSnapshot.monitorHistory[monitorId] = result.history;
+  }
+}
+
+async function openMonitorDialog(monitorId, {refresh = false} = {}) {
+  const monitor = currentSnapshot?.state.monitors.find(item => item.id === monitorId);
   if (!monitor) return;
+  const owner = window.Clerk?.user?.id;
+  if (detailOwner !== owner) {detailCache.clear(); detailOwner = owner;}
+  activeMonitorId = monitorId;
+  const request = ++detailRequest;
+  if (!refresh) {
+    els.monitorDialogTitle.textContent = monitor.name;
+    els.monitorDialogEyebrow.textContent = monitor.configured ? "Active monitor" : "Collector placeholder";
+    els.monitorDialog.showModal();
+  }
+  if (!monitor.configured) {renderMonitorDialog(monitor); return;}
+  const cached = detailCache.get(monitorId);
+  els.monitorDialogContent.setAttribute("aria-busy", "true");
+  if (!refresh || !cached) els.monitorDialogContent.innerHTML = '<p class="empty-state" role="status">Loading monitor details…</p>';
+  try {
+    const result = cached?.revision === monitor.detailRevision ? cached : await convexQuery("monitoring:detail", {monitorId});
+    if (request !== detailRequest || activeMonitorId !== monitorId || !els.monitorDialog.open ||
+        !window.Clerk?.isSignedIn || window.Clerk?.user?.id !== owner) return;
+    const revision = result.revision ?? monitor.detailRevision;
+    detailCache.set(monitorId, {...result, revision});
+    applyMonitorDetail(monitorId, result, revision);
+    renderMonitorDialog(currentSnapshot.state.monitors.find(m => m.id === monitorId));
+  } catch (error) {
+    if (request !== detailRequest || activeMonitorId !== monitorId || !els.monitorDialog.open) return;
+    console.error(error);
+    els.monitorDialogContent.innerHTML = `<p class="empty-state" role="alert">Could not load this monitor’s details. Your saved history is unchanged.</p><button type="button" class="monitor-open" data-retry-detail="${escapeHtml(monitorId)}">Try again</button>`;
+  } finally {
+    if (request === detailRequest) els.monitorDialogContent.removeAttribute("aria-busy");
+  }
+}
+
+function renderMonitorDialog(monitor) {
   queryChart = null;
   els.monitorDialogTitle.textContent = monitor.name;
   els.monitorDialogEyebrow.textContent = monitor.configured ? "Active monitor" : "Collector placeholder";
@@ -550,7 +598,6 @@ function openMonitorDialog(monitorId) {
   else if (monitor.id === "transfer-bonus-discovery") els.monitorDialogContent.innerHTML = bonusDialogMarkup(monitor);
   else if (monitor.id === "chase-sapphire-reserve-tables") els.monitorDialogContent.innerHTML = chaseDialogMarkup(monitor);
   else els.monitorDialogContent.innerHTML = placeholderDialogMarkup(monitor);
-  els.monitorDialog.showModal();
   if (monitor.id === "bilt-calculator-ranking" && monitor.configured) {
     queryChart = window.MonitorQueryChart.mount(
       els.monitorDialogContent.querySelector(".query-chart-section"),
@@ -562,9 +609,13 @@ function openMonitorDialog(monitorId) {
 
 function renderSnapshot(snapshot) {
     currentSnapshot = snapshot;
-    if (queryChart && els.monitorDialog.open) {
-      const monitor = snapshot.state.monitors.find((item) => item.id === "bilt-calculator-ranking");
-      if (monitor) queryChart.update(monitor, snapshot.monitorHistory?.[monitor.id]?.runs ?? []);
+    for (const card of [...snapshot.state.monitors]) {
+      const cached = detailCache.get(card.id);
+      if (cached?.revision === card.detailRevision) applyMonitorDetail(card.id, cached, cached.revision);
+    }
+    if (activeMonitorId && els.monitorDialog.open) {
+      const monitor = snapshot.state.monitors.find(item => item.id === activeMonitorId);
+      if (monitor && detailCache.get(monitor.id)?.revision !== monitor.detailRevision) openMonitorDialog(monitor.id, {refresh:true});
     }
     const { state, feed } = snapshot;
     const configured = state.monitors.filter((monitor) => monitor.configured);
@@ -580,8 +631,9 @@ function renderSnapshot(snapshot) {
     els.monitorList.innerHTML = state.monitors.map(monitorCard).join("");
 
     const feedCount = document.querySelector("#feed-event-count");
-    feedCount.textContent = `${feed.events.length} secure event${feed.events.length === 1 ? "" : "s"}`;
-    feedCount.setAttribute("aria-label", `${feed.events.length} retained meaningful events in the authenticated Convex feed`);
+    const eventCount = feed.eventCount ?? feed.events.length;
+    feedCount.textContent = `${eventCount} secure event${eventCount === 1 ? "" : "s"}`;
+    feedCount.setAttribute("aria-label", `${eventCount} retained meaningful events in the authenticated Convex feed`);
 }
 
 async function initializeClerk() {
@@ -622,7 +674,7 @@ async function unlockDashboard() {
   els.authStatus.hidden = false;
   els.authStatus.textContent = "Verifying your account with Convex…";
   try {
-    const result = await convexQuery("monitoring:dashboard", {});
+    const result = await convexQuery("monitoring:overview", {});
     if (!result.snapshot) throw new Error("Secure monitor data has not been synced yet.");
     renderSnapshot(result.snapshot);
     els.gate.hidden = true;
@@ -640,7 +692,7 @@ async function refreshDashboard({ announce = false } = {}) {
   els.refreshButton.disabled = true;
   if (announce) els.refreshButton.textContent = "Refreshing…";
   refreshPromise = (async () => {
-    const result = await convexQuery("monitoring:dashboard", {});
+    const result = await convexQuery("monitoring:overview", {});
     if (!result.snapshot) throw new Error("Secure monitor data has not been synced yet.");
     renderSnapshot(result.snapshot);
     if (announce) els.refreshButton.textContent = "Updated";
@@ -661,6 +713,9 @@ async function refreshDashboard({ announce = false } = {}) {
 }
 
 async function signOut() {
+  detailRequest += 1; detailCache.clear(); activeMonitorId = null; currentSnapshot = null;
+  els.monitorDialog.close();
+  els.monitorDialogContent.replaceChildren();
   els.app.hidden = true;
   if (window.Clerk?.isSignedIn) await window.Clerk.signOut();
   window.location.assign(window.location.href.split("#")[0]);
@@ -738,6 +793,11 @@ els.monitorList.addEventListener("click", (event) => {
   if (button) openMonitorDialog(button.dataset.monitorId);
 });
 els.monitorDialogClose.addEventListener("click", () => els.monitorDialog.close());
+els.monitorDialog.addEventListener("close", () => {activeMonitorId = null; detailRequest += 1; queryChart = null; els.monitorDialogContent.removeAttribute("aria-busy");});
+els.monitorDialogContent.addEventListener("click", event => {
+  const button = event.target.closest("[data-retry-detail]");
+  if (button) openMonitorDialog(button.dataset.retryDetail, {refresh:true});
+});
 els.monitorDialogContent.addEventListener("change", (event) => {
   if (!event.target.matches("[data-position-range]")) return;
   positionHistoryDays = Number(event.target.value);

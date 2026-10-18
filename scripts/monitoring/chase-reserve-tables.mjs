@@ -4,6 +4,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { performance } from "node:perf_hooks";
+import { compactSnapshot } from "./compact-snapshot.mjs";
 import { CITY_SOURCES } from "./chase-reserve-sources.mjs";
 export { CITY_SOURCES };
 export const COLLECTION_VERSION = 2;
@@ -358,7 +359,7 @@ async function publishToConvex(snapshot) {
   const response = await fetch(`${CONVEX_URL}/api/mutation`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ path: "monitoring:ingest", args: { secret, snapshot } }),
+    body: JSON.stringify({ path: "monitoring:ingest", args: { secret, monitorId:MONITOR_ID, snapshot:compactSnapshot(snapshot, MONITOR_ID) } }),
     signal: AbortSignal.timeout(20_000),
   });
   const result = await response.json();

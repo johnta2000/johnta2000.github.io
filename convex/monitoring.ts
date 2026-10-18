@@ -1,8 +1,9 @@
-import { mutation, query } from "./_generated/server";
+import { internalMutation, mutation, query } from "./_generated/server";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { v } from "convex/values";
+import { ensureMonitoringStorage, legacyMonitoringSnapshot, monitorSummary, monitoringDetail,
+  monitoringFeed, monitoringOverview, saveEvents, saveMonitor } from "./monitoringStorage";
 
-const DASHBOARD_BOARD_ID = "monitoring:dashboard";
 const MAX_EXTERNAL_RUNS = 60;
 const MAX_FEED_EVENTS = 100;
 
@@ -80,13 +81,6 @@ async function requireAuthorizedUser(ctx: QueryCtx | MutationCtx) {
   }
 
   return { subject: identity.subject, email };
-}
-
-async function dashboardRecord(ctx: QueryCtx | MutationCtx) {
-  return await ctx.db
-    .query("warRoomState")
-    .withIndex("by_board", (q) => q.eq("boardId", DASHBOARD_BOARD_ID))
-    .unique();
 }
 
 function validateSnapshot(value: unknown): asserts value is MonitoringSnapshot {
@@ -184,42 +178,6 @@ function recomputeState(state: JsonRecord, timestamp: string, latestEventId: str
   return { ...state, generatedAt: timestamp, overallStatus, latestEventId, monitors };
 }
 
-function mergeIngestSnapshot(incoming: MonitoringSnapshot, existing?: MonitoringSnapshot): MonitoringSnapshot {
-  if (!existing || !isRecord(existing.state)) {
-    return { ...incoming, monitorHistory: incoming.monitorHistory ?? {} };
-  }
-
-  const incomingState = isRecord(incoming.state) ? incoming.state : {};
-  const incomingMonitors = Array.isArray(incomingState.monitors) ? incomingState.monitors.filter(isRecord) : [];
-  const existingMonitors = Array.isArray(existing.state.monitors) ? existing.state.monitors.filter(isRecord) : [];
-  const externalById = new Map(
-    existingMonitors
-      .filter((monitor) => EXTERNAL_MONITORS[monitor.id as keyof typeof EXTERNAL_MONITORS] && monitor.configured)
-      .map((monitor) => [monitor.id, monitor]),
-  );
-  const monitors = incomingMonitors
-    .filter((monitor) => monitor.id !== "paze-bonus-discovery")
-    .map((monitor) => monitor.configured ? monitor : externalById.get(monitor.id) ?? monitor);
-  for (const [id, monitor] of externalById) {
-    if (!monitors.some((candidate) => candidate.id === id)) monitors.push(monitor);
-  }
-
-  const generatedAtCandidates = [incomingState.generatedAt, existing.state.generatedAt]
-    .filter((value): value is string => typeof value === "string" && Number.isFinite(Date.parse(value)));
-  const timestamp = generatedAtCandidates.length
-    ? generatedAtCandidates.sort((a, b) => Date.parse(b) - Date.parse(a))[0]
-    : new Date().toISOString();
-  const feed = mergeFeed(incoming.feed, existing.feed, timestamp);
-  return {
-    ...incoming,
-    state: recomputeState({ ...incomingState, monitors }, timestamp, feed.latestEventId),
-    feed,
-    monitorHistory: {
-      ...(existing.monitorHistory ?? {}),
-      ...(incoming.monitorHistory ?? {}),
-    },
-  };
-}
 
 function applyExternalReport(snapshot: MonitoringSnapshot, report: ExternalReport): MonitoringSnapshot {
   const metadata = EXTERNAL_MONITORS[report.monitorId];
@@ -303,23 +261,6 @@ function applyExternalReport(snapshot: MonitoringSnapshot, report: ExternalRepor
   };
 }
 
-async function saveSnapshot(
-  ctx: MutationCtx,
-  existing: Awaited<ReturnType<typeof dashboardRecord>> | null,
-  snapshot: MonitoringSnapshot,
-) {
-  const payload = {
-    completed: {},
-    linearLinks: {},
-    docLinks: {},
-    buckets: snapshot,
-    updatedAt: Date.now(),
-  };
-  if (existing) await ctx.db.patch(existing._id, payload);
-  else await ctx.db.insert("warRoomState", { boardId: DASHBOARD_BOARD_ID, ...payload });
-  return { updatedAt: payload.updatedAt };
-}
-
 export const verify = query({
   args: {},
   handler: async (ctx) => requireAuthorizedUser(ctx),
@@ -329,12 +270,32 @@ export const dashboard = query({
   args: {},
   handler: async (ctx) => {
     const viewer = await requireAuthorizedUser(ctx);
-    const record = await dashboardRecord(ctx);
-    return {
-      viewer,
-      snapshot: (record?.buckets as MonitoringSnapshot | undefined) ?? null,
-      updatedAt: record?.updatedAt ?? null,
-    };
+    // Keep older open tabs working during the frontend rollout.
+    return {viewer, ...await legacyMonitoringSnapshot(ctx)};
+  },
+});
+
+export const overview = query({
+  args: {},
+  handler: async ctx => {
+    const viewer = await requireAuthorizedUser(ctx);
+    return {viewer, ...await monitoringOverview(ctx)};
+  },
+});
+
+export const detail = query({
+  args: {monitorId:v.string()},
+  handler: async (ctx, args) => {
+    await requireAuthorizedUser(ctx);
+    return monitoringDetail(ctx, args.monitorId);
+  },
+});
+
+export const migrateStorage = internalMutation({
+  args: {},
+  handler: async ctx => {
+    const meta = await ensureMonitoringStorage(ctx);
+    return {migratedAt:meta.buckets.migratedAt};
   },
 });
 
@@ -342,23 +303,33 @@ export const changeFeed = query({
   args: {},
   handler: async (ctx) => {
     await requireAuthorizedUser(ctx);
-    const record = await dashboardRecord(ctx);
-    const snapshot = record?.buckets as MonitoringSnapshot | undefined;
-    return snapshot?.feed ?? null;
+    return monitoringFeed(ctx);
   },
 });
 
 export const ingest = mutation({
-  args: { secret: v.string(), snapshot: v.any() },
+  args: { secret: v.string(), snapshot: v.any(), monitorId:v.optional(v.string()) },
   handler: async (ctx, args) => {
     const expectedSecret = process.env.MONITORING_INGEST_SECRET;
     if (!expectedSecret || args.secret.length < 32 || args.secret !== expectedSecret) {
       throw new Error("Monitoring ingestion is not authorized.");
     }
     validateSnapshot(args.snapshot);
-    const existing = await dashboardRecord(ctx);
-    const merged = mergeIngestSnapshot(args.snapshot, existing?.buckets as MonitoringSnapshot | undefined);
-    return await saveSnapshot(ctx, existing, merged);
+    if (args.monitorId && args.monitorId !== "paze-directory" && !EXTERNAL_MONITORS[args.monitorId as keyof typeof EXTERNAL_MONITORS]) {
+      throw new Error("Monitoring id is not supported.");
+    }
+    await ensureMonitoringStorage(ctx, args.snapshot);
+    const monitors = Array.isArray(args.snapshot.state?.monitors) ? args.snapshot.state.monitors.filter(isRecord) : [];
+    for (const monitor of monitors) {
+      if (monitor.id === "paze-bonus-discovery" || (args.monitorId && monitor.id !== args.monitorId)) continue;
+      if (monitor.id !== "paze-directory" && !EXTERNAL_MONITORS[monitor.id as keyof typeof EXTERNAL_MONITORS]) continue;
+      await saveMonitor(ctx, monitor, {
+        ...(monitor.id === "paze-directory" ? {history:args.snapshot.history, baseline:args.snapshot.baseline}
+          : args.snapshot.monitorHistory?.[monitor.id] ? {history:args.snapshot.monitorHistory[monitor.id]} : {}),
+      });
+    }
+    await saveEvents(ctx, feedEvents(args.snapshot.feed));
+    return {updatedAt:Date.now()};
   },
 });
 
@@ -370,10 +341,12 @@ export const report = mutation({
       throw new Error("External monitoring report is not authorized.");
     }
     const report = validateReport(args.report);
-    const existing = await dashboardRecord(ctx);
-    const snapshot = existing?.buckets as MonitoringSnapshot | undefined;
-    if (!snapshot) throw new Error("The monitoring dashboard needs an initial Paze snapshot before external reports.");
-    validateSnapshot(snapshot);
-    return await saveSnapshot(ctx, existing, applyExternalReport(snapshot, report));
+    await ensureMonitoringStorage(ctx);
+    const previous = await monitorSummary(ctx, report.monitorId);
+    const snapshot = applyExternalReport({state:{monitors:previous ? [previous.buckets.monitor] : []}, feed:{events:[]}}, report);
+    const monitor = snapshot.state!.monitors.find((m: JsonRecord) => m.id === report.monitorId);
+    await saveMonitor(ctx, monitor, {previous, history:snapshot.monitorHistory![report.monitorId]});
+    await saveEvents(ctx, feedEvents(snapshot.feed));
+    return {updatedAt:Date.now()};
   },
 });
