@@ -689,7 +689,7 @@ export const listEvents = query({
   args: {},
   handler: async (ctx) => {
     const identity = await requireIdentity(ctx);
-    const docs = await ctx.db.query("warRoomState").collect();
+    const docs = await ctx.db.query("warRoomState").withIndex("by_board", (q) => q.gte("boardId", "rally:").lt("boardId", "rally;")).collect();
     return docs.filter((doc) => doc.boardId.startsWith("rally:") && doc.buckets && memberFor(doc.buckets as RallyState, identity)).map((doc) => {
       const state = doc.buckets as RallyState;
       return { id: state.id, name: state.name, location: state.location, startsAt: state.startsAt, endsAt: state.endsAt, eventTimeZone: lifecycle(state).timeZone, eventEndAt: lifecycle(state).endAt, eventVisibility: state.eventVisibility };
@@ -707,7 +707,7 @@ export const sharedCrewCandidates = query({
     if (!target || !current || !["admin", "leader"].includes(current.role)) throw new Error("Only an admin can invite crew.");
     const existingEmails = new Set(target.members.map((person: RallyState) => normalizedEmail(person.email)).filter(Boolean));
     const candidates = new Map<string, RallyState>();
-    const docs = await ctx.db.query("warRoomState").collect();
+    const docs = await ctx.db.query("warRoomState").withIndex("by_board", (q) => q.gte("boardId", "rally:").lt("boardId", "rally;")).collect();
     docs.forEach((doc) => {
       const state = doc.buckets as RallyState | undefined;
       if (!state || state.id === args.eventId || !doc.boardId.startsWith("rally:") || !memberFor(state, identity)) return;
