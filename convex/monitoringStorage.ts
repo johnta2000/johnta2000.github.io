@@ -174,7 +174,8 @@ export async function monitoringFeed(ctx: any) {
   const meta = await monitoringRow(ctx, META);
   if (!meta) return (await monitoringRow(ctx, LEGACY))?.buckets?.feed ?? null;
   const events = (await prefixRows(ctx, EVENT, 100)).map(r => r.buckets);
-  return {schemaVersion:1, feedId:"john-ta-monitoring-changes", generatedAt:events[0]?.timestamp ?? meta.buckets.state.generatedAt,
+  const monitors = (await prefixRows(ctx, SUMMARY, 100)).map(r => r.buckets.monitor);
+  return {schemaVersion:1, feedId:"john-ta-monitoring-changes", generatedAt:stateFor(monitors, meta.buckets.state, events[0]?.id ?? null).generatedAt,
     latestEventId:events[0]?.id ?? null, events};
 }
 export async function legacyMonitoringSnapshot(ctx: any) {

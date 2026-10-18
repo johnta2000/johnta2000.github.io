@@ -99,7 +99,11 @@ test('compact ingestion updates one monitor without resetting externally reporte
 test('only the opened monitor history is read, and the change feed never reads run payloads',async()=>{
   const f=fixture();await f.run('migrateStorage');f.reset();await f.run('detail',{monitorId:'bilt-calculator-ranking'});
   assert.ok(f.reads.every(key=>key.includes('bilt-calculator-ranking')));
-  f.reset();await f.run('changeFeed');assert.ok(f.reads.every(key=>key==='monitoring:v2:meta'||key.startsWith('monitoring:v2:event:')));
+  f.reset();await f.run('changeFeed');assert.ok(f.reads.every(key=>key==='monitoring:v2:meta'||key.startsWith('monitoring:v2:event:')||key.startsWith('monitoring:v2:summary:')));
+});
+test('routine checks advance feed freshness without creating a change event',async()=>{
+  const f=fixture();await f.run('migrateStorage');const r=report();await submit(f,r);
+  const feed=await f.run('changeFeed');assert.equal(feed.generatedAt,r.timestamp);assert.equal(feed.events.length,100);
 });
 test('all read endpoints reject signed-out, unverified and unauthorized people before reading data',async()=>{
   for(const identity of [null,{subject:'x',email:'other@example.com',emailVerified:true},{subject:'x',email:'owner@example.com',emailVerified:false}]){
