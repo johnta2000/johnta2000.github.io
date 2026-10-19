@@ -65,9 +65,7 @@
   {
     "app": "jsx",
     "path": "/tools/jsx/",
-    "file": "tools/jsx/index.html",
-    "analytics": false,
-    "title": "JSX Fare Finder · John Ta"
+    "file": "tools/jsx/index.html"
   },
   {
     "path": "/tools/launches/",
