@@ -272,7 +272,7 @@ test('channel guidance can be edited, searched, archived, and retained without i
   const browser = await chromium.launch({ headless: true });
   try {
     const { page, store, errors } = await open(browser); await page.locator('#app').waitFor(); await page.getByRole('button', { name: 'Channels', exact: true }).click(); await page.getByRole('button', { name: 'Add channel', exact: false }).click();
-    await page.locator('#channel-name').fill('Synthetic Capital One group'); await page.locator('#channel-tags').fill('capital one, venture x'); await page.locator('#channel-rules').fill('Native posts only. Checked against the group rules.'); await page.locator('#channel-date').fill('2026-10-15'); await page.locator('#channel-notes').fill('<img src=x onerror=window.injected=true>');
+    await page.locator('#channel-name').fill('Synthetic Capital One group'); await page.locator('#channel-rules').fill('Native posts only. Checked against the group rules.'); await page.locator('#channel-date').fill('2026-10-15'); await page.locator('#channel-fit').fill('capital one, venture x\n<img src=x onerror=window.injected=true>');
     await choose(page, 'External links', 'Native post only'); await choose(page, 'Rules status', 'Checked'); await save(page);
     await page.locator('#library-search').fill('venture x'); assert.equal(await page.locator('.compact-channel').count(), 1); await page.locator('[data-action="edit-channel"]').click(); assert.equal(await page.locator('#editor img').count(), 0);
     await page.locator('#channel-archived').check(); await save(page); assert.equal(await page.locator('.compact-channel').count(), 0); await page.locator('#show-archived').check(); assert.equal(await page.locator('.compact-channel').count(), 1);
@@ -395,37 +395,62 @@ test('irrelevant unselected options can be hidden from a zero-selection launch a
 });
 
 
-test('audience labels and Edit channel open the shared editor directly without changing channel selection', async () => {
+test('channel notes open directly, search and save shared free-form text while preserving hidden tags and channel selection', async () => {
   const browser = await chromium.launch({ headless: true });
   try {
     for (const width of [1440, 390, 320]) {
-      const workspace = routeWorkspace(); workspace.channels.find(item => item.key === 'ihg').value.tags = [];
+      const workspace = routeWorkspace(); workspace.channels.find(item => item.key === 'ihg').value.fit = ''; workspace.channels.find(item => item.key === 'ihg').value.notes = '';
+      workspace.launches[0].value.tags = ['saved-launch-tag'];
       const f = await open(browser, { workspace, search: '?launch=launch-one', viewport: { width, height: 1000 } }), { page } = f;
       await page.locator('.channel-checklist').waitFor();
-      const audience = page.getByRole('button', { name: 'Edit audience for Synthetic IHG group', exact: true });
-      assert.match(await audience.textContent(), /Add audience tags/);
-      await audience.click(); await page.locator('#channel-tags').waitFor();
-      assert.equal(await page.locator('#channel-tags').evaluate(element => element === document.activeElement), true);
+      const notes = page.getByRole('button', { name: 'Edit notes for Synthetic IHG group', exact: true });
+      assert.match(await notes.textContent(), /Add channel notes/);
+      await notes.click(); await page.locator('#channel-fit').waitFor();
+      assert.equal(await page.locator('#channel-tags, #audience-tags, #chooser-tags').count(), 0);
+      assert.equal(await page.locator('#channel-fit').evaluate(element => element === document.activeElement), true);
       assert.equal(await page.locator('.guidance-text').count(), 0); assert.equal(new URL(page.url()).searchParams.get('channel'), 'ihg');
       assert.ok(!f.requests.some(item => item.payload.path.endsWith(':saveLaunch') || item.payload.path.endsWith(':saveChannel')));
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
-      await page.locator('#channel-tags').fill('alaska, mileage plan'); await page.locator('#channel-fit').fill('Alaska news and helpful redemption examples.');
+      await page.locator('#channel-fit').fill('Alaska news and helpful redemption examples.');
       const saveBox = await page.getByRole('button', { name: 'Save changes', exact: true }).boundingBox();
       assert.ok(saveBox.y >= 0 && saveBox.y + saveBox.height <= 1000, `Save stays visible at ${width}`);
       await page.screenshot({ path: `/private/tmp/nextcard-channel-editor-${width}.png`, fullPage: true });
       await save(page); await page.getByText('All changes saved', { exact: true }).waitFor();
-      assert.deepEqual(f.store.channels.find(item => item.key === 'ihg').value.tags, ['alaska', 'mileage plan']);
+      assert.deepEqual(f.store.channels.find(item => item.key === 'ihg').value.tags, ['ihg']);
+      assert.equal(f.store.channels.find(item => item.key === 'ihg').value.fit, 'Alaska news and helpful redemption examples.');
       assert.equal(f.store.launches[0].value.tasks.length, 1); assert.equal(await page.locator('[data-channel="ihg"]').isChecked(), false);
-      assert.match(await audience.textContent(), /alaska · mileage plan/);
+      assert.match(await notes.textContent(), /Alaska news and helpful redemption examples/);
       assert.ok(!f.requests.some(item => item.payload.path.endsWith(':saveLaunch')));
       await page.getByRole('button', { name: 'Edit channel Synthetic Chase group', exact: true }).click(); await page.locator('#channel-name').waitFor();
       assert.equal(await page.locator('#task-draft').count(), 0); await page.keyboard.press('Escape'); await page.locator('#editor').waitFor({ state: 'hidden' });
       await page.waitForURL(url => !url.searchParams.has('channel'));
-      await page.reload(); await page.locator('.channel-checklist').waitFor(); assert.match(await audience.textContent(), /alaska · mileage plan/);
+      await page.reload(); await page.locator('.channel-checklist').waitFor(); assert.match(await notes.textContent(), /Alaska news and helpful redemption examples/);
       await page.getByRole('button', { name: 'Channels', exact: true }).click();
-      await page.getByRole('button', { name: 'Edit audience for Synthetic IHG group', exact: true }).click();
-      assert.equal(await page.locator('#channel-tags').inputValue(), 'alaska, mileage plan');
-      await page.keyboard.press('Escape'); assert.deepEqual(f.errors, []); await page.close();
+      await page.getByRole('button', { name: 'Edit notes for Synthetic IHG group', exact: true }).click();
+      assert.equal(await page.locator('#channel-fit').inputValue(), 'Alaska news and helpful redemption examples.');
+      await page.keyboard.press('Escape'); await page.waitForURL(url => !url.searchParams.has('channel'));
+      await page.getByRole('button', { name: 'Launches', exact: true }).click(); await page.locator('[data-action="open-launch"]').click();
+      await page.getByRole('button', { name: 'Edit details', exact: true }).click(); await save(page); await page.getByText('All changes saved', { exact: true }).waitFor();
+      assert.deepEqual(f.store.launches[0].value.tags, ['saved-launch-tag']);
+      assert.deepEqual(f.errors, []); await page.close();
     }
+  } finally { await browser.close(); }
+});
+
+
+test('existing content-fit and earlier notes remain available without audience-tag fields', async () => {
+  const browser = await chromium.launch({ headless: true });
+  try {
+    const workspace = routeWorkspace(); workspace.channels[0].value.notes = 'An earlier reminder.';
+    workspace.channels[1].value.fit = ''; workspace.channels[1].value.notes = 'Only earlier notes.';
+    const f = await open(browser, { workspace, search: '?launch=launch-one&channel=chase' }), { page } = f;
+    await page.locator('#channel-fit').waitFor(); assert.equal(await page.locator('#channel-fit').inputValue(), 'Useful information for this audience.');
+    await page.getByText('Earlier saved notes', { exact: true }).click(); assert.equal(await page.locator('#channel-notes').inputValue(), 'An earlier reminder.');
+    await save(page); await page.getByText('All changes saved', { exact: true }).waitFor();
+    assert.equal(f.store.channels[0].value.notes, 'An earlier reminder.'); assert.deepEqual(f.store.channels[0].value.tags, ['chase', 'csr']);
+    await page.getByRole('button', { name: 'Edit notes for Synthetic editorial contact', exact: true }).click();
+    assert.equal(await page.locator('#channel-fit').inputValue(), 'Only earlier notes.'); await save(page); await page.getByText('All changes saved', { exact: true }).waitFor();
+    assert.equal(f.store.channels[1].value.fit, 'Only earlier notes.'); assert.equal(f.store.channels[1].value.notes, '');
+    assert.deepEqual(f.errors, []); await page.close();
   } finally { await browser.close(); }
 });
