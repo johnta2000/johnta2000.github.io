@@ -2,7 +2,7 @@ import { mutation } from './_generated/server';
 import { v } from 'convex/values';
 
 export const save = mutation({
-  args: { eventId: v.string(), theme: v.union(v.literal('warm'),v.literal('niteharts'),v.literal('midnight'),v.literal('ocean'),v.literal('decadence'),v.literal('edc')) },
+  args: { eventId: v.string(), theme: v.union(v.literal('warm'),v.literal('niteharts'),v.literal('midnight'),v.literal('ocean'),v.literal('decadence'),v.literal('edc'),v.literal('alleycvt')) },
   handler: async (ctx,{eventId,theme}) => {
     const identity=await ctx.auth.getUserIdentity();
     if(!identity||identity.emailVerified===false)throw new Error('Sign in to manage the project theme.');

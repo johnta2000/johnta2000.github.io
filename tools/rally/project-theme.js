@@ -8,6 +8,8 @@
     // Inspired by current official artwork at decadencenye.com and lasvegas.edc.com.
     {id:'decadence',name:'Decadence · Digital City',description:'Midnight burgundy, molten gold, warm ivory',scheme:'dark',colors:{paper:'#181217',card:'#251c21',ink:'#fff5e8',muted:'#c6b8b3',line:'#4d3b42',sidebar:'#1f171c',accent:'#ffc670',soft:'#3b282b',onAccent:'#2c1b0b',hover:'#ffda9a',danger:'#ffada4',favorite:'#ffe498',favoriteBg:'#3b301f'}},
     {id:'edc',name:'EDC · Electric Sky',description:'Cosmic navy, electric cyan, daisy lime',scheme:'dark',colors:{paper:'#091321',card:'#111f33',ink:'#eef7ff',muted:'#b2c6d9',line:'#31445f',sidebar:'#0d1829',accent:'#75e6ef',soft:'#1b3447',onAccent:'#082331',hover:'#acf4f7',danger:'#ffb1b8',favorite:'#c6ed75',favoriteBg:'#27351d'}},
+    // ALLEYCVT's official site palette: alleycvt.com/css/styles.css (2026-10-18).
+    {id:'alleycvt',name:'ALLEYCVT · Planet Supersonic',description:'Deep violet, neon pink, teal, marquee gold',scheme:'dark',colors:{paper:'#07060f',card:'#17133a',ink:'#f4f1ff',muted:'#b4aed6',line:'#443a6c',sidebar:'#0e0b26',accent:'#ff4f9a',soft:'#221c4f',onAccent:'#07060f',hover:'#4fd1d9',danger:'#ff9cb4',favorite:'#f2b84b',favoriteBg:'#382b18'}},
   ];
   const themeFor=id=>presets.find(theme=>theme.id===id)||presets[0];
   const tokens={paper:'paper',card:'card',ink:'ink',muted:'muted',line:'line',sidebar:'rally-sidebar',accent:'rally-accent',soft:'rally-soft',onAccent:'rally-on-accent',hover:'rally-hover',danger:'rally-danger',favorite:'rally-favorite',favoriteBg:'rally-favorite-bg'};

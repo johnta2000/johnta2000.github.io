@@ -1,12 +1,16 @@
 // Deploy only the palette validator, preserving the current live backend.
 // Dry-run by default. --publish deploys; --apply-festival-palettes only updates
 // the two explicitly named rooms using the existing admin-only theme mutation.
+// --apply-palette <event-id> <theme-id> updates exactly one specified room.
 // RALLY_DEPLOY_NODE_MODULES must point to the live Convex version when the
 // checkout's installed CLI differs; a runtime upgrade is intentionally refused.
 const fs=require('node:fs'),path=require('node:path'),os=require('node:os'),assert=require('node:assert/strict'),{spawnSync}=require('node:child_process');
 const root=path.resolve(__dirname,'..'),deployment='dashing-heron-837';
 const modules=path.resolve(process.env.RALLY_DEPLOY_NODE_MODULES||path.join(root,'node_modules'));
-const targets=[['decadence-digital-city-2026','decadence'],['edc-las-vegas-2027','edc']];
+const targetArgument=process.argv.indexOf('--apply-palette');
+const targets=targetArgument>=0?[[process.argv[targetArgument+1],process.argv[targetArgument+2]]]:[['decadence-digital-city-2026','decadence'],['edc-las-vegas-2027','edc']];
+for(const pair of targets)for(const value of pair)assert(typeof value==='string'&&/^[a-z0-9-]{1,180}$/.test(value),'Provide an explicit event ID and trusted theme ID');
+assert(!(targetArgument>=0&&process.argv.includes('--apply-festival-palettes')),'Choose one palette update mode');
 (async()=>{
  const version=require(path.join(modules,'convex/package.json')).version;
  const config=JSON.parse(fs.readFileSync(path.join(os.homedir(),'.convex/config.json'),'utf8'));
@@ -18,7 +22,7 @@ const targets=[['decadence-digital-city-2026','decadence'],['edc-las-vegas-2027'
   const source=`import {query} from "convex:/_system/repl/wrappers.js";export default query({handler:async(ctx)=>Promise.all(${JSON.stringify(targets.map(([id])=>id))}.map(async id=>{const doc=await ctx.db.query('warRoomState').withIndex('by_board',q=>q.eq('boardId','rally:'+id)).unique();if(!doc?.buckets)throw Error('Requested room unavailable: '+id);return {id,state:doc.buckets};}))});`;
   const result=await request('/api/run_test_function',{args:{},bundle:{path:'testQuery.js',source},format:'convex_encoded_json'});assert.equal(result.status,'success','Room inspection failed');return result.value;
  }
- if(process.argv.includes('--apply-festival-palettes')){
+ if(process.argv.includes('--apply-festival-palettes')||targetArgument>=0){
   const frontend=await fetch('https://www.john-ta.com/tools/rally/project-theme.js?verify='+Date.now()).then(r=>{assert(r.ok);return r.text();});
   for(const [,theme]of targets)assert(frontend.includes(`id:'${theme}'`),'Publish the palette registry before changing room settings');
   const {ConvexHttpClient}=require(path.join(modules,'convex/browser')),{anyApi}=require(path.join(modules,'convex/server'));
