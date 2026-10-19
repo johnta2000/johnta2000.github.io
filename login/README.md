@@ -9,19 +9,20 @@ After sign-in, existing read-only Convex queries determine which private app lin
 - Packing: `packing:verify` on `rapid-shark-565`; restricted to the verified John Ta owner account. The destination independently authorizes every packing read and write.
 - Sleep: `sleep:verify` on `rapid-shark-565`.
 - Monitoring: `monitoring:verify` on `rapid-shark-565`.
-- Card payments and Statement splits: `cardPayments:verify` on `rapid-shark-565`; both destinations use the same Payments allowlist. The splits link opens the authenticated library, which lists statement reviews without putting private review secrets in this directory.
-- Payment questions: its separate `paymentQuestions:verify` on `rapid-shark-565`, independent of Card payments access.
-- Rent and its PG&E bills section: `rent:verify` on `rapid-shark-565`.
-- Site access: `accessOverview:verify` on `rapid-shark-565`, available only to the two site owner accounts. Its overview is read-only and separately authorized by the backend.
+- Card payments: `cardPayments:verify` on `rapid-shark-565`, restricted by its own `CARD_PAYMENTS_ALLOWED_EMAIL` setting. See `../tools/card-payments/README.md` for the backend deployment and setup requirements before publishing this link.
 
 Signing up does not grant private app access. Each destination still enforces its own server permissions. Sign-out or a session change clears the directory and invalidates outstanding access checks.
 
-Menu Index, its individual SF Organica and Hẻm by Lê Quý menus, and Burgery are listed only after sign-in here, but their existing direct URLs and static assets remain public. This directory is not a new access-control layer for those public tools.
+The directory lists only apps approved by their server access checks. There is no general Other tools section. Existing public tool URLs retain their own access policies.
 
-Apartment Navigation is also linked after sign-in. Its directions remain encrypted behind its separate password; a Clerk account does not unlock them.
+Apartment Navigation and Burgery are omitted from the general directory. Removing these links does not change access at their direct URLs; those destinations must enforce their own access policies.
+
+The embedded login disables signup (`withSignUp: false`); invited users use their invitation link. This UI setting does not restrict Clerk's signup API or hosted Account Portal. Production Clerk Access mode must separately be set to Invite-only (`restricted`). Verify `user_settings.sign_up.mode` from the public `/v1/environment` endpoint before treating account creation as invite-only. Clerk's documented Backend API does not expose an access-mode update parameter. Existing accounts are unaffected; their private app access still requires per-tool approval.
 
 ## Verification
 
 Run `node --test login/tests/access.test.cjs` from the repository root. These tests mock Clerk and Convex and cover signed-out behavior, per-app access, new accounts, failed requests, session changes, and sign-out races.
 
 A real Clerk sign-in still needs verification on the configured site origin before release. Clerk explicitly rejects localhost because this production instance only allows john-ta.com and its subdomains. Verify an existing Rally account, an allowed personal-tools account, an account without private-app access, and sign-out. No sign-in or deployment is performed by the unit tests.
+
+Site access at `/tools/access/` uses its own owner-only `accessOverview:verify` check on `rapid-shark-565`. Its read-only inventory is separately authorized and contains no management controls.

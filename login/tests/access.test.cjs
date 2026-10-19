@@ -68,6 +68,7 @@ test('signed-out visitors see login, no directory, and make no access requests',
   assert.equal(p.requests.length, 0);
   assert.equal(p.options.forceRedirectUrl, 'https://www.john-ta.com/login/');
   assert.equal(p.options.routing, 'hash');
+  assert.equal(p.options.withSignUp, false);
 });
 test('only server-authorized apps appear, with an accessible Rally event', async () => {
   const p = setup({ signedIn: true, responses: {

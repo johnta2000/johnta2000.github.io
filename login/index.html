@@ -11,15 +11,15 @@
   <link rel="stylesheet" href="styles.css?v=20260927-centered">
   <script async data-clerk-script crossorigin="anonymous" src="https://clerk.john-ta.com/npm/@clerk/ui@1/dist/ui.browser.js"></script>
   <script async data-clerk-script crossorigin="anonymous" data-clerk-publishable-key="pk_live_Y2xlcmsuam9obi10YS5jb20k" src="https://clerk.john-ta.com/npm/@clerk/clerk-js@6/dist/clerk.browser.js"></script>
-  <script defer src="app.js?v=20261016-launches"></script>
-<link rel="stylesheet" href="../assets/css/clerk-auth.css?v=20261011-otp1">
+  <script defer src="app.js?v=20261019-invite-only"></script>
+  <link rel="stylesheet" href="../assets/css/clerk-auth.css?v=20261011-otp1">
 </head>
 <body data-auth-page="login">
   <main>
     <a class="back-link" href="../">John Ta</a>
     <header>
       <h1 id="title">Log in</h1>
-      <p id="intro">Sign in to access your apps.</p>
+      <p id="intro">Sign in with your invited email address.</p>
     </header>
     <p id="status" role="status">Loading sign-in…</p>
     <div id="sign-in" data-clerk-mount></div>
@@ -28,15 +28,7 @@
       <section aria-labelledby="apps-title">
         <h2 id="apps-title">Your apps</h2>
         <ul class="projects" id="apps"></ul>
-        <p id="empty" hidden>No apps are linked to this account yet. Use the email address your invitation was sent to.</p>
-      </section>
-      <section aria-labelledby="more-title">
-        <h2 id="more-title">Other tools</h2>
-        <ul class="projects">
-          <li><a href="../tools/menus/">Menu Index</a><span>SF Organica and Hẻm by Lê Quý.</span></li>
-          <li><a href="../tools/menus/sf-organica/">SF Organica</a><span>Search the grocery, deli, and café menu.</span></li>
-          <li><a href="../tools/menus/hem-by-lequy/">Hẻm by Lê Quý</a><span>Search the Vietnamese street food menu.</span></li>
-        </ul>
+        <p id="empty" hidden>No apps assigned. Contact the person who invited you if you expected access.</p>
       </section>
     </div>
     <footer id="account" hidden><span id="email"></span><button id="sign-out" type="button">Sign out</button></footer>

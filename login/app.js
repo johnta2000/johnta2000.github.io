@@ -150,13 +150,13 @@
     resetDirectory();
     if (session) { void showApps(session, user, currentRevision); return; }
     el.title.textContent = 'Log in';
-    el.intro.textContent = 'Sign in to access your apps.';
+    el.intro.textContent = 'Sign in with your invited email address.';
     status('');
     el['sign-in'].hidden = false;
     if (!mounted) {
       const returnUrl = location.origin + location.pathname;
       window.Clerk.mountSignIn(el['sign-in'], {
-        routing: 'hash', withSignUp: true,
+        routing: 'hash', withSignUp: false,
         forceRedirectUrl: returnUrl, signUpForceRedirectUrl: returnUrl,
         appearance: {
           variables: {
