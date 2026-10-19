@@ -1,6 +1,7 @@
 (() => {
   'use strict';
   const data = window.JSX_FARES;
+  const track = (name, properties = {}) => window.SiteAnalytics?.capture(name, properties);
   const $ = id => document.getElementById(id);
   const ids = ['search', 'trip', 'origin', 'destination', 'min-price', 'budget', 'after', 'before', 'weekend', 'sort', 'per-page'];
   const controls = Object.fromEntries(ids.map(id => [id, $(id)]));
@@ -39,19 +40,34 @@
   let accountPromptSeen = false;
   try { accountPromptSeen = localStorage.getItem(promptStorageKey) === '1'; } catch { /* The prompt still works when browser storage is unavailable. */ }
   function askAboutAccount(event) {
-    if (accountPromptSeen || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    const placement = event.currentTarget.dataset.analyticsPlacement;
+    track('jsx_booking_clicked', { placement });
+    if (accountPromptSeen || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+      track('jsx_booking_opened', { placement }); return;
+    }
     event.preventDefault();
     $('account-continue').href = event.currentTarget.href;
+    track('jsx_account_prompt_shown', { placement });
     accountDialog.showModal();
     accountPromptSeen = true;
     document.querySelectorAll('.book[aria-haspopup]').forEach(link => link.removeAttribute('aria-haspopup'));
     try { localStorage.setItem(promptStorageKey, '1'); } catch { /* Remember for this page visit even if storage is blocked. */ }
   }
-  $('account-close').addEventListener('click', () => accountDialog.close());
+  const closeAccountPrompt = () => { track('jsx_account_prompt_closed', { placement: 'account_dialog' }); accountDialog.close(); };
+  $('account-close').addEventListener('click', closeAccountPrompt);
+  accountDialog.addEventListener('cancel', () => track('jsx_account_prompt_closed', { placement: 'account_dialog' }));
+  const trackContinue = () => track('jsx_booking_opened', { placement: 'account_dialog' });
+  $('account-continue').addEventListener('click', trackContinue);
+  $('account-continue').addEventListener('auxclick', event => { if (event.button === 1) trackContinue(); });
+  document.querySelectorAll('a[data-analytics-control="referral"]').forEach(link => {
+    const referralClick = () => track('jsx_referral_clicked', { placement: link.dataset.analyticsPlacement });
+    link.addEventListener('click', referralClick);
+    link.addEventListener('auxclick', event => { if (event.button === 1) referralClick(); });
+  });
   ['account-signup', 'account-continue'].forEach(id => $(id).addEventListener('click', () => accountDialog.close()));
   accountDialog.addEventListener('click', event => {
     const bounds = accountDialog.getBoundingClientRect();
-    if (event.target === accountDialog && (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom)) accountDialog.close();
+    if (event.target === accountDialog && (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom)) closeAccountPrompt();
   });
   function row(f) {
     const tr=document.createElement('tr');
@@ -63,14 +79,16 @@
     const booking=cell('', 'fare-booking'); booking.append(makeBookingLink(f));
     tr.append(route,trip,dates,price,booking); return tr;
   }
-  function makeBookingLink(f) {
+  function makeBookingLink(f, placement = 'fare_table') {
     const link=document.createElement('a'); link.className='book';
+    link.dataset.analyticsControl = 'book'; link.dataset.analyticsPlacement = placement;
     const params=new URLSearchParams({o:f.origin,d:f.destination,dd:f.departDate,adt:'1',curr:'USD'});
     if(f.returnDate) params.set('rd',f.returnDate);
     link.href=`https://www.jsx.com/booking/select?${params}`; link.target='_blank'; link.rel='noopener noreferrer'; link.append('Book on JSX ',icon('external'));
     link.setAttribute('aria-label',`Book ${f.originCity} to ${f.destinationCity}, ${fmt(f.departDate)}${f.returnDate?', returning '+fmt(f.returnDate):''} on JSX, opens in a new tab`);
     if (!accountPromptSeen) link.setAttribute('aria-haspopup', 'dialog');
     link.addEventListener('click', askAboutAccount);
+    link.addEventListener('auxclick', event => { if (event.button === 1) askAboutAccount(event); });
     return link;
   }
   let routeMap = null;
@@ -110,6 +128,7 @@
     $('fares').replaceChildren(...fares.slice((page-1)*perPage,page*perPage).map(row));
     $('empty').hidden=fares.length>0;
     $('empty').querySelector('p').textContent=after&&before&&after>before?'The first departure date must be on or before the last date.':now>maxDeparture?'This snapshot has no future departures left. A fresh fare snapshot is needed.':'Try another airport, a wider date range, or a higher budget.';
+    $('total').dataset.resultCount = fares.length;
     $('total').textContent=`${fares.length.toLocaleString()} fares`; $('page').textContent=`Page ${page} of ${pages}`;
     ['first','prev'].forEach(id=>$(id).disabled=page===1); ['next','last'].forEach(id=>$(id).disabled=page===pages);
     $('status').textContent=`${fares.length} matching fares. Page ${page} of ${pages}.`;
@@ -132,11 +151,20 @@
     save();
   }
   function changed() { page=1; render(); }
-  function reset() { ids.forEach(id=>{if(id==='weekend') controls[id].checked=false;else controls[id].value=defaults[id]||'';}); Object.values(pickers).forEach(p=>p.sync()); changed(); }
-  ids.forEach(id=>controls[id].addEventListener(['search','min-price','budget'].includes(id)?'input':'change',changed));
-  ['reset','empty-reset'].forEach(id=>$(id).addEventListener('click',reset));
-  $('clear-price').addEventListener('click',()=>{controls.budget.value='';controls['min-price'].value='';changed();});
-  $('clear-dates').addEventListener('click',()=>{controls.after.value='';controls.before.value='';controls.weekend.checked=false;changed();});
+  const filterTimers = new Map();
+  function trackFilter(id) {
+    track('jsx_filter_changed', { filter_name: id, trip_type: controls.trip.value, result_count: Number($('total').dataset.resultCount || 0) });
+  }
+  function reset() { filterTimers.forEach(clearTimeout); filterTimers.clear(); ids.forEach(id=>{if(id==='weekend') controls[id].checked=false;else controls[id].value=defaults[id]||'';}); Object.values(pickers).forEach(p=>p.sync()); changed(); }
+  ids.forEach(id=>controls[id].addEventListener(['search','min-price','budget'].includes(id)?'input':'change', () => {
+    changed();
+    clearTimeout(filterTimers.get(id));
+    if (['search','min-price','budget'].includes(id)) filterTimers.set(id, setTimeout(() => trackFilter(id), 600));
+    else trackFilter(id);
+  }));
+  ['reset','empty-reset'].forEach(id=>$(id).addEventListener('click',() => { reset(); trackFilter('reset'); }));
+  $('clear-price').addEventListener('click',()=>{controls.budget.value='';controls['min-price'].value='';changed();trackFilter('clear-price');});
+  $('clear-dates').addEventListener('click',()=>{controls.after.value='';controls.before.value='';controls.weekend.checked=false;changed();trackFilter('clear-dates');});
   ['first','prev','next','last'].forEach(id=>$(id).addEventListener('click',()=>{page=id==='first'?1:id==='last'?pages:page+(id==='next'?1:-1);render();document.querySelector('.table-wrap').scrollTop=0;}));
   $('sort-price').addEventListener('click',()=>{controls.sort.value=controls.sort.value==='price'?'highest':'price';pickers.sort.sync();changed();});
   $('sort-dates').addEventListener('click',()=>{controls.sort.value=controls.sort.value==='date'?'latest':'date';pickers.sort.sync();changed();});

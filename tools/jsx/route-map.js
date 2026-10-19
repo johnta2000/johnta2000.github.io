@@ -160,15 +160,16 @@
         panel.append(el('p', 'map-detail-dates', 'This pairing is in the route catalog, but there is no future one-way fare in this snapshot. Check JSX for current schedules and availability.'));
         const link = el('a', 'book', 'Check route on JSX ↗');
         link.href = `https://www.jsx.com/home/search?o=${route.origin}&d=${route.destination}`;
+        link.dataset.analyticsControl = 'map_check_route'; link.dataset.analyticsPlacement = 'route_map';
         link.target = '_blank'; link.rel = 'noopener noreferrer'; panel.append(link);
         return;
       }
       const price = el('p', 'map-detail-price', money(f.priceUsd)); price.append(el('span', '', f.tripType === 'round_trip' ? ' round-trip total' : ' one-way')); panel.append(price);
       panel.append(el('p', 'map-detail-dates', fmt(f.departDate) + (f.returnDate ? ` · Return ${fmt(f.returnDate)}` : '')));
       panel.append(el('p', 'map-detail-samples', `Lowest of ${route.fares.length} matching fare ${route.fares.length === 1 ? 'sample' : 'samples'}. Confirm on JSX.`));
-      const actions = el('div', 'map-detail-actions'), view = el('button', '', 'See fares in table ↑'); view.type = 'button';
+      const actions = el('div', 'map-detail-actions'), view = el('button', '', 'See fares in table ↑'); view.type = 'button'; view.dataset.analyticsControl = 'map_view_fares'; view.dataset.analyticsPlacement = 'route_map';
       view.addEventListener('click', () => onChooseRoute(route.origin, route.destination, f.tripType));
-      actions.append(view, makeBookingLink(f)); panel.append(actions);
+      actions.append(view, makeBookingLink(f, 'route_map')); panel.append(actions);
     }
     function renderList() {
       const visible = visibleRoutes();
@@ -189,8 +190,9 @@
       $('map-summary').textContent = `${filtered ? `${visible.filter(isMatch).length} routes match your fare filters · ` : ''}${visible.length} directional ${visible.length === 1 ? 'route' : 'routes'} · ${count} airports${visible[0]?.cheapest ? ` · One-way from ${money(routePrice(visible[0]))}` : ''}`;
       $('map-empty').hidden = visible.length > 0;
     }
-    function selectRoute(key) { selected = key; drawGraph(); renderDetail(); renderList(); }
+    function selectRoute(key) { window.SiteAnalytics?.capture('jsx_map_route_selected', { placement: 'route_map' }); selected = key; drawGraph(); renderDetail(); renderList(); }
     function setFocus(code) {
+      window.SiteAnalytics?.capture('jsx_map_airport_selected', { placement: 'route_map' });
       focus = code; selected = ''; $('map-airport').value = code; airportPicker.sync();
       drawGraph(); renderDetail(); renderList();
     }
