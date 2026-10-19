@@ -177,7 +177,8 @@ test('Channels is the starting view; medium changes and global searches keep sel
   try {
     const { page, store, requests, errors } = await open(browser); await page.locator('#app').waitFor();
     assert.equal(await page.locator('[data-view="channels"]').getAttribute('aria-current'), 'page');
-    assert.equal(await page.locator('.compact-channel').count(), 2);
+    assert.equal(await page.locator('.compact-channel').count(), 4);
+    assert.equal(await page.locator('[data-action="library-medium"][data-medium="all"]').getAttribute('aria-pressed'), 'true');
     await page.locator('[data-library-channel="chase"]').check();
     await changeMedium(page, 'library', 'email');
     assert.equal(await page.locator('.compact-channel').count(), 1); await page.locator('[data-library-channel="outreach"]').check();
@@ -190,6 +191,7 @@ test('Channels is the starting view; medium changes and global searches keep sel
     await page.getByText('All changes saved', { exact: true }).waitFor();
     assert.deepEqual(store.launches[0].value.tasks.map(task => task.channelKey).sort(), ['chase', 'outreach']);
     assert.equal(await page.locator('.channel-checklist').isVisible(), true); assert.equal(await page.locator('[role=tab]').count(), 0);
+    assert.equal(await page.locator('#chooser-medium-select').inputValue(), 'all');
     await page.locator('[data-action="chooser-medium"][data-medium="email"]').click();
     assert.equal(await page.locator('[data-channel="outreach"]').isChecked(), true);
     await page.locator('[data-action="chooser-medium"][data-medium="facebook"]').click(); assert.equal(await page.locator('[data-channel="chase"]').isChecked(), true);
@@ -205,6 +207,12 @@ test('the complete starting library uses compact medium views that fit desktop w
   try {
     for (const width of [1440, 390, 320]) {
       const { page, errors } = await open(browser, { workspace, viewport: { width, height: width === 1440 ? 1000 : 844 } }); await page.locator('#app').waitFor();
+      assert.equal(await page.locator('.compact-channel').count(), 24);
+      assert.equal(await page.locator('#library-medium-select').inputValue(), 'all');
+      await changeMedium(page, 'library', 'facebook');
+      assert.equal(await page.locator('.compact-channel').count(), 9);
+      await page.reload(); await page.locator('#app').waitFor();
+      assert.equal(await page.locator('#library-medium-select').inputValue(), 'facebook');
       assert.equal(await page.locator('.compact-channel').count(), 9);
       if (width === 1440) { const box = await page.locator('#library-list').boundingBox(); assert.ok(box.y + box.height < 1000, 'All nine Facebook choices fit the desktop viewport'); }
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);

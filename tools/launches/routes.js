@@ -10,7 +10,7 @@
   const validKey = value => typeof value === 'string' && /^[a-zA-Z0-9_-]{1,100}$/.test(value);
   function parse(search) {
     const params = new URLSearchParams(search);
-    const route = { view: params.get('view') === 'launches' ? 'launches' : 'channels', launchKey: null, step: steps.includes(params.get('step')) ? params.get('step') : 'choose', medium: media.includes(params.get('medium')) ? params.get('medium') : 'facebook', status: statuses.includes(params.get('status')) ? params.get('status') : 'active', archived: params.get('archived') === '1', editor: null, error: null };
+    const route = { view: params.get('view') === 'launches' ? 'launches' : 'channels', launchKey: null, step: steps.includes(params.get('step')) ? params.get('step') : 'choose', medium: media.includes(params.get('medium')) ? params.get('medium') : 'all', status: statuses.includes(params.get('status')) ? params.get('status') : 'active', archived: params.get('archived') === '1', editor: null, error: null };
     const key = (name, label) => {
       if (!params.has(name)) return null;
       if (validKey(params.get(name))) return params.get(name);
@@ -34,7 +34,7 @@
     if (launch) { params.set('launch', route.launchKey); params.set('step', steps.includes(route.step) ? route.step : 'choose'); }
     else { params.set('view', route.view === 'launches' ? 'launches' : 'channels'); if (route.view === 'launches' && statuses.includes(route.status) && route.status !== 'active') params.set('status', route.status); }
     if ((launch && route.step === 'choose') || (!launch && route.view !== 'launches')) {
-      if (media.includes(route.medium) && route.medium !== 'facebook') params.set('medium', route.medium);
+      if (media.includes(route.medium) && route.medium !== 'all') params.set('medium', route.medium);
       if (!launch && route.archived) params.set('archived', '1');
     }
     const editor = route.editor;

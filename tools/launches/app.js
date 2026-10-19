@@ -2,7 +2,7 @@
   'use strict';
   const M = window.LaunchModel, R = window.LaunchRoutes, $ = id => document.getElementById(id);
   const h = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
-  let data = null, saveRecord, view = 'channels', activeKey = null, step = 'choose', launchFilter = 'active', channelFilter = 'facebook', chooserMedium = 'facebook', query = '', channelQuery = '', showArchived = false, pickerHandles = [], dialogDirty = false;
+  let data = null, saveRecord, view = 'channels', activeKey = null, step = 'choose', launchFilter = 'active', channelFilter = 'all', chooserMedium = 'all', query = '', channelQuery = '', showArchived = false, pickerHandles = [], dialogDirty = false;
   const selectedChannels = new Set();
   let editorRoute = null, routeError = null, applyingRoute = false, ignoringPop = false;
   let routePosition = Number.isInteger(history.state?.launchRoutePosition) ? history.state.launchRoutePosition : 0;
@@ -116,7 +116,7 @@
   function addLaunch(from = null, channelKeys = []) {
     const record = { key: M.uid(), value: from ? M.duplicate(from.value) : M.newLaunch(data.email), version: 0, createdAt: Date.now(), updatedAt: Date.now(), updatedBy: data.email };
     if (!from) record.value.tasks = channelKeys.map(key => channel(key)).filter(item => item && !item.value.archived).map(item => M.addTask(item, record.value.owner));
-    selectedChannels.clear(); data.launches.push(record); save('launch', record); activeKey = record.key; view = 'launches'; step = 'choose'; render(); editBrief(record, !from);
+    selectedChannels.clear(); data.launches.push(record); save('launch', record); activeKey = record.key; view = 'launches'; step = 'choose'; chooserMedium = 'all'; channelQuery = ''; render(); editBrief(record, !from);
   }
   function editBrief(record, fresh = false) {
     editorRoute = { type: 'launch' };
@@ -153,7 +153,7 @@
     });
   }
   function availableMedium(records, preferred) {
-    return ['all', 'selected'].includes(preferred) || records.some(record => M.medium(record.value) === preferred) ? preferred : records.length ? M.medium(records[0].value) : 'all';
+    return ['all', 'selected'].includes(preferred) || records.some(record => M.medium(record.value) === preferred) ? preferred : 'all';
   }
   function removeLaunchChannel(key) {
     const value = current().value, task = value.tasks.find(item => item.channelKey === key);
@@ -297,7 +297,7 @@
     if (name === 'clear-channel-selection') { selectedChannels.clear(); renderLibraryRows(); return; }
     if (name === 'launch-from-channels') { if (selectedChannels.size) addLaunch(null, [...selectedChannels]); return; }
     if (name === 'channel-guidance') { showChannelGuidance(channel(button.dataset.key)); return; }
-    if (name === 'open-launch') { routeError = null; editorRoute = null; view = 'launches'; activeKey = button.dataset.key; step = 'choose'; render(); return; }
+    if (name === 'open-launch') { routeError = null; editorRoute = null; view = 'launches'; activeKey = button.dataset.key; step = 'choose'; chooserMedium = 'all'; channelQuery = ''; render(); return; }
     if (name === 'add-channel') { editChannel(); return; }
     if (name === 'edit-channel' || name === 'edit-destination') {
       if (name === 'edit-destination' && dialogDirty && !window.confirm('Leave this task without saving your changes?')) return;
@@ -377,7 +377,7 @@
       $('team-label').textContent = `Shared with ${data.members.map(member => member.name).join(', ')}`;
       applyRoute(); writeRoute(true);
     },
-    lock() { closeDialog(); editorRoute = null; routeError = null; clearMediumPickers(); data = null; saveRecord = null; view = 'channels'; activeKey = null; step = 'choose'; channelFilter = 'facebook'; chooserMedium = 'facebook'; selectedChannels.clear(); query = ''; channelQuery = ''; $('content').replaceChildren(); $('team-label').textContent = ''; },
+    lock() { closeDialog(); editorRoute = null; routeError = null; clearMediumPickers(); data = null; saveRecord = null; view = 'channels'; activeKey = null; step = 'choose'; channelFilter = 'all'; chooserMedium = 'all'; selectedChannels.clear(); query = ''; channelQuery = ''; $('content').replaceChildren(); $('team-label').textContent = ''; },
     exportData() { return structuredClone(data); },
     hasDraft() { return dialogDirty; },
   };

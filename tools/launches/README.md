@@ -2,7 +2,7 @@
 
 Private shared launch workspace at `/tools/launches/`, discovered through `/login/` only after `nextcardLaunches:verify` approves the current account.
 
-Channels is the starting view. Pick destinations by distribution medium and create a launch, or start an empty launch from Launches. Each launch opens one channel checklist with search, medium filters, Selected, Hide, Remove, and Details. There are no Prepare, Distribute, or Follow up sections, generated preparation tasks, task counters, or progress sidebars. Selecting a checkbox adds the channel to the launch. All edits save automatically.
+Channels is the starting view. All media is the default for both the library and launch checklists; explicit medium links retain their requested filter. Pick destinations by distribution medium and create a launch, or start an empty launch from Launches. Each launch opens one channel checklist with search, medium filters, Selected, Hide, Remove, and Details. There are no Prepare, Distribute, or Follow up sections, generated preparation tasks, task counters, or progress sidebars. Selecting a checkbox adds the channel to the launch. All edits save automatically.
 
 The shared library retains posting rules, audience fit, contact references, and history. Unselected channels open guidance through Details; selected channels open their optional saved draft and notes. Hide for this launch removes an irrelevant option only from that launch; restore it under Hidden for this launch. Remove unselects an included channel and asks before discarding saved work. Channel archival affects the shared library and keeps history.
 
