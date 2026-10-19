@@ -25,7 +25,7 @@
   const band = price => price < 200 ? 0 : price < 300 ? 1 : price < 500 ? 2 : 3;
   const mercator = lat => Math.log(Math.tan(Math.PI / 4 + lat * Math.PI / 360));
   function project(lon, lat) { return [40 + (lon + 127) / 62 * 920, 32 + (mercator(50) - mercator(lat)) / (mercator(50) - mercator(21)) * 510]; }
-  function create({ geography, onChooseRoute, makeBookingLink }) {
+  function create({ geography, onChooseRoute, onChooseAirport, onClearRoute, makeBookingLink }) {
     const $ = id => document.getElementById(id);
     const svg = $('flight-map');
     const ns = 'http://www.w3.org/2000/svg';
@@ -33,12 +33,11 @@
     const fmt = value => new Date(value + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', weekday: 'short' });
     const createSvg = (tag, attrs = {}) => { const node = document.createElementNS(ns, tag); for (const [key, value] of Object.entries(attrs)) node.setAttribute(key, value); return node; };
     const el = (tag, className, text) => { const node = document.createElement(tag); if (className) node.className = className; if (text !== undefined) node.textContent = text; return node; };
-    let routes = [], focus = '', selected = '', box = { x: 0, y: 0, w: 1000, h: 600 };
+    let routes = [], focus = '', destination = '', selected = '', box = { x: 0, y: 0, w: 1000, h: 600 };
     let cities = new Map(), lastSignature = null, drag = null;
     let filtered = false, matches = new Map();
-    const displayRoute = route => filtered ? (matches.get(route.key) || route) : route;
-    const isMatch = route => (!focus || route.origin === focus || route.destination === focus) && (!filtered || matches.has(route.key));
-    const airportPicker = window.SearchableSelect.enhance($('map-airport'));
+    const displayRoute = route => matches.get(route.key) || { ...route, fares: [], cheapest: null };
+    const isMatch = route => matches.has(route.key);
     const title = createSvg('title'); title.textContent = 'JSX route map: select an airport or route to explore sampled fares.'; svg.append(title);
     const land = createSvg('g', { 'aria-hidden': 'true' });
     const lines = createSvg('g', { class: 'map-lines' });
@@ -52,8 +51,22 @@
     geography.countries.forEach(country => land.append(createSvg('path', { d: pathFor(country.geometry), class: 'map-land' })));
     geography.states.forEach(state => land.append(createSvg('path', { d: pathFor(state), class: 'map-state' })));
     [['UNITED STATES', -101, 44], ['MEXICO', -103, 24.3]].forEach(([name, lon, lat]) => { const [x, y] = project(lon, lat); const text = createSvg('text', { x, y, class: 'map-country-label', 'text-anchor': 'middle' }); text.textContent = name; land.append(text); });
-    function visibleRoutes() { return routes.map(displayRoute).filter(r => !focus || r.origin === focus || r.destination === focus).sort((a, b) => Number(isMatch(b)) - Number(isMatch(a)) || routePrice(a) - routePrice(b)); }
+    function visibleRoutes() { return [...matches.values()].sort((a, b) => routePrice(a) - routePrice(b)); }
     function coordinate(code) { const port = geography.airports[code]; return port && project(port.lon, port.lat); }
+    function chooseAirportAtPointer(event, fallback) {
+      // Overlapping touch targets in dense airport clusters must choose the nearest marker.
+      if (!event?.detail || !svg.getScreenCTM || !svg.createSVGPoint) return setFocus(fallback);
+      const matrix = svg.getScreenCTM(); if (!matrix) return setFocus(fallback);
+      const point = svg.createSVGPoint(); point.x = event.clientX; point.y = event.clientY;
+      const click = point.matrixTransform(matrix.inverse());
+      let nearest = fallback, distance = Infinity;
+      for (const code of Object.keys(geography.airports)) {
+        const p = coordinate(code); if (!p) continue;
+        const d = Math.hypot(p[0] - click.x, p[1] - click.y);
+        if (d < distance) { distance = d; nearest = code; }
+      }
+      setFocus(nearest);
+    }
     function setBox(next) {
       const w = Math.max(250, Math.min(1000, next.w)), h = w * 0.6;
       box = { x: Math.max(0, Math.min(1000 - w, next.x)), y: Math.max(0, Math.min(600 - h, next.y)), w, h };
@@ -74,7 +87,7 @@
         if (event.key !== 'Enter' && event.key !== ' ') return;
         event.preventDefault(); callback();
         const replacement = [...svg.querySelectorAll('[role=button]')].find(item => item.getAttribute('aria-label') === label);
-        (replacement || $('map-airport-trigger')).focus({ preventScroll: true });
+        (replacement || $('map-zoom-in')).focus({ preventScroll: true });
       });
       const tip = createSvg('title'); tip.textContent = label; node.append(tip);
     }
@@ -83,10 +96,11 @@
       const visible = routes.map(displayRoute), chosen = visible.find(r => r.key === selected);
       const highlighting = filtered || !!focus, matchedPorts = new Set(visible.filter(isMatch).flatMap(r => [r.origin, r.destination]));
       const ports = new Map(), corridors = new Map();
+      const corridorPriority = route => Number(isMatch(route)) * 8 + Number(route.key === selected) * 4 + Number(route.origin === focus) * 2 + Number(route.destination === destination);
       visible.forEach(route => {
         [route.origin, route.destination].forEach(code => { const current = ports.get(code); if (!current || (isMatch(route) && !isMatch(current)) || (isMatch(route) === isMatch(current) && routePrice(current) > routePrice(route))) ports.set(code, route); });
         const key = [route.origin, route.destination].sort().join('-');
-        const old = corridors.get(key); if (!old || (isMatch(route) && !isMatch(old)) || (isMatch(route) === isMatch(old) && routePrice(route) < routePrice(old))) corridors.set(key, route);
+        const old = corridors.get(key); if (!old || corridorPriority(route) > corridorPriority(old) || (corridorPriority(route) === corridorPriority(old) && routePrice(route) < routePrice(old))) corridors.set(key, route);
       });
       const scale = Math.max(box.w / (svg.clientWidth || 700), box.h / (svg.clientHeight || 430));
       const labelRects = [];
@@ -100,7 +114,7 @@
         const muted = !active && ((highlighting && !lit) || (chosen && !active));
         const group = createSvg('g', { class: `map-connection${active ? ' is-selected' : ''}${lit ? ' is-matching' : ''}${muted ? ' is-muted' : ''}`, 'data-route': route.key });
         group.append(createSvg('path', { d, class: 'map-route-hit', 'vector-effect': 'non-scaling-stroke' }), createSvg('path', { d, class: 'map-route-line', stroke: routeColor(route), 'stroke-dasharray': route.cheapest ? 'none' : '4 4', 'vector-effect': 'non-scaling-stroke' }));
-        graphButton(group, `${route.originCity} (${route.origin}) ↔ ${route.destinationCity} (${route.destination}), ${route.cheapest ? `from ${money(routePrice(route))}` : 'no sampled one-way fare'}. Explore route.`, () => selectRoute(route.key));
+        graphButton(group, `${route.originCity} (${route.origin}) → ${route.destinationCity} (${route.destination}), ${route.cheapest ? `from ${money(routePrice(route))}` : 'no fares match the current filters'}. Explore route.`, () => selectRoute(route.key));
         lines.append(group);
       }
       if (chosen) {
@@ -108,7 +122,7 @@
         if (a && b) {
           const dx = b[0] - a[0], dy = b[1] - a[1], direction = chosen.origin < chosen.destination ? 1 : -1;
           const bend = Math.min(.14, 55 / (Math.hypot(dx, dy) || 1)) * direction;
-          const text = `${chosen.origin} → ${chosen.destination} ${chosen.cheapest ? money(routePrice(chosen)) : 'No fare sample'}`;
+          const text = `${chosen.origin} → ${chosen.destination} ${chosen.cheapest ? money(routePrice(chosen)) : 'No matching fare'}`;
           const w = (text.length * 6.5 + 16) * scale, h = 25 * scale;
           const x = Math.max(box.x + 4 * scale, Math.min(box.x + box.w - w - 4 * scale, (a[0] + b[0]) / 2 - dy * bend / 2 - w / 2));
           const y = Math.max(box.y + 4 * scale, Math.min(box.y + box.h - h - 4 * scale, (a[1] + b[1]) / 2 + dx * bend / 2 - h / 2));
@@ -131,7 +145,7 @@
         group.append(createSvg('circle', { cx: p[0], cy: p[1], r: (active ? 5 : 3.8) * scale, fill: routeColor(route), stroke: '#fff', 'stroke-width': 1.8 * scale }));
         group.dataset.code = code;
         group.setAttribute('aria-pressed', String(code === focus));
-        graphButton(group, `${cities.get(code)} (${code}), ${route.cheapest ? `lowest sampled one-way fare involving this airport ${money(routePrice(route))}` : 'no sampled one-way fare'}. Show its routes.`, () => setFocus(code === focus ? '' : code));
+        graphButton(group, `${cities.get(code)} (${code}), ${route.cheapest ? `lowest matching fare involving this airport ${money(routePrice(route))}` : 'no fares match the current filters'}. Set From airport.`, event => chooseAirportAtPointer(event, code));
         points.append(group);
         if (p[0] < box.x || p[0] > box.x + box.w || p[1] < box.y || p[1] > box.y + box.h) continue;
         const text = `${code}${route.cheapest ? ` ${money(routePrice(route))}` : ''}`;
@@ -145,7 +159,8 @@
         if (!spot) continue;
         const [x, y] = spot; labelRects.push({ x, y, w, h });
         labels.append(createSvg('line', { x1: p[0], y1: p[1], x2: x + w / 2, y2: y + h / 2, stroke: '#bdb6b2', 'stroke-width': scale, opacity: '.7' }));
-        const label = createSvg('g');
+        const label = createSvg('g', { 'pointer-events': 'all', class: 'map-airport-label', 'data-code': code });
+        label.addEventListener('click', () => setFocus(code));
         label.append(createSvg('rect', { x, y, width: w, height: h, rx: 5 * scale, fill: '#fff', stroke: active ? '#eea34f' : '#e5e1dd', 'stroke-width': scale }));
         const t = createSvg('text', { x: x + w / 2, y: y + h / 2, 'dominant-baseline': 'central', 'text-anchor': 'middle', fill: '#493c35', 'font-size': 11.5 * scale, 'font-weight': active ? 750 : 600 });
         t.textContent = text; label.append(t); labels.append(label);
@@ -157,7 +172,7 @@
       const f = route.cheapest;
       panel.append(el('h4', '', `${route.originCity} → ${route.destinationCity}`), el('p', 'map-detail-codes', `${route.origin} → ${route.destination}`));
       if (!f) {
-        panel.append(el('p', 'map-detail-dates', 'This pairing is in the route catalog, but there is no future one-way fare in this snapshot. Check JSX for current schedules and availability.'));
+        panel.append(el('p', 'map-detail-dates', 'No fares on this route match the current filters. Your date, budget, and trip settings have been kept. Adjust the filters above, or check current availability on JSX.'));
         const link = el('a', 'book', 'Check route on JSX ↗');
         link.href = `https://www.jsx.com/home/search?o=${route.origin}&d=${route.destination}`;
         link.dataset.analyticsControl = 'map_check_route'; link.dataset.analyticsPlacement = 'route_map';
@@ -168,36 +183,42 @@
       panel.append(el('p', 'map-detail-dates', fmt(f.departDate) + (f.returnDate ? ` · Return ${fmt(f.returnDate)}` : '')));
       panel.append(el('p', 'map-detail-samples', `Lowest of ${route.fares.length} matching fare ${route.fares.length === 1 ? 'sample' : 'samples'}. Confirm on JSX.`));
       const actions = el('div', 'map-detail-actions'), view = el('button', '', 'See fares in table ↑'); view.type = 'button'; view.dataset.analyticsControl = 'map_view_fares'; view.dataset.analyticsPlacement = 'route_map';
-      view.addEventListener('click', () => onChooseRoute(route.origin, route.destination, f.tripType));
+      view.addEventListener('click', () => {
+        $('fare-toolbar').scrollIntoView({ block: 'start', behavior: 'smooth' });
+        $('origin-trigger').focus({ preventScroll: true });
+      });
       actions.append(view, makeBookingLink(f, 'route_map')); panel.append(actions);
     }
     function renderList() {
       const visible = visibleRoutes();
-      $('map-list-title').textContent = focus ? `${cities.get(focus)} routes` : 'Routes by lowest fare';
-      $('map-clear').hidden = !focus && !selected;
+      $('map-list-title').textContent = 'Matching routes';
+      $('map-clear').hidden = !focus && !destination;
       $('map-routes').replaceChildren(...visible.map(route => {
         const button = el('button', `map-route-option${filtered && isMatch(route) ? ' is-matching' : ''}`); button.type = 'button'; button.dataset.route = route.key;
         button.setAttribute('aria-pressed', String(selected === route.key));
         const copy = el('span', 'map-route-copy'); copy.append(el('strong', '', `${route.origin} → ${route.destination}`), el('span', '', `${route.originCity} → ${route.destinationCity}`));
-        const price = el('span', 'map-route-price', route.cheapest ? `From ${money(routePrice(route))}` : 'No fare sample'); price.style.color = routeColor(route);
+        const price = el('span', 'map-route-price', route.cheapest ? `From ${money(routePrice(route))}` : 'No matching fare'); price.style.color = routeColor(route);
         button.append(copy, price); button.addEventListener('click', () => {
           selectRoute(route.key);
           $('map-routes').querySelector(`[data-route="${route.key}"]`)?.focus({ preventScroll: true });
         }); return button;
       }));
-      if (!visible.length) $('map-routes').append(el('p', 'map-no-routes', focus ? 'No matching fares for this airport. Try “All airports” or adjust the filters above.' : 'No routes match the current fare filters.'));
-      const count = new Set(visible.flatMap(r => [r.origin, r.destination])).size;
-      $('map-summary').textContent = `${filtered ? `${visible.filter(isMatch).length} routes match your fare filters · ` : ''}${visible.length} directional ${visible.length === 1 ? 'route' : 'routes'} · ${count} airports${visible[0]?.cheapest ? ` · One-way from ${money(routePrice(visible[0]))}` : ''}`;
-      $('map-empty').hidden = visible.length > 0;
+      if (!visible.length) $('map-routes').append(el('p', 'map-no-routes', 'No fares match the filters above. The full route network stays visible on the map.'));
+      const count = new Set(routes.flatMap(r => [r.origin, r.destination])).size;
+      $('map-summary').textContent = `${visible.length} ${visible.length === 1 ? 'route matches' : 'routes match'} the fare filters above · ${routes.length} directional routes in the network · ${count} airports`;
+      $('map-empty').hidden = routes.length > 0;
     }
-    function selectRoute(key) { window.SiteAnalytics?.capture('jsx_map_route_selected', { placement: 'route_map' }); selected = key; drawGraph(); renderDetail(); renderList(); }
-    function setFocus(code) {
-      window.SiteAnalytics?.capture('jsx_map_airport_selected', { placement: 'route_map' });
-      focus = code; selected = ''; $('map-airport').value = code; airportPicker.sync();
+    function selectRoute(key) {
+      const route = routes.find(r => r.key === key); if (!route) return;
+      window.SiteAnalytics?.capture('jsx_map_route_selected', { placement: 'route_map' });
+      onChooseRoute(route.origin, route.destination);
       drawGraph(); renderDetail(); renderList();
     }
-    $('map-airport').addEventListener('change', () => setFocus($('map-airport').value));
-    $('map-clear').addEventListener('click', () => setFocus(''));
+    function setFocus(code) {
+      window.SiteAnalytics?.capture('jsx_map_airport_selected', { placement: 'route_map' });
+      onChooseAirport(code);
+    }
+    $('map-clear').addEventListener('click', onClearRoute);
     $('map-zoom-in').addEventListener('click', () => zoom(.7));
     $('map-zoom-out').addEventListener('click', () => zoom(1 / .7));
     $('map-fit').addEventListener('click', () => setBox({ x: 0, y: 0, w: 1000 }));
@@ -213,17 +234,15 @@
     return {
       update(fares, options = {}) {
         const nextMatches = options.matches || [];
-        const signature = String(!!options.filtered) + ':' + nextMatches.map(f => `${f.origin}-${f.destination}-${f.departDate}-${f.returnDate}-${f.priceUsd}-${f.tripType}`).sort().join('|') + ':' + fares.map(f => `${f.origin}-${f.destination}-${f.departDate}-${f.returnDate}-${f.priceUsd}-${f.tripType}`).sort().join('|');
+        const signature = `${options.origin || ''}:${options.destination || ''}:` + String(!!options.filtered) + ':' + nextMatches.map(f => `${f.origin}-${f.destination}-${f.departDate}-${f.returnDate}-${f.priceUsd}-${f.tripType}`).sort().join('|') + ':' + fares.map(f => `${f.origin}-${f.destination}-${f.departDate}-${f.returnDate}-${f.priceUsd}-${f.tripType}`).sort().join('|');
         if (signature === lastSignature) return; lastSignature = signature;
+        focus = options.origin || ''; destination = options.destination || '';
+        selected = focus && destination ? `${focus}-${destination}` : '';
         filtered = !!options.filtered; matches = new Map(groupRoutes(nextMatches).map(route => [route.key, route]));
         routes = groupRoutes(fares, geography.routes); cities = new Map(fares.flatMap(f => [[f.origin, f.originCity], [f.destination, f.destinationCity]]));
         // Preserve airport choices even when a table filter yields no fares there.
         const allCities = new Map(geography.routes.flatMap(f => [[f.origin, f.originCity], [f.destination, f.destinationCity]]));
         cities = new Map([...allCities, ...cities]);
-        if ($('map-airport').options.length === 1) {
-          [...allCities].sort((a, b) => a[1].localeCompare(b[1])).forEach(([code, city]) => $('map-airport').add(new Option(`${city} (${code})`, code)));
-          airportPicker.sync();
-        }
         if (!routes.some(r => r.key === selected)) selected = '';
         $('map-date').textContent = `Fare snapshot: ${fmt(window.JSX_FARES.asOf)}.`;
         drawGraph(); renderDetail(); renderList();

@@ -7,7 +7,7 @@
   const controls = Object.fromEntries(ids.map(id => [id, $(id)]));
   const defaults = { trip: 'one_way', sort: 'price', 'per-page': '100' };
   const airports = new Map();
-  data.fares.forEach(f => { airports.set(f.origin, f.originCity); airports.set(f.destination, f.destinationCity); });
+  [...(window.JSX_MAP_DATA?.routes || []), ...data.fares].forEach(f => { airports.set(f.origin, f.originCity); airports.set(f.destination, f.destinationCity); });
   ['origin', 'destination'].forEach(id => {
     controls[id].add(new Option('Any airport', ''));
     [...airports].sort((a,b) => a[1].localeCompare(b[1])).forEach(([code, city]) => controls[id].add(new Option(`${city} (${code})`, code)));
@@ -95,13 +95,20 @@
   try {
     routeMap = window.JSXRouteMap.create({
       geography: window.JSX_MAP_DATA, makeBookingLink,
-      onChooseRoute(origin, destination, tripType) {
-        reset(); controls.trip.value = tripType; pickers.trip.sync();
+      onChooseRoute(origin, destination) {
         controls.origin.value = origin; controls.destination.value = destination;
         pickers.origin.sync(); pickers.destination.sync(); changed();
-        $('fare-toolbar').scrollIntoView({ block: 'start', behavior: 'smooth' });
-        $('origin-trigger').focus({ preventScroll: true });
+      },
+      onChooseAirport(origin) {
+        controls.origin.value = origin;
+        if (controls.destination.value === origin) controls.destination.value = '';
+        pickers.origin.sync(); pickers.destination.sync(); changed();
+      },
+      onClearRoute() {
+        controls.origin.value = ''; controls.destination.value = '';
+        pickers.origin.sync(); pickers.destination.sync(); changed();
       }
+
     });
   } catch (error) {
     $('map-summary').textContent = 'The route map could not load. You can still browse all fares in the table above.';
@@ -147,7 +154,7 @@
     $('sort-dates').querySelector('span').textContent=controls.sort.value==='date'?'↑':controls.sort.value==='latest'?'↓':'↕';
     // The network map always includes the full catalog, independently of table filters.
     const mapFiltered = ids.some(id => !['sort', 'per-page'].includes(id) && (id === 'weekend' ? controls[id].checked : controls[id].value !== (defaults[id] || '')));
-    routeMap?.update(data.fares.filter(f => f.tripType === 'one_way' && f.departDate >= now), { matches: fares, filtered: mapFiltered });
+    routeMap?.update(data.fares.filter(f => f.tripType === 'one_way' && f.departDate >= now), { matches: fares, filtered: mapFiltered, origin: controls.origin.value, destination: controls.destination.value });
     save();
   }
   function changed() { page=1; render(); }

@@ -33,7 +33,7 @@ test('booking intent, actual outbound actions, referrals, and committed filters 
   await new Promise(resolve=>setTimeout(resolve,650));assert.equal(count('jsx_filter_changed'),2);
   assert.doesNotMatch(JSON.stringify(captures),/PRIVATE|EMAIL/);
   const genericBook=captures.filter(e=>e.event==='ui_interaction'&&e.properties.control==='book');assert.equal(genericBook.length,2);
-  const mapPort=d.getElementById('map-airport');mapPort.value='OAK';mapPort.dispatchEvent(new w.Event('change',{bubbles:true}));
+  d.getElementById('reset').click();d.querySelector('.map-airport[data-code="OAK"]').dispatchEvent(new w.MouseEvent('click',{bubbles:true}));
   d.querySelector('#map-routes button[data-route="OAK-LAS"]').click();d.querySelector('#map-detail .book').click();
   assert.equal(captures.filter(e=>e.event==='jsx_booking_opened'&&e.properties.placement==='route_map').length,1);
   first.dispatchEvent(new w.MouseEvent('auxclick',{button:1,bubbles:true,cancelable:true}));
