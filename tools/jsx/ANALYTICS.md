@@ -1,5 +1,7 @@
 # JSX throughput tracking
 
+Saved PostHog report: https://us.posthog.com/project/630826/insights/3WZ0j7kj
+
 Released October 19, 2026. Query `app = jsx` and `tracking_version = 20261019-1`. Exclude `is_test = true`. Earlier events cannot be retroactively split into booking/referral actions.
 
 | Event | Meaning | Useful breakdown |
