@@ -132,6 +132,22 @@
   document.addEventListener('focusin',event=>panels.forEach(panel=>{if(!panel.contains(event.target)) panel.open=false;}));
   window.addEventListener('resize',()=>panels.filter(p=>p.open).forEach(position));
   window.addEventListener('popstate',()=>{restore();changed();});
+  const guideStorageKey = 'jsx-guide-hidden-v1';
+  function setGuideHidden(hidden, moveFocus = false) {
+    $('offer-guide').hidden = hidden;
+    $('guide-restore').hidden = !hidden;
+    $('show-guide').setAttribute('aria-expanded', String(!hidden));
+    if (moveFocus) (hidden ? $('show-guide') : $('offer-title')).focus({ preventScroll: true });
+  }
+  $('hide-guide').addEventListener('click', () => {
+    setGuideHidden(true, true);
+    try { localStorage.setItem(guideStorageKey, '1'); } catch { /* Dismissal still works without storage. */ }
+  });
+  $('show-guide').addEventListener('click', () => {
+    setGuideHidden(false, true);
+    try { localStorage.removeItem(guideStorageKey); } catch { /* Reopening still works without storage. */ }
+  });
+  try { setGuideHidden(localStorage.getItem(guideStorageKey) === '1'); } catch { /* Show the guide by default. */ }
   $('snapshot').textContent=fmt(data.asOf);
   $('coverage').textContent=`${data.emptyRoutes} of ${data.routeCount} JSX routes had no sampled fares and aren’t listed.`;
   restore();render();

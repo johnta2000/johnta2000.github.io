@@ -41,3 +41,12 @@
 .account-action .icon{width:14px;height:14px}
 .account-actions p{margin:0;text-align:center;font-size:12px}
 @media(max-width:540px){.account-action{min-height:44px}#account-close{width:44px;height:44px;top:2px;right:2px}.account-intro h2{margin-right:35px}}
+
+.offer{position:relative}
+.offer-intro{padding-right:56px}
+#hide-guide{position:absolute;right:8px;top:8px;z-index:1;display:flex;align-items:center;justify-content:center;width:32px;height:32px;padding:0;border:0;border-radius:8px;background:transparent;font-size:22px;line-height:1;color:var(--muted)}
+#hide-guide:hover{background:#f1f0f2;color:var(--ink)}
+#guide-restore{display:flex;justify-content:flex-end;margin:-12px 0 12px}
+#show-guide{min-height:36px;padding:6px 11px;border-radius:9px;font-size:12px;color:var(--muted)}
+#show-guide:hover{background:var(--surface);color:var(--ink)}
+@media(max-width:540px){#hide-guide{width:44px;height:44px;right:3px;top:3px}.offer-intro{padding-right:48px}#show-guide{min-height:44px}}

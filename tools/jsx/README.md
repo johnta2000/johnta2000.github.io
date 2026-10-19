@@ -15,3 +15,5 @@ The two searchable-select files are local copies of the site's shared picker, in
 The first plain `Book on JSX` click opens the account check. Referral signup opens John's referral; continue opens the selected fare, including its return date. The prompt is remembered in browser local storage (`jsx-account-prompt-seen-v1`), with an in-memory fallback when storage is blocked. Escape, close, and backdrop dismiss it and return focus to the booking link. Modified clicks retain standard browser behavior.
 
 PostHog usage: https://us.posthog.com/project/630826 — filter by `app = jsx` or pathname `/tools/jsx/`. Tracks pageviews, pageleaves, anonymous interactions, and unhandled exceptions under the shared privacy settings. Tracking starts with this deployment; older visits are not backfilled.
+
+The offer guide has a close button and a `Show guide` restore action. Dismissal is remembered on the current browser (`jsx-guide-hidden-v1`); reopening clears that preference. Storage failures still allow hide/show within the current visit.

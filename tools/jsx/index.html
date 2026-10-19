@@ -27,10 +27,10 @@
   <link rel="apple-touch-icon" href="./apple-touch-icon.png" sizes="180x180">
   <link rel="preload" href="./nunito-latin.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="./searchable-select.css">
-  <link rel="stylesheet" href="./styles.css?v=20261018-4">
+  <link rel="stylesheet" href="./styles.css?v=20261018-5">
   <script defer src="./searchable-select.js"></script>
   <script defer src="./fares.js"></script>
-  <script defer src="./app.js?v=20261018-4"></script>
+  <script defer src="./app.js?v=20261018-5"></script>
   <script defer src="/assets/js/analytics.js?v=20260927-3" data-app="jsx"></script>
 </head>
 <body>
@@ -46,8 +46,10 @@
   </defs></svg>
   <main class="shell">
     <section class="intro"><h1>JSX Fare Finder for Sapphire Reserve: Get up to $300 off</h1><p>Sampled JSX fares for one adult. Use the tool to spot cheap routes and dates, then price your exact trip on JSX.</p></section>
-    <section class="offer" aria-labelledby="offer-title">
-      <div class="offer-intro"><div><div class="offer-title"><h2 id="offer-title">Get a JSX flight for (almost) free</h2><span class="badge">Offer ends Dec 14, 2026</span></div><p>Pay $200 or more on JSX with your Chase Sapphire Reserve and get $200 back. New JSX members can add a $100 referral credit on top.</p></div><a class="referral" href="https://www.jsx.com/create-profile/6QWTIE" target="_blank" rel="noopener noreferrer">Get $100 with my referral <svg class="icon" aria-hidden="true"><use href="#i-external"/></svg></a></div>
+    <div id="guide-restore" hidden><button type="button" id="show-guide" aria-controls="offer-guide" aria-expanded="false">Show guide</button></div>
+    <section class="offer" id="offer-guide" aria-labelledby="offer-title">
+      <button type="button" id="hide-guide" aria-label="Hide offer guide" aria-controls="offer-guide">×</button>
+      <div class="offer-intro"><div><div class="offer-title"><h2 id="offer-title" tabindex="-1">Get a JSX flight for (almost) free</h2><span class="badge">Offer ends Dec 14, 2026</span></div><p>Pay $200 or more on JSX with your Chase Sapphire Reserve and get $200 back. New JSX members can add a $100 referral credit on top.</p></div><a class="referral" href="https://www.jsx.com/create-profile/6QWTIE" target="_blank" rel="noopener noreferrer">Get $100 with my referral <svg class="icon" aria-hidden="true"><use href="#i-external"/></svg></a></div>
       <div class="guide">
         <details name="guide"><summary><span class="step-number">1</span>Activate the JSX offer on your Reserve<span class="chevron" aria-hidden="true"></span></summary><div class="step-body"><p>Find the JSX offer in your Chase Sapphire Reserve account and add it to your card: spend $200 or more, get $200 back. This is a targeted offer; confirm your eligibility and terms in your own account.</p><img src="./images/chase-offer.webp" width="1200" height="565" alt="Example Chase Sapphire Reserve JSX offer: spend $200 or more, get $200 cash back" loading="lazy"></div></details>
         <details name="guide"><summary><span class="step-number">2</span>Create your JSX account with a referral<span class="chevron" aria-hidden="true"></span></summary><div class="step-body"><p>Before you make a JSX account, sign up through a referral link. The code fills in for you. Eligible new members and the referrer each get $100 toward JSX flights; check the referral terms when you sign up.</p><a class="referral" href="https://www.jsx.com/create-profile/6QWTIE" target="_blank" rel="noopener noreferrer">Get $100 with my referral <svg class="icon" aria-hidden="true"><use href="#i-external"/></svg></a><img class="signup-image" src="./images/jsx-referral.webp" width="400" height="480" alt="JSX sign-up form with the referral code filled in" loading="lazy"></div></details>
