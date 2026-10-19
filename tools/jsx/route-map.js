@@ -117,21 +117,6 @@
         graphButton(group, `${route.originCity} (${route.origin}) → ${route.destinationCity} (${route.destination}), ${route.cheapest ? `from ${money(routePrice(route))}` : 'no fares match the current filters'}. Explore route.`, () => selectRoute(route.key));
         lines.append(group);
       }
-      if (chosen) {
-        const a = coordinate(chosen.origin), b = coordinate(chosen.destination);
-        if (a && b) {
-          const dx = b[0] - a[0], dy = b[1] - a[1], direction = chosen.origin < chosen.destination ? 1 : -1;
-          const bend = Math.min(.14, 55 / (Math.hypot(dx, dy) || 1)) * direction;
-          const text = `${chosen.origin} → ${chosen.destination} ${chosen.cheapest ? money(routePrice(chosen)) : 'No matching fare'}`;
-          const w = (text.length * 6.5 + 16) * scale, h = 25 * scale;
-          const x = Math.max(box.x + 4 * scale, Math.min(box.x + box.w - w - 4 * scale, (a[0] + b[0]) / 2 - dy * bend / 2 - w / 2));
-          const y = Math.max(box.y + 4 * scale, Math.min(box.y + box.h - h - 4 * scale, (a[1] + b[1]) / 2 + dx * bend / 2 - h / 2));
-          labelRects.push({ x, y, w, h });
-          labels.append(createSvg('rect', { x, y, width: w, height: h, rx: 6 * scale, fill: '#fff5e8', stroke: '#eea34f', 'stroke-width': scale }));
-          const caption = createSvg('text', { x: x + w / 2, y: y + h / 2, 'text-anchor': 'middle', 'dominant-baseline': 'central', 'font-size': 12 * scale, 'font-weight': 700, fill: '#493c35' });
-          caption.textContent = text; labels.append(caption);
-        }
-      }
       // Label the selected airport first, then the lowest-fare airports. Place labels
       // around dense airport clusters rather than moving their actual coordinates.
       const ordered = [...ports].sort((a, b) => (b[0] === focus) - (a[0] === focus) || routePrice(a[1]) - routePrice(b[1]));
@@ -148,7 +133,7 @@
         graphButton(group, `${cities.get(code)} (${code}), ${route.cheapest ? `lowest matching fare involving this airport ${money(routePrice(route))}` : 'no fares match the current filters'}. Set From airport.`, event => chooseAirportAtPointer(event, code));
         points.append(group);
         if (p[0] < box.x || p[0] > box.x + box.w || p[1] < box.y || p[1] > box.y + box.h) continue;
-        const text = `${code}${route.cheapest ? ` ${money(routePrice(route))}` : ''}`;
+        const text = `${code}${!chosen && route.cheapest ? ` ${money(routePrice(route))}` : ''}`;
         const w = (text.length * 6.4 + 12) * scale, h = 22 * scale, gap = 9 * scale;
         const candidates = [
           [p[0] + gap, p[1] - h / 2], [p[0] - w - gap, p[1] - h / 2],
@@ -158,8 +143,8 @@
         const spot = candidates.find(([x, y]) => x >= box.x + 3 * scale && y >= box.y + 3 * scale && x + w < box.x + box.w - 3 * scale && y + h < box.y + box.h - 3 * scale && !labelRects.some(r => x < r.x + r.w + 2 * scale && x + w + 2 * scale > r.x && y < r.y + r.h + 2 * scale && y + h + 2 * scale > r.y));
         if (!spot) continue;
         const [x, y] = spot; labelRects.push({ x, y, w, h });
-        labels.append(createSvg('line', { x1: p[0], y1: p[1], x2: x + w / 2, y2: y + h / 2, stroke: '#bdb6b2', 'stroke-width': scale, opacity: '.7' }));
-        const label = createSvg('g', { 'pointer-events': 'all', class: 'map-airport-label', 'data-code': code });
+        labels.append(createSvg('line', { x1: p[0], y1: p[1], x2: x + w / 2, y2: y + h / 2, stroke: '#bdb6b2', 'stroke-width': scale, opacity: highlighting && !active ? '.2' : '.7' }));
+        const label = createSvg('g', { 'pointer-events': 'all', class: `map-airport-label${highlighting && !active ? ' is-muted' : ''}`, 'data-code': code });
         label.addEventListener('click', () => setFocus(code));
         label.append(createSvg('rect', { x, y, width: w, height: h, rx: 5 * scale, fill: '#fff', stroke: active ? '#eea34f' : '#e5e1dd', 'stroke-width': scale }));
         const t = createSvg('text', { x: x + w / 2, y: y + h / 2, 'dominant-baseline': 'central', 'text-anchor': 'middle', fill: '#493c35', 'font-size': 11.5 * scale, 'font-weight': active ? 750 : 600 });
@@ -191,7 +176,8 @@
     }
     function renderList() {
       const visible = visibleRoutes();
-      $('map-list-title').textContent = 'Matching routes';
+      $('map-list-title').textContent = selected ? 'Selected route' : 'Matching routes';
+      $('map-routes').hidden = !!selected;
       $('map-clear').hidden = !focus && !destination;
       $('map-routes').replaceChildren(...visible.map(route => {
         const button = el('button', `map-route-option${filtered && isMatch(route) ? ' is-matching' : ''}`); button.type = 'button'; button.dataset.route = route.key;
@@ -200,12 +186,13 @@
         const price = el('span', 'map-route-price', route.cheapest ? `From ${money(routePrice(route))}` : 'No matching fare'); price.style.color = routeColor(route);
         button.append(copy, price); button.addEventListener('click', () => {
           selectRoute(route.key);
-          $('map-routes').querySelector(`[data-route="${route.key}"]`)?.focus({ preventScroll: true });
+          $('map-detail').querySelector('button,a')?.focus({ preventScroll: true });
         }); return button;
       }));
       if (!visible.length) $('map-routes').append(el('p', 'map-no-routes', 'No fares match the filters above. The full route network stays visible on the map.'));
-      const count = new Set(routes.flatMap(r => [r.origin, r.destination])).size;
-      $('map-summary').textContent = `${visible.length} ${visible.length === 1 ? 'route matches' : 'routes match'} the fare filters above · ${routes.length} directional routes in the network · ${count} airports`;
+      const fareCount = visible.reduce((count, route) => count + route.fares.length, 0);
+      const selection = [focus, destination].filter(Boolean).join(' → ');
+      $('map-summary').textContent = `${fareCount.toLocaleString()} ${fareCount === 1 ? 'fare' : 'fares'} · ${visible.length} ${visible.length === 1 ? 'route matches' : 'routes match'}${selection ? ` · ${selection}` : ''}`;
       $('map-empty').hidden = routes.length > 0;
     }
     function selectRoute(key) {

@@ -57,3 +57,39 @@ test('map selections preserve restrictive filters and never offer a nonmatching 
  get('map-clear').click();assert.equal(get('budget').value,'1');assert.equal(get('after').value,'2026-12-01');assert.equal(get('weekend').checked,true);
  close();
 });
+test('small result sets omit pagination and keep the map directly in the fare results',()=>{
+ const {w,d,get,change,close}=setup('?origin=BUR&destination=CCR');
+ assert.equal(get('total').textContent,'3 fares');
+ assert.equal(get('page-controls').hidden,true);
+ assert.equal(get('route-map').closest('.fare-section'),get('fares').closest('.fare-section'));
+ assert.ok(get('route-map').previousElementSibling.matches('.pagination'));
+ const notes=d.querySelector('.fare-notes');
+ assert.equal(notes.open,false);assert.equal(get('route-map').nextElementSibling,notes);
+ assert.match(get('map-summary').textContent,/^3 fares · 1 route matches · BUR → CCR$/);
+ assert.equal(get('map-routes').hidden,true);
+ // Multiple pages still work, including resetting to page one after filtering.
+ get('reset').click();assert.equal(get('page-controls').hidden,false);
+ change('per-page','25');assert.equal(d.querySelectorAll('#fares tr').length,25);
+ get('next').click();assert.match(get('page').textContent,/Page 2 of/);assert.equal(get('prev').disabled,false);
+ change('origin','BUR');change('destination','CCR');
+ assert.equal(get('page-controls').hidden,true);assert.equal(get('page').textContent,'Page 1 of 1');
+ get('budget').value='1';get('budget').dispatchEvent(new w.Event('input',{bubbles:true}));
+ assert.equal(get('total').textContent,'0 fares');assert.equal(get('page-controls').hidden,true);
+ close();
+});
+test('fare route links select that same map route while preserving budget, dates, and trip type',()=>{
+ const {d,get,close}=setup('?trip=round_trip&budget=600&after=2026-12-01&before=2027-01-01&weekend=1');
+ const first=d.querySelector('#fares tr');assert.ok(first);
+ const book=new URL(first.querySelector('.book').href);
+ first.querySelector('.fare-route-link').click();
+ assert.equal(get('origin').value,book.searchParams.get('o'));
+ assert.equal(get('destination').value,book.searchParams.get('d'));
+ assert.equal(get('trip').value,'round_trip');assert.equal(get('budget').value,'600');
+ assert.equal(get('after').value,'2026-12-01');assert.equal(get('before').value,'2027-01-01');assert.equal(get('weekend').checked,true);
+ assert.equal(get('map-detail').hidden,false);assert.equal(get('map-routes').hidden,true);
+ assert.match(get('map-detail').textContent,/round-trip total/);
+ assert.equal(d.activeElement,get('map-title'));
+ const before=get('total').textContent;
+ get('map-detail').querySelector('button').click();assert.equal(get('total').textContent,before);
+ close();
+});

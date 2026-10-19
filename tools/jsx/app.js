@@ -71,7 +71,22 @@
   });
   function row(f) {
     const tr=document.createElement('tr');
-    const route=cell(`${f.originCity} (${f.origin}) → ${f.destinationCity} (${f.destination})`, 'fare-route');
+    const route=cell('', 'fare-route');
+    const mapLink=document.createElement('a'); mapLink.className='fare-route-link';
+    mapLink.href='#route-map'; mapLink.textContent=`${f.originCity} (${f.origin}) → ${f.destinationCity} (${f.destination})`;
+    mapLink.setAttribute('aria-label',`Show ${f.originCity} to ${f.destinationCity} on the map`);
+    mapLink.dataset.analyticsControl='map_jump'; mapLink.dataset.analyticsPlacement='fare_table';
+    mapLink.append(' ',icon('pin'));
+    mapLink.addEventListener('click',event=>{
+      if(event.button!==0||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey) return;
+      event.preventDefault();
+      controls.origin.value=f.origin; controls.destination.value=f.destination;
+      pickers.origin.sync(); pickers.destination.sync(); changed();
+      track('jsx_map_route_selected',{placement:'fare_table'});
+      $('route-map').scrollIntoView({behavior:'smooth',block:'start'});
+      $('map-title').focus({preventScroll:true});
+    });
+    route.append(mapLink);
     const trip=cell(f.tripType==='round_trip'?'Round-trip':'One-way', 'fare-trip');
     const dates=cell(fmt(f.departDate), 'fare-dates');
     if(f.returnDate) { const back=document.createElement('span'); back.className='return-date'; back.textContent=`Return ${fmt(f.returnDate)}`; dates.append(back); }
@@ -136,7 +151,9 @@
     $('empty').hidden=fares.length>0;
     $('empty').querySelector('p').textContent=after&&before&&after>before?'The first departure date must be on or before the last date.':now>maxDeparture?'This snapshot has no future departures left. A fresh fare snapshot is needed.':'Try another airport, a wider date range, or a higher budget.';
     $('total').dataset.resultCount = fares.length;
-    $('total').textContent=`${fares.length.toLocaleString()} fares`; $('page').textContent=`Page ${page} of ${pages}`;
+    $('total').textContent=`${fares.length.toLocaleString()} ${fares.length===1?'fare':'fares'}`; $('page').textContent=`Page ${page} of ${pages}`;
+    $('page-controls').hidden=pages===1;
+    if(pages===1) pickers['per-page'].close();
     ['first','prev'].forEach(id=>$(id).disabled=page===1); ['next','last'].forEach(id=>$(id).disabled=page===pages);
     $('status').textContent=`${fares.length} matching fares. Page ${page} of ${pages}.`;
     chip('trip',controls.trip.value==='all'?'Trip':'Trip · 1',controls.trip.value!=='all');

@@ -38,6 +38,9 @@ test('booking intent, actual outbound actions, referrals, and committed filters 
   assert.equal(captures.filter(e=>e.event==='jsx_booking_opened'&&e.properties.placement==='route_map').length,1);
   first.dispatchEvent(new w.MouseEvent('auxclick',{button:1,bubbles:true,cancelable:true}));
   assert.equal(count('jsx_booking_clicked'),4);assert.equal(count('jsx_booking_opened'),4);
+  d.querySelector('#fares .fare-route-link').click();
+  assert.equal(captures.filter(e=>e.event==='jsx_map_route_selected'&&e.properties.placement==='fare_table').length,1);
+  assert.equal(captures.filter(e=>e.event==='ui_interaction'&&e.properties.control==='map_jump'&&e.properties.placement==='fare_table').length,1);
   assert.equal(config.disable_session_recording,true);assert.equal(config.cookieless_mode,'always');
   w.close();
 });

@@ -133,3 +133,41 @@
 @media(max-width:800px){.map-sidebar{width:245px}}
 @media(max-width:640px){.map-sidebar{position:static;inset:auto;width:auto;height:355px}.map-sidebar:has(#map-detail:not([hidden])){height:490px}#flight-map{height:auto}}
 .map-airport-label{cursor:pointer}
+.map-airport-label.is-muted{opacity:.35}
+.map-airport-label.is-muted:hover{opacity:1}
+
+/* Keep the map in the fare results, without a wall of notes between the views. */
+.route-map{margin-top:6px;padding-top:8px;border-top:0;scroll-margin-top:16px}
+.result-count{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.result-count>a{color:var(--muted);font-size:11px;display:inline-flex;align-items:center;min-height:36px}
+.map-heading h2{font-size:20px}
+.map-heading p{font-size:12px}
+.map-summary{margin-bottom:10px}
+.fare-route-link{color:inherit;text-decoration:underline;text-decoration-color:#d9cfc3;text-underline-offset:3px}
+.fare-route-link:hover{color:#98652b;text-decoration-color:currentColor}
+.fare-route-link .icon{width:12px;height:12px;color:#9a805f;vertical-align:-1px}
+.fare-notes{margin-top:17px;font-size:12px;color:var(--muted)}
+.fare-notes>summary{display:flex;align-items:center;gap:7px;min-height:44px;width:fit-content}
+.fare-notes>summary:before{content:'+';font-size:16px}
+.fare-notes[open]>summary:before{content:'−'}
+.fare-notes .fine-print{margin-top:3px;max-width:850px}
+.fare-notes .map-note{max-width:850px}
+@media(max-width:640px){
+  .route-map{margin-top:2px;padding-top:8px}
+  .map-heading h2{font-size:19px}
+  .map-sidebar,.map-sidebar:has(#map-detail:not([hidden])){height:auto;max-height:none}
+  #map-routes{flex:0 1 auto;min-height:0;max-height:250px}
+  .map-heading{flex-direction:row;align-items:flex-start;gap:14px}
+  .map-edit-filters{min-height:44px;font-size:11px;margin-top:-8px}
+}
+@media(max-width:540px){
+  .pagination{align-items:center;flex-wrap:wrap;padding:10px 0;gap:8px;font-size:11px}
+  .result-count>a{min-height:44px}
+  .page-controls{margin-left:auto;max-width:none;flex-wrap:nowrap;gap:9px}
+  .page-size label{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
+  .page-size .search-select{width:76px}
+  .page-buttons{gap:4px}
+  .page-buttons button{width:40px;height:44px}
+  #first,#last{display:none}
+  .fare-notes{font-size:11px;margin-top:10px}
+}

@@ -14,7 +14,7 @@ Released October 19, 2026. Query `app = jsx` and `tracking_version = 20261019-1`
 | `jsx_account_prompt_closed` | Prompt dismissed without choosing a link | account_dialog |
 | `jsx_booking_opened` | Booking link allowed through, or Continue to JSX activated | fare_table / route_map / account_dialog |
 | `jsx_referral_clicked` | Referral link activated | offer_header / guide / account_dialog |
-| `jsx_map_route_selected` / `jsx_map_airport_selected` | Map explored | route_map |
+| `jsx_map_route_selected` / `jsx_map_airport_selected` | Map explored | route_map / fare_table |
 
 Use **total occurrences** for click volume, and **unique users** for how many visitors acted. Do not add generic clicks and named goals together: a booking/referral activation has one generic click and a separate goal event. Tool-entry links elsewhere on the site have `ui_interaction.target_tool` set to the approved public tool pathname, without query strings.
 
