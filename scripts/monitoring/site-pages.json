@@ -63,6 +63,13 @@
     "title": "Payments — John Ta"
   },
   {
+    "app": "jsx",
+    "path": "/tools/jsx/",
+    "file": "tools/jsx/index.html",
+    "analytics": false,
+    "title": "JSX Fare Finder · John Ta"
+  },
+  {
     "path": "/tools/launches/",
     "file": "tools/launches/index.html",
     "analytics": false,
