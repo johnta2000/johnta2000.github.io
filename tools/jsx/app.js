@@ -77,8 +77,9 @@
   try {
     routeMap = window.JSXRouteMap.create({
       geography: window.JSX_MAP_DATA, makeBookingLink,
-      onChooseRoute(origin, destination) {
-        reset(); controls.origin.value = origin; controls.destination.value = destination;
+      onChooseRoute(origin, destination, tripType) {
+        reset(); controls.trip.value = tripType; pickers.trip.sync();
+        controls.origin.value = origin; controls.destination.value = destination;
         pickers.origin.sync(); pickers.destination.sync(); changed();
         $('fare-toolbar').scrollIntoView({ block: 'start', behavior: 'smooth' });
         $('origin-trigger').focus({ preventScroll: true });
@@ -126,7 +127,8 @@
     $('sort-price').querySelector('span').textContent=controls.sort.value==='price'?'↑':controls.sort.value==='highest'?'↓':'↕';
     $('sort-dates').querySelector('span').textContent=controls.sort.value==='date'?'↑':controls.sort.value==='latest'?'↓':'↕';
     // The network map always includes the full catalog, independently of table filters.
-    routeMap?.update(data.fares.filter(f => f.tripType === 'one_way' && f.departDate >= now));
+    const mapFiltered = ids.some(id => !['sort', 'per-page'].includes(id) && (id === 'weekend' ? controls[id].checked : controls[id].value !== (defaults[id] || '')));
+    routeMap?.update(data.fares.filter(f => f.tripType === 'one_way' && f.departDate >= now), { matches: fares, filtered: mapFiltered });
     save();
   }
   function changed() { page=1; render(); }
