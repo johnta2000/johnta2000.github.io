@@ -19,7 +19,7 @@
   <meta property="og:image:alt" content="JSX Fare Finder: Find your next JSX flight. Get up to $300 off with a Sapphire Reserve offer and new-member referral.">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="JSX Fare Finder for Sapphire Reserve: Get up to $300 off">
-  <meta name="twitter:description" content="Explore routes. Compare dates. Book on JSX.">
+  <meta name="twitter:description" content="Explore routes. Compare dates. View on JSX.">
   <meta name="twitter:image" content="https://www.john-ta.com/tools/jsx/images/og-jsx.png">
   <meta name="twitter:image:alt" content="JSX Fare Finder: Find your next JSX flight and get up to $300 off.">
   <link rel="icon" href="./favicon.svg" type="image/svg+xml">
@@ -33,7 +33,7 @@
   <script defer src="./map-data.js?v=20261019-3"></script>
   <script defer src="./route-map.js?v=20261019-3"></script>
   <script defer src="/assets/js/analytics.js?v=20261019-1" data-app="jsx"></script>
-  <script defer src="./app.js?v=20261019-3"></script>
+  <script defer src="./app.js?v=20261019-4"></script>
 </head>
 <body>
   <svg class="icon-defs" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><defs>
@@ -74,7 +74,7 @@
         <div class="sort-select chip-select"><svg class="icon" aria-hidden="true"><use href="#i-sort"/></svg><select id="sort" aria-label="Sort"><option value="price">Lowest fare</option><option value="highest">Highest fare</option><option value="date">Departure: earliest</option><option value="latest">Departure: latest</option><option value="route">Route A–Z</option></select></div>
       </div>
       <p id="status" class="sr-only" role="status" aria-live="polite"></p>
-      <div class="table-wrap" tabindex="0" role="region" aria-label="Scrollable fare table"><table aria-label="JSX fares"><thead><tr><th scope="col">Route</th><th scope="col">Trip</th><th scope="col" id="dates-heading" aria-sort="none"><button type="button" id="sort-dates" data-analytics-control="sort_dates">Dates <span aria-hidden="true">↕</span></button></th><th scope="col" id="price-heading" aria-sort="ascending"><button type="button" id="sort-price" data-analytics-control="sort_price">Fare (USD) <span aria-hidden="true">↑</span></button></th><th scope="col">Book</th></tr></thead><tbody id="fares"></tbody></table><div id="empty" hidden><strong>No matching fares</strong><p>Try another airport, a wider date range, or a higher budget.</p><button type="button" id="empty-reset" data-analytics-control="empty_reset">Clear filters</button></div></div>
+      <div class="table-wrap" tabindex="0" role="region" aria-label="Scrollable fare table"><table aria-label="JSX fares"><thead><tr><th scope="col">Route</th><th scope="col">Trip</th><th scope="col" id="dates-heading" aria-sort="none"><button type="button" id="sort-dates" data-analytics-control="sort_dates">Dates <span aria-hidden="true">↕</span></button></th><th scope="col" id="price-heading" aria-sort="ascending"><button type="button" id="sort-price" data-analytics-control="sort_price">Fare (USD) <span aria-hidden="true">↑</span></button></th><th scope="col">View</th></tr></thead><tbody id="fares"></tbody></table><div id="empty" hidden><strong>No matching fares</strong><p>Try another airport, a wider date range, or a higher budget.</p><button type="button" id="empty-reset" data-analytics-control="empty_reset">Clear filters</button></div></div>
       <nav class="pagination" aria-label="Fare pages"><div class="result-count"><p id="total"></p><a href="#route-map" data-analytics-control="map_jump" data-analytics-placement="fare_table">View on map ↓</a></div><div id="page-controls" class="page-controls"><div class="page-size"><label for="per-page">Per page</label><select id="per-page" aria-label="Items per page"><option value="25">25</option><option value="50">50</option><option value="100" selected>100</option></select></div><span id="page"></span><div class="page-buttons"><button type="button" id="first" data-analytics-control="first" aria-label="Go to first page">«</button><button type="button" id="prev" data-analytics-control="prev" aria-label="Go to previous page">‹</button><button type="button" id="next" data-analytics-control="next" aria-label="Go to next page">›</button><button type="button" id="last" data-analytics-control="last" aria-label="Go to last page">»</button></div></div></nav>
       <section id="route-map" class="route-map" aria-labelledby="map-title">
         <div class="map-heading"><div><h2 id="map-title" tabindex="-1">Map of these fares</h2><p>Same fares, same filters. Choose a route here or in the table to narrow both views.</p></div><a class="map-edit-filters" href="#fare-toolbar">Edit fare filters ↑</a></div>

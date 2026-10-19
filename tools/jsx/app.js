@@ -99,8 +99,8 @@
     link.dataset.analyticsControl = 'book'; link.dataset.analyticsPlacement = placement;
     const params=new URLSearchParams({o:f.origin,d:f.destination,dd:f.departDate,adt:'1',curr:'USD'});
     if(f.returnDate) params.set('rd',f.returnDate);
-    link.href=`https://www.jsx.com/booking/select?${params}`; link.target='_blank'; link.rel='noopener noreferrer'; link.append('Book on JSX ',icon('external'));
-    link.setAttribute('aria-label',`Book ${f.originCity} to ${f.destinationCity}, ${fmt(f.departDate)}${f.returnDate?', returning '+fmt(f.returnDate):''} on JSX, opens in a new tab`);
+    link.href=`https://www.jsx.com/booking/select?${params}`; link.target='_blank'; link.rel='noopener noreferrer'; link.append('View on JSX ',icon('external'));
+    link.setAttribute('aria-label',`View ${f.originCity} to ${f.destinationCity}, ${fmt(f.departDate)}${f.returnDate?', returning '+fmt(f.returnDate):''} on JSX, opens in a new tab`);
     if (!accountPromptSeen) link.setAttribute('aria-haspopup', 'dialog');
     link.addEventListener('click', askAboutAccount);
     link.addEventListener('auxclick', event => { if (event.button === 1) askAboutAccount(event); });
