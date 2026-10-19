@@ -78,7 +78,7 @@
     routeMap = window.JSXRouteMap.create({
       geography: window.JSX_MAP_DATA, makeBookingLink,
       onChooseRoute(origin, destination) {
-        controls.origin.value = origin; controls.destination.value = destination;
+        reset(); controls.origin.value = origin; controls.destination.value = destination;
         pickers.origin.sync(); pickers.destination.sync(); changed();
         $('fare-toolbar').scrollIntoView({ block: 'start', behavior: 'smooth' });
         $('origin-trigger').focus({ preventScroll: true });
@@ -125,7 +125,8 @@
     $('dates-heading').setAttribute('aria-sort',controls.sort.value==='date'?'ascending':controls.sort.value==='latest'?'descending':'none');
     $('sort-price').querySelector('span').textContent=controls.sort.value==='price'?'↑':controls.sort.value==='highest'?'↓':'↕';
     $('sort-dates').querySelector('span').textContent=controls.sort.value==='date'?'↑':controls.sort.value==='latest'?'↓':'↕';
-    routeMap?.update(fares);
+    // The network map always includes the full catalog, independently of table filters.
+    routeMap?.update(data.fares.filter(f => f.tripType === 'one_way' && f.departDate >= now));
     save();
   }
   function changed() { page=1; render(); }

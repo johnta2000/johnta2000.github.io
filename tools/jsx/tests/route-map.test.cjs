@@ -27,7 +27,7 @@ test('round-trip details retain the real return date and total price', () => {
   }
 });
 test('every fare airport has a coordinate inside the map, including JSX-specific codes', () => {
-  const codes = new Set(data.fares.flatMap(f => [f.origin,f.destination]));
+  const codes = new Set(geography.routes.flatMap(f => [f.origin,f.destination]));
   for (const code of codes) {
     const point = geography.airports[code]; assert.ok(point, code);
     const [x,y] = project(point.lon,point.lat);
@@ -39,4 +39,12 @@ test('every fare airport has a coordinate inside the map, including JSX-specific
 test('empty filters produce no routes and price-band edges are consistent', () => {
   assert.deepEqual(groupRoutes([]), []);
   assert.deepEqual([199,200,299,300,499,500].map(band), [0,1,1,2,2,3]);
+});
+
+test('full catalog preserves pairings without a sampled fare', () => {
+  const routes = groupRoutes(data.fares.filter(f => f.tripType === 'one_way'), geography.routes);
+  assert.equal(routes.length,133);
+  assert.equal(routes.find(r=>r.key==='DAL-SAF').cheapest,null);
+  assert.ok(routes.find(r=>r.key==='OAK-LAS').cheapest);
+  assert.equal(new Set(routes.flatMap(r=>[r.origin,r.destination])).size,29);
 });

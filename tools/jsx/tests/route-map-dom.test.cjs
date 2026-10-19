@@ -2,14 +2,18 @@ const { test } = require('node:test');
 const { JSDOM } = require('jsdom');
 const fs=require('fs'),assert=require('assert/strict');
 const root = require('node:path').resolve(__dirname, '..') + '/';
-test('route map and fare table share filters, booking flow, and full-page data', () => {
-const dom=new JSDOM(fs.readFileSync(root+'index.html','utf8'),{url:'https://www.john-ta.com/tools/jsx/',runScripts:'outside-only',pretendToBeVisual:true});
+test('full network stays visible independently of table filters and shares booking flow', () => {
+const dom=new JSDOM(fs.readFileSync(root+'index.html','utf8'),{url:'https://www.john-ta.com/tools/jsx/?origin=BUR#route-map',runScripts:'outside-only',pretendToBeVisual:true});
 const w=dom.window,d=w.document;
 w.HTMLElement.prototype.scrollIntoView=function(){};
 w.HTMLDialogElement.prototype.showModal=function(){this.open=true;};w.HTMLDialogElement.prototype.close=function(){this.open=false;};
 const fixed=Date.parse('2026-10-18T12:00:00-07:00');const D=w.Date;w.Date=class extends D{constructor(...a){super(...(a.length?a:[fixed]));}static now(){return fixed;}};
 for(const f of ['searchable-select.js','fares.js','map-data.js','route-map.js','app.js'])w.eval(fs.readFileSync(root+f,'utf8'));
 const get=id=>d.getElementById(id),change=(id,value)=>{get(id).value=value;get(id).dispatchEvent(new w.Event('change',{bubbles:true}));};
+assert.ok([...d.querySelectorAll('#fares tr')].every(row=>row.textContent.includes('Burbank (BUR)')));
+assert.equal(d.querySelectorAll('#map-routes button').length,133);
+assert.equal(d.querySelectorAll('.map-airport').length,29);
+get('reset').click();
 assert.equal(d.querySelectorAll('#fares tr').length,100);
 assert.ok(d.querySelectorAll('#map-routes button').length>30);
 const initial=get('map-summary').textContent;
@@ -18,8 +22,11 @@ change('map-airport','OAK');assert.ok(d.querySelectorAll('#map-routes button').l
 d.querySelector('#map-routes button[data-route="OAK-LAS"]').click();assert.match(get('map-detail').textContent,/Oakland → Las Vegas/);assert.match(get('map-detail').textContent,/\$169/);
 const book=d.querySelector('#map-detail .book');assert.match(book.href,/o=OAK&d=LAS/);book.click();assert.equal(get('account-dialog').open,true);get('account-close').click();
 d.querySelector('#map-detail button').click();assert.equal(get('origin').value,'OAK');assert.equal(get('destination').value,'LAS');assert.ok([...d.querySelectorAll('#fares tr')].every(row=>row.textContent.includes('Oakland (OAK) → Las Vegas (LAS)')));
-change('trip','round_trip');d.querySelector('#map-routes button').click();assert.match(d.querySelector('#map-detail .book').href,/&rd=/);assert.match(get('map-detail').textContent,/round-trip total/);
-get('reset').click();get('map-clear').click();get('budget').value='1';get('budget').dispatchEvent(new w.Event('input',{bubbles:true}));assert.equal(d.querySelectorAll('#map-routes button').length,0);assert.equal(get('map-empty').hidden,false);assert.equal(get('empty').hidden,false);
+change('trip','round_trip');assert.match(get('map-detail').textContent,/one-way/);assert.doesNotMatch(d.querySelector('#map-detail .book').href,/&rd=/);
+get('reset').click();get('map-clear').click();get('budget').value='1';get('budget').dispatchEvent(new w.Event('input',{bubbles:true}));assert.equal(d.querySelectorAll('#map-routes button').length,133);assert.equal(get('map-empty').hidden,true);assert.equal(get('empty').hidden,false);
+d.querySelector('#map-routes button[data-route="DAL-SAF"]').click();assert.match(get('map-detail').textContent,/no future one-way fare/);assert.doesNotMatch(get('map-detail').textContent,/Infinity|Invalid Date/);
+assert.ok(d.querySelectorAll('.map-route-line[stroke-dasharray="4 4"]').length>0);
+get('map-clear').click();
 get('reset').click();assert.equal(get('map-empty').hidden,true);get('map-zoom-in').click();assert.ok(Number(get('flight-map').getAttribute('viewBox').split(' ')[2])<1000);get('map-fit').click();assert.equal(get('flight-map').getAttribute('viewBox'),'0 0 1000 600');
 w.close();
 });

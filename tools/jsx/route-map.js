@@ -1,7 +1,7 @@
 /* A local SVG route map. No map keys, tiles, or visitor data leave this module. */
 (function (root) {
   'use strict';
-  function groupRoutes(fares) {
+  function groupRoutes(fares, catalog = []) {
     const routes = new Map();
     for (const fare of fares) {
       const key = `${fare.origin}-${fare.destination}`;
@@ -13,9 +13,15 @@
       route.fares.push(fare);
       if (fare.priceUsd < route.cheapest.priceUsd || (fare.priceUsd === route.cheapest.priceUsd && fare.departDate < route.cheapest.departDate)) route.cheapest = fare;
     }
-    return [...routes.values()].sort((a, b) => a.cheapest.priceUsd - b.cheapest.priceUsd || a.originCity.localeCompare(b.originCity) || a.destinationCity.localeCompare(b.destinationCity));
+    for (const item of catalog) {
+      const key = `${item.origin}-${item.destination}`;
+      if (!routes.has(key)) routes.set(key, { ...item, key, fares: [], cheapest: null });
+    }
+    return [...routes.values()].sort((a, b) => routePrice(a) - routePrice(b) || a.originCity.localeCompare(b.originCity) || a.destinationCity.localeCompare(b.destinationCity));
   }
   const colors = ['#398875', '#c18a32', '#ce6d43', '#a96b85'];
+  const routePrice = route => route.cheapest?.priceUsd ?? Infinity;
+  const routeColor = route => route.cheapest ? colors[band(routePrice(route))] : '#9aa4ad';
   const band = price => price < 200 ? 0 : price < 300 ? 1 : price < 500 ? 2 : 3;
   const mercator = lat => Math.log(Math.tan(Math.PI / 4 + lat * Math.PI / 360));
   function project(lon, lat) { return [40 + (lon + 127) / 62 * 920, 32 + (mercator(50) - mercator(lat)) / (mercator(50) - mercator(21)) * 510]; }
@@ -74,9 +80,9 @@
       const visible = visibleRoutes(), chosen = routes.find(r => r.key === selected);
       const ports = new Map(), corridors = new Map();
       visible.forEach(route => {
-        [route.origin, route.destination].forEach(code => { const current = ports.get(code); if (!current || current.cheapest.priceUsd > route.cheapest.priceUsd) ports.set(code, route); });
+        [route.origin, route.destination].forEach(code => { const current = ports.get(code); if (!current || routePrice(current) > routePrice(route)) ports.set(code, route); });
         const key = [route.origin, route.destination].sort().join('-');
-        const old = corridors.get(key); if (!old || route.cheapest.priceUsd < old.cheapest.priceUsd) corridors.set(key, route);
+        const old = corridors.get(key); if (!old || routePrice(route) < routePrice(old)) corridors.set(key, route);
       });
       const scale = Math.max(box.w / (svg.clientWidth || 700), box.h / (svg.clientHeight || 430));
       const labelRects = [];
@@ -87,8 +93,8 @@
         const d = `M${a.join(',')}Q${(a[0] + b[0]) / 2 - dy * bend},${(a[1] + b[1]) / 2 + dx * bend} ${b.join(',')}`;
         const active = chosen && [route.origin, route.destination].sort().join('-') === [chosen.origin, chosen.destination].sort().join('-');
         const group = createSvg('g', { class: `map-connection${active ? ' is-selected' : ''}${chosen && !active ? ' is-muted' : ''}` });
-        group.append(createSvg('path', { d, class: 'map-route-hit', 'vector-effect': 'non-scaling-stroke' }), createSvg('path', { d, class: 'map-route-line', stroke: colors[band(route.cheapest.priceUsd)], 'vector-effect': 'non-scaling-stroke' }));
-        graphButton(group, `${route.originCity} (${route.origin}) ↔ ${route.destinationCity} (${route.destination}), from ${money(route.cheapest.priceUsd)}. Explore route.`, () => selectRoute(route.key));
+        group.append(createSvg('path', { d, class: 'map-route-hit', 'vector-effect': 'non-scaling-stroke' }), createSvg('path', { d, class: 'map-route-line', stroke: routeColor(route), 'stroke-dasharray': route.cheapest ? 'none' : '4 4', 'vector-effect': 'non-scaling-stroke' }));
+        graphButton(group, `${route.originCity} (${route.origin}) ↔ ${route.destinationCity} (${route.destination}), ${route.cheapest ? `from ${money(routePrice(route))}` : 'no sampled one-way fare'}. Explore route.`, () => selectRoute(route.key));
         lines.append(group);
       }
       if (chosen) {
@@ -96,7 +102,7 @@
         if (a && b) {
           const dx = b[0] - a[0], dy = b[1] - a[1], direction = chosen.origin < chosen.destination ? 1 : -1;
           const bend = Math.min(.14, 55 / (Math.hypot(dx, dy) || 1)) * direction;
-          const text = `${chosen.origin} → ${chosen.destination} ${money(chosen.cheapest.priceUsd)}`;
+          const text = `${chosen.origin} → ${chosen.destination} ${chosen.cheapest ? money(routePrice(chosen)) : 'No fare sample'}`;
           const w = (text.length * 6.5 + 16) * scale, h = 25 * scale;
           const x = Math.max(box.x + 4 * scale, Math.min(box.x + box.w - w - 4 * scale, (a[0] + b[0]) / 2 - dy * bend / 2 - w / 2));
           const y = Math.max(box.y + 4 * scale, Math.min(box.y + box.h - h - 4 * scale, (a[1] + b[1]) / 2 + dx * bend / 2 - h / 2));
@@ -108,19 +114,19 @@
       }
       // Label the selected airport first, then the lowest-fare airports. Place labels
       // around dense airport clusters rather than moving their actual coordinates.
-      const ordered = [...ports].sort((a, b) => (b[0] === focus) - (a[0] === focus) || a[1].cheapest.priceUsd - b[1].cheapest.priceUsd);
+      const ordered = [...ports].sort((a, b) => (b[0] === focus) - (a[0] === focus) || routePrice(a[1]) - routePrice(b[1]));
       for (const [code, route] of ordered) {
         const p = coordinate(code); if (!p) continue;
         const active = code === focus || (chosen && [chosen.origin, chosen.destination].includes(code));
         const group = createSvg('g', { class: `map-airport${active ? ' is-selected' : ''}` });
         group.append(createSvg('circle', { cx: p[0], cy: p[1], r: 22 * scale, class: 'map-airport-hit' }));
-        group.append(createSvg('circle', { cx: p[0], cy: p[1], r: (active ? 5 : 3.8) * scale, fill: colors[band(route.cheapest.priceUsd)], stroke: '#fff', 'stroke-width': 1.8 * scale }));
+        group.append(createSvg('circle', { cx: p[0], cy: p[1], r: (active ? 5 : 3.8) * scale, fill: routeColor(route), stroke: '#fff', 'stroke-width': 1.8 * scale }));
         group.dataset.code = code;
         group.setAttribute('aria-pressed', String(code === focus));
-        graphButton(group, `${cities.get(code)} (${code}), lowest sampled fare involving this airport ${money(route.cheapest.priceUsd)}. Show its routes.`, () => setFocus(code === focus ? '' : code));
+        graphButton(group, `${cities.get(code)} (${code}), ${route.cheapest ? `lowest sampled one-way fare involving this airport ${money(routePrice(route))}` : 'no sampled one-way fare'}. Show its routes.`, () => setFocus(code === focus ? '' : code));
         points.append(group);
         if (p[0] < box.x || p[0] > box.x + box.w || p[1] < box.y || p[1] > box.y + box.h) continue;
-        const text = `${code} ${money(route.cheapest.priceUsd)}`;
+        const text = `${code}${route.cheapest ? ` ${money(routePrice(route))}` : ''}`;
         const w = (text.length * 6.4 + 12) * scale, h = 22 * scale, gap = 9 * scale;
         const candidates = [
           [p[0] + gap, p[1] - h / 2], [p[0] - w - gap, p[1] - h / 2],
@@ -142,6 +148,13 @@
       if (!route) return;
       const f = route.cheapest;
       panel.append(el('h4', '', `${route.originCity} → ${route.destinationCity}`), el('p', 'map-detail-codes', `${route.origin} → ${route.destination}`));
+      if (!f) {
+        panel.append(el('p', 'map-detail-dates', 'This pairing is in the route catalog, but there is no future one-way fare in this snapshot. Check JSX for current schedules and availability.'));
+        const link = el('a', 'book', 'Check route on JSX ↗');
+        link.href = `https://www.jsx.com/home/search?o=${route.origin}&d=${route.destination}`;
+        link.target = '_blank'; link.rel = 'noopener noreferrer'; panel.append(link);
+        return;
+      }
       const price = el('p', 'map-detail-price', money(f.priceUsd)); price.append(el('span', '', f.tripType === 'round_trip' ? ' round-trip total' : ' one-way')); panel.append(price);
       panel.append(el('p', 'map-detail-dates', fmt(f.departDate) + (f.returnDate ? ` · Return ${fmt(f.returnDate)}` : '')));
       panel.append(el('p', 'map-detail-samples', `Lowest of ${route.fares.length} matching fare ${route.fares.length === 1 ? 'sample' : 'samples'}. Confirm on JSX.`));
@@ -157,7 +170,7 @@
         const button = el('button', 'map-route-option'); button.type = 'button'; button.dataset.route = route.key;
         button.setAttribute('aria-pressed', String(selected === route.key));
         const copy = el('span', 'map-route-copy'); copy.append(el('strong', '', `${route.origin} → ${route.destination}`), el('span', '', `${route.originCity} → ${route.destinationCity}`));
-        const price = el('span', 'map-route-price', `From ${money(route.cheapest.priceUsd)}`); price.style.color = colors[band(route.cheapest.priceUsd)];
+        const price = el('span', 'map-route-price', route.cheapest ? `From ${money(routePrice(route))}` : 'No fare sample'); price.style.color = routeColor(route);
         button.append(copy, price); button.addEventListener('click', () => {
           selectRoute(route.key);
           $('map-routes').querySelector(`[data-route="${route.key}"]`)?.focus({ preventScroll: true });
@@ -165,7 +178,7 @@
       }));
       if (!visible.length) $('map-routes').append(el('p', 'map-no-routes', focus ? 'No matching fares for this airport. Try “All airports” or adjust the filters above.' : 'No routes match the current fare filters.'));
       const count = new Set(visible.flatMap(r => [r.origin, r.destination])).size;
-      $('map-summary').textContent = `${visible.length} directional ${visible.length === 1 ? 'route' : 'routes'} · ${count} airports${visible.length ? ` · Lowest fare ${money(visible[0].cheapest.priceUsd)}` : ''}`;
+      $('map-summary').textContent = `${visible.length} directional ${visible.length === 1 ? 'route' : 'routes'} · ${count} airports${visible[0]?.cheapest ? ` · One-way from ${money(routePrice(visible[0]))}` : ''}`;
       $('map-empty').hidden = visible.length > 0;
     }
     function selectRoute(key) { selected = key; drawGraph(); renderDetail(); renderList(); }
@@ -191,9 +204,9 @@
       update(fares) {
         const signature = fares.map(f => `${f.origin}-${f.destination}-${f.departDate}-${f.returnDate}-${f.priceUsd}-${f.tripType}`).sort().join('|');
         if (signature === lastSignature) return; lastSignature = signature;
-        routes = groupRoutes(fares); cities = new Map(fares.flatMap(f => [[f.origin, f.originCity], [f.destination, f.destinationCity]]));
+        routes = groupRoutes(fares, geography.routes); cities = new Map(fares.flatMap(f => [[f.origin, f.originCity], [f.destination, f.destinationCity]]));
         // Preserve airport choices even when a table filter yields no fares there.
-        const allCities = new Map(window.JSX_FARES.fares.flatMap(f => [[f.origin, f.originCity], [f.destination, f.destinationCity]]));
+        const allCities = new Map(geography.routes.flatMap(f => [[f.origin, f.originCity], [f.destination, f.destinationCity]]));
         cities = new Map([...allCities, ...cities]);
         if ($('map-airport').options.length === 1) {
           [...allCities].sort((a, b) => a[1].localeCompare(b[1])).forEach(([code, city]) => $('map-airport').add(new Option(`${city} (${code})`, code)));
