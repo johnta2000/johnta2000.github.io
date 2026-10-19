@@ -7,3 +7,7 @@ The saved snapshot contains 1,513 fare samples across 108 routes, as of October 
 Route search, airport, date, price range, trip, weekend, sort, and page-size filters are stored in the URL for sharing when hosted. Booking links point directly to JSX. The referral belongs to John and was confirmed by him. No external application services, analytics, fonts, or brand assets are loaded.
 
 The two searchable-select files are local copies of the site's shared picker, included so opening the HTML directly also works. Sync them with the shared assets if the picker changes.
+
+## Share previews and favicon
+
+`favicon.svg` uses the JSX wordmark, with PNG browser and Apple touch fallbacks. `images/og-jsx.svg` is the editable 1200×630 share graphic; `images/og-jsx.png` is the published Facebook/Open Graph and Twitter preview. The HTML contains absolute image URLs, dimensions, MIME type, and alt text. JSX wordmark source: https://commons.wikimedia.org/wiki/File:Logo_of_JSX.svg (public-domain text logo).
