@@ -11,3 +11,5 @@ The two searchable-select files are local copies of the site's shared picker, in
 ## Share previews and favicon
 
 `favicon.svg` uses the JSX wordmark, with PNG browser and Apple touch fallbacks. `images/og-jsx.svg` is the editable 1200×630 share graphic; `images/og-jsx.png` is the published Facebook/Open Graph and Twitter preview. The HTML contains absolute image URLs, dimensions, MIME type, and alt text. JSX wordmark source: https://commons.wikimedia.org/wiki/File:Logo_of_JSX.svg (public-domain text logo).
+
+The first plain `Book on JSX` click opens the account check. Referral signup opens John's referral; continue opens the selected fare, including its return date. The prompt is remembered in browser local storage (`jsx-account-prompt-seen-v1`), with an in-memory fallback when storage is blocked. Escape, close, and backdrop dismiss it and return focus to the booking link. Modified clicks retain standard browser behavior.

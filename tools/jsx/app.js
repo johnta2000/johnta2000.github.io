@@ -34,6 +34,25 @@
     try { history.replaceState(null,'',location.pathname+(params.size?`?${params}`:'')+location.hash); } catch { /* Opening the HTML directly can restrict history updates. */ }
   }
   function cell(text, className) { const td=document.createElement('td'); if(text) td.textContent=text; if(className) td.className=className; return td; }
+  const accountDialog = $('account-dialog');
+  const promptStorageKey = 'jsx-account-prompt-seen-v1';
+  let accountPromptSeen = false;
+  try { accountPromptSeen = localStorage.getItem(promptStorageKey) === '1'; } catch { /* The prompt still works when browser storage is unavailable. */ }
+  function askAboutAccount(event) {
+    if (accountPromptSeen || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    event.preventDefault();
+    $('account-continue').href = event.currentTarget.href;
+    accountDialog.showModal();
+    accountPromptSeen = true;
+    document.querySelectorAll('.book[aria-haspopup]').forEach(link => link.removeAttribute('aria-haspopup'));
+    try { localStorage.setItem(promptStorageKey, '1'); } catch { /* Remember for this page visit even if storage is blocked. */ }
+  }
+  $('account-close').addEventListener('click', () => accountDialog.close());
+  ['account-signup', 'account-continue'].forEach(id => $(id).addEventListener('click', () => accountDialog.close()));
+  accountDialog.addEventListener('click', event => {
+    const bounds = accountDialog.getBoundingClientRect();
+    if (event.target === accountDialog && (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom)) accountDialog.close();
+  });
   function row(f) {
     const tr=document.createElement('tr');
     const route=cell(`${f.originCity} (${f.origin}) → ${f.destinationCity} (${f.destination})`, 'fare-route');
@@ -46,6 +65,8 @@
     if(f.returnDate) params.set('rd',f.returnDate);
     link.href=`https://www.jsx.com/booking/select?${params}`; link.target='_blank'; link.rel='noopener noreferrer'; link.append('Book on JSX ',icon('external'));
     link.setAttribute('aria-label',`Book ${f.originCity} to ${f.destinationCity}, ${fmt(f.departDate)}${f.returnDate?', returning '+fmt(f.returnDate):''} on JSX, opens in a new tab`);
+    if (!accountPromptSeen) link.setAttribute('aria-haspopup', 'dialog');
+    link.addEventListener('click', askAboutAccount);
     booking.append(link); tr.append(route,trip,dates,price,booking); return tr;
   }
   function chip(id, label, active) {
