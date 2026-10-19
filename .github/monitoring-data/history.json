@@ -3,6 +3,53 @@
   "maxRuns": 336,
   "runs": [
     {
+      "id": "2026-10-19T04:46:50.990Z",
+      "monitorId": "paze-directory",
+      "timestamp": "2026-10-19T04:46:50.990Z",
+      "status": "success",
+      "changed": true,
+      "initialized": false,
+      "confirmed": true,
+      "durationMs": 4097,
+      "count": 35,
+      "previousCount": 36,
+      "pagination": {
+        "complete": true,
+        "pagesFetched": 3,
+        "pageCounts": [
+          12,
+          12,
+          11
+        ],
+        "finalPage": 2
+      },
+      "diff": {
+        "added": [],
+        "removed": [
+          "Personalization Mall"
+        ],
+        "renamed": []
+      },
+      "cache": {
+        "runId": "1792385210990",
+        "requestCount": 6,
+        "crawlIds": [
+          "primary",
+          "confirmation"
+        ],
+        "requestIds": [
+          "1792385210992001",
+          "1792385211766002",
+          "1792385212451003",
+          "1792385213124004",
+          "1792385213819005",
+          "1792385214521006"
+        ]
+      },
+      "summary": "0 added, 1 removed, 0 renamed.",
+      "error": null
+    },
+    {
       "id": "2026-10-18T23:17:11.025Z",
       "monitorId": "paze-directory",
       "timestamp": "2026-10-18T23:17:11.025Z",

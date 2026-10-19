@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "monitorId": "paze-directory",
   "sourceUrl": "https://www.paze.com/merchant-directory?page=0",
-  "capturedAt": "2026-10-18T23:17:11.025Z",
+  "capturedAt": "2026-10-19T04:46:50.990Z",
   "merchants": [
     {
       "name": "1-800-Flowers",
@@ -87,10 +87,6 @@
     {
       "name": "PayRange",
       "key": "payrange"
-    },
-    {
-      "name": "Personalization Mall",
-      "key": "personalization mall"
     },
     {
       "name": "Proflowers",
