@@ -13,7 +13,7 @@ test('distribution medium is separate from whether NextCard owns the channel', (
   assert.equal(M.medium({ ...M.newChannel(), kind: 'outreach' }), 'email');
 });
 test('duplicating keeps reusable planning but resets every execution result', () => {
-  const original = M.newLaunch('owner@example.com'); original.name = 'Synthetic launch'; original.dueDate = '2026-10-18'; original.status = 'complete'; original.notes = 'Old results'; original.checks.forEach(check => { check.done = true; });
+  const original = M.newLaunch('owner@example.com'); original.name = 'Synthetic launch'; original.dueDate = '2026-10-18'; original.status = 'complete'; original.notes = 'Old results'; original.checks.push({ id: 'saved-check', label: 'Earlier custom item', stage: 'prepare', done: true, owner: '' });
   original.materials.push({ id: M.uid(), name: 'Reference', url: 'https://example.com/' });
   original.tasks.push({ ...M.addTask({ key: 'group', value: { name: 'Group', kind: 'reddit' } }), status: 'live', draft: 'Already published', liveUrl: 'https://example.com/post', outcome: 'Old outcome', angle: 'Useful angle', activityAt: Date.now() });
   const copy = M.duplicate(original);
@@ -36,4 +36,11 @@ test('history records meaningful channel activity, and unsafe links are never ma
   assert.equal(M.history('group', [{ key: 'launch', value: { name: 'Past launch', tasks: [task] } }]).length, 1);
   assert.equal(M.history('group', [{ key: 'launch', value: { name: 'Past launch', tasks: [task] } }], 'launch').length, 0);
   assert.equal(M.safeUrl('javascript:alert(1)'), ''); assert.equal(M.safeUrl('https://user:pass@example.com/'), '');
+});
+
+ test('new launches have no generated workflow items and exported checklists contain only chosen channels', () => {
+  const value = M.newLaunch(); assert.deepEqual(value.checks, []);
+  value.tasks.push(M.addTask({ key: 'group', value: { name: 'Example group', kind: 'reddit' } }));
+  value.checks.push({ label: 'Earlier custom item', stage: 'prepare', done: false });
+  assert.match(M.ticket(value), /- \[ \] Example group/); assert.doesNotMatch(M.ticket(value), /Preparation|Follow-up|Earlier custom item/);
 });

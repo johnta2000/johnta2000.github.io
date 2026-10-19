@@ -55,7 +55,9 @@ async function open(browser, { signedIn = true, denied = false, pendingRead, fai
   return { page, errors, requests, store, recover() { failSaves = false; conflict = false; } };
 }
 async function choose(page, label, value) {
-  await page.getByRole('button', { name: new RegExp(`^${label}:`) }).click();
+  const control = page.getByRole('button', { name: new RegExp(`^${label}:`) });
+  if (!await control.isVisible() && await page.locator('.optional-launch-details').count()) await page.locator('.optional-launch-details>summary').click();
+  await control.click();
   const search = page.locator('.search-select-panel:not([hidden]) input'); await search.fill(value); await search.press('Enter');
 }
 async function changeMedium(page, scope, medium) {
@@ -69,7 +71,7 @@ function routeWorkspace() {
   const workspace = initial(), value = M.newLaunch(members[0].email);
   value.name = 'Saved routing example'; value.summary = 'A saved private brief.';
   value.tasks.push({ ...M.addTask(workspace.channels[0], members[0].email), id: 'task-one', draft: 'Saved private post copy.' });
-  value.checks[0].id = 'check-one';
+  value.checks.push({ id: 'check-one', stage: 'prepare', label: 'A saved checklist note', done: true, owner: '' });
   workspace.launches.push({ key: 'launch-one', value, version: 1, createdAt: 1, updatedAt: 1 });
   return workspace;
 }
@@ -118,19 +120,19 @@ test('all routed editors load directly without creating or changing records, and
   } finally { await browser.close(); }
 });
 
-test('view, medium, stage, modal, Back, and Forward stay synchronized with the address bar', async () => {
+test('view, medium, modal, Back, and Forward stay synchronized with the address bar', async () => {
   const browser = await chromium.launch({ headless: true });
   try {
     const { page, errors } = await open(browser, { workspace: routeWorkspace() }); await page.locator('#app').waitFor();
     await changeMedium(page, 'library', 'email'); assert.equal(new URL(page.url()).searchParams.get('medium'), 'email');
     await page.getByRole('button', { name: 'Launches', exact: true }).click(); assert.equal(new URL(page.url()).searchParams.get('view'), 'launches');
-    await page.locator('[data-action="open-launch"]').click(); await page.getByRole('tab', { name: /Prepare/ }).click();
-    assert.equal(new URL(page.url()).searchParams.get('step'), 'prepare'); await page.getByRole('button', { name: 'Edit details', exact: true }).click();
+    await page.locator('[data-action="open-launch"]').click();
+    assert.equal(new URL(page.url()).searchParams.get('step'), 'choose'); await page.getByRole('button', { name: 'Edit details', exact: true }).click();
     assert.equal(new URL(page.url()).searchParams.get('edit'), 'launch');
     await page.getByRole('button', { name: 'Close dialog', exact: true }).click(); assert.equal(new URL(page.url()).searchParams.get('edit'), null);
     await page.goBack(); await page.locator('#launch-name').waitFor(); assert.equal(new URL(page.url()).searchParams.get('edit'), 'launch');
     await page.goForward(); await page.locator('#editor').waitFor({ state: 'hidden' }); assert.equal(new URL(page.url()).searchParams.get('edit'), null);
-    await page.reload(); await page.getByRole('tab', { name: /Prepare/ }).waitFor(); assert.equal(await page.getByRole('tab', { name: /Prepare/ }).getAttribute('aria-selected'), 'true');
+    await page.reload(); await page.locator('.channel-checklist').waitFor(); assert.equal(await page.locator('[role=tab]').count(), 0);
     await page.getByRole('button', { name: 'Launches', exact: true }).click(); await page.getByRole('button', { name: 'Completed', exact: true }).click();
     await page.reload(); await page.locator('[data-action="launch-filter"][data-filter="complete"]').waitFor(); assert.equal(await page.locator('[data-filter="complete"]').getAttribute('aria-pressed'), 'true');
     assert.deepEqual(errors, []); await page.close();
@@ -187,8 +189,8 @@ test('Channels is the starting view; medium changes and global searches keep sel
     await page.getByRole('button', { name: 'Create launch →', exact: true }).click(); await page.locator('#launch-name').fill('Selected destinations'); await save(page);
     await page.getByText('All changes saved', { exact: true }).waitFor();
     assert.deepEqual(store.launches[0].value.tasks.map(task => task.channelKey).sort(), ['chase', 'outreach']);
-    assert.equal(await page.getByRole('tab', { name: /Channels/ }).getAttribute('aria-selected'), 'false');
-    await page.getByRole('tab', { name: /Channels/ }).click(); await page.locator('[data-action="chooser-medium"][data-medium="email"]').click();
+    assert.equal(await page.locator('.channel-checklist').isVisible(), true); assert.equal(await page.locator('[role=tab]').count(), 0);
+    await page.locator('[data-action="chooser-medium"][data-medium="email"]').click();
     assert.equal(await page.locator('[data-channel="outreach"]').isChecked(), true);
     await page.locator('[data-action="chooser-medium"][data-medium="facebook"]').click(); assert.equal(await page.locator('[data-channel="chase"]').isChecked(), true);
     assert.deepEqual(errors, []); await page.close();
@@ -215,31 +217,47 @@ test('the complete starting library uses compact medium views that fit desktop w
   } finally { await browser.close(); }
 });
 
-test('a full launch can be created, assigned, planned, drafted, published, followed up, and duplicated', async () => {
+test('a launch is a single channel checklist; optional saved drafts remain accessible and duplication resets them', async () => {
   const browser = await chromium.launch({ headless: true });
   try {
     const f = await open(browser), { page } = f; await page.locator('#app').waitFor();
     await page.locator('[data-library-channel="chase"]').check(); await page.getByRole('button', { name: 'Create launch →', exact: true }).click();
-    await page.locator('#launch-name').fill('Synthetic CSR refresh'); await page.locator('#source-url').fill('https://example.com/source'); await page.locator('#summary').fill('A synthetic update for testing.'); await page.locator('#audience-tags').fill('chase, csr');
-    await choose(page, 'Launch type', 'Tool update'); await choose(page, 'Launch owner', 'Jenny'); await save(page);
-    await page.locator('[data-check]').first().check();
-    await page.getByRole('tab', { name: /Channels/ }).click();
-    await page.locator('#chooser-search').fill('Chase'); await page.locator('[data-channel="chase"]').check();
-    await page.getByRole('button', { name: 'Prepare launch →' }).click(); await page.getByRole('button', { name: 'Work on distribution →' }).click(); await page.locator('[data-action="edit-task"]').click();
-    await page.locator('#task-angle').fill('Explain the useful changes.'); await page.locator('#task-draft').fill('A native post with complete context.'); await choose(page, 'Task owner', 'Andrew'); await choose(page, 'Status', 'Awaiting approval'); await save(page);
-    assert.equal(await page.getByText('Awaiting approval', { exact: true }).count(), 1); assert.match(await page.locator('.launch-meta').textContent(), /1 of 7/);
-    await page.locator('[data-action="edit-task"]').click(); await choose(page, 'Status', 'Live'); await page.locator('#task-url').fill('https://example.com/live'); await page.locator('#task-outcome').fill('Members found the screenshot helpful.'); await save(page);
-    assert.match(await page.locator('.launch-meta').textContent(), /2 of 7/);
-    await page.getByRole('button', { name: 'Follow up →' }).click(); await page.locator('#launch-notes').fill('Bring a clear screenshot next time.'); await page.locator('#launch-notes').blur();
+    await page.locator('#launch-name').fill('Synthetic CSR refresh'); await page.locator('#source-url').fill('https://example.com/source');
+    await choose(page, 'Launch type', 'Tool update'); await save(page); await page.getByText('All changes saved', { exact: true }).waitFor();
+    assert.equal(f.store.launches[0].value.checks.length, 0);
+    assert.equal(await page.locator('[role=tab], .step-nav, .aside-stack, .progress-track').count(), 0);
+    assert.equal(await page.locator('.saved-launch-context').count(), 0); assert.match(await page.locator('.launch-meta').textContent(), /1 channel selected/);
+    await page.locator('[data-action="edit-task"]').click();
+    await page.locator('#task-draft').fill('An existing optional draft.'); await choose(page, 'Task owner', 'Andrew'); await save(page);
+    await page.locator('[data-action="edit-task"]').click(); assert.equal(await page.locator('#task-draft').inputValue(), 'An existing optional draft.');
+    await page.getByRole('button', { name: 'Close dialog', exact: true }).click();
+    await page.getByRole('button', { name: 'Edit details', exact: true }).click(); await page.locator('.optional-launch-details>summary').click(); await page.locator('#launch-notes').fill('Saved context.'); await save(page);
+    await page.locator('.saved-launch-context>summary').click(); assert.match(await page.locator('.saved-launch-context').textContent(), /Saved context/);
+    await page.getByRole('button', { name: 'Copy checklist', exact: true }).click();
+    const copied = await page.evaluate(() => window.copiedLaunchText); assert.match(copied, /- \[ \] Synthetic Chase group/); assert.doesNotMatch(copied, /Preparation|Follow-up/);
     await page.getByRole('button', { name: 'More launch actions' }).click(); await page.getByRole('button', { name: 'Duplicate with fresh progress' }).click(); await save(page);
-    assert.match(await page.locator('h1').last().textContent(), /copy/); assert.match(await page.locator('.launch-meta').textContent(), /0 of 7/);
-    await page.getByRole('tab', { name: /Distribute/ }).click(); await page.locator('[data-action="edit-task"]').click();
-    assert.equal(await page.locator('#task-draft').inputValue(), ''); assert.equal(await page.locator('#task-url').inputValue(), ''); assert.match(await page.locator('#editor-content').textContent(), /Members found the screenshot helpful/);
-    await page.getByRole('button', { name: 'Close dialog', exact: true }).click();
-    await page.getByRole('button', { name: 'Channels', exact: true }).click(); await page.locator('#library-search').fill('Chase'); await page.locator('[data-action="edit-channel"]').click(); assert.match(await page.locator('#editor-content').textContent(), /Synthetic CSR refresh/);
-    await page.getByRole('button', { name: 'Close dialog', exact: true }).click();
-    await page.reload(); await page.locator('#app').waitFor(); assert.equal(f.store.launches.length, 2); assert.equal(f.store.launches[0].value.tasks[0].owner, members[2].email);
-    assert.ok(f.requests.every(item => item.headers.authorization.startsWith('Bearer test.'))); assert.deepEqual(f.errors, []); await page.close();
+    await page.locator('[data-action="edit-task"]').click(); assert.equal(await page.locator('#task-draft').inputValue(), ''); await page.getByRole('button', { name: 'Close dialog', exact: true }).click();
+    await page.getByText('All changes saved', { exact: true }).waitFor(); assert.equal(f.store.launches.length, 2); assert.equal(f.store.launches[0].value.tasks[0].draft, 'An existing optional draft.');
+    await page.reload(); await page.locator('.channel-checklist').waitFor(); assert.deepEqual(f.errors, []); await page.close();
+  } finally { await browser.close(); }
+});
+
+test('every legacy stage link opens the same checklist and preserves earlier notes, checks, and channel activity', async () => {
+  const browser = await chromium.launch({ headless: true });
+  try {
+    for (const step of ['choose', 'prepare', 'distribute', 'followup']) {
+      const workspace = routeWorkspace(); workspace.launches[0].value.notes = 'Keep our earlier notes';
+      const f = await open(browser, { workspace, search: `?launch=launch-one&step=${step}` }), { page } = f;
+      await page.locator('.channel-checklist').waitFor(); assert.equal(await page.locator('[role=tab]').count(), 0);
+      assert.equal(new URL(page.url()).searchParams.get('step'), 'choose');
+      assert.match(await page.locator('.launch-meta').textContent(), /1 channel selected/);
+      assert.ok(!f.requests.some(item => item.payload.path.endsWith(':saveLaunch')));
+      await page.locator('.saved-launch-context>summary').click(); assert.match(await page.locator('.saved-launch-context').textContent(), /Keep our earlier notes/);
+      await page.getByText('Earlier checklist notes', { exact: true }).click(); assert.match(await page.locator('.saved-launch-context').textContent(), /A saved checklist note/);
+      await page.locator('[data-channel="ihg"]').check(); await page.getByText('All changes saved', { exact: true }).waitFor();
+      assert.equal(f.store.launches[0].value.notes, 'Keep our earlier notes'); assert.equal(f.store.launches[0].value.checks[0].done, true); assert.equal(f.store.launches[0].value.tasks[0].draft, 'Saved private post copy.');
+      assert.deepEqual(f.errors, []); await page.close();
+    }
   } finally { await browser.close(); }
 });
 test('channel guidance can be edited, searched, archived, and retained without interpreting notes as HTML', async () => {
@@ -281,9 +299,9 @@ test('desktop and phone layouts, opened searchable pickers, and empty search res
     for (const width of [1440, 390, 320]) {
       const f = await open(browser, { viewport: { width, height: width === 1440 ? 1000 : 844 } }), { page } = f; await page.locator('#app').waitFor();
       await page.locator('[data-library-channel="chase"]').check(); await page.getByRole('button', { name: 'Create launch →', exact: true }).click(); await page.locator('#launch-name').fill('Synthetic launch');
-      await page.getByRole('button', { name: /^Launch type:/ }).click(); const search = page.locator('.search-select-panel:not([hidden]) input'); await search.fill('no-such-option'); await page.locator('.search-select-panel:not([hidden]) .search-select-empty').waitFor(); await search.fill('Tool update'); await search.press('Enter'); await save(page);
+      await page.locator('.optional-launch-details>summary').click(); await page.getByRole('button', { name: /^Launch type:/ }).click(); const search = page.locator('.search-select-panel:not([hidden]) input'); await search.fill('no-such-option'); await page.locator('.search-select-panel:not([hidden]) .search-select-empty').waitFor(); await search.fill('Tool update'); await search.press('Enter'); await save(page);
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, `Overflow at ${width}`);
-      await page.getByRole('button', { name: 'Edit details', exact: true }).click(); await page.getByRole('button', { name: /^Launch owner:/ }).click(); const panel = page.locator('.search-select-panel:not([hidden])'); const box = await panel.boundingBox(); assert.ok(box.x >= 0 && box.x + box.width <= width + 1);
+      await page.getByRole('button', { name: 'Edit details', exact: true }).click(); await page.locator('.optional-launch-details>summary').click(); await page.getByRole('button', { name: /^Launch owner:/ }).click(); const panel = page.locator('.search-select-panel:not([hidden])'); const box = await panel.boundingBox(); assert.ok(box.x >= 0 && box.x + box.width <= width + 1);
       await page.keyboard.press('Escape'); await page.getByRole('button', { name: 'Close dialog', exact: true }).click();
       await page.getByRole('button', { name: 'Channels', exact: true }).click(); assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
       await page.screenshot({ path: `/private/tmp/nextcard-launches-library-${width}.png`, fullPage: true });
@@ -315,14 +333,14 @@ test('visible Remove actions save launch changes, preserve the library, and prot
       await page.getByRole('button', { name: 'Remove Synthetic editorial contact from this launch', exact: true }).click();
       await page.getByText('All changes saved', { exact: true }).waitFor();
       assert.equal(f.store.launches[0].value.tasks.length, 1); assert.equal(f.store.channels.length, 4);
-      assert.match(await page.locator('.launch-meta').textContent(), /0 of 6 actions/);
+      assert.match(await page.locator('.launch-meta').textContent(), /1 channel selected/);
       assert.equal(await page.locator('[data-channel="outreach"]').count(), 0);
       await page.reload(); await page.locator('#app').waitFor(); assert.equal(f.store.launches[0].value.tasks.length, 1);
       await changeMedium(page, 'chooser', 'email'); await page.locator('[data-channel="outreach"]').check();
       await page.getByText('All changes saved', { exact: true }).waitFor(); assert.equal(f.store.launches[0].value.tasks.length, 2);
-      await page.getByRole('tab', { name: /Distribute/ }).click();
-      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, `Distribution overflow at ${width}`);
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, `Checklist overflow at ${width}`);
       page.removeAllListeners('dialog'); page.on('dialog', dialog => dialog.accept());
+      await changeMedium(page, 'chooser', 'selected');
       await page.getByRole('button', { name: 'Remove Synthetic Chase group from this launch', exact: true }).click();
       await page.getByText('All changes saved', { exact: true }).waitFor();
       assert.deepEqual(f.store.launches[0].value.tasks.map(task => task.channelKey), ['outreach']);

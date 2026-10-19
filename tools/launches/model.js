@@ -23,13 +23,7 @@
   const safeUrl = value => { try { const url = new URL(value); return ['http:', 'https:'].includes(url.protocol) && !url.username && !url.password ? url.href : ''; } catch { return ''; } };
   const done = task => ['live', 'sent', 'skipped'].includes(task.status);
   function newLaunch(owner = '') {
-    return { name: 'Untitled launch', sourceUrl: '', summary: '', type: 'news', tags: [], owner, dueDate: '', status: 'active', materials: [], tasks: [], hiddenChannelKeys: [], notes: '', checks: [
-      { id: uid(), stage: 'prepare', label: 'Verify the source, dates, eligibility, and key facts', done: false, owner: '' },
-      { id: uid(), stage: 'prepare', label: 'Check whether existing NextCard content or tools need an update', done: false, owner: '' },
-      { id: uid(), stage: 'prepare', label: 'Gather the key takeaway, useful visuals, and supporting links', done: false, owner: '' },
-      { id: uid(), stage: 'followup', label: 'Check pending submissions and reply to questions', done: false, owner: '' },
-      { id: uid(), stage: 'followup', label: 'Record results and lessons for the next launch', done: false, owner: '' },
-    ] };
+    return { name: 'Untitled launch', sourceUrl: '', summary: '', type: 'news', tags: [], owner, dueDate: '', status: 'active', materials: [], tasks: [], hiddenChannelKeys: [], notes: '', checks: [] };
   }
   function newChannel() {
     return { name: '', url: '', kind: 'facebook', tags: [], fit: '', rules: '', ruleStatus: 'unverified', verifiedDate: '', linkPolicy: 'unknown', approval: 'unknown', relationship: '', notes: '', archived: false };
@@ -70,7 +64,7 @@
     return launches.filter(launch => launch.key !== excluding).flatMap(launch => launch.value.tasks.filter(task => task.channelKey === channelKey && task.activityAt > 0).map(task => ({ task, launch: launch.value.name, launchKey: launch.key }))).sort((a, b) => b.task.activityAt - a.task.activityAt);
   }
   function ticket(launch) {
-    const lines = [`${launch.name}`, '', launch.summary, launch.sourceUrl ? `Source: ${launch.sourceUrl}` : '', '', 'Preparation', ...launch.checks.filter(check => check.stage === 'prepare').map(check => `- [${check.done ? 'x' : ' '}] ${check.label}`), '', 'Channel deliverables', ...launch.tasks.filter(task => task.status !== 'skipped').map(task => `- [${done(task) ? 'x' : ' '}] ${task.channelName}: ${task.angle || (task.channelKind === 'outreach' ? 'Prepare a tailored news pitch' : 'Prepare a useful native post')}${task.owner ? ` (${task.owner})` : ''}`), '', 'Follow-up', ...launch.checks.filter(check => check.stage === 'followup').map(check => `- [${check.done ? 'x' : ' '}] ${check.label}`)];
+    const lines = [launch.name, '', launch.summary, launch.sourceUrl ? `Source: ${launch.sourceUrl}` : '', '', ...launch.tasks.map(task => `- [ ] ${task.channelName}`)];
     return lines.filter((line, index) => line || lines[index - 1]).join('\n');
   }
   return { uid, tags, safeUrl, types, kinds, media, medium, statusLabels, done, newLaunch, newChannel, duplicate, progress, suggestion, addTask, history, ticket };

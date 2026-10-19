@@ -89,7 +89,7 @@ test('launch writes validate owners, dates, links, task IDs, destination referen
   const ownerValue = value(); ownerValue.owner = 'stranger@example.com'; invalid.push(ownerValue);
   const badDate = value(); badDate.dueDate = '2026-02-30'; invalid.push(badDate);
   const badUrl = value(); badUrl.sourceUrl = 'javascript:alert(1)'; invalid.push(badUrl);
-  const duplicate = value(); duplicate.checks.push({ ...duplicate.checks[0] }); invalid.push(duplicate);
+  const duplicate = value(); duplicate.checks.push(...[0, 1].map(() => ({ id: 'same-id', label: 'Saved item', stage: 'prepare', done: false, owner: '' }))); invalid.push(duplicate);
   const tooLong = value(); tooLong.name = 'x'.repeat(151); invalid.push(tooLong);
   const missing = value(); missing.tasks.push(M.addTask({ key: 'missing', value: { name: 'Missing', kind: 'reddit' } })); invalid.push(missing);
   for (const item of invalid) { const ctx = context(); await assert.rejects(api.saveLaunch.handler(ctx, { key: 'invalid', value: item, expectedVersion: 0 })); assert.equal(ctx.tables.nextcardLaunches.length, 0); }
