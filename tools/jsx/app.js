@@ -36,12 +36,12 @@
   function cell(text, className) { const td=document.createElement('td'); if(text) td.textContent=text; if(className) td.className=className; return td; }
   function row(f) {
     const tr=document.createElement('tr');
-    const route=cell(`${f.originCity} (${f.origin}) → ${f.destinationCity} (${f.destination})`);
-    const trip=cell(f.tripType==='round_trip'?'Round-trip':'One-way');
-    const dates=cell(fmt(f.departDate));
+    const route=cell(`${f.originCity} (${f.origin}) → ${f.destinationCity} (${f.destination})`, 'fare-route');
+    const trip=cell(f.tripType==='round_trip'?'Round-trip':'One-way', 'fare-trip');
+    const dates=cell(fmt(f.departDate), 'fare-dates');
     if(f.returnDate) { const back=document.createElement('span'); back.className='return-date'; back.textContent=`Return ${fmt(f.returnDate)}`; dates.append(back); }
-    const price=cell(money(f.priceUsd));
-    const booking=cell(), link=document.createElement('a'); link.className='book';
+    const price=cell(money(f.priceUsd), 'fare-price');
+    const booking=cell('', 'fare-booking'), link=document.createElement('a'); link.className='book';
     const params=new URLSearchParams({o:f.origin,d:f.destination,dd:f.departDate,adt:'1',curr:'USD'});
     if(f.returnDate) params.set('rd',f.returnDate);
     link.href=`https://www.jsx.com/booking/select?${params}`; link.target='_blank'; link.rel='noopener noreferrer'; link.append('Book on JSX ',icon('external'));
