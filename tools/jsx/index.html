@@ -27,10 +27,12 @@
   <link rel="apple-touch-icon" href="./apple-touch-icon.png" sizes="180x180">
   <link rel="preload" href="./nunito-latin.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="./searchable-select.css">
-  <link rel="stylesheet" href="./styles.css?v=20261018-5">
+  <link rel="stylesheet" href="./styles.css?v=20261018-6">
   <script defer src="./searchable-select.js"></script>
   <script defer src="./fares.js"></script>
-  <script defer src="./app.js?v=20261018-5"></script>
+  <script defer src="./map-data.js?v=20261018-6"></script>
+  <script defer src="./route-map.js?v=20261018-6"></script>
+  <script defer src="./app.js?v=20261018-6"></script>
   <script defer src="/assets/js/analytics.js?v=20260927-3" data-app="jsx"></script>
 </head>
 <body>
@@ -75,6 +77,14 @@
       <div class="table-wrap" tabindex="0" role="region" aria-label="Scrollable fare table"><table aria-label="JSX fares"><thead><tr><th scope="col">Route</th><th scope="col">Trip</th><th scope="col" id="dates-heading" aria-sort="none"><button type="button" id="sort-dates">Dates <span aria-hidden="true">↕</span></button></th><th scope="col" id="price-heading" aria-sort="ascending"><button type="button" id="sort-price">Fare (USD) <span aria-hidden="true">↑</span></button></th><th scope="col">Book</th></tr></thead><tbody id="fares"></tbody></table><div id="empty" hidden><strong>No matching fares</strong><p>Try another airport, a wider date range, or a higher budget.</p><button type="button" id="empty-reset">Clear filters</button></div></div>
       <nav class="pagination" aria-label="Fare pages"><p id="total"></p><div class="page-controls"><div class="page-size"><label for="per-page">Per page</label><select id="per-page" aria-label="Items per page"><option value="25">25</option><option value="50">50</option><option value="100" selected>100</option></select></div><span id="page"></span><div class="page-buttons"><button type="button" id="first" aria-label="Go to first page">«</button><button type="button" id="prev" aria-label="Go to previous page">‹</button><button type="button" id="next" aria-label="Go to next page">›</button><button type="button" id="last" aria-label="Go to last page">»</button></div></div></nav>
       <div class="fine-print"><p>Fares shoppers saw on JSX as of <span id="snapshot"></span>, for one adult before seats or extras. These are samples, not quotes: prices change with departure time, availability, and add-ons. Round-trip prices cover both flights. Confirm your exact fare on JSX before booking.</p><p id="coverage"></p><p>Saved snapshot; fares do not refresh automatically. Past departure dates are hidden.</p></div>
+    </section>
+    <section id="route-map" class="route-map" aria-labelledby="map-title">
+      <div class="map-heading"><div><h2 id="map-title">Explore the route map</h2><p>See where you can go and the lowest sampled fare on each route.</p></div><div class="map-airport-field"><label for="map-airport">Explore an airport</label><select id="map-airport" aria-label="Map airport"><option value="">All airports</option></select></div></div>
+      <p id="map-summary" class="map-summary" role="status" aria-live="polite"></p>
+      <div class="map-layout"><div class="map-canvas-wrap"><div class="map-stage" id="map-stage"><svg id="flight-map" viewBox="0 0 1000 600" aria-label="Interactive JSX route map" role="group"></svg><div class="map-tools" aria-label="Map controls"><button type="button" id="map-zoom-in" aria-label="Zoom in on route map">+</button><button type="button" id="map-zoom-out" aria-label="Zoom out on route map">−</button><button type="button" id="map-fit" aria-label="Fit all routes on map">⤢</button></div><p id="map-empty" hidden>No routes match these filters. Try a different airport, date range, or budget.</p></div><div class="map-legend" aria-label="Lowest sampled fare colors"><span><i class="fare-band-0"></i>Under $200</span><span><i class="fare-band-1"></i>$200–299</span><span><i class="fare-band-2"></i>$300–499</span><span><i class="fare-band-3"></i>$500+</span></div></div>
+        <div class="map-sidebar"><div class="map-sidebar-heading"><h3 id="map-list-title">Routes by lowest fare</h3><button type="button" id="map-clear" hidden>Show all</button></div><div id="map-detail" hidden></div><div id="map-routes" aria-label="Routes shown on map"></div></div>
+      </div>
+      <p class="map-note">Uses all fares matching the filters above, across every table page. One-way prices are per direction; round-trip prices include the return. Airport locations are approximate, and lines show connections rather than actual flight paths. <span id="map-date"></span></p>
     </section>
     <footer><p>Made by <a href="../../">John Ta</a> · Independent personal project, not affiliated with JSX or Chase.</p><p>My referral link is included above. Eligible sign-ups may earn credit for both of us. Card offers are targeted; check your own account for eligibility, expiration, and terms.</p></footer>
   </main>

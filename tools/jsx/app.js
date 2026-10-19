@@ -60,14 +60,33 @@
     const dates=cell(fmt(f.departDate), 'fare-dates');
     if(f.returnDate) { const back=document.createElement('span'); back.className='return-date'; back.textContent=`Return ${fmt(f.returnDate)}`; dates.append(back); }
     const price=cell(money(f.priceUsd), 'fare-price');
-    const booking=cell('', 'fare-booking'), link=document.createElement('a'); link.className='book';
+    const booking=cell('', 'fare-booking'); booking.append(makeBookingLink(f));
+    tr.append(route,trip,dates,price,booking); return tr;
+  }
+  function makeBookingLink(f) {
+    const link=document.createElement('a'); link.className='book';
     const params=new URLSearchParams({o:f.origin,d:f.destination,dd:f.departDate,adt:'1',curr:'USD'});
     if(f.returnDate) params.set('rd',f.returnDate);
     link.href=`https://www.jsx.com/booking/select?${params}`; link.target='_blank'; link.rel='noopener noreferrer'; link.append('Book on JSX ',icon('external'));
     link.setAttribute('aria-label',`Book ${f.originCity} to ${f.destinationCity}, ${fmt(f.departDate)}${f.returnDate?', returning '+fmt(f.returnDate):''} on JSX, opens in a new tab`);
     if (!accountPromptSeen) link.setAttribute('aria-haspopup', 'dialog');
     link.addEventListener('click', askAboutAccount);
-    booking.append(link); tr.append(route,trip,dates,price,booking); return tr;
+    return link;
+  }
+  let routeMap = null;
+  try {
+    routeMap = window.JSXRouteMap.create({
+      geography: window.JSX_MAP_DATA, makeBookingLink,
+      onChooseRoute(origin, destination) {
+        controls.origin.value = origin; controls.destination.value = destination;
+        pickers.origin.sync(); pickers.destination.sync(); changed();
+        $('fare-toolbar').scrollIntoView({ block: 'start', behavior: 'smooth' });
+        $('origin-trigger').focus({ preventScroll: true });
+      }
+    });
+  } catch (error) {
+    $('map-summary').textContent = 'The route map could not load. You can still browse all fares in the table above.';
+    console.warn('JSX route map unavailable', error);
   }
   function chip(id, label, active) {
     const trigger=$(`${id}-trigger`);
@@ -106,6 +125,7 @@
     $('dates-heading').setAttribute('aria-sort',controls.sort.value==='date'?'ascending':controls.sort.value==='latest'?'descending':'none');
     $('sort-price').querySelector('span').textContent=controls.sort.value==='price'?'↑':controls.sort.value==='highest'?'↓':'↕';
     $('sort-dates').querySelector('span').textContent=controls.sort.value==='date'?'↑':controls.sort.value==='latest'?'↓':'↕';
+    routeMap?.update(fares);
     save();
   }
   function changed() { page=1; render(); }

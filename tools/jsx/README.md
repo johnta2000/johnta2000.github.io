@@ -17,3 +17,11 @@ The first plain `Book on JSX` click opens the account check. Referral signup ope
 PostHog usage: https://us.posthog.com/project/630826 — filter by `app = jsx` or pathname `/tools/jsx/`. Tracks pageviews, pageleaves, anonymous interactions, and unhandled exceptions under the shared privacy settings. Tracking starts with this deployment; older visits are not backfilled.
 
 The offer guide has a close button and a `Show guide` restore action. Dismissal is remembered on the current browser (`jsx-guide-hidden-v1`); reopening clears that preference. Storage failures still allow hide/show within the current visit.
+
+## Route map
+
+The map sits below the fare table and uses **all** matching fare samples, regardless of pagination. Airports show the lowest fare involving that airport; line colors use the cheapest matching direction on that connection. Directional route choices and the detail panel retain the exact departure, return date, and trip type. Airport choices focus only the map; `See fares in table` applies the selected direction to the main filters. Map booking links use the shared one-time account dialog. Zoom controls and the searchable airport picker work without map services or API keys.
+
+`map-data.js` bundles simplified geographic boundaries from [Natural Earth](https://github.com/nvkelso/natural-earth-vector), US state boundaries from [datasets/geo-admin1-us](https://github.com/datasets/geo-admin1-us), and airport coordinates from [OurAirports via datasets/airport-codes](https://github.com/datasets/airport-codes). Locations are approximate. JSX codes are preserved in the interface: EDC maps to KEDC, TSM to KSKX, SCF to KSDL, CLD to KCRQ, DSI to KDTS, CSW to MMSL, and DJT to KPBI. Update coordinate coverage when adding airports to the fare snapshot.
+
+Validation: `node --test tools/jsx/tests/*.test.cjs` (the DOM integration test uses the site's existing jsdom development dependency). It covers direction-specific minimum prices, round-trip totals and return dates, airport coordinate coverage, filtering across table pages, empty results, zoom/fit, and the account prompt on map booking links.
