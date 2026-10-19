@@ -454,3 +454,37 @@ test('existing content-fit and earlier notes remain available without audience-t
     assert.deepEqual(f.errors, []); await page.close();
   } finally { await browser.close(); }
 });
+
+
+test('posting assignments edit on the checklist, persist per launch, synchronize with task details, and can be cleared', async () => {
+  const browser = await chromium.launch({ headless: true });
+  try {
+    for (const width of [1440, 390, 320]) {
+      const workspace = routeWorkspace(); delete workspace.launches[0].value.tasks[0].postingAs;
+      workspace.launches.push({ ...structuredClone(workspace.launches[0]), key: 'other-launch' });
+      const f = await open(browser, { workspace, search: '?launch=launch-one', viewport: { width, height: 1000 } }), { page } = f;
+      await page.locator('.channel-checklist').waitFor();
+      const posting = page.getByRole('textbox', { name: 'Posting as for Synthetic Chase group', exact: true });
+      assert.equal(await posting.inputValue(), '');
+      assert.equal(await page.locator('[data-posting-as]').count(), 1, 'Only included channels have assignments');
+      await posting.fill('  Jenny / @synthetic-poster  '); await posting.press('Enter'); await page.getByText('All changes saved', { exact: true }).waitFor();
+      assert.equal(f.store.launches[0].value.tasks[0].postingAs, 'Jenny / @synthetic-poster'); assert.equal(f.store.launches[1].value.tasks[0].postingAs, undefined);
+      assert.ok(!f.requests.some(item => item.payload.path.endsWith(':saveChannel')));
+      await page.reload(); await page.locator('.channel-checklist').waitFor(); assert.equal(await posting.inputValue(), 'Jenny / @synthetic-poster');
+      await changeMedium(page, 'chooser', 'email'); await changeMedium(page, 'chooser', 'facebook'); assert.equal(await posting.inputValue(), 'Jenny / @synthetic-poster');
+      await page.getByRole('button', { name: 'Copy checklist', exact: true }).click(); assert.match(await page.evaluate(() => window.copiedLaunchText), /Synthetic Chase group — Jenny \/ @synthetic-poster/);
+      await page.getByRole('button', { name: 'Draft and notes for Synthetic Chase group', exact: true }).click();
+      assert.equal(await page.locator('#task-posting-as').inputValue(), 'Jenny / @synthetic-poster');
+      await page.locator('#task-posting-as').fill('Andrew / @alternate'); await save(page); await page.getByText('All changes saved', { exact: true }).waitFor();
+      assert.equal(await posting.inputValue(), 'Andrew / @alternate');
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+      const box = await posting.boundingBox(); assert.ok(box.x >= 0 && box.x + box.width <= width);
+      await page.screenshot({ path: `/private/tmp/nextcard-posting-assignment-${width}.png`, fullPage: true });
+      await posting.fill('<img src=x onerror=alert(1)>'); await posting.press('Tab'); await page.getByText('All changes saved', { exact: true }).waitFor();
+      await page.reload(); await page.locator('.channel-checklist').waitFor(); assert.equal(await page.locator('.channel-checklist img').count(), 0);
+      assert.equal(await posting.inputValue(), '<img src=x onerror=alert(1)>');
+      await posting.fill(''); await posting.press('Enter'); await page.getByText('All changes saved', { exact: true }).waitFor(); assert.equal(f.store.launches[0].value.tasks[0].postingAs, '');
+      assert.deepEqual(f.errors, []); await page.close();
+    }
+  } finally { await browser.close(); }
+});

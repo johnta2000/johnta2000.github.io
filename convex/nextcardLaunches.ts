@@ -57,6 +57,7 @@ function validateLaunch(value: Infer<typeof launchValue>, members: { email: stri
   for (const task of value.tasks) {
     if (hidden.includes(task.channelKey)) throw Error("A selected channel cannot also be hidden.");
     id(task.id); key(task.channelKey); text(task.channelName, 150, true); text(task.angle, 2000); text(task.draft, 20000); text(task.outcome, 5000); owner(task.owner); date(task.dueDate); url(task.liveUrl);
+    if (task.postingAs !== undefined) text(task.postingAs, 150);
     if (!Number.isSafeInteger(task.activityAt) || task.activityAt < 0 || task.activityAt > Date.now() + 60000) throw Error("Invalid activity date.");
     if (channels.has(task.channelKey)) throw Error("Each channel can appear only once per launch."); channels.add(task.channelKey);
     if (task.channelKind === "outreach" ? ["submitted", "waiting", "live"].includes(task.status) : task.status === "sent") throw Error("Choose a status that fits this channel.");

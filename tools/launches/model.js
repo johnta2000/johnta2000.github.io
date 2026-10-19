@@ -58,13 +58,13 @@
     return { group: 'skip', label: 'No tag match', reason: 'No matching audience tags. You can still select it if there is a specific connection.' };
   }
   function addTask(channel, owner = '') {
-    return { id: uid(), channelKey: channel.key, channelName: channel.value.name, channelKind: channel.value.kind, angle: '', draft: '', owner, dueDate: '', status: 'draft', liveUrl: '', outcome: '', activityAt: 0 };
+    return { id: uid(), channelKey: channel.key, channelName: channel.value.name, channelKind: channel.value.kind, angle: '', draft: '', owner, postingAs: '', dueDate: '', status: 'draft', liveUrl: '', outcome: '', activityAt: 0 };
   }
   function history(channelKey, launches, excluding = '') {
     return launches.filter(launch => launch.key !== excluding).flatMap(launch => launch.value.tasks.filter(task => task.channelKey === channelKey && task.activityAt > 0).map(task => ({ task, launch: launch.value.name, launchKey: launch.key }))).sort((a, b) => b.task.activityAt - a.task.activityAt);
   }
   function ticket(launch) {
-    const lines = [launch.name, '', launch.summary, launch.sourceUrl ? `Source: ${launch.sourceUrl}` : '', '', ...launch.tasks.map(task => `- [ ] ${task.channelName}`)];
+    const lines = [launch.name, '', launch.summary, launch.sourceUrl ? `Source: ${launch.sourceUrl}` : '', '', ...launch.tasks.map(task => `- [ ] ${task.channelName}${task.postingAs?.trim() ? ` — ${task.postingAs.trim()}` : ''}`)];
     return lines.filter((line, index) => line || lines[index - 1]).join('\n');
   }
   return { uid, tags, safeUrl, types, kinds, media, medium, statusLabels, done, newLaunch, newChannel, duplicate, progress, suggestion, addTask, history, ticket };

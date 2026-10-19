@@ -111,3 +111,21 @@ test('hidden channel choices are optional, saved per launch, bounded, and cannot
   const overlap = value(); overlap.hiddenChannelKeys = ['channel']; overlap.tasks.push(M.addTask({ key: 'channel', value: { name: 'Channel', kind: 'reddit' } }));
   await assert.rejects(api.saveLaunch.handler(ctx, { key: 'invalid', value: overlap, expectedVersion: 0 }), /cannot also be hidden/);
 });
+
+
+test('posting account labels are optional per-channel launch data, limited in length, and version protected', async () => {
+  const api = await backend, ctx = context();
+  await api.initialize.handler(ctx, {});
+  const destination = ctx.tables.nextcardLaunchChannels[0], launch = value();
+  launch.tasks.push(M.addTask(destination)); delete launch.tasks[0].postingAs;
+  await api.saveLaunch.handler(ctx, { key: 'old-assignment', value: launch, expectedVersion: 0 });
+  launch.tasks[0].postingAs = '@synthetic-poster / Jenny';
+  await api.saveLaunch.handler(ctx, { key: 'old-assignment', value: launch, expectedVersion: 1 });
+  assert.equal(ctx.tables.nextcardLaunches[0].value.tasks[0].postingAs, '@synthetic-poster / Jenny');
+  await assert.rejects(api.saveLaunch.handler(ctx, { key: 'old-assignment', value: launch, expectedVersion: 1 }), /changed since/);
+  const invalid = structuredClone(launch); invalid.tasks[0].postingAs = 'x'.repeat(151);
+  await assert.rejects(api.saveLaunch.handler(ctx, { key: 'invalid-account', value: invalid, expectedVersion: 0 }), /too long/);
+  launch.tasks[0].postingAs = '';
+  await api.saveLaunch.handler(ctx, { key: 'old-assignment', value: launch, expectedVersion: 2 });
+  assert.equal(ctx.tables.nextcardLaunches[0].value.tasks[0].postingAs, '');
+});

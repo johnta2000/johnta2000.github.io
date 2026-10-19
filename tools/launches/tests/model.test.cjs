@@ -44,3 +44,12 @@ test('history records meaningful channel activity, and unsafe links are never ma
   value.checks.push({ label: 'Earlier custom item', stage: 'prepare', done: false });
   assert.match(M.ticket(value), /- \[ \] Example group/); assert.doesNotMatch(M.ticket(value), /Preparation|Follow-up|Earlier custom item/);
 });
+
+
+test('posting assignments start blank, copy into checklists, and survive reusable launch duplication', () => {
+  const launch = M.newLaunch(), task = M.addTask({ key: 'account-channel', value: { name: 'Synthetic destination', kind: 'reddit' } });
+  assert.equal(task.postingAs, ''); task.postingAs = 'Jenny / @synthetic-poster'; launch.tasks.push(task);
+  assert.match(M.ticket(launch), /Synthetic destination — Jenny \/ @synthetic-poster/);
+  const duplicated = M.duplicate(launch); assert.equal(duplicated.tasks[0].postingAs, task.postingAs);
+  duplicated.tasks[0].postingAs = 'Andrew'; assert.equal(task.postingAs, 'Jenny / @synthetic-poster');
+});

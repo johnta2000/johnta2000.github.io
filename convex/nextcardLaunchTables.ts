@@ -21,6 +21,7 @@ export const launchValue = v.object({
     angle: v.string(), draft: v.string(), owner: v.string(), dueDate: v.string(),
     status: v.union(v.literal("draft"), v.literal("ready"), v.literal("submitted"), v.literal("waiting"), v.literal("live"), v.literal("sent"), v.literal("skipped")),
     liveUrl: v.string(), outcome: v.string(), activityAt: v.number(),
+    postingAs: v.optional(v.string()),
   })),
   notes: v.string(),
   hiddenChannelKeys: v.optional(v.array(v.string())),
