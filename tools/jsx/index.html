@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f5f4ef">
+  <title>JSX Fare Finder · John Ta</title>
+  <meta name="description" content="Find your next JSX trip. Browse sampled fares, compare routes and dates, and check prices directly on JSX.">
+  <meta property="og:title" content="JSX Fare Finder · John Ta">
+  <meta property="og:description" content="A little tool for finding a good JSX fare. Filter by airport, dates, and budget, then book directly with JSX.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://www.john-ta.com/tools/jsx/">
+  <link rel="canonical" href="https://www.john-ta.com/tools/jsx/">
+  <link rel="icon" href="./plane.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./searchable-select.css">
+  <link rel="stylesheet" href="./styles.css">
+  <script defer src="./searchable-select.js"></script>
+  <script defer src="./fares.js"></script>
+  <script defer src="./app.js"></script>
+</head>
+<body>
+  <main class="shell">
+    <header class="masthead"><a href="../../" class="wordmark">JOHN TA <span>/ LITTLE TOOLS</span></a><span class="personal">Independent personal project</span></header>
+    <section class="intro"><div><p class="eyebrow">LESS SEARCHING. MORE GOING.</p><h1>A little closer<br>to your next <em>getaway.</em></h1><p class="subtitle">Find a good JSX fare, pick your dates, and take it from there.</p></div><div class="stamp" aria-hidden="true"><span>THE SHORT WAY THERE</span><svg viewBox="0 0 100 100"><path d="m15 53 28-9 19-29c3-5 9-7 10-2l-8 29 21 15-1 7-25-7-11 21 7 10-4 4-14-9-2-15-18-7z" fill="currentColor"/></svg><span>YOUR NEXT CHAPTER ↗</span></div></section>
+    <aside class="offer"><span class="offer-icon" aria-hidden="true">✦</span><div><strong>Putting a card offer to work?</strong><p>If you have a JSX offer on your Sapphire Reserve, activate it first and check your own minimum spend and expiration. If you use a referral credit, the amount left to charge still needs to meet that minimum.</p><a class="referral" href="https://www.jsx.com/create-profile/6QWTIE" target="_blank" rel="noopener noreferrer">New to JSX? Use my referral ↗</a><small>This is my referral link. We may both receive JSX credit if you qualify; check the terms when signing up.</small></div></aside>
+    <section class="filter-panel" aria-label="Filter fares">
+      <div class="filter-top"><div class="trip-tabs" role="group" aria-label="Trip type"><button type="button" data-trip="one_way" aria-pressed="true">One-way</button><button type="button" data-trip="round_trip" aria-pressed="false">Round-trip</button><button type="button" data-trip="all" aria-pressed="false">All fares</button></div><button type="button" class="text-button" id="reset">Reset filters ↺</button></div>
+      <div class="route-controls"><div class="field"><label for="origin">Flying from</label><select id="origin" aria-label="Departure airport"></select></div><button type="button" id="swap" class="swap" aria-label="Swap departure and destination">⇄</button><div class="field"><label for="destination">Heading to</label><select id="destination" aria-label="Arrival airport"></select></div><div class="field budget"><label for="budget">Max fare · USD</label><input id="budget" type="number" min="0" step="1" placeholder="Any budget" inputmode="decimal"></div></div>
+      <div class="date-controls"><div class="field"><label for="after">Depart on or after</label><input id="after" type="date"></div><div class="field"><label for="before">Depart on or before</label><input id="before" type="date"></div><label class="check"><input id="weekend" type="checkbox"> Weekend departures <span>Fri–Sun</span></label></div>
+    </section>
+    <section aria-labelledby="results-title"><div class="results-heading"><div><p class="eyebrow">A WINDOW OF POSSIBILITY</p><h2 id="results-title">Finding fares…</h2><p id="snapshot" class="muted"></p></div><div class="sort-field"><label for="sort">Sort by</label><select id="sort" aria-label="Sort fares"><option value="price">Lowest price</option><option value="date">Soonest departure</option><option value="highest">Highest price</option><option value="route">Route A–Z</option></select></div></div>
+      <p id="status" class="sr-only" role="status" aria-live="polite"></p>
+      <div class="table-wrap"><table><thead><tr><th scope="col">Your route</th><th scope="col">Travel dates</th><th scope="col">Sample fare</th><th scope="col"><span class="sr-only">Booking</span></th></tr></thead><tbody id="fares"></tbody></table><div id="empty" hidden><h3>No fares on this runway.</h3><p>Try another airport, a wider date range, or a higher budget.</p><button type="button" id="empty-reset">Clear filters</button></div></div>
+      <nav class="pagination" aria-label="Fare pages"><span id="range"></span><div><button type="button" id="prev" aria-label="Previous page">←</button><span id="page"></span><button type="button" id="next" aria-label="Next page">→</button></div></nav>
+    </section>
+    <aside class="fine-print"><strong>A starting point for your search.</strong><p>These are sampled fares for one adult, before seat selection or extras. Prices and availability can change; always confirm your exact trip on JSX. Round-trip fares include both flights. This is a saved snapshot and does not refresh automatically.</p><p id="coverage"></p><p>Made by John Ta. This personal project is not affiliated with JSX or Chase. Booking links go directly to JSX.</p></aside>
+    <footer><a href="../../">John Ta ↗</a><span>Good trips start with a little curiosity.</span></footer>
+  </main>
+</body>
+</html>
