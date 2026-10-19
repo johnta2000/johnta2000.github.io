@@ -378,9 +378,8 @@ test('irrelevant unselected options can be hidden from a zero-selection launch a
       await page.reload(); await page.locator('#app').waitFor(); assert.equal(await page.locator('[data-channel="chase"]').count(), 0);
       await page.locator('#hidden-channels-summary').click(); await page.getByRole('button', { name: 'Restore Synthetic Chase group for this launch', exact: true }).click();
       await page.getByText('All changes saved', { exact: true }).waitFor(); assert.deepEqual(f.store.launches[0].value.hiddenChannelKeys, []);
-      await page.locator('[data-action="channel-guidance"][data-key="chase"]').click();
+      await page.locator('[data-action="edit-channel"][data-key="chase"]').click();
       assert.match(await page.locator('.launch-channel-context').textContent(), /not included/);
-      await page.getByRole('button', { name: 'Edit channel guidance', exact: true }).click();
       const context = page.locator('.launch-channel-context'); assert.equal(await context.getByRole('button', { name: 'Hide Synthetic Chase group for this launch', exact: true }).isVisible(), true);
       await page.locator('#channel-name').fill('Do not save this accidental library edit');
       page.removeAllListeners('dialog'); page.on('dialog', dialog => dialog.dismiss());
@@ -391,6 +390,42 @@ test('irrelevant unselected options can be hidden from a zero-selection launch a
       await page.getByText('All changes saved', { exact: true }).waitFor(); assert.deepEqual(f.store.launches[0].value.hiddenChannelKeys, ['chase']);
       assert.equal(f.store.channels[0].value.name, 'Synthetic Chase group'); assert.equal(new URL(page.url()).searchParams.has('channel'), false);
       assert.ok(!f.requests.some(item => item.payload.path.endsWith(':saveChannel'))); assert.deepEqual(f.errors, []); await page.close();
+    }
+  } finally { await browser.close(); }
+});
+
+
+test('audience labels and Edit channel open the shared editor directly without changing channel selection', async () => {
+  const browser = await chromium.launch({ headless: true });
+  try {
+    for (const width of [1440, 390, 320]) {
+      const workspace = routeWorkspace(); workspace.channels.find(item => item.key === 'ihg').value.tags = [];
+      const f = await open(browser, { workspace, search: '?launch=launch-one', viewport: { width, height: 1000 } }), { page } = f;
+      await page.locator('.channel-checklist').waitFor();
+      const audience = page.getByRole('button', { name: 'Edit audience for Synthetic IHG group', exact: true });
+      assert.match(await audience.textContent(), /Add audience tags/);
+      await audience.click(); await page.locator('#channel-tags').waitFor();
+      assert.equal(await page.locator('#channel-tags').evaluate(element => element === document.activeElement), true);
+      assert.equal(await page.locator('.guidance-text').count(), 0); assert.equal(new URL(page.url()).searchParams.get('channel'), 'ihg');
+      assert.ok(!f.requests.some(item => item.payload.path.endsWith(':saveLaunch') || item.payload.path.endsWith(':saveChannel')));
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+      await page.locator('#channel-tags').fill('alaska, mileage plan'); await page.locator('#channel-fit').fill('Alaska news and helpful redemption examples.');
+      const saveBox = await page.getByRole('button', { name: 'Save changes', exact: true }).boundingBox();
+      assert.ok(saveBox.y >= 0 && saveBox.y + saveBox.height <= 1000, `Save stays visible at ${width}`);
+      await page.screenshot({ path: `/private/tmp/nextcard-channel-editor-${width}.png`, fullPage: true });
+      await save(page); await page.getByText('All changes saved', { exact: true }).waitFor();
+      assert.deepEqual(f.store.channels.find(item => item.key === 'ihg').value.tags, ['alaska', 'mileage plan']);
+      assert.equal(f.store.launches[0].value.tasks.length, 1); assert.equal(await page.locator('[data-channel="ihg"]').isChecked(), false);
+      assert.match(await audience.textContent(), /alaska · mileage plan/);
+      assert.ok(!f.requests.some(item => item.payload.path.endsWith(':saveLaunch')));
+      await page.getByRole('button', { name: 'Edit channel Synthetic Chase group', exact: true }).click(); await page.locator('#channel-name').waitFor();
+      assert.equal(await page.locator('#task-draft').count(), 0); await page.keyboard.press('Escape'); await page.locator('#editor').waitFor({ state: 'hidden' });
+      await page.waitForURL(url => !url.searchParams.has('channel'));
+      await page.reload(); await page.locator('.channel-checklist').waitFor(); assert.match(await audience.textContent(), /alaska · mileage plan/);
+      await page.getByRole('button', { name: 'Channels', exact: true }).click();
+      await page.getByRole('button', { name: 'Edit audience for Synthetic IHG group', exact: true }).click();
+      assert.equal(await page.locator('#channel-tags').inputValue(), 'alaska, mileage plan');
+      await page.keyboard.press('Escape'); assert.deepEqual(f.errors, []); await page.close();
     }
   } finally { await browser.close(); }
 });
