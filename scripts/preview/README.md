@@ -1,6 +1,6 @@
 # JSX preview environments
 
-The draft branch is `draft/jsx-referral-funnel`. Production stays on `master` and is not deployed by this workflow.
+The original review branch is `draft/jsx-referral-funnel`; its approved changes were released on October 21, 2026. Production stays on `master` and is not deployed by the preview workflow.
 
 ## Build and review any branch
 
