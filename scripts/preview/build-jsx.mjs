@@ -37,7 +37,7 @@ window.SiteAnalytics = { capture(event, properties) {
 } };
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('preview-reset').addEventListener('click', () => {
-    try { localStorage.removeItem('jsx-account-prompt-seen-v1'); localStorage.removeItem('jsx-guide-hidden-v1'); } catch {}
+    try { localStorage.removeItem('jsx-account-prompt-seen-v1'); localStorage.removeItem('jsx-guide-hidden-v1'); localStorage.removeItem('jsx-credit-offers-hidden-v1'); } catch {}
     location.reload();
   });
 });

@@ -76,7 +76,7 @@ test('all published HTML pages declare their analytics policy and page identity'
       assert.doesNotMatch(html, /<script\b[^>]*\bsrc=["'][^"']*\/assets\/js\/analytics\.js(?:[?"'])/i, page.file);
       continue;
     }
-    const version = page.app === 'jsx' ? '20261020-1' : '20261019-1';
+    const version = page.app === 'jsx' ? '20261020-2' : '20261019-1';
     assert.equal(html.split(`src="/assets/js/analytics.js?v=${version}"`).length - 1, 1, page.file);
     assert.ok(html.includes(`data-app="${page.app}"`),page.file);
   }

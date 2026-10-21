@@ -32,3 +32,5 @@ New placements: `fare_offer` (above filters, independent of the guide) and `sele
 Measure distinct visitors who saw an offer → clicked a referral at that placement, alongside pageview → View on JSX → actual JSX handoff. Do not add generic `ui_interaction` clicks to named goal counts. Referral clicks still do not establish signups, completed flights, or earned credits.
 
 Preview builds remove the shared analytics script and store events only in a bounded local page buffer. The shared tracker also permits production hostnames only. No production visitors are assigned to this draft; this is not a live A/B experiment.
+
+Draft dismissal: closing either credit offer remembers `jsx-credit-offers-hidden-v1` in browser storage, hides both banner/map placements, and bypasses the account upsell while preserving direct JSX fare links. A quiet restore button in either location clears the preference. Dismiss/restore emits `jsx_referral_dismissed` / `jsx_referral_restored` with the initiating placement; hidden CTAs do not emit impressions. With storage blocked the choice lasts for the current page. Reset walkthrough clears this preference in preview builds.
