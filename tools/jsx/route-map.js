@@ -25,7 +25,7 @@
   const band = price => price < 200 ? 0 : price < 300 ? 1 : price < 500 ? 2 : 3;
   const mercator = lat => Math.log(Math.tan(Math.PI / 4 + lat * Math.PI / 360));
   function project(lon, lat) { return [40 + (lon + 127) / 62 * 920, 32 + (mercator(50) - mercator(lat)) / (mercator(50) - mercator(21)) * 510]; }
-  function create({ geography, onChooseRoute, onChooseAirport, onClearRoute, makeBookingLink }) {
+  function create({ geography, onChooseRoute, onChooseAirport, onClearRoute, makeBookingLink, makeRouteReferralOffer }) {
     const $ = id => document.getElementById(id);
     const svg = $('flight-map');
     const ns = 'http://www.w3.org/2000/svg';
@@ -173,6 +173,7 @@
         $('origin-trigger').focus({ preventScroll: true });
       });
       actions.append(view, makeBookingLink(f, 'route_map')); panel.append(actions);
+      if (makeRouteReferralOffer) panel.append(makeRouteReferralOffer());
     }
     function renderList() {
       const visible = visibleRoutes();

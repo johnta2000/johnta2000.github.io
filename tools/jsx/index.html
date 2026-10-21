@@ -27,13 +27,13 @@
   <link rel="apple-touch-icon" href="./apple-touch-icon.png" sizes="180x180">
   <link rel="preload" href="./nunito-latin.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="./searchable-select.css">
-  <link rel="stylesheet" href="./styles.css?v=20261019-3">
+  <link rel="stylesheet" href="./styles.css?v=20261020-1">
   <script defer src="./searchable-select.js"></script>
   <script defer src="./fares.js"></script>
   <script defer src="./map-data.js?v=20261019-3"></script>
-  <script defer src="./route-map.js?v=20261019-3"></script>
-  <script defer src="/assets/js/analytics.js?v=20261019-1" data-app="jsx"></script>
-  <script defer src="./app.js?v=20261019-4"></script>
+  <script defer src="./route-map.js?v=20261020-1"></script>
+  <script defer src="/assets/js/analytics.js?v=20261020-1" data-app="jsx"></script>
+  <script defer src="./app.js?v=20261020-1"></script>
 </head>
 <body>
   <svg class="icon-defs" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><defs>
@@ -51,15 +51,19 @@
     <div id="guide-restore" hidden><button type="button" id="show-guide" data-analytics-control="show_guide" aria-controls="offer-guide" aria-expanded="false">Show guide</button></div>
     <section class="offer" id="offer-guide" aria-labelledby="offer-title">
       <button type="button" id="hide-guide" data-analytics-control="hide_guide" aria-label="Hide offer guide" aria-controls="offer-guide">×</button>
-      <div class="offer-intro"><div><div class="offer-title"><h2 id="offer-title" tabindex="-1">Get a JSX flight for (almost) free</h2><span class="badge">Offer ends Dec 14, 2026</span></div><p>Pay $200 or more on JSX with your Chase Sapphire Reserve and get $200 back. New JSX members can add a $100 referral credit on top.</p></div><a class="referral" data-analytics-control="referral" data-analytics-placement="offer_header" href="https://www.jsx.com/create-profile/6QWTIE" target="_blank" rel="noopener noreferrer">Get $100 with my referral <svg class="icon" aria-hidden="true"><use href="#i-external"/></svg></a></div>
+      <div class="offer-intro"><div><div class="offer-title"><h2 id="offer-title" tabindex="-1">Get a JSX flight for (almost) free</h2><span class="badge">Offer ends Dec 14, 2026</span></div><p>Pay $200 or more on JSX with your Chase Sapphire Reserve and get $200 back. New JSX members can add a $100 referral credit on top.</p></div></div>
       <div class="guide">
         <details name="guide"><summary><span class="step-number">1</span>Activate the JSX offer on your Reserve<span class="chevron" aria-hidden="true"></span></summary><div class="step-body"><p>Find the JSX offer in your Chase Sapphire Reserve account and add it to your card: spend $200 or more, get $200 back. This is a targeted offer; confirm your eligibility and terms in your own account.</p><img src="./images/chase-offer.webp" width="1200" height="565" alt="Example Chase Sapphire Reserve JSX offer: spend $200 or more, get $200 cash back" loading="lazy"></div></details>
-        <details name="guide"><summary><span class="step-number">2</span>Create your JSX account with a referral<span class="chevron" aria-hidden="true"></span></summary><div class="step-body"><p>Before you make a JSX account, sign up through a referral link. The code fills in for you. Eligible new members and the referrer each get $100 toward JSX flights; check the referral terms when you sign up.</p><a class="referral" data-analytics-control="referral" data-analytics-placement="guide" href="https://www.jsx.com/create-profile/6QWTIE" target="_blank" rel="noopener noreferrer">Get $100 with my referral <svg class="icon" aria-hidden="true"><use href="#i-external"/></svg></a><img class="signup-image" src="./images/jsx-referral.webp" width="400" height="480" alt="JSX sign-up form with the referral code filled in" loading="lazy"></div></details>
+        <details name="guide"><summary><span class="step-number">2</span>Create your JSX account with a referral<span class="chevron" aria-hidden="true"></span></summary><div class="step-body"><p>Before you make a JSX account, sign up through a referral link. The code fills in for you. Eligible new members and the referrer each get $100 toward JSX flights; check the referral terms when you sign up.</p><a class="referral" data-analytics-control="referral" data-analytics-placement="guide" href="https://www.jsx.com/create-profile/6QWTIE" target="_blank" rel="noopener noreferrer">Get $100 flight credit <svg class="icon" aria-hidden="true"><use href="#i-external"/></svg></a><img class="signup-image" src="./images/jsx-referral.webp" width="400" height="480" alt="JSX sign-up form with the referral code filled in" loading="lazy"></div></details>
         <details name="guide"><summary><span class="step-number">3</span>Pick a cheap route and date<span class="chevron" aria-hidden="true"></span></summary><div class="step-body"><p>Use the sampled fares below to find a cheap route, then check the live price on JSX. Fares change with the departure time and extras.</p><a href="#fare-toolbar" class="browse-link">Browse fares ↓</a></div></details>
         <details name="guide"><summary><span class="step-number">4</span>Book and pay with your Reserve<span class="chevron" aria-hidden="true"></span></summary><div class="step-body"><p>Apply your $100 referral voucher at checkout, then pay the rest with your Sapphire Reserve. The amount charged to your card must be $200 or more, or the offer won't trigger.</p><img src="./images/jsx-checkout.webp" width="1200" height="665" alt="Example JSX checkout showing referral funds and the remaining trip total" loading="lazy"></div></details>
       </div>
       <p class="warning"><svg class="icon" aria-hidden="true"><use href="#i-warning"/></svg>The amount charged to your Reserve must be $200 or more, or the JSX offer won't trigger.</p>
     </section>
+    <aside class="referral-strip" aria-label="New member flight credit">
+      <div><strong>New to JSX? Get $100 flight credit.</strong><p>Create an eligible account with my referral before booking. I may earn credit too.</p></div>
+      <a class="referral" data-analytics-control="referral" data-analytics-placement="fare_offer" href="https://www.jsx.com/create-profile/6QWTIE" target="_blank" rel="noopener noreferrer">Get $100 flight credit <svg class="icon" aria-hidden="true"><use href="#i-external"/></svg></a>
+    </aside>
     <section class="fare-section" aria-label="JSX fares">
       <div id="fare-toolbar" class="toolbar" aria-label="Fare filters">
         <div class="route-search"><svg class="icon" aria-hidden="true"><use href="#i-search"/></svg><input id="search" type="search" aria-label="Search routes" placeholder="Search cities or airports" autocomplete="off"></div>
@@ -92,8 +96,8 @@
     <footer><p>Made by <a href="../../">John Ta</a> · Independent personal project, not affiliated with JSX or Chase.</p><p>My referral link is included above. Eligible sign-ups may earn credit for both of us. Card offers are targeted; check your own account for eligibility, expiration, and terms.</p></footer>
   </main>
   <dialog id="account-dialog" aria-labelledby="account-title" aria-describedby="account-description">
-    <div class="account-intro"><h2 id="account-title">Do you have a JSX account?</h2><button type="button" id="account-close" data-analytics-control="account_close" data-analytics-placement="account_dialog" aria-label="Close">×</button><p id="account-description">If not, sign up with a referral link first: both you and the referrer each get $100 toward JSX flights. Thanks for supporting me!</p></div>
-    <div class="account-actions"><a id="account-signup" data-analytics-control="referral" data-analytics-placement="account_dialog" class="account-action account-primary" href="https://www.jsx.com/create-profile/6QWTIE" target="_blank" rel="noopener noreferrer" autofocus>No, sign up with the referral <svg class="icon" aria-hidden="true"><use href="#i-external"/></svg></a><a id="account-continue" data-analytics-control="account_continue" data-analytics-placement="account_dialog" class="account-action" target="_blank" rel="noopener noreferrer">Yes, continue to JSX</a><p>This popup won’t appear again.</p></div>
+    <div class="account-intro"><h2 id="account-title">New to JSX? Get $100 flight credit.</h2><button type="button" id="account-close" data-analytics-control="account_close" data-analytics-placement="account_dialog" aria-label="Close">×</button><p id="account-description">Create an eligible JSX account with my referral before booking. The code is filled in for you; check the terms at signup. I may earn credit when you fly.</p></div>
+    <div class="account-actions"><a id="account-signup" data-analytics-control="referral" data-analytics-placement="account_dialog" class="account-action account-primary" href="https://www.jsx.com/create-profile/6QWTIE" target="_blank" rel="noopener noreferrer" autofocus>Create account + get $100 credit <svg class="icon" aria-hidden="true"><use href="#i-external"/></svg></a><a id="account-continue" data-analytics-control="account_continue" data-analytics-placement="account_dialog" class="account-action" target="_blank" rel="noopener noreferrer">Already have an account? Continue to JSX</a><p>This popup won’t appear again.</p></div>
   </dialog>
 </body>
 </html>
