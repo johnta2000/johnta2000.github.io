@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "monitorId": "paze-directory",
   "sourceUrl": "https://www.paze.com/merchant-directory?page=0",
-  "capturedAt": "2026-10-21T18:40:52.538Z",
+  "capturedAt": "2026-10-21T22:23:25.997Z",
   "merchants": [
     {
       "name": "1-800-Flowers",
@@ -123,10 +123,6 @@
     {
       "name": "USA Today",
       "key": "usa today"
-    },
-    {
-      "name": "Wendy's",
-      "key": "wendy s"
     },
     {
       "name": "Whataburger",

@@ -3,6 +3,53 @@
   "maxRuns": 336,
   "runs": [
     {
+      "id": "2026-10-21T22:23:25.997Z",
+      "monitorId": "paze-directory",
+      "timestamp": "2026-10-21T22:23:25.997Z",
+      "status": "success",
+      "changed": true,
+      "initialized": false,
+      "confirmed": true,
+      "durationMs": 4640,
+      "count": 34,
+      "previousCount": 35,
+      "pagination": {
+        "complete": true,
+        "pagesFetched": 3,
+        "pageCounts": [
+          12,
+          12,
+          10
+        ],
+        "finalPage": 2
+      },
+      "diff": {
+        "added": [],
+        "removed": [
+          "Wendy's"
+        ],
+        "renamed": []
+      },
+      "cache": {
+        "runId": "1792621405997",
+        "requestCount": 6,
+        "crawlIds": [
+          "primary",
+          "confirmation"
+        ],
+        "requestIds": [
+          "1792621406000001",
+          "1792621406939002",
+          "1792621407598003",
+          "1792621408339004",
+          "1792621409104005",
+          "1792621409843006"
+        ]
+      },
+      "summary": "0 added, 1 removed, 0 renamed.",
+      "error": null
+    },
+    {
       "id": "2026-10-21T18:40:52.538Z",
       "monitorId": "paze-directory",
       "timestamp": "2026-10-21T18:40:52.538Z",
