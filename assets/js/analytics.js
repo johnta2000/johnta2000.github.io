@@ -27,8 +27,8 @@
     '$process_person_profile', '$cookieless_mode', '$raw_user_agent', '$user_agent',
     'app', 'action', 'element', 'link',
   ]);
-  const jsxEvents = new Set(['jsx_booking_clicked', 'jsx_booking_opened', 'jsx_referral_clicked', 'jsx_referral_seen', 'jsx_account_prompt_shown', 'jsx_account_prompt_closed', 'jsx_filter_changed', 'jsx_map_route_selected', 'jsx_map_airport_selected']);
-  const jsxControls = new Set(['book', 'referral', 'account_continue', 'account_close', 'hide_guide', 'show_guide', 'reset', 'empty_reset', 'clear_price', 'clear_dates', 'sort_price', 'sort_dates', 'first', 'prev', 'next', 'last', 'map_clear', 'map_zoom_in', 'map_zoom_out', 'map_fit', 'map_jump', 'map_view_fares', 'map_check_route']);
+  const jsxEvents = new Set(['jsx_booking_clicked', 'jsx_booking_opened', 'jsx_referral_clicked', 'jsx_referral_seen', 'jsx_referral_dismissed', 'jsx_referral_restored', 'jsx_account_prompt_shown', 'jsx_account_prompt_closed', 'jsx_filter_changed', 'jsx_map_route_selected', 'jsx_map_airport_selected']);
+  const jsxControls = new Set(['book', 'referral', 'account_continue', 'account_close', 'hide_guide', 'hide_credit', 'show_credit', 'show_guide', 'reset', 'empty_reset', 'clear_price', 'clear_dates', 'sort_price', 'sort_dates', 'first', 'prev', 'next', 'last', 'map_clear', 'map_zoom_in', 'map_zoom_out', 'map_fit', 'map_jump', 'map_view_fares', 'map_check_route']);
   const placements = new Set(['fare_table', 'route_map', 'offer_header', 'guide', 'account_dialog', 'fare_offer', 'selected_route']);
   const filterNames = new Set(['search', 'trip', 'origin', 'destination', 'min-price', 'budget', 'after', 'before', 'weekend', 'sort', 'per-page', 'reset', 'clear-price', 'clear-dates']);
   const toolPaths = new Set(["/tools/jsx/", "/tools/menus/hem-by-lequy/", "/tools/menus/", "/tools/menus/sf-organica/", "/tools/monitoring/", "/tools/rally/", "/tools/seometadata/", "/tools/sleep/", "/tools/standups/", "/tools/tranquil-connect/", "/tools/video-downloader/"]);

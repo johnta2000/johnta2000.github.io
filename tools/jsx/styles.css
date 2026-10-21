@@ -181,3 +181,14 @@
   #first,#last{display:none}
   .fare-notes{font-size:11px;margin-top:10px}
 }
+
+/* One dismissal hides repeated credit offers, with an unobtrusive way back. */
+.referral-strip,.route-referral{position:relative}
+.referral-strip{padding-right:58px}
+.route-referral strong{padding-right:40px}
+.credit-close{position:absolute;right:5px;top:5px;display:flex;align-items:center;justify-content:center;width:44px;height:44px;padding:0;border:0;border-radius:8px;background:transparent;color:var(--muted);font-size:23px;line-height:1}
+.credit-close:hover{background:#f1e9dd;color:var(--ink)}
+.route-referral .credit-close{top:1px;right:-7px}
+.credit-restore{display:block;min-height:44px;margin:0 0 12px;padding:5px 0;border:0;background:none;font-size:12px;color:var(--muted);text-decoration:underline;text-underline-offset:3px}
+#map-detail .credit-restore{margin:12px 0 0}
+@media(max-width:600px){.referral-strip{padding-right:14px}.referral-strip>div{padding-right:34px}}

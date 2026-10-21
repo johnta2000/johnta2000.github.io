@@ -37,12 +37,15 @@
   function cell(text, className) { const td=document.createElement('td'); if(text) td.textContent=text; if(className) td.className=className; return td; }
   const accountDialog = $('account-dialog');
   const promptStorageKey = 'jsx-account-prompt-seen-v1';
+  const creditStorageKey = 'jsx-credit-offers-hidden-v1';
+  let creditOffersHidden = false;
+  try { creditOffersHidden = localStorage.getItem(creditStorageKey) === '1'; } catch { /* Dismissals still work for this visit. */ }
   let accountPromptSeen = false;
   try { accountPromptSeen = localStorage.getItem(promptStorageKey) === '1'; } catch { /* The prompt still works when browser storage is unavailable. */ }
   function askAboutAccount(event) {
     const placement = event.currentTarget.dataset.analyticsPlacement;
     track('jsx_booking_clicked', { placement });
-    if (accountPromptSeen || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+    if (creditOffersHidden || accountPromptSeen || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
       track('jsx_booking_opened', { placement }); return;
     }
     event.preventDefault();
@@ -94,6 +97,40 @@
   document.addEventListener('visibilitychange', recordReferralExposure);
   document.querySelectorAll('a[data-analytics-control="referral"]').forEach(link => referralObserver?.observe(link));
   let selectedRouteReferral = null;
+  function updateCreditOffers() {
+    document.querySelectorAll('.credit-offer').forEach(wrapper => {
+      wrapper.querySelector('aside').hidden = creditOffersHidden;
+      wrapper.querySelector('.credit-restore').hidden = !creditOffersHidden;
+    });
+    document.querySelectorAll('.book').forEach(link => {
+      if (creditOffersHidden || accountPromptSeen) link.removeAttribute('aria-haspopup');
+      else link.setAttribute('aria-haspopup', 'dialog');
+    });
+  }
+  function makeDismissibleCreditOffer(offer, placement) {
+    const wrapper = document.createElement('div'); wrapper.className = 'credit-offer';
+    const close = document.createElement('button'); close.type = 'button'; close.className = 'credit-close'; close.textContent = '×';
+    close.setAttribute('aria-label', 'Hide flight credit offers');
+    close.dataset.analyticsControl = 'hide_credit'; close.dataset.analyticsPlacement = placement;
+    const restore = document.createElement('button'); restore.type = 'button'; restore.className = 'credit-restore'; restore.textContent = 'Show flight credit offer';
+    restore.dataset.analyticsControl = 'show_credit'; restore.dataset.analyticsPlacement = placement;
+    function setHidden(hidden) {
+      creditOffersHidden = hidden;
+      try { if (hidden) localStorage.setItem(creditStorageKey, '1'); else localStorage.removeItem(creditStorageKey); } catch { /* Remember in memory when storage is blocked. */ }
+      updateCreditOffers();
+      track(hidden ? 'jsx_referral_dismissed' : 'jsx_referral_restored', { placement });
+      (hidden ? restore : close).focus({ preventScroll: true });
+    }
+    close.addEventListener('click', () => setHidden(true));
+    restore.addEventListener('click', () => setHidden(false));
+    offer.append(close); offer.hidden = creditOffersHidden; restore.hidden = !creditOffersHidden;
+    wrapper.append(offer, restore);
+    return wrapper;
+  }
+  const fareOffer = document.querySelector('.referral-strip');
+  const offerPlaceholder = document.createComment('Flight credit offer');
+  fareOffer.before(offerPlaceholder);
+  offerPlaceholder.replaceWith(makeDismissibleCreditOffer(fareOffer, 'fare_offer'));
   function makeRouteReferralOffer() {
     if (selectedRouteReferral) {
       referralObserver?.unobserve(selectedRouteReferral);
@@ -109,7 +146,7 @@
     offer.append(heading, link, note);
     selectedRouteReferral = link;
     if (!seenReferralPlacements.has('selected_route')) referralObserver?.observe(link);
-    return offer;
+    return makeDismissibleCreditOffer(offer, 'selected_route');
   }
   ['account-signup', 'account-continue'].forEach(id => $(id).addEventListener('click', () => accountDialog.close()));
   accountDialog.addEventListener('click', event => {
@@ -148,7 +185,7 @@
     if(f.returnDate) params.set('rd',f.returnDate);
     link.href=`https://www.jsx.com/booking/select?${params}`; link.target='_blank'; link.rel='noopener noreferrer'; link.append('View on JSX ',icon('external'));
     link.setAttribute('aria-label',`View ${f.originCity} to ${f.destinationCity}, ${fmt(f.departDate)}${f.returnDate?', returning '+fmt(f.returnDate):''} on JSX, opens in a new tab`);
-    if (!accountPromptSeen) link.setAttribute('aria-haspopup', 'dialog');
+    if (!accountPromptSeen && !creditOffersHidden) link.setAttribute('aria-haspopup', 'dialog');
     link.addEventListener('click', askAboutAccount);
     link.addEventListener('auxclick', event => { if (event.button === 1) askAboutAccount(event); });
     return link;
