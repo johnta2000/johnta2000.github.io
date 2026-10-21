@@ -18,7 +18,7 @@ function setup(host = 'www.john-ta.com', app = 'rally', load = true) {
   return { config, script, context, captures, click };
 }
 test('development and native bundled pages never load telemetry', () => {
-  for (const host of ['localhost', '127.0.0.1', '', 'evil-john-ta.com']) assert.equal(setup(host).script, undefined);
+  for (const host of ['localhost', '127.0.0.1', '', 'evil-john-ta.com', 'john-ta-jsx-referral-preview.john-ta-8439.chatgpt.site']) assert.equal(setup(host).script, undefined);
 });
 test('anonymous configuration disables replay, forms, console logs, and profiles', () => {
   const { config } = setup();
@@ -76,7 +76,8 @@ test('all published HTML pages declare their analytics policy and page identity'
       assert.doesNotMatch(html, /<script\b[^>]*\bsrc=["'][^"']*\/assets\/js\/analytics\.js(?:[?"'])/i, page.file);
       continue;
     }
-    assert.equal(html.match(/src="\/assets\/js\/analytics.js\?v=20261019-1"/g)?.length, 1, page.file);
+    const version = page.app === 'jsx' ? '20261020-1' : '20261019-1';
+    assert.equal(html.split(`src="/assets/js/analytics.js?v=${version}"`).length - 1, 1, page.file);
     assert.ok(html.includes(`data-app="${page.app}"`),page.file);
   }
 });

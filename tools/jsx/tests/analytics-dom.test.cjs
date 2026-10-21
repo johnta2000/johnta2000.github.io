@@ -23,7 +23,7 @@ test('booking intent, actual outbound actions, referrals, and committed filters 
   assert.equal(count('jsx_booking_clicked'),1);assert.equal(count('jsx_account_prompt_shown'),1);assert.equal(count('jsx_booking_opened'),0);
   d.getElementById('account-continue').click();assert.equal(count('jsx_booking_opened'),1);
   first.click();assert.equal(count('jsx_booking_clicked'),2);assert.equal(count('jsx_booking_opened'),2);assert.equal(count('jsx_account_prompt_shown'),1);
-  for(const placement of ['offer_header','guide','account_dialog']) {
+  for(const placement of ['fare_offer','guide','account_dialog']) {
     d.querySelector(`a[data-analytics-control="referral"][data-analytics-placement="${placement}"]`).click();
     assert.equal(captures.filter(e=>e.event==='jsx_referral_clicked'&&e.properties.placement===placement).length,1);
   }

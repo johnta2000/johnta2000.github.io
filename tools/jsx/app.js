@@ -1,7 +1,7 @@
 (() => {
   'use strict';
   const data = window.JSX_FARES;
-  const track = (name, properties = {}) => window.SiteAnalytics?.capture(name, properties);
+  const track = (name, properties = {}) => window.SiteAnalytics?.capture(name, { ...properties, referral_variant: 'credit_near_fares_v1' });
   const $ = id => document.getElementById(id);
   const ids = ['search', 'trip', 'origin', 'destination', 'min-price', 'budget', 'after', 'before', 'weekend', 'sort', 'per-page'];
   const controls = Object.fromEntries(ids.map(id => [id, $(id)]));
@@ -59,11 +59,58 @@
   const trackContinue = () => track('jsx_booking_opened', { placement: 'account_dialog' });
   $('account-continue').addEventListener('click', trackContinue);
   $('account-continue').addEventListener('auxclick', event => { if (event.button === 1) trackContinue(); });
-  document.querySelectorAll('a[data-analytics-control="referral"]').forEach(link => {
-    const referralClick = () => track('jsx_referral_clicked', { placement: link.dataset.analyticsPlacement });
-    link.addEventListener('click', referralClick);
-    link.addEventListener('auxclick', event => { if (event.button === 1) referralClick(); });
-  });
+  // Delegation also covers links recreated when the selected route changes.
+  function trackReferralClick(event) {
+    if (event.type === 'auxclick' && event.button !== 1) return;
+    const link = event.target.closest?.('a[data-analytics-control="referral"]');
+    if (link) track('jsx_referral_clicked', { placement: link.dataset.analyticsPlacement });
+  }
+  document.addEventListener('click', trackReferralClick);
+  document.addEventListener('auxclick', trackReferralClick);
+  const seenReferralPlacements = new Set();
+  const visibleReferralLinks = new Set();
+  function recordReferralExposure() {
+    if (document.visibilityState !== 'visible') return;
+    visibleReferralLinks.forEach(link => {
+      if (!link.isConnected || link.closest('[hidden], details:not([open]), dialog:not([open])')) return;
+      const placement = link.dataset.analyticsPlacement;
+      if (!seenReferralPlacements.has(placement)) {
+        seenReferralPlacements.add(placement);
+        track('jsx_referral_seen', { placement });
+      }
+      referralObserver.unobserve(link);
+      visibleReferralLinks.delete(link);
+    });
+  }
+  // A seen offer means at least half of its CTA was in a visible tab,
+  // once per placement per page load. Browsers without IO omit impressions.
+  const referralObserver = typeof IntersectionObserver === 'function' ? new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting && entry.intersectionRatio >= 0.5) visibleReferralLinks.add(entry.target);
+      else visibleReferralLinks.delete(entry.target);
+    });
+    recordReferralExposure();
+  }, { threshold: [0, 0.5] }) : null;
+  document.addEventListener('visibilitychange', recordReferralExposure);
+  document.querySelectorAll('a[data-analytics-control="referral"]').forEach(link => referralObserver?.observe(link));
+  let selectedRouteReferral = null;
+  function makeRouteReferralOffer() {
+    if (selectedRouteReferral) {
+      referralObserver?.unobserve(selectedRouteReferral);
+      visibleReferralLinks.delete(selectedRouteReferral);
+    }
+    const offer = document.createElement('aside'); offer.className = 'route-referral';
+    const heading = document.createElement('strong'); heading.textContent = 'First JSX trip?';
+    const link = document.createElement('a'); link.className = 'referral';
+    link.href = 'https://www.jsx.com/create-profile/6QWTIE'; link.target = '_blank'; link.rel = 'noopener noreferrer';
+    link.dataset.analyticsControl = 'referral'; link.dataset.analyticsPlacement = 'selected_route';
+    link.append('Get $100 flight credit ', icon('external'));
+    const note = document.createElement('p'); note.textContent = 'For eligible new accounts. Sign up before booking; I may earn credit too.';
+    offer.append(heading, link, note);
+    selectedRouteReferral = link;
+    if (!seenReferralPlacements.has('selected_route')) referralObserver?.observe(link);
+    return offer;
+  }
   ['account-signup', 'account-continue'].forEach(id => $(id).addEventListener('click', () => accountDialog.close()));
   accountDialog.addEventListener('click', event => {
     const bounds = accountDialog.getBoundingClientRect();
@@ -109,7 +156,7 @@
   let routeMap = null;
   try {
     routeMap = window.JSXRouteMap.create({
-      geography: window.JSX_MAP_DATA, makeBookingLink,
+      geography: window.JSX_MAP_DATA, makeBookingLink, makeRouteReferralOffer,
       onChooseRoute(origin, destination) {
         controls.origin.value = origin; controls.destination.value = destination;
         pickers.origin.sync(); pickers.destination.sync(); changed();
