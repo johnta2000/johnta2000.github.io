@@ -17,6 +17,12 @@ type MonitoringSnapshot = {
 };
 
 const EXTERNAL_MONITORS = {
+  "edit-hotels-ranking": {
+    name: "Cheapest Edit Hotels · keyword bundle",
+    description: "Tracks exact-query performance, related Edit searches, and original versus Select Hotels URL visibility. US Search Console data, not a live Google rank tracker.",
+    cadence: "Every 6 hours via Codex",
+    defaultSource: "https://www.nextcard.com/articles/cheapest-edit-hotels",
+  },
   "paze-clover-map-ranking": {
     name: "Paze / Clover map ranking",
     description: "Tracks the dedicated map page across Search Console, cannibalization, index health, and clean Google result checks.",
@@ -212,7 +218,7 @@ function applyExternalReport(snapshot: MonitoringSnapshot, report: ExternalRepor
 
   const monitors = currentMonitors
     .filter((candidate) => candidate.id !== report.monitorId && candidate.id !== "paze-bonus-discovery");
-  const order = ["paze-directory", "paze-clover-map-ranking", "bilt-calculator-ranking", "transfer-bonus-discovery", "chase-sapphire-reserve-tables"];
+  const order = ["edit-hotels-ranking", "paze-directory", "paze-clover-map-ranking", "bilt-calculator-ranking", "transfer-bonus-discovery", "chase-sapphire-reserve-tables"];
   monitors.push(monitor);
   monitors.sort((a, b) => {
     const left = order.indexOf(String(a.id));

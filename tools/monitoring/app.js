@@ -78,6 +78,10 @@ function statusMeta(status) {
 }
 
 function monitorStats(monitor) {
+  if (monitor.id === "edit-hotels-ranking") {
+    return [["Exact query · 3d position", Number.isFinite(monitor.metrics?.recentPosition) ? monitor.metrics.recentPosition.toFixed(2) : "Not observed"],
+      ["Exact impressions · 7d", number(monitor.metrics?.impressions)], ["Tracked keywords", number(monitor.metrics?.keywordCount)]];
+  }
   if (monitor.id === "paze-directory") {
     return [
       ["Merchants", monitor.currentCount ?? "—"],
@@ -358,6 +362,38 @@ function positionHistoryMarkup(history = [], requestedDays = 28) {
     </section>`;
 }
 
+function editRankingDialogMarkup(monitor) {
+  const d = monitor.details ?? {};
+  const fmt = value => Number.isFinite(value) ? value.toFixed(2) : "Not observed";
+  const count = value => Number.isFinite(value) ? number(value) : "—";
+  const primary = d.queries?.[0];
+  const range = r => r ? `${r.startDate} → ${r.endDate}` : "Unavailable";
+  return `<div class="dialog-meta"><p>${escapeHtml(monitor.description)}</p><div><span>${escapeHtml(monitor.cadence)}</span>${sourceLinks(monitor)}</div></div>
+    ${statusBanner(monitor)}
+    <p>${escapeHtml(d.source ?? "US Search Console data")}</p>
+    <section class="dialog-metrics" aria-label="Exact cheapest edit hotels query">
+      <div><span>Exact query · recent 3d</span><strong>${fmt(primary?.recent?.position)}</strong><small>${escapeHtml(range(d.recentRange))}</small></div>
+      <div><span>Pre-launch position</span><strong>${fmt(primary?.baseline?.position)}</strong><small>Oct 10–16, 2026 · fixed baseline</small></div>
+      <div><span>Recent impressions / clicks</span><strong>${count(primary?.recent?.impressions)} / ${count(primary?.recent?.clicks)}</strong><small>Exact query · US · 3 days</small></div>
+      <div><span>Latest finalized date</span><strong>${escapeHtml(d.latestFinalDate ?? "Unavailable")}</strong><small>Checked every 6h; GSC reporting lags</small></div>
+    </section>
+    ${(d.warnings?.length || d.issues?.length || d.failures?.length) ? `<ul class="failure-list">${[...(d.failures ?? []), ...(d.issues ?? []), ...(d.warnings ?? [])].map(x => `<li>${escapeHtml(x)}</li>`).join("")}</ul>` : ""}
+    <section class="dialog-section"><h3>Keyword bundle · US · all devices</h3>
+      <p>Position: recent 3 days versus the fixed pre-launch baseline. Clicks and impressions: finalized 7 days (${escapeHtml(range(d.currentRange))}).</p>
+      <div class="edit-table-scroll"><table class="edit-ranking-table"><thead><tr><th>Query</th><th>Group</th><th>Pre-launch pos.</th><th>Recent pos.</th><th>7d clicks</th><th>7d impressions</th><th>Recent mobile / desktop pos.</th></tr></thead><tbody>
+      ${(d.queries ?? []).map(q => `<tr><th>${escapeHtml(q.query)}</th><td>${escapeHtml(q.group)}</td><td>${fmt(q.baseline?.position)}</td><td>${fmt(q.recent?.position)}</td><td>${count(q.clicks)}</td><td>${count(q.impressions)}</td><td>${fmt(q.devices?.[0]?.position)} / ${fmt(q.devices?.[1]?.position)}</td></tr>`).join("")}</tbody></table></div>
+    </section>
+    <section class="dialog-section"><h3>Which nextcard URLs appeared?</h3><p>Last three finalized days. Multiple URLs can appear; this alone does not prove cannibalization. No row means no disclosed observations.</p>
+      <div class="edit-table-scroll"><table class="edit-ranking-table"><thead><tr><th>Query</th><th>URL</th><th>Impressions</th><th>Clicks</th><th>Avg. position</th></tr></thead><tbody>
+      ${(d.queries ?? []).flatMap(q => (q.urls ?? []).map(u => `<tr><th>${escapeHtml(q.query)}</th><td>${escapeHtml(u.page)}</td><td>${count(u.impressions)}</td><td>${count(u.clicks)}</td><td>${fmt(u.position)}</td></tr>`)).join("")}</tbody></table></div>
+    </section>
+    <section class="dialog-section"><h3>Exact-query daily history</h3><p>US · all devices · launch October 17. Missing observations are gaps, not position zero.</p>
+      <div class="edit-table-scroll"><table class="edit-ranking-table"><thead><tr><th>Date</th><th>Position</th><th>Impressions</th><th>Clicks</th></tr></thead><tbody>${(d.daily ?? []).slice().reverse().map(r => `<tr><th>${escapeHtml(r.date)}</th><td>${fmt(r.position)}</td><td>${count(r.impressions)}</td><td>${count(r.clicks)}</td></tr>`).join("")}</tbody></table></div>
+    </section>
+    <section class="dialog-section"><h3>Article index health</h3>${(d.pages ?? []).map(p => `<div class="report-recommendation"><strong>${escapeHtml(p.url)}</strong><p>Live HTTP: ${escapeHtml(p.live?.httpStatus ?? "Unavailable")} · Index: ${escapeHtml(p.index?.verdict ?? "Unavailable")}<br>Google canonical: ${escapeHtml(p.index?.googleCanonical ?? "Unavailable")}<br>Last crawl: ${escapeHtml(p.index?.lastCrawlTime ?? "Unavailable")}</p></div>`).join("")}</section>
+    ${externalHistoryMarkup(monitor.id)}`;
+}
+
 function rankingDialogMarkup(monitor) {
   const metrics = monitor.metrics ?? {};
   const details = monitor.details ?? {};
@@ -594,6 +630,7 @@ function renderMonitorDialog(monitor) {
   els.monitorDialogEyebrow.textContent = monitor.configured ? "Active monitor" : "Collector placeholder";
   if (!monitor.configured) els.monitorDialogContent.innerHTML = placeholderDialogMarkup(monitor);
   else if (monitor.id === "paze-directory") els.monitorDialogContent.innerHTML = pazeDialogMarkup(monitor);
+  else if (monitor.id === "edit-hotels-ranking") els.monitorDialogContent.innerHTML = editRankingDialogMarkup(monitor);
   else if (["paze-clover-map-ranking", "bilt-calculator-ranking"].includes(monitor.id)) els.monitorDialogContent.innerHTML = rankingDialogMarkup(monitor);
   else if (monitor.id === "transfer-bonus-discovery") els.monitorDialogContent.innerHTML = bonusDialogMarkup(monitor);
   else if (monitor.id === "chase-sapphire-reserve-tables") els.monitorDialogContent.innerHTML = chaseDialogMarkup(monitor);

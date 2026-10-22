@@ -3,3 +3,4 @@
 .env.worker
 node_modules/
 .preview/
+.cache/monitoring/

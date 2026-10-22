@@ -493,3 +493,9 @@ footer { display: flex; justify-content: space-between; gap: 20px; border-top: 1
   .query-chart-summary { align-items: start; }
   .query-chart-svg { min-height: 180px; }
 }
+/* Keep detailed keyword evidence readable without widening the phone dialog. */
+.edit-table-scroll { overflow-x: auto; max-width: 100%; margin-top: 16px; }
+.edit-ranking-table { border-collapse: collapse; width: 100%; font-size: 13px; }
+.edit-ranking-table th, .edit-ranking-table td { text-align: left; padding: 12px; border-bottom: 1px solid #dce4e8; vertical-align: top; }
+.edit-ranking-table tbody th { min-width: 180px; }
+.edit-ranking-table td { overflow-wrap: anywhere; min-width: 80px; }

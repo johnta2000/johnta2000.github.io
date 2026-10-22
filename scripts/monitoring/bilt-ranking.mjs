@@ -42,7 +42,7 @@ function normalizeUrl(value) {
   }
 }
 
-async function accessToken(credentials, fetchImpl = fetch) {
+export async function accessToken(credentials, fetchImpl = fetch) {
   const now = Math.floor(Date.now() / 1000);
   const header = base64url(JSON.stringify({ alg: "RS256", typ: "JWT" }));
   const claim = base64url(JSON.stringify({
