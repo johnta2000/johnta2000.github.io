@@ -23,7 +23,7 @@
   const safeUrl = value => { try { const url = new URL(value); return ['http:', 'https:'].includes(url.protocol) && !url.username && !url.password ? url.href : ''; } catch { return ''; } };
   const done = task => ['live', 'sent', 'skipped'].includes(task.status);
   function newLaunch(owner = '') {
-    return { name: 'Untitled launch', sourceUrl: '', summary: '', type: 'news', tags: [], owner, dueDate: '', status: 'active', materials: [], tasks: [], hiddenChannelKeys: [], notes: '', checks: [] };
+    return { name: 'Untitled launch', sourceUrl: '', summary: '', type: 'news', tags: [], owner, dueDate: '', status: 'active', materials: [], tasks: [], channelPlans: [], hiddenChannelKeys: [], notes: '', checks: [] };
   }
   function newChannel() {
     return { name: '', url: '', kind: 'facebook', tags: [], fit: '', rules: '', ruleStatus: 'unverified', verifiedDate: '', linkPolicy: 'unknown', approval: 'unknown', relationship: '', notes: '', archived: false };
@@ -60,12 +60,25 @@
   function addTask(channel, owner = '') {
     return { id: uid(), channelKey: channel.key, channelName: channel.value.name, channelKind: channel.value.kind, angle: '', draft: '', owner, postingAs: '', dueDate: '', status: 'draft', liveUrl: '', outcome: '', activityAt: 0 };
   }
+  function planFor(launch, channelKey) {
+    const stored = (launch.channelPlans || []).find(plan => plan.channelKey === channelKey);
+    const task = launch.tasks.find(item => item.channelKey === channelKey);
+    return { channelKey, postingAs: typeof task?.postingAs === 'string' ? task.postingAs : stored?.postingAs || '', note: stored?.note || '' };
+  }
+  function setPlan(launch, channelKey, patch) {
+    const plan = { ...planFor(launch, channelKey), ...patch, channelKey };
+    launch.channelPlans = (launch.channelPlans || []).filter(item => item.channelKey !== channelKey);
+    if (plan.postingAs || plan.note) launch.channelPlans.push(plan);
+    const task = launch.tasks.find(item => item.channelKey === channelKey);
+    if (task) task.postingAs = plan.postingAs;
+    return plan;
+  }
   function history(channelKey, launches, excluding = '') {
     return launches.filter(launch => launch.key !== excluding).flatMap(launch => launch.value.tasks.filter(task => task.channelKey === channelKey && task.activityAt > 0).map(task => ({ task, launch: launch.value.name, launchKey: launch.key }))).sort((a, b) => b.task.activityAt - a.task.activityAt);
   }
   function ticket(launch) {
-    const lines = [launch.name, '', launch.summary, launch.sourceUrl ? `Source: ${launch.sourceUrl}` : '', '', ...launch.tasks.map(task => `- [ ] ${task.channelName}${task.postingAs?.trim() ? ` — ${task.postingAs.trim()}` : ''}`)];
+    const lines = [launch.name, '', launch.summary, launch.sourceUrl ? `Source: ${launch.sourceUrl}` : '', '', ...launch.tasks.map(task => { const plan = planFor(launch, task.channelKey); return `- [ ] ${task.channelName}${plan.postingAs.trim() ? ` — ${plan.postingAs.trim()}` : ''}${plan.note ? `\n  ${plan.note.replace(/\n/g, '\n  ')}` : ''}`; })];
     return lines.filter((line, index) => line || lines[index - 1]).join('\n');
   }
-  return { uid, tags, safeUrl, types, kinds, media, medium, statusLabels, done, newLaunch, newChannel, duplicate, progress, suggestion, addTask, history, ticket };
+  return { uid, tags, safeUrl, types, kinds, media, medium, statusLabels, done, newLaunch, newChannel, duplicate, progress, suggestion, addTask, planFor, setPlan, history, ticket };
 });

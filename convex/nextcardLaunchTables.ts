@@ -25,6 +25,7 @@ export const launchValue = v.object({
   })),
   notes: v.string(),
   hiddenChannelKeys: v.optional(v.array(v.string())),
+  channelPlans: v.optional(v.array(v.object({ channelKey: v.string(), postingAs: v.string(), note: v.string() }))),
 });
 const meta = { key: v.string(), version: v.number(), createdAt: v.number(), updatedAt: v.number(), updatedBy: v.string() };
 export const nextcardLaunchTables = {

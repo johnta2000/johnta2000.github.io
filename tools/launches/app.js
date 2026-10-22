@@ -158,8 +158,9 @@
   function removeLaunchChannel(key) {
     const value = current().value, task = value.tasks.find(item => item.channelKey === key);
     if (!task) return false;
-    const hasWork = task.postingAs || task.draft || task.angle || task.outcome || task.activityAt || task.liveUrl || task.dueDate || task.status !== 'draft';
+    const hasWork = task.draft || task.angle || task.outcome || task.activityAt || task.liveUrl || task.dueDate || task.status !== 'draft';
     if (hasWork && !window.confirm(`Remove ${task.channelName} from this launch? Its saved draft, planning details, and activity will also be removed. The channel stays in your library.`)) return false;
+    M.setPlan(value, key, { postingAs: M.planFor(value, key).postingAs });
     value.tasks = value.tasks.filter(item => item.channelKey !== key);
     updateLaunch();
     return true;
@@ -180,8 +181,8 @@
   function compactChannels(records, selected, scope, grouped = false) {
     const renderRows = values => `<div class="compact-channel-grid">${values.map(record => {
       const value = record.value, task = scope === 'chooser' ? current().value.tasks.find(item => item.channelKey === record.key) : null;
-      const metadata = value.fit || value.notes || 'Add channel notes';
-      return `<article class="compact-channel${value.archived ? ' is-archived' : ''}"><div class="compact-channel-main"><label class="compact-channel-choice"><input type="checkbox" data-${scope === 'library' ? 'library-channel' : 'channel'}="${h(record.key)}" aria-label="Select ${h(value.name)}"${selected.has(record.key) ? ' checked' : ''}${value.archived && !selected.has(record.key) ? ' disabled' : ''}><span><strong>${h(value.name)}</strong></span></label><button type="button" class="channel-notes-preview" data-action="edit-channel-notes" data-key="${h(record.key)}" aria-label="Edit notes for ${h(value.name)}">${h(metadata)} <span aria-hidden="true">✎</span></button>${task ? `<label class="posting-assignment">Posting as / who’s posting<input type="text" data-posting-as="${h(task.id)}" aria-label="Posting as for ${h(value.name)}" value="${h(task.postingAs || '')}" placeholder="@account or teammate" maxlength="150" autocomplete="off"></label>` : ''}</div><div class="channel-row-actions">${scope === 'chooser' ? selected.has(record.key) ? removeChannelButton(record.key, value.name) : hideChannelButton(record) : ''}<button type="button" class="channel-detail" data-action="edit-channel" data-key="${h(record.key)}" aria-label="Edit channel ${h(value.name)}">Edit channel</button>${task ? `<button type="button" class="channel-detail" data-action="edit-task" data-id="${h(task.id)}" aria-label="Draft and notes for ${h(value.name)}">Draft & notes</button>` : ''}</div></article>`;
+      const metadata = value.fit || value.notes || 'Add channel notes', plan = scope === 'chooser' ? M.planFor(current().value, record.key) : null;
+      return `<article class="compact-channel${value.archived ? ' is-archived' : ''}"><div class="compact-channel-main"><label class="compact-channel-choice"><input type="checkbox" data-${scope === 'library' ? 'library-channel' : 'channel'}="${h(record.key)}" aria-label="Select ${h(value.name)}"${selected.has(record.key) ? ' checked' : ''}${value.archived && !selected.has(record.key) ? ' disabled' : ''}><span><strong>${h(value.name)}</strong></span></label><button type="button" class="channel-notes-preview" data-action="edit-channel-notes" data-key="${h(record.key)}" aria-label="Edit notes for ${h(value.name)}">${h(metadata)} <span aria-hidden="true">✎</span></button></div><div class="channel-row-actions">${scope === 'chooser' ? selected.has(record.key) ? removeChannelButton(record.key, value.name) : hideChannelButton(record) : ''}<button type="button" class="channel-detail" data-action="edit-channel" data-key="${h(record.key)}" aria-label="Edit channel ${h(value.name)}">Edit channel</button>${task ? `<button type="button" class="channel-detail" data-action="edit-task" data-id="${h(task.id)}" aria-label="Draft and notes for ${h(value.name)}">Draft & notes</button>` : ''}</div>${plan ? `<div class="channel-planning"><label>Posting as / who’s posting<input type="text" data-plan-channel="${h(record.key)}" data-plan-field="postingAs" aria-label="Posting as for ${h(value.name)}" value="${h(plan.postingAs)}" placeholder="@account or teammate" maxlength="150" autocomplete="off"></label><label>Quick note · this launch<textarea data-plan-channel="${h(record.key)}" data-plan-field="note" aria-label="Quick note for ${h(value.name)}" rows="1" maxlength="2000" placeholder="Add a planning note…">${h(plan.note)}</textarea></label></div>` : ''}</article>`;
     }).join('')}</div>`;
     const sorted = [...records].sort((a, b) => a.value.name.localeCompare(b.value.name));
     if (!grouped) return renderRows(sorted);
@@ -197,7 +198,7 @@
   }
   function renderChooser() {
     const value = current().value;
-    $('step-content').innerHTML = `<h2>Choose your channels.</h2><p class="step-intro">Select the channels for this launch. Hide anything irrelevant. Changes save automatically.</p><div id="chooser-media"></div><div class="channel-search-row"><input class="search-input" id="chooser-search" type="search" aria-label="Search channel choices" placeholder="Search across all media…" value="${h(channelQuery)}"></div><div id="choice-list" class="choice-list"></div><details id="hidden-channels" class="hidden-channels" hidden><summary id="hidden-channels-summary"></summary><p class="form-help">Hidden only for this launch. Restore an option to choose it again.</p><div id="hidden-channel-list"></div></details>`;
+    $('step-content').innerHTML = `<h2>Choose your channels.</h2><p class="step-intro">Plan notes and who’s posting on any channel. Check the channels you want to include. Changes save automatically.</p><div id="chooser-media"></div><div class="channel-search-row"><input class="search-input" id="chooser-search" type="search" aria-label="Search channel choices" placeholder="Search across all media…" value="${h(channelQuery)}"></div><div id="choice-list" class="choice-list"></div><details id="hidden-channels" class="hidden-channels" hidden><summary id="hidden-channels-summary"></summary><p class="form-help">Hidden only for this launch. Restore an option to choose it again.</p><div id="hidden-channel-list"></div></details>`;
     $('chooser-search').addEventListener('input', event => { channelQuery = event.target.value; renderChoices(); }); renderChoices();
   }
   function renderChoices() {
@@ -205,7 +206,7 @@
     const hidden = new Set(value.hiddenChannelKeys || []);
     const all = data.channels.filter(record => (!record.value.archived || selected.has(record.key)) && !hidden.has(record.key));
     const active = channelQuery ? 'all' : availableMedium(all, chooserMedium);
-    const records = all.filter(record => (!channelQuery ? active === 'all' || (active === 'selected' ? selected.has(record.key) : M.medium(record.value) === active) : true) && `${record.value.name} ${record.value.fit} ${record.value.notes} ${record.value.relationship} ${M.media[M.medium(record.value)]}`.toLowerCase().includes(channelQuery.toLowerCase()));
+    const records = all.filter(record => (!channelQuery ? active === 'all' || (active === 'selected' ? selected.has(record.key) : M.medium(record.value) === active) : true) && `${record.value.name} ${record.value.fit} ${record.value.notes} ${record.value.relationship} ${M.planFor(value, record.key).postingAs} ${M.planFor(value, record.key).note} ${M.media[M.medium(record.value)]}`.toLowerCase().includes(channelQuery.toLowerCase()));
     mountMediumControls('chooser-media', all, selected, active, 'chooser');
     $('choice-list').innerHTML = records.length ? compactChannels(records, selected, 'chooser', active === 'all' || active === 'selected') : '<p class="muted channel-empty">No channels here. Try another medium or search.</p>';
     const hiddenRecords = data.channels.filter(record => hidden.has(record.key));
@@ -218,9 +219,10 @@
     const destination = channel(task.channelKey), details = destination?.value, previous = M.history(task.channelKey, data.launches, activeKey).slice(0, 3);
     const statuses = Object.fromEntries((task.channelKind === 'outreach' ? ['draft', 'ready', 'sent', 'skipped'] : ['draft', 'ready', 'submitted', 'waiting', 'live', 'skipped']).map(status => [status, M.statusLabels[status]]));
     const currentRules = details?.ruleStatus === 'verified' && details.verifiedDate && Date.now() - Date.parse(details.verifiedDate) < 90 * 86400000;
-    showDialog(task.channelName, M.kinds[task.channelKind], `<div>${details ? link(details.url, task.channelKind === 'outreach' ? 'Open contact reference' : 'Open destination') : ''}${!details?.url ? '<p class="muted">Add the destination URL in the channel library.</p>' : ''}<div class="rule-note ${currentRules ? 'checked' : ''}">${currentRules ? `Rules checked ${h(activityText(Date.parse(details.verifiedDate)))}.` : 'Posting rules need checking or refreshing.'} ${details?.linkPolicy === 'native' ? '<strong>No external links — make the post useful on its own.</strong>' : details?.linkPolicy === 'allowed' ? 'Links recorded as allowed; confirm they help this audience.' : 'Link permissions not recorded.'}${details?.approval === 'required' ? ' Admin approval is required.' : ''}</div>${details?.rules ? `<p class="source-summary">${h(details.rules)}</p>` : ''}${details?.relationship ? `<p class="form-help">Contact / access: ${h(details.relationship)}</p>` : ''}${details?.notes ? `<details><summary class="form-help">Channel notes</summary><p class="form-help source-summary">${h(details.notes)}</p></details>` : ''}<button type="button" class="text-button" data-action="edit-destination" data-key="${h(task.channelKey)}">Edit channel guidance</button></div>${field('task-posting-as', 'Posting as / who’s posting', task.postingAs || '', 'text', 150)}${area('task-angle', task.channelKind === 'outreach' ? 'News angle for this contact' : 'Member takeaway / post angle', task.angle, 2000, 2)}${area('task-draft', task.channelKind === 'outreach' ? 'Pitch draft' : 'Post draft', task.draft, 20000, 10)}<div class="row-between"><button type="button" data-action="copy-draft">Copy draft</button><small>Publishing and sending happen outside this tool.</small></div><div class="form-two">${select('task-status', 'Status', statuses, task.status)}${select('task-owner', 'Task owner', people(), task.owner)}</div><div class="form-two">${field('task-date', 'Target date (optional)', task.dueDate, 'date')}${field('task-url', task.channelKind === 'outreach' ? 'Coverage URL (optional)' : 'Live post URL (optional)', task.liveUrl, 'url', 2000)}</div>${area('task-outcome', 'Results & lessons', task.outcome, 5000)}${previous.length ? `<div><h3>Previous launches in this channel</h3>${previous.map(item => `<div class="history-item"><strong>${h(item.launch)}</strong><p class="muted">${h(activityText(item.task.activityAt))} · ${h(M.statusLabels[item.task.status])}</p>${link(item.task.liveUrl, 'Open previous post / coverage')}${item.task.outcome ? `<p>${h(item.task.outcome)}</p>` : ''}${item.task.draft ? `<details><summary class="form-help">Previous copy</summary><p class="past-draft">${h(item.task.draft)}</p></details>` : ''}</div>`).join('')}</div>` : ''}`, form => {
+    showDialog(task.channelName, M.kinds[task.channelKind], `<div>${details ? link(details.url, task.channelKind === 'outreach' ? 'Open contact reference' : 'Open destination') : ''}${!details?.url ? '<p class="muted">Add the destination URL in the channel library.</p>' : ''}<div class="rule-note ${currentRules ? 'checked' : ''}">${currentRules ? `Rules checked ${h(activityText(Date.parse(details.verifiedDate)))}.` : 'Posting rules need checking or refreshing.'} ${details?.linkPolicy === 'native' ? '<strong>No external links — make the post useful on its own.</strong>' : details?.linkPolicy === 'allowed' ? 'Links recorded as allowed; confirm they help this audience.' : 'Link permissions not recorded.'}${details?.approval === 'required' ? ' Admin approval is required.' : ''}</div>${details?.rules ? `<p class="source-summary">${h(details.rules)}</p>` : ''}${details?.relationship ? `<p class="form-help">Contact / access: ${h(details.relationship)}</p>` : ''}${details?.notes ? `<details><summary class="form-help">Channel notes</summary><p class="form-help source-summary">${h(details.notes)}</p></details>` : ''}<button type="button" class="text-button" data-action="edit-destination" data-key="${h(task.channelKey)}">Edit channel guidance</button></div>${field('task-posting-as', 'Posting as / who’s posting', M.planFor(current().value, task.channelKey).postingAs, 'text', 150)}${area('task-angle', task.channelKind === 'outreach' ? 'News angle for this contact' : 'Member takeaway / post angle', task.angle, 2000, 2)}${area('task-draft', task.channelKind === 'outreach' ? 'Pitch draft' : 'Post draft', task.draft, 20000, 10)}<div class="row-between"><button type="button" data-action="copy-draft">Copy draft</button><small>Publishing and sending happen outside this tool.</small></div><div class="form-two">${select('task-status', 'Status', statuses, task.status)}${select('task-owner', 'Task owner', people(), task.owner)}</div><div class="form-two">${field('task-date', 'Target date (optional)', task.dueDate, 'date')}${field('task-url', task.channelKind === 'outreach' ? 'Coverage URL (optional)' : 'Live post URL (optional)', task.liveUrl, 'url', 2000)}</div>${area('task-outcome', 'Results & lessons', task.outcome, 5000)}${previous.length ? `<div><h3>Previous launches in this channel</h3>${previous.map(item => `<div class="history-item"><strong>${h(item.launch)}</strong><p class="muted">${h(activityText(item.task.activityAt))} · ${h(M.statusLabels[item.task.status])}</p>${link(item.task.liveUrl, 'Open previous post / coverage')}${item.task.outcome ? `<p>${h(item.task.outcome)}</p>` : ''}${item.task.draft ? `<details><summary class="form-help">Previous copy</summary><p class="past-draft">${h(item.task.draft)}</p></details>` : ''}</div>`).join('')}</div>` : ''}`, form => {
       const status = form.get('task-status');
       Object.assign(task, { postingAs: form.get('task-posting-as').trim(), angle: form.get('task-angle').trim(), draft: form.get('task-draft'), owner: form.get('task-owner'), dueDate: form.get('task-date'), status, liveUrl: form.get('task-url').trim(), outcome: form.get('task-outcome'), activityAt: status !== task.status && ['submitted', 'waiting', 'live', 'sent'].includes(status) ? Date.now() : task.activityAt });
+      M.setPlan(current().value, task.channelKey, { postingAs: task.postingAs });
       updateLaunch(); renderLaunch();
     });
   }
@@ -345,12 +347,22 @@
   }
   $('content').addEventListener('click', dispatch);
   $('content').addEventListener('keydown', event => {
-    if (event.key === 'Enter' && event.target.matches('[data-posting-as]')) { event.preventDefault(); event.target.blur(); }
+    if (event.key === 'Enter' && (event.target.dataset.planField === 'postingAs' || (event.target.dataset.planField === 'note' && (event.ctrlKey || event.metaKey)))) { event.preventDefault(); event.target.blur(); }
   });
   $('editor-content').addEventListener('click', dispatch);
   $('editor').addEventListener('close', () => { if (!$('editor').open) { clearDialog(); editorRoute = null; writeRoute(); } });
+  function savePlanningInput(event) {
+    if (!current() || !event.target.dataset.planChannel) return false;
+    const key = event.target.dataset.planChannel, field = event.target.dataset.planField;
+    if (!['postingAs', 'note'].includes(field) || !channel(key)) return true;
+    let value = event.target.value;
+    if (event.type === 'change' && field === 'postingAs') { value = value.trim(); event.target.value = value; }
+    if (M.planFor(current().value, key)[field] !== value) { M.setPlan(current().value, key, { [field]: value }); updateLaunch(); }
+    return true;
+  }
+  $('content').addEventListener('input', savePlanningInput);
   $('content').addEventListener('change', event => {
-    if (!data) return;
+    if (!data || savePlanningInput(event)) return;
     const libraryKey = event.target.dataset.libraryChannel;
     if (libraryKey) {
       if (event.target.checked) selectedChannels.add(libraryKey); else selectedChannels.delete(libraryKey);
@@ -361,17 +373,15 @@
       return;
     }
     if (!current()) return;
-    const value = current().value, postingId = event.target.dataset.postingAs;
-    if (postingId) {
-      const task = value.tasks.find(item => item.id === postingId);
-      if (task) { task.postingAs = event.target.value.trim(); event.target.value = task.postingAs; updateLaunch(); }
-      return;
-    }
+    const value = current().value;
     const checkId = event.target.dataset.check, channelKey = event.target.dataset.channel;
     if (checkId) { value.checks.find(item => item.id === checkId).done = event.target.checked; updateLaunch(); renderLaunch(); }
     if (channelKey) {
       const existing = value.tasks.find(task => task.channelKey === channelKey);
-      if (event.target.checked && !existing) value.tasks.push(M.addTask(channel(channelKey), value.owner));
+      if (event.target.checked && !existing) {
+        const plan = M.planFor(value, channelKey), task = M.addTask(channel(channelKey), value.owner);
+        task.postingAs = plan.postingAs; value.tasks.push(task);
+      }
       if (!event.target.checked && existing) {
         if (!removeLaunchChannel(channelKey)) { event.target.checked = true; return; }
         renderLaunch(); return;

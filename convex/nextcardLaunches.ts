@@ -50,6 +50,14 @@ function validateLaunch(value: Infer<typeof launchValue>, members: { email: stri
   const id = (valueId: string) => { key(valueId); if (ids.has(valueId)) throw Error("Launch item IDs must be unique."); ids.add(valueId); };
   for (const material of value.materials) { id(material.id); text(material.name, 150, true); url(material.url); if (!material.url) throw Error("Add a material link."); }
   for (const check of value.checks) { id(check.id); text(check.label, 300, true); owner(check.owner); }
+  const plans = value.channelPlans || [];
+  if (plans.length > 500) throw Error("Use up to 500 channel plans.");
+  const plannedKeys = new Set<string>();
+  for (const plan of plans) {
+    key(plan.channelKey); text(plan.postingAs, 150); text(plan.note, 2000);
+    if (plannedKeys.has(plan.channelKey)) throw Error("Each channel can have only one plan per launch.");
+    plannedKeys.add(plan.channelKey);
+  }
   const hidden = value.hiddenChannelKeys || [];
   if (hidden.length > 500 || new Set(hidden).size !== hidden.length) throw Error("Use up to 500 unique hidden channels.");
   for (const hiddenKey of hidden) key(hiddenKey);

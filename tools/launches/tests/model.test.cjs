@@ -53,3 +53,17 @@ test('posting assignments start blank, copy into checklists, and survive reusabl
   const duplicated = M.duplicate(launch); assert.equal(duplicated.tasks[0].postingAs, task.postingAs);
   duplicated.tasks[0].postingAs = 'Andrew'; assert.equal(task.postingAs, 'Jenny / @synthetic-poster');
 });
+
+
+test('planning is independent of selection and keeps legacy assignments and duplicated notes', () => {
+  const launch = M.newLaunch(); delete launch.channelPlans;
+  M.setPlan(launch, 'community', { postingAs: 'Jenny', note: 'Check fit before posting.' });
+  assert.equal(launch.tasks.length, 0); assert.equal(M.planFor(launch, 'community').postingAs, 'Jenny');
+  const task = M.addTask({ key: 'community', value: { name: 'Community', kind: 'reddit' } }); task.postingAs = M.planFor(launch, 'community').postingAs; launch.tasks.push(task);
+  M.setPlan(launch, 'community', { note: 'A revised plan.' }); assert.equal(task.postingAs, 'Jenny');
+  task.postingAs = 'A legacy task edit'; assert.equal(M.planFor(launch, 'community').postingAs, 'A legacy task edit');
+  M.setPlan(launch, 'community', { postingAs: task.postingAs }); launch.tasks = [];
+  assert.equal(M.planFor(launch, 'community').postingAs, 'A legacy task edit'); assert.equal(M.planFor(launch, 'community').note, 'A revised plan.');
+  const copy = M.duplicate(launch); M.setPlan(copy, 'community', { note: 'Copy only.' }); assert.equal(M.planFor(launch, 'community').note, 'A revised plan.');
+  M.setPlan(launch, 'community', { postingAs: '', note: '' }); assert.deepEqual(launch.channelPlans, []);
+});

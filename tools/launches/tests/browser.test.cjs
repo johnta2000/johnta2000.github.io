@@ -466,7 +466,7 @@ test('posting assignments edit on the checklist, persist per launch, synchronize
       await page.locator('.channel-checklist').waitFor();
       const posting = page.getByRole('textbox', { name: 'Posting as for Synthetic Chase group', exact: true });
       assert.equal(await posting.inputValue(), '');
-      assert.equal(await page.locator('[data-posting-as]').count(), 1, 'Only included channels have assignments');
+      assert.equal(await page.locator('[data-plan-field="postingAs"]').count(), 4, 'Every channel can be planned before selection');
       await posting.fill('  Jenny / @synthetic-poster  '); await posting.press('Enter'); await page.getByText('All changes saved', { exact: true }).waitFor();
       assert.equal(f.store.launches[0].value.tasks[0].postingAs, 'Jenny / @synthetic-poster'); assert.equal(f.store.launches[1].value.tasks[0].postingAs, undefined);
       assert.ok(!f.requests.some(item => item.payload.path.endsWith(':saveChannel')));
@@ -484,6 +484,43 @@ test('posting assignments edit on the checklist, persist per launch, synchronize
       await page.reload(); await page.locator('.channel-checklist').waitFor(); assert.equal(await page.locator('.channel-checklist img').count(), 0);
       assert.equal(await posting.inputValue(), '<img src=x onerror=alert(1)>');
       await posting.fill(''); await posting.press('Enter'); await page.getByText('All changes saved', { exact: true }).waitFor(); assert.equal(f.store.launches[0].value.tasks[0].postingAs, '');
+      assert.deepEqual(f.errors, []); await page.close();
+    }
+  } finally { await browser.close(); }
+});
+
+
+test('unchecked channels support immediate launch-specific planning that survives selection, removal, filters, hiding, and reload', async () => {
+  const browser = await chromium.launch({ headless: true });
+  try {
+    for (const width of [1440, 390, 320]) {
+      const workspace = routeWorkspace(); workspace.launches[0].value.tasks = []; delete workspace.launches[0].value.channelPlans;
+      workspace.launches.push({ ...structuredClone(workspace.launches[0]), key: 'other-launch' });
+      const f = await open(browser, { workspace, search: '?launch=launch-one', viewport: { width, height: 1000 } }), { page } = f;
+      await page.locator('.channel-checklist').waitFor();
+      const posting = page.getByRole('textbox', { name: 'Posting as for Synthetic Chase group', exact: true });
+      const note = page.getByRole('textbox', { name: 'Quick note for Synthetic Chase group', exact: true });
+      assert.equal(await posting.isVisible(), true); assert.equal(await note.isVisible(), true); assert.equal(await page.locator('[data-channel="chase"]').isChecked(), false);
+      await posting.fill('Jenny / @plan-account'); await page.getByText('All changes saved', { exact: true }).waitFor();
+      await note.fill('Check the group rules first.\nUse a screenshot with the post.'); await page.getByText('All changes saved', { exact: true }).waitFor();
+      assert.equal(f.store.launches[0].value.tasks.length, 0); assert.match(await page.locator('.launch-meta').textContent(), /0 channels selected/);
+      assert.deepEqual(f.store.launches[1].value.channelPlans, undefined); assert.ok(!f.requests.some(item => item.payload.path.endsWith(':saveChannel')));
+      await page.reload(); await page.locator('.channel-checklist').waitFor(); assert.equal(await posting.inputValue(), 'Jenny / @plan-account'); assert.match(await note.inputValue(), /screenshot/);
+      await page.locator('[data-channel="chase"]').check(); await page.getByText('All changes saved', { exact: true }).waitFor();
+      assert.equal(f.store.launches[0].value.tasks[0].postingAs, 'Jenny / @plan-account'); assert.match(await note.inputValue(), /screenshot/);
+      await page.getByRole('button', { name: 'Copy checklist', exact: true }).click(); const copied = await page.evaluate(() => window.copiedLaunchText); assert.match(copied, /Jenny \/ @plan-account/); assert.match(copied, /Check the group rules first\.\n  Use a screenshot/);
+      await page.locator('[data-channel="chase"]').uncheck(); await page.getByText('All changes saved', { exact: true }).waitFor();
+      assert.equal(f.store.launches[0].value.tasks.length, 0); assert.equal(await posting.inputValue(), 'Jenny / @plan-account'); assert.match(await note.inputValue(), /screenshot/);
+      await changeMedium(page, 'chooser', 'email'); await changeMedium(page, 'chooser', 'all'); assert.equal(await posting.inputValue(), 'Jenny / @plan-account');
+      await page.getByRole('button', { name: 'Hide Synthetic Chase group for this launch', exact: true }).click(); await page.getByText('All changes saved', { exact: true }).waitFor();
+      await page.locator('#hidden-channels-summary').click(); await page.getByRole('button', { name: 'Restore Synthetic Chase group for this launch', exact: true }).click(); await page.getByText('All changes saved', { exact: true }).waitFor();
+      assert.match(await note.inputValue(), /screenshot/); assert.equal(await posting.inputValue(), 'Jenny / @plan-account');
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, `Planning overflow at ${width}`);
+      await page.screenshot({ path: `/private/tmp/nextcard-planning-${width}.png`, fullPage: true });
+      await page.locator('#chooser-search').fill('screenshot'); assert.equal(await page.locator('[data-channel="chase"]').count(), 1);
+      await page.locator('#chooser-search').fill(''); await note.fill('<img src=x onerror=alert(1)>'); await page.getByText('All changes saved', { exact: true }).waitFor();
+      await page.reload(); await page.locator('.channel-checklist').waitFor(); assert.equal(await page.locator('.channel-checklist img').count(), 0); assert.equal(await note.inputValue(), '<img src=x onerror=alert(1)>');
+      await note.fill(''); await posting.fill(''); await page.getByText('All changes saved', { exact: true }).waitFor(); assert.deepEqual(f.store.launches[0].value.channelPlans, []);
       assert.deepEqual(f.errors, []); await page.close();
     }
   } finally { await browser.close(); }

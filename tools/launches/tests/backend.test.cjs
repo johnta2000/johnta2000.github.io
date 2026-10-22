@@ -129,3 +129,16 @@ test('posting account labels are optional per-channel launch data, limited in le
   await api.saveLaunch.handler(ctx, { key: 'old-assignment', value: launch, expectedVersion: 2 });
   assert.equal(ctx.tables.nextcardLaunches[0].value.tasks[0].postingAs, '');
 });
+
+
+test('unselected channel plans are optional, private launch data with bounded unique keys, accounts, and notes', async () => {
+  const api = await backend, ctx = context(), old = value(); delete old.channelPlans;
+  await api.saveLaunch.handler(ctx, { key: 'older-launch', value: old, expectedVersion: 0 });
+  const plan = value(); plan.channelPlans = [{ channelKey: 'community', postingAs: 'Jenny / @account', note: 'Plan without selecting.' }];
+  await api.saveLaunch.handler(ctx, { key: 'planned-launch', value: plan, expectedVersion: 0 });
+  assert.equal(ctx.tables.nextcardLaunches[1].value.tasks.length, 0); assert.equal(ctx.tables.nextcardLaunches[1].value.channelPlans[0].note, 'Plan without selecting.');
+  assert.equal(ctx.tables.nextcardLaunches[0].value.channelPlans, undefined);
+  const invalid = [ [{ ...plan.channelPlans[0], channelKey: 'bad key' }], [...plan.channelPlans, ...plan.channelPlans], [{ ...plan.channelPlans[0], postingAs: 'x'.repeat(151) }], [{ ...plan.channelPlans[0], note: 'x'.repeat(2001) }], Array.from({ length: 501 }, (_, i) => ({ channelKey: `ch-${i}`, postingAs: '', note: '' })) ];
+  for (const channelPlans of invalid) await assert.rejects(api.saveLaunch.handler(ctx, { key: 'invalid-plans', value: { ...value(), channelPlans }, expectedVersion: 0 }));
+  await assert.rejects(api.saveLaunch.handler(ctx, { key: 'planned-launch', value: plan, expectedVersion: 0 }), /changed since/);
+});
