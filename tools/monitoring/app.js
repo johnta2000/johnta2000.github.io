@@ -378,6 +378,7 @@ function editRankingDialogMarkup(monitor) {
       <div><span>Latest finalized date</span><strong>${escapeHtml(d.latestFinalDate ?? "Unavailable")}</strong><small>Checked every 6h; GSC reporting lags</small></div>
     </section>
     ${(d.warnings?.length || d.issues?.length || d.failures?.length) ? `<ul class="failure-list">${[...(d.failures ?? []), ...(d.issues ?? []), ...(d.warnings ?? [])].map(x => `<li>${escapeHtml(x)}</li>`).join("")}</ul>` : ""}
+    ${window.EditDailyChart.markup()}
     <section class="dialog-section"><h3>Keyword bundle · US · all devices</h3>
       <p>Position: recent 3 days versus the fixed pre-launch baseline. Clicks and impressions: finalized 7 days (${escapeHtml(range(d.currentRange))}).</p>
       <div class="edit-table-scroll"><table class="edit-ranking-table"><thead><tr><th>Query</th><th>Group</th><th>Pre-launch pos.</th><th>Recent pos.</th><th>7d clicks</th><th>7d impressions</th><th>Recent mobile / desktop pos.</th></tr></thead><tbody>
@@ -635,6 +636,9 @@ function renderMonitorDialog(monitor) {
   else if (monitor.id === "transfer-bonus-discovery") els.monitorDialogContent.innerHTML = bonusDialogMarkup(monitor);
   else if (monitor.id === "chase-sapphire-reserve-tables") els.monitorDialogContent.innerHTML = chaseDialogMarkup(monitor);
   else els.monitorDialogContent.innerHTML = placeholderDialogMarkup(monitor);
+  if (monitor.id === "edit-hotels-ranking" && monitor.configured) {
+    window.EditDailyChart.mount(els.monitorDialogContent.querySelector('.edit-daily-chart'), monitor.details ?? {});
+  }
   if (monitor.id === "bilt-calculator-ranking" && monitor.configured) {
     queryChart = window.MonitorQueryChart.mount(
       els.monitorDialogContent.querySelector(".query-chart-section"),

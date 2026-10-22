@@ -29,8 +29,8 @@ test("public page does not reference repository JSON", () => {
 });
 
 test("dashboard assets and authenticated snapshot refresh cannot remain stale", () => {
-  assert.match(html, /styles\.css\?v=20261021\.1/);
-  assert.match(html, /app\.js\?v=20261021\.1/);
+  assert.match(html, /styles\.css\?v=20261022\.1/);
+  assert.match(html, /app\.js\?v=20261022\.1/);
   assert.match(html, /id="refresh-button"/);
   assert.match(app, /function refreshDashboard/);
   assert.match(app, /visibilitychange/);
