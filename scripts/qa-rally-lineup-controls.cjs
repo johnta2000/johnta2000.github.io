@@ -22,7 +22,7 @@ qaOpen();el.accessGate.hidden=true;el.rallyApp.hidden=false;document.body.classL
    await context.route('**/*',route=>{const u=new URL(route.request().url());if(u.hostname!=='127.0.0.1')return route.abort();if(u.pathname==='/tools/rally/app.js')return route.fulfill({contentType:'text/javascript',body:fs.readFileSync(path.join(base,'tools/rally/app.js'),'utf8').replace('\ninit();','')+bootstrap});return route.continue();});
    const page=await context.newPage();page.on('pageerror',e=>errors.push(e.message));
    await page.clock.setFixedTime(new Date('2026-10-14T22:20:00Z'));
-   await page.goto('http://127.0.0.1:8794/tools/rally/');await page.locator('rally-lineup .official-poster-image img').waitFor();
+   await page.goto((process.env.RALLY_QA_URL||'http://127.0.0.1:8794')+'/tools/rally/');await page.locator('rally-lineup .official-poster-image img').waitFor();
    for(const theme of ['midnight','warm','niteharts','ocean']){
     await page.evaluate(theme=>qaOpen('carnival',theme,true),theme);
     const lineup=page.locator('rally-lineup'),art=lineup.locator('.official-poster-image img');await art.evaluate(img=>img.decode());

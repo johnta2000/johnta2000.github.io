@@ -69,6 +69,7 @@
     async flush(call, userId) {
       if (syncing || !userId || state.userId !== userId || !navigator.onLine || this.native) return;
       syncing = true;
+      let changed = false;
       try {
         for (const id of Object.keys(state.pending)) {
           const pending = clone(state.pending[id]);
@@ -83,8 +84,10 @@
             state.pending[id].base = artistIds;
           }
           this.save(updated);
+          changed = true;
         }
       } finally { syncing = false; }
+      return changed;
     },
   };
 })();

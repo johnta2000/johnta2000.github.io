@@ -1,7 +1,7 @@
 import { action, internalMutation, internalQuery, mutation, query } from "./_generated/server";
 import { internal } from "./_generated/api";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
-import { v } from "convex/values";
+import { v, ConvexError } from "convex/values";
 import { LOST_LANDS_SET_TIMES, LOST_LANDS_SET_TIMES_META } from "./lostLandsSetTimes";
 import { updateNotes } from "./rallyNotes";
 import { lifecycle, configureLifecycle } from './rallyEventLifecycle';
@@ -843,15 +843,23 @@ export const act = mutation({
     } else if (args.action === "save-room") {
       if(p.address!==undefined&&(typeof p.address!=='string'||p.address.length>500))throw new Error('Enter a hotel address under 500 characters.');
       const room = state.rooms.find((item: RallyState) => item.id === p.id);
-const record = { hotel: p.hotel, ...(p.address!==undefined?{address:p.address.trim()}:{}), roomType: p.roomType, confirmation: p.confirmation, checkIn: p.checkIn, checkOut: p.checkOut, capacity: Number(p.capacity) || 1, bathrooms: Math.max(1, Number(p.bathrooms) || 1), totalCost: String(p.totalCost || "").trim(), notes: String(p.notes || "").trim() };
+      if (p.id && !room) throw new ConvexError('That room no longer exists. Refresh and try again.');
+      const capacity = Number(p.capacity), bathrooms = Number(p.bathrooms);
+      if (!Number.isSafeInteger(capacity) || capacity < 1 || !Number.isSafeInteger(bathrooms) || bathrooms < 1) throw new ConvexError('Sleeps and bathrooms must be positive whole numbers.');
+      if (room && room.memberIds.length > capacity) throw new ConvexError('Move the extra people to another room before reducing its capacity.');
+      const record = { hotel: String(p.hotel || '').trim(), ...(p.address!==undefined?{address:p.address.trim()}:{}), roomType: String(p.roomType || '').trim(), confirmation: String(p.confirmation || ''), checkIn: String(p.checkIn || ''), checkOut: String(p.checkOut || ''), capacity, bathrooms, totalCost: String(p.totalCost || "").trim(), notes: String(p.notes || "").trim() };
+      if (!record.hotel || !record.roomType) throw new ConvexError('Enter a hotel and room type.');
       if (room) Object.assign(room, record); else state.rooms.push({ id: id(), ...record, memberIds: [] });
     } else if (args.action === "delete-room") {
       if (!state.rooms.some((item: RallyState) => item.id === p.id)) throw new Error("That room no longer exists.");
       state.rooms = state.rooms.filter((item: RallyState) => item.id !== p.id);
     } else if (args.action === "assign-room") {
-      state.rooms.forEach((room: RallyState) => { room.memberIds = room.memberIds.filter((memberId: string) => memberId !== p.memberId); });
       const room = state.rooms.find((item: RallyState) => item.id === p.roomId);
-      if (room && room.memberIds.length < room.capacity) room.memberIds.push(p.memberId);
+      if (!state.members.some((member: RallyState) => member.id === p.memberId)) throw new ConvexError('Choose a member of this crew.');
+      if (!room) throw new ConvexError('That room no longer exists. Refresh and try again.');
+      if (!room.memberIds.includes(p.memberId) && room.memberIds.length >= room.capacity) throw new ConvexError('That room is full. Choose another room or update its capacity.');
+      state.rooms.forEach((item: RallyState) => { item.memberIds = item.memberIds.filter((memberId: string) => memberId !== p.memberId); });
+      room.memberIds.push(p.memberId);
     } else if (["add-flight", "save-flight"].includes(args.action)) {
       const trip = state.travel.find((item: RallyState) => item.id === p.id);
       const record = { ...p, id: undefined, number: String(p.number || "").toUpperCase(), origin: String(p.origin || "").toUpperCase(), destination: String(p.destination || "").toUpperCase(), status: "scheduled" };
@@ -900,15 +908,26 @@ const record = { hotel: p.hotel, ...(p.address!==undefined?{address:p.address.tr
       if (!["admin", "leader"].includes(current.role)) throw new Error("Only an admin can edit the lineup.");
       state.lineup ||= [];
       const artist = state.lineup.find((item: RallyState) => item.id === p.id);
+      if (p.id && !artist) throw new ConvexError('That artist no longer exists. Refresh the lineup.');
+      const name = String(p.name || '').trim();
+      const date = String(p.date || '').trim();
+      const validDate = (value: string) => /^\d{4}-\d{2}-\d{2}$/.test(value) && Number.isFinite(Date.parse(value + 'T00:00Z')) && new Date(value + 'T00:00Z').toISOString().slice(0, 10) === value;
+      if (date && !validDate(date)) throw new ConvexError('Choose a valid festival date.');
+      const start = p.start === undefined ? (artist?.start || (/^\d{2}:\d{2}$/.test(p.time || '') && date ? `${date}T${p.time}` : '')) : String(p.start || '');
+      const end = p.end === undefined ? (artist?.end || '') : String(p.end || '');
+      for (const value of [start, end]) if (value && (!/^\d{4}-\d{2}-\d{2}T(?:[01]\d|2[0-3]):[0-5]\d$/.test(value) || !validDate(value.slice(0, 10)))) throw new ConvexError('Choose valid local set times.');
+      if (end && (!start || end <= start)) throw new ConvexError('Set end must be after its start. Choose the next date for an overnight set.');
+      if (start && !date) throw new ConvexError('Choose the festival date for this set.');
       const record = {
-        name: String(p.name || "").trim(),
+        name, artist: name,
         day: String(p.day || "Day TBD").trim() || "Day TBD",
-        date: String(p.date || "").trim(),
-        time: String(p.time || "").trim(),
+        date, festivalDate: date, start, end,
+        time: start.slice(11, 16),
+        durationMinutes: start && end ? (Date.parse(end + 'Z') - Date.parse(start + 'Z')) / 60000 : 0,
         stage: String(p.stage || "").trim(),
         notes: String(p.notes || "").trim(),
       };
-      if (!record.name) throw new Error("Artist name is required.");
+      if (!record.name) throw new ConvexError("Artist name is required.");
       if (artist) Object.assign(artist, record);
       else state.lineup.push({ id: id(), ...record });
     } else if (args.action === "delete-lineup-artist") {

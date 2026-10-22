@@ -5,15 +5,15 @@ const fs=require('node:fs'),vm=require('node:vm');
 const {buildSync}=require('esbuild');
 const read=file=>fs.readFileSync(__dirname+'/'+file,'utf8');
 function uiHarness(){
- const dom=new JSDOM('<meta name="theme-color"><div id="dialogRoot"></div>',{runScripts:'outside-only',pretendToBeVisual:true}),w=dom.window;
+ const dom=new JSDOM('<meta name="theme-color"><main id="rallyApp"></main><div id="dialogRoot"></div>',{runScripts:'outside-only',pretendToBeVisual:true}),w=dom.window;
  w.eval(read('project-theme.js'));
- const ctx={window:w,document:w.document,FormData:w.FormData,data:{id:'one',isAdmin:true,projectTheme:'warm',members:[]},activeEvent:'one',themePreview:null,offlineMode:false,el:{dialogRoot:w.document.getElementById('dialogRoot')},saved:[],messages:[],escapeHtml:String,escapeAttr:String};
+ const ctx={window:w,document:w.document,FormData:w.FormData,data:{id:'one',isAdmin:true,projectTheme:'warm',members:[]},activeEvent:'one',themePreview:null,offlineMode:false,el:{rallyApp:w.document.getElementById('rallyApp'),dialogRoot:w.document.getElementById('dialogRoot')},saved:[],messages:[],escapeHtml:String,escapeAttr:String};
  w.Clerk={user:{id:'admin'},isSignedIn:true};
  ctx.RallyOffline={save:room=>ctx.saved.push({...room})};
  ctx.showToast=message=>ctx.messages.push(message);
  ctx.convexMutation=async(path,args)=>{ctx.request={path,args};return {projectTheme:args.theme};};
  const app=read('app.js');vm.createContext(ctx);
- vm.runInContext(app.slice(app.indexOf('function applyProjectTheme'),app.indexOf('function openSectionSettings'))+'\n'+app.slice(app.indexOf('function openDialog('),app.indexOf('async function openInvite(')),ctx);
+ vm.runInContext(app.slice(app.indexOf('function applyProjectTheme'),app.indexOf('function openSectionSettings'))+'\n'+app.slice(app.indexOf('function dialogTrigger('),app.indexOf('async function openInvite(')),ctx);
  return {ctx,w,close:()=>w.close()};
 }
 test('theme preview cancels without saving; admin save persists the project palette and offline snapshot',async()=>{

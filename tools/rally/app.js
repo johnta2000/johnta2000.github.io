@@ -171,9 +171,14 @@ async function reconnect() {
   await unlock();
 }
 async function syncFavorites() {
+  const eventId=activeEvent,owner=window.Clerk?.user?.id;
   try {
-    await RallyOffline.flush(networkConvexCall, window.Clerk?.user?.id);
-    if (data) { data = RallyOffline.room(activeEvent) || data; if(activeView === 'lineup') sendLineupState(); }
+    const changed=await RallyOffline.flush(networkConvexCall, owner);
+    if (changed && data && activeEvent===eventId && owner===window.Clerk?.user?.id) {
+      const saved=RallyOffline.room(eventId);
+      if(saved){data.currentLineupFavorites=saved.currentLineupFavorites;data.lineupInterests=saved.lineupInterests;}
+      if(activeView === 'lineup') sendLineupState();
+    }
   } catch { /* Durable queue is retried; never claim a remote save on failure. */ }
   updateOfflineStatus();
 }
@@ -240,6 +245,7 @@ function handleAppLink(event) {
 
 async function navigateTo(url, { push = true } = {}) {
   const route = readRoute(url);
+  closeDialog();
   if (push) history.pushState({}, "", `${url.pathname}${url.search}${url.hash}`);
   closeMenu();
   el.eventMenu.hidden = true;
@@ -265,6 +271,7 @@ async function navigateTo(url, { push = true } = {}) {
     }
   }
   render();
+  el.accessGate.hidden=true;el.rallyApp.hidden=false;
   document.body.classList.remove('booting');
   window.scrollTo({ top: 0, behavior: "auto" });
 }
@@ -443,7 +450,7 @@ function render() {
   RallyOffline.select(activeEvent);
   updateOfflineStatus();
   clearInterval(lineupRefreshTimer); lineupRefreshTimer = null;
-  const days = Math.max(0, Math.ceil((new Date(`${data.startsAt}T12:00:00Z`) - Date.now()) / 86400000));
+  const days = eventDaysAway(data);
   el.eventName.textContent = data.name; el.mobileEventName.textContent = data.name; el.mobileCountdown.textContent = `${days} days away`;
   el.eventThumb.textContent = initials(data.name); el.topInvite.hidden = !data.isAdmin;
   renderAccountButton();
@@ -571,7 +578,7 @@ function money(value){const amount=Number(value);return Number.isFinite(amount)&
 
 function renderHome() {
   const assigned = data.rooms.reduce((sum, room) => sum + room.memberIds.length, 0), capacity = data.rooms.reduce((sum, room) => sum + room.capacity, 0);
-  const days = Math.max(0, Math.ceil((new Date(`${data.startsAt}T12:00:00Z`) - Date.now()) / 86400000));
+  const days = eventDaysAway(data);
   const cards = [
     ["crew","●","Crew",`${data.members.length} going`,data.members.filter((m)=>m.origin!=="TBD").map((m)=>m.origin).join(" · ") || "Origins not added yet"],
     ["stay","▣","Stay",capacity ? `${assigned} of ${capacity} assigned` : "No rooms yet",data.rooms[0]?.hotel || "Add lodging"],
@@ -787,7 +794,11 @@ function renderCrew() {
   wireMemberCards();
 }
 
-function memberCards(members) { return members.map((member)=>{ const current=member.id===data.currentMemberId, admin=["admin","leader"].includes(member.role); return `<article class="member-card"><div class="avatar-bubble avatar-${member.color}">${member.initials}</div><div><h3>${escapeHtml(member.name)}${admin?`<span class="badge">Admin</span>`:""}${current?`<span class="badge">You</span>`:""}</h3><p>${escapeHtml(member.email || "Not invited yet")}</p></div><span class="origin">${escapeHtml(member.origin)}</span><footer><div class="checks"><span>${memberHasTicket(member.id)?'✓':'○'} Pass</span><span>✓ Stay</span><span>${data.travel.some((trip)=>trip.memberId===member.id)?"✓":"○"} Flight</span></div>${current?`<button class="member-action" data-edit="${member.id}">Edit my profile</button>`:data.isAdmin&&!admin?`<div class="member-actions">${member.status!=="confirmed"?`<button class="member-action" data-invite="${member.id}">${member.status==="invited"?"Resend invite":"Invite"}</button>`:`<span class="claimed-label">Claimed</span>`}<button class="member-action remove" data-remove-member="${member.id}">Remove</button></div>`:""}</footer></article>`; }).join(""); }
+function memberReadiness(member) {
+  return [['passes','Pass',memberHasTicket(member.id)],['stay','Stay',data.rooms.some(room=>room.memberIds?.includes(member.id))],['travel','Flight',data.travel.some(trip=>trip.memberId===member.id)]]
+    .filter(([section])=>sectionEnabled(section)).map(([,label,ready])=>`<span>${ready?'✓':'○'} ${label}</span>`).join('');
+}
+function memberCards(members) { return members.map((member)=>{ const current=member.id===data.currentMemberId, admin=["admin","leader"].includes(member.role); return `<article class="member-card"><div class="avatar-bubble avatar-${escapeAttr(member.color||'purple')}">${escapeHtml(initials(member.name))}</div><div><h3>${escapeHtml(member.name)}${admin?`<span class="badge">Admin</span>`:""}${current?`<span class="badge">You</span>`:""}</h3><p>${escapeHtml(member.email || "Not invited yet")}</p></div><span class="origin">${escapeHtml(member.origin)}</span><footer><div class="checks">${memberReadiness(member)}</div>${current?`<button class="member-action" data-edit="${escapeAttr(member.id)}">Edit my profile</button>`:data.isAdmin&&!admin?`<div class="member-actions">${member.status!=="confirmed"?`<button class="member-action" data-invite="${escapeAttr(member.id)}">${member.status==="invited"?"Resend invite":"Invite"}</button>`:`<span class="claimed-label">Claimed</span>`}<button class="member-action remove" data-remove-member="${escapeAttr(member.id)}">Remove</button></div>`:""}</footer></article>`; }).join(""); }
 function wireMemberCards(){ document.querySelectorAll("[data-invite]").forEach((button)=>button.addEventListener("click",()=>openInvite(data.members.find((m)=>m.id===button.dataset.invite)))); document.querySelectorAll("[data-edit]").forEach((button)=>button.addEventListener("click",()=>openProfile(data.members.find((m)=>m.id===button.dataset.edit)))); document.querySelectorAll("[data-remove-member]").forEach((button)=>button.addEventListener("click",()=>openRemoveMember(data.members.find((m)=>m.id===button.dataset.removeMember)))); }
 
 function renderStay(){ const map=memberMap(); el.page.innerHTML=heading("Lodging plan","Stay","Hotel rooms, confirmations, capacity, bathrooms, and who sleeps where.",`<button id="addRoom" class="primary">＋ Add room</button>`)+`<div class="room-grid">${data.rooms.map((room,index)=>{const bathrooms=Number(room.bathrooms)||1;return `<article class="room-card"><header><span>Room ${index+1}</span>${room.confirmation?`<span>Confirmation ${escapeHtml(room.confirmation)}</span>`:""}</header><div class="room-identity"><div><h3>${escapeHtml(room.hotel)}</h3><p class="room-type">${escapeHtml(room.roomType)}</p></div><button class="room-edit" data-room-edit="${room.id}" aria-label="Edit ${escapeAttr(room.hotel)}">•••</button></div>${hotelLocation(room)}${room.notes?`<p class="room-note">${escapeHtml(room.notes)}</p>`:""}${room.totalCost?`<strong class="room-price">${escapeHtml(room.totalCost)}</strong>`:""}<div class="room-stats"><span><strong>${room.capacity}</strong> sleeps</span><span><strong>${bathrooms}</strong> ${bathrooms===1?"bathroom":"bathrooms"}</span></div><div class="meter"><i style="width:${Math.min(100,room.memberIds.length/room.capacity*100)}%"></i></div><small>${room.memberIds.length} assigned · ${room.capacity-room.memberIds.length} open</small><div class="row-list">${room.memberIds.map((id)=>`<div class="row"><strong>${escapeHtml(map[id]?.name||"Crew")}</strong><span>${escapeHtml(map[id]?.origin||"")}</span></div>`).join("")}<button class="secondary" data-assign-room="${room.id}">＋ Assign person</button></div></article>`}).join("")||`<div class="empty">No rooms added yet.</div>`}</div>`; document.getElementById("addRoom").onclick=()=>openRoom(); document.querySelectorAll("[data-room-edit]").forEach((b)=>b.onclick=()=>openRoom(data.rooms.find((r)=>r.id===b.dataset.roomEdit))); document.querySelectorAll("[data-assign-room]").forEach((b)=>b.onclick=()=>openAssign(b.dataset.assignRoom)); }
@@ -942,9 +953,52 @@ async function handleLineupEvent(message) {
   } catch(error) { showToast(error.message || "Could not save lineup favorites"); }
 }
 
-function openDialog(title,description,formHtml,onSubmit,footerHtml=""){ el.dialogRoot.innerHTML=`<div class="dialog-backdrop"><section class="dialog"><button class="dialog-close">×</button><span class="eyebrow">Rally project room</span><h2>${title}</h2><p>${description}</p><form>${formHtml}<div class="dialog-actions${footerHtml?" split":""}"><button class="primary" type="submit">Save</button>${footerHtml}</div></form></section></div>`; const backdrop=el.dialogRoot.firstElementChild, form=backdrop.querySelector("form"); enhanceDialogSelects(form); backdrop.querySelector(".dialog-close").onclick=closeDialog; backdrop.onmousedown=(event)=>{if(event.target===backdrop)closeDialog()}; form.onsubmit=async(event)=>{event.preventDefault();const button=form.querySelector("[type=submit]");button.disabled=true;try{await onSubmit(Object.fromEntries(new FormData(form)))}catch(error){showToast(error.message||"Could not save");button.disabled=false}}; }
+function dialogTrigger(){
+  let node=document.activeElement;
+  while(node?.shadowRoot?.activeElement)node=node.shadowRoot.activeElement;
+  return node;
+}
+function openDialog(title,description,formHtml,onSubmit,footerHtml=""){
+  const returnFocus=dialogTrigger();closeDialog();
+  el.dialogRoot.innerHTML=`<div class="dialog-backdrop"><section class="dialog" role="dialog" aria-modal="true" aria-labelledby="rallyDialogTitle"><button type="button" class="dialog-close" aria-label="Close dialog">×</button><span class="eyebrow">Rally project room</span><h2 id="rallyDialogTitle">${title}</h2><p>${description}</p><form>${formHtml}<div class="dialog-actions${footerHtml?" split":""}"><button class="primary" type="submit">Save</button>${footerHtml}</div></form></section></div>`;
+  const backdrop=el.dialogRoot.firstElementChild,form=backdrop.querySelector('form');
+  enhanceDialogSelects(form);wireDialog(backdrop,returnFocus);
+  form.onsubmit=async event=>{
+    event.preventDefault();const button=form.querySelector('[type=submit]');if(button.disabled)return;
+    button.disabled=true;
+    try{await onSubmit(Object.fromEntries(new FormData(form)));}
+    catch(error){if(form.isConnected)showToast(error.message||'Could not save');}
+    finally{if(button.isConnected)button.disabled=false;}
+  };
+}
 function wireDangerButton(id,onDelete){const button=document.getElementById(id);if(!button)return;button.onclick=async()=>{if(button.dataset.confirm!=="true"){button.dataset.confirm="true";button.classList.add("armed");button.textContent="Click again to delete";return}button.disabled=true;try{await onDelete()}catch(error){showToast(error.message||"Could not delete");button.disabled=false}};}
-function openDangerDialog(title,description,label,onDelete){el.dialogRoot.innerHTML=`<div class="dialog-backdrop"><section class="dialog confirm-dialog"><button class="dialog-close">×</button><span class="eyebrow">Rally project room</span><h2>${title}</h2><p>${description}</p><div class="dialog-actions split"><button id="cancelDanger" class="secondary" type="button">Cancel</button><button id="confirmDanger" class="danger-button armed" type="button">${label}</button></div></section></div>`;const backdrop=el.dialogRoot.firstElementChild;backdrop.querySelector(".dialog-close").onclick=closeDialog;document.getElementById("cancelDanger").onclick=closeDialog;backdrop.onmousedown=(event)=>{if(event.target===backdrop)closeDialog()};document.getElementById("confirmDanger").onclick=async(event)=>{event.currentTarget.disabled=true;try{await onDelete()}catch(error){showToast(error.message||"Could not remove");event.currentTarget.disabled=false}};}
+function openDangerDialog(title,description,label,onDelete){
+  const returnFocus=dialogTrigger();closeDialog();
+  el.dialogRoot.innerHTML=`<div class="dialog-backdrop"><section class="dialog confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="rallyDialogTitle"><button type="button" class="dialog-close" aria-label="Close dialog">×</button><span class="eyebrow">Rally project room</span><h2 id="rallyDialogTitle">${title}</h2><p>${description}</p><div class="dialog-actions split"><button id="cancelDanger" class="secondary" type="button">Cancel</button><button id="confirmDanger" class="danger-button armed" type="button">${label}</button></div></section></div>`;
+  wireDialog(el.dialogRoot.firstElementChild,returnFocus);
+  document.getElementById('cancelDanger').onclick=closeDialog;
+  const button=document.getElementById('confirmDanger');
+  button.onclick=async()=>{
+    if(button.disabled)return;button.disabled=true;
+    try{await onDelete();}catch(error){if(button.isConnected)showToast(error.message||'Could not remove');}
+    finally{if(button.isConnected)button.disabled=false;}
+  };
+}
+function wireDialog(backdrop,returnFocus){
+  el.dialogRoot.returnFocus=returnFocus;el.rallyApp.inert=true;
+  const close=backdrop.querySelector('.dialog-close');close.onclick=closeDialog;
+  backdrop.onmousedown=event=>{if(event.target===backdrop)closeDialog();};
+  backdrop.onkeydown=event=>{
+    if(event.defaultPrevented)return;
+    if(event.key==='Escape'){event.preventDefault();event.stopPropagation();closeDialog();}
+    if(event.key==='Tab'){
+      const focusable=[...backdrop.querySelectorAll('button,input,textarea,select,a[href],[tabindex],[contenteditable="true"]')].filter(node=>!node.disabled&&(node.tabIndex>=0||node.isContentEditable)&&!node.hidden&&node.getClientRects().length);
+      const target=event.shiftKey?focusable.at(-1):focusable[0],edge=event.shiftKey?focusable[0]:focusable.at(-1);
+      if(target&&(document.activeElement===edge||!backdrop.contains(document.activeElement))){event.preventDefault();target.focus();}
+    }
+  };
+  close.focus({preventScroll:true});
+}
 function enhanceDialogSelects(form){
   form.querySelectorAll('select').forEach((select,index)=>{
     select.id ||= 'rally-dialog-select-'+index;
@@ -953,20 +1007,23 @@ function enhanceDialogSelects(form){
   });
 }
 function closeDialog(){
-  el.dialogRoot.querySelectorAll('select').forEach(select=>window.SearchableSelect?.enhance(select).close());
+  el.dialogRoot.querySelectorAll('select').forEach(select=>window.SearchableSelect?.enhance(select).destroy());
   el.dialogRoot.innerHTML="";
+  el.rallyApp.inert=false;
+  if(el.dialogRoot.returnFocus?.isConnected)el.dialogRoot.returnFocus.focus({preventScroll:true});
+  el.dialogRoot.returnFocus=null;
   if(themePreview){themePreview=null;applyProjectTheme();}
 }
 function field(label,name,value="",type="text",required=true){return `<label class="field"><span>${label}</span><input name="${name}" type="${type}" value="${escapeAttr(value)}" ${required?"required":""}></label>`}
 function selectField(label,name,options,value=""){return `<label class="field"><span>${label}</span><select name="${name}">${options.map(([id,text])=>`<option value="${escapeAttr(id)}" ${id===value?"selected":""}>${escapeHtml(text)}</option>`).join("")}</select></label>`}
 
-async function openInvite(member){let shared=[];try{shared=await convexQuery("rally:sharedCrewCandidates",{eventId:activeEvent})}catch(error){return showToast(error.message||"Could not load invite options")}const profiles=data.members.filter((person)=>!["admin","leader"].includes(person.role)&&(person.status!=="confirmed"||!person.email)),selected=member||null,choice=(person,attribute,value)=>`<button type="button" ${attribute}="${escapeAttr(value)}" class="${selected?.id===person.id?"selected":""}"><i class="avatar-${person.color||"purple"}">${escapeHtml(person.initials||initials(person.name))}</i>${escapeHtml(person.name)}</button>`,profilePicker=profiles.length?`<div class="invite-section"><span>Unclaimed profiles in this room</span><div class="member-picker">${profiles.map((person)=>choice(person,"data-invite-profile",person.id)).join("")}</div></div>`:"",sharedPicker=shared.length?`<div class="invite-section"><span>From your other crews</span><div class="member-picker">${shared.map((person,index)=>choice(person,"data-invite-shared",index)).join("")}</div></div>`:"";openDialog("Invite crew","Add someone by exact email, or choose a person you already share another Rally room with. Rally never exposes a global user directory.",`<input type="hidden" name="memberId" value="${escapeAttr(selected?.id||"")}">${profilePicker}${sharedPicker}${field("Name","name",selected?.name||"")}${field("Email address","email",selected?.email||"","email")}${field("Home airport or city","origin",selected?.origin==="TBD"?"":selected?.origin||"","text",false)}<p class="invite-privacy">Existing Clerk users get access with this verified email. New users receive a secure signup invitation.</p>`,async(values)=>{const result=await convexAction("rally:sendInvitation",{eventId:activeEvent,...values});data=result.room;closeDialog();render();showToast(`Clerk invite sent to ${result.memberName}`)});const form=el.dialogRoot.querySelector("form"),memberId=form.elements.memberId,nameInput=form.elements.name,emailInput=form.elements.email,originInput=form.elements.origin,buttons=[...form.querySelectorAll("[data-invite-profile],[data-invite-shared]")],selectChoice=(person,id="")=>{memberId.value=id;nameInput.value=person.name||"";emailInput.value=person.email||"";originInput.value=person.origin==="TBD"?"":person.origin||"";buttons.forEach((button)=>button.classList.toggle("selected",button.dataset.inviteProfile===id||(button.dataset.inviteShared!==undefined&&shared[Number(button.dataset.inviteShared)]?.email===person.email)))};form.querySelectorAll("[data-invite-profile]").forEach((button)=>button.onclick=()=>selectChoice(profiles.find((person)=>person.id===button.dataset.inviteProfile),button.dataset.inviteProfile));form.querySelectorAll("[data-invite-shared]").forEach((button)=>button.onclick=()=>selectChoice(shared[Number(button.dataset.inviteShared)]));nameInput.addEventListener("input",()=>{memberId.value="";buttons.forEach((button)=>button.classList.remove("selected"))})}
+async function openInvite(member){const context=projectContext();let shared=[];try{shared=await convexQuery("rally:sharedCrewCandidates",{eventId:context.eventId})}catch(error){return showToast(error.message||"Could not load invite options")}try{assertProjectContext(context);if(context.dialog!==el.dialogRoot.firstElementChild)return;}catch{return;}const profiles=data.members.filter((person)=>!["admin","leader"].includes(person.role)&&(person.status!=="confirmed"||!person.email)),selected=member||null,choice=(person,attribute,value)=>`<button type="button" ${attribute}="${escapeAttr(value)}" class="${selected?.id===person.id?"selected":""}"><i class="avatar-${person.color||"purple"}">${escapeHtml(person.initials||initials(person.name))}</i>${escapeHtml(person.name)}</button>`,profilePicker=profiles.length?`<div class="invite-section"><span>Unclaimed profiles in this room</span><div class="member-picker">${profiles.map((person)=>choice(person,"data-invite-profile",person.id)).join("")}</div></div>`:"",sharedPicker=shared.length?`<div class="invite-section"><span>From your other crews</span><div class="member-picker">${shared.map((person,index)=>choice(person,"data-invite-shared",index)).join("")}</div></div>`:"";openDialog("Invite crew","Add someone by exact email, or choose a person you already share another Rally room with. Rally never exposes a global user directory.",`<input type="hidden" name="memberId" value="${escapeAttr(selected?.id||"")}">${profilePicker}${sharedPicker}${field("Name","name",selected?.name||"")}${field("Email address","email",selected?.email||"","email")}${field("Home airport or city","origin",selected?.origin==="TBD"?"":selected?.origin||"","text",false)}<p class="invite-privacy">Existing Clerk users get access with this verified email. New users receive a secure signup invitation.</p>`,async(values)=>{const submitContext=projectContext();const result=await convexAction("rally:sendInvitation",{eventId:context.eventId,...values});assertProjectContext(submitContext);data=result.room;closeDialog();render();showToast(`Clerk invite sent to ${result.memberName}`)});const form=el.dialogRoot.querySelector("form"),memberId=form.elements.memberId,nameInput=form.elements.name,emailInput=form.elements.email,originInput=form.elements.origin,buttons=[...form.querySelectorAll("[data-invite-profile],[data-invite-shared]")],selectChoice=(person,id="")=>{memberId.value=id;nameInput.value=person.name||"";emailInput.value=person.email||"";originInput.value=person.origin==="TBD"?"":person.origin||"";buttons.forEach((button)=>button.classList.toggle("selected",button.dataset.inviteProfile===id||(button.dataset.inviteShared!==undefined&&shared[Number(button.dataset.inviteShared)]?.email===person.email)))};form.querySelectorAll("[data-invite-profile]").forEach((button)=>button.onclick=()=>selectChoice(profiles.find((person)=>person.id===button.dataset.inviteProfile),button.dataset.inviteProfile));form.querySelectorAll("[data-invite-shared]").forEach((button)=>button.onclick=()=>selectChoice(shared[Number(button.dataset.inviteShared)]));nameInput.addEventListener("input",()=>{memberId.value="";buttons.forEach((button)=>button.classList.remove("selected"))})}
 function openProfile(member){if(!member)return;openDialog("Edit my profile","Change how your name and home airport appear throughout this rave room.",field("Name","name",member.name)+field("Home airport or city","origin",member.origin==="TBD"?"":member.origin,"text",false),async(values)=>{await act("update-profile",values,"Profile updated");closeDialog()});}
 function openRemoveMember(member){if(!member)return;openDangerDialog(`Remove ${escapeHtml(member.name)}?`,"They will lose access to this rave room. Their room assignment and flight legs will be removed; their tickets, passes, and rental cars will remain but become unassigned.","Remove from crew",async()=>{await act("remove-member",{id:member.id},`${member.name} removed`);closeDialog()});}
 function openTask(task){const opts=data.members.map((m)=>[m.id,m.name]);openDialog(task?"Edit ticket":"New ticket","Give every loose end an owner and a clear status.",field("Ticket title","title",task?.title||"")+`<div class="form-row">${selectField("Status","status",[["todo","To do"],["doing","In progress"],["done","Done"]],task?.status||"todo")}${selectField("Category","category",[["General","General"],["Stay","Stay"],["Travel","Travel"],["Passes","Passes"],["Crew","Crew"]],task?.category||"General")}</div>`+selectField("Assigned to","assigneeId",[["","Unassigned"],...opts],task?.assigneeId||"")+field("Due date","dueDate",task?.dueDate||"","date",false),async(values)=>{await act("save-task",{...values,id:task?.id||""},task?"Ticket updated":"Ticket created");closeDialog()},task?`<button id="deleteTask" class="danger-button" type="button">Delete ticket</button>`:"");if(task)wireDangerButton("deleteTask",async()=>{await act("delete-task",{id:task.id},"Ticket deleted");closeDialog()});}
 function openRoom(room){
   openDialog(room?"Edit room":"Add room","Store the reservation, capacity, and bathroom count so the room assignment stays clear.",
-    field("Hotel","hotel",room?.hotel||"Hyatt Regency Columbus")+field("Hotel address","address",room?hotelAddress(room):"","text",false)+field("Room type","roomType",room?.roomType||"")+
+    field("Hotel","hotel",room?.hotel||"")+field("Hotel address","address",room?hotelAddress(room):"","text",false)+field("Room type","roomType",room?.roomType||"")+
     `<div class="form-row">${field("Sleeps","capacity",room?.capacity||4,"number")}${field("Bathrooms","bathrooms",room?.bathrooms||1,"number")}</div>`+
     `<div class="form-row">${field("Confirmation","confirmation",room?.confirmation||"","text",false)}${field("Total cost","totalCost",room?.totalCost||"","text",false)}</div>`+
     `<label class="field"><span>Booking notes</span><textarea class="booking-notes-input" name="notes" rows="7" placeholder="Check-in details, hotel benefits, parking, reminders…">${escapeHtml(room?.notes||"")}</textarea></label>`+
@@ -974,6 +1031,7 @@ function openRoom(room){
     async(values)=>{await act("save-room",{...values,id:room?.id||""},room?"Room updated":"Room added");closeDialog()},
     room?`<button id="deleteRoom" class="danger-button" type="button">Delete room</button>`:"");
   const notes=el.dialogRoot.querySelector('textarea[name="notes"]');
+  el.dialogRoot.querySelectorAll('[name="capacity"],[name="bathrooms"]').forEach(input=>{input.min='1';input.step='1';});
   const fitNotes=()=>{notes.style.height='auto';notes.style.height=Math.min(320,Math.max(160,notes.scrollHeight))+'px';};
   fitNotes();notes.addEventListener('input',fitNotes);
   if(room)wireDangerButton("deleteRoom",async()=>{await act("delete-room",{id:room.id},"Room deleted");closeDialog()});
@@ -990,10 +1048,28 @@ function openPass(pass){
   const quantity=el.dialogRoot.querySelector('[name="quantity"]');quantity.min='1';quantity.max='500';quantity.step='1';
   if(pass)wireDangerButton('deletePass',async()=>{if(await saveTicketChange('delete',{id:pass.id},eventId)){closeDialog();renderTicketBoard();showToast('Purchase deleted');}});
 }
-function openLineupArtist(artist){openDialog(artist?"Edit artist":"Add artist","Keep lineup announcements useful now and add exact set details later.",field("Artist or set name","name",artist?.name||"")+`<div class="form-row">${field("Day","day",artist?.day||"Day TBD")}${field("Date","date",artist?.date||"","date",false)}</div><div class="form-row">${field("Set time","time",artist?.time||"","time",false)}${field("Stage","stage",artist?.stage||"","text",false)}</div>`+field("Notes","notes",artist?.notes||"","text",false),async(values)=>{await act("save-lineup-artist",{...values,id:artist?.id||""},artist?"Artist updated":"Artist added");closeDialog()},artist?`<button id="deleteLineupArtist" class="danger-button" type="button">Remove artist</button>`:"");if(artist)wireDangerButton("deleteLineupArtist",async()=>{await act("delete-lineup-artist",{id:artist.id},"Artist removed");closeDialog()});}
+function openLineupArtist(artist){
+  const date=artist?.festivalDate||artist?.date||'';
+  const start=artist?.start||(/^\d{2}:\d{2}$/.test(artist?.time||'')&&date?`${date}T${artist.time}`:'');
+  openDialog(artist?'Edit artist':'Add artist','Use the event’s local time. Leave unannounced times blank. For a set ending after midnight, choose the next date for its end.',
+    field('Artist or set name','name',artist?.artist||artist?.name||'')+`<div class="form-row">${field('Festival day','day',artist?.day||'Day TBD')}${field('Festival date','date',date,'date',false)}</div>`+
+    field('Set starts','start',start,'datetime-local',false)+field('Set ends','end',artist?.end||'','datetime-local',false)+field('Stage','stage',artist?.stage||'','text',false)+field('Notes','notes',artist?.notes||'','text',false),
+    async values=>{await act('save-lineup-artist',{...values,id:artist?.id||''},artist?'Artist updated':'Artist added');closeDialog();},
+    artist?'<button id="deleteLineupArtist" class="danger-button" type="button">Remove artist</button>':'');
+  if(artist)wireDangerButton('deleteLineupArtist',async()=>{await act('delete-lineup-artist',{id:artist.id},'Artist removed');closeDialog();});
+}
 function openNewEvent(){const cards=eventTemplates.map((template,index)=>`<label class="event-template-card${index===0?" selected":""}"><input type="radio" name="templateId" value="${template.id}" ${index===0?"checked":""}><span class="template-icon">${template.icon}</span><span class="template-copy"><span class="template-title">${escapeHtml(template.name)}${template.badge?`<em>${escapeHtml(template.badge)}</em>`:""}</span><span>${escapeHtml(template.description)}</span><small>${escapeHtml(template.summary)}</small></span></label>`).join("");openDialog("New rave room","Start with a useful plan. Every starter item can be changed or deleted afterward.",`<fieldset class="template-picker"><legend>Choose a starting point</legend><div class="template-grid">${cards}</div><p id="templatePreview" class="template-preview">${escapeHtml(eventTemplates[0].summary)}</p></fieldset>`+field("Rave name","name")+field("Location","location")+`<div class="form-row">${field("Starts","startsAt","","date")}${field("Ends","endsAt","","date")}</div>`+field("Event timezone","eventTimeZone",Intl.DateTimeFormat().resolvedOptions().timeZone)+field("Admin name","adminName",data.members.find((m)=>m.id===data.currentMemberId)?.name||"John"),async(values)=>{const created=await convexMutation("rally:act",{eventId:activeEvent,action:"create-event",payload:values});closeDialog();await navigateTo(new URL(href("home",created.id),location.href))});el.dialogRoot.querySelector(".dialog").classList.add("new-event-dialog");const form=el.dialogRoot.querySelector("form"),submit=form.querySelector('[type="submit"]'),preview=document.getElementById("templatePreview");submit.textContent="Create room";form.querySelectorAll('[name="templateId"]').forEach((input)=>input.addEventListener("change",()=>{form.querySelectorAll(".event-template-card").forEach((card)=>card.classList.toggle("selected",card.contains(input)));preview.textContent=eventTemplates.find((template)=>template.id===input.value)?.summary||""}))}
 
-async function act(action,payload,message,rerender=true){data=await convexMutation("rally:act",{eventId:activeEvent,action,payload});if(rerender)render();showToast(message);return data;}
+function projectContext(){return {eventId:activeEvent,owner:window.Clerk?.user?.id,revision:roomLoadRevision,dialog:el.dialogRoot.firstElementChild};}
+function assertProjectContext(context){
+  if(context.eventId!==activeEvent||context.owner!==window.Clerk?.user?.id||context.revision!==roomLoadRevision||(context.dialog&&context.dialog!==el.dialogRoot.firstElementChild))throw new Error('The project or editor changed. Reopen it to see the saved change.');
+}
+async function act(action,payload,message,rerender=true){
+  const context=projectContext();
+  const updated=await convexMutation("rally:act",{eventId:context.eventId,action,payload});
+  assertProjectContext(context);data=updated;
+  if(rerender)render();showToast(message);return data;
+}
 function showToast(message){
   // A manual popover stays above native dialogs without stealing focus.
   // Do not label errors or offline notices with a success checkmark.
@@ -1020,17 +1096,29 @@ async function convexCall(kind, path, args) {
     throw new Error('You are offline. Trip details are readable and favorites can be saved; other changes need internet.');
   }
   const owner = window.Clerk?.user?.id;
+  const dialog=el.dialogRoot.firstElementChild;
   const value = await networkConvexCall(kind, path, args);
+  if(owner!==window.Clerk?.user?.id)throw new Error('Your account changed. Reopen the project.');
+  let result=value;
   if (owner && owner === RallyOffline.userId) {
     if (path === 'rally:listEvents') RallyOffline.list(value);
-    if (value?.id && Array.isArray(value.members)) return RallyOffline.save(value);
+    if (value?.id && Array.isArray(value.members)) result=RallyOffline.save(value);
   }
-  return value;
+  if(kind!=='query'&&dialog&&dialog!==el.dialogRoot.firstElementChild)throw new Error('The editor changed. Reopen it to see the saved change.');
+  return result;
 }
 async function networkConvexCall(kind,path,args){const token=await getConvexToken();if(!token)throw new Error("Not authenticated with Clerk.");const response=await fetch(`${CONVEX_URL}/api/${kind}`,{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${token}`},body:JSON.stringify({path,args}),signal:AbortSignal.timeout(12000)});const result=await response.json();if(!response.ok||result.status!=="success")throw new Error(typeof result.errorData==='string'?result.errorData:result.errorMessage||`Convex ${kind} failed`);return result.value}
 async function getConvexToken(){const session=window.Clerk?.session;if(!session)return null;const sessionToken=await session.getToken();const audience=readJwtPayload(sessionToken)?.aud;if(audience==="convex"||(Array.isArray(audience)&&audience.includes("convex")))return sessionToken;try{return await session.getToken({template:"convex"})}catch{return sessionToken}}
 function readJwtPayload(token){if(!token)return null;try{const encoded=token.split(".")[1].replace(/-/g,"+").replace(/_/g,"/");return JSON.parse(decodeURIComponent(escape(atob(encoded))))}catch{return null}}
 function escapeHtml(value){const span=document.createElement("span");span.textContent=String(value??"");return span.innerHTML} function escapeAttr(value){return escapeHtml(value).replace(/"/g,"&quot;")}
 function initials(value){return String(value).split(/\s+/).map((part)=>part[0]).join("").replace(/[^a-z]/gi,"").slice(0,2).toUpperCase()||"RR"}
+function eventDaysAway(event,now=Date.now()){
+  const zone=event.eventTimeZone||event.timeZone||window.RallyEvents?.zoneFor(event)||'UTC';
+  let parts;
+  try{parts=Object.fromEntries(new Intl.DateTimeFormat('en-US',{timeZone:zone,year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date(now)).map(part=>[part.type,part.value]));}
+  catch{return 0;}
+  const days=(Date.parse(event.startsAt+'T00:00:00Z')-Date.parse(`${parts.year}-${parts.month}-${parts.day}T00:00:00Z`))/86400000;
+  return Number.isFinite(days)?Math.max(0,Math.round(days)):0;
+}
 function dateRange(start,end){const format=new Intl.DateTimeFormat("en-US",{month:"short",day:"numeric",timeZone:"UTC"});if(start===end)return `${format.format(new Date(`${start}T12:00:00Z`))}, ${new Date(`${start}T12:00:00Z`).getUTCFullYear()}`;return `${format.format(new Date(`${start}T12:00:00Z`))}–${format.format(new Date(`${end}T12:00:00Z`))}, ${new Date(`${end}T12:00:00Z`).getUTCFullYear()}`}
 function eventDateLine(event){const sameDay=event.startsAt===event.endsAt,day=sameDay?new Intl.DateTimeFormat("en-US",{weekday:"short",month:"short",day:"numeric",year:"numeric",timeZone:"UTC"}).format(new Date(`${event.startsAt}T12:00:00Z`)):dateRange(event.startsAt,event.endsAt);if(!event.startTime)return day;const [rawHour,minute="00"]=event.startTime.split(":"),hour=Number(rawHour),clock=`${hour%12||12}:${minute} ${hour>=12?"PM":"AM"}`;return `${day} · ${clock}${event.timeZoneLabel?` ${escapeHtml(event.timeZoneLabel)}`:""}`}
