@@ -1,30 +1,9 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-10-23T19:59:11.848Z",
+  "generatedAt": "2026-10-23T22:14:38.304Z",
   "overallStatus": "healthy",
   "latestEventId": "20261021222325-merchant-change",
   "monitors": [
-    {
-      "id": "bilt-calculator-ranking",
-      "name": "Bilt calculator ranking",
-      "description": "Tracks the Bilt calculator across Search Console query performance, index health, canonical integrity, and live-page checks.",
-      "configured": false,
-      "status": "not_configured",
-      "sourceUrl": "https://www.nextcard.com/tools/bilt-calculator",
-      "cadence": "Every 6 hours via Codex",
-      "config": {
-        "property": "sc-domain:nextcard.com",
-        "page": "https://www.nextcard.com/tools/bilt-calculator",
-        "queries": [
-          "bilt calculator",
-          "bilt 2.0 calculator",
-          "bilt calculator 2.0",
-          "bilt points calculator",
-          "bilt card calculator"
-        ],
-        "compareWindow": "Finalized 7 days vs previous 7 days"
-      }
-    },
     {
       "id": "paze-directory",
       "name": "Paze merchant directory",
@@ -35,10 +14,10 @@
       "cadence": "Hourly",
       "expectedCount": 33,
       "currentCount": 34,
-      "latestRunAt": "2026-10-23T18:23:57.037Z",
-      "latestSuccessAt": "2026-10-23T18:23:57.037Z",
+      "latestRunAt": "2026-10-23T22:14:38.304Z",
+      "latestSuccessAt": "2026-10-23T22:14:38.304Z",
       "latestChangeAt": "2026-10-21T22:23:25.997Z",
-      "durationMs": 1987,
+      "durationMs": 1947,
       "summary": "No merchant changes across 3 pages.",
       "error": null,
       "pagination": {
@@ -57,15 +36,15 @@
         "renamed": []
       },
       "cache": {
-        "runId": "1792779837037",
+        "runId": "1792793678304",
         "requestCount": 3,
         "crawlIds": [
           "primary"
         ],
         "requestIds": [
-          "1792779837041001",
-          "1792779837959002",
-          "1792779838467003"
+          "1792793678307001",
+          "1792793679052002",
+          "1792793679526003"
         ]
       }
     },
@@ -91,6 +70,27 @@
           "/tools",
           "dining guide"
         ]
+      }
+    },
+    {
+      "id": "bilt-calculator-ranking",
+      "name": "Bilt calculator ranking",
+      "description": "Tracks the Bilt calculator across Search Console query performance, index health, canonical integrity, and live-page checks.",
+      "configured": false,
+      "status": "not_configured",
+      "sourceUrl": "https://www.nextcard.com/tools/bilt-calculator",
+      "cadence": "Every 6 hours via Codex",
+      "config": {
+        "property": "sc-domain:nextcard.com",
+        "page": "https://www.nextcard.com/tools/bilt-calculator",
+        "queries": [
+          "bilt calculator",
+          "bilt 2.0 calculator",
+          "bilt calculator 2.0",
+          "bilt points calculator",
+          "bilt card calculator"
+        ],
+        "compareWindow": "Finalized 7 days vs previous 7 days"
       }
     },
     {
