@@ -7,6 +7,7 @@
   const inQueue=(item,stage)=>stage==='trash'?isDeleted(item):!isDeleted(item)&&item.status===stage;
   const node=(tag,text,className)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(className)n.className=className;return n;};
   const button=(label,fn)=>{const b=node('button',label);b.type='button';b.onclick=fn;return b;};
+  const shareLinks=PaymentQuestionShareLinks.create({call:(kind,name,args)=>call(kind,name,args,'paymentQuestionSharing'),prepare:async()=>{if(moving||isDeleted(current?.item))return null;if(!(await settle()))return null;if(!current?.item._id&&!(await saveNote(true)))return null;return current?.item||null;}});
   let session=null,sessionId,epoch=0,request=0,viewRequest=0,mounted=false,queue='open',notes=[],current=null,editor=null;
   let dirty=false,saving=null,saveTimer=null,saveAttempt=null,saveError=false,moving=false,uploading=false,draftKey='',pendingFiles=[];
   const imageUrls=new Set();
@@ -21,10 +22,10 @@
     try { result = await current.getToken({ template: 'convex' }); } catch {}
     return result;
   }
-  async function call(kind, name, args = {}) {
+  async function call(kind, name, args = {}, module = 'paymentQuestions') {
     const generation = epoch, current = session, bearer = await token(current);
     if (generation !== epoch) throw Error('Session changed.');
-    const r = await fetch(`${API}/api/${kind}`, { method:'POST', cache:'no-store', signal:AbortSignal.timeout(20000), headers:{'Content-Type':'application/json', Authorization:`Bearer ${bearer}`}, body:JSON.stringify({path:`paymentQuestions:${name}`, args, format:'json'}) });
+    const r = await fetch(`${API}/api/${kind}`, { method:'POST', cache:'no-store', signal:AbortSignal.timeout(20000), headers:{'Content-Type':'application/json', Authorization:`Bearer ${bearer}`}, body:JSON.stringify({path:`${module}:${name}`, args, format:'json'}) });
     const result = await r.json();
     if (generation !== epoch) throw Error('Session changed.');
     if (!r.ok || result.status !== 'success') throw Error(result.errorMessage || 'Request failed.');
@@ -38,6 +39,7 @@
     if (!result.ok) throw Error(await result.text()); return result;
   }
   function resetPrivate(){
+    shareLinks.reset();
     ++request;++viewRequest;clearTimeout(saveTimer);notes=[];current=null;dirty=false;saving=null;saveAttempt=null;saveError=false;pendingFiles=[];moving=false;uploading=false;draftKey='';
     editor?.clear();editor=null;$('editor-mount').replaceChildren();$('note-title').value='';$('search').value='';$('files').value='';
     $('tickets').replaceChildren();$('screenshots').replaceChildren();$('events').replaceChildren();$('legacy-details').replaceChildren();$('note').hidden=true;$('placeholder').hidden=false;
@@ -86,6 +88,7 @@
   }
   function renderStage(){if(!current)return;const deleted=isDeleted(current.item),status=deleted?'trash':current.item.status;$('note-stage').textContent=stages[status];$('note-stage').className=`badge ${status}`;
     document.querySelector('.move-actions').hidden=deleted;$('attach').disabled=deleted||moving;$('save').disabled=deleted||moving;
+    $('share-note').hidden=deleted;$('share-note').disabled=moving||uploading;
     $('delete-note').hidden=deleted||!current.item._id;$('delete-note').disabled=moving||uploading;
     $('restore-note').hidden=!deleted;$('restore-note').disabled=moving;
     document.querySelectorAll('[data-move]').forEach(b=>{b.setAttribute('aria-current',String(b.dataset.move===status));b.disabled=moving;});}

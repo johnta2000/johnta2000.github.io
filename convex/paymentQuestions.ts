@@ -138,6 +138,8 @@ export const moveToTrash = mutation({ args: { id: v.id('paymentQuestions'), expe
   if (item.deletedAt !== undefined && item.version === args.expectedVersion + 1) return { version: item.version };
   version(item, args.expectedVersion);
   if (item.deletedAt !== undefined) throw Error('This note is already in Trash.');
+  const links = await ctx.db.query('paymentQuestionShares').withIndex('by_ticket', q => q.eq('ticketId', item._id)).collect();
+  for (const link of links) if (link.revokedAt === undefined) await ctx.db.patch(link._id, { revokedAt: Date.now() });
   await ctx.db.patch(item._id, { deletedAt: Date.now(), updatedAt: Date.now(), version: item.version + 1 });
   return { version: item.version + 1 };
 } });

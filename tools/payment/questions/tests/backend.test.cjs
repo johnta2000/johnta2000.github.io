@@ -1,7 +1,7 @@
-const {test,before}=require('node:test');const assert=require('node:assert/strict');const path=require('node:path');const vm=require('node:vm');const esbuild=require('esbuild');let api,http;
-before(async()=>{async function load(name){const result=await esbuild.build({entryPoints:[path.join(__dirname,'../../../../convex',name+'.ts')],bundle:true,write:false,platform:'node',format:'cjs',plugins:[{name:'mock-server',setup(b){b.onResolve({filter:/\.\/_generated\/server$/},()=>({path:'server',namespace:'test'}));b.onLoad({filter:/.*/,namespace:'test'},()=>({contents:'export const query=x=>x;export const mutation=x=>x;export const internalMutation=x=>x;export const httpAction=x=>x;'}));}}]});const module={exports:{}};vm.runInNewContext(result.outputFiles[0].text,{module,exports:module.exports,require,process:{env:{PAYMENT_QUESTIONS_ALLOWED_EMAIL:"owner@example.com,work@example.com"}},console,TextEncoder,TextDecoder,URL,Response,Request,Blob,Uint8Array});return module.exports;}api=await load('paymentQuestions');http=await load('paymentQuestionHttp');});
+const {test,before}=require('node:test');const assert=require('node:assert/strict');const path=require('node:path');const vm=require('node:vm');const esbuild=require('esbuild');let api,http,sharing,shareHttp;
+before(async()=>{async function load(name){const result=await esbuild.build({entryPoints:[path.join(__dirname,'../../../../convex',name+'.ts')],bundle:true,write:false,platform:'node',format:'cjs',plugins:[{name:'mock-server',setup(b){b.onResolve({filter:/\.\/_generated\/server$/},()=>({path:'server',namespace:'test'}));b.onLoad({filter:/.*/,namespace:'test'},()=>({contents:'export const query=x=>x;export const mutation=x=>x;export const internalMutation=x=>x;export const internalQuery=x=>x;export const httpAction=x=>x;'}));}}]});const module={exports:{}};vm.runInNewContext(result.outputFiles[0].text,{module,exports:module.exports,require,process:{env:{PAYMENT_QUESTIONS_ALLOWED_EMAIL:"owner@example.com,work@example.com"}},console,TextEncoder,TextDecoder,URL,Response,Request,Blob,Uint8Array});return module.exports;}api=await load('paymentQuestions');http=await load('paymentQuestionHttp');sharing=await load('paymentQuestionSharing');shareHttp=await load('paymentQuestionShareHttp');});
 const approved={email:'owner@example.com',emailVerified:true,issuer:'https://clerk.john-ta.com'};
-function fixture(identity=approved){let seq=0;const tables={paymentQuestions:[],paymentQuestionEvents:[],paymentQuestionFiles:[]};const ctx={auth:{getUserIdentity:async()=>identity},db:{query(table){const conditions=[];const builder={eq(k,v){conditions.push(r=>r[k]===v);return builder;}};const q={withIndex(_,fn){fn(builder);return q;},order(){return q;},async collect(){return tables[table].filter(r=>conditions.every(c=>c(r)));}};return q;},async get(id){return Object.values(tables).flat().find(r=>r._id===id)||null;},async insert(table,args){const id=`${table}-${++seq}`;tables[table].push({...args,_id:id});return id;},async patch(id,args){Object.assign(await ctx.db.get(id),args);}},storage:{delete:async()=>{}}};return {ctx,tables,run:(name,args={})=>api[name].handler(ctx,args)};}
+function fixture(identity=approved){let seq=0;const tables={paymentQuestions:[],paymentQuestionEvents:[],paymentQuestionFiles:[],paymentQuestionShares:[]};const ctx={auth:{getUserIdentity:async()=>identity},db:{query(table){const conditions=[];const builder={eq(k,v){conditions.push(r=>r[k]===v);return builder;}};const q={withIndex(_,fn){fn(builder);return q;},order(){return q;},async collect(){return tables[table].filter(r=>conditions.every(c=>c(r)));},async unique(){const rows=await q.collect();assert.ok(rows.length<=1);return rows[0]||null;}};return q;},async get(id){return Object.values(tables).flat().find(r=>r._id===id)||null;},async insert(table,args){const id=`${table}-${++seq}`;tables[table].push({...args,_id:id});return id;},async patch(id,args){Object.assign(await ctx.db.get(id),args);}},storage:{delete:async()=>{}}};return {ctx,tables,run:(name,args={})=>api[name].handler(ctx,args),share:(name,args={})=>sharing[name].handler(ctx,args)};}
 const fields={title:'Travel charge',amountCents:233706,transactionDate:'2026-07-22',cardholder:'',card:'Chase · 9809',payer:'',payee:'',expectedCents:null,followUp:'',context:'Needs context',requestKey:'create-1'};
 test('all public endpoints fail closed for missing or disallowed identity',async()=>{for(const identity of [null,{...approved,email:'guest@example.com'},{...approved,email:'stranger@example.com'},{...approved,emailVerified:false},{...approved,emailVerified:undefined,issuer:'https://evil.example'}]){const f=fixture(identity);for(const name of ['verify','list','detail','create','edit','update','file','saveNote','move','moveToTrash','restore'])await assert.rejects(f.run(name,{}),/not authorized/);assert.equal(f.tables.paymentQuestions.length,0);}assert.equal((await fixture({...approved,emailVerified:undefined}).run('verify')).email,approved.email);});
 test('create is idempotent and exact allowed emails share the inbox',async()=>{const f=fixture();const id=await f.run('create',fields);assert.equal(await f.run('create',fields),id);assert.equal(f.tables.paymentQuestions.length,1);f.ctx.auth.getUserIdentity=async()=>({...approved,email:'work@example.com'});assert.equal((await f.run('list')).length,1);assert.equal((await f.run('detail',{id})).item.amountCents,233706);});
@@ -40,4 +40,52 @@ test('trash is recoverable, preserves history and files, and prevents stale clie
  await f.run('restore',{id,expectedVersion:3});assert.equal((await f.run('list')).length,1);assert.equal((await f.run('detail',{id})).item.status,'waiting');
  f.tables.paymentQuestions[0].owner='foreign';
  for(const name of ['moveToTrash','restore'])await assert.rejects(f.run(name,{id,expectedVersion:4}),/not found/);
+});
+
+test('unique view-only shares expire after seven days; retries never extend access',async()=>{
+ const f=fixture(),id=await f.run('create',fields),token='s'.repeat(43);
+ const link=await f.share('create',{id,token});const stored=f.tables.paymentQuestionShares[0];
+ assert.equal(stored.expiresAt-stored.createdAt,7*24*60*60*1000);
+ const again=await f.share('create',{id,token});assert.equal(again.expiresAt,link.expiresAt);assert.equal(f.tables.paymentQuestionShares.length,1);
+ const result=await f.share('review',{token});assert.equal(result.item.title,fields.title);assert.equal(result.item.context,fields.context);
+ for(const key of ['owner','createdBy','requestKey','version','_id'])assert.equal(result.item[key],undefined);
+ assert.equal(result.events,undefined);assert.equal(result.token,undefined);
+ stored.expiresAt=Date.now()-1;
+ await assert.rejects(f.share('review',{token}),/expired or is unavailable/);await assert.rejects(f.share('create',{id,token}),/expired or is unavailable/);
+ assert.equal((await f.share('list',{id})).length,0);
+});
+test('share links reveal only their question and its files, reject guessing and cannot replace owner authentication',async()=>{
+ const f=fixture(),id=await f.run('create',fields),other=await f.run('create',{...fields,title:'Other private note',requestKey:'other'}),token='t'.repeat(43);
+ await f.run('attach',{id,owner:'payment-questions:personal',author:approved.email,storageId:'secret-storage',name:'receipt.png',type:'image/png',size:10,requestKey:'one'});
+ await f.run('attach',{id:other,owner:'payment-questions:personal',author:approved.email,storageId:'other-storage',name:'other.png',type:'image/png',size:10,requestKey:'two'});
+ await f.share('create',{id,token});const file=f.tables.paymentQuestionFiles[0],foreign=f.tables.paymentQuestionFiles[1];
+ const data=await f.share('review',{token});assert.equal(data.files.length,1);assert.equal(data.files[0].storageId,undefined);assert.ok(!JSON.stringify(data).includes('secret-storage'));
+ assert.equal((await f.share('file',{token,id:file._id})).storageId,'secret-storage');await assert.rejects(f.share('file',{token,id:foreign._id}),/unavailable/);
+ for(const bad of ['', 'a'.repeat(42),'x'.repeat(43)])await assert.rejects(f.share('review',{token:bad}),/unavailable/);
+ f.ctx.auth.getUserIdentity=async()=>null;
+ assert.equal((await f.share('review',{token})).item.title,fields.title);
+ for(const [name,args]of [['create',{id,token:'z'.repeat(43)}],['list',{id}],['revoke',{id:f.tables.paymentQuestionShares[0]._id}]])await assert.rejects(f.share(name,args),/not authorized/);
+ await assert.rejects(f.run('edit',{...fields,id,expectedVersion:1,token}),/not authorized/);
+});
+test('revocation and Trash immediately block shared content and files, including after restoration',async()=>{
+ const f=fixture(),id=await f.run('create',fields),token='u'.repeat(43);
+ await f.share('create',{id,token});const link=f.tables.paymentQuestionShares[0];
+ await f.share('revoke',{id:link._id});await assert.rejects(f.share('review',{token}),/unavailable/);
+ const otherToken='v'.repeat(43);await f.share('create',{id,token:otherToken});
+ await f.run('moveToTrash',{id,expectedVersion:1});await assert.rejects(f.share('review',{token:otherToken}),/unavailable/);
+ await f.run('restore',{id,expectedVersion:2});await assert.rejects(f.share('review',{token:otherToken}),/unavailable/);
+ const foreign=fixture();foreign.tables.paymentQuestionShares.push({...link,_id:'foreign-share',owner:'someone-else'});await assert.rejects(foreign.share('revoke',{id:'foreign-share'}),/not found/);
+});
+test('shared screenshot HTTP uses header tokens, no-store and no public storage URLs',async()=>{
+ let requested;const ctx={runQuery:async(_fn,args)=>{requested=args;if(args.token!=='a'.repeat(43))throw Error('expired');return {storageId:'private',type:'image/png',expiresAt:Date.now()+10000};},storage:{get:async()=>new Blob([new Uint8Array([1,2,3])])}};
+ const r=await shareHttp.screenshot(ctx,new Request('https://example.com/payment-question-share-file?id=image',{headers:{'X-Payment-Share-Token':'a'.repeat(43)}}));assert.equal(r.status,200);assert.equal(r.headers.get('Cache-Control'),'no-store');assert.equal(requested.id,'image');
+ assert.equal((await shareHttp.screenshot(ctx,new Request('https://example.com/payment-question-share-file?id=image'))).status,404);
+});
+
+test('share HTTP refuses expired query snapshots and checks file expiry again after storage retrieval',async()=>{
+ const ctx={runQuery:async()=>({expiresAt:Date.now()-1,item:{title:'Expired context'}})};
+ assert.equal((await shareHttp.view(ctx,new Request('https://example.com/share',{headers:{'X-Payment-Share-Token':'a'.repeat(43)}}))).status,404);
+ let expiresAt=Date.now()+1000;ctx.runQuery=async()=>({expiresAt,storageId:'file',type:'image/png'});ctx.storage={get:async()=>{expiresAt=Date.now()-1;return new Blob(['image']);}};
+ ctx.runQuery=async()=>({get expiresAt(){return expiresAt;},storageId:'file',type:'image/png'});
+ assert.equal((await shareHttp.screenshot(ctx,new Request('https://example.com/share-file?id=file',{headers:{'X-Payment-Share-Token':'a'.repeat(43)}}))).status,404);
 });

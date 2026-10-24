@@ -22,7 +22,8 @@
 
 - `/tools/payment/questions/` is a separate private charge/reimbursement inbox linked from Payments. Keep its access policy separate from the monthly checklist; only the two owner emails are approved by default.
 - Show screenshots at full note width above the editor, including local previews while uploads are pending or failed.
-- Screenshots are private. Upload and retrieve them through the authenticated `payment-question-file` endpoint; never publish user images in the Git repository or return public storage URLs.
+- Screenshots are private. Owner uploads/reads use the authenticated `payment-question-file` endpoint. Recipients may read only through an unexpired per-question share token at `payment-question-share-file`. Never publish user images in the Git repository or return public storage URLs.
+- Share links at `/tools/payment/questions/shared/#TOKEN` are read-only and expire seven days after creation. Keep tokens in the fragment and request headers, use strong random tokens, validate expiration in HTTP actions for every note/image read, and support owner revocation. Share the current note, screenshots, status and relevant payment fields; exclude other questions, private edit history and owner identity fields. Deleting a note permanently revokes its existing links, even after restore. Do not add Clerk, analytics or third-party scripts to the recipient page.
 - Delete note moves a question to recoverable Trash, preserving screenshots, history and its original queue. Trashed notes are read-only until restored; stale clients must not edit or upload to them.
 - Keep this tool note-first: one rich text editor, screenshots, and an Inbox → Waiting → Done queue. Do not add required transaction fields, repayment forms, or a required reason for moving a note. Preserve any older structured data under optional history/details.
 - Test with synthetic images and mock records. Import real financial screenshots only with explicit permission.

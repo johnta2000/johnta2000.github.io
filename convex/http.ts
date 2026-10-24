@@ -15,7 +15,13 @@ import { attachment, preflight } from "./paymentQuestionHttp";
 
 import { attachment as paymentAttachment, preflight as paymentPreflight } from "./paymentFileHttp";
 
+import { view as sharedQuestionView, screenshot as sharedQuestionScreenshot, preflight as sharedQuestionPreflight } from "./paymentQuestionShareHttp";
+
 const http = httpRouter();
+http.route({ path: "/payment-question-share", method: "GET", handler: sharedQuestionView });
+http.route({ path: "/payment-question-share", method: "OPTIONS", handler: sharedQuestionPreflight });
+http.route({ path: "/payment-question-share-file", method: "GET", handler: sharedQuestionScreenshot });
+http.route({ path: "/payment-question-share-file", method: "OPTIONS", handler: sharedQuestionPreflight });
 http.route({ path: "/costco-receipt", method: "GET", handler: costcoReceipt });
 http.route({ path: "/costco-receipt", method: "POST", handler: costcoReceipt });
 http.route({ path: "/costco-receipt", method: "OPTIONS", handler: costcoPreflight });

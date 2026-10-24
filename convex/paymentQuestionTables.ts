@@ -7,6 +7,9 @@ export const questionFields = {
   expectedCents: v.union(v.number(), v.null()), followUp: v.string(), context: v.string(),
 };
 export const paymentQuestionTables = {
+  paymentQuestionShares: defineTable({
+    ticketId: v.id("paymentQuestions"), owner: v.string(), token: v.string(), createdAt: v.number(), expiresAt: v.number(), revokedAt: v.optional(v.number()),
+  }).index("by_token", ["token"]).index("by_ticket", ["ticketId"]),
   paymentQuestions: defineTable({
     ...questionFields, deletedAt: v.optional(v.number()), richText: v.optional(v.any()), owner: v.string(), status: questionStatus, receivedCents: v.number(),
     version: v.number(), createdAt: v.number(), updatedAt: v.number(), createdBy: v.string(), requestKey: v.string(),
