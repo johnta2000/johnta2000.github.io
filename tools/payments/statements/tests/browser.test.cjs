@@ -184,3 +184,20 @@ for(const browserType of [chromium,webkit])test(`${browserType.name()}: CSV sess
  }
  }finally{await browser.close();}
 });
+
+for(const browserType of [chromium,webkit])test(`${browserType.name()}: clicking the selected person clears charges and credits while preserving notes`,async()=>{
+ const browser=await browserType.launch();try{
+  const source=fixture();source.rows[0].note='Keep this context';const {page,db,errors}=await setup(browser,390,844,source);
+  const selected=page.locator('[data-id="1"] [data-label="john"]');
+  await selected.click();await page.waitForFunction(()=>document.getElementById('save-status').textContent==='All changes saved');
+  assert.equal(await selected.getAttribute('aria-pressed'),'true');
+  await selected.click();assert.equal(await selected.getAttribute('aria-pressed'),'false');
+  await page.waitForFunction(()=>document.getElementById('save-status').textContent==='All changes saved');
+  assert.equal(db.rows[0].allocation,null);assert.equal(db.rows[0].note,'Keep this context');assert.equal(await page.locator('#john-total').textContent(),'$0.00');
+  const credit=page.locator('[data-id="3"] [data-label="parents"]');await credit.click();await page.waitForFunction(()=>document.getElementById('save-status').textContent==='All changes saved');
+  await credit.click();await page.waitForFunction(()=>document.getElementById('save-status').textContent==='All changes saved');assert.equal(db.rows[2].allocation,null);
+  let release;db.delay=new Promise(r=>release=r);await selected.click();await selected.click();assert.equal(await selected.getAttribute('aria-pressed'),'false');
+  release();db.delay=null;await page.waitForFunction(()=>document.getElementById('save-status').textContent==='All changes saved');assert.equal(db.rows[0].allocation,null);
+  await page.reload();await page.locator('.row').first().waitFor();assert.equal(await page.locator('[data-id="1"] [data-label="john"]').getAttribute('aria-pressed'),'false');assert.deepEqual(errors,[]);
+ }finally{await browser.close();}
+});

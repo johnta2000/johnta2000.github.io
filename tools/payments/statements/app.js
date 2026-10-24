@@ -32,7 +32,7 @@ function updateTotals(){
 function updateRow(r){
  const item=[...$('transactions').querySelectorAll('.row')].find(n=>n.dataset.id===r._id);if(!item)return;
  const label=allocationLabel(r);item.classList.toggle('saving',pending.has(r._id));
- for(const b of item.querySelectorAll('[data-label]')){b.setAttribute('aria-pressed',String(label===b.dataset.label));b.disabled=needsRefresh.has(r._id);}
+ for(const b of item.querySelectorAll('[data-label]')){b.setAttribute('aria-pressed',String(label===b.dataset.label));b.title=label===b.dataset.label?'Click again to clear this label':'Assign to '+title(b.dataset.label);b.disabled=needsRefresh.has(r._id);}
  item.querySelector('.edit-row').disabled=pending.has(r._id)||needsRefresh.has(r._id);
  const clear=item.querySelector('.clear-row');clear.hidden=!r.allocation;clear.disabled=needsRefresh.has(r._id);
  item.querySelector('.split-text').hidden=label!=='split';item.querySelector('.split-text').textContent=label==='split'?people.filter(p=>r.allocation[p]).map(p=>`${title(p)} ${money(r.allocation[p])}`).join(' · '):'';
@@ -73,7 +73,7 @@ function row(r){
  const top=el('div',undefined,'row-top'),heading=el('div'),amount=el('div',money(r.amountCents),'amount'+(r.amountCents<0?' negative':''));
  heading.append(el('h3',merchantName(r.description),'merchant'),el('div',new Date(r.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}),'date'));top.append(heading,amount);item.append(top);
  const actions=el('div',undefined,'row-actions'),label=allocationLabel(r);
- for(const p of people){const b=el('button',title(p),'label-button');b.dataset.label=p;b.setAttribute('aria-pressed',String(label===p));b.setAttribute('aria-label',`Assign ${r.description} to ${title(p)}`);b.disabled=needsRefresh.has(r._id);b.onclick=()=>saveRow(r,Object.fromEntries(people.map(k=>[k,k===p?r.amountCents:0])),r.note);actions.append(b);}
+ for(const p of people){const b=el('button',title(p),'label-button');b.dataset.label=p;b.setAttribute('aria-pressed',String(label===p));b.title=label===p?'Click again to clear this label':'Assign to '+title(p);b.setAttribute('aria-label',`Assign ${r.description} to ${title(p)}`);b.disabled=needsRefresh.has(r._id);b.onclick=()=>saveRow(r,allocationLabel(r)===p?null:Object.fromEntries(people.map(k=>[k,k===p?r.amountCents:0])),r.note);actions.append(b);}
  item.append(actions);
  const split=el('p',label==='split'?people.filter(p=>r.allocation[p]).map(p=>`${title(p)} ${money(r.allocation[p])}`).join(' · '):'','split-text');split.hidden=label!=='split';item.append(split);
  const details=el('details',undefined,'charge-details');details.open=expandedRows.has(r._id);
