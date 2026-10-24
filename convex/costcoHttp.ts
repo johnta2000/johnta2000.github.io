@@ -22,15 +22,14 @@ export const receipt = httpAction(async (ctx, request) => {
     const type = request.headers.get('Content-Type') || '';
     if (!['image/png','image/jpeg','image/webp'].includes(type)) return new Response('Choose a PNG, JPEG, or WebP image.', { status: 400, headers: h });
     if (Number(request.headers.get('Content-Length')) > 12 * 1024 * 1024) return new Response('Images must be under 12 MB.', { status: 413, headers: h });
-    const blob = await request.blob();
-    if (!blob.size || blob.size > 12 * 1024 * 1024) return new Response('Images must be under 12 MB.', { status: 413, headers: h });
-    const bytes = new Uint8Array(await blob.arrayBuffer());
+    const bytes = new Uint8Array(await request.arrayBuffer());
+    if (!bytes.byteLength || bytes.byteLength > 12 * 1024 * 1024) return new Response('Images must be under 12 MB.', { status: 413, headers: h });
     const valid = type === 'image/png' ? [137,80,78,71,13,10,26,10].every((b,i) => bytes[i] === b) : type === 'image/jpeg' ? bytes[0] === 255 && bytes[1] === 216 && bytes[2] === 255 : String.fromCharCode(...bytes.slice(0,4)) === 'RIFF' && String.fromCharCode(...bytes.slice(8,12)) === 'WEBP';
     if (!valid) return new Response('Invalid image.', { status: 400, headers: h });
     const sha256 = [...new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))].map(b => b.toString(16).padStart(2,'0')).join('');
     const storageId = await ctx.storage.store(new Blob([bytes], { type }));
     try {
-      const result = await ctx.runMutation(anyApi.costco.recordFile, { order, storageId, type, size: blob.size, sha256, name: decodeURIComponent(request.headers.get('X-File-Name') || 'Receipt').slice(0,160) });
+      const result = await ctx.runMutation(anyApi.costco.recordFile, { order, storageId, type, size: bytes.byteLength, sha256, name: decodeURIComponent(request.headers.get('X-File-Name') || 'Receipt').slice(0,160) });
       if (result.reused) await ctx.storage.delete(storageId);
       return new Response(JSON.stringify(result), { headers: { ...h, 'Content-Type': 'application/json' } });
     } catch (error) { await ctx.storage.delete(storageId); throw error; }

@@ -22,8 +22,15 @@ const {ConvexHttpClient}=require('convex/browser');const {anyApi}=require('conve
   const detail=await client.query(anyApi.costco.detail,{id:ids[i]});
   assert.equal(detail.order.totalCents,r.order.totalCents,'Existing total differs');assert.equal(detail.order.date,r.order.date,'Existing date differs');
   if(detail.files.some(f=>f.sha256===hash)){reused++;continue;}
-  const upload=await fetch('https://rapid-shark-565.convex.site/costco-receipt?'+new URLSearchParams({order:ids[i]}),{method:'POST',headers:{Authorization:authorization,'Content-Type':'image/jpeg','X-File-Name':encodeURIComponent('Costco '+r.order.date+' — '+r.order.orderId+'.jpg')},body:bytes,signal:AbortSignal.timeout(45000)});
-  if(!upload.ok)throw Error('Receipt upload failed ('+upload.status+'): '+await upload.text());
+  let upload;
+  for(let attempt=0;attempt<3;attempt++){
+   upload=await fetch('https://rapid-shark-565.convex.site/costco-receipt?'+new URLSearchParams({order:ids[i]}),{method:'POST',headers:{Authorization:authorization,'Content-Type':'image/jpeg','X-File-Name':encodeURIComponent('Costco '+r.order.date+' — '+r.order.orderId+'.jpg')},body:Buffer.from(bytes),signal:AbortSignal.timeout(45000)});
+   if(upload.ok)break;
+   const message=await upload.text();
+   if(upload.status<500||attempt===2)throw Error('Receipt upload failed ('+upload.status+'): '+message);
+   console.log('Retrying a receipt after a temporary server error.');
+   await new Promise(resolve=>setTimeout(resolve,500*(attempt+1)));
+  }
   const result=await upload.json();assert(result.id);uploaded++;
   const verify=await client.query(anyApi.costco.detail,{id:ids[i]});assert(verify.files.some(f=>f.sha256===hash),'Uploaded receipt hash not found');
   if(process.argv.includes('--one-image'))break;
