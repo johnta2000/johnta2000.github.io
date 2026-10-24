@@ -28,7 +28,7 @@ export const receipt = httpAction(async (ctx, request) => {
     const valid = type === 'image/png' ? [137,80,78,71,13,10,26,10].every((b,i) => bytes[i] === b) : type === 'image/jpeg' ? bytes[0] === 255 && bytes[1] === 216 && bytes[2] === 255 : String.fromCharCode(...bytes.slice(0,4)) === 'RIFF' && String.fromCharCode(...bytes.slice(8,12)) === 'WEBP';
     if (!valid) return new Response('Invalid image.', { status: 400, headers: h });
     const sha256 = [...new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))].map(b => b.toString(16).padStart(2,'0')).join('');
-    const storageId = await ctx.storage.store(blob);
+    const storageId = await ctx.storage.store(new Blob([bytes], { type }));
     try {
       const result = await ctx.runMutation(anyApi.costco.recordFile, { order, storageId, type, size: blob.size, sha256, name: decodeURIComponent(request.headers.get('X-File-Name') || 'Receipt').slice(0,160) });
       if (result.reused) await ctx.storage.delete(storageId);

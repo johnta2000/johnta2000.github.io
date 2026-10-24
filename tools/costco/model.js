@@ -2,7 +2,7 @@
   'use strict';
   const money = value => Number.isSafeInteger(value) ? new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(value/100) : '—';
   const date = value => new Date(value+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
-  const channel = value => ({warehouse:'Warehouse',online:'Online','same-day':'Same-day'}[value] || value);
+  const channel = value => ({warehouse:'Warehouse',online:'Online','same-day':'Same-day',gas:'Gas station'}[value] || value);
   const haystack = row => [row.order.orderId,row.order.date,row.order.location,row.order.recipient,row.order.status,row.note, ...row.order.items.flatMap(i=>[i.name,i.itemNumber])].filter(Boolean).join(' ').toLowerCase();
   function matches(row, filters) {
     return (!filters.channel || row.order.channel===filters.channel) && (!filters.from || row.order.date>=filters.from) && (!filters.to || row.order.date<=filters.to) && (filters.search||'').toLowerCase().trim().split(/\s+/).every(word=>haystack(row).includes(word));

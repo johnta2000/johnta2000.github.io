@@ -6,7 +6,7 @@ Orders and item lines are searchable by ID, date, recipient, location, item numb
 
 ## Import
 
-Import a JSON array (or `{ "orders": [...] }`) through the signed-in page. Each order uses `orderId`, `date` (YYYY-MM-DD), `channel` (`warehouse`, `online`, `same-day`), `kind` (`purchase`, `refund`), `currency` (`USD`), `totalCents`, and `items`. Item fields: `name`, optional `itemNumber`, `quantity`, `unitCents`, `totalCents`. Optional order fields: `recipient`, `location`, `status`, `subtotalCents`, `taxCents`, `shippingCents`, `discountCents`, `sourceText`. Omit missing amounts instead of inventing zeros. Import in source order; there is no automatic recurring sync or completeness assertion.
+Import a JSON array (or `{ "orders": [...] }`) through the signed-in page. Each order uses `orderId`, `date` (YYYY-MM-DD), `channel` (`warehouse`, `online`, `same-day`, `gas`), `kind` (`purchase`, `refund`), `currency` (`USD`), `totalCents`, and `items`. Item fields: `name`, optional `itemNumber`, `quantity`, `unitCents`, `totalCents`. Optional order fields: `recipient`, `location`, `status`, `subtotalCents`, `taxCents`, `shippingCents`, `discountCents`, `sourceText`. Omit missing amounts instead of inventing zeros. Import in source order; there is no automatic recurring sync or completeness assertion.
 
 Imports are idempotent by channel + kind + order ID. Repeated IDs are skipped, not overwritten. Save separate refund receipt IDs where Costco provides them. Original source text is retained privately. Attach screenshots to the resulting order. `/costco-receipt` authenticates both downloads and uploads, validates file type and size, and never returns a public storage URL. Files are deduplicated by hash within each order.
 

@@ -4,11 +4,11 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow,noarchive"><meta name="referrer" content="no-referrer"><meta name="theme-color" content="#f5f5f2">
 <title>Costco archive — John Ta</title>
 <link rel="icon" href="../../assets/img/jt-mark.svg" type="image/svg+xml">
-<link rel="stylesheet" href="styles.css?v=1">
+<link rel="stylesheet" href="styles.css?v=2">
 <link rel="stylesheet" href="../../assets/css/searchable-select.css">
 <script async data-clerk-script crossorigin="anonymous" src="https://clerk.john-ta.com/npm/@clerk/ui@1/dist/ui.browser.js"></script>
 <script async data-clerk-script crossorigin="anonymous" data-clerk-publishable-key="pk_live_Y2xlcmsuam9obi10YS5jb20k" src="https://clerk.john-ta.com/npm/@clerk/clerk-js@6/dist/clerk.browser.js"></script>
-<script defer src="../../assets/js/searchable-select.js"></script><script defer src="model.js?v=1"></script><script defer src="app.js?v=1"></script>
+<script defer src="../../assets/js/searchable-select.js"></script><script defer src="model.js?v=2"></script><script defer src="app.js?v=2"></script>
 </head>
 <body>
 <a class="skip" href="#search">Skip to history</a>
@@ -22,7 +22,7 @@
 <section class="panel history" aria-labelledby="history-title">
 <div class="section-heading"><div><p class="eyebrow">THE RECORD</p><h2 id="history-title">Purchase history</h2></div><div class="actions"><button id="import-open">Import history</button><button id="export">Export CSV <span aria-hidden="true">↗</span></button></div></div>
 <label class="search-box"><span aria-hidden="true">⌕</span><span class="sr-only">Search orders and items</span><input id="search" type="search" placeholder="Search items, order IDs, recipients, or notes…" autocomplete="off"><kbd aria-hidden="true">/</kbd></label>
-<div class="filters"><div class="segments" role="group" aria-label="History view"><button id="view-orders" aria-pressed="true">Orders</button><button id="view-items" aria-pressed="false">Items</button></div><label class="channel-filter"><span class="sr-only">Purchase channel</span><select id="channel" aria-label="Purchase channel"><option value="">All purchases</option><option value="warehouse">Warehouse</option><option value="online">Online</option><option value="same-day">Same-day</option></select></label><label>From<input id="from" type="date"></label><label>To<input id="to" type="date"></label><button id="clear">Reset</button></div>
+<div class="filters"><div class="segments" role="group" aria-label="History view"><button id="view-orders" aria-pressed="true">Orders</button><button id="view-items" aria-pressed="false">Items</button></div><label class="channel-filter"><span class="sr-only">Purchase channel</span><select id="channel" aria-label="Purchase channel"><option value="">All purchases</option><option value="warehouse">Warehouse</option><option value="online">Online</option><option value="same-day">Same-day</option><option value="gas">Gas station</option></select></label><label>From<input id="from" type="date"></label><label>To<input id="to" type="date"></label><button id="clear">Reset</button></div>
 <p id="error" class="error" role="alert" hidden></p><p id="results-status" class="results-status" aria-live="polite"></p><div id="results"></div><div class="pager"><button id="previous" hidden>← Previous</button><span id="page-label"></span><button id="next" hidden>Next →</button></div>
 </section>
 <p class="footnote">Your saved archive is separate from Costco. History appears here after import; it does not update automatically.</p>

@@ -3,7 +3,7 @@ import { v } from 'convex/values';
 
 export const costcoOrder = v.object({
   orderId: v.string(), date: v.string(),
-  channel: v.union(v.literal('warehouse'), v.literal('online'), v.literal('same-day')),
+  channel: v.union(v.literal('warehouse'), v.literal('online'), v.literal('same-day'), v.literal('gas')),
   kind: v.union(v.literal('purchase'), v.literal('refund')),
   totalCents: v.number(), currency: v.literal('USD'),
   location: v.optional(v.string()), recipient: v.optional(v.string()), status: v.optional(v.string()),
