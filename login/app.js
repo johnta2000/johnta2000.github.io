@@ -103,6 +103,7 @@
         ['rent', endpoints.tools, 'rent:verify'],
         ['paymentQuestions', endpoints.tools, 'paymentQuestions:verify'],
         ['packing', endpoints.tools, 'packing:verify'],
+        ['costco', endpoints.tools, 'costco:verify'],
         ['nextcardLaunches', endpoints.tools, 'nextcardLaunches:verify'],
         ['accessOverview', endpoints.tools, 'accessOverview:verify'],
       ];
@@ -123,6 +124,7 @@
         addApp('Statement splits', '../tools/payments/statements/', 'Review and split charges with your parents.');
       }
       if (values.paymentQuestions) addApp('Payment questions', '../tools/payment/questions/', 'Notes and screenshots for charges and reimbursements.');
+      if (values.costco) addApp('Costco archive', '../tools/costco/', 'Search orders, items, and private receipt images.');
       if (values.packing) addApp('Packing', '../tools/packing/', 'A fresh packing checklist for every trip.');
       if (values.nextcardLaunches) addApp('NextCard Launches', '../tools/launches/', 'Plan a launch, choose channels, and track distribution.');
       if (values.rent) {

@@ -1,3 +1,4 @@
+import { receipt as costcoReceipt, preflight as costcoPreflight } from './costcoHttp';
 import { receipt as burgeryReceipt, preflight as burgeryPreflight } from "./burgeryHttp";
 import { pdf as statementPdf, preflight as statementPreflight } from './statementHttp';
 import { attachment as rentAttachment, preflight as rentPreflight } from "./rentFileHttp";
@@ -15,6 +16,9 @@ import { attachment, preflight } from "./paymentQuestionHttp";
 import { attachment as paymentAttachment, preflight as paymentPreflight } from "./paymentFileHttp";
 
 const http = httpRouter();
+http.route({ path: "/costco-receipt", method: "GET", handler: costcoReceipt });
+http.route({ path: "/costco-receipt", method: "POST", handler: costcoReceipt });
+http.route({ path: "/costco-receipt", method: "OPTIONS", handler: costcoPreflight });
 http.route({ path: "/burgery-receipt", method: "OPTIONS", handler: burgeryPreflight });
 http.route({ path: "/burgery-receipt", method: "GET", handler: burgeryReceipt });
 http.route({ path: "/burgery-receipt", method: "POST", handler: burgeryReceipt });

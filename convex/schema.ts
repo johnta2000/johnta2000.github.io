@@ -1,3 +1,4 @@
+import { costcoTables } from './costcoTables';
 import { nextcardLaunchTables } from "./nextcardLaunchTables";
 import { burgeryTables } from "./burgeryTables";
 import { packingTables } from "./packingTables";
@@ -15,6 +16,7 @@ import { rentTables } from "./rentTables";
 import { sleepTables } from "./sleepTables";
 
 export default defineSchema({
+  ...costcoTables,
   ...nextcardLaunchTables,
   ...burgeryTables,
   ...packingTables,

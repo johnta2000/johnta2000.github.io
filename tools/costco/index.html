@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow,noarchive"><meta name="referrer" content="no-referrer"><meta name="theme-color" content="#f5f5f2">
+<title>Costco archive — John Ta</title>
+<link rel="icon" href="../../assets/img/jt-mark.svg" type="image/svg+xml">
+<link rel="stylesheet" href="styles.css?v=1">
+<link rel="stylesheet" href="../../assets/css/searchable-select.css">
+<script async data-clerk-script crossorigin="anonymous" src="https://clerk.john-ta.com/npm/@clerk/ui@1/dist/ui.browser.js"></script>
+<script async data-clerk-script crossorigin="anonymous" data-clerk-publishable-key="pk_live_Y2xlcmsuam9obi10YS5jb20k" src="https://clerk.john-ta.com/npm/@clerk/clerk-js@6/dist/clerk.browser.js"></script>
+<script defer src="../../assets/js/searchable-select.js"></script><script defer src="model.js?v=1"></script><script defer src="app.js?v=1"></script>
+</head>
+<body>
+<a class="skip" href="#search">Skip to history</a>
+<div class="shell">
+<nav><a href="../../login/" class="brand"><span class="monogram">JT</span> Your apps <span class="slash">/</span> Costco</a><div><span class="private"><span aria-hidden="true">●</span> Private archive</span><button id="sign-out" hidden>Sign out</button></div></nav>
+<header><div><p class="eyebrow">YOUR PURCHASES, IN ONE PLACE</p><h1>The Costco archive<span>.</span></h1><p class="intro">Find the order. Check the item. Keep the receipt.</p></div><span class="receipt-mark" aria-hidden="true">▤</span></header>
+<section id="gate" class="panel gate"><p class="eyebrow">JUST FOR YOU</p><h2>Your history stays private.</h2><p id="gate-message" role="status">Loading sign-in…</p><div id="sign-in"></div><button id="retry-auth" hidden>Try again</button></section>
+<main id="app" hidden>
+<section class="summary" aria-label="Filtered history summary"><div><span>Orders & receipts</span><strong id="order-count">0</strong></div><div><span>Purchases</span><strong id="purchase-total">$0.00</strong></div><div><span>Refunds</span><strong id="refund-total">$0.00</strong></div><div><span>Net paid</span><strong id="net-total">$0.00</strong></div></section>
+<div class="coverage"><span class="dot"></span><p id="coverage" role="status">Loading imported history…</p><button id="refresh">Refresh</button></div>
+<section class="panel history" aria-labelledby="history-title">
+<div class="section-heading"><div><p class="eyebrow">THE RECORD</p><h2 id="history-title">Purchase history</h2></div><div class="actions"><button id="import-open">Import history</button><button id="export">Export CSV <span aria-hidden="true">↗</span></button></div></div>
+<label class="search-box"><span aria-hidden="true">⌕</span><span class="sr-only">Search orders and items</span><input id="search" type="search" placeholder="Search items, order IDs, recipients, or notes…" autocomplete="off"><kbd aria-hidden="true">/</kbd></label>
+<div class="filters"><div class="segments" role="group" aria-label="History view"><button id="view-orders" aria-pressed="true">Orders</button><button id="view-items" aria-pressed="false">Items</button></div><label class="channel-filter"><span class="sr-only">Purchase channel</span><select id="channel" aria-label="Purchase channel"><option value="">All purchases</option><option value="warehouse">Warehouse</option><option value="online">Online</option><option value="same-day">Same-day</option></select></label><label>From<input id="from" type="date"></label><label>To<input id="to" type="date"></label><button id="clear">Reset</button></div>
+<p id="error" class="error" role="alert" hidden></p><p id="results-status" class="results-status" aria-live="polite"></p><div id="results"></div><div class="pager"><button id="previous" hidden>← Previous</button><span id="page-label"></span><button id="next" hidden>Next →</button></div>
+</section>
+<p class="footnote">Your saved archive is separate from Costco. History appears here after import; it does not update automatically.</p>
+</main>
+<footer><span>JOHN TA / PERSONAL TOOLS</span><span>Costco archive</span></footer>
+</div>
+<dialog id="detail" aria-labelledby="detail-title"><div class="dialog-top"><p class="eyebrow">ORDER DETAILS</p><button id="close-detail" aria-label="Close order details">✕</button></div><div id="detail-body"></div></dialog>
+<dialog id="import-dialog" aria-labelledby="import-title"><div class="dialog-top"><p class="eyebrow">GROW YOUR ARCHIVE</p><button id="close-import" aria-label="Close import">✕</button></div><h2 id="import-title">Import order history</h2><p>Add a prepared JSON export with order IDs, dates, totals, and item details. Existing order IDs are skipped; saved records and notes are preserved.</p><p class="muted">Receipt images can be attached after opening an imported order.</p><label class="file-label">Choose history file<input id="import-file" type="file" accept="application/json,.json"></label><p id="import-status" role="status"></p><button id="import-confirm" class="primary" disabled>Import orders</button></dialog>
+<dialog id="image-dialog" aria-label="Receipt image"><div class="dialog-top"><strong id="image-name">Receipt</strong><button id="close-image" aria-label="Close receipt">✕</button></div><img id="full-image" alt="Saved Costco receipt"><a id="download-image" download="costco-receipt.png">Download original image</a></dialog>
+<noscript>Enable JavaScript to sign in and view your private history.</noscript>
+</body></html>
