@@ -184,6 +184,7 @@ async function syncFavorites() {
 }
 
 function wireShell() {
+  document.addEventListener('click',event=>{if(offlineMode&&event.target.closest('[data-rally-collection]')){event.preventDefault();showToast('Reconnect to open your personal collection.');}});
   el.openMenu.innerHTML=rallyIcon('more');
   document.addEventListener("click", handleAppLink);
   window.addEventListener("popstate", () => navigateTo(new URL(location.href), { push: false }));
@@ -368,7 +369,7 @@ async function openAuthorizedRoom() {
 function showRoomAccess() {
   showAuthRecovery('Choose your rave room', events.length
     ? 'This account does not have access to the linked project. You can open one of your rooms below, or ask its admin to invite this email.'
-    : 'No rave rooms are linked to this account yet. Ask the project admin to invite the email shown below, or sign in with your invited email.');
+    : 'Your personal rave collection is ready — open Rave diary to start logging nights. To join a shared plan, ask its admin to invite the email shown below.');
 }
 
 function showAuthRecovery(title, message) {
@@ -463,6 +464,7 @@ function render() {
   document.getElementById('lineupView').hidden=!nativeLineup;
   const renderer = { home: renderHome, stay: renderStay, crew: renderCrew, travel: renderTravel, passes: renderPasses, tasks: renderTasks, lineup: renderLineup, notes: renderNotes, meetups: renderMeetups }[activeView] || renderHome;
   renderer();
+  if(activeView==='home')window.RallyCollection?.mount(data,{offline:()=>offlineMode,loadExperience:()=>convexQuery('rallyCollection:draftFromEvent',{eventId:data.id})});
   const eventStatus=RallyEvents.lifecycle(data);
   if(eventStatus.finished||eventStatus.past){const label=eventStatus.finished?'Event finished':'Past rave';el.mobileCountdown.textContent=label;const countdown=el.page.querySelector('.countdown');if(countdown){countdown.querySelector('strong')?.remove();const caption=countdown.querySelector('span');if(caption)caption.textContent=label;}}
   if(activeView!=='meetups')resumeCrewLocation();

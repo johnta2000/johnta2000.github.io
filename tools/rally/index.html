@@ -132,6 +132,7 @@
     <link rel="stylesheet" href="./theme.css?v=6">
     <link rel="stylesheet" href="./project-theme.css?v=5">
     <link rel="stylesheet" href="../../assets/css/clerk-auth.css?v=20261014-2">
+    <link rel="stylesheet" href="./personal-collection.css?v=20261022-1">
   </head>
   <body class="booting">
     <div class="rally-loader" role="status" aria-live="polite"><strong>Rally</strong><p>Loading project…</p></div>
@@ -141,7 +142,7 @@
         <p class="eyebrow">Private rave rooms</p>
         <h1>Everyone on the<br><em>same wavelength.</em></h1>
         <p>Rooms, flights, passes, people, and loose ends—together in one place.</p>
-        <div id="clerkSignIn" data-clerk-mount></div>
+        <div id="clerkSignIn" data-clerk-mount></div><a class="collection-gate-link" href="./collection/">Go to Rave diary →</a>
         <h2 id="authTitle" hidden></h2>
         <p id="authStatus" class="auth-status" role="status">Loading secure sign-in…</p>
         <div id="authOptions" hidden></div>
@@ -152,14 +153,14 @@
     <div id="rallyApp" class="app-shell">
       <aside id="sidebar" class="sidebar">
         <div class="brand"><span class="brand-mark"><i></i><i></i><i></i></span><strong>Rally</strong><button id="closeMenu" class="mobile-only" aria-label="Close navigation">×</button></div>
-        <button id="eventSwitcher" class="event-switcher"><span id="eventThumb">⋯</span><span><small>Project room</small><strong id="eventName">Loading project…</strong></span><b>⌄</b></button>
+        <button id="eventSwitcher" class="event-switcher"><span id="eventThumb">⋯</span><span><small>Rave plan</small><strong id="eventName">Loading project…</strong></span><b>⌄</b></button>
         <div id="eventMenu" class="event-menu" hidden></div>
         <nav id="sideNav" aria-label="Rally sections"><span class="nav-skeleton"></span><span class="nav-skeleton"></span><span class="nav-skeleton short"></span></nav>
-        <div class="sidebar-bottom"><button id="sidebarSearch">Search this rave</button><button id="signOut">Sign out</button><a href="/">← john-ta.com</a></div>
+        <div class="sidebar-bottom"><a class="collection-nav-link" href="./collection/?view=projects">My raves <small>Shared</small></a><a class="collection-nav-link" data-rally-collection href="./collection/">♫ Rave diary <small>Private</small></a><button id="sidebarSearch">Search this rave</button><button id="signOut">Sign out</button><a href="/">← john-ta.com</a></div>
       </aside>
       <button id="menuBackdrop" class="menu-backdrop" hidden aria-label="Close menu"></button>
       <main class="main-column">
-        <header class="topbar"><button id="openMenu" class="icon-button" aria-label="Open navigation">☰</button><div class="mobile-event"><strong id="mobileEventName"></strong><small id="mobileCountdown"></small></div><span></span><button id="topInvite" class="secondary">＋ Invite crew</button><button id="accountButton" class="avatar" aria-label="Your profile">?</button></header>
+        <header class="topbar"><button id="openMenu" class="icon-button" aria-label="Open navigation">☰</button><div class="mobile-event"><strong id="mobileEventName"></strong><small id="mobileCountdown"></small></div><span></span><a class="collection-top-link" data-rally-collection href="./collection/">Rave diary</a><button id="topInvite" class="secondary">＋ Invite crew</button><button id="accountButton" class="avatar" aria-label="Your profile">?</button></header>
         <div id="page" class="page"><section class="boot-heading"><i></i><b></b><span></span></section><div class="boot-grid"><article></article><article></article><article></article><article></article><article></article><article></article></div></div>
         <section id="lineupView" class="page lineup" aria-label="Lineup" hidden></section>
       </main>
@@ -189,6 +190,7 @@
     <script defer src="./event-lifecycle.js?v=1"></script>
     <script defer src="./event-history.js?v=2"></script>
     <script defer src="../../assets/js/searchable-select.js?v=3"></script>
-    <script defer src="./app.js?v=55"></script>
+    <script defer src="./personal-collection.js?v=20261024-diary"></script>
+    <script defer src="./app.js?v=20261024-diary"></script>
   </body>
 </html>

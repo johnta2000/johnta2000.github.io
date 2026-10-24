@@ -1,5 +1,6 @@
 import { costcoTables } from './costcoTables';
 import { nextcardLaunchTables } from "./nextcardLaunchTables";
+import { rallyCollectionTables } from './rallyCollectionTables';
 import { burgeryTables } from "./burgeryTables";
 import { packingTables } from "./packingTables";
 import { monthlyJournalTables } from "./monthlyJournalTables";
@@ -18,6 +19,7 @@ import { sleepTables } from "./sleepTables";
 export default defineSchema({
   ...costcoTables,
   ...nextcardLaunchTables,
+  ...rallyCollectionTables,
   ...burgeryTables,
   ...packingTables,
   ...monthlyJournalTables,

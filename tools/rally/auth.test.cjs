@@ -55,10 +55,11 @@ test('an inaccessible explicit link offers only authorized rooms without bootstr
   assert.equal(calls.find(c=>c.name==='rally:bootstrap').args.eventId,'edc-2027');
   assert.equal(nodes.get('rallyApp').hidden,false);
 });
-test('a signed-in account without rooms receives invitation guidance and can retry',async()=>{
+test('an account without rooms sees collection and invitation guidance and can retry',async()=>{
   const allowed=[],{ctx,calls,nodes}=setup('',allowed);await ctx.unlock();
   assert(!calls.some(c=>c.name==='rally:bootstrap'));
-  assert(nodes.get('authStatus').textContent.includes('No rave rooms'));
+  assert(nodes.get('authStatus').textContent.includes('Rave diary'));
+  assert(nodes.get('authStatus').textContent.includes('invite'));
   assert.equal(nodes.get('authSignOut').hidden,false);
   allowed.push({id:'new-room',name:'New room'});
   await nodes.get('authOptions').children[0].onclick();

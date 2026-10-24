@@ -6,10 +6,16 @@
     "convex:dev": "convex dev",
     "convex:deploy": "convex deploy",
     "monitor:hertz": "node scripts/monitoring/hertz-las-may-2027.mjs",
-    "test:monitoring": "node --test scripts/monitoring/*.test.mjs"
+    "test:monitoring": "node --test scripts/monitoring/*.test.mjs",
+    "build:rally-collection": "vite build --config tools/rally/collection-src/vite.config.mts",
+    "test:rally-collection": "node --test tools/rally/collection*.test.cjs",
+    "check:rally-collection": "tsc -p tools/rally/collection-src/tsconfig.json"
   },
   "dependencies": {
-    "convex": "^1.41.0"
+    "convex": "^1.41.0",
+    "react": "19.2.6",
+    "react-dom": "19.2.6",
+    "lucide-react": "^1.29.0"
   },
   "overrides": {
     "esbuild": "0.28.1",
@@ -17,6 +23,11 @@
   },
   "devDependencies": {
     "jsdom": "^26.1.0",
-    "playwright": "1.55.1"
+    "playwright": "1.55.1",
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
+    "@vitejs/plugin-react": "6.0.2",
+    "vite": "8.0.13",
+    "typescript": "5.9.3"
   }
 }

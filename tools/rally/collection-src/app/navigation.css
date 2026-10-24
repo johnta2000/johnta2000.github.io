@@ -1,0 +1,36 @@
+/* One desktop toolbar; navigation opens only when needed. */
+@media(min-width:761px){
+  .spreadsheet-app .sheet-topbar { height:68px; padding:0 28px; gap:18px; border-bottom:1px solid var(--line); }
+  .desktop-menu-trigger { width:44px; height:44px; border:1px solid var(--line); border-radius:10px; display:grid; place-items:center; color:var(--secondary); flex-shrink:0; }
+  .desktop-menu-trigger:hover { background:var(--subtle); color:var(--accent); }
+  .collection-breadcrumb { display:flex; align-items:center; gap:12px; color:var(--muted); font-size:12px; min-width:0; }
+  .collection-breadcrumb svg { color:#b9b5c1; }
+  .collection-breadcrumb span { white-space:nowrap; }
+  .collection-breadcrumb strong { font-weight:550; color:var(--secondary); }
+  .spreadsheet-app .collection-account { gap:18px; }
+  .spreadsheet-app .collection-account > span { max-width:240px; }
+}
+.collection-drawer { position:fixed; inset:0 auto 0 0; margin:0; width:320px; max-width:calc(100vw - 32px); height:100dvh; max-height:100dvh; padding:0; border:0; border-right:1px solid var(--line); background:#fff; color:var(--ink); box-shadow:12px 0 60px #251a3815; }
+.collection-drawer::backdrop { background:#211b2d38; backdrop-filter:blur(2px); }
+.drawer-content { min-height:100%; display:flex; flex-direction:column; padding:20px; }
+.drawer-content header { display:flex; align-items:center; justify-content:space-between; padding:0 4px 24px; }
+.drawer-content header strong { font-size:24px; letter-spacing:-1px; }
+.drawer-content header button { width:44px; height:44px; display:grid; place-items:center; border-radius:10px; color:var(--secondary); }
+.drawer-content header button:hover { background:var(--subtle); }
+.drawer-content nav { display:flex; flex-direction:column; gap:6px; }
+.drawer-content .drawer-plans { display:flex; align-items:center; gap:12px; min-height:76px; padding:14px 12px; border:1px solid var(--line); border-radius:12px; margin-bottom:24px; font-size:14px; font-weight:550; }
+.drawer-plans > span { flex:1; }
+.drawer-plans small { display:block; font-size:11px; font-weight:400; color:var(--muted); margin-top:6px; }
+.drawer-content .drawer-section-label { font-size:11px; display:flex; justify-content:space-between; align-items:center; text-transform:uppercase; letter-spacing:1px; padding:0 12px; color:var(--muted); margin:0 0 10px; }
+.drawer-content nav > button { min-height:48px; text-align:left; padding:12px; display:flex; align-items:center; gap:12px; border-radius:10px; font-size:14px; color:var(--secondary); }
+.drawer-content nav > button:hover,.drawer-plans:hover { background:var(--subtle); }
+.drawer-content nav > button[aria-current=page] { background:var(--accent-soft); color:var(--accent); font-weight:600; }
+.drawer-content footer { margin-top:auto; padding:32px 12px 12px; display:flex; gap:10px; color:var(--muted); line-height:1.7; }
+.drawer-content footer svg { margin-top:4px; }
+.drawer-content footer strong { display:block; font-size:12px; font-weight:550; color:var(--secondary); overflow-wrap:anywhere; }
+.drawer-content footer small { font-size:11px; }
+@media(min-width:761px) and (max-width:1000px){
+  .spreadsheet-app .sheet-topbar { padding:0 22px; gap:12px; }
+  .collection-breadcrumb { gap:8px; }
+  .spreadsheet-app .collection-account > span { max-width:150px; font-size:11px; }
+}
