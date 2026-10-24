@@ -4,11 +4,11 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow,noarchive"><meta name="referrer" content="no-referrer"><meta name="theme-color" content="#f5f5f2">
 <title>Costco archive — John Ta</title>
 <link rel="icon" href="../../assets/img/jt-mark.svg" type="image/svg+xml">
-<link rel="stylesheet" href="styles.css?v=2">
+<link rel="stylesheet" href="styles.css?v=3">
 <link rel="stylesheet" href="../../assets/css/searchable-select.css">
 <script async data-clerk-script crossorigin="anonymous" src="https://clerk.john-ta.com/npm/@clerk/ui@1/dist/ui.browser.js"></script>
 <script async data-clerk-script crossorigin="anonymous" data-clerk-publishable-key="pk_live_Y2xlcmsuam9obi10YS5jb20k" src="https://clerk.john-ta.com/npm/@clerk/clerk-js@6/dist/clerk.browser.js"></script>
-<script defer src="../../assets/js/searchable-select.js"></script><script defer src="model.js?v=2"></script><script defer src="app.js?v=2"></script>
+<script defer src="../../assets/js/searchable-select.js"></script><script defer src="model.js?v=2"></script><script defer src="app.js?v=3"></script>
 </head>
 <body>
 <a class="skip" href="#search">Skip to history</a>
@@ -31,6 +31,6 @@
 </div>
 <dialog id="detail" aria-labelledby="detail-title"><div class="dialog-top"><p class="eyebrow">ORDER DETAILS</p><button id="close-detail" aria-label="Close order details">✕</button></div><div id="detail-body"></div></dialog>
 <dialog id="import-dialog" aria-labelledby="import-title"><div class="dialog-top"><p class="eyebrow">GROW YOUR ARCHIVE</p><button id="close-import" aria-label="Close import">✕</button></div><h2 id="import-title">Import order history</h2><p>Add a prepared JSON export with order IDs, dates, totals, and item details. Existing order IDs are skipped; saved records and notes are preserved.</p><p class="muted">Receipt images can be attached after opening an imported order.</p><label class="file-label">Choose history file<input id="import-file" type="file" accept="application/json,.json"></label><p id="import-status" role="status"></p><button id="import-confirm" class="primary" disabled>Import orders</button></dialog>
-<dialog id="image-dialog" aria-label="Receipt image"><div class="dialog-top"><strong id="image-name">Receipt</strong><button id="close-image" aria-label="Close receipt">✕</button></div><img id="full-image" alt="Saved Costco receipt"><a id="download-image" download="costco-receipt.png">Download original image</a></dialog>
+<dialog id="image-dialog" aria-label="Receipt image"><div class="receipt-toolbar"><div class="dialog-top"><div><strong id="image-name">Receipt</strong><p id="image-order" class="muted"></p></div><button id="close-image" aria-label="Close receipt">✕</button></div><div id="image-pages" class="image-pages" hidden><button id="previous-image" aria-label="Previous receipt image">← Previous</button><span id="image-page-label" role="status"></span><button id="next-image" aria-label="Next receipt image">Next →</button></div></div><p id="image-status" class="muted" role="status"></p><button id="retry-receipt" hidden>Try again</button><img id="full-image" alt="Saved Costco receipt" hidden><a id="download-image" download="costco-receipt.png" hidden>Download original image</a></dialog>
 <noscript>Enable JavaScript to sign in and view your private history.</noscript>
 </body></html>

@@ -4,11 +4,14 @@
   const $=id=>document.getElementById(id), M=window.CostcoModel;
   let session=null, sessionId, epoch=0, mounted=false, rows=[], visible=[], view='orders', page=0, loaded=false, detail=null, detailEpoch=0, importOrders=null;
   const urls=new Set();
+  let imageEpoch=0, receiptFiles=[], receiptIndex=0;
+  const receiptUrls=new Map();
   const esc=text=>String(text??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const filters=()=>({search:$('search').value,channel:$('channel').value,from:$('from').value,to:$('to').value});
   const error=message=>{ $('error').textContent=message; $('error').hidden=!message; };
   function revoke(){for(const url of urls)URL.revokeObjectURL(url);urls.clear();}
-  function closeDetail(){++detailEpoch;detail=null;$('image-dialog').close();$('full-image').removeAttribute('src');$('download-image').removeAttribute('href');$('detail').close();$('detail-body').replaceChildren();revoke();}
+  function closeReceipt(){++imageEpoch;$('image-dialog').close();$('full-image').removeAttribute('src');$('full-image').hidden=true;$('download-image').removeAttribute('href');$('download-image').hidden=true;for(const url of receiptUrls.values())URL.revokeObjectURL(url);receiptUrls.clear();receiptFiles=[];$('image-order').textContent='';$('image-status').textContent='';$('image-pages').hidden=true;$('retry-receipt').hidden=true;}
+  function closeDetail(){++detailEpoch;detail=null;closeReceipt();$('detail').close();$('detail-body').replaceChildren();revoke();}
   function clearPrivate(){rows=[];visible=[];loaded=false;closeDetail();$('import-dialog').close();importOrders=null;$('import-file').value='';$('import-status').textContent='';$('import-confirm').disabled=true;$('app').hidden=true;$('results').replaceChildren();$('order-count').textContent='0';for(const id of ['purchase-total','refund-total','net-total'])$(id).textContent='$0.00';$('coverage').textContent='';$('results-status').textContent='';$('page-label').textContent='';$('image-name').textContent='Receipt';$('search').value='';$('from').value='';$('to').value='';$('channel').value='';picker?.sync();error('');}
   async function tokenFor(active){
     const token=await active.getToken();
@@ -38,8 +41,9 @@
     for(const entry of list.slice(page*40,page*40+40)){
       const row=view==='orders'?entry:entry.row,o=row.order;
       const open=`data-order="${esc(row._id)}"`;
-      if(view==='orders')html+=`<tr><td><button class="order-link" ${open}>${esc(o.orderId)}</button><small>${o.kind==='refund'?'Refund · ':''}${esc(o.items.slice(0,2).map(i=>i.name).join(', ')||o.location||'Item details not imported')}${o.items.length>2?' +'+(o.items.length-2):''}</small></td><td>${M.date(o.date)}<small>${esc(o.recipient||o.location||'')}</small></td><td class="hide-mobile"><span class="tag ${esc(o.channel)}">${M.channel(o.channel)}</span></td><td class="amount ${o.kind==='refund'?'refund':''}">${M.money(o.totalCents)}</td><td><button ${open} aria-label="Open order ${esc(o.orderId)}" class="order-link arrow">↗</button></td></tr>`;
-      else html+=`<tr><td><button class="order-link" ${open}>${esc(entry.item.name)}</button><small>${esc(entry.item.itemNumber?'Item #'+entry.item.itemNumber:'Item number unavailable')}</small></td><td>${M.date(o.date)}<small>${esc(o.orderId)}${o.kind==='refund'?' · Refund':''}</small></td><td class="hide-mobile">${entry.item.quantity??'—'}</td><td class="amount">${M.money(entry.item.totalCents)}</td><td><button ${open} aria-label="Open order ${esc(o.orderId)}" class="order-link arrow">↗</button></td></tr>`;
+      const receipt=`<button type="button" class="receipt-shortcut" data-receipt="${esc(row._id)}" aria-label="View receipt for order ${esc(o.orderId)}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2V3Zm3 5h6m-6 4h6m-6 4h3"/></svg>View receipt</button>`;
+      if(view==='orders')html+=`<tr><td><button class="order-link" ${open}>${esc(o.orderId)}</button><small>${o.kind==='refund'?'Refund · ':''}${esc(o.items.slice(0,2).map(i=>i.name).join(', ')||o.location||'Item details not imported')}${o.items.length>2?' +'+(o.items.length-2):''}</small>${receipt}</td><td>${M.date(o.date)}<small>${esc(o.recipient||o.location||'')}</small></td><td class="hide-mobile"><span class="tag ${esc(o.channel)}">${M.channel(o.channel)}</span></td><td class="amount ${o.kind==='refund'?'refund':''}">${M.money(o.totalCents)}</td><td><button ${open} aria-label="Open order ${esc(o.orderId)}" class="order-link arrow">↗</button></td></tr>`;
+      else html+=`<tr><td><button class="order-link" ${open}>${esc(entry.item.name)}</button><small>${esc(entry.item.itemNumber?'Item #'+entry.item.itemNumber:'Item number unavailable')}</small>${receipt}</td><td>${M.date(o.date)}<small>${esc(o.orderId)}${o.kind==='refund'?' · Refund':''}</small></td><td class="hide-mobile">${entry.item.quantity??'—'}</td><td class="amount">${M.money(entry.item.totalCents)}</td><td><button ${open} aria-label="Open order ${esc(o.orderId)}" class="order-link arrow">↗</button></td></tr>`;
     }
     $('results').innerHTML=html+'</tbody></table></div>';
   }
@@ -62,6 +66,25 @@
     try{const row=await call('query','detail',{id});if(generation!==epoch||selection!==detailEpoch)return;detail=row;drawDetail(row);await loadReceipts(row,selection,generation);}
     catch(e){if(generation===epoch&&selection===detailEpoch)$('detail-body').innerHTML='<p class="error">This order could not load. Close it and try again.</p>';}
   }
+  async function openReceipts(id, knownRow=null, fileId=null){
+    closeReceipt();const selection=imageEpoch,generation=epoch;
+    $('image-name').textContent='Receipt';$('image-status').textContent='Loading receipt…';$('image-dialog').showModal();
+    try{const row=knownRow||await call('query','detail',{id});if(selection!==imageEpoch||generation!==epoch)return;
+      receiptFiles=row.files;$('image-order').textContent=`${row.order.orderId} · ${M.date(row.order.date)} · ${M.money(row.order.totalCents)}`;
+      if(!receiptFiles.length){$('image-status').textContent='No receipt image saved for this order yet. You can attach one in the order details.';return;}
+      await showReceipt(Math.max(0,receiptFiles.findIndex(file=>file._id===fileId)));
+    }catch{if(selection===imageEpoch&&generation===epoch){$('image-status').textContent='This receipt could not load. Close it and try again.';}}
+  }
+  async function showReceipt(index){
+    const file=receiptFiles[index];if(!file)return;receiptIndex=index;const selection=++imageEpoch,generation=epoch;
+    $('image-name').textContent=file.name;$('image-status').textContent='Loading private image…';$('full-image').hidden=true;$('full-image').removeAttribute('src');$('download-image').hidden=true;$('retry-receipt').hidden=true;
+    $('image-pages').hidden=receiptFiles.length<2;$('image-page-label').textContent=`${index+1} of ${receiptFiles.length}`;$('previous-image').disabled=index===0;$('next-image').disabled=index===receiptFiles.length-1;
+    $('image-dialog').scrollTop=0;
+    try{let url=receiptUrls.get(file._id);if(!url){const response=await fileRequest({id:file._id}),blob=await response.blob();if(selection!==imageEpoch||generation!==epoch)return;url=URL.createObjectURL(blob);receiptUrls.set(file._id,url);}
+      if(selection!==imageEpoch||generation!==epoch)return;
+      $('full-image').src=url;$('full-image').alt=file.name;$('full-image').hidden=false;$('download-image').href=url;$('download-image').download=file.name;$('download-image').hidden=false;$('image-status').textContent='';
+    }catch{if(selection===imageEpoch&&generation===epoch){$('image-status').textContent='This image could not load. Try again.';$('retry-receipt').hidden=false;}}
+  }
   function drawDetail(row){
     const o=row.order;
     $('detail-body').innerHTML=`<div class="detail-heading"><div><h2 id="detail-title">${esc(o.orderId)}</h2><p class="muted">${M.date(o.date)} · ${o.kind==='refund'?'Refund':'Purchase'}</p></div><strong class="total">${M.money(o.totalCents)}</strong></div><div class="detail-meta"><span class="tag ${esc(o.channel)}">${M.channel(o.channel)}</span>${o.location?'<span>'+esc(o.location)+'</span>':''}${o.recipient?'<span>Recipient: '+esc(o.recipient)+'</span>':''}${o.status?'<span>'+esc(o.status)+'</span>':''}</div><div class="detail-section"><h3>Item breakdown</h3>${o.items.length?'<div class="table-wrap"><table><thead><tr><th>Item</th><th>Qty</th><th class="amount">Unit price</th><th class="amount">Line total</th></tr></thead><tbody>'+o.items.map(i=>`<tr><td>${esc(i.name)}<small>${esc(i.itemNumber?'#'+i.itemNumber:'')}</small></td><td>${i.quantity??'—'}</td><td class="amount">${M.money(i.unitCents)}</td><td class="amount">${M.money(i.totalCents)}</td></tr>`).join('')+'</tbody></table></div>':'<p class="muted">Item details have not been imported for this record.</p>'}<div class="totals">${[['Subtotal',o.subtotalCents],['Tax',o.taxCents],['Shipping / delivery',o.shippingCents],['Discounts',o.discountCents],['Total paid',o.totalCents]].filter(([,v])=>v!==undefined).map(([k,v])=>`<div><span>${k}</span><span>${M.money(v)}</span></div>`).join('')}</div><p class="muted">Amounts are recorded as shown by the source. A dash means the detail was unavailable.</p></div><section class="detail-section"><h3>Receipt images <span class="muted">· ${row.files.length}</span></h3><p class="muted">Click an image to see the full receipt.</p><div id="receipts" class="receipts"></div><label class="file-label">Attach receipt screenshots<input id="receipt-upload" type="file" accept="image/png,image/jpeg,image/webp" multiple></label><button id="upload-receipts" type="button">Upload selected images</button><p id="receipt-status" class="muted" role="status">${row.files.length?'Loading private images…':'No receipt images saved yet.'}</p></section><section class="detail-section"><h3><label for="order-note">Your notes</label></h3><textarea id="order-note" class="note" maxlength="10000" placeholder="Who was this for? Return details? Anything to remember…">${esc(row.note)}</textarea><div class="note-actions"><button id="save-note" class="primary">Save note</button><span id="note-status" role="status"></span></div></section>${o.sourceText?'<details class="detail-section"><summary>Original receipt text</summary><pre class="source-text">'+esc(o.sourceText)+'</pre></details>':''}<p class="muted">Imported ${new Date(row.importedAt).toLocaleDateString('en-US')}</p>`;
@@ -69,7 +92,7 @@
   }
   async function loadReceipts(row, selection, generation){
     let failed=0;
-    for(const file of row.files){try{const response=await fileRequest({id:file._id});const blob=await response.blob();if(selection!==detailEpoch||generation!==epoch)return;const url=URL.createObjectURL(blob);urls.add(url);const button=document.createElement('button');button.className='receipt-card';const img=document.createElement('img');img.src=url;img.alt=file.name;const label=document.createElement('span');label.textContent=file.name;button.append(img,label);button.onclick=()=>{$('full-image').src=url;$('image-name').textContent=file.name;$('download-image').href=url;$('download-image').download=file.name;$('image-dialog').showModal();};$('receipts').append(button);}catch{failed++;}}
+    for(const file of row.files){try{const response=await fileRequest({id:file._id});const blob=await response.blob();if(selection!==detailEpoch||generation!==epoch)return;const url=URL.createObjectURL(blob);urls.add(url);const button=document.createElement('button');button.className='receipt-card';const img=document.createElement('img');img.src=url;img.alt=file.name;const label=document.createElement('span');label.textContent=file.name;button.append(img,label);button.onclick=()=>void openReceipts(row._id,row,file._id);$('receipts').append(button);}catch{failed++;}}
     if(selection===detailEpoch&&generation===epoch)$('receipt-status').textContent=failed?`${failed} image(s) could not load. Reopen this order to retry.`:row.files.length?'Original images · private to your account':'No receipt images saved yet.';
   }
   async function saveNote(){
@@ -96,8 +119,15 @@
   $('clear').onclick=()=>{for(const id of ['search','channel','from','to'])$(id).value='';picker?.sync();page=0;render();};
   for(const name of ['orders','items'])$('view-'+name).onclick=()=>{view=name;page=0;render();};
   $('previous').onclick=()=>{page--;render();};$('next').onclick=()=>{page++;render();};$('refresh').onclick=()=>{if(session)void load();};
-  $('results').onclick=e=>{const button=e.target.closest('[data-order]');if(button)void openOrder(button.dataset.order);};
-  $('close-detail').onclick=closeDetail;$('detail').addEventListener('cancel',e=>{e.preventDefault();closeDetail();});$('close-image').onclick=()=>$('image-dialog').close();
+  $('results').onclick=e=>{const receipt=e.target.closest('[data-receipt]');if(receipt){void openReceipts(receipt.dataset.receipt);return;}const button=e.target.closest('[data-order]');if(button)void openOrder(button.dataset.order);};
+  $('close-detail').onclick=closeDetail;$('detail').addEventListener('cancel',e=>{e.preventDefault();closeDetail();});$('close-image').onclick=closeReceipt;
+  $('image-dialog').addEventListener('cancel',e=>{e.preventDefault();closeReceipt();});
+  let backdropPressed=false;
+  const outsideImage=e=>{const r=$('image-dialog').getBoundingClientRect();return e.target===$('image-dialog')&&(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom);};
+  $('image-dialog').addEventListener('pointerdown',e=>{backdropPressed=outsideImage(e);});
+  $('image-dialog').addEventListener('pointercancel',()=>{backdropPressed=false;});
+  $('image-dialog').addEventListener('click',e=>{if(backdropPressed&&outsideImage(e))closeReceipt();backdropPressed=false;});
+  $('previous-image').onclick=()=>void showReceipt(receiptIndex-1);$('next-image').onclick=()=>void showReceipt(receiptIndex+1);$('retry-receipt').onclick=()=>void showReceipt(receiptIndex);
   $('export').onclick=()=>{if(!loaded||!session)return;const url=URL.createObjectURL(new Blob([M.csv(visible)],{type:'text/csv;charset=utf-8'})),a=document.createElement('a');a.href=url;a.download='costco-history.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};
   $('import-open').onclick=()=>$('import-dialog').showModal();$('close-import').onclick=()=>$('import-dialog').close();
   $('import-file').onchange=async()=>{const generation=epoch;importOrders=null;$('import-confirm').disabled=true;try{const file=$('import-file').files[0];if(!file)return;if(file.size>5*1024*1024)throw Error('Choose a history file under 5 MB.');const data=JSON.parse(await file.text());if(generation!==epoch)return;const orders=Array.isArray(data)?data:data.orders;if(!Array.isArray(orders)||!orders.length||orders.length>2000)throw Error('The file must contain 1–2,000 orders.');importOrders=orders;$('import-status').textContent=`${orders.length} records ready. Existing IDs will be skipped.`;$('import-confirm').disabled=false;}catch(e){if(generation===epoch)$('import-status').textContent=e.message;}};
