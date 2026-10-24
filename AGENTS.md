@@ -26,3 +26,9 @@
 - Keep this tool note-first: one rich text editor, screenshots, and an Inbox → Waiting → Done queue. Do not add required transaction fields, repayment forms, or a required reason for moving a note. Preserve any older structured data under optional history/details.
 - Test with synthetic images and mock records. Import real financial screenshots only with explicit permission.
 - The local Convex checkout can differ from the deployed backend. Preserve unrelated deployed modules, routes, and tables when publishing this tool; do not deploy a stale full checkout.
+
+## Statement allocation reviews
+
+- Use `/tools/payments/statements/` for Bilt-style sessions that label individual transactions as John, Parents, Jevin or Other, including exact splits. Payment Questions is a separate notes inbox.
+- Import Chase activity CSVs with the existing statement parser/import scripts. Start every row unassigned, preserve the private original CSV, and never infer an opening balance, due date or promotional APR expiration from activity dates.
+- CSV totals are net imported activity, not verified current issuer balances. Preserve existing PDF review sessions and their labels.

@@ -46,3 +46,15 @@ test('amounts use exact cents; splits reject fractions, wrong sums and mixed sig
 test('stale saves cannot overwrite another reviewer; clear and notes preserve consistency',async()=>{const f=fixture();await f.run('save',assign);await assert.rejects(f.run('save',assign),/changed on another device/);await f.run('save',{...assign,expectedVersion:1,allocation:null,note:' ask later '});const r=f.tables.paymentStatementRows[0];assert.equal(r.allocation,undefined);assert.equal(r.note,'ask later');assert.equal(r.version,2);});
 test('library and revocation require owner login and ownership',async()=>{for(const name of ['list','revoke'])await assert.rejects(fixture().run(name,{id:'s1'}),/not authorized/);const f=fixture({email:'owner@example.com',emailVerified:true});assert.equal((await f.run('list')).length,1);await assert.rejects(f.run('revoke',{id:'s2'}),/not found/);await f.run('revoke',{id:'s1'});await assert.rejects(f.run('review',{token}),/unavailable/);});
 test('import rejects unreconciled or duplicate statements; fresh rows stay unassigned',async()=>{const input={token:'c'.repeat(43),title:'Test',period:'Test period',dueDate:'2026-10-12',balanceCents:100,fingerprint:'f'.repeat(64),storageId:'pdf',rows:[{date:'2026-09-01',description:'Example',amountCents:100,kind:'purchase',page:1}]};await assert.rejects(fixture().run('importStatement',{...input,balanceCents:101}),/reconcile/);const f=fixture();const id=await f.run('importStatement',input);assert.equal(f.tables.paymentStatementRows.find(r=>r.statementId===id).allocation,undefined);await assert.rejects(f.run('importStatement',input),/already imported/);});
+
+test('CSV activity imports with unknown due date, private source metadata and unassigned rows',async()=>{
+ const f=fixture();f.ctx.db.system.get=async()=>({contentType:'text/csv',size:500});
+ const input={token:'c'.repeat(43),title:'Example CSV',period:'Activity export',sourceType:'csv',sourceName:'activity.csv',dueDate:'',balanceCents:7000,fingerprint:'f'.repeat(64),storageId:'csv',rows:[{date:'2026-09-01',description:'Example purchase',amountCents:10000,kind:'purchase',page:2},{date:'2026-09-02',description:'Example payment',amountCents:-3000,kind:'payment',page:3}]};
+ const id=await f.run('importStatement',input);const review=await f.run('review',{token:input.token});
+ assert.equal(review.sourceType,'csv');assert.equal(review.dueDate,'');assert.equal(review.balanceCents,7000);assert.equal(review.rows.length,2);assert.ok(review.rows.every(r=>!r.allocation));
+ assert.equal((await f.run('source',{token:input.token})).storageId,'csv');
+ await assert.rejects(f.run('source',{token:'z'.repeat(43)}),/unavailable/);
+ const bad=fixture();await assert.rejects(bad.run('importStatement',input),/type does not match/);
+ await assert.rejects(fixture().run('importStatement',{...input,sourceType:'pdf'}),/Invalid statement details/);
+ assert.equal(f.tables.paymentStatements.find(s=>s._id===id).storageId,'csv');
+});

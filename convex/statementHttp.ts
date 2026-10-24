@@ -7,9 +7,9 @@ export const pdf = httpAction(async (ctx,request)=>{
   const h=headers(request);
   try {
     const token=request.headers.get('X-Statement-Token')||'';
-    const id=await ctx.runQuery(anyApi.statements.file,{token});
-    const blob=await ctx.storage.get(id);
+    const source=await ctx.runQuery(anyApi.statements.source,{token});
+    const blob=await ctx.storage.get(source.storageId);
     if(!blob) throw Error('Unavailable');
-    return new Response(blob,{headers:{...h,'Content-Type':'application/pdf','Content-Disposition':'inline; filename="Bilt-statement.pdf"'}});
+    return new Response(blob,{headers:{...h,'Content-Type':source.type,'Content-Disposition':source.type==='text/csv'?'attachment; filename="activity.csv"':'inline; filename="statement.pdf"'}});
   }catch {return new Response('This statement link is unavailable.',{status:404,headers:h});}
 });

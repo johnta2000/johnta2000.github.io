@@ -14,7 +14,7 @@ async function access(ctx: QueryCtx | MutationCtx, token: string) {
 export const review = query({ args: { token: v.string() }, handler: async (ctx, { token }) => {
   const s = await access(ctx, token);
   const rows = await ctx.db.query('paymentStatementRows').withIndex('by_statement', q => q.eq('statementId', s._id)).collect();
-  return { title: s.title, period: s.period, dueDate: s.dueDate, balanceCents: s.balanceCents, view: { filter: s.view?.filter === 'auto' ? 'unassigned' : s.view?.filter ?? 'unassigned', search: s.view?.search ?? '' }, viewVersion: s.viewVersion ?? 0, rows: rows.sort((a,b) => a.order-b.order).map(({ statementId, _creationTime, ...r }) => r) };
+  return { title: s.title, period: s.period, sourceType: s.sourceType || 'pdf', sourceName: s.sourceName || 'statement.pdf', dueDate: s.dueDate, balanceCents: s.balanceCents, view: { filter: s.view?.filter === 'auto' ? 'unassigned' : s.view?.filter ?? 'unassigned', search: s.view?.search ?? '' }, viewVersion: s.viewVersion ?? 0, rows: rows.sort((a,b) => a.order-b.order).map(({ statementId, _creationTime, ...r }) => r) };
 } });
 export const view = query({ args: { token: v.string() }, handler: async (ctx, { token }) => {
   const s = await access(ctx, token);
@@ -41,6 +41,7 @@ export const save = mutation({ args: { token: v.string(), id: v.id('paymentState
   return { version: row.version+1 };
 } });
 export const file = internalQuery({ args: { token: v.string() }, handler: async (ctx,args) => (await access(ctx,args.token)).storageId });
+export const source = internalQuery({ args: { token: v.string() }, handler: async (ctx, args) => { const s = await access(ctx, args.token); return { storageId: s.storageId, type: s.sourceType === 'csv' ? 'text/csv' : 'application/pdf', name: s.sourceName || 'statement.pdf' }; } });
 export const list = query({ args: {}, handler: async ctx => {
   const user = await authorized(ctx);
   const statements = await ctx.db.query('paymentStatements').withIndex('by_owner', q => q.eq('owner',user.workspaceOwner)).collect();
@@ -52,17 +53,18 @@ export const revoke = mutation({ args: { id: v.id('paymentStatements') }, handle
   await ctx.db.patch(id,{enabled:false});
 } });
 // Imports run through the deployment's authenticated administrator API. No public import endpoint.
-export const importStatement = internalMutation({ args: { token:v.string(), title:v.string(), period:v.string(), dueDate:v.string(), balanceCents:v.number(), fingerprint:v.string(), storageId:v.id('_storage'), rows:v.array(v.object(statementRow)) }, handler: async (ctx,args) => {
+export const importStatement = internalMutation({ args: { token:v.string(), title:v.string(), period:v.string(), sourceType:v.optional(v.union(v.literal('pdf'),v.literal('csv'))), sourceName:v.optional(v.string()), dueDate:v.string(), balanceCents:v.number(), fingerprint:v.string(), storageId:v.id('_storage'), rows:v.array(v.object(statementRow)) }, handler: async (ctx,args) => {
   const owner = process.env.CARD_PAYMENTS_WORKSPACE_OWNER?.trim();
   if (!owner) throw Error('Payments workspace is not configured.');
   if (!/^[A-Za-z0-9_-]{43}$/.test(args.token) || !/^[a-f0-9]{64}$/.test(args.fingerprint)) throw Error('Invalid import identifier.');
-  if (!args.title.trim() || args.title.length>100 || args.period.length>100 || !/^20\d{2}-\d{2}-\d{2}$/.test(args.dueDate)) throw Error('Invalid statement details.');
-  if (!args.rows.length || args.rows.length>500 || !money(args.balanceCents) || args.rows.some(r => !money(r.amountCents) || !r.description.trim() || r.description.length>1000 || !Number.isSafeInteger(r.page) || r.page<1 || r.page>100 || !/^20\d{2}-\d{2}-\d{2}$/.test(r.date))) throw Error('Invalid transaction data.');
+  if (!args.title.trim() || args.title.length>100 || args.period.length>100 || (!(args.sourceType === 'csv' && args.dueDate === '') && !/^20\d{2}-\d{2}-\d{2}$/.test(args.dueDate))) throw Error('Invalid statement details.');
+  if (args.sourceName !== undefined && (!args.sourceName.trim() || args.sourceName.length > 160 || /[\r\n\x00]/.test(args.sourceName))) throw Error('Invalid source filename.');
+  if (!args.rows.length || args.rows.length>500 || !money(args.balanceCents) || args.rows.some(r => !money(r.amountCents) || !r.description.trim() || r.description.length>1000 || !Number.isSafeInteger(r.page) || r.page<1 || r.page>(args.sourceType === 'csv' ? 501 : 100) || !/^20\d{2}-\d{2}-\d{2}$/.test(r.date))) throw Error('Invalid transaction data.');
   if (args.rows.reduce((sum,r) => sum+r.amountCents,0) !== args.balanceCents) throw Error('Statement does not reconcile.');
   if (await ctx.db.query('paymentStatements').withIndex('by_fingerprint',q=>q.eq('fingerprint',args.fingerprint)).unique()) throw Error('This statement was already imported.');
   if (await ctx.db.query('paymentStatements').withIndex('by_token',q=>q.eq('token',args.token)).unique()) throw Error('Link already exists.');
   const file = await ctx.db.system.get(args.storageId);
-  if (!file || file.contentType !== 'application/pdf' || file.size>10000000) throw Error('A PDF is required.');
+  if (!file || file.contentType !== (args.sourceType === 'csv' ? 'text/csv' : 'application/pdf') || file.size>10000000) throw Error('The source file type does not match the import.');
   const {rows,...metadata}=args;
   const id=await ctx.db.insert('paymentStatements',{...metadata,owner,enabled:true,createdAt:Date.now()});
   for (const [order,row] of rows.entries()) await ctx.db.insert('paymentStatementRows',{...row,statementId:id,order,note:'',version:0,updatedAt:Date.now()});

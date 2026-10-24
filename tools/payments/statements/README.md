@@ -12,6 +12,12 @@ The selected filter and search save automatically to this statement whenever a v
 
 Selecting Unassigned saves that exact filter, including when the list becomes empty. Older automatic views are read as Unassigned so the filter stays stable as charges are assigned. Confirmed allocations disappear from filtered lists after saves finish; failed saves keep the original charge. Changing the shared view never edits charge allocations, whose version checks still prevent stale financial writes. No save-view button, browser storage, or new share URL is needed.
 
+## Import Chase activity CSVs
+
+Use `scripts/payments/parse-chase-activity.py INPUT.csv REVIEW.json --title TITLE` to prepare an activity review. Optional `--period-note` preserves context such as a promotional APR period without inventing its expiration. The parser retains exact descriptions and source CSV row references, reverses Chase's sign convention for the allocation tool, and reconciles all rows. Then run the existing import script with the CSV as its source file. All rows begin unassigned; reimporting the same bytes preserves the existing review and labels.
+
+CSV reviews show **Net imported activity**, not a verified issuer balance. Opening balances, due dates and promotional expiration dates must not be inferred from transaction dates. The original CSV downloads through the same protected source endpoint. Existing PDF reviews keep their source viewer and labels.
+
 ## Import another statement
 
 1. Run `scripts/payments/parse-bilt.py` with a text-based Cardless Bilt PDF and a JSON output path **outside the repository**. It validates purchases, payments/credits and the ending balance; unsupported layouts or fees fail closed for manual review. Check all descriptions and amounts against the original PDF. It does not guess ownership.
