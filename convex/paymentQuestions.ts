@@ -22,21 +22,23 @@ function fields(a: any) {
     cardholder: text(a.cardholder), card: text(a.card), payer: text(a.payer), payee: text(a.payee),
     expectedCents: money(a.expectedCents), followUp: date(a.followUp), context: text(a.context, 8000) };
 }
-async function ticket(ctx: any, id: any, owner: string) {
+async function ticket(ctx: any, id: any, owner: string, includeDeleted = false) {
   const item = await ctx.db.get(id);
   if (!item || item.owner !== owner) throw Error('Question not found.');
+  if (item.deletedAt !== undefined && !includeDeleted) throw Error('This note is in Trash. Restore it before editing.');
   return item;
 }
 function version(item: any, expected: number) {
   if (item.version !== expected) throw Error('This question changed on another device. Refresh before saving.');
 }
 export const verify = query({ args: {}, handler: async ctx => questionUser(ctx) });
-export const list = query({ args: {}, handler: async ctx => {
+export const list = query({ args: { includeDeleted: v.optional(v.boolean()) }, handler: async (ctx, args) => {
   const user = await questionUser(ctx);
-  return ctx.db.query('paymentQuestions').withIndex('by_owner', q => q.eq('owner', user.owner)).order('desc').collect();
+  const notes = await ctx.db.query('paymentQuestions').withIndex('by_owner', q => q.eq('owner', user.owner)).order('desc').collect();
+  return notes.filter(n => args.includeDeleted || n.deletedAt === undefined);
 } });
-export const detail = query({ args: { id: v.id('paymentQuestions') }, handler: async (ctx, { id }) => {
-  const user = await questionUser(ctx); const item = await ticket(ctx, id, user.owner);
+export const detail = query({ args: { id: v.id('paymentQuestions'), includeDeleted: v.optional(v.boolean()) }, handler: async (ctx, { id, includeDeleted }) => {
+  const user = await questionUser(ctx); const item = await ticket(ctx, id, user.owner, includeDeleted);
   const events = await ctx.db.query('paymentQuestionEvents').withIndex('by_ticket', q => q.eq('ticketId', id)).collect();
   const files = await ctx.db.query('paymentQuestionFiles').withIndex('by_ticket', q => q.eq('ticketId', id)).collect();
   return { item, events, files: files.map(({ storageId, ...file }) => file) };
@@ -79,7 +81,7 @@ export const attach = internalMutation({ args: { id: v.id('paymentQuestions'), o
 export const file = query({ args: { id: v.id('paymentQuestionFiles') }, handler: async (ctx, { id }) => {
   const user = await questionUser(ctx); const record = await ctx.db.get(id);
   if (!record || record.owner !== user.owner) throw Error('Screenshot not found.');
-  await ticket(ctx, record.ticketId, user.owner); return record;
+  await ticket(ctx, record.ticketId, user.owner, true); return record;
 } });
 
 // Notes are the primary interface. Older structured fields remain intact.
@@ -127,4 +129,22 @@ export const move = mutation({ args: { id: v.id('paymentQuestions'), status: que
   await ctx.db.insert('paymentQuestionEvents', { ticketId: args.id, owner: user.owner, kind: args.status,
     text: '', author: user.email, createdAt: Date.now(), requestKey: key });
   return { version: nextVersion };
+} });
+
+
+// Deletion is recoverable: keep the note, history and private attachments together.
+export const moveToTrash = mutation({ args: { id: v.id('paymentQuestions'), expectedVersion: v.number() }, handler: async (ctx, args) => {
+  const user = await questionUser(ctx), item = await ticket(ctx, args.id, user.owner, true);
+  if (item.deletedAt !== undefined && item.version === args.expectedVersion + 1) return { version: item.version };
+  version(item, args.expectedVersion);
+  if (item.deletedAt !== undefined) throw Error('This note is already in Trash.');
+  await ctx.db.patch(item._id, { deletedAt: Date.now(), updatedAt: Date.now(), version: item.version + 1 });
+  return { version: item.version + 1 };
+} });
+export const restore = mutation({ args: { id: v.id('paymentQuestions'), expectedVersion: v.number() }, handler: async (ctx, args) => {
+  const user = await questionUser(ctx), item = await ticket(ctx, args.id, user.owner, true);
+  version(item, args.expectedVersion);
+  if (item.deletedAt === undefined) throw Error('This note is not in Trash.');
+  await ctx.db.patch(item._id, { deletedAt: undefined, updatedAt: Date.now(), version: item.version + 1 });
+  return { version: item.version + 1 };
 } });

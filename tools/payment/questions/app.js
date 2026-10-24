@@ -2,14 +2,16 @@
   'use strict';
   const $ = id => document.getElementById(id);
   const API='https://rapid-shark-565.convex.cloud', FILE_API='https://rapid-shark-565.convex.site/payment-question-file';
-  const stages={open:'Inbox',waiting:'Waiting',resolved:'Done'};
+  const stages={open:'Inbox',waiting:'Waiting',resolved:'Done',trash:'Trash'};
+  const isDeleted=item=>item?.deletedAt!==undefined;
+  const inQueue=(item,stage)=>stage==='trash'?isDeleted(item):!isDeleted(item)&&item.status===stage;
   const node=(tag,text,className)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(className)n.className=className;return n;};
   const button=(label,fn)=>{const b=node('button',label);b.type='button';b.onclick=fn;return b;};
   let session=null,sessionId,epoch=0,request=0,viewRequest=0,mounted=false,queue='open',notes=[],current=null,editor=null;
   let dirty=false,saving=null,saveTimer=null,saveAttempt=null,saveError=false,moving=false,uploading=false,draftKey='',pendingFiles=[];
   const imageUrls=new Set();
   function notice(text=''){$('notice').textContent=text;$('notice').hidden=!text;}
-  function errorText(e){return e?.message?.match(/(?:This question changed[^\n]*|This account is not authorized[^\n]*|Write a note[^\n]*|This note has[^\n]*|Invalid note[^\n]*|Unsupported note[^\n]*|Use an https[^\n]*|Enter [^\n]*|Screenshots must[^\n]*|A question can[^\n]*)/)?.[0]||'Couldn’t save. Your note is still here—click Save note to retry.';}
+  function errorText(e){return e?.message?.match(/(?:This question changed[^\n]*|This note is[^\n]*|This account is not authorized[^\n]*|Write a note[^\n]*|This note has[^\n]*|Invalid note[^\n]*|Unsupported note[^\n]*|Use an https[^\n]*|Enter [^\n]*|Screenshots must[^\n]*|A question can[^\n]*)/)?.[0]||'Couldn’t save. Your note is still here—click Save note to retry.';}
   function savedState(text,error=false){$('save-state').textContent=text;$('save-state').classList.toggle('error',error);}
   function clearUrls(){imageUrls.forEach(u=>URL.revokeObjectURL(u));imageUrls.clear();}
   async function token(current = session) {
@@ -39,21 +41,21 @@
     ++request;++viewRequest;clearTimeout(saveTimer);notes=[];current=null;dirty=false;saving=null;saveAttempt=null;saveError=false;pendingFiles=[];moving=false;uploading=false;draftKey='';
     editor?.clear();editor=null;$('editor-mount').replaceChildren();$('note-title').value='';$('search').value='';$('files').value='';
     $('tickets').replaceChildren();$('screenshots').replaceChildren();$('events').replaceChildren();$('legacy-details').replaceChildren();$('note').hidden=true;$('placeholder').hidden=false;
-    $('full-image').removeAttribute('src');$('image-dialog').close();clearUrls();$('app').hidden=true;$('new').hidden=true;notice();
+    $('full-image').removeAttribute('src');$('image-dialog').close();$('delete-dialog').close();$('delete-name').textContent='';$('delete-error').textContent='';$('delete-confirm').disabled=false;$('delete-cancel').disabled=false;clearUrls();$('app').hidden=true;$('new').hidden=true;notice();
   }
   function renderQueue(){
-    document.querySelectorAll('[data-queue]').forEach(b=>{b.setAttribute('aria-pressed',String(b.dataset.queue===queue));b.querySelector('span').textContent=notes.filter(n=>n.status===b.dataset.queue).length;});
-    const q=$('search').value.trim().toLowerCase();const visible=notes.filter(n=>n.status===queue&&[n.title,n.context,n.card,n.cardholder,n.payer,n.payee].join(' ').toLowerCase().includes(q)).sort((a,b)=>b.updatedAt-a.updatedAt);
+    document.querySelectorAll('[data-queue]').forEach(b=>{b.setAttribute('aria-pressed',String(b.dataset.queue===queue));b.querySelector('span').textContent=notes.filter(n=>inQueue(n,b.dataset.queue)).length;});
+    const q=$('search').value.trim().toLowerCase();const visible=notes.filter(n=>inQueue(n,queue)&&[n.title,n.context,n.card,n.cardholder,n.payer,n.payee].join(' ').toLowerCase().includes(q)).sort((a,b)=>b.updatedAt-a.updatedAt);
     $('tickets').replaceChildren();
     for(const n of visible){const b=button('',()=>void openNote(n._id));b.className=`ticket${current?.item._id===n._id?' selected':''}`;b.dataset.id=n._id;b.setAttribute('aria-pressed',String(current?.item._id===n._id));b.append(node('strong',n.title),node('p',n.context||'Screenshot or quick note'),node('time',new Date(n.updatedAt).toLocaleDateString(undefined,{month:'short',day:'numeric'})));$('tickets').append(b);}
-    if(!visible.length)$('tickets').append(node('p',q?'No matching notes.':queue==='resolved'?'Finished notes will live here.':queue==='waiting'?'Nothing waiting right now.':'Nothing to follow up on. Add a note whenever you need one.','empty'));
+    if(!visible.length)$('tickets').append(node('p',q?'No matching notes.':queue==='trash'?'Trash is empty.':queue==='resolved'?'Finished notes will live here.':queue==='waiting'?'Nothing waiting right now.':'Nothing to follow up on. Add a note whenever you need one.','empty'));
   }
-  async function refresh(){if(!session)return false;const serial=++request,generation=epoch;try{const data=await call('query','list');if(serial!==request||generation!==epoch)return false;notes=data;renderQueue();return true;}catch(e){if(generation===epoch)notice(errorText(e));return false;}}
+  async function refresh(){if(!session)return false;const serial=++request,generation=epoch;try{const data=await call('query','list',{includeDeleted:true});if(serial!==request||generation!==epoch)return false;notes=data;renderQueue();return true;}catch(e){if(generation===epoch)notice(errorText(e));return false;}}
   function snapshot(){const richText=RallyNoteRichText.normalizeRichText(RallyNoteEditor.fromDOM(editor.element));return {title:$('note-title').value.trim(),richText};}
-  function touch(){dirty=true;saveError=false;savedState('Unsaved');clearTimeout(saveTimer);if(!moving)saveTimer=setTimeout(()=>void saveNote(),900);}
+  function touch(){if(isDeleted(current?.item)||moving)return;dirty=true;saveError=false;savedState('Unsaved');clearTimeout(saveTimer);if(!moving)saveTimer=setTimeout(()=>void saveNote(),900);}
   function applyItem(item){const index=notes.findIndex(n=>n._id===item._id);if(index<0)notes.unshift(item);else notes[index]=item;renderQueue();}
   async function saveNote(force=false){
-    clearTimeout(saveTimer);if(saving)return saving;if(!current||!editor||(!dirty&&!force))return true;
+    clearTimeout(saveTimer);if(saving)return saving;if(!current||!editor||isDeleted(current.item)||(!dirty&&!force))return true;
     const generation=epoch,target=current;
     saving=Promise.resolve().then(async()=>{
       try{
@@ -64,7 +66,7 @@
           const result=await call('mutation','saveNote',attempt);if(generation!==epoch||current!==target)return false;
           const body=RallyNoteRichText.richTextPlain(attempt.richText).trim();
           Object.assign(target.item,{_id:result.id,version:result.version,title:attempt.title||body.split('\n')[0].slice(0,100)||'Untitled note',context:body,richText:attempt.richText,updatedAt:Date.now()});
-          saveAttempt=null;$('note-title').placeholder=target.item.title;applyItem(target.item);
+          saveAttempt=null;$('note-title').placeholder=target.item.title;applyItem(target.item);renderStage();
           // A retry may have sent an older snapshot after the user kept typing.
           dirty=JSON.stringify(snapshot())!==JSON.stringify({title:attempt.title,richText:attempt.richText});
         }while(dirty&&generation===epoch&&current===target);
@@ -73,19 +75,24 @@
       finally{if(generation===epoch)saving=null;}
     });return saving;
   }
-  async function settle(){if(!current)return true;if(!(await saveNote()))return false;if(pendingFiles.length&&!uploading)await uploadFiles();if(uploading||pendingFiles.length){notice('Finish or retry the screenshot upload before switching notes.');return false;}return true;}
+  async function settle(){if(!current||isDeleted(current.item))return true;if(!(await saveNote()))return false;if(pendingFiles.length&&!uploading)await uploadFiles();if(uploading||pendingFiles.length){notice('Finish or retry the screenshot upload before switching notes.');return false;}return true;}
   function mountNote(data){
     clearTimeout(saveTimer);current=data;dirty=false;saveAttempt=null;saveError=false;draftKey=crypto.randomUUID();clearUrls();$('note').hidden=false;$('placeholder').hidden=true;document.querySelector('.workspace').classList.add('show-note');
-    $('note-title').value=data.item.title==='Untitled note'?'':data.item.title||'';$('note-title').placeholder='Untitled note';$('note-title').disabled=false;
+    $('note-title').value=data.item.title==='Untitled note'?'':data.item.title||'';$('note-title').placeholder='Untitled note';$('note-title').disabled=isDeleted(data.item);
     const input=node('textarea');input.id='note-body';input.placeholder='What’s going on? Write freely. Paste a screenshot whenever you need one.';$('editor-mount').replaceChildren(input);
-    editor=RallyNoteEditor.mount(input,{body:data.item.context||'',richText:data.item.richText});editor.element.addEventListener('input',touch);
+    editor=RallyNoteEditor.mount(input,{body:data.item.context||'',richText:data.item.richText});editor.element.addEventListener('input',touch);editor.setDisabled(isDeleted(data.item));
     editor.element.closest('.rich-note-editor').addEventListener('click',e=>{if(e.target.closest('[data-command],[data-link-apply]'))queueMicrotask(touch);});
-    savedState(data.item._id?'Saved':'Saves as you write');renderStage();renderImages();renderHistory();renderQueue();renderLegacy();
+    savedState(isDeleted(data.item)?'In Trash':data.item._id?'Saved':'Saves as you write');renderStage();renderImages();renderHistory();renderQueue();renderLegacy();
   }
-  function renderStage(){if(!current)return;const status=current.item.status;$('note-stage').textContent=stages[status];$('note-stage').className=`badge ${status}`;document.querySelectorAll('[data-move]').forEach(b=>{b.setAttribute('aria-current',String(b.dataset.move===status));b.disabled=moving;});}
-  async function newNote(){if(moving)return;if(!(await settle()))return;current=null;mountNote({item:{status:'open',title:'',context:'',createdAt:Date.now(),updatedAt:Date.now(),createdBy:session?.user?.primaryEmailAddress?.emailAddress||'',version:0},files:[],events:[]});editor.focus();}
-  async function openNote(id){if(moving)return;if(current?.item._id===id)return;if(!(await settle()))return;const serial=++viewRequest,generation=epoch;notice('Opening note…');try{const data=await call('query','detail',{id});if(serial!==viewRequest||generation!==epoch)return;mountNote(data);notice();}catch(e){if(generation===epoch)notice(errorText(e));}}
-  async function move(status){if(!current||moving)return;const generation=epoch,target=current;moving=true;editor.setDisabled(true);$('note-title').disabled=true;renderStage();
+  function renderStage(){if(!current)return;const deleted=isDeleted(current.item),status=deleted?'trash':current.item.status;$('note-stage').textContent=stages[status];$('note-stage').className=`badge ${status}`;
+    document.querySelector('.move-actions').hidden=deleted;$('attach').disabled=deleted||moving;$('save').disabled=deleted||moving;
+    $('delete-note').hidden=deleted||!current.item._id;$('delete-note').disabled=moving||uploading;
+    $('restore-note').hidden=!deleted;$('restore-note').disabled=moving;
+    document.querySelectorAll('[data-move]').forEach(b=>{b.setAttribute('aria-current',String(b.dataset.move===status));b.disabled=moving;});}
+
+  async function newNote(){if(moving)return;if(queue==='trash')queue='open';if(!(await settle()))return;current=null;mountNote({item:{status:'open',title:'',context:'',createdAt:Date.now(),updatedAt:Date.now(),createdBy:session?.user?.primaryEmailAddress?.emailAddress||'',version:0},files:[],events:[]});editor.focus();}
+  async function openNote(id){if(moving)return;if(current?.item._id===id)return;if(!(await settle()))return;const serial=++viewRequest,generation=epoch;notice('Opening note…');try{const data=await call('query','detail',{id,includeDeleted:queue==='trash'});if(serial!==viewRequest||generation!==epoch)return;mountNote(data);notice();}catch(e){if(generation===epoch)notice(errorText(e));}}
+  async function move(status){if(!current||moving||isDeleted(current.item))return;const generation=epoch,target=current;moving=true;editor.setDisabled(true);$('note-title').disabled=true;renderStage();
     try{if(!(await saveNote(!target.item._id)))return;if(generation!==epoch||current!==target)return;
       const result=await call('mutation','move',{id:target.item._id,status,expectedVersion:target.item.version,requestKey:crypto.randomUUID()});if(generation!==epoch||current!==target)return;
       target.item.status=status;target.item.version=result.version;target.item.updatedAt=Date.now();target.events.push({kind:status,text:'',createdAt:Date.now()});queue=status;applyItem(target.item);renderHistory();savedState(`Moved to ${stages[status]}`);
@@ -114,16 +121,31 @@
       placeholder.replaceWith(previewImage(file,url,'Saved · click to enlarge'));
     }catch{if(generation!==epoch||!placeholder.isConnected)return;const retry=button('Retry loading screenshot',()=>void loadImage(file,placeholder));placeholder.replaceChildren(retry);}
   }
-  async function addFiles(files){if(!current)await newNote();if(!current)return;for(const file of files){if(!['image/png','image/jpeg','image/webp'].includes(file.type)||!file.size||file.size>8*1024*1024){notice('Choose a PNG, JPEG, or WebP screenshot under 8 MB.');continue;}if(current.files.length+pendingFiles.length>=20){notice('A note can have up to 20 screenshots.');break;}pendingFiles.push({file,key:crypto.randomUUID()});}renderImages();await uploadFiles();}
-  async function uploadFiles(){if(uploading||!current||!pendingFiles.length)return;const generation=epoch,target=current;uploading=true;renderImages();
+  async function addFiles(files){if(isDeleted(current?.item)||moving)return;if(!current)await newNote();if(!current)return;for(const file of files){if(!['image/png','image/jpeg','image/webp'].includes(file.type)||!file.size||file.size>8*1024*1024){notice('Choose a PNG, JPEG, or WebP screenshot under 8 MB.');continue;}if(current.files.length+pendingFiles.length>=20){notice('A note can have up to 20 screenshots.');break;}pendingFiles.push({file,key:crypto.randomUUID()});}renderImages();await uploadFiles();}
+  async function uploadFiles(){if(uploading||!current||isDeleted(current.item)||!pendingFiles.length)return;const generation=epoch,target=current;uploading=true;renderStage();renderImages();
     try{if(!(await saveNote(!target.item._id)))return;for(const p of [...pendingFiles]){if(generation!==epoch||current!==target)return;$('upload-state').textContent='Uploading screenshot…';await fileRequest(target.item._id,{method:'POST',headers:{'Content-Type':p.file.type,'X-File-Name':encodeURIComponent(p.file.name),'X-Request-Key':p.key},body:p.file});if(generation!==epoch)return;pendingFiles=pendingFiles.filter(f=>f!==p);}const data=await call('query','detail',{id:target.item._id});if(generation!==epoch||current!==target)return;target.files=data.files;notice();}
     catch(e){if(generation===epoch)notice('Your note is saved, but a screenshot didn’t upload. Click Retry upload below the preview.');}
-    finally{if(generation===epoch){uploading=false;renderImages();}}
+    finally{if(generation===epoch){uploading=false;renderStage();renderImages();}}
   }
+  function clearSelected(){++viewRequest;clearTimeout(saveTimer);current=null;dirty=false;saveAttempt=null;saveError=false;pendingFiles=[];editor?.clear();editor=null;clearUrls();$('editor-mount').replaceChildren();$('screenshots').replaceChildren();$('note-title').value='';$('note').hidden=true;$('placeholder').hidden=false;document.querySelector('.workspace').classList.remove('show-note');renderQueue();}
+  $('delete-note').onclick=()=>{if(!current||moving||uploading)return;$('delete-name').textContent=current.item.title;$('delete-error').textContent='';$('delete-dialog').showModal();};
+  $('delete-cancel').onclick=()=>$('delete-dialog').close();
+  $('delete-dialog').addEventListener('cancel',e=>{if(moving)e.preventDefault();});
+  $('delete-confirm').onclick=async()=>{if(!current||moving)return;const generation=epoch,target=current;moving=true;editor.setDisabled(true);$('note-title').disabled=true;$('delete-confirm').disabled=true;$('delete-cancel').disabled=true;renderStage();
+    try{if(!(await settle())){$('delete-error').textContent='Save the note and finish any screenshot uploads before deleting.';return;}if(generation!==epoch||current!==target)return;
+      const result=await call('mutation','moveToTrash',{id:target.item._id,expectedVersion:target.item.version});if(generation!==epoch||current!==target)return;
+      Object.assign(target.item,{deletedAt:Date.now(),version:result.version,updatedAt:Date.now()});applyItem(target.item);$('delete-dialog').close();clearSelected();notice('Note moved to Trash. Open Trash to restore it.');
+    }catch(e){if(generation===epoch)$('delete-error').textContent=errorText(e);}finally{if(generation===epoch){moving=false;$('delete-confirm').disabled=false;$('delete-cancel').disabled=false;if(current){editor?.setDisabled(isDeleted(current.item));$('note-title').disabled=isDeleted(current.item);renderStage();}}}
+  };
+  $('restore-note').onclick=async()=>{if(!current||moving)return;const generation=epoch,target=current;moving=true;renderStage();
+    try{const result=await call('mutation','restore',{id:target.item._id,expectedVersion:target.item.version});if(generation!==epoch||current!==target)return;
+      delete target.item.deletedAt;target.item.version=result.version;target.item.updatedAt=Date.now();queue=target.item.status;applyItem(target.item);mountNote(target);notice('Note restored.');
+    }catch(e){if(generation===epoch)notice(errorText(e));}finally{if(generation===epoch){moving=false;renderStage();}}
+  };
   $('note-title').oninput=touch;$('new').onclick=()=>void newNote();$('empty-new').onclick=()=>void newNote();$('save').onclick=()=>void saveNote(true);$('search').oninput=renderQueue;
-  document.querySelectorAll('[data-queue]').forEach(b=>b.onclick=async()=>{if(!(await settle()))return;queue=b.dataset.queue;renderQueue();});document.querySelectorAll('[data-move]').forEach(b=>b.onclick=()=>void move(b.dataset.move));
+  document.querySelectorAll('[data-queue]').forEach(b=>b.onclick=async()=>{if(moving||!(await settle()))return;queue=b.dataset.queue;if(current&&!inQueue(current.item,queue))clearSelected();else renderQueue();});document.querySelectorAll('[data-move]').forEach(b=>b.onclick=()=>void move(b.dataset.move));
   $('back').onclick=async()=>{if(!(await settle()))return;document.querySelector('.workspace').classList.remove('show-note');};
-  $('refresh').onclick=async()=>{if(dirty||saving){notice('Your note has unsaved changes. Save it before refreshing; if there’s a version conflict, copy your note and reload the page.');return;}const target=current?.item._id,generation=epoch;try{await refresh();if(target&&generation===epoch){const data=await call('query','detail',{id:target});if(generation===epoch&&current?.item._id===target)mountNote(data);}}catch(e){if(generation===epoch)notice(errorText(e));}};
+  $('refresh').onclick=async()=>{if(dirty||saving){notice('Your note has unsaved changes. Save it before refreshing; if there’s a version conflict, copy your note and reload the page.');return;}const target=current?.item._id,generation=epoch;try{await refresh();if(target&&generation===epoch){const data=await call('query','detail',{id:target,includeDeleted:queue==='trash'});if(generation===epoch&&current?.item._id===target)mountNote(data);}}catch(e){if(generation===epoch)notice(errorText(e));}};
   $('attach').onclick=()=>$('files').click();$('files').onchange=()=>{void addFiles([...$('files').files]);$('files').value='';};$('close-image').onclick=()=>$('image-dialog').close();
   document.addEventListener('paste',e=>{if(!session||$('app').hidden)return;const files=[...e.clipboardData.items].filter(i=>i.kind==='file'&&i.type.startsWith('image/')).map(i=>i.getAsFile()).filter(Boolean);if(files.length){e.preventDefault();e.stopPropagation();void addFiles(files);}},true);
   document.addEventListener('dragover',e=>{if(session&&[...e.dataTransfer.types].includes('Files')){e.preventDefault();$('detail').classList.add('dragging');}});document.addEventListener('dragleave',e=>{if(!e.relatedTarget)$('detail').classList.remove('dragging');});document.addEventListener('drop',e=>{if(!session||!e.dataTransfer.files.length)return;e.preventDefault();$('detail').classList.remove('dragging');void addFiles([...e.dataTransfer.files]);});

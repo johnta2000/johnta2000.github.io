@@ -8,7 +8,7 @@ export const questionFields = {
 };
 export const paymentQuestionTables = {
   paymentQuestions: defineTable({
-    ...questionFields, richText: v.optional(v.any()), owner: v.string(), status: questionStatus, receivedCents: v.number(),
+    ...questionFields, deletedAt: v.optional(v.number()), richText: v.optional(v.any()), owner: v.string(), status: questionStatus, receivedCents: v.number(),
     version: v.number(), createdAt: v.number(), updatedAt: v.number(), createdBy: v.string(), requestKey: v.string(),
   }).index("by_owner", ["owner"]),
   paymentQuestionEvents: defineTable({

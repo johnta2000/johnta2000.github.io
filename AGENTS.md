@@ -23,6 +23,7 @@
 - `/tools/payment/questions/` is a separate private charge/reimbursement inbox linked from Payments. Keep its access policy separate from the monthly checklist; only the two owner emails are approved by default.
 - Show screenshots at full note width above the editor, including local previews while uploads are pending or failed.
 - Screenshots are private. Upload and retrieve them through the authenticated `payment-question-file` endpoint; never publish user images in the Git repository or return public storage URLs.
+- Delete note moves a question to recoverable Trash, preserving screenshots, history and its original queue. Trashed notes are read-only until restored; stale clients must not edit or upload to them.
 - Keep this tool note-first: one rich text editor, screenshots, and an Inbox → Waiting → Done queue. Do not add required transaction fields, repayment forms, or a required reason for moving a note. Preserve any older structured data under optional history/details.
 - Test with synthetic images and mock records. Import real financial screenshots only with explicit permission.
 - The local Convex checkout can differ from the deployed backend. Preserve unrelated deployed modules, routes, and tables when publishing this tool; do not deploy a stale full checkout.
