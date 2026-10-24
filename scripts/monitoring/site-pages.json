@@ -63,6 +63,12 @@
     "title": "Payments — John Ta"
   },
   {
+    "path": "/tools/costco/",
+    "file": "tools/costco/index.html",
+    "analytics": false,
+    "title": "Costco archive — John Ta"
+  },
+  {
     "app": "jsx",
     "path": "/tools/jsx/",
     "file": "tools/jsx/index.html"
@@ -106,6 +112,12 @@
     "title": "Payment questions — John Ta"
   },
   {
+    "path": "/tools/payment/questions/shared/",
+    "file": "tools/payment/questions/shared/index.html",
+    "analytics": false,
+    "title": "Shared payment question"
+  },
+  {
     "path": "/tools/payments/",
     "file": "tools/payments/index.html",
     "analytics": false,
@@ -116,6 +128,18 @@
     "file": "tools/payments/statements/index.html",
     "analytics": false,
     "title": "Statement review — Payments"
+  },
+  {
+    "path": "/tools/rally/collection/",
+    "file": "tools/rally/collection-src/index.html",
+    "analytics": false,
+    "title": "Rave diary · Rally"
+  },
+  {
+    "path": "/tools/rally/collection/",
+    "file": "tools/rally/collection/index.html",
+    "analytics": false,
+    "title": "Rave diary · Rally"
   },
   {
     "app": "rally",
