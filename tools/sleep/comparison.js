@@ -10,7 +10,7 @@
   ];
   const metrics = [
     {id:'score',name:'Sleep scores',unit:'0–100',note:'Provider scores share an axis, but their scoring methods differ. WHOOP shows sleep performance. Only native imported scores appear; duration-derived scores are excluded.'},
-    {id:'durationMinutes',name:'Time asleep',unit:'Hours',note:'Time each provider classified as asleep. Sleep detection, awake periods, and session boundaries can differ.'},
+    {id:'durationMinutes',name:'Time asleep',unit:'h / m',note:'Time each provider classified as asleep. Sleep detection, awake periods, and session boundaries can differ.'},
     {id:'hrv',name:'Heart rate variability',unit:'ms',note:'Provider-reported HRV. Measurement methods and sampling windows differ, so use each provider’s trend as context. WHOOP readings require recovery access and a completed sync.'},
     {id:'restingHeartRate',name:'Resting heart rate',unit:'bpm',note:'Each provider’s resting heart rate for this date. Measurement windows can differ. WHOOP readings require recovery access; other providers need these fields in an import.'},
   ];
