@@ -63,7 +63,7 @@ export default function RaveForm({initial, all, onSave, onClose, suggestedArtist
             {r.sourceEventId && <p className="form-help">Your plan is a starting point. Check the artists you saw and the people you went with.</p>}
             <NamePicker label="Artists you actually saw" noun="artist" planSuggestions={suggestedArtists} values={r.artists} text={artistText} onText={setArtistText}
               onChange={artists => setR(prev => ({...prev, artists, favoriteArtist: artists.some(a => a.toLowerCase() === prev.favoriteArtist.toLowerCase()) ? prev.favoriteArtist : ''}))}
-              suggestions={leaderboard(all, 'artists').map(a => a.name)}/>
+              suggestions={uniqueNames(all.flatMap(rave => rave.artists))}/>
             <NamePicker label="Who did you go with?" noun="friend" planSuggestions={suggestedCrew} values={r.crew} text={crewText} onText={setCrewText} onChange={v => field('crew', v)}
               suggestions={leaderboard(all, 'crew').map(a => a.name)}/>
           </div>

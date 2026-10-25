@@ -37,3 +37,43 @@ test('validation keeps explicit zero, rounds money, rejects invalid dates and un
   assert.throws(() => validateRave({...partial, albumUrl: 'javascript:alert(1)'}), /album link/);
   assert.throws(() => validateRave({...partial, costs: {...partial.costs, travel: -1}}), /Costs/);
 });
+
+const {artistsForSet, artistsForRave, setCreditsArtist} = moduleAt('artists.ts');
+const plain = values => Array.from(values);
+test('artist identity separates explicit collaborations and special sets while preserving act names', () => {
+  for (const [label, expected] of [
+    ['Space Laces x Excision', ['Space Laces', 'Excision']],
+    ['SPACE LACES B2B EXCISION', ['SPACE LACES', 'EXCISION']],
+    ['Space Laces × Excision B2B Wooli', ['Space Laces', 'Excision', 'Wooli']],
+    ['Excision Detox Set', ['Excision']],
+    ['Excision: Detox Set', ['Excision']],
+    ['Excision (Detox)', ['Excision']],
+    ['Excision [Detox Set]', ['Excision']],
+    ['Excision Detox Set B2B Wooli (DJ Set)', ['Excision', 'Wooli']],
+    ['Excision - Throwback Set', ['Excision']],
+    ['FRESH MEAT: HEVNFALL', ['HEVNFALL']],
+    ['Above & Beyond', ['Above & Beyond']],
+    ['Chase & Status', ['Chase & Status']],
+    ['DJ Snake', ['DJ Snake']],
+    ['The xx', ['The xx']],
+    ['Masterhand', ['Masterhand']],
+    ['A special back-to-back performance', ['A special back-to-back performance']],
+    ['Artist (Unannounced guests)', ['Artist (Unannounced guests)']],
+    ['Detox', ['Detox']],
+  ]) assert.deepEqual(plain(artistsForSet(label)), expected, label);
+});
+test('legacy set labels contribute to core artist history once per rave, including favorite sets and filters', () => {
+  const first = {...free, artists: ['Excision', 'Excision Detox Set', 'Space Laces x Excision'], favoriteArtist: 'Space Laces x Excision'};
+  const next = {...partial, artists: ['Excision (Detox Set)']};
+  assert.deepEqual(plain(artistsForRave(first)), ['Excision', 'Space Laces']);
+  const ranks = leaderboard([first, next], 'artists');
+  assert.deepEqual(Array.from(ranks, r => [r.name, r.count]), [['Excision', 2], ['Space Laces', 1]]);
+  assert.equal(setCreditsArtist(first.favoriteArtist, 'Excision'), true);
+  assert.equal(setCreditsArtist(first.favoriteArtist, 'Space Laces'), true);
+  assert.equal(setCreditsArtist(first.favoriteArtist, 'Wooli'), false);
+  assert.deepEqual(names(filterRaves([first, next], {...emptyFilters(), artist: 'Excision'}, '')), ['Free', 'Partial']);
+  assert.deepEqual(names(filterRaves([first, next], {...emptyFilters(), artist: 'Space Laces'}, '')), ['Free']);
+  assert.deepEqual(names(filterRaves([first, next], {...emptyFilters(), artist: 'Excision Detox Set'}, '')), ['Free']);
+  assert.deepEqual(plain(validateRave(first).artists), first.artists);
+  assert.equal(validateRave(first).favoriteArtist, first.favoriteArtist);
+});

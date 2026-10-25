@@ -2,6 +2,9 @@
 .name-picker-heading { display: flex; align-items: baseline; gap: 12px; justify-content: space-between; margin-bottom: 10px; }
 .name-picker-heading h3 { margin: 0; font-size: 14px; font-weight: 650; line-height: 1.5; }
 .name-picker-heading > span { flex-shrink: 0; color: #6d36bb; font-size: 12px; font-weight: 600; }
+.name-picker-credit-summary { margin: -2px 0 12px; font-size: 12px; line-height: 1.6; color: #716b7b; }
+.name-picker-credit-summary strong { display: block; margin-top: 6px; color: #6230a4; font-size: 12px; font-weight: 600; }
+.set-credit { display: block; margin-top: 3px; font-size: 11px; line-height: 1.5; color: #746386; font-weight: 400; }
 .name-picker-panel { border: 1px solid #dedbe5; border-radius: 10px; overflow: hidden; background: #fff; }
 .name-picker-search { display: flex; align-items: center; gap: 10px; padding: 4px 12px; color: #777180; border-bottom: 1px solid #eeecf2; }
 .collection-form .name-picker-search input { border: 0; background: transparent; padding: 10px 0; min-width: 0; flex: 1; width: 100%; outline: 0; border-radius: 0; box-shadow: none; }
@@ -40,3 +43,6 @@
   .name-picker-search { gap: 8px; }
   .name-picker-search input::placeholder { font-size: 14px; }
 }
+
+.choice-chips > .logged-set { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 2px; max-width: 100%; overflow-wrap: anywhere; }
+.choice-chips > .logged-set > span { display: inline; }

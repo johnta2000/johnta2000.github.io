@@ -38,3 +38,7 @@ Project home screens also resolve the personal status through the existing authe
 ### Diary naming and dates
 
 The shared planning index is labeled **My raves**; the personal history is **Rave diary**. Existing URLs, account ownership, and saved records are unchanged. Diary forms and date filters accept typed `MM/DD/YYYY` dates (and pasted ISO dates), or a calendar with searchable month/year jumps. Calendar days have 44px touch targets, arrow-key navigation, focus return, and minimum end-date enforcement. Invalid dates cannot be saved; incomplete date filters do not hide results.
+
+### Set labels and artist history
+
+Saved `artists` strings are performance labels. The shared artist helpers derive individual artist credits from explicit B2B / x / × labels and recognized set suffixes such as Detox Set and (DJ Set). Original labels, favorite sets, and JSON backups are preserved; older entries receive the same aggregation without a rewrite. Artist directories, recap totals, and artist filters use individual credits, counting an artist once per rave. CSV exports include both Artists seen and Sets seen. Ambiguous act names, ampersands, and aliases are kept intact; the parser does not guess group membership.

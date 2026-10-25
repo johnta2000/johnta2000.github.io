@@ -1,3 +1,4 @@
+import {artistsForRave} from './artists';
 export type Rave = {
   id: string; sourceEventId?: string; name: string; startDate: string; endDate: string; city: string; venue: string;
   kind: 'Festival' | 'Club night' | 'Show'; artists: string[]; crew: string[];
@@ -11,7 +12,7 @@ export function days(r: Rave) { return Math.floor((Date.parse(r.endDate || r.sta
 export function uniqueNames(names: string[]) { const seen = new Set<string>(); return names.map(n=>n.trim()).filter(n=>n && !seen.has(n.toLocaleLowerCase()) && !!seen.add(n.toLocaleLowerCase())); }
 export function leaderboard(raves: Rave[], field: 'artists' | 'crew') {
   const map = new Map<string,{name:string;count:number;raves:Rave[]}>();
-  for (const r of raves) for (const name of uniqueNames(r[field])) { const key=name.toLocaleLowerCase(); const row=map.get(key) ?? {name,count:0,raves:[]}; row.count++; row.raves.push(r); map.set(key,row); }
+  for (const r of raves) for (const name of field === 'artists' ? artistsForRave(r) : uniqueNames(r.crew)) { const key=name.toLocaleLowerCase(); const row=map.get(key) ?? {name,count:0,raves:[]}; row.count++; row.raves.push(r); map.set(key,row); }
   return [...map.values()].sort((a,b)=>b.count-a.count || a.name.localeCompare(b.name));
 }
 const validDate = (v: unknown) => typeof v==='string' && /^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(Date.parse(v)) && new Date(v).toISOString().slice(0,10)===v;

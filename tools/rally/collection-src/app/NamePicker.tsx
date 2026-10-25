@@ -1,6 +1,7 @@
 import {useId, useRef, useState} from 'react';
 import {Plus, Search, X} from 'lucide-react';
 import {uniqueNames} from '../lib/raves';
+import {artistsForRave, creditDescription} from '../lib/artists';
 import './name-picker.css';
 
 export default function NamePicker({label, noun, values, onChange, suggestions, planSuggestions = [], text, onText}: {
@@ -25,6 +26,7 @@ export default function NamePicker({label, noun, values, onChange, suggestions, 
   };
   return <section className="name-picker" aria-labelledby={`${id}-label`}>
     <div className="name-picker-heading"><h3 id={`${id}-label`}>{label}</h3><span aria-live="polite">{values.length} selected</span></div>
+    {noun === 'artist' && <div className="name-picker-credit-summary"><p>Keep the set name. B2Bs and special sets count toward the artists behind them.</p><strong aria-live="polite">{values.length} {values.length === 1 ? 'set' : 'sets'} · {artistsForRave({artists:values}).length} unique {artistsForRave({artists:values}).length === 1 ? 'artist' : 'artists'}</strong></div>}
     <div className="name-picker-panel">
       <div className="name-picker-search"><Search size={17} aria-hidden="true"/>
         <input ref={search} aria-label={`Search ${noun === 'artist' ? 'artists' : 'friends'}`} placeholder={noun === 'artist' ? 'Search the lineup or your diary…' : 'Search your crew or diary…'} value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => {
@@ -44,14 +46,14 @@ export default function NamePicker({label, noun, values, onChange, suggestions, 
           <h4>{group.title}<span>{group.names.length}</span></h4>
           {group.names.map(name => <label className={'name-picker-option' + (selected.has(key(name)) ? ' is-selected' : '')} key={key(name)}>
             <input type="checkbox" checked={selected.has(key(name))} onChange={() => onChange(selected.has(key(name)) ? values.filter(v => key(v) !== key(name)) : uniqueNames([...values, name]))}/>
-            <span>{name}</span>
+            <span>{name}{noun === 'artist' && creditDescription(name) && <small className="set-credit">{creditDescription(name)}</small>}</span>
           </label>)}
         </div>) : <div className="name-picker-empty"><strong>{query ? 'No matching names' : selectedOnly ? 'No one selected yet' : 'Start with a name'}</strong><p>{query ? 'Try another search or add a missing name below.' : selectedOnly ? 'Choose names from All to build your list.' : `Add an ${noun === 'artist' ? 'artist' : 'attendee'} below. Names from your diary will appear here next time.`}</p></div>}
       </div>
       <div className="name-picker-add"><label htmlFor={`${id}-add`}>Missing {noun === 'artist' ? 'an artist' : 'someone'}?</label><div>
         <input id={`${id}-add`} aria-label={label} value={text} placeholder={noun === 'artist' ? 'Add an artist…' : 'Add a friend…'} onChange={e => onText(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); add(); } }}/>
         <button type="button" aria-label={`Add ${noun}`} disabled={!text.trim()} onClick={add}><Plus size={16}/>Add</button>
-      </div>{text.trim() && <small>This name is also included when you save. Separate multiple names with commas.</small>}</div>
+      </div>{text.trim() && <small>{noun === 'artist' && <span className="set-credit">{text.split(',').map(creditDescription).filter(Boolean).join(' · ')}</span>}This name is also included when you save. Separate multiple names with commas.</small>}</div>
     </div>
   </section>;
 }

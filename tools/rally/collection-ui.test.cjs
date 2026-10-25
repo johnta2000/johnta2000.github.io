@@ -333,3 +333,24 @@ test('plan and diary names deduplicate, custom names can be added and removed, a
     assert.deepEqual(h.saves[0].artists, []); assert.deepEqual(h.saves[0].crew, []);
   } finally { h.close(); }
 });
+
+
+test('logging shows core credits but saves the original collaboration and special-set labels', async () => {
+  const labels = ['Space Laces x Excision', 'Excision Detox Set'];
+  const h = harness({search: '?from=past', artistSuggestions: labels});
+  try {
+    await until(() => h.w.document.querySelector('.rave-form'));
+    const picker = h.w.document.querySelector('.name-picker');
+    assert(picker.textContent.includes('Counts toward Space Laces + Excision'));
+    assert(picker.textContent.includes('Counts toward Excision'));
+    for (const checkbox of picker.querySelectorAll('input[type=checkbox]')) { checkbox.click(); await tick(); }
+    assert(picker.textContent.includes('2 sets · 2 unique artists'));
+    h.button('Save to rave diary').click(); await until(() => h.saves.length === 1 && !h.w.document.querySelector('.rave-form'));
+    assert.deepEqual([...h.saves[0].artists].sort(), [...labels].sort());
+    const artistPicker = h.w.document.querySelector('select[aria-label="Artist"]');
+    assert(artistPicker.textContent.includes('Excision')); assert(artistPicker.textContent.includes('Space Laces'));
+    assert(!artistPicker.textContent.includes('Detox'));
+    artistPicker.value = 'Excision'; artistPicker.dispatchEvent(new h.w.Event('change',{bubbles:true})); await tick();
+    assert(h.text().includes('Plan night')); assert(h.text().includes('Space Laces x Excision'));
+  } finally { h.close(); }
+});
