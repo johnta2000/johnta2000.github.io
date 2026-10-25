@@ -518,7 +518,7 @@ function renderMetrics() {
       const difference =
         stats.delta === null
           ? "No previous period to compare"
-          : `${roundedDelta === 0 ? "" : roundedDelta > 0 ? "+" : "−"}${Math.abs(roundedDelta)} ${percent ? "pts" : "min"} vs previous ${selectedDays} days`;
+          : `${percent ? `${roundedDelta === 0 ? "" : roundedDelta > 0 ? "+" : "−"}${Math.abs(roundedDelta)} pts` : Daylight.duration(stats.delta, true)} vs previous ${selectedDays} days`;
       return `<article class="metric-card"><div><h3>${label}</h3><span class="metric-icon" aria-hidden="true">${icon}</span></div><strong>${display}</strong><p>${difference}</p><p class="metric-footnote">${stats.count}/${selectedDays} nights · ${note}</p></article>`;
     })
     .join("");
@@ -579,7 +579,7 @@ function renderDeviceComparison() {
           `<div class="device-row"><span>${label}</span><div class="device-track"><i style="width:${value === null ? 0 : (value / max) * 100}%;background:${color}"></i></div><strong>${formatDuration(value)}</strong></div>`,
       )
       .join("") +
-    `<p class="comparison-note">${pair.count ? `Apple Health recorded ${Math.round(Math.abs(pair.difference))} min ${pair.difference >= 0 ? "more" : "less"} on average · ${pair.count} matched night${pair.count === 1 ? "" : "s"} in the last ${selectedDays} days.` : `No overlapping nights in the last ${selectedDays} days. Import Apple Health sleep records to compare.`}</p>`;
+    `<p class="comparison-note">${pair.count ? `Apple Health recorded ${formatDuration(Math.abs(pair.difference))} ${pair.difference >= 0 ? "more" : "less"} on average · ${pair.count} matched night${pair.count === 1 ? "" : "s"} in the last ${selectedDays} days.` : `No overlapping nights in the last ${selectedDays} days. Import Apple Health sleep records to compare.`}</p>`;
 }
 
 function renderSourceCard(source, scoreElement, statusElement) {
@@ -765,7 +765,7 @@ function drawTrendChart() {
   els.trendEmpty.hidden = stats.count > 0;
   const w = 640,
     h = 196,
-    left = 34,
+    left = 64,
     right = 12,
     top = 20,
     bottom = 30;
@@ -788,7 +788,7 @@ function drawTrendChart() {
   const grid = [0, 1, 2, 3, 4]
     .map((i) => {
       const value = (upper * i) / 4;
-      return `<line x1="${left}" x2="${w - right}" y1="${y(value)}" y2="${y(value)}" stroke="#e8ede7" stroke-dasharray="3 5"/><text x="0" y="${y(value) + 3}" fill="#8b978e" font-size="9">${percent ? Math.round(value) : `${Math.round(value / 60)}h`}</text>`;
+      return `<line x1="${left}" x2="${w - right}" y1="${y(value)}" y2="${y(value)}" stroke="#e8ede7" stroke-dasharray="3 5"/><text x="0" y="${y(value) + 3}" fill="#8b978e" font-size="9">${percent ? Math.round(value) : formatDuration(value)}</text>`;
     })
     .join("");
   const indices =
@@ -1757,7 +1757,7 @@ function drawGroupChart() {
   const unit = Daylight.metrics[metric].unit;
   const percent = unit === "%";
   const w = Math.max(240, $("#groupPlot").clientWidth || 900);
-  const h = w < 500 ? 240 : 280, left = 44, right = 22, top = 24, bottom = 34;
+  const h = w < 500 ? 240 : 280, left = 70, right = 22, top = 24, bottom = 34;
   const values = groupHistory.members.flatMap(member => member.points.map(point => point.value)).filter(Number.isFinite);
   const maximum = Math.max(...values, percent ? 100 : metric === "strain" ? 21 : 1);
   const span = maximum - Math.min(...values, 0);
@@ -1777,7 +1777,7 @@ function drawGroupChart() {
   const y = value => top + (1 - (value - lower) / (upper - lower)) * (h - top - bottom);
   groupGeometry = { w, h, x, y, left, right };
   const ticks = Array.from({length: Math.round((upper - lower) / step) + 1}, (_, i) => lower + i * step);
-  const grid = ticks.map(value => `<line x1="${left}" x2="${w - right}" y1="${y(value)}" y2="${y(value)}" stroke="${difference && value === 0 ? "#82958a" : "#e4eae5"}" stroke-dasharray="${difference && value === 0 ? "none" : "3 5"}"/><text x="0" y="${y(value) + 4}" fill="#6d7c75" font-size="12">${percent ? `${value}${difference ? "pt" : "%"}` : unit === "min" ? (metric === "durationMinutes" && !difference ? `${Number((value / 60).toFixed(1))}h` : `${value}m`) : Number(value.toFixed(1))}</text>`).join("");
+  const grid = ticks.map(value => `<line x1="${left}" x2="${w - right}" y1="${y(value)}" y2="${y(value)}" stroke="${difference && value === 0 ? "#82958a" : "#e4eae5"}" stroke-dasharray="${difference && value === 0 ? "none" : "3 5"}"/><text x="0" y="${y(value) + 4}" fill="#6d7c75" font-size="12">${percent ? `${value}${difference ? "pt" : "%"}` : unit === "min" ? formatDuration(value) : Number(value.toFixed(1))}</text>`).join("");
   const labelCount = selectedDays === 7 && w > 500 ? 7 : w < 400 ? 3 : 5;
   const labels = Array.from({length: labelCount}, (_, i) => Math.round(i * (selectedDays - 1) / (labelCount - 1))).map(i => `<text x="${x(i)}" y="${h - 5}" text-anchor="${i === 0 ? "start" : i === selectedDays - 1 ? "end" : "middle"}" fill="#6d7c75" font-size="12">${formatShortDate(groupHistory.dates[i])}</text>`).join("");
   const series = groupHistory.members.map(member => member.segments.map(segment => `<path d="${segment.map((point, i) => `${i ? "L" : "M"}${x(point.index)},${y(point.value)}`).join(" ")}" fill="none" stroke="${member.color}" stroke-width="2.5" stroke-dasharray="${member.dash}" stroke-linecap="round" stroke-linejoin="round"/>${segment.map(point => `<circle cx="${x(point.index)}" cy="${y(point.value)}" r="${selectedDays > 28 ? 1.8 : 3.5}" fill="${member.color}"/>`).join("")}`).join("")).join("");
@@ -1808,8 +1808,7 @@ function drawGroupChart() {
       : difference ? `No ${groupChartMode === "whiplash" ? "three-day runs" : "consecutive-day pairs"} in this period. Try Values or a longer period.`
       : "No shared data in this period. Enable recovery & activity in Connections, or choose a longer sharing window.";
   $("#groupSummaryRows").innerHTML = groupHistory.members.map(member => {
-    const deltaUnit = unit === '%' ? 'pts' : unit === '/21' ? 'strain' : unit;
-    const delta = member.delta === null ? "Not enough history" : `${member.delta > 0 ? "+" : member.delta < 0 ? "−" : ""}${Math.abs(member.delta).toFixed(1)} ${deltaUnit}`;
+    const delta = member.delta === null ? "Not enough history" : formatGroupDifference(member.delta);
     return `<tr><th scope="row"><span class="group-person-marker" style="background:${member.color}"></span>${escapeHtml(member.name.replace(' (sample)', ''))}</th><td>${formatMemberValue(member, member.average)}</td><td>${delta}<small class="group-coverage">${member.previousCount} / ${selectedDays} previous days</small></td><td>${member.count} / ${selectedDays}</td></tr>`;
   }).join("") || '<tr><td colspan="4">Select a person above to compare.</td></tr>';
   const selected = groupHistory.dates.indexOf(groupSelectedDate);
@@ -1860,8 +1859,9 @@ function formatMemberValue(member, value) {
 function formatGroupDifference(value, signed = true) {
   if (!Number.isFinite(value)) return "—";
   const unit = Daylight.metrics[$("#groupMetric").value].unit;
+  if (unit === "min") return Daylight.duration(signed ? value : Math.abs(value), signed);
   const magnitude = Math.round(Math.abs(value) * 10) / 10;
-  const label = unit === "min" ? `${Number(magnitude.toFixed(1))} min` : `${Number(magnitude.toFixed(1))} ${unit === "%" ? "pts" : unit === "/21" ? "strain" : unit}`;
+  const label = `${Number(magnitude.toFixed(1))} ${unit === "%" ? "pts" : unit === "/21" ? "strain" : unit}`;
   return `${signed && magnitude !== 0 ? (value > 0 ? "+" : "−") : ""}${label}`;
 }
 function formatGroupPoint(member, point) {
@@ -1872,7 +1872,7 @@ function renderGroupVariability(metric) {
   const members = groupHistory.members;
   // Compare playful distinctions only where every shown person has substantial coverage.
   const comparable = members.length > 1 && members.every(m => m.count >= Math.ceil(selectedDays * .8) && m.variability.pairCount >= Math.max(4, Math.ceil((selectedDays - 1) * .8)));
-  const displayed = value => Math.round(value * 10) / 10;
+  const displayed = value => Daylight.metrics[metric].unit === "min" ? Math.round(value) : Math.round(value * 10) / 10;
   const swings = members.map(m => displayed(m.variability.typicalSwing));
   const minSwing = Math.min(...swings), maxSwing = Math.max(...swings);
   const comeback = Math.max(0, ...members.map(m => displayed(m.variability.biggestJump?.value || 0)));

@@ -379,7 +379,7 @@ function renderStandings() {
   $('#standingsBoards').innerHTML = boards.map(board => {
     const baseline = ['delta','percentChange'].includes(board.rule.mode);
     const rows = board.entries.map(member => {
-      const value = !member.eligible ? '—' : baseline ? `${member.result > 0 ? '+' : ''}${member.result.toFixed(1)}${board.rule.mode === 'percentChange' ? '%' : ' pts'}` : board.rule.mode === 'total' ? `${Math.round(member.result)} min` : formatMetricValue(member.result, board.rule.metric);
+      const value = !member.eligible ? '—' : baseline ? `${member.result > 0 ? '+' : ''}${member.result.toFixed(1)}${board.rule.mode === 'percentChange' ? '%' : ' pts'}` : board.rule.mode === 'total' ? formatDuration(member.result) : formatMetricValue(member.result, board.rule.metric);
       return `<li class="standing-row${member.rank === 1 ? ' standing-leader' : ''}"><span class="standing-rank" aria-label="${member.rank ? `Rank ${member.rank}` : 'Unranked'}">${member.rank || '—'}</span><span class="standing-name"><span><i class="group-person-marker" style="background:${member.color}"></i>${escapeHtml(member.name.replace(' (sample)', ''))}</span><small>${member.eligible ? `${member.count}/7 ${board.rule.metric === 'durationMinutes' ? 'nights' : 'days'}${baseline ? ` · ${member.previousCount}/7 previous days` : ''}` : `${member.reason}${member.reason === 'Not shared' ? '' : ` · ${member.count}/7 days`}`}</small></span><strong>${value}</strong></li>`;
     }).join('');
     return `<article class="standings-card" aria-labelledby="standingTitle-${board.key}"><div class="standings-card-heading"><h3 id="standingTitle-${board.key}">${board.rule.label}</h3><p>${board.rule.description}</p></div><ol class="standings-rows">${rows}</ol></article>`;

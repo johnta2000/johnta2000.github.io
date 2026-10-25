@@ -95,7 +95,15 @@ test("invalid stage totals are not graphed as negative light sleep", () => {
 });
 test("durations round across hour boundaries and preserve genuine zero", () => {
   assert.equal(model.duration(479.8), "8h 00m");
-  assert.equal(model.duration(0), "0h 00m");
+  assert.equal(model.duration(0), "0m");
+  assert.equal(model.duration(45), "45m");
+  assert.equal(model.duration(59.8), "1h 00m");
+  assert.equal(model.duration(-72), "−1h 12m");
+  assert.equal(model.duration(72, true), "+1h 12m");
+  assert.equal(model.duration(0, true), "0m");
+  assert.equal(model.duration(-0.2, true), "−<1m");
+  assert.equal(model.duration(0.2), "<1m");
+  assert.equal(model.duration(Infinity), "—");
   assert.equal(model.duration(undefined), "—");
   assert.equal(model.duration(null), "—");
 });

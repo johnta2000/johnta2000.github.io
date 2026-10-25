@@ -48,7 +48,7 @@
       const count=this.history.dates.length, rows=this.history.rows;
       for(const metric of metrics){
         const section=this.charts.querySelector(`[data-metric="${metric.id}"]`), svg=section.querySelector('svg');
-        const w=section.clientWidth,h=164,left=40,right=12,top=12,bottom=30;
+        const w=section.clientWidth,h=164,left=64,right=12,top=12,bottom=30;
         const all=rows.flatMap(row=>this.providers.map(p=>value(row,p.id,metric.id))).filter(finite);
         const shown=rows.flatMap(row=>this.visible().map(p=>value(row,p.id,metric.id))).filter(finite);
         let low=0,high=100,ticks=[0,25,50,75,100];
@@ -63,7 +63,7 @@
         this.geometry[metric.id]={x,y,w,h,left,right};
         const tickCount=w<400?3:count===7?7:5;
         const indices=[...new Set(Array.from({length:tickCount},(_,i)=>Math.round(i*(count-1)/(tickCount-1))))];
-        let markup=ticks.map(v=>`<line x1="${left}" x2="${w-right}" y1="${y(v)}" y2="${y(v)}" class="comparison-grid"/><text x="${left-8}" y="${y(v)+4}" text-anchor="end">${metric.id==='durationMinutes'?`${Math.round(v/60*10)/10}h`:v}</text>`).join('');
+        let markup=ticks.map(v=>`<line x1="${left}" x2="${w-right}" y1="${y(v)}" y2="${y(v)}" class="comparison-grid"/><text x="${left-8}" y="${y(v)+4}" text-anchor="end">${metric.id==='durationMinutes'?Daylight.duration(v):v}</text>`).join('');
         markup+=indices.map((i,j)=>`<text x="${x(i)}" y="${h-6}" text-anchor="${j===0?'start':j===indices.length-1?'end':'middle'}">${dateLabel(this.history.dates[i])}</text>`).join('');
         for(const p of this.visible()){
           let open=false;const path=rows.map((row,i)=>{const n=value(row,p.id,metric.id);if(!finite(n)){open=false;return '';}const command=open?'L':'M';open=true;return `${command}${x(i)},${y(n)}`;}).join(' ');
@@ -101,7 +101,7 @@
       }
       const durations=ps.map(p=>value(row,p.id,'durationMinutes')).filter(finite),max=Math.max(1,...durations);
       this.el.querySelector('#comparisonDurations').innerHTML=ps.map(p=>{const n=value(row,p.id,'durationMinutes');return `<div class="comparison-value" style="--source-color:${p.color}"><i></i>${p.name}<strong>${format(n,'durationMinutes',p.id)}</strong></div>${finite(n)?`<div class="comparison-bar"><span style="width:${n/max*100}%;background:${p.color}"></span></div>`:''}`;}).join('');
-      this.el.querySelector('#comparisonSpread').textContent=durations.length>1?`${Math.round(Math.max(...durations)-Math.min(...durations))} min`:'—';
+      this.el.querySelector('#comparisonSpread').textContent=durations.length>1?Daylight.duration(Math.max(...durations)-Math.min(...durations)):'—';
       this.el.querySelector('#comparisonStages').innerHTML=ps.map(p=>{
         const stages=Daylight.stages(row[p.id]);if(!stages)return '';
         return `<div class="comparison-stage-source"><h4>${p.name}</h4><div class="comparison-stage-bar">${stages.map((s,i)=>`<button type="button" style="flex:${s.minutes};background:${p.color};opacity:${[.4,1,.7][i]}" aria-label="${p.name} ${s.label}: ${Daylight.duration(s.minutes)}" data-stage-label="${escape(`${p.name} · ${s.label}: ${Daylight.duration(s.minutes)}`)}"></button>`).join('')}</div><div class="comparison-stage-labels">${stages.map(s=>`<span>${s.label}<b>${Daylight.duration(s.minutes)}</b></span>`).join('')}</div>`;

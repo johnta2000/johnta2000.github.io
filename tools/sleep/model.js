@@ -82,10 +82,12 @@
       { label: "REM", minutes: row.remMinutes, color: "#c6bfd8" },
     ];
   }
-  function duration(minutes) {
+  function duration(minutes, signed = false) {
     if (!finite(minutes)) return "—";
-    const rounded = Math.round(minutes);
-    return `${Math.floor(rounded / 60)}h ${String(rounded % 60).padStart(2, "0")}m`;
+    const rounded = Math.round(Math.abs(minutes));
+    const sign = minutes < 0 ? "−" : signed && minutes > 0 ? "+" : "";
+    const label = rounded === 0 && minutes !== 0 ? "<1m" : rounded < 60 ? `${rounded}m` : `${Math.floor(rounded / 60)}h ${String(rounded % 60).padStart(2, "0")}m`;
+    return sign + label;
   }
   function sample(endDate) {
     const nights = [],
@@ -165,7 +167,7 @@
     recovery: {label: "Recovery", metric: "recovery", mode: "average", description: "Average recovery score. At least 4 of 7 days to rank."},
     consistency: {label: "Sleep consistency", metric: "consistency", mode: "average", description: "Average WHOOP sleep consistency. At least 4 of 7 days to rank."},
     strain: {label: "Day strain", metric: "strain", mode: "average", description: "Average completed-day strain. At least 4 of 7 days. Measures effort, not overall health."},
-    workoutMinutes: {label: "Workout minutes", metric: "workoutMinutes", mode: "total", description: "Total workout time. All 7 days must be tracked to rank; rest days count as zero."},
+    workoutMinutes: {label: "Workout time", metric: "workoutMinutes", mode: "total", description: "Total workout time. All 7 days must be tracked to rank; rest days count as zero."},
     sleepGain: {label: "Sleep improvement", metric: "score", mode: "delta", description: "Sleep performance change vs. your previous 7 days. At least 4 days in each week."},
     hrvGain: {label: "HRV improvement", metric: "hrv", mode: "percentChange", description: "HRV change vs. your own previous 7 days. At least 4 days in each week; requires 14 days of sharing."},
   };
