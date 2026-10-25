@@ -137,7 +137,7 @@ test('Rally projects include future events, open unsaved drafts, and do not pres
   const h = harness({events: [{id: 'past', name: 'Past event', startsAt: '2025-06-01'}, {id: 'future', name: 'Future event', startsAt: '2099-01-01'}]}); try {
     await until(() => h.text().includes('Alice private night')); h.button('From My raves').click(); await tick();
     const select = h.w.document.querySelector('select[aria-label="Your Rally events"]'); assert(select.textContent.includes('Past event')); assert(select.textContent.includes('Future event'));
-    select.value = 'past'; select.dispatchEvent(new h.w.Event('change', {bubbles: true})); await tick(); h.button('Open diary entry').click(); await until(() => h.w.document.querySelector('.rave-form'));
+    select.value = 'past'; select.dispatchEvent(new h.w.Event('change', {bubbles: true})); await tick(); h.button('Use this rave').click(); await until(() => h.w.document.querySelector('.rave-form'));
     assert.equal(h.w.document.querySelectorAll('.input-tag').length, 0); assert(h.text().includes('Suggested DJ')); assert.equal(h.saves.length, 0);
   } finally { h.close(); }
 });
@@ -391,6 +391,7 @@ test('switching festival editions requires explicit replacement and preserves pr
     await chooseFestival(h,'countdown-nye-2025');h.button('Use these event details').click();await tick();
     assert.equal(h.w.document.querySelector('input[maxlength="160"]').value,'Countdown NYE 2025');
     assert(h.text().includes('24 lineup suggestions'));
+    await until(()=>h.w.document.querySelector('input[aria-label="Start date"]').value==='12/31/2025');
     h.button('Save to rave diary').click();await until(()=>h.saves.length===1);
     assert.deepEqual(h.saves[0].artists,['My own set']);assert.deepEqual(h.saves[0].crew,['My friend']);
     assert.equal(h.saves[0].city,'Los Angeles, CA');assert.equal(h.saves[0].venue,'Los Angeles Convention Center');
@@ -587,5 +588,31 @@ test('existing Rally plans can link without copying private data and connection 
   const select=h.w.document.querySelector('select[aria-label="Link an existing Rally plan"]');select.value='shared';select.dispatchEvent(new h.w.Event('change',{bubbles:true}));await tick();
   h.button('Link this plan').click();await until(()=>h.saves.length===1);assert.equal(h.saves[0].sourceEventId,'shared');assert.equal(h.saves[0].notes,'Keep private');
   assert.equal(h.saves[0].name,'Upcoming entry');assert.equal(h.saves[0].attendance,'planned');
+ }finally{h.close();}
+});
+
+test('already-added Rally raves are disabled on mobile and desktop and open their existing entry',async()=>{
+ for(const mobile of [false,true]){
+  const h=harness({mobile,raves:[{...entry('Saved festival'),sourceEventId:'saved'}],events:[{id:'saved',name:'Saved festival',startsAt:'2025-06-14'},{id:'new',name:'New festival',startsAt:'2025-07-01'}]});
+  try{
+   await until(()=>h.text().includes('Saved festival'));if(mobile){h.button('Add a rave').click();await tick();}h.button('From My raves').click();await tick();
+   const select=h.w.document.querySelector('select[aria-label="Your Rally events"]');
+   assert(select.querySelector('option[value="saved"]').disabled);assert(!select.querySelector('option[value="new"]').disabled);
+   const picker=select.nextElementSibling;picker.querySelector('button').click();
+   const input=picker.querySelector('input');input.value='Saved';input.dispatchEvent(new h.w.Event('input',{bubbles:true}));
+   const option=picker.querySelector('[role="option"]');assert(option.textContent.includes('Already in your diary'));assert.equal(option.getAttribute('aria-disabled'),'true');option.click();await tick();assert.equal(select.value,'');
+   select.value='saved';select.dispatchEvent(new h.w.Event('change',{bubbles:true}));await tick();assert(h.button('Use this rave').disabled);
+   h.button('View diary entry for Saved festival').click();await until(()=>h.w.document.querySelector('.diary-plan-link'));assert(!h.w.document.querySelector('.rave-form'));assert.equal(h.saves.length,0);assert.equal(h.rows.alice.length,1);
+  }finally{h.close();}
+ }
+});
+
+test('all-used plans show an empty-add explanation and cannot link to a second diary entry',async()=>{
+ const h=harness({raves:[{...entry('Saved festival'),sourceEventId:'saved'},entry('Other night')],events:[{id:'saved',name:'Saved festival',startsAt:'2025-06-14'}]});
+ try{
+  await until(()=>h.text().includes('Other night'));h.button('From My raves').click();await tick();assert(h.text().includes('All your Rally raves are already in your diary.'));assert(h.button('Use this rave').disabled);
+  h.button('Close dialog').click();await tick();h.button('View Other night').click();await tick();h.button('Link existing plan').click();await tick();
+  const select=h.w.document.querySelector('select[aria-label="Link an existing Rally plan"]');assert(select.querySelector('option[value="saved"]').disabled);
+  select.value='saved';select.dispatchEvent(new h.w.Event('change',{bubbles:true}));await tick();assert(h.button('Link this plan').disabled);h.button('Link this plan').click();await tick();assert.equal(h.saves.length,0);
  }finally{h.close();}
 });

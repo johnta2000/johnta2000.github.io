@@ -15,3 +15,11 @@
 .diary-plan-link .search-select-trigger { min-height:44px; }
 .upcoming-note { font-size:12px; line-height:1.6; color:var(--secondary); margin:8px 0 16px; }
 @media(max-width:760px){.diary-periods{margin-top:4px;gap:6px}.diary-periods button{flex:1;padding:10px 8px}.diary-plan-actions{flex-direction:column}.diary-plan-actions>*{width:100%;justify-content:center}}
+
+.diary-existing-plans { margin:16px 0; font-size:13px; color:var(--secondary); }
+.diary-existing-plans summary { cursor:pointer; min-height:44px; padding:12px 0; color:var(--ink); font-weight:600; }
+.diary-existing-plans details>div { max-height:240px; overflow-y:auto; }
+.diary-existing-plan { display:flex; align-items:center; gap:12px; justify-content:space-between; padding:10px 0; border-top:1px solid var(--line); }
+.diary-existing-plan span { min-width:0; overflow-wrap:anywhere; }
+.diary-existing-plan small { display:block; margin-top:4px; }
+.diary-existing-plan button { min-height:44px; flex-shrink:0; }
