@@ -3,7 +3,7 @@
   'use strict';
   const instances = new WeakMap();
   let sequence = 0, current = null;
-  function enhance(select, { focusSearchOnOpen = true } = {}) {
+  function enhance(select, { focusSearchOnOpen = true, onCreate, customMaxLength = 150 } = {}) {
     if (instances.has(select)) return instances.get(select);
     const listeners = new AbortController(), wasHidden = select.hidden;
     const id = select.id || `picker-${++sequence}`;
@@ -23,6 +23,7 @@
     const searchBox = make('div', 'search-select-search');
     const search = make('input', 'search-select-input');
     search.type = 'text'; search.placeholder = `Search ${label.toLowerCase()}…`; search.autocomplete = 'off'; search.spellcheck = false;
+    if (onCreate) search.maxLength = customMaxLength;
     search.setAttribute('role', 'combobox'); search.setAttribute('aria-label', `Search ${label.toLowerCase()}`);
     search.setAttribute('aria-autocomplete', 'list'); search.setAttribute('aria-expanded', 'false');
     const list = make('div', 'search-select-list'); list.id = `${id}-options`; list.tabIndex=-1;list.setAttribute('role', 'listbox'); list.setAttribute('aria-label', label);
@@ -42,6 +43,10 @@
       const query = normalized(search.value.trim());
       const terms = select.dataset.searchTokens === 'true' ? query.split(/\s+/).filter(Boolean) : [query];
       matches = Array.from(select.options).filter(option => !option.hidden && terms.every(term => normalized(option.textContent).includes(term)));
+      const customValue = search.value.trim();
+      if (onCreate && customValue && customValue.length <= customMaxLength && !Array.from(select.options).some(option => normalized(option.value.trim()) === query)) {
+        matches.push({value: customValue, textContent: `Use “${customValue}”`, selected: false, disabled: false, custom: true});
+      }
       list.replaceChildren();
       matches.forEach((option, i) => {
         const item = make('div', 'search-select-option'); item.id = `${id}-option-${i}`;
@@ -96,6 +101,7 @@
     }
     function choose(index) {
       const option = matches[index]; if (!option || option.disabled || select.disabled) return;
+      if (option.custom) { close(true); onCreate(option.value); return; }
       const changed = select.value !== option.value;
       select.value = option.value; close(true); sync();
       if (changed) select.dispatchEvent(new Event('change', { bubbles: true }));

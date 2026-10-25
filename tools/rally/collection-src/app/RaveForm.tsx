@@ -3,6 +3,7 @@ import {Check, ChevronDown, Heart, LoaderCircle, LockKeyhole, Music2, Star, Wall
 import Modal from './Modal';
 import DateField from './DateField';
 import NamePicker from './NamePicker';
+import CityPicker from './CityPicker';
 import FestivalPicker, {FestivalSources} from './FestivalPicker';
 import {applyFestival, festivalForRave} from '../lib/festivals';
 import {costKeys, emptyRave, leaderboard, totalCost, uniqueNames, validateRave, type Rave} from '../lib/raves';
@@ -69,7 +70,7 @@ export default function RaveForm({initial, all, onSave, onClose, suggestedArtist
             setR(prev => ({...prev, startDate: next, endDate: prev.endDate === prev.startDate ? next : prev.endDate}));
           }}/>
           <DateField label="End date" hint="For multiple days" min={r.startDate} value={r.endDate} onChange={value => field('endDate', value)}/>
-          <label className="field">City<input maxLength={150} placeholder="San Francisco, CA" value={r.city} onChange={e => field('city', e.target.value)}/></label>
+          <CityPicker value={r.city} cities={all.map(rave => rave.city)} onChange={city => field('city', city)}/>
           <label className="field">Venue<input maxLength={150} placeholder="The Midway" value={r.venue} onChange={e => field('venue', e.target.value)}/></label>
         </div>
         <div className="field"><span className="field-label">Type of night</span><div className="segmented">{(['Festival', 'Club night', 'Show'] as const).map(k => <button type="button" key={k} aria-pressed={r.kind === k} className={r.kind === k ? 'active' : ''} onClick={() => field('kind', k)}>{k}</button>)}</div></div>

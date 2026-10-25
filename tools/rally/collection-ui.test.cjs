@@ -479,3 +479,62 @@ test('late plan suggestions cannot populate a different open entry',async()=>{
     options.releasePlan();await tick();await tick();assert(!h.w.document.querySelector('.rave-form').textContent.includes('Stale DJ'));
   }finally{h.close();}
 });
+
+test('city picker searches common, catalog, and personal cities and keeps a canonical selection on save',async()=>{
+  const h=harness({raves:[{...entry('old'),city:'My hometown, CA'},{...entry('old-2'),city:'my hometown, ca'}]});try{
+    await until(()=>h.button('Add a rave'));h.button('Add a rave').click();await tick();
+    const picker=h.w.document.querySelector('.city-picker');
+    const select=picker.querySelector('select');
+    assert(select.textContent.includes('San Francisco, CA'));assert(select.textContent.includes('Boom, Belgium'));
+    assert.equal([...select.options].filter(o=>o.value.toLowerCase()==='my hometown, ca').length,1);
+    picker.querySelector('.search-select-trigger').click();await tick();
+    await h.fill('.city-picker .search-select-input','san francisco ca');
+    assert(picker.querySelector('[role=option]').textContent.includes('San Francisco, CA'));
+    picker.querySelector('.search-select-input').dispatchEvent(new h.w.KeyboardEvent('keydown',{key:'Enter',bubbles:true,cancelable:true}));await tick();
+    assert.equal(select.value,'San Francisco, CA');assert.equal(h.saves.length,0);
+    assert.equal(h.w.document.activeElement,picker.querySelector('.search-select-trigger'));
+    await h.fill('input[maxlength="160"]','New show');await h.fill('input[aria-label="Start date"]','10/01/2026');
+    h.button('Save to rave diary').click();await until(()=>h.saves.length===1);
+    assert.equal(h.saves[0].city,'San Francisco, CA');assert.equal(h.saves[0].venue,'');
+  }finally{h.close();}
+});
+
+test('custom cities can be explicitly selected, reopened, and cleared without saving search text',async()=>{
+  const h=harness({raves:[{...entry('night'),city:'Existing city',venue:'Keep my venue'}]});try{
+    await until(()=>h.button('Edit night'));h.button('Edit night').click();await tick();
+    let picker=h.w.document.querySelector('.city-picker');
+    picker.querySelector('.search-select-trigger').click();await tick();
+    await h.fill('.city-picker .search-select-input','A small town, Somewhere');
+    assert.equal(picker.querySelector('select').value,'Existing city');
+    assert(picker.querySelector('[role=option]').textContent.includes('Use “A small town, Somewhere”'));
+    picker.querySelector('.search-select-input').dispatchEvent(new h.w.KeyboardEvent('keydown',{key:'Escape',bubbles:true,cancelable:true}));await tick();
+    assert(h.w.document.querySelector('.rave-form'));assert.equal(picker.querySelector('select').value,'Existing city');
+    picker.querySelector('.search-select-trigger').click();await tick();
+    await h.fill('.city-picker .search-select-input','A small town, Somewhere');
+    picker.querySelector('[role=option]').click();await tick();
+    assert.equal(picker.querySelector('select').value,'A small town, Somewhere');
+    assert(picker.querySelector('.search-select-trigger').textContent.includes('A small town, Somewhere'));
+    h.button('Save changes').click();await until(()=>h.saves.length===1 && !h.w.document.querySelector('.rave-form'));
+    assert.equal(h.saves[0].city,'A small town, Somewhere');assert.equal(h.saves[0].venue,'Keep my venue');
+    h.button('Edit night').click();await tick();picker=h.w.document.querySelector('.city-picker');
+    assert.equal(picker.querySelector('select').value,'A small town, Somewhere');
+    picker.querySelector('.search-select-trigger').click();await tick();
+    await h.fill('.city-picker .search-select-input','x'.repeat(151));assert.equal(picker.querySelectorAll('[role=option]').length,0);
+    await h.fill('.city-picker .search-select-input','');picker.querySelector('[role=option]').click();await tick();
+    assert.equal(picker.querySelector('select').value,'');
+    h.button('Save changes').click();await until(()=>h.saves.length===2);assert.equal(h.saves[1].city,'');
+  }finally{h.close();}
+});
+
+test('festival autofill updates the city picker and other selectors never offer custom values',async()=>{
+  const h=harness({empty:true});try{
+    await until(()=>h.button('Add a rave'));h.button('Add a rave').click();await tick();
+    await chooseFestival(h,'lost-lands-2026');
+    const picker=h.w.document.querySelector('.city-picker');
+    assert.equal(picker.querySelector('select').value,'Thornville, OH');
+    assert(picker.querySelector('.search-select-trigger').textContent.includes('Thornville, OH'));
+    const festival=h.w.document.querySelector('.festival-picker');festival.querySelector('.search-select-trigger').click();await tick();
+    await h.fill('.festival-picker .search-select-input','A brand new festival');
+    assert.equal(festival.querySelectorAll('[role=option]').length,0);assert(festival.textContent.includes('No matches. Try another search.'));
+  }finally{h.close();}
+});
