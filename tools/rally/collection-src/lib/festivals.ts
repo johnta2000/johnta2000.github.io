@@ -8,6 +8,12 @@ export type FestivalEdition = {
 };
 export const festivalEditions: FestivalEdition[] = [...data as FestivalEdition[]].sort((a, b) => a.festival.localeCompare(b.festival) || b.year - a.year || (a.weekend || 0) - (b.weekend || 0));
 export const catalogYearRange = `${Math.min(...festivalEditions.map(e => e.year))}–${Math.max(...festivalEditions.map(e => e.year))}`;
+// Include support acts and ISO dates so an old night can be found even when
+// someone remembers the venue, artist, or month rather than its billed title.
+export function catalogSearchText(edition: FestivalEdition) {
+  const cityAliases = edition.city === 'San Francisco, CA' ? 'SF San Fran Bay Area' : edition.city === 'Los Angeles, CA' ? 'LA' : edition.city === 'New York, NY' ? 'NYC' : '';
+  return [edition.city, cityAliases, edition.venue, edition.startDate, edition.endDate, ...(edition.aliases || []), ...edition.artists].join(' ');
+}
 const key = (s: string) => s.trim().toLocaleLowerCase().replace(/[’']/g, '').replace(/\s+/g, ' ');
 
 // Match explicit event identities or known title/year spellings, with dates inside

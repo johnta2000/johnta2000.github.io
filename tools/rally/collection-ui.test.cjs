@@ -662,3 +662,23 @@ for(const mobile of [false,true]) test(`historical shows and unknown lineups sta
   assert(!h.requests.some(r=>r.path==='rallyCollection:createPlan'||r.path==='rallyCollection:importEntries'));
  }finally{h.close();}
 });
+
+for(const mobile of [false,true]) test(`deep catalog finds a night by venue and support act, then keeps its roster scoped (${mobile?'mobile':'desktop'})`,async()=>{
+ const h=harness({empty:true,mobile});try{
+  await until(()=>h.button('Add a rave'));h.button('Add a rave').click();await tick();
+  if(mobile){h.button('Find or add a rave').click();await tick();}
+  const picker=h.w.document.querySelector('.festival-picker');
+  picker.querySelector('.search-select-trigger').click();await tick();
+  await h.fill('.festival-picker .search-select-input','Midway SF Seven Lions 2024');
+  let options=[...picker.querySelectorAll('[role=option]')];
+  assert.equal(options.length,2);assert(options.some(o=>o.textContent.includes('Afterparty')));
+  options.find(o=>o.textContent.includes('Afterparty')).click();await tick();
+  assert.equal(h.w.document.querySelector('input[aria-label="Start date"]').value,'10/12/2024');
+  const artists=h.w.document.querySelector('.name-picker');assert(artists.textContent.includes('Seven Lions'));assert(!artists.textContent.includes('Crystal Skies'));
+  assert.equal(artists.querySelectorAll('input[type=checkbox]:checked').length,0);assert.equal(h.saves.length,0);
+  picker.querySelector('.search-select-trigger').click();await tick();
+  await h.fill('.festival-picker .search-select-input','Bill Graham SF 2025-10 INZO');
+  options=[...picker.querySelectorAll('[role=option]')];assert.equal(options.length,1);assert(options[0].textContent.includes('Oct 24, 2025'));
+  assert.equal(h.saves.length,0);
+ }finally{h.close();}
+});

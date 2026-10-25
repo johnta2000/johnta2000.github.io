@@ -73,7 +73,7 @@ test('artist identity separates explicit collaborations and special sets while p
 
 const {festivalEditions, festivalForRave, applyFestival} = moduleAt('festivals.ts');
 test('festival editions have unique identities, real dates, sources, and clean distinct suggestions', () => {
-  assert.equal(festivalEditions.length, 137);
+  assert.equal(festivalEditions.length, 254);
   assert.equal(new Set(festivalEditions.map(e => e.id)).size, festivalEditions.length);
   for (const e of festivalEditions) {
     assert.equal(new Date(e.startDate).toISOString().slice(0,10), e.startDate, e.id);
@@ -218,4 +218,25 @@ test('show catalog separates dates, consolidates support acts, and does not infe
  assert(!get('coachella-2025-w2').artists.includes('ZULAN'));
  assert(!get('hijinx-festival-2025').artists.includes('SLANDER'));
  assert(get('hijinx-festival-2025').artists.includes('ILLENIUM B2B SLANDER'));
+});
+
+test('deep historical catalog excludes cancelled days and keeps venue-night lineups distinct',()=>{
+ const get=id=>festivalEditions.find(e=>e.id===id);
+ const beyond=get('beyond-wonderland-at-the-gorge-2023');
+ assert.equal(beyond.startDate,'2023-06-17');assert.equal(beyond.endDate,beyond.startDate);
+ assert(!beyond.artists.includes('Subtronics'));assert(!beyond.artists.includes('Riot Ten'));
+ const roo=get('bonnaroo-2025');assert.equal(roo.endDate,'2025-06-12');
+ assert(roo.artists.includes('Dom Dolla'));assert(!roo.artists.includes('Olivia Rodrigo'));
+ assert.equal(get('bonnaroo-2023').startDate,'2023-06-15');
+ assert.equal(get('elements-2024').startDate,'2024-08-10');
+ assert(!get('elements-2024').artists.includes('Illenium'));
+ assert.equal(get('lightning-in-a-bottle-2024').endDate,'2024-05-26');
+ const day=get('ophelia-block-party-midway-2024-10-12'),after=get('ophelia-block-party-afterparty-midway-2024-10-12');
+ assert.notEqual(day.id,after.id);assert(day.artists.includes('Crystal Skies'));assert(!after.artists.includes('Crystal Skies'));
+ assert(get('subtronics-bill-graham-2025-10-24').artists.includes('INZO'));
+ assert(!get('subtronics-bill-graham-2025-10-25').artists.includes('INZO'));
+ assert(get('martin-garrix-bill-graham-2024-06-12').artists.includes('Austin Millz'));
+ assert(!get('martin-garrix-bill-graham-2024-06-15').artists.includes('Austin Millz'));
+ const {catalogSearchText}=moduleAt('festivals.ts');
+ assert(catalogSearchText(day).includes('SF'));assert(catalogSearchText(day).includes('Seven Lions'));assert(catalogSearchText(day).includes('2024-10-12'));
 });
