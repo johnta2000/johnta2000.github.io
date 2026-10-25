@@ -17,7 +17,7 @@
     <meta name="theme-color" content="#f7f8fa" />
     <title>Daylight — Your sleep, in perspective</title>
     <link rel="stylesheet" href="/assets/css/searchable-select.css" />
-    <link rel="stylesheet" href="./styles.css?v=20261004-7" />
+    <link rel="stylesheet" href="./styles.css?v=20261025-1" />
   <link rel="stylesheet" href="../../assets/css/clerk-auth.css?v=20261011-otp1">
   </head>
   <body>
@@ -370,11 +370,15 @@
                 <div><p class="eyebrow" id="groupPeriod">SHARED HISTORY</p><h2>Head to head</h2></div>
                 <label class="metric-picker"><span class="sr-only">Group chart metric</span><select id="groupMetric" aria-label="Group chart metric"><option value="durationMinutes">Time asleep</option><option value="score">Sleep performance</option><option value="efficiency">Sleep efficiency</option></select></label>
               </div>
+              <div class="group-chart-modes" role="group" aria-label="Chart view"><button type="button" data-group-mode="values" aria-pressed="true">Values</button><button type="button" data-group-mode="changes" aria-pressed="false">Daily changes</button><button type="button" data-group-mode="whiplash" aria-pressed="false">Whiplash</button></div>
+              <p id="groupModeNote" class="small-note"></p>
               <div class="group-readout-heading"><strong id="groupSelectedDate"></strong><span>Hover or tap the chart for exact values</span></div>
               <div id="groupMembers" class="group-members" role="group" aria-label="People shown in the chart"></div>
               <div class="group-plot-wrap"><div id="groupPlot" tabindex="0" role="group" aria-label="Group history. Use left and right arrow keys to explore dates." aria-describedby="groupChartStatus"></div><div id="groupTooltip" class="group-tooltip" hidden></div><p id="groupEmpty" class="chart-empty" hidden>Select a person above to show their history.</p></div>
               <p id="groupChartStatus" class="sr-only" role="status" aria-live="polite"></p>
               <p class="group-chart-note">WHOOP · Missing days appear as gaps. Select a person above to hide or show their line.</p>
+              <div class="group-summary-heading"><h3>Consistency &amp; chaos</h3><p class="small-note">Same average, different story. Stats use the selected period; swings require consecutive tracked days.</p></div>
+              <div id="groupVariability" class="group-variability"></div>
               <div class="group-summary-heading"><h3>Averages over this period</h3><p id="groupBaselineNote" class="small-note"></p></div>
               <div class="table-wrap"><table><caption class="sr-only">Selected members’ average, change from their own previous period, and data coverage</caption><thead><tr><th scope="col">Person</th><th scope="col" id="groupMetricHeading">Time asleep</th><th scope="col">Change vs. own previous period</th><th scope="col">Days tracked</th></tr></thead><tbody id="groupSummaryRows"></tbody></table></div>
             </article>
@@ -647,9 +651,9 @@
       </div>
     </dialog>
     <dialog id="groupDialog" class="group-dialog"><form id="groupForm"><div class="panel-heading"><h2 id="groupDialogTitle">Create a group</h2><button id="cancelGroupDialog" type="button" class="text-button">Cancel</button></div><p id="groupDialogIntro"></p><label id="groupNameLabel">Group name<input id="groupNameInput" maxlength="60" type="text"></label><label>Your display name<input id="groupDisplayName" maxlength="40" required type="text" autocomplete="nickname"></label><fieldset id="groupSharingOptions"><legend>Share with this group</legend><p>Nothing is shared unless you select it. Your notes always stay private.</p><label><input type="checkbox" name="sharedMetric" value="durationMinutes"> Time asleep</label><label><input type="checkbox" name="sharedMetric" value="score"> Sleep performance</label><label><input type="checkbox" name="sharedMetric" value="efficiency"> Sleep efficiency</label></fieldset><label>History to share<select id="groupShareDays" aria-label="History to share"><option value="7">Last 7 days</option><option value="28">Last 28 days</option><option value="90" selected>Last 90 days</option><option value="180">Last 180 days</option></select></label><p class="small-note">This is a rolling window that includes future synced days. New members of this group can see the metrics you share.</p><p id="groupFormError" role="alert"></p><button id="saveGroupForm" type="submit" class="primary-button">Create group</button></form></dialog>
-    <script defer src="./model.js?v=20261004-7"></script>
+    <script defer src="./model.js?v=20261025-1"></script>
     <script defer src="./comparison.js?v=20261004-7"></script>
     <script defer src="./groups.js?v=20261004-7"></script>
-    <script defer src="./app.js?v=20261004-7"></script>
+    <script defer src="./app.js?v=20261025-1"></script>
   </body>
 </html>

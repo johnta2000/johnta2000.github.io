@@ -186,12 +186,36 @@
     entries.forEach((entry,index) => { if (entry.eligible) { if (index === 0 || entry.result !== entries[index - 1].result) rank = index + 1; entry.rank = rank; }});
     return {entries, rule, start: dateShift(end, -6), end};
   }
-  function groupHistory(members, metric, days, endDate) {
+  function variability(points) {
+    const observed = points.filter(p => finite(p.value));
+    const average = mean(observed.map(p => p.value));
+    const changes = points.flatMap((p, i) => i > 0 && finite(p.value) && finite(points[i - 1].value) && dateShift(points[i - 1].date, 1) === p.date
+      ? [{date: p.date, previous: points[i - 1].value, current: p.value, value: p.value - points[i - 1].value}] : []);
+    const xs = observed.map(p => (Date.parse(p.date) - Date.parse(points[0].date)) / 86400000);
+    const xm = mean(xs), denominator = xs.reduce((sum, x) => sum + (x - xm) ** 2, 0);
+    return {
+      pairCount: changes.length,
+      typicalSwing: mean(changes.map(p => Math.abs(p.value))),
+      min: observed.length ? Math.min(...observed.map(p => p.value)) : null,
+      max: observed.length ? Math.max(...observed.map(p => p.value)) : null,
+      volatility: observed.length > 1 ? Math.sqrt(mean(observed.map(p => (p.value - average) ** 2))) : null,
+      trend: denominator ? observed.reduce((sum, p, i) => sum + (xs[i] - xm) * (p.value - average), 0) / denominator : null,
+      biggestJump: changes.filter(p => p.value > 0).sort((a,b) => b.value - a.value)[0] || null,
+      biggestDrop: changes.filter(p => p.value < 0).sort((a,b) => a.value - b.value)[0] || null,
+    };
+  }
+  function groupHistory(members, metric, days, endDate, mode = "values") {
     const dates = Array.from({ length: days }, (_, i) => dateShift(endDate, i - days + 1));
     return { dates, members: members.map((member) => {
-      const byDate = new Map(member.nights.filter(row => row.source === "whoop").map(row => [row.sleepDate, row]));
+      const byDate = new Map(member.nights.filter(row => row.source === "whoop" && (!member.metrics || member.metrics.includes(metric))).map(row => [row.sleepDate, row]));
       const nights = [...byDate.values()];
-      const points = dates.map(date => ({ date, value: byDate.has(date) ? value(byDate.get(date), metric) : undefined }));
+      const rawPoints = dates.map(date => ({ date, value: byDate.has(date) ? value(byDate.get(date), metric) : undefined }));
+      const points = rawPoints.map((p, i) => {
+        const previous = rawPoints[i - 1]?.value, beforePrevious = rawPoints[i - 2]?.value;
+        const change = finite(p.value) && finite(previous) ? p.value - previous : undefined;
+        const acceleration = finite(change) && finite(beforePrevious) ? change - (previous - beforePrevious) : undefined;
+        return {...p, rawValue: p.value, previous, change, acceleration, value: mode === "changes" ? change : mode === "whiplash" ? acceleration : p.value};
+      });
       const segments = [];
       let segment = [];
       points.forEach((point, index) => {
@@ -199,7 +223,7 @@
         else if (segment.length) { segments.push(segment); segment = []; }
       });
       if (segment.length) segments.push(segment);
-      return { id: member.id, name: member.name, color: member.color, dash: member.dash, points, segments, ...stats(nights, metric, days, endDate) };
+      return { id: member.id, name: member.name, color: member.color, dash: member.dash, points, segments, variability: variability(rawPoints), ...stats(nights, metric, days, endDate) };
     }) };
   }
   function sampleGroup(endDate) {
@@ -245,7 +269,7 @@
   const api = {
     providerHistory,
     metrics, competitions, standings,
-    groupHistory,
+    groupHistory, variability,
     sampleGroup,
     range,
     stats,
