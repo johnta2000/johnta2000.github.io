@@ -357,7 +357,7 @@ test('logging shows core credits but saves the original collaboration and specia
 });
 
 async function chooseFestival(h, id) {
-  const select=h.w.document.querySelector('select[aria-label="Festival and year"]');
+  const select=h.w.document.querySelector('select[aria-label="Event and year"]');
   assert(select); select.value=id; select.dispatchEvent(new h.w.Event('change',{bubbles:true})); await tick();
 }
 test('festival search fills edition metadata without claiming sets or saving attendance', async () => {
@@ -400,7 +400,7 @@ test('switching festival editions requires explicit replacement and preserves pr
 test('reopened historical festival entries recover suggestions and clearly identify partial lineups',async()=>{
   const h=harness({raves:[{...entry('lost'),name:'Lost Lands 2024',startDate:'2024-09-20',endDate:'2024-09-22',artists:['Excision (Detox Set)']}]});try{
     await until(()=>h.button('Edit Lost Lands 2024'));h.button('Edit Lost Lands 2024').click();await tick();
-    assert(h.text().includes('Partial lineup — more artists performed than are listed here.'));
+    assert(h.text().includes('Partial lineup — only verified artists are listed here.'));
     assert(h.text().includes('Excision B2B Wooli'));
     assert.equal(h.w.document.querySelectorAll('.name-picker input[type=checkbox]:checked').length,1);
     assert.equal(h.saves.length,0);
@@ -423,7 +423,7 @@ test('Lost Lands short-year Rally entries recover the correct catalog and exclud
     await until(()=>h.button("Edit Lost Lands '26")); h.button("Edit Lost Lands '26").click();
     await until(()=>h.w.document.querySelector('.rave-form') && !h.text().includes('Loading suggestions from your Rally plan'));
     const picker=h.w.document.querySelector('.name-picker');
-    assert(h.w.document.querySelector('select[aria-label="Festival and year"]'));
+    assert(h.w.document.querySelector('select[aria-label="Event and year"]'));
     assert(h.text().includes('Lost Lands 2026 · 172 lineup suggestions'));
     assert(!picker.textContent.includes('2hollis')); assert(!picker.textContent.includes('Wrong plan artist'));
     assert(picker.textContent.includes('Excision B2B Space Laces'));
@@ -614,5 +614,16 @@ test('all-used plans show an empty-add explanation and cannot link to a second d
   h.button('Close dialog').click();await tick();h.button('View Other night').click();await tick();h.button('Link existing plan').click();await tick();
   const select=h.w.document.querySelector('select[aria-label="Link an existing Rally plan"]');assert(select.querySelector('option[value="saved"]').disabled);
   select.value='saved';select.dispatchEvent(new h.w.Event('change',{bubbles:true}));await tick();assert(h.button('Link this plan').disabled);h.button('Link this plan').click();await tick();assert.equal(h.saves.length,0);
+ }finally{h.close();}
+});
+
+test('ISOxo show autofills the selected night and restores its scoped lineup on edit',async()=>{
+ const h=harness({empty:true});try{
+  await until(()=>h.button('Add a rave'));h.button('Add a rave').click();await tick();await chooseFestival(h,'isoxo-cow-palace-2026-04-04');
+  await until(()=>h.w.document.querySelector('input[aria-label="Start date"]').value==='04/04/2026');
+  assert.equal(h.w.document.querySelector('input[aria-label="End date"]').value,'04/04/2026');assert.equal(h.button('Show').getAttribute('aria-pressed'),'true');
+  assert(h.text().includes('1 lineup suggestions'));assert(h.text().includes('Partial lineup'));assert(h.text().includes('ISOxo'));assert.equal(h.w.document.querySelectorAll('.name-picker input:checked').length,0);
+  h.button('Save to rave diary').click();await until(()=>h.saves.length===1);assert.equal(h.saves[0].kind,'Show');assert.equal(h.saves[0].city,'Daly City, CA');assert.equal(h.saves[0].artists.length,0);
+  await until(()=>h.button('Edit ISOxo at Cow Palace · April 4, 2026'));h.button('Edit ISOxo at Cow Palace · April 4, 2026').click();await tick();assert(h.text().includes('1 lineup suggestions'));
  }finally{h.close();}
 });

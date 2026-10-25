@@ -70,7 +70,7 @@ test('artist identity separates explicit collaborations and special sets while p
 
 const {festivalEditions, festivalForRave, applyFestival} = moduleAt('festivals.ts');
 test('festival editions have unique identities, real dates, sources, and clean distinct suggestions', () => {
-  assert.equal(festivalEditions.length, 37);
+  assert.equal(festivalEditions.length, 39);
   assert.equal(new Set(festivalEditions.map(e => e.id)).size, festivalEditions.length);
   for (const e of festivalEditions) {
     assert.equal(new Date(e.startDate).toISOString().slice(0,10), e.startDate, e.id);
@@ -151,4 +151,14 @@ test('upcoming and expired plans never count as attendance until explicitly conf
  assert.equal(leaderboard([past],'artists')[0].name,'Actual DJ');
  assert.equal(leaderboard([{...past,attendance:'skipped'}],'artists').length,0);
  assert.equal(attendanceOf(past),'attended');
+});
+
+test('individual shows preserve their type and match only the selected night',()=>{
+ const e=festivalEditions.find(e=>e.id==='isoxo-cow-palace-2026-04-04');
+ const r=applyFestival(emptyRave(),e);
+ assert.equal(r.kind,'Show');assert.equal(r.city,'Daly City, CA');assert.equal(r.startDate,'2026-04-04');assert.equal(r.endDate,r.startDate);
+ assert.deepEqual(JSON.parse(JSON.stringify(e.artists)),['ISOxo']);assert.equal(e.coverage,'partial');assert.equal(r.artists.length,0);assert.equal(r.costs.ticket,null);
+ assert.equal(festivalForRave(r).id,e.id);assert.equal(festivalForRave({...r,kind:'Festival'}),undefined);
+ assert.equal(festivalForRave({...r,startDate:'2026-04-03',endDate:'2026-04-03'}),undefined);
+ const first=festivalEditions.find(e=>e.id==='isoxo-cow-palace-2026-04-03');assert.equal(festivalForRave(applyFestival(emptyRave(),first)).id,first.id);
 });

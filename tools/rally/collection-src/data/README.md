@@ -1,6 +1,6 @@
-# Festival catalog
+# Event catalog
 
-`festivals.json` is public reference data, checked on October 24, 2026. It is not anyone's diary or attendance history. The catalog covers completed editions from 2022 onward for EDC Las Vegas, Ultra Miami, Countdown NYE, Lost Lands, Niteharts, Tomorrowland Belgium, and Beyond Wonderland SoCal.
+`festivals.json` is public reference data, last extended on October 25, 2026. It is not anyone's diary or attendance history. The catalog covers completed editions from 2022 onward for EDC Las Vegas, Ultra Miami, Countdown NYE, Lost Lands, Niteharts, Tomorrowland Belgium, and Beyond Wonderland SoCal.
 
 Each edition has stable identity, billed dates, venue, city, artist/set labels, coverage, a review date, and source links. Tomorrowland weekends are separate editions; 2022 has three. Niteharts begins in 2025. Countdown 2025 moved to the Los Angeles Convention Center; 2024 was one billed night. Dates represent billed festival days rather than camping, early entry, or the clock rolling past midnight.
 
@@ -23,3 +23,7 @@ Run `npm run check:rally-collection`, `npm run test:rally-collection`, and `npm 
 ## Artist picker scope
 
 A matched catalog edition supplies the artist roster, ahead of plan suggestions. Otherwise a linked entry reloads its Rally plan suggestions when opened, including on later edits. The lineup tab never mixes in artists from other diary entries. Previously saved or manually added sets outside the roster stay under Selected, clearly distinguished from lineup choices; no saved selections are silently deleted. A failed plan lookup is retryable, with the catalog still available. Linked entries can select a catalog edition with explicit confirmation of changes to their private diary metadata; the shared plan and its link are preserved.
+
+## Individual shows
+
+ISOxo at Cow Palace is listed separately for April 3 and April 4, 2026, using the official venue pages. These entries use `kind: "Show"`; existing records default to Festival. Only ISOxo is sourced, so coverage is partial. Artist biographies and linked current tour listings do not establish support acts for these nights. Selecting a night keeps attendance unchecked and costs unknown.

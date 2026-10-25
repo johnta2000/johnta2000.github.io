@@ -8143,5 +8143,51 @@
       }
     ],
     "verifiedOn": "2026-10-24"
+  },
+  {
+    "id": "isoxo-cow-palace-2026-04-03",
+    "festival": "ISOxo at Cow Palace",
+    "year": 2026,
+    "name": "ISOxo at Cow Palace · April 3, 2026",
+    "kind": "Show",
+    "startDate": "2026-04-03",
+    "endDate": "2026-04-03",
+    "city": "Daly City, CA",
+    "venue": "Cow Palace",
+    "artists": [
+      "ISOxo"
+    ],
+    "coverage": "partial",
+    "note": "The official venue listing confirms ISOxo for this night. Support acts are not listed, so this is a partial lineup. April 3 and April 4 are separate shows. Doors 7 PM; show 8 PM (venue notes times may change).",
+    "verifiedOn": "2026-10-25",
+    "sources": [
+      {
+        "label": "Cow Palace · ISOxo · April 3, 2026",
+        "url": "https://www.cowpalace.com/event/isoxo-3-2/"
+      }
+    ]
+  },
+  {
+    "id": "isoxo-cow-palace-2026-04-04",
+    "festival": "ISOxo at Cow Palace",
+    "year": 2026,
+    "name": "ISOxo at Cow Palace · April 4, 2026",
+    "kind": "Show",
+    "startDate": "2026-04-04",
+    "endDate": "2026-04-04",
+    "city": "Daly City, CA",
+    "venue": "Cow Palace",
+    "artists": [
+      "ISOxo"
+    ],
+    "coverage": "partial",
+    "note": "The official venue listing confirms ISOxo for this night. Support acts are not listed, so this is a partial lineup. April 3 and April 4 are separate shows. Doors 7 PM; show 8 PM (venue notes times may change).",
+    "verifiedOn": "2026-10-25",
+    "sources": [
+      {
+        "label": "Cow Palace · ISOxo · April 4, 2026",
+        "url": "https://www.cowpalace.com/event/isoxo/"
+      }
+    ]
   }
 ]
