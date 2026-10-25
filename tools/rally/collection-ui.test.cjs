@@ -36,6 +36,7 @@ function harness(options = {}) {
       rows[subject] = [args.rave, ...rows[subject].filter(r => r.id !== args.rave.id)];
       return success(args.rave);
     }
+    if (path === 'rallyCollection:createPlan') {if(optionsRef.createPlanFails) return failure('Could not create plan'); const saved={...rows[subject].find(r=>r.id===args.id),sourceEventId:'created-room'}; rows[subject]=rows[subject].map(r=>r.id===saved.id?saved:r);return success(saved);}
     if (path === 'rallyCollection:remove') { rows[subject] = rows[subject].filter(r => r.id !== args.id); return success({ok: true}); }
     if (path === 'rallyCollection:draftFromEvent') { if (optionsRef.planSuggestionsFail) return failure('Plan unavailable'); if (optionsRef.holdPlan) await new Promise(r => optionsRef.releasePlan = r); return success({rave: rows[subject].find(r => r.sourceEventId === args.eventId) || {...entry('Plan night'), id: '', sourceEventId: args.eventId, notes: ''}, existing: rows[subject].some(r => r.sourceEventId === args.eventId), artistSuggestions: optionsRef.artistSuggestions || ['Suggested DJ'], crewSuggestions: optionsRef.crewSuggestions || ['Suggested Friend']}); }
     throw new Error('Unexpected test request: ' + path);
@@ -132,11 +133,11 @@ test('a token delayed across account switching cannot send the old draft as the 
     await until(() => h.text().includes('Bob private night')); h.releaseToken(); await tick(); await tick(); assert.equal(h.saves.length, 0);
   } finally { h.close(); }
 });
-test('Rally projects exclude future events, open unsaved drafts, and do not preselect suggested artists or crew', async () => {
+test('Rally projects include future events, open unsaved drafts, and do not preselect suggested artists or crew', async () => {
   const h = harness({events: [{id: 'past', name: 'Past event', startsAt: '2025-06-01'}, {id: 'future', name: 'Future event', startsAt: '2099-01-01'}]}); try {
     await until(() => h.text().includes('Alice private night')); h.button('From My raves').click(); await tick();
-    const select = h.w.document.querySelector('select[aria-label="Your Rally events"]'); assert(select.textContent.includes('Past event')); assert(!select.textContent.includes('Future event'));
-    select.value = 'past'; select.dispatchEvent(new h.w.Event('change', {bubbles: true})); await tick(); h.button('Open my experience').click(); await until(() => h.w.document.querySelector('.rave-form'));
+    const select = h.w.document.querySelector('select[aria-label="Your Rally events"]'); assert(select.textContent.includes('Past event')); assert(select.textContent.includes('Future event'));
+    select.value = 'past'; select.dispatchEvent(new h.w.Event('change', {bubbles: true})); await tick(); h.button('Open diary entry').click(); await until(() => h.w.document.querySelector('.rave-form'));
     assert.equal(h.w.document.querySelectorAll('.input-tag').length, 0); assert(h.text().includes('Suggested DJ')); assert.equal(h.saves.length, 0);
   } finally { h.close(); }
 });
@@ -188,7 +189,7 @@ test('timeline filtering survives switching to desktop and zero costs remain exp
 test('mobile add choices and account menu preserve plan access and sign out', async () => {
   const h = harness({mobile:true}); try {
     await until(() => h.w.document.querySelector('.timeline-card'));
-    h.button('Add a rave').click(); await tick(); assert(h.text().includes('Log a good night'));
+    h.button('Add a rave').click(); await tick(); assert(h.text().includes('Add a rave'));
     h.button('From My raves').click(); await tick(); assert(h.text().includes('No Rally projects yet'));
     h.button('Find or add a rave').click(); await tick(); assert(h.w.document.querySelector('.rave-form'));
     h.button('Cancel').click(); await tick();
@@ -222,19 +223,19 @@ test('linked saved experience opens details without creating a second draft', as
 });
 test('projects separate future planning from personal logging and clear status on account switch',async()=>{
  const h=harness({search:'?view=projects',events:[{id:'room',name:'Past warehouse',startsAt:'2025-01-01'},{id:'future',name:'Future festival',startsAt:'2099-01-01'}],raves:[{...entry('Saved'),sourceEventId:'room'}]});try{
-  await until(()=>h.text().includes('View my experience'));
+  await until(()=>h.text().includes('View diary entry'));
   const rows=[...h.w.document.querySelectorAll('.project-row')];
-  assert.equal(rows.find(r=>r.textContent.includes('Future festival')).querySelector('.project-experience'),null);
+  assert(rows.find(r=>r.textContent.includes('Future festival')).querySelector('.project-experience').textContent.includes('Save to my diary'));
   assert.equal(rows.find(r=>r.textContent.includes('Past warehouse')).querySelector('.project-experience').getAttribute('href'),'/tools/rally/collection/?from=room');
-  h.switchUser('bob');await until(()=>h.text().includes('Log my experience'));assert(!h.text().includes('View my experience'));
+  h.switchUser('bob');await until(()=>h.text().includes('Log my experience'));assert(!h.text().includes('View diary entry'));
   await h.fill('input[type="search"]','nothing');assert(h.text().includes('No raves match'));
  }finally{h.close();}
 });
 test('project overview ignores a delayed experience status after account changes',async()=>{
  const dom=new JSDOM('<main id="page"></main>',{url:'https://example.test',runScripts:'outside-only'}),w=dom.window;
  try{w.Clerk={user:{id:'alice'}};w.eval(fs.readFileSync(__dirname+'/personal-collection.js','utf8'));
-  let resolve;w.RallyCollection.mount({id:'room',startsAt:'2025-01-01'},{loadExperience:()=>new Promise(r=>resolve=r)});await tick();w.Clerk.user.id='bob';resolve({existing:true});await tick();assert(!w.document.body.textContent.includes('View my experience'));
-  w.RallyCollection.mount({id:'room',startsAt:'2025-01-01'},{loadExperience:async()=>({existing:true})});await tick();assert(w.document.body.textContent.includes('View my experience'));
+  let resolve;w.RallyCollection.mount({id:'room',startsAt:'2025-01-01'},{loadExperience:()=>new Promise(r=>resolve=r)});await tick();w.Clerk.user.id='bob';resolve({existing:true});await tick();assert(!w.document.body.textContent.includes('View diary entry'));
+  w.RallyCollection.mount({id:'room',startsAt:'2025-01-01'},{loadExperience:async()=>({existing:true})});await tick();assert(w.document.body.textContent.includes('View diary entry'));
  }finally{w.close();}
 });
 
@@ -537,4 +538,54 @@ test('festival autofill updates the city picker and other selectors never offer 
     await h.fill('.festival-picker .search-select-input','A brand new festival');
     assert.equal(festival.querySelectorAll('[role=option]').length,0);assert(festival.textContent.includes('No matches. Try another search.'));
   }finally{h.close();}
+});
+
+test('upcoming raves save wishlists separately and offer a Rally connection without auto-creating a room',async()=>{
+ const h=harness({empty:true});try{
+  await until(()=>h.button('Add a rave'));h.button('Add a rave').click();await tick();
+  await h.fill('input[maxlength="160"]','My future rave');await h.fill('input[aria-label="Start date"]','01/01/2099');
+  assert(h.text().includes('Upcoming rave'));assert(!h.button('I went'));
+  await h.fill('input[aria-label="Artists you want to see"]','Wishlist DJ');await h.fill('input[aria-label="Who are you going with?"]','Nancy');
+  h.button('Save upcoming rave').click();await until(()=>h.saves.length===1 && !h.w.document.querySelector('.rave-form'));
+  assert.equal(h.saves[0].attendance,'planned');assert.deepEqual(h.saves[0].artists,[]);assert.deepEqual(h.saves[0].crew,[]);
+  assert.deepEqual(h.saves[0].plannedArtists,['Wishlist DJ']);assert.deepEqual(h.saves[0].plannedCrew,['Nancy']);
+  assert(h.button('Create a Rally plan'));assert(!h.requests.some(r=>r.path==='rallyCollection:createPlan'));
+  h.button('Create a Rally plan').click();await tick();assert(h.text().includes('Your costs, notes, photos, wishlist, and diary crew stay private.'));
+  h.button('Create and link plan').click();await until(()=>h.w.document.querySelector('a[href="/tools/rally/?event=created-room"]'));
+  assert.equal(h.requests.filter(r=>r.path==='rallyCollection:createPlan').length,1);assert(!h.button('Create a Rally plan'));
+ }finally{h.close();}
+});
+
+test('expired plans require explicit attendance and selecting the sets actually seen',async()=>{
+ const r={...entry('Unconfirmed night'),attendance:'planned',plannedArtists:['Wishlist DJ'],plannedCrew:['Nancy']};
+ const h=harness({raves:[r]});try{
+  await until(()=>h.button('Edit Unconfirmed night'));assert(h.text().includes('To log'));
+  h.button('Edit Unconfirmed night').click();await tick();assert(h.button('I went'));
+  h.button('I went').click();await tick();
+  const picker=h.w.document.querySelector('.name-picker');assert(picker.textContent.includes('Wishlist DJ'));assert.equal(picker.querySelectorAll('input:checked').length,0);
+  await h.fill('input[aria-label="Artists you actually saw"]','Actual DJ');h.button('Save changes').click();await until(()=>h.saves.length===1);
+  assert.equal(h.saves[0].attendance,'attended');assert.deepEqual(h.saves[0].artists,['Actual DJ']);assert.deepEqual(h.saves[0].plannedArtists,['Wishlist DJ']);assert.deepEqual(h.saves[0].crew,[]);
+ }finally{h.close();}
+});
+
+test('upcoming and past views filter consistently across mobile and desktop and skip planned artist totals',async()=>{
+ const h=harness({mobile:true,raves:[{...entry('Next rave'),startDate:'2099-01-01',endDate:'2099-01-01',attendance:'planned',plannedArtists:['Only planned DJ']},{...entry('Past attended'),attendance:'attended',artists:['Actual DJ']},{...entry('Did not go'),attendance:'skipped',artists:['Must not count']}]});try{
+  await until(()=>h.button('View Next rave'));h.button('Upcoming 1').click();await tick();assert(h.button('View Next rave'));assert(!h.button('View Past attended'));
+  assert(h.w.document.querySelector('.timeline-totals').textContent.includes('1 to see'));
+  h.resize(false);await tick();assert(h.button('View Next rave'));assert(!h.button('View Past attended'));
+  h.button('Past 2').click();await tick();assert(!h.button('View Next rave'));assert(h.button('View Past attended'));
+  assert(h.w.document.querySelector('.result-summary').textContent.includes('1artists seen'));
+ }finally{h.close();}
+});
+
+test('existing Rally plans can link without copying private data and connection failures preserve the entry',async()=>{
+ const options={raves:[{...entry('Upcoming entry'),startDate:'2099-01-01',endDate:'2099-01-01',attendance:'planned',notes:'Keep private'}],events:[{id:'shared',name:'Crew plan',startsAt:'2099-01-01'}],createPlanFails:true};
+ const h=harness(options);try{
+  await until(()=>h.button('View Upcoming entry'));h.button('View Upcoming entry').click();await tick();
+  h.button('Create a Rally plan').click();await tick();h.button('Create and link plan').click();await until(()=>h.text().includes('Could not create plan'));
+  assert(h.text().includes('Keep private'));h.button('Cancel').click();await tick();h.button('Link existing plan').click();await tick();
+  const select=h.w.document.querySelector('select[aria-label="Link an existing Rally plan"]');select.value='shared';select.dispatchEvent(new h.w.Event('change',{bubbles:true}));await tick();
+  h.button('Link this plan').click();await until(()=>h.saves.length===1);assert.equal(h.saves[0].sourceEventId,'shared');assert.equal(h.saves[0].notes,'Keep private');
+  assert.equal(h.saves[0].name,'Upcoming entry');assert.equal(h.saves[0].attendance,'planned');
+ }finally{h.close();}
 });

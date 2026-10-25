@@ -1,6 +1,7 @@
 import {query,mutation,type QueryCtx,type MutationCtx} from './_generated/server';
 import {v,ConvexError} from 'convex/values';
-import {emptyRave,uniqueNames,validateRave,type Rave} from '../tools/rally/collection-src/lib/raves';
+import {festivalForRave} from '../tools/rally/collection-src/lib/festivals';
+import {emptyRave,uniqueNames,validateRave,diaryToday,type Rave} from '../tools/rally/collection-src/lib/raves';
 async function requireUser(ctx:Pick<QueryCtx|MutationCtx,'auth'>){
   const user=await ctx.auth.getUserIdentity();
   const verified=user?.emailVerified===true || (user?.emailVerified===undefined && user?.issuer==='https://clerk.john-ta.com');
@@ -18,10 +19,19 @@ async function accessibleRoom(ctx:QueryCtx|MutationCtx,user:Awaited<ReturnType<t
   if(!room?.buckets || !memberFor(room.buckets,user))throw new ConvexError('You do not have access to that Rally event.');
   return room.buckets;
 }
+// Freeze legacy intent against the entry's original creation date. A legacy
+// future entry must not turn into attended history when the calendar advances.
+function storedRave(row:any):Rave {
+  const r=row.rave as Rave;
+  if(r.attendance)return r;
+  const created=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Los_Angeles',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(row.createdAt));
+  const planned=r.startDate>created;
+  return {...r,attendance:planned?'planned':'attended',plannedArtists:planned?r.artists:[],plannedCrew:planned?r.crew:[],...(planned?{artists:[],crew:[],favoriteArtist:'',rating:0}:{})};
+}
 export const list=query({args:{},handler:async ctx=>{
   const user=await requireUser(ctx);
   const rows=await ctx.db.query('rallyCollections').withIndex('by_owner',q=>q.eq('ownerToken',user.ownerToken)).collect();
-  return {raves:rows.map(row=>row.rave).sort((a,b)=>b.startDate.localeCompare(a.startDate)),viewer:{name:user.name,subject:user.subject}};
+  return {raves:rows.map(storedRave).sort((a,b)=>b.startDate.localeCompare(a.startDate)),viewer:{name:user.name,subject:user.subject}};
 }});
 export const draftFromEvent=query({args:{eventId:v.string()},handler:async(ctx,{eventId})=>{
   const user=await requireUser(ctx),room=await accessibleRoom(ctx,user,eventId);
@@ -31,8 +41,8 @@ export const draftFromEvent=query({args:{eventId:v.string()},handler:async(ctx,{
   const crewSuggestions=uniqueNames((room.members||[]).filter((m:any)=>m.id!==self?.id).map((m:any)=>String(m.name||'')));
   const artistSuggestions=uniqueNames((room.lineup||[]).map((a:any)=>String(a.artist||a.name||'')));
   const kind=room.templateId==='local-show'?'Show':'Festival';
-  const rave={...emptyRave(),sourceEventId:eventId,name:room.name||'',startDate:room.startsAt||'',endDate:room.endsAt||'',city:room.location||'',venue:room.venue||'',kind};
-  return {rave:existing?.rave||rave,existing:!!existing,crewSuggestions,artistSuggestions,eventName:room.name};
+  const rave={...emptyRave(),attendance:(room.startsAt>diaryToday()?'planned':'attended') as Rave['attendance'],sourceEventId:eventId,name:room.name||'',startDate:room.startsAt||'',endDate:room.endsAt||'',city:room.location||'',venue:room.venue||'',kind};
+  return {rave:existing?storedRave(existing):rave,existing:!!existing,crewSuggestions,artistSuggestions,eventName:room.name};
 }});
 async function saveOne(ctx:MutationCtx,user:Awaited<ReturnType<typeof requireUser>>,rave:Rave){
   const existing=await ownEntry(ctx,user.ownerToken,rave.id);
@@ -47,7 +57,10 @@ async function saveOne(ctx:MutationCtx,user:Awaited<ReturnType<typeof requireUse
   return rave;
 }
 export const save=mutation({args:{rave:v.any()},handler:async(ctx,{rave})=>{
-  const user=await requireUser(ctx),clean=validateRave(rave);
+  const user=await requireUser(ctx);
+  const existing=typeof rave?.id==='string'?await ownEntry(ctx,user.ownerToken,rave.id):null;
+  const prior=existing?storedRave(existing):null;
+  const clean=validateRave({...rave,...(prior&&rave.attendance===undefined?{attendance:prior.attendance}:{}),...(prior&&rave.plannedArtists===undefined?{plannedArtists:prior.plannedArtists}:{}),...(prior&&rave.plannedCrew===undefined?{plannedCrew:prior.plannedCrew}:{})});
   if(JSON.stringify(clean).length>65000)throw new ConvexError('This entry is too large. Shorten its notes or names.');
   return saveOne(ctx,user,clean);
 }});
@@ -64,4 +77,24 @@ export const remove=mutation({args:{id:v.string()},handler:async(ctx,{id})=>{
   const user=await requireUser(ctx),entry=await ownEntry(ctx,user.ownerToken,id);
   if(entry)await ctx.db.delete(entry._id);
   return {ok:true};
+}});
+
+
+// Create a real Rally room and link it in the same transaction. Repeat clicks
+// return the linked room. No personal spending, guests, notes, or photos copy.
+export const createPlan=mutation({args:{id:v.string(),timeZone:v.string()},handler:async(ctx,{id,timeZone})=>{
+  const user=await requireUser(ctx),entry=await ownEntry(ctx,user.ownerToken,id);
+  if(!entry)throw new ConvexError('Save this diary entry before creating its Rally plan.');
+  const rave=storedRave(entry);
+  if(rave.sourceEventId){await accessibleRoom(ctx,user,rave.sourceEventId);return rave;}
+  try{new Intl.DateTimeFormat('en-US',{timeZone}).format();}catch{throw new ConvexError('Choose a valid event timezone.');}
+  const eventId='rave-'+crypto.randomUUID(),memberId=eventId+'-admin';
+  const edition=festivalForRave(rave);
+  const room={id:eventId,leaderId:memberId,name:rave.name,location:rave.city,venue:rave.venue,startsAt:rave.startDate,endsAt:rave.endDate,
+    eventTimeZone:timeZone,eventVisibility:'auto',projectTheme:'warm',templateId:rave.kind==='Festival'?'festival-weekend':'local-show',createdFromTemplate:'blank',
+    members:[{id:memberId,name:user.name,email:user.email,clerkSubject:user.subject,origin:'TBD',initials:user.name.slice(0,2).toUpperCase(),color:'purple',role:'admin',status:'confirmed'}],
+    rooms:[],travel:[],cars:[],tasks:[],passes:[],notes:[],meetups:[],lineupFavorites:{},
+    lineup:(edition?.artists||[]).map((name,index)=>({id:eventId+'-set-'+index,name,artist:name,stage:'',date:'',start:'',end:''}))};
+  await ctx.db.insert('warRoomState',{boardId:'rally:'+eventId,completed:{},linearLinks:{},docLinks:{},buckets:room,updatedAt:Date.now()});
+  return saveOne(ctx,user,{...rave,sourceEventId:eventId});
 }});

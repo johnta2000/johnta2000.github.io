@@ -63,6 +63,7 @@ function SignedInCollection({viewer, onSignOut}: {viewer: Viewer; onSignOut: () 
     save: rave => accountCall(viewer, 'mutation', 'rallyCollection:save', {rave}),
     remove: id => accountCall(viewer, 'mutation', 'rallyCollection:remove', {id}),
     importEntries: raves => accountCall(viewer, 'mutation', 'rallyCollection:importEntries', {raves}),
+    createPlan: (id,timeZone) => accountCall(viewer, 'mutation', 'rallyCollection:createPlan', {id,timeZone}),
     draftFromEvent: eventId => accountCall(viewer, 'query', 'rallyCollection:draftFromEvent', {eventId}),
   }), [viewer.subject, viewer.sessionId]);
   useEffect(() => {

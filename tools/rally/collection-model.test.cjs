@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const vm = require('node:vm');
 const {buildSync} = require('esbuild');
 function moduleAt(file) {
-  const sandbox = {module: {exports: {}}, crypto: require('node:crypto').webcrypto};
+  const sandbox = {module: {exports: {}}, URL, crypto: require('node:crypto').webcrypto};
   vm.runInNewContext(buildSync({entryPoints: [__dirname + '/collection-src/lib/' + file], bundle: true, write: false, platform: 'node', format: 'cjs'}).outputFiles[0].text, sandbox);
   return sandbox.module.exports;
 }
@@ -138,4 +138,17 @@ test('equivalent set labels match without merging distinct performances or chang
   assert.notEqual(performanceKey('Excision B2B Space Laces'),performanceKey('Excision'));
   assert.equal(performanceKey('Set Mo'),'set mo');
   assert.deepEqual(Array.from(artistsForSet('Excision (2 Hour Set)')),['Excision']);
+});
+
+test('upcoming and expired plans never count as attendance until explicitly confirmed',()=>{
+ const {attendanceOf,isAttended,raveStatus}=moduleAt('raves.ts');
+ const planned={...emptyRave(),name:'Future',startDate:'2099-01-01',endDate:'2099-01-02',attendance:'planned',plannedArtists:['Wishlist DJ'],plannedCrew:['Nancy'],artists:['Never count this'],crew:['Never count this']};
+ assert.equal(isAttended(planned,'2100-01-01'),false);assert.equal(raveStatus(planned,'2100-01-01'),'To log');
+ assert.equal(leaderboard([planned],'artists').length,0);assert.equal(leaderboard([planned],'crew').length,0);
+ assert.equal(validateRave({...planned,attendance:undefined}).attendance,'planned');
+ assert.throws(()=>validateRave({...planned,attendance:'attended'}),/future rave/);
+ const past={...planned,startDate:'2022-01-01',endDate:'2022-01-01',attendance:'attended',artists:['Actual DJ']};
+ assert.equal(leaderboard([past],'artists')[0].name,'Actual DJ');
+ assert.equal(leaderboard([{...past,attendance:'skipped'}],'artists').length,0);
+ assert.equal(attendanceOf(past),'attended');
 });

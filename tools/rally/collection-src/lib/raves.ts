@@ -1,6 +1,7 @@
 import {artistsForRave} from './artists';
 export type Rave = {
   id: string; sourceEventId?: string; name: string; startDate: string; endDate: string; city: string; venue: string;
+  attendance?: 'planned' | 'attended' | 'skipped'; plannedArtists?: string[]; plannedCrew?: string[];
   kind: 'Festival' | 'Club night' | 'Show'; artists: string[]; crew: string[];
   costs: { ticket: number | null; travel: number | null; stay: number | null; other: number | null };
   albumUrl: string; notes: string; rating: number; favoriteArtist: string; color: number;
@@ -10,9 +11,17 @@ export const emptyRave = (): Rave => ({id:'',name:'',startDate:'',endDate:'',cit
 export const totalCost = (r: Rave) => costKeys.some(k => r.costs[k] !== null) ? costKeys.reduce((n,k)=>n+(r.costs[k] ?? 0),0) : null;
 export function days(r: Rave) { return Math.floor((Date.parse(r.endDate || r.startDate)-Date.parse(r.startDate))/86400000)+1; }
 export function uniqueNames(names: string[]) { const seen = new Set<string>(); return names.map(n=>n.trim()).filter(n=>n && !seen.has(n.toLocaleLowerCase()) && !!seen.add(n.toLocaleLowerCase())); }
+// Calendar boundaries are shared by browser and backend; plans never become
+// attendance just because their dates pass.
+export const diaryToday = () => new Intl.DateTimeFormat('en-CA', {timeZone:'America/Los_Angeles',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+export const attendanceOf = (r: Rave, today = diaryToday()) => r.attendance || (r.startDate > today ? 'planned' : 'attended');
+export const isAttended = (r: Rave, today = diaryToday()) => attendanceOf(r,today) === 'attended' && r.startDate <= today;
+export const raveStatus = (r: Rave, today = diaryToday()) => attendanceOf(r,today) === 'skipped' ? (r.startDate>today?'Not going':'Didn’t go') : isAttended(r,today) ? 'Attended' : r.startDate > today ? 'Upcoming' : 'To log';
+export const displaySets = (r: Rave) => attendanceOf(r) === 'attended' ? r.artists : r.plannedArtists || [];
+export const displayCrew = (r: Rave) => attendanceOf(r) === 'attended' ? r.crew : r.plannedCrew || [];
 export function leaderboard(raves: Rave[], field: 'artists' | 'crew') {
   const map = new Map<string,{name:string;count:number;raves:Rave[]}>();
-  for (const r of raves) for (const name of field === 'artists' ? artistsForRave(r) : uniqueNames(r.crew)) { const key=name.toLocaleLowerCase(); const row=map.get(key) ?? {name,count:0,raves:[]}; row.count++; row.raves.push(r); map.set(key,row); }
+  for (const r of raves.filter(r=>isAttended(r))) for (const name of field === 'artists' ? artistsForRave(r) : uniqueNames(r.crew)) { const key=name.toLocaleLowerCase(); const row=map.get(key) ?? {name,count:0,raves:[]}; row.count++; row.raves.push(r); map.set(key,row); }
   return [...map.values()].sort((a,b)=>b.count-a.count || a.name.localeCompare(b.name));
 }
 const validDate = (v: unknown) => typeof v==='string' && /^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(Date.parse(v)) && new Date(v).toISOString().slice(0,10)===v;
@@ -29,13 +38,18 @@ export function validateRave(input: unknown): Rave {
   if(!x.costs || typeof x.costs!=='object') throw new Error('Check your costs.');
   const costs={} as Rave['costs'];for(const k of costKeys){ const v=(x.costs as Record<string,unknown>)[k];if(v!==null && (typeof v!=='number' || !Number.isFinite(v) || v<0 || v>10000000))throw new Error('Costs must be positive amounts or left blank.');costs[k]=v===null?null:Math.round((v as number)*100)/100; }
   const albumUrl=str('albumUrl',2000);if(albumUrl){try{if(!['https:','http:'].includes(new URL(albumUrl).protocol))throw new Error();}catch{throw new Error('Use a full https:// or http:// album link.');}}
-  const artists=list('artists'),crew=list('crew');const favoriteArtist=str('favoriteArtist',120);if(favoriteArtist && !artists.some(n=>n.toLocaleLowerCase()===favoriteArtist.toLocaleLowerCase()))throw new Error('Your favorite set should be one of the artists you saw.');
+  const artists=list('artists'),crew=list('crew');
+  const attendance=x.attendance ?? (startDate>diaryToday()?'planned':'attended');
+  if(!['planned','attended','skipped'].includes(String(attendance)))throw new Error('Choose a valid attendance status.');
+  if(attendance==='attended' && startDate>diaryToday())throw new Error('Save a future rave as a plan. Confirm attendance when it starts.');
+  const plannedArtists=x.plannedArtists===undefined?[]:list('plannedArtists'),plannedCrew=x.plannedCrew===undefined?[]:list('plannedCrew');
+  const favoriteArtist=str('favoriteArtist',120);if(favoriteArtist && !artists.some(n=>n.toLocaleLowerCase()===favoriteArtist.toLocaleLowerCase()))throw new Error('Your favorite set should be one of the artists you saw.');
   if(typeof x.rating!=='number' || !Number.isInteger(x.rating) || x.rating<0 || x.rating>5)throw new Error('Choose a rating from 1 to 5, or leave it unrated.');
   const color=typeof x.color==='number' && Number.isInteger(x.color) && x.color>=0 && x.color<4 ? x.color : 0;
   const id=typeof x.id==='string' && /^[a-zA-Z0-9_-]{1,100}$/.test(x.id) ? x.id : crypto.randomUUID();
   const sourceEventId=typeof x.sourceEventId==='string' && /^[a-zA-Z0-9_-]{1,120}$/.test(x.sourceEventId)?x.sourceEventId:undefined;
   if(x.sourceEventId!==undefined&&!sourceEventId)throw new Error('Invalid linked Rally event.');
-  return {id,...(sourceEventId?{sourceEventId}:{}),name,startDate,endDate,city:str('city',150),venue:str('venue',150),kind:x.kind as Rave['kind'],artists,crew,costs,albumUrl,notes:str('notes',10000),rating:x.rating,favoriteArtist,color};
+  return {id,attendance:attendance as Rave['attendance'],plannedArtists,plannedCrew,...(sourceEventId?{sourceEventId}:{}),name,startDate,endDate,city:str('city',150),venue:str('venue',150),kind:x.kind as Rave['kind'],artists,crew,costs,albumUrl,notes:str('notes',10000),rating:x.rating,favoriteArtist,color};
 }
 export const demoRaves: Rave[] = [
   {id:'demo-1',name:'Lost Lands',startDate:'2026-09-18',endDate:'2026-09-20',city:'Thornville, OH',venue:'Legend Valley',kind:'Festival',artists:['Subtronics','Excision','Wooli','Sullivan King','Seven Lions','REZZ'],crew:['Alex','Maya','Sam','Jordan'],costs:{ticket:450,travel:190,stay:210,other:85},albumUrl:'',notes:'The sunset set. The walk back to camp. The kind of weekend you wish you could bottle up.',rating:5,favoriteArtist:'Subtronics',color:0},

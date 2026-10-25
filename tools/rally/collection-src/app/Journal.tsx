@@ -3,12 +3,14 @@ import useMobileLayout from './useMobileLayout';
 import Modal from './Modal';
 import RaveForm from './RaveForm';
 import SharedPicker from './SharedPicker';
+import PlanConnection from './PlanConnection';
+import './upcoming.css';
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { Menu, ChevronRight, MoreHorizontal, RefreshCw, LockKeyhole, AlertCircle, ArrowDown, ArrowDownToLine, ArrowRight, ArrowUpRight, CalendarDays, Disc3, FileSpreadsheet, Heart, LoaderCircle, MapPin, Music2, Plus, Search, Sparkles, Star, Ticket, Trash2, Upload, Users, Wallet, X } from 'lucide-react';
 import RaveExplorer from './RaveExplorer';
 import {artistsForRave, creditDescription, setCreditsArtist} from '../lib/artists';
-import { costKeys, days, demoRaves, leaderboard, totalCost, validateRave, type Rave } from '../lib/raves';
+import { attendanceOf,diaryToday,isAttended,raveStatus,displaySets,displayCrew,costKeys, days, demoRaves, leaderboard, totalCost, validateRave, type Rave } from '../lib/raves';
 const money=(n:number)=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0}).format(n);
 const exactMoney=(n:number)=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(n);
 const date=(d:string,year=false)=>new Date(d+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',...(year?{year:'numeric'}:{})});
@@ -26,16 +28,18 @@ function RaveCard({r,onOpen}:{r:Rave;onOpen:()=>void}) {
     <span className="favorite-rave-footer"><span><Star size={14} fill="currentColor"/>{r.rating} / 5</span><span>View night<ArrowUpRight size={15}/></span></span>
   </button>;
 }
-function Detail({r,demo,onClose,onEdit,onDelete}:{r:Rave;demo:boolean;onClose:()=>void;onEdit:()=>void;onDelete:()=>Promise<void>}) {
-  const [confirm,setConfirm]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState('');const cost=totalCost(r);
-  return <Modal title={r.name} onClose={()=>{if(!busy)onClose();}}><div className="detail"><div className={`detail-ticket color-${r.color}`}><Glyph/><span>{r.kind}<strong>{dateRange(r)}</strong><small>{r.venue}{r.city ? ` · ${r.city}`:''}</small></span><span className="ticket-rating">{r.rating ? <><Star size={16} fill="currentColor"/>{r.rating}/5</>:'Unrated'}</span></div>
-    <section><h3><Music2 size={16}/>The sets</h3><div className="choice-chips">{r.artists.length?r.artists.map(a=><span key={a} className={'logged-set '+(a===r.favoriteArtist?'chosen':'')}><span>{a===r.favoriteArtist && <Star size={12}/>} {a}</span>{creditDescription(a) && <small className="set-credit">{creditDescription(a)}</small>}</span>):<p className="muted">No artists logged yet.</p>}</div>{r.favoriteArtist && <small className="detail-caption">The starred performance was your favorite set.</small>}</section>
-    <section><h3><Users size={16}/>The crew</h3><div className="people">{r.crew.length?r.crew.map((n,i)=><span key={n}><i className={`avatar tone-${i%4}`}>{initials(n)}</i>{n}</span>):<p className="muted">Solo, or still to be filled in.</p>}</div></section>
+function Detail({r,demo,onClose,onEdit,onDelete,onUpdated,backend,events}:{onUpdated:(r:Rave)=>void;backend:CollectionBackend;events:RallyEvent[];r:Rave;demo:boolean;onClose:()=>void;onEdit:()=>void;onDelete:()=>Promise<void>}) {
+  const [confirm,setConfirm]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState('');const cost=totalCost(r),planning=attendanceOf(r)!=='attended',sets=displaySets(r),crew=displayCrew(r);
+  return <Modal title={r.name} onClose={()=>{if(!busy)onClose();}}><div className="detail"><div className={`detail-ticket color-${r.color}`}><Glyph/><span>{r.kind} · {raveStatus(r)}<strong>{dateRange(r)}</strong><small>{r.venue}{r.city ? ` · ${r.city}`:''}</small></span>{!planning&&<span className="ticket-rating">{r.rating ? <><Star size={16} fill="currentColor"/>{r.rating}/5</>:'Unrated'}</span>}</div>
+    {!demo&&<PlanConnection rave={r} backend={backend} events={events} onUpdated={onUpdated}/>}
+    {attendanceOf(r)==='planned'&&r.startDate<=diaryToday()&&<div className="attendance-choice"><strong>Did you go?</strong><p>Confirm attendance and choose the sets you saw. Your wishlist won’t count as sets seen.</p><button className="primary" onClick={onEdit}>Log your experience</button></div>}
+    <section><h3><Music2 size={16}/>{planning?'Artists you want to see':'The sets'}</h3><div className="choice-chips">{sets.length?sets.map(a=><span key={a} className={'logged-set '+(a===r.favoriteArtist?'chosen':'')}><span>{a===r.favoriteArtist && <Star size={12}/>} {a}</span>{creditDescription(a) && <small className="set-credit">{creditDescription(a)}</small>}</span>):<p className="muted">No sets selected yet.</p>}</div>{!planning&&r.favoriteArtist && <small className="detail-caption">The starred performance was your favorite set.</small>}</section>
+    <section><h3><Users size={16}/>{planning?'Planned crew':'The crew'}</h3><div className="people">{crew.length?crew.map((n,i)=><span key={n}><i className={`avatar tone-${i%4}`}>{initials(n)}</i>{n}</span>):<p className="muted">Solo, or still to be filled in.</p>}</div></section>
     <section><h3><Wallet size={16}/>Your costs <small>USD</small></h3><div className="expense-list">{costKeys.map(k=><div key={k}><span>{({ticket:'Tickets',travel:'Travel',stay:'Stay',other:'Food & other'})[k]}</span><strong>{r.costs[k]===null?'Unlogged':exactMoney(r.costs[k]!)}</strong></div>)}<div className="expense-total"><span>Logged total</span><strong>{cost===null?'Unlogged':exactMoney(cost)}</strong></div></div>{costKeys.some(k=>r.costs[k]===null) && <small className="detail-caption">Some costs are unlogged. This total includes only what you’ve entered.</small>}</section>
     {r.notes && <section><h3><Heart size={16}/>A note to future you</h3><p className="memory-note">{r.notes}</p></section>}
-    {r.sourceEventId&&<a className="album-link" href={`/tools/rally/?event=${encodeURIComponent(r.sourceEventId)}`}>Open rave plan<ArrowUpRight size={17}/></a>}
+
     {r.albumUrl && <a className="album-link" href={r.albumUrl} target="_blank" rel="noopener noreferrer"><span><Disc3 size={20}/>Relive the night</span>Open photo album<ArrowUpRight size={17}/></a>}
-    {error && <p role="alert" className="error">{error}</p>}{demo?<p className="demo-note">This is an example entry. Add a rave to start your own journal.</p>:<div className="detail-actions">{confirm?<div className="delete-confirm"><span>Permanently delete this entry?</span><button className="danger" disabled={busy} onClick={async()=>{setBusy(true);try{await onDelete();onClose();}catch(e){setError(e instanceof Error?e.message:'Could not delete.');}finally{setBusy(false);}}}>{busy?'Deleting…':'Yes, delete'}</button><button className="text-button" disabled={busy} onClick={()=>setConfirm(false)}>Keep it</button></div>:<button className="text-button danger-text" onClick={()=>setConfirm(true)}><Trash2 size={15}/>Delete</button>}<button className="primary" disabled={busy} onClick={onEdit}>Edit this night<ArrowRight size={16}/></button></div>}
+    {error && <p role="alert" className="error">{error}</p>}{demo?<p className="demo-note">This is an example entry. Add a rave to start your own journal.</p>:<div className="detail-actions">{confirm?<div className="delete-confirm"><span>Permanently delete this entry?</span><button className="danger" disabled={busy} onClick={async()=>{setBusy(true);try{await onDelete();onClose();}catch(e){setError(e instanceof Error?e.message:'Could not delete.');}finally{setBusy(false);}}}>{busy?'Deleting…':'Yes, delete'}</button><button className="text-button" disabled={busy} onClick={()=>setConfirm(false)}>Keep it</button></div>:<button className="text-button danger-text" onClick={()=>setConfirm(true)}><Trash2 size={15}/>Delete</button>}<button className="primary" disabled={busy} onClick={onEdit}>{planning?'Edit this plan':'Edit this night'}<ArrowRight size={16}/></button></div>}
   </div></Modal>;
 }
 function YearPicker({value,years,onChange}:{value:string;years:string[];onChange:(v:string)=>void}) {
@@ -59,6 +63,7 @@ export type CollectionBackend = {
   save: (r: Rave) => Promise<Rave>;
   remove: (id: string) => Promise<unknown>;
   importEntries: (raves: Rave[]) => Promise<Rave[]>;
+  createPlan: (id: string,timeZone: string) => Promise<Rave>;
   draftFromEvent: (eventId: string) => Promise<{rave: Rave; existing: boolean; artistSuggestions: string[]; crewSuggestions: string[]}>;
 };
 export default function Journal({backend, viewer, events = [], eventsError = '', eventsLoading = false, onRetryEvents = () => {}, onSignOut}: {
@@ -116,11 +121,11 @@ export default function Journal({backend, viewer, events = [], eventsError = '',
   useEffect(() => { if (!toast) return; const timer = setTimeout(() => setToast(''), 6000); return () => clearTimeout(timer); }, [toast]);
   const data = demo ? demoRaves : raves;
   const years = [...new Set(data.map(r => r.startDate.slice(0, 4)))].sort().reverse();
-  const scope = data.filter(r => year === 'all' || r.startDate.startsWith(year));
+  const scope = data.filter(r => isAttended(r) && (year === 'all' || r.startDate.startsWith(year)));
   const artists = leaderboard(scope, 'artists'), crew = leaderboard(scope, 'crew');
   const now = new Date();
   const today = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
-  const pastPlans = events.filter(e => e.startsAt && e.startsAt <= today).sort((a, b) => b.startsAt.localeCompare(a.startsAt));
+  const pastPlans = events.filter(e => e.startsAt).sort((a, b) => b.startsAt.localeCompare(a.startsAt));
   const begin = () => { setFormFocus(undefined); setSuggestions({artists: [], crew: []}); setDemo(false); setForm(true); };
   const edit = (r: Rave, target?: 'photos') => { setFormFocus(target); setSuggestions({artists: [], crew: []}); setForm(r); };
   const switchSection = (next: Section) => { setSection(next); setQuery(''); setFocus(null); };
@@ -130,7 +135,7 @@ export default function Journal({backend, viewer, events = [], eventsError = '',
     loadVersion.current++; setLoading(false);
     const isNew = !raves.some(old => old.id === saved.id);
     setRaves(prev => [saved, ...prev.filter(a => a.id !== saved.id)]); setDemo(false);
-    if (isNew) resetView();
+    if (isNew) {resetView();if(attendanceOf(saved)==='planned')setDetail(saved);}
     setToast(isNew ? 'Added to your private diary.' : 'Experience updated.');
   };
   const remove = async (r: Rave) => { await backend.remove(r.id); if (!alive.current) return; loadVersion.current++; setLoading(false); setRaves(prev => prev.filter(a => a.id !== r.id)); setToast('Entry deleted.'); };
@@ -140,8 +145,8 @@ export default function Journal({backend, viewer, events = [], eventsError = '',
   const exportJson = () => download(JSON.stringify({format: 'rally-collection-v1', exportedAt: new Date().toISOString(), raves}, null, 2), 'rally-collection.json', 'application/json');
   const exportCsv = (entries: Rave[] = raves) => {
     const quote = (value: unknown) => { let s = String(value ?? ''); if (/^\s*[=+@\-\t\r]/.test(s)) s = "'" + s; return '"' + s.replaceAll('"', '""') + '"'; };
-    const headers = ['Rave', 'Start date', 'End date', 'City', 'Venue', 'Type', 'Artists seen', 'Sets seen', 'Crew', 'Tickets USD', 'Travel USD', 'Stay USD', 'Other USD', 'Logged total USD', 'Rating', 'Favorite set', 'Album URL', 'Notes'];
-    const rows = entries.map(r => [r.name, r.startDate, r.endDate, r.city, r.venue, r.kind, artistsForRave(r).join('; '), r.artists.join('; '), r.crew.join('; '), ...costKeys.map(k => r.costs[k]), totalCost(r), r.rating || '', r.favoriteArtist, r.albumUrl, r.notes]);
+    const headers = ['Attendance','Wishlist sets','Planned crew','Rave', 'Start date', 'End date', 'City', 'Venue', 'Type', 'Artists seen', 'Sets seen', 'Crew', 'Tickets USD', 'Travel USD', 'Stay USD', 'Other USD', 'Logged total USD', 'Rating', 'Favorite set', 'Album URL', 'Notes'];
+    const rows = entries.map(r => [raveStatus(r),(r.plannedArtists||[]).join('; '),(r.plannedCrew||[]).join('; '),r.name, r.startDate, r.endDate, r.city, r.venue, r.kind, artistsForRave(r).join('; '), r.artists.join('; '), r.crew.join('; '), ...costKeys.map(k => r.costs[k]), totalCost(r), r.rating || '', r.favoriteArtist, r.albumUrl, r.notes]);
     download('\uFEFF' + [headers, ...rows].map(row => row.map(quote).join(',')).join('\r\n'), 'rally-collection.csv', 'text/csv;charset=utf-8');
   };
   const readImport = async (file: File) => {
@@ -179,8 +184,8 @@ export default function Journal({backend, viewer, events = [], eventsError = '',
       {demo && <div className="demo-banner"><span><Sparkles size={15}/><strong>Example data</strong> Fictional raves and costs. Nothing here belongs to your account.</span><button onClick={toggleDemo}>Back to my collection<ArrowRight size={14}/></button></div>}
       {!loaded ? <div className="collection-loading">{loading ? <><LoaderCircle size={24} className="spin"/><h1>Opening your diary…</h1></> : <><AlertCircle size={30}/><h1>Your history is still yours.</h1><p>Reconnect or retry above to see your saved nights.</p></>}</div> : <>
         {section === 'raves' && <>
-          <div className="collection-heading"><div><span className="eyebrow">YOUR PERSONAL RAVE HISTORY</span><h1>Rave diary</h1><p>{mobile?'The sets. The friends. The nights you keep.':'Every night, set, and friend. All in one place.'}</p></div><div className="collection-actions">{!mobile&&<button className="secondary" disabled={draftBusy} onClick={() => setPlanOpen(true)}>{draftBusy ? <LoaderCircle size={16} className="spin"/> : <CalendarDays size={16}/>}From My raves</button>}<button className="primary" aria-label="Add a rave" onClick={()=>mobile?setMobileAddOpen(true):begin()}><Plus size={mobile?22:17}/>{!mobile&&'Add a rave'}</button></div></div>
-          {!data.length ? <section className="collection-welcome"><div className="welcome-icon"><Ticket size={30}/></div><h2>Your first night starts here.</h2><p>Add a rave you remember, or start from a Rally project.<br/>A name and date are all you need.</p><div><button className="primary" onClick={begin}><Plus size={17}/>Add your first rave</button><button className="secondary" onClick={toggleDemo}>Explore an example</button></div><div className="welcome-columns"><span><Music2 size={16}/>Artists you saw</span><span><Users size={16}/>Your crew</span><span><Wallet size={16}/>Your costs</span><span><Heart size={16}/>Photos & memories</span></div><small>Older nights welcome. You don’t need a Rally project to add them.</small></section>
+          <div className="collection-heading"><div><span className="eyebrow">YOUR NIGHTS, PAST AND NEXT</span><h1>Rave diary</h1><p>{mobile?'Your next rave. Your favorite memories.':'Upcoming plans and nights you’ve lived. All in one place.'}</p></div><div className="collection-actions">{!mobile&&<button className="secondary" disabled={draftBusy} onClick={() => setPlanOpen(true)}>{draftBusy ? <LoaderCircle size={16} className="spin"/> : <CalendarDays size={16}/>}From My raves</button>}<button className="primary" aria-label="Add a rave" onClick={()=>mobile?setMobileAddOpen(true):begin()}><Plus size={mobile?22:17}/>{!mobile&&'Add a rave'}</button></div></div>
+          {!data.length ? <section className="collection-welcome"><div className="welcome-icon"><Ticket size={30}/></div><h2>Your first night starts here.</h2><p>Save an upcoming rave, log a past night, or start from a Rally project.<br/>A name and date are all you need.</p><div><button className="primary" onClick={begin}><Plus size={17}/>Add your first rave</button><button className="secondary" onClick={toggleDemo}>Explore an example</button></div><div className="welcome-columns"><span><Music2 size={16}/>Artists you saw</span><span><Users size={16}/>Your crew</span><span><Wallet size={16}/>Your costs</span><span><Heart size={16}/>Photos & memories</span></div><small>Past and upcoming raves welcome. Link a shared Rally plan whenever you’re ready.</small></section>
             : <RaveExplorer key={`${demo}:${tableVersion}`} raves={data} demo={demo} year={year} onYearChange={setYear} focus={focus} onClearFocus={() => setFocus(null)} onOpen={setDetail} onEdit={edit} onAdd={begin} onSave={save} onExport={exportCsv}/>}
         </>}
         {section !== 'raves' && <>
@@ -196,16 +201,16 @@ export default function Journal({backend, viewer, events = [], eventsError = '',
     </div></main>
     <input ref={importInput} type="file" accept="application/json,.json" hidden aria-label="Import collection backup" onChange={e => { if (e.target.files?.[0]) void readImport(e.target.files[0]); }}/>
     {navigationOpen&&!mobile&&<CollectionNavigation section={section} name={viewer.name} onSelect={switchSection} onClose={()=>setNavigationOpen(false)}/>}
-    {mobileAddOpen&&<Modal title="Log a good night" onClose={()=>setMobileAddOpen(false)}><div className="timeline-choice"><p>Find a festival edition, add your own event, or start from a Rally plan.</p><button className="primary" onClick={()=>{setMobileAddOpen(false);begin();}}><Plus size={18}/>Find or add a rave</button><button className="secondary" onClick={()=>{setMobileAddOpen(false);setPlanOpen(true);}}><CalendarDays size={18}/>From My raves</button></div></Modal>}
+    {mobileAddOpen&&<Modal title="Add a rave" onClose={()=>setMobileAddOpen(false)}><div className="timeline-choice"><p>Find a festival edition, add your own event, or start from a Rally plan.</p><button className="primary" onClick={()=>{setMobileAddOpen(false);begin();}}><Plus size={18}/>Find or add a rave</button><button className="secondary" onClick={()=>{setMobileAddOpen(false);setPlanOpen(true);}}><CalendarDays size={18}/>From My raves</button></div></Modal>}
     {accountOpen&&<Modal title="Your rave diary" onClose={()=>setAccountOpen(false)}><div className="timeline-choice"><p><LockKeyhole size={15}/> {viewer.name}’s private diary</p><a className="secondary" href="/tools/rally/collection/?view=projects">My raves<ArrowUpRight size={17}/></a><button className="secondary" disabled={signingOut} onClick={async()=>{setSigningOut(true);try{await onSignOut();}catch{setToast('Could not sign out. Please try again.');}finally{if(alive.current)setSigningOut(false);}}}>{signingOut?'Signing out…':'Sign out'}</button></div></Modal>}
-    {planOpen && <Modal title="Choose from My raves" onClose={() => { if (!draftBusy) setPlanOpen(false); }}><div className="plan-picker-body"><p>Choose a past or ongoing event. Its details will fill a private draft for you to review.</p>
-      {eventsLoading ? <p role="status">Loading your plans…</p> : eventsError ? <div role="alert"><p>{eventsError}</p><button className="secondary" onClick={onRetryEvents}>Retry plans</button></div> : pastPlans.length ? <SharedPicker label="Your Rally events" disabled={draftBusy} value={roomChoice} options={[{value: '', label: 'Choose a plan…'}, ...pastPlans.map(e => ({value: e.id, label: `${e.name} · ${date(e.startsAt, true)}${raves.some(r => r.sourceEventId === e.id) ? ' · Already logged' : ''}`}))]} onChange={setRoomChoice}/>
-        : <p className="plan-empty">{events.length ? 'Your plans are still ahead of you. Come back after an event starts, or find an older festival in the catalog.' : 'No Rally projects yet. Find a festival in the catalog or add any show yourself.'}</p>}
+    {planOpen && <Modal title="Choose from My raves" onClose={() => { if (!draftBusy) setPlanOpen(false); }}><div className="plan-picker-body"><p>Choose an upcoming or past event. Its details will fill a private draft for you to review.</p>
+      {eventsLoading ? <p role="status">Loading your plans…</p> : eventsError ? <div role="alert"><p>{eventsError}</p><button className="secondary" onClick={onRetryEvents}>Retry plans</button></div> : pastPlans.length ? <SharedPicker label="Your Rally events" disabled={draftBusy} value={roomChoice} options={[{value: '', label: 'Choose a plan…'}, ...pastPlans.map(e => ({value: e.id, label: `${e.name} · ${date(e.startsAt, true)}${raves.some(r => r.sourceEventId === e.id) ? ' · In your diary' : ''}`}))]} onChange={setRoomChoice}/>
+        : <p className="plan-empty">No Rally projects yet. Save a rave in your diary, then create or link a plan.</p>}
       <p className="form-help">Artists and crew are suggestions. Your spending, photos, and notes are private.</p>
-      <div className="form-footer"><button className="secondary" disabled={draftBusy} onClick={() => { setPlanOpen(false); begin(); }}>Find or add a rave</button><button className="primary" disabled={!roomChoice || draftBusy || eventsLoading} onClick={() => void openEvent(roomChoice)}>{draftBusy ? 'Opening…' : 'Open my experience'}</button></div>
+      <div className="form-footer"><button className="secondary" disabled={draftBusy} onClick={() => { setPlanOpen(false); begin(); }}>Find or add a rave</button><button className="primary" disabled={!roomChoice || draftBusy || eventsLoading} onClick={() => void openEvent(roomChoice)}>{draftBusy ? 'Opening…' : 'Open diary entry'}</button></div>
     </div></Modal>}
     {form && <RaveForm loadPlan={backend.draftFromEvent} focusSection={formFocus} initial={form === true ? undefined : form} all={raves} onSave={save} onClose={() => setForm(null)} suggestedArtists={suggestions.artists} suggestedCrew={suggestions.crew}/>}
-    {detail && !form && <Detail r={detail} demo={demo} onClose={() => setDetail(null)} onEdit={() => { edit(detail); setDetail(null); }} onDelete={() => remove(detail)}/>}
+    {detail && !form && <Detail r={detail} demo={demo} backend={backend} events={events} onUpdated={saved=>{setRaves(prev=>prev.map(r=>r.id===saved.id?saved:r));setDetail(saved);}} onClose={() => setDetail(null)} onEdit={() => { edit(detail); setDetail(null); }} onDelete={() => remove(detail)}/>}
     {importRaves && <Modal title="Import your backup" onClose={() => { if (!importBusy) setImportRaves(null); }}><div className="import-review"><p><strong>{importRaves.length - importUpdates} new raves</strong> will be added. <strong>{importUpdates} existing entries</strong> with matching IDs will be replaced by this backup. Your other entries stay as they are.</p><p className="form-help">Import only a backup of your own collection. Linked rave plans must be accessible to this account.</p><div className="import-list">{importRaves.map(r => <div key={r.id}><strong>{r.name}</strong><span>{date(r.startDate, true)}</span></div>)}</div>{importError && <p className="error" role="alert">{importError}</p>}<div className="form-footer"><button className="secondary" disabled={importBusy} onClick={() => setImportRaves(null)}>Cancel</button><button className="primary" disabled={importBusy} onClick={async () => {
       setImportBusy(true); setImportError('');
       try { const imported = await backend.importEntries(importRaves); if (!alive.current) return; loadVersion.current++; setLoading(false); setRaves(prev => [...imported, ...prev.filter(r => !imported.some(n => n.id === r.id))]); setDemo(false); resetView(); setImportRaves(null); setToast('Backup imported into your diary.'); }
