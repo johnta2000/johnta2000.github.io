@@ -116,3 +116,26 @@ test('legacy set labels contribute to core artist history once per rave, includi
   assert.deepEqual(plain(validateRave(first).artists), first.artists);
   assert.equal(validateRave(first).favoriteArtist, first.favoriteArtist);
 });
+
+
+test('catalog matching recognizes Rally identities and short years without crossing festival editions',()=>{
+  const rave={...emptyRave(),name:"Lost Lands ’26",startDate:'2026-09-18',endDate:'2026-09-20'};
+  assert.equal(festivalForRave(rave)?.id,'lost-lands-2026');
+  assert.equal(festivalForRave({...rave,name:'Our bass weekend',sourceEventId:'lost-lands-2026'})?.id,'lost-lands-2026');
+  assert.equal(festivalForRave({...rave,name:'Lost Lands 2025'}),undefined);
+  assert.equal(festivalForRave({...rave,sourceEventId:'lost-lands-2026',startDate:'2025-09-19',endDate:'2025-09-21'}),undefined);
+  assert.equal(festivalForRave({...rave,name:'Lost Lands afterparty'}),undefined);
+  assert(!festivalEditions.find(e=>e.id==='lost-lands-2026').artists.some(a=>a.toLowerCase().includes('2hollis')));
+});
+
+
+test('equivalent set labels match without merging distinct performances or changing saved labels',()=>{
+  const {performanceKey,artistsForSet}=moduleAt('artists.ts');
+  assert.equal(performanceKey('EXCISION (DETOX SET)'),performanceKey('Excision (Detox)'));
+  assert.equal(performanceKey('Excision Detox Set'),performanceKey('Excision (Detox)'));
+  assert.notEqual(performanceKey('Excision'),performanceKey('Excision (Detox)'));
+  assert.notEqual(performanceKey('Excision (2 Hour Set)'),performanceKey('Excision (Detox)'));
+  assert.notEqual(performanceKey('Excision B2B Space Laces'),performanceKey('Excision'));
+  assert.equal(performanceKey('Set Mo'),'set mo');
+  assert.deepEqual(Array.from(artistsForSet('Excision (2 Hour Set)')),['Excision']);
+});

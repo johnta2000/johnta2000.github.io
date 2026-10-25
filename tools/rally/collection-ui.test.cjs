@@ -37,7 +37,7 @@ function harness(options = {}) {
       return success(args.rave);
     }
     if (path === 'rallyCollection:remove') { rows[subject] = rows[subject].filter(r => r.id !== args.id); return success({ok: true}); }
-    if (path === 'rallyCollection:draftFromEvent') return success({rave: rows[subject].find(r => r.sourceEventId === args.eventId) || {...entry('Plan night'), id: '', sourceEventId: args.eventId, notes: ''}, existing: rows[subject].some(r => r.sourceEventId === args.eventId), artistSuggestions: optionsRef.artistSuggestions || ['Suggested DJ'], crewSuggestions: optionsRef.crewSuggestions || ['Suggested Friend']});
+    if (path === 'rallyCollection:draftFromEvent') { if (optionsRef.planSuggestionsFail) return failure('Plan unavailable'); if (optionsRef.holdPlan) await new Promise(r => optionsRef.releasePlan = r); return success({rave: rows[subject].find(r => r.sourceEventId === args.eventId) || {...entry('Plan night'), id: '', sourceEventId: args.eventId, notes: ''}, existing: rows[subject].some(r => r.sourceEventId === args.eventId), artistSuggestions: optionsRef.artistSuggestions || ['Suggested DJ'], crewSuggestions: optionsRef.crewSuggestions || ['Suggested Friend']}); }
     throw new Error('Unexpected test request: ' + path);
   };
   const optionsRef = options;
@@ -301,7 +301,7 @@ test('lineup checklist exposes the full lineup, keeps selected rows visible, and
     const selected = [...picker.querySelectorAll('button')].find(b => b.textContent === 'Selected 1');
     selected.click(); await tick(); assert.equal(picker.querySelectorAll('input[type=checkbox]').length, 1);
     picker.querySelector('input[type=checkbox]').click(); await tick(); assert(picker.textContent.includes('No one selected yet'));
-    [...picker.querySelectorAll('button')].find(b => b.textContent === 'All 24').click(); await tick();
+    [...picker.querySelectorAll('button')].find(b => b.textContent === 'Lineup 24').click(); await tick();
     await h.fill('input[aria-label="Search artists"]', '24');
     picker.querySelector('input[type=checkbox]').click(); await tick();
     await h.fill('input[aria-label="Search artists"]', 'Unmatched search');
@@ -314,18 +314,18 @@ test('lineup checklist exposes the full lineup, keeps selected rows visible, and
   } finally { h.close(); }
 });
 
-test('plan and diary names deduplicate, custom names can be added and removed, and keyboard search reaches choices', async () => {
+test('plan lineup excludes unrelated diary suggestions, custom names remain reviewable, and keyboard reaches choices', async () => {
   const h = harness({search: '?from=past', artistSuggestions: ['Same DJ', 'Other DJ'], raves: [{...entry('Earlier rave'), artists: ['same dj', 'History DJ']}]});
   try {
     await until(() => h.w.document.querySelector('.rave-form'));
     const picker = h.w.document.querySelector('.name-picker');
-    assert.equal(picker.querySelectorAll('input[type=checkbox]').length, 3);
-    assert(picker.textContent.includes('From this lineup')); assert(picker.textContent.includes('From your diary'));
+    assert.equal(picker.querySelectorAll('input[type=checkbox]').length, 2);
+    assert(picker.textContent.includes('From this lineup')); assert(!picker.textContent.includes('From your diary')); assert(!picker.textContent.includes('History DJ'));
     const search = picker.querySelector('input[aria-label="Search artists"]'); search.focus();
     search.dispatchEvent(new h.w.KeyboardEvent('keydown', {key: 'ArrowDown', bubbles: true}));
     assert.equal(h.w.document.activeElement, picker.querySelector('input[type=checkbox]'));
     await h.fill('input[aria-label="Artists you actually saw"]', 'New DJ, new dj'); h.button('Add artist').click(); await tick();
-    assert(picker.textContent.includes('Added by you')); assert.equal(picker.querySelectorAll('input:checked').length, 1);
+    assert(picker.textContent.includes('Other logged sets · not in this lineup')); assert.equal(picker.querySelectorAll('input:checked').length, 1);
     picker.querySelector('input:checked').click(); await tick();
     assert.equal(picker.querySelectorAll('input:checked').length, 0);
     await h.fill('input[aria-label="Search friends"]', 'Nobody');
@@ -411,5 +411,71 @@ test('catalog editions warn about existing entries even when their old name omit
     await until(()=>h.button('Add a rave'));h.button('Add a rave').click();await tick();
     await chooseFestival(h,'edc-las-vegas-2022');assert(h.text().includes('You already have “EDC Las Vegas” on this date.'));
     assert.equal(h.saves.length,0);
+  }finally{h.close();}
+});
+
+
+test('Lost Lands short-year Rally entries recover the correct catalog and exclude other diary artists', async()=>{
+  const rave={...entry('lost-2026'),name:"Lost Lands '26",sourceEventId:'lost-lands-2026',startDate:'2026-09-18',endDate:'2026-09-20',artists:['EXCISION (DETOX SET)','Previously logged custom set']};
+  const h=harness({raves:[rave,{...entry('another'),artists:['2hollis']}],artistSuggestions:['Wrong plan artist'],crewSuggestions:['Nancy']});try{
+    await until(()=>h.button("Edit Lost Lands '26")); h.button("Edit Lost Lands '26").click();
+    await until(()=>h.w.document.querySelector('.rave-form') && !h.text().includes('Loading suggestions from your Rally plan'));
+    const picker=h.w.document.querySelector('.name-picker');
+    assert(h.w.document.querySelector('select[aria-label="Festival and year"]'));
+    assert(h.text().includes('Lost Lands 2026 · 172 lineup suggestions'));
+    assert(!picker.textContent.includes('2hollis')); assert(!picker.textContent.includes('Wrong plan artist'));
+    assert(picker.textContent.includes('Excision B2B Space Laces'));
+    assert(!picker.textContent.includes('Previously logged custom set'));
+    assert.equal([...picker.querySelectorAll('.name-picker-option')].find(n=>n.textContent.includes('Excision (Detox)')).querySelector('input').checked,true);
+    assert(picker.textContent.includes('1 logged set is not listed in this lineup.'));
+    assert(h.text().includes('Nancy')); assert(h.requests.some(r=>r.path==='rallyCollection:draftFromEvent'));
+    h.button('Review selected sets').click();await tick();
+    assert(picker.textContent.includes('Previously logged custom set'));assert.equal(picker.querySelectorAll('input:checked').length,2);
+    assert(picker.textContent.includes('Other logged sets · not in this lineup'));
+    h.button('Save changes').click();await until(()=>h.saves.length===1);
+    assert.deepEqual(h.saves[0].artists,rave.artists);assert.equal(h.saves[0].sourceEventId,rave.sourceEventId);
+    // A second edit must recover the same lineup after the round trip.
+    await until(()=>!h.w.document.querySelector('.rave-form'));h.button("Edit Lost Lands '26").click();await tick();
+    assert(h.text().includes('172 lineup suggestions'));
+  }finally{h.close();}
+});
+
+test('linked entries can select a catalog festival and retain their shared-plan link on save',async()=>{
+  const rave={...entry('custom'),sourceEventId:'custom-room',artists:['My remembered set']};
+  const h=harness({raves:[rave]});try{
+    await until(()=>h.button('Edit custom'));h.button('Edit custom').click();await tick();
+    await chooseFestival(h,'lost-lands-2026');
+    assert(h.text().includes('Your shared Rally plan stays unchanged.'));
+    h.button('Use these event details').click();await tick();
+    assert(h.text().includes('172 lineup suggestions'));
+    await h.fill('input[aria-label="Search artists"]','2hollis');
+    assert(h.w.document.querySelector('.name-picker').textContent.includes('No matching names'));
+    h.button('Save changes').click();await until(()=>h.saves.length===1);
+    assert.equal(h.saves[0].sourceEventId,'custom-room');assert.deepEqual(h.saves[0].artists,['My remembered set']);
+    assert.equal(h.saves[0].name,'Lost Lands 2026');assert.equal(h.saves[0].startDate,'2026-09-18');
+  }finally{h.close();}
+});
+
+test('editing a saved show reloads its Rally lineup and a failed lookup can be retried without losing edits',async()=>{
+  const options={planSuggestionsFail:true,raves:[{...entry('saved-show'),sourceEventId:'show',kind:'Show',artists:['Remembered DJ']},{...entry('other'),artists:['2hollis']}],artistSuggestions:['Actual show DJ']};
+  const h=harness(options);try{
+    await until(()=>h.button('Edit saved-show'));h.button('Edit saved-show').click();
+    await until(()=>h.button('Retry plan suggestions'));
+    assert(!h.w.document.querySelector('.name-picker').textContent.includes('2hollis'));
+    await h.fill('input[aria-label="Artists you actually saw"]','My pending set');
+    options.planSuggestionsFail=false;h.button('Retry plan suggestions').click();
+    await until(()=>h.w.document.querySelector('.name-picker').textContent.includes('Actual show DJ'));
+    assert.equal(h.w.document.querySelector('input[aria-label="Artists you actually saw"]').value,'My pending set');
+    h.button('Save changes').click();await until(()=>h.saves.length===1);
+    assert.deepEqual(h.saves[0].artists,['Remembered DJ','My pending set']);
+  }finally{h.close();}
+});
+
+test('late plan suggestions cannot populate a different open entry',async()=>{
+  const options={holdPlan:true,raves:[{...entry('linked'),sourceEventId:'room'},entry('manual')],artistSuggestions:['Stale DJ']};
+  const h=harness(options);try{
+    await until(()=>h.button('Edit linked'));h.button('Edit linked').click();await until(()=>options.releasePlan);
+    h.button('Cancel').click();await tick();h.button('Edit manual').click();await tick();
+    options.releasePlan();await tick();await tick();assert(!h.w.document.querySelector('.rave-form').textContent.includes('Stale DJ'));
   }finally{h.close();}
 });

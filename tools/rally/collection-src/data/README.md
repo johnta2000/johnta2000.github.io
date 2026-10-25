@@ -16,6 +16,10 @@ Use year-specific official archives where available. When they no longer exist, 
 
 Review dates, venue, weekend, set labels, and sources together. Add an edition rather than modifying a prior year's identity. Cross-check replacements against the cited schedule, keep partial coverage until the source roster has actually been entered, and update `verifiedOn` only after reviewing the evidence. The app ships this static catalog without external requests; it does not automatically refresh when a festival changes its website.
 
-Selecting an edition changes event metadata only. Artists remain unchecked, costs remain unknown, and personal fields are preserved. Browsing never saves an entry. Reopening matches a known festival name and dates within that edition, including single-day attendance, so no backend migration or account data rewrite is needed.
+Selecting an edition changes event metadata only. Artists remain unchecked, costs remain unknown, and personal fields are preserved. Browsing never saves an entry. Reopening matches a known festival name (including short years such as “Lost Lands ’26”) or an exact Rally event ID, and dates within that edition, including single-day attendance, so no backend migration or account data rewrite is needed.
 
 Run `npm run check:rally-collection`, `npm run test:rally-collection`, and `npm run build:rally-collection` after changes. UI tests cover search, explicit metadata replacement, empty attendance, private-field preservation, partial coverage, and recovered suggestions. Model tests validate catalog dates, source URLs, labels, unique identities, and weekend boundaries.
+
+## Artist picker scope
+
+A matched catalog edition supplies the artist roster, ahead of plan suggestions. Otherwise a linked entry reloads its Rally plan suggestions when opened, including on later edits. The lineup tab never mixes in artists from other diary entries. Previously saved or manually added sets outside the roster stay under Selected, clearly distinguished from lineup choices; no saved selections are silently deleted. A failed plan lookup is retryable, with the catalog still available. Linked entries can select a catalog edition with explicit confirmation of changes to their private diary metadata; the shared plan and its link are preserved.

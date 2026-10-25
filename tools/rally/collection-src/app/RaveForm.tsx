@@ -10,11 +10,23 @@ import {costKeys, emptyRave, leaderboard, totalCost, uniqueNames, validateRave, 
 const costLabels = {ticket: 'Tickets', travel: 'Travel', stay: 'Stay', other: 'Food & other'};
 const money = (n: number) => new Intl.NumberFormat('en-US', {style: 'currency', currency: 'USD'}).format(n);
 
-export default function RaveForm({initial, all, onSave, onClose, suggestedArtists = [], suggestedCrew = [], focusSection}: {
+export default function RaveForm({initial, all, onSave, onClose, suggestedArtists = [], suggestedCrew = [], focusSection, loadPlan}: {
   initial?: Rave; all: Rave[]; onSave: (r: Rave) => Promise<void>; onClose: () => void;
   suggestedArtists?: string[]; suggestedCrew?: string[]; focusSection?: 'photos';
+  loadPlan?: (eventId: string) => Promise<{artistSuggestions: string[]; crewSuggestions: string[]}>;
 }) {
   const [r, setR] = useState<Rave>(() => ({...structuredClone(initial || emptyRave()), id: initial?.id || crypto.randomUUID()}));
+  const [plan, setPlan] = useState({artists: suggestedArtists, crew: suggestedCrew});
+  const [planStatus, setPlanStatus] = useState(''), [planAttempt, setPlanAttempt] = useState(0);
+  useEffect(() => {
+    if (!r.sourceEventId || !loadPlan) return;
+    let active = true;
+    setPlanStatus('loading');
+    loadPlan(r.sourceEventId).then(result => {
+      if (active) {setPlan({artists: result.artistSuggestions, crew: result.crewSuggestions}); setPlanStatus('');}
+    }).catch(() => {if (active) setPlanStatus('error');});
+    return () => {active = false;};
+  }, [r.sourceEventId, loadPlan, planAttempt]);
   const baseline = useRef(JSON.stringify(r));
   const [artistText, setArtistText] = useState(''), [crewText, setCrewText] = useState('');
   const [saving, setSaving] = useState(false), [error, setError] = useState(''), [discard, setDiscard] = useState(false);
@@ -65,12 +77,14 @@ export default function RaveForm({initial, all, onSave, onClose, suggestedArtist
         <details className="form-disclosure" open>
           <summary><Music2 size={17}/><span>Artists & crew<small>Who made the night</small></span><ChevronDown size={16}/></summary>
           <div className="disclosure-body">
-            {r.sourceEventId && <p className="form-help">Your plan is a starting point. Check the artists you saw and the people you went with.</p>}
+            {r.sourceEventId && <FestivalPicker current={festival} hasDetails onChoose={edition => setR(prev => applyFestival(prev, edition))} linked/>}
+            {r.sourceEventId && planStatus === 'loading' && <p className="form-help" role="status">Loading suggestions from your Rally plan…</p>}
+            {r.sourceEventId && planStatus === 'error' && <p className="form-help" role="status">Your Rally plan’s suggestions could not load.{festival ? ' The festival catalog lineup is available below.' : ' Choose a festival or add sets manually.'} <button type="button" className="text-button" onClick={() => setPlanAttempt(n => n + 1)}>Retry plan suggestions</button></p>}
             {festival && <div className="festival-lineup-note"><strong>{festival.name} · {festival.artists.length} lineup suggestions</strong><p>{festival.coverage === 'partial' ? 'Partial lineup — more artists performed than are listed here.' : 'Archived lineup — select only the sets you actually saw.'} You can add missing artists or special sets below.</p><FestivalSources edition={festival}/></div>}
-            <NamePicker label="Artists you actually saw" noun="artist" planSuggestions={uniqueNames([...suggestedArtists, ...(festival?.artists || [])])} values={r.artists} text={artistText} onText={setArtistText}
+            <NamePicker label="Artists you actually saw" noun="artist" lineupOnly={!!festival || !!r.sourceEventId || !!plan.artists.length} planSuggestions={festival ? festival.artists : plan.artists} values={r.artists} text={artistText} onText={setArtistText}
               onChange={artists => setR(prev => ({...prev, artists, favoriteArtist: artists.some(a => a.toLowerCase() === prev.favoriteArtist.toLowerCase()) ? prev.favoriteArtist : ''}))}
               suggestions={uniqueNames(all.flatMap(rave => rave.artists))}/>
-            <NamePicker label="Who did you go with?" noun="friend" planSuggestions={suggestedCrew} values={r.crew} text={crewText} onText={setCrewText} onChange={v => field('crew', v)}
+            <NamePicker label="Who did you go with?" noun="friend" planSuggestions={plan.crew} values={r.crew} text={crewText} onText={setCrewText} onChange={v => field('crew', v)}
               suggestions={leaderboard(all, 'crew').map(a => a.name)}/>
           </div>
         </details>

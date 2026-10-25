@@ -7,15 +7,16 @@ export type FestivalEdition = {
   coverage: string; note: string; verifiedOn: string; sources: {label: string; url: string}[];
 };
 export const festivalEditions: FestivalEdition[] = [...data].sort((a, b) => a.festival.localeCompare(b.festival) || b.year - a.year || (a.weekend || 0) - (b.weekend || 0));
-const key = (s: string) => s.trim().toLocaleLowerCase().replace(/\s+/g, ' ');
+const key = (s: string) => s.trim().toLocaleLowerCase().replace(/[’']/g, '').replace(/\s+/g, ' ');
 
-// Match only a known name and dates inside that edition. Never infer attendance
-// or merge years/weekends by fuzzy title matching. Single-day visits are valid.
-export function festivalForRave(rave: Pick<Rave, 'name' | 'startDate' | 'endDate' | 'kind'>) {
+// Match explicit event identities or known title/year spellings, with dates inside
+// the edition. Never fuzzy-match titles or merge years/weekends.
+export function festivalForRave(rave: Pick<Rave, 'name' | 'startDate' | 'endDate' | 'kind' | 'sourceEventId'>) {
   if (rave.kind !== 'Festival' || !rave.startDate) return undefined;
-  return festivalEditions.find(e => [e.name, e.festival].some(n => key(n) === key(rave.name)) &&
-    rave.startDate >= e.startDate && rave.startDate <= e.endDate &&
+  const dated = festivalEditions.filter(e => rave.startDate >= e.startDate && rave.startDate <= e.endDate &&
     (!rave.endDate || (rave.endDate >= rave.startDate && rave.endDate <= e.endDate)));
+  const titled = dated.find(e => [e.name, e.festival, ...(!e.weekend ? [`${e.festival} ${e.year}`, `${e.festival} '${String(e.year).slice(-2)}`] : [])].some(n => key(n) === key(rave.name)));
+  return titled || dated.find(e => e.id === rave.sourceEventId);
 }
 export function applyFestival(rave: Rave, edition: FestivalEdition): Rave {
   return {...rave, name: edition.name, startDate: edition.startDate, endDate: edition.endDate,

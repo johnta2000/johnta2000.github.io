@@ -46,3 +46,6 @@
 
 .choice-chips > .logged-set { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 2px; max-width: 100%; overflow-wrap: anywhere; }
 .choice-chips > .logged-set > span { display: inline; }
+
+.name-picker-review { margin: 0; padding: 8px 14px; border-bottom: 1px solid #eeecf2; background: #faf9fc; color: #716b7b; font-size: 12px; line-height: 1.6; }
+.name-picker-review button { display: inline-flex; align-items: center; min-height: 44px; color: #6230a4; text-decoration: underline; font-weight: 600; }
