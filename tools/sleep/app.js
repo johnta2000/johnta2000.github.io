@@ -1872,14 +1872,15 @@ function renderGroupVariability(metric) {
   const members = groupHistory.members;
   // Compare playful distinctions only where every shown person has substantial coverage.
   const comparable = members.length > 1 && members.every(m => m.count >= Math.ceil(selectedDays * .8) && m.variability.pairCount >= Math.max(4, Math.ceil((selectedDays - 1) * .8)));
-  const swings = members.map(m => m.variability.typicalSwing);
+  const displayed = value => Math.round(value * 10) / 10;
+  const swings = members.map(m => displayed(m.variability.typicalSwing));
   const minSwing = Math.min(...swings), maxSwing = Math.max(...swings);
-  const comeback = Math.max(0, ...members.map(m => m.variability.biggestJump?.value || 0));
+  const comeback = Math.max(0, ...members.map(m => displayed(m.variability.biggestJump?.value || 0)));
   const expanded = new Set([...$("#groupVariability").querySelectorAll("details[open]")].map(el => el.dataset.member));
   $("#groupVariability").innerHTML = members.map(member => {
     const v = member.variability;
     const shared = isDemo || liveGroup?.members.find(m => m.id === member.id)?.metrics.includes(metric);
-    const badges = comparable ? [maxSwing > minSwing && v.typicalSwing === minSwing ? "Most consistent" : "", maxSwing > minSwing && v.typicalSwing === maxSwing ? "Biggest roller coaster" : "", comeback > 0 && v.biggestJump?.value === comeback ? "Biggest jump" : ""].filter(Boolean) : [];
+    const badges = comparable ? [maxSwing > minSwing && displayed(v.typicalSwing) === minSwing ? "Most consistent" : "", maxSwing > minSwing && displayed(v.typicalSwing) === maxSwing ? "Biggest roller coaster" : "", comeback > 0 && displayed(v.biggestJump?.value || 0) === comeback ? "Biggest jump" : ""].filter(Boolean) : [];
     const event = item => item ? `${formatGroupDifference(item.value)}<small>${formatShortDate(item.date)} · ${formatGroupValue(item.previous)} → ${formatGroupValue(item.current)}</small>` : v.pairCount ? "None" : "—";
     return `<article class="variability-card"><header><h4><i class="group-person-marker" style="background:${member.color}"></i>${escapeHtml(member.name.replace(' (sample)', ''))}</h4><span>${shared ? `${member.count}/${selectedDays} days · ${v.pairCount} daily pairs` : "Not shared"}</span></header>
       ${badges.length ? `<p class="variability-badges">${badges.map(b => `<span>${b}</span>`).join("")}</p>` : ""}
