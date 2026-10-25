@@ -1,7 +1,7 @@
 import {useState} from 'react';
 import {CalendarDays, Check, MapPin, Search} from 'lucide-react';
 import SharedPicker from './SharedPicker';
-import {festivalDates, festivalEditions, type FestivalEdition} from '../lib/festivals';
+import {festivalDates, festivalEditions, catalogYearRange, type FestivalEdition} from '../lib/festivals';
 import {diaryToday} from '../lib/raves';
 import './festival-picker.css';
 
@@ -24,7 +24,7 @@ export default function FestivalPicker({current, hasDetails, onChoose, focusOnOp
     else { onChoose(edition); setPending(undefined); }
   };
   return <section className="festival-picker" aria-label="Event catalog" tabIndex={-1} data-autofocus={focusOnOpen || undefined}>
-    <div className="festival-picker-heading"><Search size={18}/><div><h3>{linked ? 'Event lineup' : 'Find a festival or show'}</h3><p>{linked ? 'Choose the event and date to load its sets.' : 'Dates, venue, and lineup — ready to fill in.'}</p></div><span>2022–2026</span></div>
+    <div className="festival-picker-heading"><Search size={18}/><div><h3>{linked ? 'Event lineup' : 'Find a festival or show'}</h3><p>{linked ? 'Choose the event and date to load its sets.' : 'Dates, venue, and lineup — ready to fill in.'}</p></div><span>{catalogYearRange}</span></div>
     <SharedPicker label="Event and year" searchTokens value={pending?.id || current?.id || ''} onChange={choose}
       options={[{value: '', label: 'Search events and years…'}, ...festivalEditions.map(e => ({value: e.id, label: `${e.name} — ${festivalDates(e)}`, searchText: [e.city, e.venue, ...(e.aliases || [])].join(' ')}))]}/>
     {pending ? <div className="festival-preview" role="status">
@@ -33,6 +33,6 @@ export default function FestivalPicker({current, hasDetails, onChoose, focusOnOp
       <span><MapPin size={14}/>{pending.venue} · {pending.city}</span>
       <p>This replaces this diary entry’s event name, dates, city, and venue.{linked && ' Your shared Rally plan stays unchanged.'} Your selected sets, crew, costs, and memories stay as they are. Review your sets for this edition.</p>
       <div className="festival-preview-actions"><button type="button" className="primary" onClick={() => {onChoose(pending); setPending(undefined);}}>Use these event details</button><button type="button" className="secondary" onClick={() => setPending(undefined)}>Keep current details</button></div>
-    </div> : current ? !linked && <p className="festival-applied" role="status"><Check size={15}/>{current.name} lineup loaded. {current.startDate > diaryToday() ? 'Choose the sets you want to see below.' : 'Choose the sets you saw below.'}</p> : <p className="festival-picker-hint">{festivalEditions.length} events to explore. Search a name, year, or city. For another show or club night, enter its details below.</p>}
+    </div> : current ? !linked && <p className="festival-applied" role="status"><Check size={15}/>{current.name} {current.artists.length ? 'lineup loaded.' : 'event details loaded. Lineup not available yet.'} {current.startDate > diaryToday() ? 'Choose the sets you want to see below.' : 'Choose the sets you saw below.'}</p> : <p className="festival-picker-hint">{festivalEditions.length} events to explore. Search a name, year, or city. For another show or club night, enter its details below.</p>}
   </section>;
 }

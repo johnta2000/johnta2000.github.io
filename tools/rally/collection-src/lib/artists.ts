@@ -11,7 +11,7 @@ export function artistsForSet(label: string): string[] {
   const seen = new Set<string>();
   // An explicitly billed collaboration inside an alias is usable evidence;
   // the alias alone is not. Protect established acts whose name contains “x”.
-  const billed = label.match(/\(([^()]*\s+b2b(?:2b)*\s+[^()]*)\)\s*$/i)?.[1] || coreName(label);
+  const billed = label.match(/\(([^()]*\s+(?:b2b(?:2b)*|x|×)\s+[^()]*)\)\s*$/i)?.[1] || coreName(label);
   const parts = billed.split(/\s+b2b(?:2b)*\s+/i).flatMap(part => /^bonnie\s+x\s+clyde$/i.test(coreName(part)) ? [part] : part.split(/\s+(?:x|×)\s+/i));
   return parts.map(coreName).filter(name => {
     const key = name.toLocaleLowerCase();

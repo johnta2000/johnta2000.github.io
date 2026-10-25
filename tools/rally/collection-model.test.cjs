@@ -60,6 +60,9 @@ test('artist identity separates explicit collaborations and special sets while p
     ['BONNIE X CLYDE', ['BONNIE X CLYDE']],
     ['BONNIE X CLYDE B2B Excision', ['BONNIE X CLYDE', 'Excision']],
     ['Girl Math (VNSSA B2B Nala)', ['VNSSA', 'Nala']],
+    ['Dog Blood (Boys Noize x Skrillex)', ['Boys Noize', 'Skrillex']],
+    ['Skull Machine (Black Tiger Sex Machine x Kai Wachi)', ['Black Tiger Sex Machine', 'Kai Wachi']],
+    ['Guest (BONNIE X CLYDE)', ['BONNIE X CLYDE']],
     ['Black Tiger Sex Machine Presents The Anime Show', ['Black Tiger Sex Machine']],
     ['Gareth Emery Presents: Decade', ['Gareth Emery']],
     ['A special back-to-back performance', ['A special back-to-back performance']],
@@ -70,15 +73,15 @@ test('artist identity separates explicit collaborations and special sets while p
 
 const {festivalEditions, festivalForRave, applyFestival} = moduleAt('festivals.ts');
 test('festival editions have unique identities, real dates, sources, and clean distinct suggestions', () => {
-  assert.equal(festivalEditions.length, 99);
+  assert.equal(festivalEditions.length, 137);
   assert.equal(new Set(festivalEditions.map(e => e.id)).size, festivalEditions.length);
   for (const e of festivalEditions) {
     assert.equal(new Date(e.startDate).toISOString().slice(0,10), e.startDate, e.id);
     assert.equal(new Date(e.endDate).toISOString().slice(0,10), e.endDate, e.id);
     assert(e.startDate <= e.endDate && e.endDate <= '2026-12-31', e.id);
     if (e.startDate > '2026-10-25') assert(e.note.includes('Upcoming edition'), e.id);
-    assert(e.startDate.startsWith(String(e.year)) && e.year >= 2022, e.id);
-    assert(e.artists.length > 0 && e.sources.length > 0, e.id);
+    assert(e.startDate.startsWith(String(e.year)) && e.year >= 2019, e.id);
+    assert((e.artists.length > 0 || (e.coverage === 'partial' && /No verified artist lineup/.test(e.note))) && e.sources.length > 0, e.id);
     assert.equal(new Set(e.artists.map(n=>n.toLowerCase())).size,e.artists.length,e.id);
     for (const name of e.artists) assert(name.trim() === name && name.length <= 120 && !/[<>\n]/.test(name), `${e.id}: ${name}`);
     for (const source of e.sources) assert(source.url.startsWith('https://') && source.label, e.id);
@@ -168,7 +171,7 @@ test('expanded catalog scopes cancelled days, changing venues, and Coachella wee
  const byId=id=>festivalEditions.find(e=>e.id===id);
  for(const series of ['Wobbleland','Portola','Outside Lands','Coachella','HiJinx','Decadence Arizona','Electric Zoo','Escape Halloween','Nocturnal Wonderland','Dreamstate SoCal','HARD Summer','Day Trip']) assert(festivalEditions.some(e=>e.festival===series),series);
  assert(!byId('nocturnal-wonderland-2024'));
- assert.equal(festivalEditions.filter(e=>e.festival==='Electric Zoo').length,2);
+ assert.equal(festivalEditions.filter(e=>e.festival==='Electric Zoo').length,3);
  const zoo=byId('electric-zoo-2023');assert.equal(zoo.startDate,'2023-09-02');assert(!zoo.artists.includes('The Chainsmokers'));assert(zoo.artists.includes('Zedd'));
  assert.equal(byId('nocturnal-wonderland-2022').startDate,'2022-09-17');assert(!byId('nocturnal-wonderland-2022').artists.includes('Buzz Junior'));
  assert.equal(byId('wobbleland-2025').city,'Daly City, CA');assert.equal(byId('wobbleland-san-jose-2026').city,'San Jose, CA');
@@ -188,4 +191,31 @@ test('expanded catalog scopes cancelled days, changing venues, and Coachella wee
  assert(byId('hijinx-festival-2026').artists.includes('Excision B2B Wooli'));assert(!byId('hijinx-festival-2026').artists.includes('Excision'));
  assert.equal(festivalForRave({...applyFestival(emptyRave(),zoo),name:'EZoo 2023'}).id,zoo.id);
  assert.equal(festivalForRave({...applyFestival(emptyRave(),zoo),name:'EZoo 2022'}),undefined);
+});
+
+test('show catalog separates dates, consolidates support acts, and does not infer attendance', () => {
+ const get=id=>festivalEditions.find(e=>e.id===id);
+ const first=get('excision-bill-graham-2024-02-09'),second=get('excision-bill-graham-2024-02-10');
+ assert(first.artists.includes('Ray Volpe') && first.artists.includes('ATLiens'));
+ assert(!second.artists.includes('Ray Volpe'));
+ assert.equal(festivalForRave(applyFestival(emptyRave(),first)).id,first.id);
+ assert.equal(festivalForRave({...applyFestival(emptyRave(),first),startDate:second.startDate,endDate:second.endDate}).id,second.id);
+ assert.equal(festivalEditions.filter(e=>e.festival==='ILLENIUM' && e.year===2024).length,4);
+ assert.equal(festivalEditions.filter(e=>e.festival==='Zedd' && e.year===2024).length,4);
+ assert(get('chainsmokers-shoreline-2023-10-28').artists.includes('Two Friends'));
+ assert(get('tsu-nami-1015-folsom-2025-06-19').artists.includes('Buns'));
+ assert.equal(get('baby-j-regency-2026-04-10').startDate,'2026-04-10');
+ assert.equal(get('bass-canyon-2022').startDate,'2022-08-19');
+ assert.equal(get('second-sky-2021').city,'Oakland, CA');
+ assert.equal(get('firefly-2019').startDate,'2019-06-21');
+ assert.equal(get('bts-metlife-2019-05-18').city,'East Rutherford, NJ');
+ assert.equal(get('dnbnl-1015-folsom-2024-06-13').artists.length,0);
+ for(const e of festivalEditions){
+  assert(!('crew' in e || 'costs' in e || 'userId' in e || 'attendance' in e),e.id);
+  const r=applyFestival(emptyRave(),e);assert.equal(r.artists.length,0,e.id);
+ }
+ assert(get('coachella-2025-w1').artists.includes('ZULAN'));
+ assert(!get('coachella-2025-w2').artists.includes('ZULAN'));
+ assert(!get('hijinx-festival-2025').artists.includes('SLANDER'));
+ assert(get('hijinx-festival-2025').artists.includes('ILLENIUM B2B SLANDER'));
 });

@@ -7,6 +7,7 @@ export type FestivalEdition = {
   coverage: string; note: string; verifiedOn: string; sources: {label: string; url: string}[];
 };
 export const festivalEditions: FestivalEdition[] = [...data as FestivalEdition[]].sort((a, b) => a.festival.localeCompare(b.festival) || b.year - a.year || (a.weekend || 0) - (b.weekend || 0));
+export const catalogYearRange = `${Math.min(...festivalEditions.map(e => e.year))}–${Math.max(...festivalEditions.map(e => e.year))}`;
 const key = (s: string) => s.trim().toLocaleLowerCase().replace(/[’']/g, '').replace(/\s+/g, ' ');
 
 // Match explicit event identities or known title/year spellings, with dates inside
