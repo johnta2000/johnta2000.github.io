@@ -4,12 +4,16 @@ const descriptor = '(?:detox|throwback|classics|dj|live|sunset|sunrise|extended|
 const bracketed = new RegExp(`\\s*[([]\\s*${descriptor}(?:\\s+set)?\\s*[)\\]]\\s*$`, 'i');
 const suffix = new RegExp(`\\s+(?:${descriptor}\\s+set|detox(?:\\s+set)?)\\s*$`, 'i');
 function coreName(label: string) {
-  const cleaned = label.trim().replace(/^fresh meat:\s*/i, '').replace(bracketed, '').replace(suffix, '').replace(/\s*[-–—:]\s*$/, '').trim();
+  const cleaned = label.trim().replace(/^fresh meat:\s*/i, '').replace(/\s+(?:presents|pres\.)\s*:?.*$/i, '').replace(bracketed, '').replace(suffix, '').replace(/\s*[-–—:]\s*$/, '').trim();
   return cleaned || label.trim();
 }
 export function artistsForSet(label: string): string[] {
   const seen = new Set<string>();
-  return coreName(label).split(/\s+(?:b2b(?:2b)*|x|×)\s+/i).map(coreName).filter(name => {
+  // An explicitly billed collaboration inside an alias is usable evidence;
+  // the alias alone is not. Protect established acts whose name contains “x”.
+  const billed = label.match(/\(([^()]*\s+b2b(?:2b)*\s+[^()]*)\)\s*$/i)?.[1] || coreName(label);
+  const parts = billed.split(/\s+b2b(?:2b)*\s+/i).flatMap(part => /^bonnie\s+x\s+clyde$/i.test(coreName(part)) ? [part] : part.split(/\s+(?:x|×)\s+/i));
+  return parts.map(coreName).filter(name => {
     const key = name.toLocaleLowerCase();
     if (!key || seen.has(key)) return false;
     seen.add(key); return true;

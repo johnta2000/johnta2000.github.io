@@ -1,0 +1,33 @@
+.festival-picker { border: 1px solid var(--accent-border, #d5c5f0); background: #faf8fe; border-radius: 12px; padding: 18px; margin-bottom: 24px; min-width: 0; }
+.festival-picker-heading { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.festival-picker-heading > svg { color: var(--accent); flex-shrink: 0; }
+.festival-picker-heading h3 { font-size: 15px; margin: 0; line-height: 1.5; }
+.festival-picker-heading p { font-size: 12px; color: var(--secondary); margin: 2px 0 0; line-height: 1.5; }
+.festival-picker-heading > span { margin-left: auto; font-size: 11px; white-space: nowrap; color: var(--secondary); }
+.festival-picker .shared-picker { width: 100%; min-width: 0; }
+.festival-picker .picker-label { display: block; margin-bottom: 6px; font-size: 12px; font-weight: 600; }
+.festival-picker-hint, .festival-applied { font-size: 12px; line-height: 1.6; color: var(--secondary); margin: 10px 0 0; }
+.festival-applied { display: flex; gap: 7px; align-items: flex-start; color: var(--accent-hover); }
+.festival-applied svg { flex-shrink: 0; margin-top: 2px; }
+.festival-preview { padding: 14px 0 0; font-size: 13px; line-height: 1.6; }
+.festival-preview > strong { display: block; margin-bottom: 5px; }
+.festival-preview > span { display: flex; align-items: flex-start; gap: 6px; color: var(--secondary); margin-top: 3px; }
+.festival-preview > span svg { flex-shrink: 0; margin-top: 3px; }
+.festival-preview p { margin: 10px 0; font-size: 12px; color: var(--secondary); }
+.festival-preview-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.festival-preview-actions button { min-height: 44px; padding: 10px 14px; font-size: 12px; }
+.festival-lineup-note { margin: 0 0 18px; padding: 14px; border: 1px solid var(--line); border-radius: 9px; background: var(--subtle); font-size: 12px; line-height: 1.6; }
+.festival-lineup-note > strong { display: block; color: var(--ink); font-size: 13px; }
+.festival-lineup-note > p { margin: 4px 0 0; color: var(--secondary); }
+.festival-sources { margin-top: 5px; }
+.festival-sources summary { min-height: 44px; display: list-item; cursor: pointer; padding: 12px 0 8px; color: var(--accent-hover); font-size: 12px; }
+.festival-sources p, .festival-sources small { color: var(--secondary); font-size: 12px; }
+.festival-sources ul { padding-left: 18px; margin: 6px 0; }
+.festival-sources a { display: inline-block; padding: 10px 0; min-height: 44px; color: var(--accent-hover); text-decoration: underline; overflow-wrap: anywhere; }
+@media (max-width: 600px) {
+  .festival-picker { padding: 14px; margin-bottom: 20px; }
+  .festival-picker-heading { flex-wrap: wrap; }
+  .festival-picker-heading > span { display: none; }
+  .festival-preview-actions { flex-direction: column; }
+  .festival-preview-actions button { width: 100%; }
+}

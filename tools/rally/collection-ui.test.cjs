@@ -82,7 +82,7 @@ test('a delayed response for a previous account cannot populate the next account
 test('a failed plans request does not block collection access or manual entry', async () => {
   const h = harness({plansFail: true}); try {
     await until(() => h.text().includes('Alice private night')); h.button('From My raves').click(); await tick();
-    assert(h.text().includes('Your plans could not be loaded')); h.button('Add by hand').click(); await tick(); assert(h.w.document.querySelector('.rave-form'));
+    assert(h.text().includes('Your plans could not be loaded')); h.button('Find or add a rave').click(); await tick(); assert(h.w.document.querySelector('.rave-form'));
   } finally { h.close(); }
 });
 test('failed collection load is not presented as an empty collection; retry recovers', async () => {
@@ -190,7 +190,7 @@ test('mobile add choices and account menu preserve plan access and sign out', as
     await until(() => h.w.document.querySelector('.timeline-card'));
     h.button('Add a rave').click(); await tick(); assert(h.text().includes('Log a good night'));
     h.button('From My raves').click(); await tick(); assert(h.text().includes('No Rally projects yet'));
-    h.button('Add by hand').click(); await tick(); assert(h.w.document.querySelector('.rave-form'));
+    h.button('Find or add a rave').click(); await tick(); assert(h.w.document.querySelector('.rave-form'));
     h.button('Cancel').click(); await tick();
     h.button('Diary account and navigation').click(); await tick(); assert(h.w.document.querySelector('dialog a[href="/tools/rally/collection/?view=projects"]'));
     h.button('Sign out').click(); await until(() => h.text().includes('Sign in / create account')); assert(!h.text().includes('Alice private night'));
@@ -353,4 +353,63 @@ test('logging shows core credits but saves the original collaboration and specia
     artistPicker.value = 'Excision'; artistPicker.dispatchEvent(new h.w.Event('change',{bubbles:true})); await tick();
     assert(h.text().includes('Plan night')); assert(h.text().includes('Space Laces x Excision'));
   } finally { h.close(); }
+});
+
+async function chooseFestival(h, id) {
+  const select=h.w.document.querySelector('select[aria-label="Festival and year"]');
+  assert(select); select.value=id; select.dispatchEvent(new h.w.Event('change',{bubbles:true})); await tick();
+}
+test('festival search fills edition metadata without claiming sets or saving attendance', async () => {
+  const h=harness({empty:true}); try {
+    await until(()=>h.button('Add a rave'));h.button('Add a rave').click();await tick();
+    const picker=h.w.document.querySelector('.festival-picker');
+    picker.querySelector('.search-select-trigger').click();await tick();
+    const search=picker.querySelector('.search-select-input');assert(search);
+    search.value='Tomorrowland 2022';search.dispatchEvent(new h.w.Event('input',{bubbles:true}));await tick();
+    const options=[...picker.querySelectorAll('[role="option"]')];assert.equal(options.length,3);
+    options.find(o=>o.textContent.includes('Weekend 2')).click();await tick();
+    assert.equal(h.w.document.querySelector('input[maxlength="160"]').value,'Tomorrowland Belgium 2022 · Weekend 2');
+    assert.equal(h.w.document.querySelector('input[aria-label="Start date"]').value,'07/22/2022');
+    assert.equal(h.w.document.querySelectorAll('.name-picker input[type=checkbox]:checked').length,0);
+    assert(h.text().includes('FestivalViewer weekend archive'));assert.equal(h.saves.length,0);
+    h.button('Save to rave diary').click();await until(()=>h.saves.length===1);
+    assert.equal(h.saves[0].startDate,'2022-07-22');assert.equal(h.saves[0].endDate,'2022-07-24');
+    assert.equal(h.saves[0].venue,'De Schorre');assert.equal(h.saves[0].artists.length,0);assert.equal(h.saves[0].costs.ticket,null);
+  }finally{h.close();}
+});
+test('switching festival editions requires explicit replacement and preserves private details and typed names', async()=>{
+  const h=harness({empty:true});try{
+    await until(()=>h.button('Add a rave'));h.button('Add a rave').click();await tick();
+    await h.fill('input[maxlength="160"]','My custom night');
+    await h.fill('input[aria-label="Artists you actually saw"]','My own set');
+    await h.fill('input[aria-label="Who did you go with?"]','My friend');
+    await chooseFestival(h,'countdown-nye-2025');
+    assert.equal(h.w.document.querySelector('input[maxlength="160"]').value,'My custom night');
+    h.button('Keep current details').click();await tick();
+    assert.equal(h.w.document.querySelector('input[maxlength="160"]').value,'My custom night');
+    await chooseFestival(h,'countdown-nye-2025');h.button('Use these event details').click();await tick();
+    assert.equal(h.w.document.querySelector('input[maxlength="160"]').value,'Countdown NYE 2025');
+    assert(h.text().includes('24 lineup suggestions'));
+    h.button('Save to rave diary').click();await until(()=>h.saves.length===1);
+    assert.deepEqual(h.saves[0].artists,['My own set']);assert.deepEqual(h.saves[0].crew,['My friend']);
+    assert.equal(h.saves[0].city,'Los Angeles, CA');assert.equal(h.saves[0].venue,'Los Angeles Convention Center');
+  }finally{h.close();}
+});
+test('reopened historical festival entries recover suggestions and clearly identify partial lineups',async()=>{
+  const h=harness({raves:[{...entry('lost'),name:'Lost Lands 2024',startDate:'2024-09-20',endDate:'2024-09-22',artists:['Excision (Detox Set)']}]});try{
+    await until(()=>h.button('Edit Lost Lands 2024'));h.button('Edit Lost Lands 2024').click();await tick();
+    assert(h.text().includes('Partial lineup — more artists performed than are listed here.'));
+    assert(h.text().includes('Excision B2B Wooli'));
+    assert.equal(h.w.document.querySelectorAll('.name-picker input[type=checkbox]:checked').length,1);
+    assert.equal(h.saves.length,0);
+    await h.fill('input[maxlength="160"]','Unrelated festival');assert(!h.w.document.querySelector('.festival-lineup-note'));
+  }finally{h.close();}
+});
+
+test('catalog editions warn about existing entries even when their old name omitted the year',async()=>{
+  const h=harness({raves:[{...entry('old-edc'),name:'EDC Las Vegas',startDate:'2022-05-20',endDate:'2022-05-22'}]});try{
+    await until(()=>h.button('Add a rave'));h.button('Add a rave').click();await tick();
+    await chooseFestival(h,'edc-las-vegas-2022');assert(h.text().includes('You already have “EDC Las Vegas” on this date.'));
+    assert.equal(h.saves.length,0);
+  }finally{h.close();}
 });

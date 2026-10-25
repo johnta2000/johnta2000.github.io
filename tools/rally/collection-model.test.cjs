@@ -57,10 +57,49 @@ test('artist identity separates explicit collaborations and special sets while p
     ['DJ Snake', ['DJ Snake']],
     ['The xx', ['The xx']],
     ['Masterhand', ['Masterhand']],
+    ['BONNIE X CLYDE', ['BONNIE X CLYDE']],
+    ['BONNIE X CLYDE B2B Excision', ['BONNIE X CLYDE', 'Excision']],
+    ['Girl Math (VNSSA B2B Nala)', ['VNSSA', 'Nala']],
+    ['Black Tiger Sex Machine Presents The Anime Show', ['Black Tiger Sex Machine']],
+    ['Gareth Emery Presents: Decade', ['Gareth Emery']],
     ['A special back-to-back performance', ['A special back-to-back performance']],
     ['Artist (Unannounced guests)', ['Artist (Unannounced guests)']],
     ['Detox', ['Detox']],
   ]) assert.deepEqual(plain(artistsForSet(label)), expected, label);
+});
+
+const {festivalEditions, festivalForRave, applyFestival} = moduleAt('festivals.ts');
+test('festival editions have unique identities, real dates, sources, and clean distinct suggestions', () => {
+  assert.equal(festivalEditions.length, 37);
+  assert.equal(new Set(festivalEditions.map(e => e.id)).size, festivalEditions.length);
+  for (const e of festivalEditions) {
+    assert.equal(new Date(e.startDate).toISOString().slice(0,10), e.startDate, e.id);
+    assert.equal(new Date(e.endDate).toISOString().slice(0,10), e.endDate, e.id);
+    assert(e.startDate <= e.endDate && e.endDate <= '2026-10-24', e.id);
+    assert(e.startDate.startsWith(String(e.year)) && e.year >= 2022, e.id);
+    assert(e.artists.length > 0 && e.sources.length > 0, e.id);
+    assert.equal(new Set(e.artists.map(n=>n.toLowerCase())).size,e.artists.length,e.id);
+    for (const name of e.artists) assert(name.trim() === name && name.length <= 120 && !/[<>\n]/.test(name), `${e.id}: ${name}`);
+    for (const source of e.sources) assert(source.url.startsWith('https://') && source.label, e.id);
+    assert(['archive', 'partial'].includes(e.coverage));
+  }
+  assert.equal(festivalEditions.filter(e=>e.festival==='Niteharts' && e.year<2025).length,0);
+  assert.equal(festivalEditions.filter(e=>e.festival==='Tomorrowland Belgium' && e.year===2022).length,3);
+  assert.equal(festivalEditions.find(e=>e.id==='countdown-nye-2025').venue,'Los Angeles Convention Center');
+  assert.equal(festivalEditions.find(e=>e.id==='countdown-nye-2024').startDate,'2024-12-31');
+});
+test('catalog application never claims attendance, changes personal fields, or confuses weekends', () => {
+  const e = festivalEditions.find(e=>e.id==='tomorrowland-2022-w2');
+  const personal = {...partial, artists:['My actual set'], crew:['My friend'], notes:'Keep this', albumUrl:'https://example.test/album'};
+  const applied = applyFestival(personal,e);
+  assert.equal(applied.name, e.name);
+  for(const field of ['id','artists','crew','costs','notes','albumUrl','favoriteArtist','rating']) assert.deepEqual(applied[field],personal[field]);
+  assert.equal(festivalForRave(applied).id,e.id);
+  assert.equal(festivalForRave({...applied,startDate:'2022-07-23',endDate:'2022-07-23'}).id,e.id);
+  assert.equal(festivalForRave({...applied,startDate:'2022-07-15',endDate:'2022-07-17'}),undefined);
+  assert.equal(festivalForRave({...applied,name:'My unrelated show'}),undefined);
+  assert.equal(festivalForRave({...applied,kind:'Club night'}),undefined);
+  assert.equal(festivalForRave({...applied,name:'Tomorrowland Belgium'}).id,e.id);
 });
 test('legacy set labels contribute to core artist history once per rave, including favorite sets and filters', () => {
   const first = {...free, artists: ['Excision', 'Excision Detox Set', 'Space Laces x Excision'], favoriteArtist: 'Space Laces x Excision'};

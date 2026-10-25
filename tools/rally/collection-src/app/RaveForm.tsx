@@ -3,6 +3,8 @@ import {Check, ChevronDown, Heart, LoaderCircle, LockKeyhole, Music2, Star, Wall
 import Modal from './Modal';
 import DateField from './DateField';
 import NamePicker from './NamePicker';
+import FestivalPicker, {FestivalSources} from './FestivalPicker';
+import {applyFestival, festivalForRave} from '../lib/festivals';
 import {costKeys, emptyRave, leaderboard, totalCost, uniqueNames, validateRave, type Rave} from '../lib/raves';
 
 const costLabels = {ticket: 'Tickets', travel: 'Travel', stay: 'Stay', other: 'Food & other'};
@@ -20,7 +22,9 @@ export default function RaveForm({initial, all, onSave, onClose, suggestedArtist
   const dirty = JSON.stringify(r) !== baseline.current || !!artistText.trim() || !!crewText.trim();
   const close = () => { if (saving) return; if (dirty) setDiscard(true); else onClose(); };
   const field = <K extends keyof Rave>(key: K, value: Rave[K]) => setR(prev => ({...prev, [key]: value}));
-  const duplicate = all.find(n => n.id !== r.id && n.startDate === r.startDate && n.name.toLowerCase().trim() === r.name.toLowerCase().trim());
+  const festival = festivalForRave(r);
+  const duplicate = all.find(n => n.id !== r.id && n.startDate === r.startDate &&
+    (n.name.toLowerCase().trim() === r.name.toLowerCase().trim() || (!!festival && festivalForRave(n)?.id === festival.id)));
   const sum = totalCost(r);
   useEffect(() => {
     if (!dirty && !saving) return;
@@ -46,7 +50,8 @@ export default function RaveForm({initial, all, onSave, onClose, suggestedArtist
     }}>
       <p className="form-intro">{r.sourceEventId ? 'Started from your rave plan. Add the artists you actually saw and your own share of the costs.' : 'Start with a name and date. You can fill in the rest anytime.'}</p>
       <fieldset disabled={saving} className="form-fields">
-        <label className="field">Rave / event name <span className="required-label">Required</span><input data-autofocus={!focusSection || undefined} autoFocus={!focusSection} required maxLength={160} placeholder="The festival, show, or club night" value={r.name} onChange={e => field('name', e.target.value)}/></label>
+        {!r.sourceEventId && <FestivalPicker current={festival} focusOnOpen={!isEdit && !focusSection} hasDetails={!!(r.name || r.startDate || r.city || r.venue)} onChoose={edition => setR(prev => applyFestival(prev, edition))}/>}
+        <label className="field">Rave / event name <span className="required-label">Required</span><input data-autofocus={!focusSection && (isEdit || !!r.sourceEventId) || undefined} autoFocus={!focusSection && (isEdit || !!r.sourceEventId)} required maxLength={160} placeholder="The festival, show, or club night" value={r.name} onChange={e => field('name', e.target.value)}/></label>
         <div className="form-grid">
           <DateField label="Start date" required value={r.startDate} onChange={next => {
             setR(prev => ({...prev, startDate: next, endDate: prev.endDate === prev.startDate ? next : prev.endDate}));
@@ -61,7 +66,8 @@ export default function RaveForm({initial, all, onSave, onClose, suggestedArtist
           <summary><Music2 size={17}/><span>Artists & crew<small>Who made the night</small></span><ChevronDown size={16}/></summary>
           <div className="disclosure-body">
             {r.sourceEventId && <p className="form-help">Your plan is a starting point. Check the artists you saw and the people you went with.</p>}
-            <NamePicker label="Artists you actually saw" noun="artist" planSuggestions={suggestedArtists} values={r.artists} text={artistText} onText={setArtistText}
+            {festival && <div className="festival-lineup-note"><strong>{festival.name} · {festival.artists.length} lineup suggestions</strong><p>{festival.coverage === 'partial' ? 'Partial lineup — more artists performed than are listed here.' : 'Archived lineup — select only the sets you actually saw.'} You can add missing artists or special sets below.</p><FestivalSources edition={festival}/></div>}
+            <NamePicker label="Artists you actually saw" noun="artist" planSuggestions={uniqueNames([...suggestedArtists, ...(festival?.artists || [])])} values={r.artists} text={artistText} onText={setArtistText}
               onChange={artists => setR(prev => ({...prev, artists, favoriteArtist: artists.some(a => a.toLowerCase() === prev.favoriteArtist.toLowerCase()) ? prev.favoriteArtist : ''}))}
               suggestions={uniqueNames(all.flatMap(rave => rave.artists))}/>
             <NamePicker label="Who did you go with?" noun="friend" planSuggestions={suggestedCrew} values={r.crew} text={crewText} onText={setCrewText} onChange={v => field('crew', v)}

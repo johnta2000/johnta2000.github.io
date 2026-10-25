@@ -40,7 +40,8 @@
     }
     function filter() {
       const query = normalized(search.value.trim());
-      matches = Array.from(select.options).filter(option => !option.hidden && normalized(option.textContent).includes(query));
+      const terms = select.dataset.searchTokens === 'true' ? query.split(/\s+/).filter(Boolean) : [query];
+      matches = Array.from(select.options).filter(option => !option.hidden && terms.every(term => normalized(option.textContent).includes(term)));
       list.replaceChildren();
       matches.forEach((option, i) => {
         const item = make('div', 'search-select-option'); item.id = `${id}-option-${i}`;
