@@ -1,28 +1,12 @@
 import {useEffect, useRef, useState, type FormEvent} from 'react';
-import {Check, ChevronDown, Heart, LoaderCircle, LockKeyhole, Music2, Plus, Star, Wallet, X} from 'lucide-react';
+import {Check, ChevronDown, Heart, LoaderCircle, LockKeyhole, Music2, Star, Wallet} from 'lucide-react';
 import Modal from './Modal';
 import DateField from './DateField';
+import NamePicker from './NamePicker';
 import {costKeys, emptyRave, leaderboard, totalCost, uniqueNames, validateRave, type Rave} from '../lib/raves';
 
 const costLabels = {ticket: 'Tickets', travel: 'Travel', stay: 'Stay', other: 'Food & other'};
 const money = (n: number) => new Intl.NumberFormat('en-US', {style: 'currency', currency: 'USD'}).format(n);
-
-function Tags({label, values, onChange, suggestions, text, onText, hint}: {
-  label: string; values: string[]; onChange: (v: string[]) => void; suggestions: string[];
-  text: string; onText: (v: string) => void; hint: string;
-}) {
-  const add = (value = text) => { if (value.trim()) { onChange(uniqueNames([...values, ...value.split(',')])); onText(''); } };
-  const options = suggestions.filter(n => !values.some(v => v.toLowerCase() === n.toLowerCase()) && n.toLowerCase().includes(text.toLowerCase())).slice(0, 6);
-  return <div className="field"><label>{label}<div className="tag-editor">
-    {values.map(n => <span className="input-tag" key={n}>{n}<button type="button" aria-label={`Remove ${n}`} onClick={() => onChange(values.filter(v => v !== n))}><X size={14}/></button></span>)}
-    <input aria-label={label} value={text} placeholder={values.length ? 'Add another…' : hint}
-      onChange={e => onText(e.target.value)} onKeyDown={e => {
-        if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); add(); }
-      }}/></div></label>
-    {options.length > 0 && <div className="suggestions" aria-label={`${label} suggestions`}>{options.map(n => <button type="button" key={n} onClick={() => add(n)}><Plus size={13}/>{n}</button>)}</div>}
-    <small>Press Enter between names, or separate them with commas. Typed names are included when you save.</small>
-  </div>;
-}
 
 export default function RaveForm({initial, all, onSave, onClose, suggestedArtists = [], suggestedCrew = [], focusSection}: {
   initial?: Rave; all: Rave[]; onSave: (r: Rave) => Promise<void>; onClose: () => void;
@@ -76,12 +60,12 @@ export default function RaveForm({initial, all, onSave, onClose, suggestedArtist
         <details className="form-disclosure" open>
           <summary><Music2 size={17}/><span>Artists & crew<small>Who made the night</small></span><ChevronDown size={16}/></summary>
           <div className="disclosure-body">
-            {r.sourceEventId && <p className="form-help">Suggestions come from the plan. Select only the artists and people you remember.</p>}
-            <Tags label="Artists you actually saw" hint="Add an artist…" values={r.artists} text={artistText} onText={setArtistText}
+            {r.sourceEventId && <p className="form-help">Your plan is a starting point. Check the artists you saw and the people you went with.</p>}
+            <NamePicker label="Artists you actually saw" noun="artist" planSuggestions={suggestedArtists} values={r.artists} text={artistText} onText={setArtistText}
               onChange={artists => setR(prev => ({...prev, artists, favoriteArtist: artists.some(a => a.toLowerCase() === prev.favoriteArtist.toLowerCase()) ? prev.favoriteArtist : ''}))}
-              suggestions={uniqueNames([...suggestedArtists, ...leaderboard(all, 'artists').map(a => a.name)])}/>
-            <Tags label="Who did you go with?" hint="Add a friend…" values={r.crew} text={crewText} onText={setCrewText} onChange={v => field('crew', v)}
-              suggestions={uniqueNames([...suggestedCrew, ...leaderboard(all, 'crew').map(a => a.name)])}/>
+              suggestions={leaderboard(all, 'artists').map(a => a.name)}/>
+            <NamePicker label="Who did you go with?" noun="friend" planSuggestions={suggestedCrew} values={r.crew} text={crewText} onText={setCrewText} onChange={v => field('crew', v)}
+              suggestions={leaderboard(all, 'crew').map(a => a.name)}/>
           </div>
         </details>
         <details className="form-disclosure" open={costKeys.some(k => initial?.costs[k] != null) || undefined}>

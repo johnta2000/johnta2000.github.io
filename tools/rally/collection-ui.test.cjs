@@ -37,7 +37,7 @@ function harness(options = {}) {
       return success(args.rave);
     }
     if (path === 'rallyCollection:remove') { rows[subject] = rows[subject].filter(r => r.id !== args.id); return success({ok: true}); }
-    if (path === 'rallyCollection:draftFromEvent') return success({rave: rows[subject].find(r => r.sourceEventId === args.eventId) || {...entry('Plan night'), id: '', sourceEventId: args.eventId, notes: ''}, existing: rows[subject].some(r => r.sourceEventId === args.eventId), artistSuggestions: ['Suggested DJ'], crewSuggestions: ['Suggested Friend']});
+    if (path === 'rallyCollection:draftFromEvent') return success({rave: rows[subject].find(r => r.sourceEventId === args.eventId) || {...entry('Plan night'), id: '', sourceEventId: args.eventId, notes: ''}, existing: rows[subject].some(r => r.sourceEventId === args.eventId), artistSuggestions: optionsRef.artistSuggestions || ['Suggested DJ'], crewSuggestions: optionsRef.crewSuggestions || ['Suggested Friend']});
     throw new Error('Unexpected test request: ' + path);
   };
   const optionsRef = options;
@@ -281,4 +281,55 @@ test('partial date filters do not hide nights and clearing filters resets their 
   await h.fill('input[aria-label="From date"]','02/');assert(h.text().includes('Alice private night'));
   h.button('Reset').click();await tick();assert.equal(h.w.document.querySelector('input[aria-label="From date"]').value,'');
  }finally{h.close();}
+});
+
+
+test('lineup checklist exposes the full lineup, keeps selected rows visible, and never saves search text', async () => {
+  const names = Array.from({length: 24}, (_, i) => `Artist ${String(i + 1).padStart(2, '0')}`);
+  const h = harness({search: '?from=past', artistSuggestions: names, crewSuggestions: ['Nancy', 'Maya']});
+  try {
+    await until(() => h.w.document.querySelector('.rave-form'));
+    const picker = h.w.document.querySelector('.name-picker');
+    assert.equal(picker.querySelectorAll('input[type=checkbox]').length, 24);
+    assert.equal(picker.querySelectorAll('input:checked').length, 0);
+    await h.fill('input[aria-label="Search artists"]', '24');
+    assert.equal(picker.querySelectorAll('input[type=checkbox]').length, 1);
+    picker.querySelector('input[type=checkbox]').click(); await tick();
+    assert(picker.querySelector('input[type=checkbox]').checked);
+    assert(picker.textContent.includes('1 selected'));
+    h.button('Clear artist search').click(); await tick();
+    const selected = [...picker.querySelectorAll('button')].find(b => b.textContent === 'Selected 1');
+    selected.click(); await tick(); assert.equal(picker.querySelectorAll('input[type=checkbox]').length, 1);
+    picker.querySelector('input[type=checkbox]').click(); await tick(); assert(picker.textContent.includes('No one selected yet'));
+    [...picker.querySelectorAll('button')].find(b => b.textContent === 'All 24').click(); await tick();
+    await h.fill('input[aria-label="Search artists"]', '24');
+    picker.querySelector('input[type=checkbox]').click(); await tick();
+    await h.fill('input[aria-label="Search artists"]', 'Unmatched search');
+    assert(picker.textContent.includes('No matching names'));
+    const search = picker.querySelector('input[aria-label="Search artists"]');
+    const event = new h.w.KeyboardEvent('keydown', {key: 'Enter', bubbles: true, cancelable: true}); search.dispatchEvent(event);
+    assert(event.defaultPrevented); assert.equal(h.saves.length, 0);
+    h.button('Save to rave diary').click(); await until(() => h.saves.length === 1);
+    assert.deepEqual(h.saves[0].artists, ['Artist 24']); assert.deepEqual(h.saves[0].crew, []);
+  } finally { h.close(); }
+});
+
+test('plan and diary names deduplicate, custom names can be added and removed, and keyboard search reaches choices', async () => {
+  const h = harness({search: '?from=past', artistSuggestions: ['Same DJ', 'Other DJ'], raves: [{...entry('Earlier rave'), artists: ['same dj', 'History DJ']}]});
+  try {
+    await until(() => h.w.document.querySelector('.rave-form'));
+    const picker = h.w.document.querySelector('.name-picker');
+    assert.equal(picker.querySelectorAll('input[type=checkbox]').length, 3);
+    assert(picker.textContent.includes('From this lineup')); assert(picker.textContent.includes('From your diary'));
+    const search = picker.querySelector('input[aria-label="Search artists"]'); search.focus();
+    search.dispatchEvent(new h.w.KeyboardEvent('keydown', {key: 'ArrowDown', bubbles: true}));
+    assert.equal(h.w.document.activeElement, picker.querySelector('input[type=checkbox]'));
+    await h.fill('input[aria-label="Artists you actually saw"]', 'New DJ, new dj'); h.button('Add artist').click(); await tick();
+    assert(picker.textContent.includes('Added by you')); assert.equal(picker.querySelectorAll('input:checked').length, 1);
+    picker.querySelector('input:checked').click(); await tick();
+    assert.equal(picker.querySelectorAll('input:checked').length, 0);
+    await h.fill('input[aria-label="Search friends"]', 'Nobody');
+    h.button('Save to rave diary').click(); await until(() => h.saves.length === 1);
+    assert.deepEqual(h.saves[0].artists, []); assert.deepEqual(h.saves[0].crew, []);
+  } finally { h.close(); }
 });

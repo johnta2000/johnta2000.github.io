@@ -1,0 +1,42 @@
+.name-picker { min-width: 0; margin-bottom: 22px; }
+.name-picker-heading { display: flex; align-items: baseline; gap: 12px; justify-content: space-between; margin-bottom: 10px; }
+.name-picker-heading h3 { margin: 0; font-size: 14px; font-weight: 650; line-height: 1.5; }
+.name-picker-heading > span { flex-shrink: 0; color: #6d36bb; font-size: 12px; font-weight: 600; }
+.name-picker-panel { border: 1px solid #dedbe5; border-radius: 10px; overflow: hidden; background: #fff; }
+.name-picker-search { display: flex; align-items: center; gap: 10px; padding: 4px 12px; color: #777180; border-bottom: 1px solid #eeecf2; }
+.collection-form .name-picker-search input { border: 0; background: transparent; padding: 10px 0; min-width: 0; flex: 1; width: 100%; outline: 0; border-radius: 0; box-shadow: none; }
+.name-picker-search:focus-within { box-shadow: inset 0 0 0 2px #9470ca; }
+.collection-form .name-picker-search input:focus { outline: none; box-shadow: none; border: 0; }
+.name-picker-search > button { width: 44px; min-height: 44px; display: grid; place-items: center; }
+.name-picker-filters { display: flex; align-items: center; gap: 8px; padding: 6px 10px; background: #faf9fc; border-bottom: 1px solid #eeecf2; }
+.name-picker-filters > button { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 6px 12px; border-radius: 7px; font-size: 12px; color: #6c6577; }
+.name-picker-filters > button[aria-pressed=true] { background: #ede5f8; color: #6230a4; font-weight: 650; }
+.name-picker-filters > button > span { font-size: 11px; opacity: .8; }
+.name-picker-filters > small { margin-left: auto; font-size: 11px; color: #716b7b; }
+.name-picker-options { max-height: 250px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: #c8bdd7 #faf9fc; scroll-padding: 6px; }
+.name-picker-group { padding: 4px 8px 8px; }
+.name-picker-group + .name-picker-group { border-top: 1px solid #eeecf2; }
+.name-picker-group h4 { margin: 0; display: flex; gap: 8px; padding: 10px 8px 6px; font-size: 11px; letter-spacing: .02em; font-weight: 600; color: #716b7b; }
+.name-picker-group h4 span { font-weight: 400; }
+.name-picker-option { display: flex; align-items: center; gap: 12px; padding: 10px 8px; min-height: 44px; margin: 2px 0; border-radius: 6px; cursor: pointer; color: #37313f; font-size: 13px; line-height: 1.5; }
+.name-picker-option:hover { background: #f7f4fb; }
+.name-picker-option.is-selected { background: #f1ebf9; color: #5f2ca4; }
+.collection-form .name-picker-option input { width: 18px; height: 18px; min-height: 18px; margin: 0; padding: 0; flex: 0 0 18px; accent-color: #7845b8; }
+.name-picker-option span { overflow-wrap: anywhere; min-width: 0; }
+.name-picker-option:focus-within { outline: 2px solid #9470ca; outline-offset: -2px; }
+.name-picker-empty { padding: 24px 18px; text-align: center; font-size: 13px; line-height: 1.6; }
+.name-picker-empty p { color: #777180; font-size: 12px; margin-top: 4px; }
+.name-picker-add { padding: 12px; border-top: 1px solid #eeecf2; background: #faf9fc; }
+.name-picker-add > label { display: block; font-size: 11px; color: #716b7b; margin-bottom: 7px; }
+.name-picker-add > div { display: flex; gap: 8px; }
+.collection-form .name-picker-add input { flex: 1; min-width: 0; width: 100%; background: white; padding: 10px; border: 1px solid #dedbe5; font-size: 13px; }
+.name-picker-add button { min-height: 44px; display: flex; gap: 5px; align-items: center; padding: 0 12px; background: #ede5f8; color: #6230a4; border-radius: 6px; font-size: 12px; font-weight: 600; }
+.name-picker-add > small { display: block; margin-top: 8px; font-size: 11px; line-height: 1.6; color: #716b7b; }
+@media (max-width: 760px) {
+  .collection-form .name-picker-search input, .collection-form .name-picker-add input { font-size: 16px; }
+  .name-picker-heading h3 { font-size: 14px; }
+  .name-picker-option { font-size: 14px; min-height: 48px; }
+  .name-picker-options { max-height: 230px; }
+  .name-picker-search { gap: 8px; }
+  .name-picker-search input::placeholder { font-size: 14px; }
+}
