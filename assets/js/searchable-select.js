@@ -42,7 +42,7 @@
     function filter() {
       const query = normalized(search.value.trim());
       const terms = select.dataset.searchTokens === 'true' ? query.split(/\s+/).filter(Boolean) : [query];
-      matches = Array.from(select.options).filter(option => !option.hidden && terms.every(term => normalized(option.textContent).includes(term)));
+      matches = Array.from(select.options).filter(option => !option.hidden && terms.every(term => normalized(`${option.textContent} ${option.dataset.searchText || ''}`).includes(term)));
       const customValue = search.value.trim();
       if (onCreate && customValue && customValue.length <= customMaxLength && !Array.from(select.options).some(option => normalized(option.value.trim()) === query)) {
         matches.push({value: customValue, textContent: `Use “${customValue}”`, selected: false, disabled: false, custom: true});

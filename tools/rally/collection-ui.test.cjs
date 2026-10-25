@@ -627,3 +627,21 @@ test('ISOxo show autofills the selected night and restores its scoped lineup on 
   await until(()=>h.button('Edit ISOxo at Cow Palace · April 4, 2026'));h.button('Edit ISOxo at Cow Palace · April 4, 2026').click();await tick();assert(h.text().includes('1 lineup suggestions'));
  }finally{h.close();}
 });
+
+for(const mobile of [false,true]) test(`expanded catalog searches aliases and cities without mixing weekend lineups (${mobile?'mobile':'desktop'})`,async()=>{
+ const h=harness({empty:true,mobile});try{
+  await until(()=>h.button('Add a rave'));h.button('Add a rave').click();await tick();
+  if(mobile){h.button('Find or add a rave').click();await tick();}
+  const picker=h.w.document.querySelector('.festival-picker');assert(picker);
+  picker.querySelector('.search-select-trigger').click();await tick();
+  await h.fill('.festival-picker .search-select-input','EZoo 2023');
+  let options=[...picker.querySelectorAll('[role=option]')];assert.equal(options.length,1);assert(options[0].textContent.includes('Electric Zoo 2023'));
+  await h.fill('.festival-picker .search-select-input','Daly City 2025');
+  options=[...picker.querySelectorAll('[role=option]')];assert.equal(options.length,1);assert(options[0].textContent.includes('Wobbleland'));
+  await h.fill('.festival-picker .search-select-input','Coachella 2023');
+  options=[...picker.querySelectorAll('[role=option]')];assert.equal(options.length,2);options.find(o=>o.textContent.includes('Weekend 2')).click();await tick();
+  assert.equal(h.w.document.querySelector('input[aria-label="Start date"]').value,'04/21/2023');
+  const artistPicker=h.w.document.querySelector('.name-picker');assert(!artistPicker.textContent.includes('Frank Ocean'));assert(artistPicker.textContent.includes('Skrillex x Fred again.. x Four Tet'));
+  assert.equal(artistPicker.querySelectorAll('input[type=checkbox]:checked').length,0);assert.equal(h.saves.length,0);
+ }finally{h.close();}
+});

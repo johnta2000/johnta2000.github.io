@@ -1,6 +1,6 @@
 # Event catalog
 
-`festivals.json` is public reference data, last extended on October 25, 2026. It is not anyone's diary or attendance history. The catalog covers completed editions from 2022 onward for EDC Las Vegas, Ultra Miami, Countdown NYE, Lost Lands, Niteharts, Tomorrowland Belgium, and Beyond Wonderland SoCal.
+`festivals.json` is public reference data, last extended on October 25, 2026. It is not anyone's diary or attendance history. The 99 entries cover editions from 2022 onward, including confirmed upcoming editions. Alongside EDC Las Vegas, Ultra Miami, Countdown NYE, Lost Lands, Niteharts, Tomorrowland Belgium, and Beyond Wonderland SoCal, the catalog includes Wobbleland, Portola, Outside Lands, Coachella, HiJinx, Decadence Arizona, Electric Zoo, Escape Halloween, Nocturnal Wonderland, Dreamstate SoCal, HARD Summer, and Day Trip, plus the ISOxo shows described below.
 
 Each edition has stable identity, billed dates, venue, city, artist/set labels, coverage, a review date, and source links. Tomorrowland weekends are separate editions; 2022 has three. Niteharts begins in 2025. Countdown 2025 moved to the Los Angeles Convention Center; 2024 was one billed night. Dates represent billed festival days rather than camping, early entry, or the clock rolling past midnight.
 
@@ -10,7 +10,18 @@ Each edition has stable identity, billed dates, venue, city, artist/set labels, 
 - `partial`: only the sourced performers have been entered. The UI explicitly labels these as incomplete. Lost Lands 2022–2025, Ultra 2022/2024/2025/2026, and Countdown 2022/2024 currently use partial rosters.
 - Unnamed placeholders, stage hosts, and fireworks are excluded. Preserve explicit collaborations and special-set labels. Artist credits are derived separately in `lib/artists.ts`.
 
-Use year-specific official archives where available. When they no longer exist, cite the exact community archive or contemporary announcement used, and identify it accurately. Never reuse a current-year lineup or schema date from an older page's updated site header. Do not infer annual dates from a recurring weekend pattern. Upcoming editions are deliberately outside this retrospective seed.
+Use year-specific official archives where available. When they no longer exist, cite the exact community archive or contemporary announcement used, and identify it accurately. Never reuse a current-year lineup or schema date from an older page's updated site header. Do not infer annual dates from a recurring weekend pattern. Confirmed upcoming editions are labeled in their coverage notes and save as plans, with artists unchecked. Announced lineups may change.
+
+## October 25 expansion
+
+60 editions across 12 additional series were added. Historical performer indexes are marked partial: they establish year-specific artists but do not always preserve special set names, support acts, or last-minute changes. The current Escape, Dreamstate, HARD Summer, Day Trip, Nocturnal, HiJinx, and Decadence Arizona rosters use their official published lineups. Explicit billed collaborations are retained where verified. Sources remain available on every entry.
+
+- Coachella has two separate weekends per year. Only dated artists for that weekend are imported; undated archive listings are excluded. The 2023 second weekend includes the replacement closing trio, without Frank Ocean.
+- Electric Zoo has 2022 and 2023 entries only. The cancelled September 1, 2023 date and Friday-only artists are excluded. No confirmed 2024–2026 editions were found.
+- Nocturnal Wonderland 2024 was cancelled and is excluded. Its 2022 dates and roster omit the Friday camping pre-party. Cancellation reference: https://edm.com/events/nocturnal-wonderland-festival-cancelled-southern-california-wildfires/
+- Bay Area Wobbleland editions are 2022, 2024, 2025, and 2026; no verified Bay Area 2023 edition was found. The 2023 Salt Lake City event is not substituted. Venues move from San Francisco to Daly City in 2025 and San Jose in 2026.
+- Day Trip covers the Long Beach flagship. Decadence covers Arizona, not Colorado. Dreamstate and HARD Summer retain their year-specific venue changes.
+- Search accepts aliases such as EZoo and Outsidelands, as well as city and venue, without changing canonical event names. Reopened diary entries recognize explicit aliases within the matching edition's dates.
 
 ## Updating
 
