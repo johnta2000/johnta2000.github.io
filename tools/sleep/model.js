@@ -6,6 +6,17 @@
     value.setUTCDate(value.getUTCDate() + amount);
     return value.toISOString().slice(0, 10);
   }
+  function availableDays(rows, endDate) {
+    const end = Date.parse(endDate + "T12:00:00Z");
+    let earliest = end;
+    for (const row of rows) {
+      const date = row.sleepDate || row.ratingDate;
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date || "")) continue;
+      const time = Date.parse(date + "T12:00:00Z");
+      if (Number.isFinite(time) && time <= end && new Date(time).toISOString().slice(0, 10) === date) earliest = Math.min(earliest, time);
+    }
+    return Math.round((end - earliest) / 86400000) + 1;
+  }
   function range(rows, days, endDate) {
     const start = dateShift(endDate, 1 - days);
     return rows.filter(
@@ -269,7 +280,7 @@
     return {dates, rows: dates.map(date => byDate.get(date))};
   }
   const api = {
-    providerHistory,
+    providerHistory, availableDays,
     metrics, competitions, standings,
     groupHistory, variability,
     sampleGroup,

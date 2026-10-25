@@ -15,7 +15,7 @@
     {id:'restingHeartRate',name:'Resting heart rate',unit:'bpm',note:'Each provider’s resting heart rate for this date. Measurement windows can differ. WHOOP readings require recovery access; other providers need these fields in an import.'},
   ];
   const dateLabel = date => new Date(date+'T12:00:00Z').toLocaleDateString('en-US',{month:'short',day:'numeric',timeZone:'UTC'});
-  const fullDate = date => new Date(date+'T12:00:00Z').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',timeZone:'UTC'});
+  const fullDate = date => new Date(date+'T12:00:00Z').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric',timeZone:'UTC'});
   const value = (row, source, metric) => row[source] ? Daylight.value(row[source],metric) : undefined;
   const format = (n, metric, source) => !finite(n) ? '—' : metric==='durationMinutes' ? Daylight.duration(n) : metric==='score' ? `${Math.round(n)}${source==='whoop'?'%':' / 100'}` : `${Math.round(n*10)/10} ${metric==='hrv'?'ms':'bpm'}`;
   class DaylightComparison {
@@ -59,7 +59,7 @@
           low=Math.max(0,Math.floor((min-pad)/step)*step);high=Math.ceil((max+pad)/step)*step;
           ticks=Array.from({length:Math.round((high-low)/step)+1},(_,i)=>low+i*step);
         }
-        const x=i=>left+i/(count-1)*(w-left-right),y=v=>h-bottom-(v-low)/(high-low)*(h-top-bottom);
+        const x=i=>left+i/Math.max(1,count-1)*(w-left-right),y=v=>h-bottom-(v-low)/(high-low)*(h-top-bottom);
         this.geometry[metric.id]={x,y,w,h,left,right};
         const tickCount=w<400?3:count===7?7:5;
         const indices=[...new Set(Array.from({length:tickCount},(_,i)=>Math.round(i*(count-1)/(tickCount-1))))];

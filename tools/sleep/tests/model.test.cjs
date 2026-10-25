@@ -169,3 +169,12 @@ test('personal history aligns sources by date without mixing native scores or fi
   assert.equal(model.value(history.rows[2].whoop,'score'),undefined);
   assert.equal(history.rows[2].whoop.hrv,61);
 });
+
+test("All spans the actual calendar history, includes old imports, and ignores invalid/future dates", () => {
+  assert.equal(model.availableDays([], "2026-10-25"), 1);
+  assert.equal(model.availableDays([{sleepDate:"2026-10-25"}], "2026-10-25"), 1);
+  assert.equal(model.availableDays([{sleepDate:"2024-10-25"},{sleepDate:"2026-10-24"}], "2026-10-25"), 731);
+  assert.equal(model.availableDays([{ratingDate:"2026-10-01"},{sleepDate:"2027-01-01"},{sleepDate:"bad"},{sleepDate:"2026-02-31"}], "2026-10-25"), 25);
+  const days=model.availableDays([{sleepDate:"2026-10-25"}], "2026-10-25");
+  assert.equal(model.providerHistory([],[],days,"2026-10-25").dates.length,1);
+});

@@ -73,6 +73,7 @@ let groupGeometry;
 let groupSelectedDate;
 const visibleGroupMembers = new Set(["you", "alex", "morgan"]);
 let selectedDays = 7;
+let selectedRange = "7";
 let activeView = "overview";
 let isDemo = ["1", "empty"].includes(
   new URLSearchParams(location.search).get("demo"),
@@ -116,7 +117,8 @@ function bindEvents() {
     );
   document.querySelectorAll("[data-range]").forEach((button) =>
     button.addEventListener("click", () => {
-      selectedDays = Number(button.dataset.range);
+      selectedRange = button.dataset.range;
+      updateSelectedDays();
       document
         .querySelectorAll("[data-range]")
         .forEach((item) =>
@@ -252,7 +254,8 @@ async function loadDashboard() {
   els.lastUpdated.textContent = "Refreshing…";
   $("#loadError").hidden = true;
   const endDate = todayPacific();
-  const startDate = addDays(endDate, -365);
+  // Read the signed-in owner’s stored history, including imports older than a year.
+  const startDate = "0001-01-01";
 
   try {
     const data = await convexQuery("sleep:dashboard", { startDate, endDate });
@@ -462,9 +465,19 @@ function switchView(view) {
     else button.removeAttribute("aria-current");
   });
   $("#rangeControl").hidden = !["overview", "trends", "friends"].includes(view);
-  renderCharts();
+  renderDashboard();
 }
 
+function updateSelectedDays() {
+  if (selectedRange !== "all") { selectedDays = Number(selectedRange); return; }
+  const rows = activeView === "friends"
+    ? (groupSample || (isDemo ? Daylight.sampleGroup(todayPacific()) : [])).flatMap(member => member.nights)
+    : [...sleepNights, ...whoopDays, ...alertnessRatings];
+  selectedDays = Daylight.availableDays(rows, todayPacific());
+}
+function formatRangeDate(date) {
+  return selectedRange === "all" ? new Intl.DateTimeFormat("en-US", {month:"short", day:"numeric", year:"numeric", timeZone:"UTC"}).format(new Date(date + "T12:00:00Z")) : formatShortDate(date);
+}
 function currentRows() {
   return Daylight.range(sleepNights, selectedDays, todayPacific());
 }
@@ -477,6 +490,7 @@ function whoopGrouped() {
 }
 
 function renderDashboard() {
+  updateSelectedDays();
   const records = sleepNights
     .filter((row) => row.source === "whoop" && row.sleepDate <= todayPacific())
     .sort((a, b) => a.sleepDate.localeCompare(b.sleepDate));
@@ -516,7 +530,7 @@ function renderMetrics() {
             : formatDuration(stats.average);
       const roundedDelta = Math.round(stats.delta || 0);
       const difference =
-        stats.delta === null
+        selectedRange === "all" ? "All available history" : stats.delta === null
           ? "No previous period to compare"
           : `${percent ? `${roundedDelta === 0 ? "" : roundedDelta > 0 ? "+" : "−"}${Math.abs(roundedDelta)} pts` : Daylight.duration(stats.delta, true)} vs previous ${selectedDays} days`;
       return `<article class="metric-card"><div><h3>${label}</h3><span class="metric-icon" aria-hidden="true">${icon}</span></div><strong>${display}</strong><p>${difference}</p><p class="metric-footnote">${stats.count}/${selectedDays} nights · ${note}</p></article>`;
@@ -579,7 +593,7 @@ function renderDeviceComparison() {
           `<div class="device-row"><span>${label}</span><div class="device-track"><i style="width:${value === null ? 0 : (value / max) * 100}%;background:${color}"></i></div><strong>${formatDuration(value)}</strong></div>`,
       )
       .join("") +
-    `<p class="comparison-note">${pair.count ? `Apple Health recorded ${formatDuration(Math.abs(pair.difference))} ${pair.difference >= 0 ? "more" : "less"} on average · ${pair.count} matched night${pair.count === 1 ? "" : "s"} in the last ${selectedDays} days.` : `No overlapping nights in the last ${selectedDays} days. Import Apple Health sleep records to compare.`}</p>`;
+    `<p class="comparison-note">${pair.count ? `Apple Health recorded ${formatDuration(Math.abs(pair.difference))} ${pair.difference >= 0 ? "more" : "less"} on average · ${pair.count} matched night${pair.count === 1 ? "" : "s"} in ${selectedRange === "all" ? "your available history" : `the last ${selectedDays} days`}.` : `No overlapping nights in ${selectedRange === "all" ? "your available history" : `the last ${selectedDays} days`}. Import Apple Health sleep records to compare.`}</p>`;
 }
 
 function renderSourceCard(source, scoreElement, statusElement) {
@@ -719,9 +733,10 @@ async function saveTodayAlertness() {
 
 function renderCharts() {
   if (els.app.hidden) return;
+  updateSelectedDays();
   if (activeView === "friends") return drawGroupChart();
   if (activeView === "overview") {
-    $("#pageSubtitle").textContent = `${formatShortDate(addDays(todayPacific(), 1 - selectedDays))} – ${formatShortDate(todayPacific())}`;
+    $("#pageSubtitle").textContent = `${selectedRange === "all" ? "All available · " : ""}${formatRangeDate(addDays(todayPacific(), 1 - selectedDays))} – ${formatRangeDate(todayPacific())}`;
     personalComparison?.render(sleepNights, whoopDays, selectedDays, todayPacific());
     return;
   }
@@ -738,7 +753,7 @@ function drawTrendChart() {
     selectedDays,
     todayPacific(),
   );
-  $("#trendPeriod").textContent = `THE LAST ${selectedDays} DAYS`;
+  $("#trendPeriod").textContent = selectedRange === "all" ? `ALL AVAILABLE · ${formatRangeDate(addDays(todayPacific(), 1 - selectedDays))} – ${formatRangeDate(todayPacific())}` : `THE LAST ${selectedDays} DAYS`;
   $("#trendAverage").textContent =
     stats.average === null
       ? "—"
@@ -801,7 +816,7 @@ function drawTrendChart() {
           Math.round((selectedDays * 3) / 4),
           selectedDays - 1,
         ];
-  const labels = indices
+  const labels = [...new Set(indices.filter(i => i < selectedDays))]
     .map(
       (i) =>
         `<text x="${x(i)}" y="${h - 7}" text-anchor="${i === 0 ? "start" : i === selectedDays - 1 ? "end" : "middle"}" fill="#8b978e" font-size="9">${formatShortDate(dates[i])}</text>`,
@@ -862,7 +877,7 @@ function drawScatterChart(grouped) {
     }));
   els.scatterChart.setAttribute(
     "aria-label",
-    `WHOOP sleep performance versus noon alertness for ${pairs.length} paired days in the last ${selectedDays} days.`,
+    `WHOOP sleep performance versus noon alertness for ${pairs.length} paired days in ${selectedRange === "all" ? "your available history" : `the last ${selectedDays} days`}.`,
   );
 
   els.pairedDays.textContent = pairs.length;
@@ -1697,6 +1712,7 @@ function formatTinyDate(value) {
 function formatTableDate(value) {
   return new Intl.DateTimeFormat("en-US", {
     weekday: "short",
+    ...(selectedRange === "all" ? {year: "numeric"} : {}),
     month: "short",
     day: "numeric",
     timeZone: "UTC",
@@ -1734,12 +1750,13 @@ function drawGroupChart() {
   $("#friendSample").hidden = !isDemo && !liveGroup;
   if (!isDemo && !liveGroup) return;
   if (!groupSample) groupSample = Daylight.sampleGroup(todayPacific());
+  updateSelectedDays();
   const metric = $("#groupMetric").value;
   const metricName = $("#groupMetric").selectedOptions[0].textContent;
   groupHistory = Daylight.groupHistory(groupSample.filter(member => visibleGroupMembers.has(member.id)), metric, selectedDays, todayPacific(), groupChartMode);
-  $("#groupPeriod").textContent = `${formatShortDate(groupHistory.dates[0])} – ${formatShortDate(groupHistory.dates.at(-1))} · WHOOP`;
+  $("#groupPeriod").textContent = `${selectedRange === "all" ? "All shared · " : ""}${formatRangeDate(groupHistory.dates[0])} – ${formatRangeDate(groupHistory.dates.at(-1))} · WHOOP`;
   $("#groupMetricHeading").textContent = metricName;
-  $("#groupBaselineNote").textContent = `Compared with each person’s previous ${selectedDays} days. Only tracked days count. HRV and resting heart rate are personal measures.`;
+  $("#groupBaselineNote").textContent = selectedRange === "all" ? "All available shared history. Each person’s sharing window still applies; coverage may differ. There is no previous period for All." : `Compared with each person’s previous ${selectedDays} days. Only tracked days count. HRV and resting heart rate are personal measures.`;
   if (!$("#groupMembers").children.length) {
     $("#groupMembers").innerHTML = groupSample.map(member => `<button type="button" data-member="${member.id}" aria-pressed="${visibleGroupMembers.has(member.id)}" style="--member-color:${member.color}"><span class="group-member-name"><svg width="22" height="12" aria-hidden="true"><line x1="0" x2="22" y1="6" y2="6" stroke="currentColor" stroke-width="3" stroke-dasharray="${member.dash}"/></svg>${escapeHtml(member.name.replace(' (sample)', ''))}</span><strong class="group-member-value"></strong></button>`).join("");
     $("#groupMembers").querySelectorAll("button").forEach(button => button.addEventListener("click", () => {
@@ -1773,13 +1790,13 @@ function drawGroupChart() {
     upper = Math.ceil(extent / step) * step;
     lower = -upper;
   }
-  const x = index => left + index / (selectedDays - 1) * (w - left - right);
+  const x = index => left + index / Math.max(1, selectedDays - 1) * (w - left - right);
   const y = value => top + (1 - (value - lower) / (upper - lower)) * (h - top - bottom);
   groupGeometry = { w, h, x, y, left, right };
   const ticks = Array.from({length: Math.round((upper - lower) / step) + 1}, (_, i) => lower + i * step);
   const grid = ticks.map(value => `<line x1="${left}" x2="${w - right}" y1="${y(value)}" y2="${y(value)}" stroke="${difference && value === 0 ? "#82958a" : "#e4eae5"}" stroke-dasharray="${difference && value === 0 ? "none" : "3 5"}"/><text x="0" y="${y(value) + 4}" fill="#6d7c75" font-size="12">${percent ? `${value}${difference ? "pt" : "%"}` : unit === "min" ? formatDuration(value) : Number(value.toFixed(1))}</text>`).join("");
-  const labelCount = selectedDays === 7 && w > 500 ? 7 : w < 400 ? 3 : 5;
-  const labels = Array.from({length: labelCount}, (_, i) => Math.round(i * (selectedDays - 1) / (labelCount - 1))).map(i => `<text x="${x(i)}" y="${h - 5}" text-anchor="${i === 0 ? "start" : i === selectedDays - 1 ? "end" : "middle"}" fill="#6d7c75" font-size="12">${formatShortDate(groupHistory.dates[i])}</text>`).join("");
+  const labelCount = Math.min(selectedDays, selectedDays === 7 && w > 500 ? 7 : w < 400 ? 3 : 5);
+  const labels = Array.from({length: labelCount}, (_, i) => Math.round(i * (selectedDays - 1) / Math.max(1, labelCount - 1))).map(i => `<text x="${x(i)}" y="${h - 5}" text-anchor="${i === 0 ? "start" : i === selectedDays - 1 ? "end" : "middle"}" fill="#6d7c75" font-size="12">${formatShortDate(groupHistory.dates[i])}</text>`).join("");
   const series = groupHistory.members.map(member => member.segments.map(segment => `<path d="${segment.map((point, i) => `${i ? "L" : "M"}${x(point.index)},${y(point.value)}`).join(" ")}" fill="none" stroke="${member.color}" stroke-width="2.5" stroke-dasharray="${member.dash}" stroke-linecap="round" stroke-linejoin="round"/>${segment.map(point => `<circle cx="${x(point.index)}" cy="${y(point.value)}" r="${selectedDays > 28 ? 1.8 : 3.5}" fill="${member.color}"/>`).join("")}`).join("")).join("");
   $("#groupPlot").innerHTML = `<svg viewBox="0 0 ${w} ${h}" aria-hidden="true">${grid}${labels}${series}<line id="groupCursor" y1="${top}" y2="${h - bottom}" stroke="#82958a" stroke-dasharray="3 3"/><g id="groupActivePoints"></g></svg>`;
   const plot = $("#groupPlot");
@@ -1808,8 +1825,8 @@ function drawGroupChart() {
       : difference ? `No ${groupChartMode === "whiplash" ? "three-day runs" : "consecutive-day pairs"} in this period. Try Values or a longer period.`
       : "No shared data in this period. Enable recovery & activity in Connections, or choose a longer sharing window.";
   $("#groupSummaryRows").innerHTML = groupHistory.members.map(member => {
-    const delta = member.delta === null ? "Not enough history" : formatGroupDifference(member.delta);
-    return `<tr><th scope="row"><span class="group-person-marker" style="background:${member.color}"></span>${escapeHtml(member.name.replace(' (sample)', ''))}</th><td>${formatMemberValue(member, member.average)}</td><td>${delta}<small class="group-coverage">${member.previousCount} / ${selectedDays} previous days</small></td><td>${member.count} / ${selectedDays}</td></tr>`;
+    const delta = selectedRange === "all" ? "—" : member.delta === null ? "Not enough history" : formatGroupDifference(member.delta);
+    return `<tr><th scope="row"><span class="group-person-marker" style="background:${member.color}"></span>${escapeHtml(member.name.replace(' (sample)', ''))}</th><td>${formatMemberValue(member, member.average)}</td><td>${delta}<small class="group-coverage">${selectedRange === "all" ? "No previous period" : `${member.previousCount} / ${selectedDays} previous days`}</small></td><td>${member.count} / ${selectedDays}</td></tr>`;
   }).join("") || '<tr><td colspan="4">Select a person above to compare.</td></tr>';
   const selected = groupHistory.dates.indexOf(groupSelectedDate);
   showGroupDay(selected >= 0 ? selected : selectedDays - 1);

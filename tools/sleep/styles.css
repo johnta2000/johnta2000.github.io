@@ -2216,3 +2216,5 @@ body:has(#standingsDialog[open]) { overflow:hidden; }
 .group-members button { flex:1 1 130px; }
 
 .group-tooltip { max-height:min(420px,65vh); overflow-y:auto; pointer-events:auto; }
+
+#rangeControl button { min-height:44px; }

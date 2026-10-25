@@ -171,3 +171,21 @@ test("Health import keeps midnight stages together, deduplicates overlap, skips 
   assert.equal(nights[0].source, "apple_health");
   assert.equal(nights[0].scoreKind, "derived");
 });
+
+test("All uses personal records or already-shared group records, and fixed ranges still work", () => {
+  const app=load();
+  app.run(`todayPacific=()=>"2026-10-25"; selectedRange="all"; activeView="overview";
+    sleepNights=[{sleepDate:"2024-10-25"}]; whoopDays=[]; alertnessRatings=[]; updateSelectedDays()`);
+  assert.equal(app.run("selectedDays"),731);
+  app.run(`activeView="friends"; groupSample=[{nights:[{sleepDate:"2026-10-01"}]},{nights:[{sleepDate:"2026-10-20"}]}]; updateSelectedDays()`);
+  assert.equal(app.run("selectedDays"),25);
+  app.run(`selectedRange="28";updateSelectedDays()`);assert.equal(app.run("selectedDays"),28);
+  app.run(`selectedRange="all";activeView="overview";updateSelectedDays()`);assert.equal(app.run("selectedDays"),731);
+  app.run(`sleepNights=[];updateSelectedDays()`);assert.equal(app.run("selectedDays"),1);
+});
+test("dashboard requests complete owned history rather than truncating imports to one year", async () => {
+  const app=load();
+  app.run(`renderDashboard=()=>{}; convexQuery=async(path,args)=>{window.requestedRange=args; return {nights:[],whoopDays:[],alertness:[]}}`);
+  await app.run("loadDashboard()");
+  assert.equal(app.run("window.requestedRange.startDate"),"0001-01-01");
+});
