@@ -13,7 +13,9 @@
 .diary-plan-actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; }
 .diary-plan-actions button,.diary-plan-actions a { min-height:44px; font-size:13px; }
 .diary-plan-link .search-select-trigger { min-height:44px; }
-.upcoming-note { font-size:12px; line-height:1.6; color:var(--secondary); margin:8px 0 16px; }
+.period-filter { margin-bottom:16px; }
+.period-filter > .picker-label { display:block; margin-bottom:8px; font-size:12px; font-weight:600; color:var(--secondary); }
+.period-filter .diary-periods { margin:0; }
 @media(max-width:760px){.diary-periods{margin-top:4px;gap:6px}.diary-periods button{flex:1;padding:10px 8px}.diary-plan-actions{flex-direction:column}.diary-plan-actions>*{width:100%;justify-content:center}}
 
 .diary-existing-plans { margin:16px 0; font-size:13px; color:var(--secondary); }

@@ -193,7 +193,7 @@ test('timeline filtering survives switching to desktop and zero costs remain exp
   } finally { h.close(); }
 });
 test('mobile add opens the personal form directly and account navigation remains available',async()=>{
- const h=harness({mobile:true});try{await until(()=>h.button('Add a rave'));h.button('Add a rave').click();await tick();assert(h.w.document.querySelector('.rave-form'));assert(!h.button('From My raves'));h.button('Cancel').click();await tick();h.button('Diary account and navigation').click();await tick();assert(h.w.document.querySelector('dialog a[href="/tools/rally/collection/?view=projects"]'));h.button('Sign out').click();await until(()=>h.text().includes('Sign in / create account'));}finally{h.close();}
+ const h=harness({mobile:true});try{await until(()=>h.button('Add a rave'));h.button('Add a rave').click();await tick();assert(h.w.document.querySelector('.rave-form'));assert(!h.button('From My raves'));h.button('Cancel').click();await tick();h.button('Diary settings').click();await tick();assert(h.w.document.querySelector('dialog a[href="/tools/rally/collection/?view=projects"]'));h.button('Sign out').click();await until(()=>h.text().includes('Sign in / create account'));}finally{h.close();}
 });
 
 test('desktop drawer connects collection sections and Rally projects without a tab bar', async () => {
@@ -546,8 +546,11 @@ test('expired plans require explicit attendance and selecting the sets actually 
 
 test('upcoming and past views filter consistently across mobile and desktop and skip planned artist totals',async()=>{
  const h=harness({mobile:true,raves:[{...entry('Next rave'),startDate:'2099-01-01',endDate:'2099-01-01',attendance:'planned',plannedArtists:['Only planned DJ']},{...entry('Past attended'),attendance:'attended',artists:['Actual DJ']},{...entry('Did not go'),attendance:'skipped',artists:['Must not count']}]});try{
-  await until(()=>h.button('View Next rave'));h.button('Upcoming 1').click();await tick();assert(h.button('View Next rave'));assert(!h.button('View Past attended'));
+  await until(()=>h.button('View Next rave'));assert(!h.button('Upcoming 1'));h.button('All filters').click();await tick();h.button('Upcoming 1').click();await tick();assert(h.button('View Next rave'));assert(!h.button('View Past attended'));
   assert(h.w.document.querySelector('.timeline-totals').textContent.includes('1 to see'));
+  h.button('Hide filters').click();await tick();assert(!h.button('Upcoming 1'));assert(h.button('Remove date period filter'));
+  h.button('Remove date period filter').click();await tick();assert(h.button('View Past attended'));
+  h.button('All filters').click();await tick();h.button('Upcoming 1').click();await tick();h.button('Reset').click();await tick();assert(h.button('View Past attended'));h.button('Upcoming 1').click();await tick();
   h.resize(false);await tick();assert(h.button('View Next rave'));assert(!h.button('View Past attended'));
   h.button('Past 2').click();await tick();assert(!h.button('View Next rave'));assert(h.button('View Past attended'));
   assert(h.w.document.querySelector('.result-summary').textContent.includes('1artists seen'));
