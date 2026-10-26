@@ -43,3 +43,30 @@ test('monitor report contract and authenticated access remain unchanged',()=>{
  assert.equal(validateExternalReport({monitorId:'seo-content-opportunities',timestamp:'2026-10-25T18:00:00Z',status:'healthy',summary:'Fresh research',details:fixture.details}).monitorId,'seo-content-opportunities');assert.throws(()=>validateExternalReport({monitorId:'arbitrary',timestamp:'2026-10-25',status:'healthy',summary:'Bad'}));
  const app=fs.readFileSync(new URL('../../tools/monitoring/app.js',import.meta.url),'utf8'),backend=fs.readFileSync(new URL('../../convex/monitoring.ts',import.meta.url),'utf8');assert.match(app,/monitoring:detail/);assert.match(backend,/handler: async \(ctx, args\) => \{\s*await requireAuthorizedUser\(ctx\);\s*return monitoringDetail/);
 });
+
+function evidenceFixture(){
+ const d=structuredClone(fixture),now=new Date().toISOString();
+ d.details.workPlan=[{id:'task',workItem:true,title:'Refresh the guide',keyword:'test search',kind:'Maintenance',status:'Ready',priority:'P1',reviewedAt:now,targets:[],doneWhen:['Verify prices']}];
+ const article={url:'https://www.nextcard.com/articles/test',title:'Specific dining article',officeUrl:'https://office.affil.ai/content/articles/test',current:{clicks:0,impressions:10},previous:{clicks:4}};
+ d.details.evidence={reviewedAt:now,reviewedThrough:'2026-10-23',finalizedThrough:'2026-10-23',periods:{previous:{startDate:'2026-08-29',endDate:'2026-09-25'},current:{startDate:'2026-09-26',endDate:'2026-10-23'}},method:'Signed-out US sample',searchLimit:'Stopped at CAPTCHA',roiDefinition:'Search return, not revenue.',
+ cohorts:[{id:'cohort-0',name:'Dining articles',count:1,current:{clicks:0,impressions:10,pagesWithClicks:0,missingPages:0},previous:{clicks:4},rows:[article],relatedWorkIds:['task'],decision:'Keep verified prices current.'}],
+ tools:[{id:'tool-0',title:'Example map',url:'https://www.nextcard.com/tools/test',current:null,previous:null,relatedWorkIds:[]}],
+ searches:[{id:'search-0',query:'test search <script>bad()</script>',checkedAt:now,url:'https://www.google.com/search?q=test',finding:'A competitor owns navigation intent.',resultLabels:['NerdWallet <img src=x onerror=alert(1)>','nextcard guide'],relatedWorkIds:['task']}]};
+ return d;
+}
+test('performance shows observed zero versus missing, article links, and navigation to related work',async()=>{
+ const p=await setup(evidenceFixture());await p.locator('[data-seo-view="performance"]').click();assert.equal(await p.locator('.seo-row').count(),2);
+ assert.match(await p.locator('.seo-row').first().textContent(),/4 → 0/);assert.match(await p.locator('.seo-row').last().textContent(),/— → —/);
+ assert.equal(await p.getByRole('link',{name:'Specific dining article'}).isVisible(),true);assert.equal(await p.getByRole('link',{name:'Open in Office'}).getAttribute('href'),'https://office.affil.ai/content/articles/test');
+ await p.locator('[data-open-work="task"]').click();assert.equal(await p.locator('.seo-detail h3').textContent(),'Refresh the guide');assert.equal(await p.locator('[data-seo-lane="Reviewed work"]').getAttribute('aria-pressed'),'true');
+ await p.locator('[data-seo-view="performance"]').click();await p.getByRole('searchbox').fill('missing query');await p.locator('[data-clear]').click();assert.equal(await p.locator('.seo-row').count(),2);assert.equal(await p.locator('[data-seo-view="performance"]').getAttribute('aria-pressed'),'true');await p.close();
+});
+test('complete search evidence is searchable by competitor, safely rendered, and linked both ways',async()=>{
+ const p=await setup(evidenceFixture());await p.locator('[data-open-search="search-0"]').click();assert.equal(await p.locator('[data-seo-view="searches"]').getAttribute('aria-pressed'),'true');
+ assert.match(await p.locator('.seo-detail').textContent(),/not a numbered organic rank/);assert.match(await p.locator('.seo-detail').textContent(),/Stopped at CAPTCHA/);assert.equal(await p.locator('#root script,#root img').count(),0);
+ await p.getByRole('searchbox').fill('NerdWallet');assert.equal(await p.locator('.seo-row').count(),1);await p.locator('[data-sort="checked"]').click();
+ await p.locator('[data-open-work="task"]').click();assert.match(await p.locator('.seo-detail').textContent(),/Verify prices/);assert.equal(await p.getByRole('searchbox').inputValue(),'');await p.close();
+});
+test('reports without saved evidence do not claim performance or search audit views',async()=>{
+ const p=await setup();assert.equal(await p.locator('[data-seo-view]').count(),0);await p.close();
+});

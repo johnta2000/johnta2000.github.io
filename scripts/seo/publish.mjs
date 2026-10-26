@@ -15,9 +15,11 @@ const compact=r=>({id:r.id,keyword:r.keyword,lane:r.lane,family:r.family,city:r.
 const report={monitorId:'seo-content-opportunities',timestamp:data.generatedAt,status:(data.qualityIssues??[]).some(i=>['pending','needs-verification'].includes(i.level))?'watch':'healthy',summary:`US GSC through ${data.finalizedThrough}: ${readyTaskCount} reviewed tasks ready, ${sourceCheckCount} source checks and ${counts['GSC lead']??0} unverified GSC leads. Open Reviewed work for priorities and completion criteria.`,meaningful:false,eventType:'research-refresh',
   metrics:{readyTaskCount,sourceCheckCount,updateCount:counts['Update candidate']??0,researchCount:counts['Research gap']??0,plannerKeywords:data.sources.plannerKeywords},
   details:{finalizedThrough:data.finalizedThrough,periodLabel:`${data.periods.current.startDate}–${data.periods.current.endDate} versus ${data.periods.previous.startDate}–${data.periods.previous.endDate}`,articleCount:data.sources.articleCount,plannerKeywords:data.sources.plannerKeywords,
-    warnings:data.warnings,workPlan:data.workPlan,qualityIssues:data.qualityIssues,recentPeriods:data.recentPeriods,totalGroups:data.opportunities.length,fragmentRowsExcluded:data.fragmentRowsExcluded,longQueriesExcluded:data.longQueriesExcluded,opportunities:[],
+    warnings:data.warnings,workPlan:data.workPlan,evidence:data.evidence??null,qualityIssues:data.qualityIssues,recentPeriods:data.recentPeriods,totalGroups:data.opportunities.length,fragmentRowsExcluded:data.fragmentRowsExcluded,longQueriesExcluded:data.longQueriesExcluded,opportunities:[],
     discovery:data.unclassified.slice(0,20).map(r=>({keyword:r.keyword,volume:r.planner,impressions:r.current?.impressions??null}))},sourceUrls:['https://www.nextcard.com','https://developers.google.com/webmaster-tools/v1/how-tos/search_analytics','https://support.google.com/google-ads/answer/3022575']};
 // Only this monitor has a 200KB report cap; other monitors retain their existing limits.
+// Reviewed work and the complete audit take precedence over the bounded research queue.
+if(Buffer.byteLength(JSON.stringify(report))>195000)throw Error('Reviewed evidence exceeds the dashboard limit; publication stopped without truncating it.');
 const lanes=['Update candidate','GSC lead','Tool opportunity','Coverage review','Research gap','New article shortlist','Already planned','Navigational demand','Deprioritized','Low observed demand','Existing coverage'];
 const queues=lanes.map(l=>data.opportunities.filter(r=>r.lane===l));const added=new Set();
 for(let round=0;round<2;round++)for(const queue of queues){const r=queue[round];if(!r)continue;const row=compact(r);report.details.opportunities.push(row);if(Buffer.byteLength(JSON.stringify(report))>195000)report.details.opportunities.pop();else added.add(r.id);}
@@ -27,5 +29,5 @@ await fs.writeFile(path.join(root,'reports/dashboard.json'),JSON.stringify(repor
 if(process.argv.includes('--report')){
   const secret=await fs.readFile(path.join(homedir(),'.codex/secrets/john-ta-monitoring-report-secret'),'utf8');
   await submitExternalReport(report,{secret});
-  console.log(JSON.stringify({published:true,groupsShown:report.details.opportunities.length,totalGroups:report.details.totalGroups,bytes:Buffer.byteLength(JSON.stringify(report))}));
+  console.log(JSON.stringify({published:true,groupsShown:report.details.opportunities.length,totalGroups:report.details.totalGroups,searchChecks:report.details.evidence?.searches.length??0,bytes:Buffer.byteLength(JSON.stringify(report))}));
 }else console.log(JSON.stringify({published:false,groupsShown:report.details.opportunities.length,bytes:Buffer.byteLength(JSON.stringify(report))}));

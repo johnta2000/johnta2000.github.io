@@ -19,5 +19,15 @@ try{for(const [width,height] of [[1440,900],[1280,800],[1920,1080]]){
   await page.locator('[data-seo-lane="'+lane+'"]').click();const count=await page.locator('.seo-row').count();if(!count)throw Error('No review candidates');
   await page.getByRole('tab',{name:'Pages',exact:true}).click();await page.screenshot({path:fileURLToPath(new URL('./.cache/expanded-'+width+'.png',import.meta.url))});
   const clipped=await page.evaluate(()=>{const workspace=document.querySelector('.seo-workspace');return workspace.scrollWidth>workspace.clientWidth;});if(clipped)throw Error('Clipped desktop workspace at '+width);
-  console.log(JSON.stringify({width,height,overflow,lane,visibleCandidates:count}));await page.close();
+  if(report.details.evidence){
+    for(const view of ['performance','searches']){
+      await page.locator('[data-seo-view="'+view+'"]').click();
+      const expected=view==='performance'?report.details.evidence.cohorts.length+report.details.evidence.tools.length:report.details.evidence.searches.length;
+      if(await page.locator('.seo-row').count()!==expected)throw Error('Missing evidence in '+view);
+      await page.screenshot({path:fileURLToPath(new URL('./.cache/'+view+'-'+width+'.png',import.meta.url))});
+      const clipped=await page.evaluate(()=>['.seo-workspace','.seo-detail','.seo-grid-scroll'].some(s=>{const el=document.querySelector(s);return el.scrollWidth>el.clientWidth+1;}));
+      if(clipped)throw Error('Clipped '+view+' view at '+width);
+    }
+  }
+  console.log(JSON.stringify({width,height,overflow,lane,visibleCandidates:count,searchChecks:report.details.evidence?.searches.length??0}));await page.close();
 }}finally{await browser.close();}

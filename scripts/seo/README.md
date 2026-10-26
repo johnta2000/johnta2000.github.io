@@ -46,6 +46,12 @@ The default desktop view opens **Reviewed work** when available. The private, ig
 
 Reviewed-work metrics use the target page's non-fragment GSC observations. Research metrics use query groups. The interface labels the active basis and never combines them. Source-verification findings appear in Data & methodology. Keep positive catalogue counts separate from usable row/price evidence; a connector failure does not establish that a public tool is broken.
 
+**Performance** shows article cohorts and tools, with previous/current clicks, impressions, member article and Office links, and related work. **Search checks** retains the complete dated Google audit, its observed result labels, conclusions, sampling limitations and related tasks. Search checks are searchable by query, competitor or finding. They are single observations, not continuous rank measurements; saved result labels may include ads and do not imply organic positions.
+
+The private `.cache/research-evidence.json` is the durable research input. `evidence.mjs` joins its cohort membership and search observations to the latest inventory, GSC snapshot and reviewed tasks on every build. Performance measurements refresh; the assessment's original date and data cutoff remain visible. Group membership and editorial conclusions require a new review when scope changes. Groups overlap and must not be summed. No disclosed observations remain null, while an observed zero remains zero. The separate Edit monitor snapshot retains its own date and shorter window.
+
+Publication preserves all reviewed work, cohorts, tools and search checks before allocating remaining space to the bounded discovery queue. If that evidence alone exceeds the payload budget, publication fails rather than silently dropping it. Nothing in these views is published to the public static repository. Reports continue to require the existing authenticated monitoring access.
+
 Refresh also collects adjacent recent seven-day windows when the API is available. Until that collection succeeds, recent movement remains unavailable. Never infer recovery from a 28-day average after an acute drop. The existing quota cooldown takes precedence; failed refreshes preserve the complete prior snapshot. The dashboard reloads saved reports; reopening it does not collect fresh GSC data.
 
 ## Next connections
@@ -60,7 +66,7 @@ These gaps are visible in the dashboard. Do not replace missing inputs with inve
 ## Validation
 
 ```sh
-node --test engine.test.mjs
+node --test engine.test.mjs evidence.test.mjs
 node --test ../monitoring/seo.test.mjs
 ```
 
