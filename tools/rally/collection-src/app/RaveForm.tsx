@@ -82,6 +82,7 @@ export default function RaveForm({initial, all, onSave, onClose, suggestedArtist
     }}>
       <p className="form-intro">{planning ? 'Keep your plans, artists to see, and costs together.' : r.sourceEventId ? 'This rave is already in your diary. Add the artists you actually saw and your own share of the costs.' : 'Add a past night or an upcoming rave. Start with a name and date.'}</p>
       <fieldset disabled={saving} className="form-fields">
+        <div className="rave-event-fields">
         {!r.sourceEventId && <FestivalPicker unavailableIds={unavailableIds} onClear={()=>setR(prev=>({...prev,catalogEventId:null}))} current={festival} focusOnOpen={!isEdit && !focusSection} hasDetails={!!(r.name || r.startDate || r.city || r.venue)} onChoose={edition => changeEventDetails(prev => applyFestival(prev, edition))}/>}
         {r.sourceEventId?<div className="shared-event-summary"><strong>{r.name}</strong><span>{eventDate(r.startDate)}{r.endDate!==r.startDate?' – '+eventDate(r.endDate):''} · {[r.venue,r.city].filter(Boolean).join(' · ')}</span><p>Event details are shared with your crew and stay up to date in Rally.</p><a href={`/tools/rally/?event=${encodeURIComponent(r.sourceEventId)}`}>View event details in Rally ↗</a></div>:<>
         <label className="field">Rave / event name <span className="required-label">Required</span><input data-autofocus={!focusSection && (isEdit || !!r.sourceEventId) || undefined} autoFocus={!focusSection && (isEdit || !!r.sourceEventId)} required maxLength={160} placeholder="The festival, show, or club night" value={r.name} onChange={e => field('name', e.target.value)}/></label>
@@ -96,6 +97,8 @@ export default function RaveForm({initial, all, onSave, onClose, suggestedArtist
         </>}
         {!r.sourceEventId&&<div className="field"><span className="field-label">Type of night</span><div className="segmented">{(['Festival', 'Club night', 'Show'] as const).map(k => <button type="button" key={k} aria-pressed={r.kind === k} className={r.kind === k ? 'active' : ''} onClick={() => field('kind', k)}>{k}</button>)}</div></div>}
         {duplicate && <div className="form-notice">{blockedDuplicate?<>This rave is already in your diary. <button type="button" className="secondary" onClick={()=>onOpenExisting?.(duplicate)}>Open existing entry</button></>:<>You already have “{duplicate.name}” on this date. Saving will add a separate entry.</>}</div>}
+        </div>
+        <div className="rave-log-fields">
         <details className="form-disclosure" open>
           <summary><Music2 size={17}/><span>Artists & crew<small>{planning?'Your wishlist and possible crew':'Who made the night'}</small></span><ChevronDown size={16}/></summary>
           <div className="disclosure-body">
@@ -131,6 +134,7 @@ export default function RaveForm({initial, all, onSave, onClose, suggestedArtist
           </div>
         </details>
         {festival&&<div className="festival-reference"><FestivalSources edition={festival}/></div>}
+        </div>
       </fieldset>
       {error && <p role="alert" className="error form-feedback">{error} Your changes are still here.</p>}
       <div className="form-footer">

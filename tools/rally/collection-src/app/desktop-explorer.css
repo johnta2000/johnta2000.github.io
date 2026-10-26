@@ -29,18 +29,48 @@
   .desktop-explorer-toolbar .results-search { max-width:none; }
 }
 
-/* The rave editor uses desktop space without changing phone dialogs. */
+/* The desktop editor has a stable header/footer and a scrollable workspace. */
 @media (min-width:761px) {
-  .spreadsheet-app .modal.wide { width:min(1120px,calc(100vw - 64px)); max-width:calc(100vw - 64px); }
-  .spreadsheet-app .modal.wide .modal-head { padding:24px 32px; }
-  .spreadsheet-app .modal.wide .form-intro { padding:20px 32px 0; }
-  .spreadsheet-app .modal.wide .form-fields { padding:22px 32px 0; }
-  .spreadsheet-app .modal.wide .form-footer { padding:18px 32px; }
-  .rave-people-grid > div { min-width:0; }
+  .spreadsheet-app .modal.wide[open] { display:flex; flex-direction:column; width:min(1320px,calc(100vw - 48px)); max-width:calc(100vw - 48px); height:min(980px,calc(100dvh - 48px)); max-height:calc(100dvh - 48px); overflow:hidden; }
+  .spreadsheet-app .modal.wide .modal-head { flex-shrink:0; padding:20px 28px; }
+  .spreadsheet-app .modal.wide .modal-head h2 { font-size:25px; }
+  .spreadsheet-app .modal.wide .rave-form { display:flex; flex-direction:column; flex:1; min-height:0; overflow:hidden; }
+  .spreadsheet-app .modal.wide .form-intro { flex-shrink:0; padding:16px 28px 0; font-size:14px; line-height:1.6; }
+  .spreadsheet-app .modal.wide .form-fields { flex:1; min-height:0; overflow:auto; overscroll-behavior:contain; padding:22px 28px 24px; scroll-padding:22px; }
+  .spreadsheet-app .modal.wide .form-footer { flex-shrink:0; position:relative; bottom:auto; padding:16px 28px; margin:0; background:white; }
+  .spreadsheet-app .modal.wide .form-footer > button { min-height:46px; font-size:14px; padding:10px 18px; border-radius:8px; }
+  .spreadsheet-app .modal.wide .form-private { font-size:12px; }
+  .spreadsheet-app .modal.wide .form-feedback { flex-shrink:0; margin:10px 28px; }
+  .rave-event-fields,.rave-log-fields,.rave-people-grid > div { min-width:0; }
+  .modal.wide .rave-event-fields > .form-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:0 16px; }
+  .modal.wide .collection-form .field { font-size:14px; }
+  .modal.wide .collection-form input:not([type=checkbox]):not([type=radio]),.modal.wide .collection-form textarea { font-size:15px; min-height:46px; }
+  .modal.wide .date-field > label,.modal.wide .field-label { font-size:14px; }
+  .modal.wide .rave-event-fields .search-select-trigger { min-height:46px; font-size:14px; }
+  .modal.wide .name-picker-option { font-size:14px; }
+  .modal.wide .collection-form .name-picker-option input { min-height:18px; }
+  .modal.wide .name-picker-credit-summary,.modal.wide .lineup-context { font-size:13px; }
+  .modal.wide .name-picker-heading h3 { font-size:15px; }
+  .modal.wide .form-disclosure > summary > span { font-size:16px; }
+  .modal.wide .form-disclosure > summary small { font-size:12px; }
+  .modal.wide .rave-people-grid { display:grid; grid-template-columns:minmax(0,1.1fr) minmax(0,1fr); gap:24px; align-items:start; }
+  .modal.wide .form-grid.costs { grid-template-columns:repeat(4,minmax(0,1fr)); gap:0 16px; }
 }
-@media (min-width:1100px) {
-  .modal.wide .rave-people-grid { display:grid; grid-template-columns:minmax(0,1.15fr) minmax(0,1fr); gap:28px; align-items:start; }
-  .modal.wide .form-fields > .form-grid, .modal.wide .form-grid.costs { grid-template-columns:repeat(4,minmax(0,1fr)); gap:0 20px; }
+@media (min-width:1180px) {
+  .spreadsheet-app .modal.wide .form-fields { display:grid; grid-template-columns:minmax(310px,360px) minmax(0,1fr); gap:28px; align-items:start; }
+  .modal.wide .rave-event-fields { padding-right:24px; border-right:1px solid var(--line); }
+  .modal.wide .rave-log-fields > .form-disclosure:first-child { border-top:0; }
+  .modal.wide .rave-log-fields > .form-disclosure:first-child > summary { padding-top:0; }
+  .modal.wide .festival-picker { padding:16px; margin-bottom:22px; }
+  .modal.wide .festival-picker-heading { flex-wrap:wrap; gap:8px; }
+  .modal.wide .festival-picker-heading h3 { font-size:14px; }
+  .modal.wide .festival-picker-heading > span { width:100%; margin:0 0 0 26px; font-size:11px; }
+  .modal.wide .festival-picker-hint { font-size:12px; }
+  .modal.wide .name-picker-options { max-height:clamp(180px,calc(100dvh - 620px),320px); }
+}
+@media (min-width:761px) and (max-width:900px) {
+  .modal.wide .rave-people-grid { grid-template-columns:1fr; }
+  .modal.wide .form-grid.costs { grid-template-columns:repeat(2,minmax(0,1fr)); }
 }
 
 /* Keep everyday filters visible; secondary criteria float over the results. */
@@ -85,4 +115,7 @@
 @media (min-width:761px) and (max-width:1150px) {
   .desktop-filter-bar { grid-template-columns:repeat(4,minmax(0,1fr)) auto; }
   .desktop-filter-bar > .results-search { grid-column:1/-1; }
+}
+@media (min-width:761px) {
+  .modal.wide .collection-form input::placeholder,.modal.wide .collection-form textarea::placeholder { font-size:14px; color:#85818d; opacity:1; }
 }
