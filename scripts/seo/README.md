@@ -1,6 +1,6 @@
 # nextcard SEO opportunity engine
 
-The private monitoring dashboard includes **nextcard SEO opportunities**. This first version ranks research work using actual query demand and current coverage. It does not automatically commission articles, modify nextcard pages, or infer cannibalization from overlapping URLs.
+The private **nextcard SEO workspace** lives at `/tools/seo/`. The monitoring dashboard links to this full-page view, and the former `/tools/monitoring/?monitor=seo-content-opportunities` link redirects there. The page reads the same authenticated `monitoring:detail` report using the existing monitoring allowlist. Its refresh button reloads the saved report; it does not trigger a new data pull. It ranks research work using actual query demand and current coverage. It does not automatically commission articles, modify nextcard pages, or infer cannibalization from overlapping URLs.
 
 ## Refresh
 
@@ -68,6 +68,7 @@ These gaps are visible in the dashboard. Do not replace missing inputs with inve
 ```sh
 node --test engine.test.mjs evidence.test.mjs
 node --test ../monitoring/seo.test.mjs
+node --test ../monitoring/seo-page.test.mjs
 ```
 
 The dashboard uses the existing verified-email monitoring allowlist. No private analytics, draft titles or reports are served as public static files.

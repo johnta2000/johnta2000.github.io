@@ -117,6 +117,9 @@ function monitorStats(monitor) {
 function monitorCard(monitor, index) {
   const active = monitor.configured;
   const { className: statusClass, label: statusLabel } = statusMeta(monitor.status);
+  const openLink = monitor.id === "seo-content-opportunities"
+    ? '<a class="monitor-open" href="/tools/seo/">Open SEO workspace <span aria-hidden="true">↗</span></a>'
+    : `<button class="monitor-open" type="button" data-monitor-id="${escapeHtml(monitor.id)}">View details <span aria-hidden="true">↗</span></button>`;
   let body;
   if (active) {
     const stats = monitorStats(monitor);
@@ -128,14 +131,14 @@ function monitorCard(monitor, index) {
       <div class="monitor-footer">
         <span>${escapeHtml(monitor.cadence ?? "Manual")}</span>
         <span>Latest run ${escapeHtml(relativeTime(monitor.latestRunAt))}</span>
-        <button class="monitor-open" type="button" data-monitor-id="${escapeHtml(monitor.id)}">View details <span aria-hidden="true">↗</span></button>
+        ${openLink}
       </div>`;
   } else {
     body = `
       <p class="monitor-pending-copy">Collector slot ready when its inputs and cadence are configured.</p>
       <div class="monitor-footer">
         <span>Setup pending</span>
-        <button class="monitor-open" type="button" data-monitor-id="${escapeHtml(monitor.id)}">View details <span aria-hidden="true">↗</span></button>
+        ${openLink}
       </div>`;
   }
 
@@ -597,6 +600,10 @@ function applyMonitorDetail(monitorId, result, revision) {
 }
 
 async function openMonitorDialog(monitorId, {refresh = false} = {}) {
+  if (monitorId === "seo-content-opportunities") {
+    window.location.assign('/tools/seo/');
+    return;
+  }
   const monitor = currentSnapshot?.state.monitors.find(item => item.id === monitorId);
   if (!monitor) return;
   const owner = window.Clerk?.user?.id;
@@ -636,12 +643,10 @@ function renderMonitorDialog(monitor) {
   if (!monitor.configured) els.monitorDialogContent.innerHTML = placeholderDialogMarkup(monitor);
   else if (monitor.id === "paze-directory") els.monitorDialogContent.innerHTML = pazeDialogMarkup(monitor);
   else if (monitor.id === "edit-hotels-ranking") els.monitorDialogContent.innerHTML = editRankingDialogMarkup(monitor);
-  else if (monitor.id === "seo-content-opportunities") els.monitorDialogContent.innerHTML = window.SeoOpportunities.markup(monitor);
   else if (["paze-clover-map-ranking", "bilt-calculator-ranking"].includes(monitor.id)) els.monitorDialogContent.innerHTML = rankingDialogMarkup(monitor);
   else if (monitor.id === "transfer-bonus-discovery") els.monitorDialogContent.innerHTML = bonusDialogMarkup(monitor);
   else if (monitor.id === "chase-sapphire-reserve-tables") els.monitorDialogContent.innerHTML = chaseDialogMarkup(monitor);
   else els.monitorDialogContent.innerHTML = placeholderDialogMarkup(monitor);
-  if (monitor.id === "seo-content-opportunities" && monitor.configured) window.SeoOpportunities.mount(els.monitorDialogContent);
   if (monitor.id === "edit-hotels-ranking" && monitor.configured) {
     window.EditDailyChart.mount(els.monitorDialogContent.querySelector('.edit-daily-chart'), monitor.details ?? {});
   }
@@ -658,7 +663,7 @@ function renderSnapshot(snapshot) {
     currentSnapshot = snapshot;
     for (const card of [...snapshot.state.monitors]) {
       const cached = detailCache.get(card.id);
-      if (cached?.revision === card.detailRevision) applyMonitorDetail(card.id, cached, cached.revision);
+      if (cached && cached.revision === card.detailRevision) applyMonitorDetail(card.id, cached, cached.revision);
     }
     if (activeMonitorId && els.monitorDialog.open) {
       const monitor = snapshot.state.monitors.find(item => item.id === activeMonitorId);

@@ -158,6 +158,12 @@
     "file": "tools/seometadata/index.html"
   },
   {
+    "path": "/tools/seo/",
+    "file": "tools/seo/index.html",
+    "analytics": false,
+    "title": "nextcard SEO — John Ta"
+  },
+  {
     "app": "sleep",
     "path": "/tools/sleep/",
     "file": "tools/sleep/index.html"

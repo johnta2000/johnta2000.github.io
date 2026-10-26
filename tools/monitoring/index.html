@@ -1,6 +1,11 @@
 <!doctype html>
 <html lang="en">
   <head>
+    <script>
+      if (new URLSearchParams(window.location.search).get('monitor') === 'seo-content-opportunities') {
+        window.location.replace('/tools/seo/');
+      }
+    </script>
   <script defer src="/assets/js/analytics.js?v=20261019-1" data-app="monitoring"></script>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -33,6 +38,7 @@
       <a class="wordmark" href="/" aria-label="John Ta home">JT<span aria-hidden="true">/</span>MONITOR</a>
       <nav aria-label="Monitoring links">
         <a href="#monitors">Monitors</a>
+        <a href="/tools/seo/">SEO workspace</a>
         <button id="refresh-button" class="lock-button" type="button">Refresh</button>
         <button id="lock-button" class="lock-button" type="button">Sign out</button>
       </nav>
@@ -122,8 +128,6 @@
     <script src="../../assets/js/searchable-select.js" defer></script>
     <script src="query-chart.js?v=20261008.1" defer></script>
     <script src="edit-chart.js?v=20261022.1" defer></script>
-    <link rel="stylesheet" href="seo.css?v=20261026.1">
-    <script src="seo.js?v=20261026.1" defer></script>
-    <script src="app.js?v=20261025.2" defer></script>
+    <script src="app.js?v=20261026.3" defer></script>
   </body>
 </html>

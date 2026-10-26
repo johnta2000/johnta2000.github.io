@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex, nofollow">
+    <meta name="description" content="Private nextcard SEO research, performance and content priorities.">
+    <title>nextcard SEO — John Ta</title>
+    <link rel="icon" href="/assets/img/favicon.png">
+    <link rel="stylesheet" href="/assets/css/clerk-auth.css?v=20261011-otp1">
+    <link rel="stylesheet" href="/tools/monitoring/seo.css?v=20261026.2">
+    <link rel="stylesheet" href="styles.css?v=20261026.1">
+  </head>
+  <body>
+    <section id="access-gate" class="seo-access-gate" data-auth-screen="seo" aria-labelledby="gate-title">
+      <div class="seo-gate-card">
+        <a class="seo-brand" href="/">JT <span>/</span> nextcard SEO</a>
+        <h1 id="gate-title">Your SEO workspace.</h1>
+        <p>Sign in to review content priorities, performance and search evidence.</p>
+        <div id="clerk-sign-in" data-clerk-mount aria-live="polite"></div>
+        <p id="auth-status" role="status">Loading sign-in…</p>
+        <div class="seo-gate-actions">
+          <button id="retry-auth" type="button" hidden>Try again</button>
+          <button id="auth-sign-out" type="button" hidden>Use a different account</button>
+        </div>
+        <p class="seo-gate-note">Private · Uses your existing monitoring access</p>
+      </div>
+    </section>
+
+    <div id="app" class="seo-page-app" hidden>
+      <a class="seo-skip" href="#seo-root">Skip to SEO workspace</a>
+      <header class="seo-page-bar">
+        <a class="seo-brand" href="/">JT <span>/</span> nextcard SEO</a>
+        <nav aria-label="Workspace links">
+          <a href="/tools/monitoring/">Monitoring</a>
+          <button id="refresh-report" type="button" title="Load the latest saved report. This does not run a new GSC pull.">Refresh report</button>
+          <button id="sign-out" type="button">Sign out</button>
+        </nav>
+      </header>
+      <div id="report-status" class="seo-report-status" role="status" hidden></div>
+      <main id="seo-root" tabindex="-1" aria-label="SEO workspace"></main>
+    </div>
+    <noscript><p class="seo-noscript">JavaScript is required to sign in and open this private workspace.</p></noscript>
+    <script defer crossorigin="anonymous" data-clerk-script src="https://clerk.john-ta.com/npm/@clerk/ui@1/dist/ui.browser.js"></script>
+    <script defer crossorigin="anonymous" data-clerk-script data-clerk-publishable-key="pk_live_Y2xlcmsuam9obi10YS5jb20k" src="https://clerk.john-ta.com/npm/@clerk/clerk-js@6/dist/clerk.browser.js"></script>
+    <script defer src="/tools/monitoring/seo.js?v=20261026.2"></script>
+    <script defer src="app.js?v=20261026.1"></script>
+  </body>
+</html>
