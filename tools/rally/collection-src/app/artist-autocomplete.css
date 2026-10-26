@@ -1,0 +1,12 @@
+.artist-autocomplete { flex:1; min-width:0; }
+.artist-catalog-menu { position:fixed; inset:auto; z-index:1000; margin:0; padding:6px; box-sizing:border-box; overflow:auto; overscroll-behavior:contain; border:1px solid #dfd6e9; border-radius:12px; background:white; color:#37313f; box-shadow:0 12px 32px #28203326; font-family:'DM Sans',sans-serif; }
+.artist-catalog-heading { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 10px 12px; font-size:12px; font-weight:650; border-bottom:1px solid #eeecf2; }
+.artist-catalog-heading span { font-size:11px; font-weight:400; color:#716b7b; }
+.artist-catalog-hint { font-size:12px; line-height:1.6; padding:10px; color:#716b7b; margin:0; }
+.artist-catalog-menu [role=option] { display:flex; align-items:center; gap:10px; width:100%; background:transparent; border:0; text-align:left; min-height:44px; padding:10px; border-radius:7px; color:#37313f; font-size:13px; }
+.artist-catalog-menu [role=option] > span { min-width:0; flex:1; }
+.artist-catalog-menu [role=option] strong { font-size:13px; font-weight:500; line-height:1.5; overflow-wrap:anywhere; }
+.artist-catalog-menu [role=option] small { display:block; font-size:11px; line-height:1.5; color:#746386; margin-top:3px; }
+.artist-catalog-menu [role=option]:hover,.artist-catalog-menu [role=option].is-active { background:#f2edfc; color:#5b21b6; }
+.artist-catalog-menu [role=option][aria-disabled=true] { color:#8b8392; opacity:.7; cursor:default; }
+.artist-catalog-menu [role=option][aria-disabled=true]:hover { background:#faf9fc; }

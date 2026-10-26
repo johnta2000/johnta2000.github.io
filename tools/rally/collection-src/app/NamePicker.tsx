@@ -1,5 +1,6 @@
 import {useId, useRef, useState} from 'react';
 import {Plus, Search, X} from 'lucide-react';
+import ArtistAutocomplete from './ArtistAutocomplete';
 import {uniqueNames} from '../lib/raves';
 import {artistsForRave, creditDescription, performanceKey} from '../lib/artists';
 import './name-picker.css';
@@ -30,6 +31,7 @@ export default function NamePicker({label, noun, values, onChange, suggestions, 
     if (!text.trim()) return;
     onChange(uniqueNames([...values, ...text.split(',')])); onText(''); setQuery(''); if (lineupOnly) setSelectedOnly(true);
   };
+  const chooseArtist=(name:string)=>{if(!selected.has(key(name)))onChange([...values,name]);onText('');setQuery('');if(lineupOnly)setSelectedOnly(true);};
   return <section className="name-picker" aria-labelledby={`${id}-label`}>
     <div className="name-picker-heading"><h3 id={`${id}-label`}>{label}</h3><span aria-live="polite">{values.length} selected</span></div>
     {noun === 'artist' && <div className="name-picker-credit-summary"><p>Keep the set name. B2Bs and special sets count toward the artists behind them.</p><strong aria-live="polite">{values.length} {values.length === 1 ? 'set' : 'sets'} · {artistsForRave({artists:values}).length} unique {artistsForRave({artists:values}).length === 1 ? 'artist' : 'artists'}</strong></div>}
@@ -55,10 +57,10 @@ export default function NamePicker({label, noun, values, onChange, suggestions, 
             <input type="checkbox" checked={selected.has(key(name))} onChange={() => onChange(selected.has(key(name)) ? values.filter(v => key(v) !== key(name)) : uniqueNames([...values, name]))}/>
             <span>{name}{noun === 'artist' && creditDescription(name) && <small className="set-credit">{creditDescription(name)}</small>}</span>
           </label>)}
-        </div>) : <div className="name-picker-empty"><strong>{query ? 'No matching names' : selectedOnly ? 'No one selected yet' : lineupOnly ? 'No lineup loaded yet' : 'Start with a name'}</strong><p>{query ? 'Try another search or add a missing name below.' : selectedOnly ? `Choose names from ${lineupOnly ? lineupLabel : 'All'} to build your list.` : lineupOnly ? 'Choose a festival above or add a set you saw below.' : `Add an ${noun === 'artist' ? 'artist' : 'attendee'} below. Names from your diary will appear here next time.`}</p></div>}
+        </div>) : <div className="name-picker-empty"><strong>{query ? 'No matching names' : selectedOnly ? 'No one selected yet' : lineupOnly ? 'No lineup on file' : 'Start with a name'}</strong><p>{query ? 'Try another search or add a missing name below.' : selectedOnly ? `Choose names from ${lineupOnly ? lineupLabel : 'All'} to build your list.` : lineupOnly ? 'Search all artists below to add the sets you saw.' : `Add an ${noun === 'artist' ? 'artist' : 'attendee'} below. Names from your diary will appear here next time.`}</p></div>}
       </div>
       <div className="name-picker-add"><label htmlFor={`${id}-add`}>Missing {noun === 'artist' ? 'an artist' : 'someone'}?</label><div>
-        <input id={`${id}-add`} aria-label={label} value={text} placeholder={noun === 'artist' ? 'Add an artist…' : 'Add a friend…'} onChange={e => onText(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); add(); } }}/>
+        {noun==='artist'?<ArtistAutocomplete id={`${id}-add`} label={label} value={text} onChange={onText} onChoose={chooseArtist} onCommit={add} selected={values} context={uniqueNames([...planSuggestions,...suggestions,...values])}/>:<input id={`${id}-add`} aria-label={label} value={text} placeholder="Add a friend…" onChange={e=>onText(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'||e.key===','){e.preventDefault();add();}}}/>}
         <button type="button" aria-label={`Add ${noun}`} disabled={!text.trim()} onClick={add}><Plus size={16}/>Add</button>
       </div>{text.trim() && <small>{noun === 'artist' && <span className="set-credit">{text.split(',').map(creditDescription).filter(Boolean).join(' · ')}</span>}This name is also included when you save. Separate multiple names with commas.</small>}</div>
     </div>

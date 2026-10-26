@@ -778,3 +778,27 @@ test('changing a rave between past and future preserves separate typed sets and 
   assert.equal(h.saves[0].attendance,'attended');assert.deepEqual(h.saves[0].artists,['Actual DJ']);assert.deepEqual(h.saves[0].crew,['Maya']);assert.deepEqual(h.saves[0].plannedArtists,['Wishlist DJ']);assert.deepEqual(h.saves[0].plannedCrew,['Nancy']);
  }finally{h.close();}
 });
+
+test('missing lineup artists can be added from a bounded shared catalog search without changing the lineup',async()=>{
+ for(const mobile of [false,true]){
+  const h=harness({mobile,search:'?from=past',artistSuggestions:[],crewSuggestions:[]});try{
+   await until(()=>h.button('Log your experience'));h.button('Log your experience').click();await tick();
+   const input=h.w.document.querySelector('input[aria-label="Artists you actually saw"]');assert.equal(input.getAttribute('role'),'combobox');
+   assert(h.text().includes('No lineup on file'));
+   await h.fill('input[aria-label="Artists you actually saw"]','exci');
+   let menu=h.w.document.querySelector('.artist-catalog-menu');assert(menu);assert(menu.textContent.includes('in the catalog'));assert(menu.querySelectorAll('[role=option]').length<=13);
+   const excision=[...menu.querySelectorAll('[role=option]')].find(o=>o.querySelector('strong').textContent.toLowerCase()==='excision');assert(excision);excision.click();await tick();
+   assert(!h.w.document.querySelector('.artist-catalog-menu'));assert.equal(input.value,'');assert.equal(h.saves.length,0);
+   assert(h.w.document.querySelector('.name-picker-credit-summary').textContent.includes('1 set · 1 unique artist'));
+   assert(h.w.document.querySelector('.name-picker-filters button').textContent.includes('0'));
+   await h.fill('input[aria-label="Artists you actually saw"]','excision');menu=h.w.document.querySelector('.artist-catalog-menu');
+   const existing=[...menu.querySelectorAll('[role=option]')].find(o=>o.querySelector('strong').textContent.toLowerCase()==='excision');assert.equal(existing.getAttribute('aria-disabled'),'true');existing.click();await tick();assert(h.w.document.querySelector('.name-picker-credit-summary').textContent.includes('1 set'));
+   await h.fill('input[aria-label="Artists you actually saw"]','rufus');menu=h.w.document.querySelector('.artist-catalog-menu');assert(menu.textContent.includes('RÜFÜS'));
+   input.dispatchEvent(new h.w.KeyboardEvent('keydown',{key:'Escape',bubbles:true,cancelable:true}));await tick();assert(!h.w.document.querySelector('.artist-catalog-menu'));assert(h.w.document.querySelector('.rave-form'));
+   await h.fill('input[aria-label="Artists you actually saw"]','Imaginary Catalog Test DJ (Vinyl Set)');menu=h.w.document.querySelector('.artist-catalog-menu');assert(menu.textContent.includes('No catalog matches'));
+   input.dispatchEvent(new h.w.KeyboardEvent('keydown',{key:'ArrowDown',bubbles:true,cancelable:true}));await tick();assert(input.getAttribute('aria-activedescendant'));
+   input.dispatchEvent(new h.w.KeyboardEvent('keydown',{key:'Enter',bubbles:true,cancelable:true}));await tick();assert.equal(input.value,'');
+   h.button('Save changes').click();await until(()=>h.saves.length===1);assert.equal(h.saves[0].artists.length,2);assert(h.saves[0].artists.some(a=>a.toLowerCase()==='excision'));assert(h.saves[0].artists.includes('Imaginary Catalog Test DJ (Vinyl Set)'));
+  }finally{h.close();}
+ }
+});
