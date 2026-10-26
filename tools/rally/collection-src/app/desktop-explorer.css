@@ -36,3 +36,17 @@
   .desktop-explorer-toolbar .results-controls { width:100%; }
   .desktop-explorer-toolbar .results-search { max-width:none; }
 }
+
+/* The rave editor uses desktop space without changing phone dialogs. */
+@media (min-width:761px) {
+  .spreadsheet-app .modal.wide { width:min(1120px,calc(100vw - 64px)); max-width:calc(100vw - 64px); }
+  .spreadsheet-app .modal.wide .modal-head { padding:24px 32px; }
+  .spreadsheet-app .modal.wide .form-intro { padding:20px 32px 0; }
+  .spreadsheet-app .modal.wide .form-fields { padding:22px 32px 0; }
+  .spreadsheet-app .modal.wide .form-footer { padding:18px 32px; }
+  .rave-people-grid > div { min-width:0; }
+}
+@media (min-width:1100px) {
+  .modal.wide .rave-people-grid { display:grid; grid-template-columns:minmax(0,1.15fr) minmax(0,1fr); gap:28px; align-items:start; }
+  .modal.wide .form-fields > .form-grid, .modal.wide .form-grid.costs { grid-template-columns:repeat(4,minmax(0,1fr)); gap:0 20px; }
+}

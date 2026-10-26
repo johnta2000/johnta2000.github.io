@@ -107,12 +107,15 @@ export default function RaveForm({initial, all, onSave, onClose, suggestedArtist
             {r.sourceEventId && planStatus === 'loading' && <p className="form-help" role="status">Loading suggestions from your Rally plan…</p>}
             {r.sourceEventId && planStatus === 'error' && <p className="form-help" role="status">Your Rally plan’s suggestions could not load.{festival ? ' The festival catalog lineup is available below.' : ' Choose a festival or add sets manually.'} <button type="button" className="text-button" onClick={() => setPlanAttempt(n => n + 1)}>Retry plan suggestions</button></p>}
             {festival && <div className="festival-lineup-note"><strong>{festival.name} · {festival.artists.length} lineup suggestions</strong><p>{!festival.artists.length ? 'No verified lineup is available for this event yet.' : festival.coverage === 'partial' ? 'Partial lineup — only verified artists are listed here.' : planning ? 'Published lineup — choose the sets you want to see.' : 'Archived lineup — select only the sets you actually saw.'} You can add missing artists or special sets below.</p><FestivalSources edition={festival}/></div>}
+            <div className="rave-people-grid"><div>
             <NamePicker label={planning?'Artists you want to see':'Artists you actually saw'} noun="artist" lineupOnly={!!festival || !!r.sourceEventId || !!plan.artists.length} planSuggestions={festival ? uniqueNames([...festival.artists,...plan.artists]) : uniqueNames([...plan.artists,...(r.plannedArtists||[])])} values={selectedArtists} text={artistText} onText={setArtistText}
               onChange={artists => setR(prev => ({...prev, [artistField]:artists, favoriteArtist: planning ? prev.favoriteArtist : artists.some(a => a.toLowerCase() === prev.favoriteArtist.toLowerCase()) ? prev.favoriteArtist : ''}))}
               suggestions={uniqueNames(all.flatMap(rave => rave.artists))}/>
+            </div><div>
             <CrewPicker label={planning?'Who are you going with?':'Who did you go with?'} values={selectedCrew} connections={r[planning?'plannedCrewConnections':'crewConnections']||[]} people={[...all.flatMap(entry=>[...(entry.crewConnections||[]),...(entry.plannedCrewConnections||[])]),...people]}
               text={crewText} onText={setCrewText} planSuggestions={uniqueNames([...plan.crew,...(r.plannedCrew||[])])} suggestions={leaderboard(all,'crew').map(a=>a.name)}
               onChange={(names,connections)=>setR(prev=>({...prev,[crewField]:names,[planning?'plannedCrewConnections':'crewConnections']:connections}))}/>
+            </div></div>
           </div>
         </details>
         <details className="form-disclosure" open={costKeys.some(k => initial?.costs[k] != null) || undefined}>
