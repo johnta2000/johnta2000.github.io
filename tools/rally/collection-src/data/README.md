@@ -1,6 +1,6 @@
 # Event catalog
 
-`festivals.json` is public reference data, last extended on October 25, 2026. It is not anyone's diary or attendance history. The 254 entries cover editions from 2019 onward, including confirmed upcoming editions. Alongside EDC Las Vegas, Ultra Miami, Countdown NYE, Lost Lands, Niteharts, Tomorrowland Belgium, and Beyond Wonderland SoCal, the catalog includes Wobbleland, Portola, Outside Lands, Coachella, HiJinx, Decadence Arizona, Electric Zoo, Escape Halloween, Nocturnal Wonderland, Dreamstate SoCal, HARD Summer, and Day Trip, plus the ISOxo shows described below.
+`festivals.json` is public reference data, last extended on October 25, 2026. It is not anyone's diary or attendance history. The 256 entries cover editions from 2019 onward, including confirmed upcoming editions. Alongside EDC Las Vegas, Ultra Miami, Countdown NYE, Lost Lands, Niteharts, Tomorrowland Belgium, and Beyond Wonderland SoCal, the catalog includes Wobbleland, Portola, Outside Lands, Coachella, HiJinx, Decadence Arizona, Electric Zoo, Escape Halloween, Nocturnal Wonderland, Dreamstate SoCal, HARD Summer, and Day Trip, plus the ISOxo shows described below.
 
 Each edition has stable identity, billed dates, venue, city, artist/set labels, coverage, a review date, and source links. Tomorrowland weekends are separate editions; 2022 has three. Niteharts begins in 2025. Countdown 2025 moved to the Los Angeles Convention Center; 2024 was one billed night. Dates represent billed festival days rather than camping, early entry, or the clock rolling past midnight.
 
@@ -57,3 +57,7 @@ Reviewed exceptions:
 - Electric Forest 2024/2025 notes weather interruptions. A published lineup is always a selection aid, never an attendance record.
 
 Event search includes venue, city aliases (including SF), ISO dates, billed artists, and support acts. For example, `Midway SF Seven Lions 2024` finds both ticketed Ophelia events, while `Bill Graham SF 2025-10 INZO` finds the October 24 Subtronics show. The selected event's roster still stays isolated from unrelated diary artists.
+
+## EDC Las Vegas 2027 weekends
+
+Dusk (May 14–16) and Dawn (May 21–23) are separate catalog editions with distinct identities. The full Dusk Till Dawn camping/event window is not an attendance default. Each weekend has an empty, explicitly unverified roster until that weekend’s lineup is sourced; no older roster is reused. Existing multiweekend crew plans require a weekend choice before changing their shared dates.

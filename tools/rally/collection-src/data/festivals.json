@@ -29182,5 +29182,61 @@
     ],
     "verifiedOn": "2026-10-25",
     "coverage": "partial"
+  },
+  {
+    "id": "edc-las-vegas-2027-w1",
+    "festival": "EDC Las Vegas",
+    "year": 2027,
+    "weekend": 1,
+    "name": "EDC Las Vegas 2027 — Dusk (Weekend 1)",
+    "aliases": [
+      "EDC 2027",
+      "EDC Las Vegas 2027",
+      "EDC 2027 Dusk",
+      "EDC Las Vegas 2027 Weekend 1",
+      "EDC 2027 W1"
+    ],
+    "startDate": "2027-05-14",
+    "endDate": "2027-05-16",
+    "city": "Las Vegas, NV",
+    "venue": "Las Vegas Motor Speedway",
+    "artists": [],
+    "coverage": "partial",
+    "note": "Upcoming edition: Dusk, weekend 1. Dates cover the three festival nights only, not camping or the full Dusk Till Dawn experience. No verified artist lineup has been entered for this weekend.",
+    "verifiedOn": "2026-10-25",
+    "sources": [
+      {
+        "label": "Insomniac: EDC 2027 Dusk Till Dawn announcement (October 1, 2026)",
+        "url": "https://press.insomniac.com/blog/insomniac-announces-12-days-of-edc-2027-dusk-till-dawn-in-las-vegas-may-13-24"
+      }
+    ]
+  },
+  {
+    "id": "edc-las-vegas-2027-w2",
+    "festival": "EDC Las Vegas",
+    "year": 2027,
+    "weekend": 2,
+    "name": "EDC Las Vegas 2027 — Dawn (Weekend 2)",
+    "aliases": [
+      "EDC 2027",
+      "EDC Las Vegas 2027",
+      "EDC 2027 Dawn",
+      "EDC Las Vegas 2027 Weekend 2",
+      "EDC 2027 W2"
+    ],
+    "startDate": "2027-05-21",
+    "endDate": "2027-05-23",
+    "city": "Las Vegas, NV",
+    "venue": "Las Vegas Motor Speedway",
+    "artists": [],
+    "coverage": "partial",
+    "note": "Upcoming edition: Dawn, weekend 2. Dates cover the three festival nights only, not camping or the full Dusk Till Dawn experience. No verified artist lineup has been entered for this weekend.",
+    "verifiedOn": "2026-10-25",
+    "sources": [
+      {
+        "label": "Insomniac: EDC 2027 Dusk Till Dawn announcement (October 1, 2026)",
+        "url": "https://press.insomniac.com/blog/insomniac-announces-12-days-of-edc-2027-dusk-till-dawn-in-las-vegas-may-13-24"
+      }
+    ]
   }
 ]

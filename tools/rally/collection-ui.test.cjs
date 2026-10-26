@@ -597,7 +597,7 @@ for(const mobile of [false,true]) test(`expanded catalog searches aliases and ci
 for(const mobile of [false,true]) test(`historical shows and unknown lineups stay scoped without writing diary data (${mobile?'mobile':'desktop'})`,async()=>{
  const h=harness({mobile,raves:[{...entry('Unrelated night'),artists:['Unrelated DJ']}]});try{
   await until(()=>h.button('Add a rave'));h.button('Add a rave').click();await tick();
-  assert(h.text().includes('2019–2026'));
+  assert(h.text().includes('2019–2027'));
   await chooseFestival(h,'firefly-2019');
   assert.equal(h.w.document.querySelector('input[aria-label="Start date"]').value,'06/21/2019');
   assert(h.w.document.querySelector('.name-picker').textContent.includes('Alec Benjamin'));
@@ -683,4 +683,18 @@ test('choosing a catalog rave already supplied by Rally opens its existing diary
 });
 test('returning to the diary refreshes shared details while an open personal draft is preserved',async()=>{
  const h=harness({raves:[{...entry('Crew night'),sourceEventId:'crew'}]});try{await until(()=>h.button('View Crew night'));h.rows.alice[0].name='Updated crew night';h.w.dispatchEvent(new h.w.Event('focus'));await until(()=>h.button('View Updated crew night'));h.button('Edit Updated crew night').click();await tick();await h.fill('.rave-form textarea','Unsaved memory');const reads=h.requests.filter(r=>r.path==='rallyCollection:list').length;h.w.dispatchEvent(new h.w.Event('focus'));await tick();assert.equal(h.requests.filter(r=>r.path==='rallyCollection:list').length,reads);assert.equal(h.w.document.querySelector('.rave-form textarea').value,'Unsaved memory');}finally{h.close();}
+});
+
+for (const mobile of [false, true]) test(`EDC 2027 weekend selection fills only the chosen three nights (${mobile?'mobile':'desktop'})`, async () => {
+ const h=harness({mobile});try{
+  await until(()=>h.button('Add a rave'));h.button('Add a rave').click();await tick();
+  await chooseFestival(h,'edc-las-vegas-2027-w1');
+  assert.equal(h.w.document.querySelector('input[aria-label="Start date"]').value,'05/14/2027');
+  assert.equal(h.w.document.querySelector('input[aria-label="End date"]').value,'05/16/2027');
+  await chooseFestival(h,'edc-las-vegas-2027-w2');h.button('Use these event details').click();await until(()=>h.w.document.querySelector('input[aria-label="Start date"]').value==='05/21/2027');
+  assert.equal(h.w.document.querySelector('input[aria-label="Start date"]').value,'05/21/2027');
+  assert.equal(h.w.document.querySelector('input[aria-label="End date"]').value,'05/23/2027');
+  assert(h.text().includes('No verified lineup is available'));
+  assert.equal(h.saves.length,0);
+ }finally{h.close();}
 });

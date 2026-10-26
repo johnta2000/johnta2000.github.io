@@ -73,12 +73,12 @@ test('artist identity separates explicit collaborations and special sets while p
 
 const {festivalEditions, festivalForRave, applyFestival} = moduleAt('festivals.ts');
 test('festival editions have unique identities, real dates, sources, and clean distinct suggestions', () => {
-  assert.equal(festivalEditions.length, 254);
+  assert.equal(festivalEditions.length, 256);
   assert.equal(new Set(festivalEditions.map(e => e.id)).size, festivalEditions.length);
   for (const e of festivalEditions) {
     assert.equal(new Date(e.startDate).toISOString().slice(0,10), e.startDate, e.id);
     assert.equal(new Date(e.endDate).toISOString().slice(0,10), e.endDate, e.id);
-    assert(e.startDate <= e.endDate && e.endDate <= '2026-12-31', e.id);
+    assert(e.startDate <= e.endDate && e.endDate <= '2027-12-31', e.id);
     if (e.startDate > '2026-10-25') assert(e.note.includes('Upcoming edition'), e.id);
     assert(e.startDate.startsWith(String(e.year)) && e.year >= 2019, e.id);
     assert((e.artists.length > 0 || (e.coverage === 'partial' && /No verified artist lineup/.test(e.note))) && e.sources.length > 0, e.id);
@@ -264,4 +264,19 @@ test('an explicit custom event choice clears public identity and backups preserv
 test('renaming a connected catalog event keeps it searchable by its shared festival identity',()=>{
  const r={...applyFestival(emptyRave(),festivalEditions.find(e=>e.id==='lost-lands-2026')),id:'renamed',name:'Our best weekend'};
  assert.equal(filterRaves([r],emptyFilters(),'Lost Lands 2026').length,1);
+});
+
+ test('EDC 2027 is two independent three-night editions, never a ten-day default', () => {
+  const editions = festivalEditions.filter(e => e.festival === 'EDC Las Vegas' && e.year === 2027);
+  assert.equal(editions.length, 2);
+  const [dusk, dawn] = editions;
+  assert.deepEqual(Array.from(editions, e => [e.weekend, e.startDate, e.endDate]), [[1, '2027-05-14', '2027-05-16'], [2, '2027-05-21', '2027-05-23']]);
+  for (const edition of editions) {
+    const applied = applyFestival(emptyRave(), edition);
+    assert.equal(festivalForRave(applied)?.id, edition.id);
+    assert.equal(festivalForRave({...applied, catalogEventId: undefined, name: 'EDC 2027'})?.id, edition.id);
+    assert.equal(edition.artists.length, 0);
+  }
+  assert.notEqual(dusk.id, dawn.id);
+  assert.equal(festivalForRave({...applyFestival(emptyRave(), dusk), endDate: dawn.endDate}), undefined);
 });
