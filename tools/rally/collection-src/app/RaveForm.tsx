@@ -1,6 +1,7 @@
 import {useEffect, useRef, useState, type FormEvent} from 'react';
 import {Check, ChevronDown, Heart, LoaderCircle, LockKeyhole, Music2, Star, Wallet} from 'lucide-react';
 import Modal from './Modal';
+import type {RallyEvent} from './Journal';
 import DateField from './DateField';
 import NamePicker from './NamePicker';
 import CrewPicker from './CrewPicker';
@@ -13,11 +14,12 @@ const costLabels = {ticket: 'Tickets', travel: 'Travel', stay: 'Stay', other: 'F
 const eventDate = (s:string)=>new Date(s+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
 const money = (n: number) => new Intl.NumberFormat('en-US', {style: 'currency', currency: 'USD'}).format(n);
 
-export default function RaveForm({initial, all, onSave, onClose, suggestedArtists = [], suggestedCrew = [], focusSection, loadPlan, onOpenExisting}: {
+export default function RaveForm({initial, all, onSave, onClose, suggestedArtists = [], suggestedCrew = [], focusSection, loadPlan, onOpenExisting, rallyEvents = [], eventsLoading = false, eventsError = '', onRetryEvents}: {
+  rallyEvents?: RallyEvent[]; eventsLoading?: boolean; eventsError?: string; onRetryEvents?:()=>void;
   initial?: Rave; all: Rave[]; onSave: (r: Rave) => Promise<void>; onClose: () => void;
   onOpenExisting?: (r:Rave)=>void;
   suggestedArtists?: string[]; suggestedCrew?: string[]; focusSection?: 'photos';
-  loadPlan?: (eventId: string) => Promise<{artistSuggestions: string[]; crewSuggestions: string[];crewPeople?:CrewConnection[]}>;
+  loadPlan?: (eventId: string) => Promise<{rave: Rave; artistSuggestions: string[]; crewSuggestions: string[];crewPeople?:CrewConnection[]}>;
 }) {
   const [r, setR] = useState<Rave>(() => ({...structuredClone(initial || emptyRave()), id: initial?.id || crypto.randomUUID()}));
   const [plan, setPlan] = useState({artists: suggestedArtists, crew: suggestedCrew});
@@ -32,11 +34,24 @@ export default function RaveForm({initial, all, onSave, onClose, suggestedArtist
     }).catch(() => {if (active) setPlanStatus('error');});
     return () => {active = false;};
   }, [r.sourceEventId, loadPlan, planAttempt]);
+  const sharedSummary=useRef<HTMLDivElement>(null);
+  useEffect(()=>{if(r.sourceEventId && r.sourceEventId!==initial?.sourceEventId)sharedSummary.current?.focus();},[r.sourceEventId,initial?.sourceEventId]);
   const baseline = useRef(JSON.stringify(r));
   const [artistText, setArtistText] = useState(''), [crewText, setCrewText] = useState('');
   const [saving, setSaving] = useState(false), [error, setError] = useState(''), [discard, setDiscard] = useState(false);
   const isEdit = all.some(n => n.id === r.id);
   const dirty = JSON.stringify(r) !== baseline.current || !!artistText.trim() || !!crewText.trim();
+  const openRallyEvent = async (eventId:string) => {
+    if (!loadPlan || saving) return;
+    setSaving(true); setError('');
+    try {
+      const draft = await loadPlan(eventId);
+      setR(structuredClone(draft.rave)); baseline.current=JSON.stringify(draft.rave);
+      setPlan({artists:draft.artistSuggestions,crew:draft.crewSuggestions});setPeople(draft.crewPeople||[]);
+      setArtistText('');setCrewText('');setDiscard(false);
+    } catch (e) { setError(e instanceof Error ? e.message : 'Could not open this Rally rave. Please try again.'); }
+    finally { setSaving(false); }
+  };
   const close = () => { if (saving) return; if (dirty) setDiscard(true); else onClose(); };
   const field = <K extends keyof Rave>(key: K, value: Rave[K]) => setR(prev => ({...prev, [key]: value}));
   const festival = festivalForRave(r);
@@ -83,8 +98,8 @@ export default function RaveForm({initial, all, onSave, onClose, suggestedArtist
       <p className="form-intro">{planning ? 'Keep your plans, artists to see, and costs together.' : r.sourceEventId ? 'This rave is already in your diary. Add the artists you actually saw and your own share of the costs.' : 'Add a past night or an upcoming rave. Start with a name and date.'}</p>
       <fieldset disabled={saving} className="form-fields">
         <div className="rave-event-fields">
-        {!r.sourceEventId && <FestivalPicker unavailableIds={unavailableIds} onClear={()=>setR(prev=>({...prev,catalogEventId:null}))} current={festival} focusOnOpen={!isEdit && !focusSection} hasDetails={!!(r.name || r.startDate || r.city || r.venue)} onChoose={edition => changeEventDetails(prev => applyFestival(prev, edition))}/>}
-        {r.sourceEventId?<div className="shared-event-summary"><strong>{r.name}</strong><span>{eventDate(r.startDate)}{r.endDate!==r.startDate?' – '+eventDate(r.endDate):''} · {[r.venue,r.city].filter(Boolean).join(' · ')}</span><p>Event details are shared with your crew and stay up to date in Rally.</p><a href={`/tools/rally/?event=${encodeURIComponent(r.sourceEventId)}`}>View event details in Rally ↗</a></div>:<>
+        {!r.sourceEventId && <FestivalPicker rallyEvents={initial ? [] : rallyEvents} diary={all} eventsLoading={!initial && eventsLoading} eventsError={initial ? '' : eventsError} onRetryEvents={onRetryEvents} onChooseRally={loadPlan && !initial ? openRallyEvent : undefined} hasDraft={dirty} unavailableIds={unavailableIds} onClear={()=>setR(prev=>({...prev,catalogEventId:null}))} current={festival} focusOnOpen={!isEdit && !focusSection} hasDetails={!!(r.name || r.startDate || r.city || r.venue)} onChoose={edition => changeEventDetails(prev => applyFestival(prev, edition))}/>}
+        {r.sourceEventId?<div ref={sharedSummary} tabIndex={-1} className="shared-event-summary"><strong>{r.name}</strong><span>{eventDate(r.startDate)}{r.endDate!==r.startDate?' – '+eventDate(r.endDate):''} · {[r.venue,r.city].filter(Boolean).join(' · ')}</span><p>Event details are shared with your crew and stay up to date in Rally.</p><a href={`/tools/rally/?event=${encodeURIComponent(r.sourceEventId)}`}>View event details in Rally ↗</a></div>:<>
         <label className="field">Rave / event name <span className="required-label">Required</span><input data-autofocus={!focusSection && (isEdit || !!r.sourceEventId) || undefined} autoFocus={!focusSection && (isEdit || !!r.sourceEventId)} required maxLength={160} placeholder="The festival, show, or club night" value={r.name} onChange={e => field('name', e.target.value)}/></label>
         <div className="form-grid">
           <DateField label="Start date" required value={r.startDate} onChange={next => {

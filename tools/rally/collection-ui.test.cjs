@@ -810,3 +810,27 @@ for(const mobile of [false,true])test(`catalog typo search ranks and selects the
   assert.equal(h.w.document.querySelectorAll('.name-picker-option input:checked').length,0);
  }finally{h.close();}
 });
+
+for(const mobile of [false,true])test(`unified event search opens a Rally diary entry without duplicating it (${mobile?'mobile':'desktop'})`,async()=>{
+ const existing={...entry('Lost Lands memories'),id:'my-original-entry',sourceEventId:'crew',catalogEventId:'lost-lands-2026',startDate:'2026-09-18',endDate:'2026-09-20',artists:['Wooli'],notes:'Keep my memory',costs:{ticket:150,travel:null,stay:null,other:null}};
+ const h=harness({mobile,raves:[existing],events:[{id:'crew',name:'Nancy’s Lost Lands crew',startsAt:'2026-09-18',endsAt:'2026-09-20',location:'Legend Valley'}]});try{
+  await until(()=>h.button('Add a rave'));h.button('Add a rave').click();await tick();
+  const picker=h.w.document.querySelector('.festival-picker');picker.querySelector('.search-select-trigger').click();await tick();
+  await h.fill('.festival-picker .search-select-input','lostlands 2026');
+  const options=[...picker.querySelectorAll('[role=option]')],plan=options.find(o=>o.textContent.includes('Rally ·'));
+  assert(plan);assert(plan.textContent.includes('Open diary entry'));assert(options.some(o=>o.textContent.includes('Already in your diary')&&o.getAttribute('aria-disabled')==='true'));
+  plan.click();await until(()=>h.w.document.querySelector('.shared-event-summary'));
+  assert(h.text().includes('Lost Lands memories'));assert.equal(h.w.document.querySelector('.rave-form textarea').value,'Keep my memory');assert.equal(h.saves.length,0);
+  h.button('Save changes').click();await until(()=>h.saves.length===1);
+  assert.equal(h.saves[0].id,'my-original-entry');assert.equal(h.saves[0].sourceEventId,'crew');assert.equal(h.saves[0].costs.ticket,150);assert.deepEqual(h.saves[0].artists,['Wooli']);assert.equal(h.rows.alice.length,1);
+ }finally{h.close();}
+});
+
+test('opening a Rally result confirms unsaved work and keeps it on a failed load',async()=>{
+ const options={events:[{id:'crew',name:'Warehouse Reunion',startsAt:'2025-09-20'}],planSuggestionsFail:true},h=harness(options);try{
+  await until(()=>h.button('Add a rave'));h.button('Add a rave').click();await tick();await h.fill('input[maxlength="160"]','My unsaved night');
+  await chooseFestival(h,'rally:crew');assert(h.text().includes('unsaved changes'));h.button('Keep editing').click();await tick();assert.equal(h.requests.filter(r=>r.path==='rallyCollection:draftFromEvent').length,0);
+  await chooseFestival(h,'rally:crew');h.button('Open Rally rave').click();await until(()=>h.text().includes('Plan unavailable'));assert.equal(h.w.document.querySelector('input[maxlength="160"]').value,'My unsaved night');assert.equal(h.saves.length,0);
+  options.planSuggestionsFail=false;await chooseFestival(h,'rally:crew');h.button('Open Rally rave').click();await until(()=>h.w.document.querySelector('.shared-event-summary'));assert.equal(h.saves.length,0);
+ }finally{h.close();}
+});
