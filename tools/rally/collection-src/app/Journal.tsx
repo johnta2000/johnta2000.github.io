@@ -40,7 +40,7 @@ function Detail({r,demo,onClose,onEdit,onDelete,onUpdated,backend,events,raves,o
     {r.notes && <section><h3><Heart size={16}/>A note to future you</h3><p className="memory-note">{r.notes}</p></section>}
 
     {r.albumUrl && <a className="album-link" href={r.albumUrl} target="_blank" rel="noopener noreferrer"><span><Disc3 size={20}/>Relive the night</span>Open photo album<ArrowUpRight size={17}/></a>}
-    {error && <p role="alert" className="error">{error}</p>}{demo?<p className="demo-note">This is an example entry. Add a rave to start your own journal.</p>:<div className="detail-actions">{confirm?<div className="delete-confirm"><span>Permanently delete this entry?</span><button className="danger" disabled={busy} onClick={async()=>{setBusy(true);try{await onDelete();onClose();}catch(e){setError(e instanceof Error?e.message:'Could not delete.');}finally{setBusy(false);}}}>{busy?'Deleting…':'Yes, delete'}</button><button className="text-button" disabled={busy} onClick={()=>setConfirm(false)}>Keep it</button></div>:<button className="text-button danger-text" onClick={()=>setConfirm(true)}><Trash2 size={15}/>Delete</button>}<button className="primary" disabled={busy} onClick={onEdit}>{planning?'Edit this plan':'Edit this night'}<ArrowRight size={16}/></button></div>}
+    {error && <p role="alert" className="error">{error}</p>}{demo?<p className="demo-note">This is an example entry. Add a rave to start your own journal.</p>:<div className="detail-actions">{confirm?<div className="delete-confirm"><span>{r.sourceEventId?'Remove your personal entry from the diary? You’ll stay in the Rally crew.':'Permanently delete this entry?'}</span><button className="danger" disabled={busy} onClick={async()=>{setBusy(true);try{await onDelete();onClose();}catch(e){setError(e instanceof Error?e.message:'Could not delete.');}finally{setBusy(false);}}}>{busy?'Deleting…':'Yes, delete'}</button><button className="text-button" disabled={busy} onClick={()=>setConfirm(false)}>Keep it</button></div>:<button className="text-button danger-text" onClick={()=>setConfirm(true)}><Trash2 size={15}/>Delete</button>}<button className="primary" disabled={busy} onClick={onEdit}>{planning?'Edit your diary':'Edit this night'}<ArrowRight size={16}/></button></div>}
   </div></Modal>;
 }
 function YearPicker({value,years,onChange}:{value:string;years:string[];onChange:(v:string)=>void}) {
@@ -63,7 +63,6 @@ export type PlanConnectionState = {details:Rave;people:CrewConnection[];lineup:s
 export type SharedMemory = {memberId:string;name:string;note:string;albumUrl:string;updatedAt:number};
 export type CollectionBackend = {
   connection: (id:string)=>Promise<PlanConnectionState>;
-  syncPlan:(id:string,direction:'toDiary'|'toPlan',fields:string[],revision:string)=>Promise<Rave>;
   shareMemory:(id:string,note:string,albumUrl:string,revision:string)=>Promise<unknown>;
   list: () => Promise<{raves: Rave[]}>;
   save: (r: Rave) => Promise<Rave>;
@@ -79,7 +78,7 @@ export default function Journal({backend, viewer, events = [], eventsError = '',
   const mobile=useMobileLayout();
   const [navigationOpen,setNavigationOpen]=useState(false);
   useEffect(()=>{if(mobile)setNavigationOpen(false);},[mobile]);
-  const [mobileAddOpen,setMobileAddOpen]=useState(false),[accountOpen,setAccountOpen]=useState(false),[toolsOpen,setToolsOpen]=useState(false);
+  const [accountOpen,setAccountOpen]=useState(false),[toolsOpen,setToolsOpen]=useState(false);
   const [raves, setRaves] = useState<Rave[]>([]), [loaded, setLoaded] = useState(false), [loading, setLoading] = useState(true);
   const [demo, setDemo] = useState(false), [error, setError] = useState(''), [toast, setToast] = useState('');
   const [section, setSection] = useState<Section>('raves'), [year, setYear] = useState('all'), [query, setQuery] = useState('');
@@ -88,7 +87,7 @@ export default function Journal({backend, viewer, events = [], eventsError = '',
   const [detail, setDetail] = useState<Rave | null>(null), [form, setForm] = useState<Rave | true | null>(null);
   const [focus, setFocus] = useState<{type: 'artists' | 'crew'; name: string; identity?:string} | null>(null);
   const [suggestions, setSuggestions] = useState<{artists: string[]; crew: string[]}>({artists: [], crew: []});
-  const [draftBusy, setDraftBusy] = useState(false), [planOpen, setPlanOpen] = useState(false), [roomChoice, setRoomChoice] = useState('');
+  const [draftBusy, setDraftBusy] = useState(false);
   const [draftError, setDraftError] = useState(''), [retryEvent, setRetryEvent] = useState('');
   const [importRaves, setImportRaves] = useState<Rave[] | null>(null), [importBusy, setImportBusy] = useState(false), [importError, setImportError] = useState('');
   const [online, setOnline] = useState(navigator.onLine), [signingOut, setSigningOut] = useState(false), [tableVersion, setTableVersion] = useState(0);
@@ -101,20 +100,21 @@ export default function Journal({backend, viewer, events = [], eventsError = '',
       const draft = await backend.draftFromEvent(eventId);
       if (!alive.current) return;
       setSuggestions({artists: draft.artistSuggestions, crew: draft.crewSuggestions});
-      setDemo(false); setFormFocus(undefined); if (draft.existing) { setForm(null); setDetail(draft.rave); } else { setDetail(null); setForm(draft.rave); } setPlanOpen(false); setRoomChoice(''); setRetryEvent('');
+      setDemo(false); setFormFocus(undefined); setRaves(prev=>[draft.rave,...prev.filter(r=>r.id!==draft.rave.id)]); setForm(null); setDetail(draft.rave); setRetryEvent('');
       const url = new URL(location.href); url.searchParams.delete('from'); history.replaceState({}, '', url.pathname + url.search + url.hash);
     } catch (e) { if (alive.current) setDraftError(e instanceof Error ? e.message : 'Could not open this plan.'); }
     finally { draftLock.current = false; if (alive.current) setDraftBusy(false); }
   };
-  const load = async () => {
+  const load = async (quiet=false) => {
     const version = ++loadVersion.current;
-    setLoading(true); setError('');
+    if(!quiet)setLoading(true); setError('');
     try {
       const body = await backend.list();
       if (!alive.current || version !== loadVersion.current) return;
       setRaves(body.raves); setLoaded(true);
+      setDetail(current=>current?body.raves.find(r=>r.id===current.id)||null:null);
       const from = new URLSearchParams(location.search).get('from');
-      if (from) await openEvent(from);
+      if (from&&!quiet) await openEvent(from);
     } catch (e) { if (alive.current && version === loadVersion.current) setError(e instanceof Error ? e.message : 'Unable to load your diary.'); }
     finally { if (alive.current && version === loadVersion.current) setLoading(false); }
   };
@@ -124,6 +124,11 @@ export default function Journal({backend, viewer, events = [], eventsError = '',
     window.addEventListener('online', update); window.addEventListener('offline', update);
     return () => { window.removeEventListener('online', update); window.removeEventListener('offline', update); };
   }, []);
+  useEffect(()=>{
+    const refresh=()=>{if(document.visibilityState!=='hidden'&&!form&&!importRaves&&!draftBusy)void load(true);};
+    window.addEventListener('focus',refresh);document.addEventListener('visibilitychange',refresh);
+    return()=>{window.removeEventListener('focus',refresh);document.removeEventListener('visibilitychange',refresh);};
+  },[backend,form,importRaves,draftBusy]);
   useEffect(() => { if (!toast) return; const timer = setTimeout(() => setToast(''), 6000); return () => clearTimeout(timer); }, [toast]);
   const data = demo ? demoRaves : raves;
   const years = [...new Set(data.map(r => r.startDate.slice(0, 4)))].sort().reverse();
@@ -131,9 +136,6 @@ export default function Journal({backend, viewer, events = [], eventsError = '',
   const artists = leaderboard(scope, 'artists'), crew = leaderboard(scope, 'crew');
   const now = new Date();
   const today = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
-  const pastPlans = events.filter(e => e.startsAt).sort((a, b) => b.startsAt.localeCompare(a.startsAt));
-  const linkedPlans = pastPlans.filter(e => raves.some(r => r.sourceEventId === e.id));
-  const availablePlan = pastPlans.some(e => e.id === roomChoice && !raves.some(r => r.sourceEventId === e.id));
   const begin = () => { setFormFocus(undefined); setSuggestions({artists: [], crew: []}); setDemo(false); setForm(true); };
   const edit = (r: Rave, target?: 'photos') => { setFormFocus(target); setSuggestions({artists: [], crew: []}); setForm(r); };
   const switchSection = (next: Section) => { setSection(next); setQuery(''); setFocus(null); };
@@ -193,8 +195,8 @@ export default function Journal({backend, viewer, events = [], eventsError = '',
       {demo && <div className="demo-banner"><span><Sparkles size={15}/><strong>Example data</strong> Fictional raves and costs. Nothing here belongs to your account.</span><button onClick={toggleDemo}>Back to my collection<ArrowRight size={14}/></button></div>}
       {!loaded ? <div className="collection-loading">{loading ? <><LoaderCircle size={24} className="spin"/><h1>Opening your diary…</h1></> : <><AlertCircle size={30}/><h1>Your history is still yours.</h1><p>Reconnect or retry above to see your saved nights.</p></>}</div> : <>
         {section === 'raves' && <>
-          <div className="collection-heading"><div><span className="eyebrow">YOUR NIGHTS, PAST AND NEXT</span><h1>Rave diary</h1><p>{mobile?'Your next rave. Your favorite memories.':'Upcoming plans and nights you’ve lived. All in one place.'}</p></div><div className="collection-actions">{!mobile&&<button className="secondary" disabled={draftBusy} onClick={() => setPlanOpen(true)}>{draftBusy ? <LoaderCircle size={16} className="spin"/> : <CalendarDays size={16}/>}From My raves</button>}<button className="primary" aria-label="Add a rave" onClick={()=>mobile?setMobileAddOpen(true):begin()}><Plus size={mobile?22:17}/>{!mobile&&'Add a rave'}</button></div></div>
-          {!data.length ? <section className="collection-welcome"><div className="welcome-icon"><Ticket size={30}/></div><h2>Your first night starts here.</h2><p>Save an upcoming rave, log a past night, or start from a Rally project.<br/>A name and date are all you need.</p><div><button className="primary" onClick={begin}><Plus size={17}/>Add your first rave</button><button className="secondary" onClick={toggleDemo}>Explore an example</button></div><div className="welcome-columns"><span><Music2 size={16}/>Artists you saw</span><span><Users size={16}/>Your crew</span><span><Wallet size={16}/>Your costs</span><span><Heart size={16}/>Photos & memories</span></div><small>Past and upcoming raves welcome. Link a shared Rally plan whenever you’re ready.</small></section>
+          <div className="collection-heading"><div><span className="eyebrow">YOUR NIGHTS, PAST AND NEXT</span><h1>Rave diary</h1><p>Your Rally raves appear here automatically. Your memories stay yours.</p></div><div className="collection-actions"><button className="primary" aria-label="Add a rave" onClick={begin}><Plus size={mobile?22:17}/>{!mobile&&'Add a rave'}</button></div></div>
+          {!data.length ? <section className="collection-welcome"><div className="welcome-icon"><Ticket size={30}/></div><h2>Your first night starts here.</h2><p>Your Rally raves appear here automatically. Add other upcoming raves or past nights.<br/>A name and date are all you need.</p><div><button className="primary" onClick={begin}><Plus size={17}/>Add your first rave</button><button className="secondary" onClick={toggleDemo}>Explore an example</button></div><div className="welcome-columns"><span><Music2 size={16}/>Artists you saw</span><span><Users size={16}/>Your crew</span><span><Wallet size={16}/>Your costs</span><span><Heart size={16}/>Photos & memories</span></div><small>Past raves need no project. For an upcoming rave, you can plan with friends.</small></section>
             : <RaveExplorer key={`${demo}:${tableVersion}`} raves={data} demo={demo} year={year} onYearChange={setYear} focus={focus} onClearFocus={() => setFocus(null)} onOpen={setDetail} onEdit={edit} onAdd={begin} onSave={save} onExport={exportCsv}/>}
         </>}
         {section !== 'raves' && <>
@@ -210,16 +212,8 @@ export default function Journal({backend, viewer, events = [], eventsError = '',
     </div></main>
     <input ref={importInput} type="file" accept="application/json,.json" hidden aria-label="Import collection backup" onChange={e => { if (e.target.files?.[0]) void readImport(e.target.files[0]); }}/>
     {navigationOpen&&!mobile&&<CollectionNavigation section={section} name={viewer.name} onSelect={switchSection} onClose={()=>setNavigationOpen(false)}/>}
-    {mobileAddOpen&&<Modal title="Add a rave" onClose={()=>setMobileAddOpen(false)}><div className="timeline-choice"><p>Find a festival edition, add your own event, or start from a Rally plan.</p><button className="primary" onClick={()=>{setMobileAddOpen(false);begin();}}><Plus size={18}/>Find or add a rave</button><button className="secondary" onClick={()=>{setMobileAddOpen(false);setPlanOpen(true);}}><CalendarDays size={18}/>From My raves</button></div></Modal>}
     {accountOpen&&<Modal title="Your rave diary" onClose={()=>setAccountOpen(false)}><div className="timeline-choice"><p><LockKeyhole size={15}/> {viewer.name}’s private diary</p><a className="secondary" href="/tools/rally/collection/?view=projects">My raves<ArrowUpRight size={17}/></a><button className="secondary" disabled={signingOut} onClick={async()=>{setSigningOut(true);try{await onSignOut();}catch{setToast('Could not sign out. Please try again.');}finally{if(alive.current)setSigningOut(false);}}}>{signingOut?'Signing out…':'Sign out'}</button></div></Modal>}
-    {planOpen && <Modal title="Choose from My raves" onClose={() => { if (!draftBusy) setPlanOpen(false); }}><div className="plan-picker-body"><p>Choose an upcoming or past event. Its details will fill a private draft for you to review.</p>
-      {eventsLoading ? <p role="status">Loading your plans…</p> : eventsError ? <div role="alert"><p>{eventsError}</p><button className="secondary" onClick={onRetryEvents}>Retry plans</button></div> : pastPlans.length ? <SharedPicker label="Your Rally events" disabled={draftBusy} value={roomChoice} options={[{value: '', label: 'Choose a plan…'}, ...pastPlans.map(e => ({value: e.id, label: `${e.name} · ${date(e.startsAt, true)}${raves.some(r => r.sourceEventId === e.id) ? ' · Already in your diary' : ''}`, disabled: raves.some(r => r.sourceEventId === e.id)}))]} onChange={setRoomChoice}/>
-        : <p className="plan-empty">No Rally projects yet. Save a rave in your diary, then create or link a plan.</p>}
-      {linkedPlans.length>0&&<div className="diary-existing-plans"><p>{linkedPlans.length===pastPlans.length?'All your Rally raves are already in your diary.':'Already-added raves can only be opened, not added again.'}</p><details><summary>Already in your diary ({linkedPlans.length})</summary><div>{linkedPlans.map(e=><div className="diary-existing-plan" key={e.id}><span><strong>{e.name}</strong><small>{date(e.startsAt,true)}</small></span><button className="secondary" disabled={draftBusy} aria-label={`View diary entry for ${e.name}`} onClick={()=>void openEvent(e.id)}>View entry</button></div>)}</div></details></div>}
-      <p className="form-help">Artists and crew are suggestions. Your spending, photos, and notes are private.</p>
-      <div className="form-footer"><button className="secondary" disabled={draftBusy} onClick={() => { setPlanOpen(false); begin(); }}>Find or add a rave</button><button className="primary" disabled={!availablePlan || draftBusy || eventsLoading} onClick={() => { if(availablePlan) void openEvent(roomChoice); }}>{draftBusy ? 'Opening…' : 'Use this rave'}</button></div>
-    </div></Modal>}
-    {form && <RaveForm loadPlan={backend.draftFromEvent} focusSection={formFocus} initial={form === true ? undefined : form} all={raves} onSave={save} onClose={() => setForm(null)} suggestedArtists={suggestions.artists} suggestedCrew={suggestions.crew}/>}
+    {form && <RaveForm onOpenExisting={r=>{setForm(null);setDetail(r);}} loadPlan={backend.draftFromEvent} focusSection={formFocus} initial={form === true ? undefined : form} all={raves} onSave={save} onClose={() => setForm(null)} suggestedArtists={suggestions.artists} suggestedCrew={suggestions.crew}/>}
     {detail && !form && <Detail onCrew={(name,identity)=>{setDetail(null);setSection('raves');setFocus({type:'crew',name,identity});setQuery('');}} r={detail} raves={raves} demo={demo} backend={backend} events={events} onUpdated={saved=>{setRaves(prev=>prev.map(r=>r.id===saved.id?saved:r));setDetail(saved);}} onClose={() => setDetail(null)} onEdit={() => { edit(detail); setDetail(null); }} onDelete={() => remove(detail)}/>}
     {importRaves && <Modal title="Import your backup" onClose={() => { if (!importBusy) setImportRaves(null); }}><div className="import-review"><p><strong>{importRaves.length - importUpdates} new raves</strong> will be added. <strong>{importUpdates} existing entries</strong> with matching IDs will be replaced by this backup. Your other entries stay as they are.</p><p className="form-help">Import only a backup of your own collection. Linked rave plans must be accessible to this account.</p><div className="import-list">{importRaves.map(r => <div key={r.id}><strong>{r.name}</strong><span>{date(r.startDate, true)}</span></div>)}</div>{importError && <p className="error" role="alert">{importError}</p>}<div className="form-footer"><button className="secondary" disabled={importBusy} onClick={() => setImportRaves(null)}>Cancel</button><button className="primary" disabled={importBusy} onClick={async () => {
       setImportBusy(true); setImportError('');

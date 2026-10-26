@@ -55,7 +55,7 @@ export function validateRave(input: unknown): Rave {
   const favoriteArtist=str('favoriteArtist',120);if(favoriteArtist && !artists.some(n=>n.toLocaleLowerCase()===favoriteArtist.toLocaleLowerCase()))throw new Error('Your favorite set should be one of the artists you saw.');
   if(typeof x.rating!=='number' || !Number.isInteger(x.rating) || x.rating<0 || x.rating>5)throw new Error('Choose a rating from 1 to 5, or leave it unrated.');
   const color=typeof x.color==='number' && Number.isInteger(x.color) && x.color>=0 && x.color<4 ? x.color : 0;
-  const id=typeof x.id==='string' && /^[a-zA-Z0-9_-]{1,100}$/.test(x.id) ? x.id : crypto.randomUUID();
+  const id=typeof x.id==='string' && /^[a-zA-Z0-9_-]{1,160}$/.test(x.id) ? x.id : crypto.randomUUID();
   const sourceEventId=typeof x.sourceEventId==='string' && /^[a-zA-Z0-9_-]{1,120}$/.test(x.sourceEventId)?x.sourceEventId:undefined;
   if(x.sourceEventId!==undefined&&!sourceEventId)throw new Error('Invalid linked Rally event.');
   const connections=(key:string,names:string[]):CrewConnection[]=>{

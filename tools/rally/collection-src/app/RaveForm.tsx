@@ -10,10 +10,12 @@ import {applyFestival, festivalForRave} from '../lib/festivals';
 import {attendanceOf, diaryToday, costKeys, emptyRave, leaderboard, totalCost, uniqueNames, validateRave, type Rave, type CrewConnection} from '../lib/raves';
 
 const costLabels = {ticket: 'Tickets', travel: 'Travel', stay: 'Stay', other: 'Food & other'};
+const eventDate = (s:string)=>new Date(s+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
 const money = (n: number) => new Intl.NumberFormat('en-US', {style: 'currency', currency: 'USD'}).format(n);
 
-export default function RaveForm({initial, all, onSave, onClose, suggestedArtists = [], suggestedCrew = [], focusSection, loadPlan}: {
+export default function RaveForm({initial, all, onSave, onClose, suggestedArtists = [], suggestedCrew = [], focusSection, loadPlan, onOpenExisting}: {
   initial?: Rave; all: Rave[]; onSave: (r: Rave) => Promise<void>; onClose: () => void;
+  onOpenExisting?: (r:Rave)=>void;
   suggestedArtists?: string[]; suggestedCrew?: string[]; focusSection?: 'photos';
   loadPlan?: (eventId: string) => Promise<{artistSuggestions: string[]; crewSuggestions: string[];crewPeople?:CrewConnection[]}>;
 }) {
@@ -55,7 +57,7 @@ export default function RaveForm({initial, all, onSave, onClose, suggestedArtist
     return () => window.removeEventListener('beforeunload', warn);
   }, [dirty, saving]);
   const submit = async (event: FormEvent) => {
-    event.preventDefault(); if (saving) return;
+    event.preventDefault(); if (saving||duplicate?.sourceEventId) return;
     setError(''); setSaving(true); setDiscard(false);
     try {
       const clean = validateRave({...r, endDate: r.endDate || r.startDate,
@@ -70,9 +72,10 @@ export default function RaveForm({initial, all, onSave, onClose, suggestedArtist
       const section = input.closest('details');
       if (section) section.open = true;
     }}>
-      <p className="form-intro">{planning ? 'Keep your plans, artists to see, and costs together. Confirm attendance after the rave to add it to your history.' : r.sourceEventId ? 'Started from your rave plan. Add the artists you actually saw and your own share of the costs.' : 'Add a past night or an upcoming rave. Start with a name and date.'}</p>
+      <p className="form-intro">{planning ? 'Keep your plans, artists to see, and costs together. Confirm attendance after the rave to add it to your history.' : r.sourceEventId ? 'This rave is already in your diary. Add the artists you actually saw and your own share of the costs.' : 'Add a past night or an upcoming rave. Start with a name and date.'}</p>
       <fieldset disabled={saving} className="form-fields">
         {!r.sourceEventId && <FestivalPicker onClear={()=>setR(prev=>({...prev,catalogEventId:null}))} current={festival} focusOnOpen={!isEdit && !focusSection} hasDetails={!!(r.name || r.startDate || r.city || r.venue)} onChoose={edition => setR(prev => applyFestival(prev, edition))}/>}
+        {r.sourceEventId?<div className="shared-event-summary"><strong>{r.name}</strong><span>{eventDate(r.startDate)}{r.endDate!==r.startDate?' – '+eventDate(r.endDate):''} · {[r.venue,r.city].filter(Boolean).join(' · ')}</span><p>Event details are shared with your crew and stay up to date in Rally.</p><a href={`/tools/rally/?event=${encodeURIComponent(r.sourceEventId)}`}>View event details in Rally ↗</a></div>:<>
         <label className="field">Rave / event name <span className="required-label">Required</span><input data-autofocus={!focusSection && (isEdit || !!r.sourceEventId) || undefined} autoFocus={!focusSection && (isEdit || !!r.sourceEventId)} required maxLength={160} placeholder="The festival, show, or club night" value={r.name} onChange={e => field('name', e.target.value)}/></label>
         <div className="form-grid">
           <DateField label="Start date" required value={r.startDate} onChange={next => {
@@ -82,6 +85,7 @@ export default function RaveForm({initial, all, onSave, onClose, suggestedArtist
           <CityPicker value={r.city} cities={all.map(rave => rave.city)} onChange={city => field('city', city)}/>
           <label className="field">Venue<input maxLength={150} placeholder="The Midway" value={r.venue} onChange={e => field('venue', e.target.value)}/></label>
         </div>
+        </>}
         <section className="attendance-choice" aria-label="Attendance">
           <strong>{future?'Upcoming rave':attendance==='planned'?'Did you go?':'Your attendance'}</strong>
           <p>{future?'Keep your plans here. This won’t count toward your attended raves or artist history.':attendance==='planned'?'The date has arrived. Confirm attendance, then choose the sets you actually saw.':'Only attended raves count toward your history and recap.'}</p>
@@ -91,16 +95,16 @@ export default function RaveForm({initial, all, onSave, onClose, suggestedArtist
             <button type="button" aria-pressed={attendance==='skipped'} onClick={()=>changeAttendance('skipped')}>{future?'Not going':'Didn’t go'}</button>
           </div>
         </section>
-        <div className="field"><span className="field-label">Type of night</span><div className="segmented">{(['Festival', 'Club night', 'Show'] as const).map(k => <button type="button" key={k} aria-pressed={r.kind === k} className={r.kind === k ? 'active' : ''} onClick={() => field('kind', k)}>{k}</button>)}</div></div>
-        {duplicate && <p className="form-notice">You already have “{duplicate.name}” on this date. Saving will add a separate entry.</p>}
+        {!r.sourceEventId&&<div className="field"><span className="field-label">Type of night</span><div className="segmented">{(['Festival', 'Club night', 'Show'] as const).map(k => <button type="button" key={k} aria-pressed={r.kind === k} className={r.kind === k ? 'active' : ''} onClick={() => field('kind', k)}>{k}</button>)}</div></div>}
+        {duplicate && <div className="form-notice">{duplicate.sourceEventId?<>This Rally rave is already in your diary. <button type="button" className="secondary" onClick={()=>onOpenExisting?.(duplicate)}>Open existing entry</button></>:<>You already have “{duplicate.name}” on this date. Saving will add a separate entry.</>}</div>}
         <details className="form-disclosure" open>
           <summary><Music2 size={17}/><span>Artists & crew<small>{planning?'Your wishlist and possible crew':'Who made the night'}</small></span><ChevronDown size={16}/></summary>
           <div className="disclosure-body">
-            {r.sourceEventId && <FestivalPicker onClear={()=>setR(prev=>({...prev,catalogEventId:null}))} current={festival} hasDetails onChoose={edition => setR(prev => applyFestival(prev, edition))} linked/>}
+
             {r.sourceEventId && planStatus === 'loading' && <p className="form-help" role="status">Loading suggestions from your Rally plan…</p>}
             {r.sourceEventId && planStatus === 'error' && <p className="form-help" role="status">Your Rally plan’s suggestions could not load.{festival ? ' The festival catalog lineup is available below.' : ' Choose a festival or add sets manually.'} <button type="button" className="text-button" onClick={() => setPlanAttempt(n => n + 1)}>Retry plan suggestions</button></p>}
             {festival && <div className="festival-lineup-note"><strong>{festival.name} · {festival.artists.length} lineup suggestions</strong><p>{!festival.artists.length ? 'No verified lineup is available for this event yet.' : festival.coverage === 'partial' ? 'Partial lineup — only verified artists are listed here.' : planning ? 'Published lineup — choose the sets you want to see.' : 'Archived lineup — select only the sets you actually saw.'} You can add missing artists or special sets below.</p><FestivalSources edition={festival}/></div>}
-            <NamePicker label={planning?'Artists you want to see':'Artists you actually saw'} noun="artist" lineupOnly={!!festival || !!r.sourceEventId || !!plan.artists.length} planSuggestions={festival ? festival.artists : uniqueNames([...plan.artists,...(r.plannedArtists||[])])} values={selectedArtists} text={artistText} onText={setArtistText}
+            <NamePicker label={planning?'Artists you want to see':'Artists you actually saw'} noun="artist" lineupOnly={!!festival || !!r.sourceEventId || !!plan.artists.length} planSuggestions={festival ? uniqueNames([...festival.artists,...plan.artists]) : uniqueNames([...plan.artists,...(r.plannedArtists||[])])} values={selectedArtists} text={artistText} onText={setArtistText}
               onChange={artists => setR(prev => ({...prev, [artistField]:artists, favoriteArtist: planning ? prev.favoriteArtist : artists.some(a => a.toLowerCase() === prev.favoriteArtist.toLowerCase()) ? prev.favoriteArtist : ''}))}
               suggestions={uniqueNames(all.flatMap(rave => rave.artists))}/>
             <CrewPicker label={planning?'Who are you going with?':'Who did you go with?'} values={selectedCrew} connections={r[planning?'plannedCrewConnections':'crewConnections']||[]} people={[...all.flatMap(entry=>[...(entry.crewConnections||[]),...(entry.plannedCrewConnections||[])]),...people]}
@@ -127,7 +131,7 @@ export default function RaveForm({initial, all, onSave, onClose, suggestedArtist
       {error && <p role="alert" className="error form-feedback">{error} Your changes are still here.</p>}
       <div className="form-footer">
         {discard ? <div className="discard-confirm" role="alert"><span>Discard your unsaved changes?</span><button type="button" className="secondary" autoFocus onClick={() => setDiscard(false)}>Keep editing</button><button type="button" className="danger" onClick={onClose}>Discard changes</button></div>
-          : <><span className="form-private"><LockKeyhole size={13}/>Only you</span><button type="button" className="secondary" disabled={saving} onClick={close}>Cancel</button><button className="primary" disabled={saving}>{saving ? <LoaderCircle className="spin" size={17}/> : <Check size={17}/>} {saving ? 'Saving…' : isEdit ? 'Save changes' : planning ? 'Save upcoming rave' : 'Save to rave diary'}</button></>}
+          : <><span className="form-private"><LockKeyhole size={13}/>Only you</span><button type="button" className="secondary" disabled={saving} onClick={close}>Cancel</button><button className="primary" disabled={saving||!!duplicate?.sourceEventId}>{saving ? <LoaderCircle className="spin" size={17}/> : <Check size={17}/>} {saving ? 'Saving…' : isEdit ? 'Save changes' : planning ? 'Save upcoming rave' : 'Save to rave diary'}</button></>}
       </div>
     </form>
   </Modal>;

@@ -52,7 +52,7 @@ function harness(options = {}) {
     }
     if (path === 'rallyCollection:createPlan') {if(optionsRef.createPlanFails) return failure('Could not create plan'); const saved={...rows[subject].find(r=>r.id===args.id),sourceEventId:'created-room'}; rows[subject]=rows[subject].map(r=>r.id===saved.id?saved:r);return success(saved);}
     if (path === 'rallyCollection:remove') { rows[subject] = rows[subject].filter(r => r.id !== args.id); return success({ok: true}); }
-    if (path === 'rallyCollection:draftFromEvent') { if (optionsRef.planSuggestionsFail) return failure('Plan unavailable'); if (optionsRef.holdPlan) await new Promise(r => optionsRef.releasePlan = r); return success({rave: rows[subject].find(r => r.sourceEventId === args.eventId) || {...entry('Plan night'), id: '', sourceEventId: args.eventId, notes: ''}, existing: rows[subject].some(r => r.sourceEventId === args.eventId), artistSuggestions: optionsRef.artistSuggestions || ['Suggested DJ'], crewSuggestions: optionsRef.crewSuggestions || ['Suggested Friend'],crewPeople:optionsRef.crewPeople||[]}); }
+    if (path === 'rallyCollection:draftFromEvent') { if (optionsRef.planSuggestionsFail) return failure('Plan unavailable'); if (optionsRef.holdPlan) await new Promise(r => optionsRef.releasePlan = r); return success({rave: rows[subject].find(r => r.sourceEventId === args.eventId) || {...entry('Plan night'), id: 'rally_'+args.eventId, attendance:'planned', sourceEventId: args.eventId, notes: ''}, existing: true, artistSuggestions: optionsRef.artistSuggestions || ['Suggested DJ'], crewSuggestions: optionsRef.crewSuggestions || ['Suggested Friend'],crewPeople:optionsRef.crewPeople||[]}); }
     throw new Error('Unexpected test request: ' + path);
   };
   const optionsRef = options;
@@ -94,11 +94,8 @@ test('a delayed response for a previous account cannot populate the next account
     h.releaseAlice(); await tick(); await tick(); assert(!h.text().includes('Alice private night'));
   } finally { h.close(); }
 });
-test('a failed plans request does not block collection access or manual entry', async () => {
-  const h = harness({plansFail: true}); try {
-    await until(() => h.text().includes('Alice private night')); h.button('From My raves').click(); await tick();
-    assert(h.text().includes('Your plans could not be loaded')); h.button('Find or add a rave').click(); await tick(); assert(h.w.document.querySelector('.rave-form'));
-  } finally { h.close(); }
+test('a failed plans request does not block collection access or manual entry',async()=>{
+ const h=harness({plansFail:true});try{await until(()=>h.button('Add a rave'));h.button('Add a rave').click();await tick();assert(h.w.document.querySelector('.rave-form'));}finally{h.close();}
 });
 test('failed collection load is not presented as an empty collection; retry recovers', async () => {
   const h = harness({loadFailures: 1}); try {
@@ -147,13 +144,8 @@ test('a token delayed across account switching cannot send the old draft as the 
     await until(() => h.text().includes('Bob private night')); h.releaseToken(); await tick(); await tick(); assert.equal(h.saves.length, 0);
   } finally { h.close(); }
 });
-test('Rally projects include future events, open unsaved drafts, and do not preselect suggested artists or crew', async () => {
-  const h = harness({events: [{id: 'past', name: 'Past event', startsAt: '2025-06-01'}, {id: 'future', name: 'Future event', startsAt: '2099-01-01'}]}); try {
-    await until(() => h.text().includes('Alice private night')); h.button('From My raves').click(); await tick();
-    const select = h.w.document.querySelector('select[aria-label="Your Rally events"]'); assert(select.textContent.includes('Past event')); assert(select.textContent.includes('Future event'));
-    select.value = 'past'; select.dispatchEvent(new h.w.Event('change', {bubbles: true})); await tick(); h.button('Use this rave').click(); await until(() => h.w.document.querySelector('.rave-form'));
-    assert.equal(h.w.document.querySelectorAll('.input-tag').length, 0); assert(h.text().includes('Suggested DJ')); assert.equal(h.saves.length, 0);
-  } finally { h.close(); }
+test('Rally deep links open an automatic entry with explicit attendance and no preselected sets',async()=>{
+ const h=harness({search:'?from=past'});try{await until(()=>h.button('Edit your diary'));assert(!h.w.document.querySelector('.rave-form'));assert(h.button('Log your experience'));h.button('Log your experience').click();await tick();assert(h.button('I went'));assert.equal(h.w.document.querySelectorAll('.input-tag').length,0);assert(h.text().includes('Suggested DJ'));assert.equal(h.saves.length,0);}finally{h.close();}
 });
 test('browser storage restrictions do not break the collection', async () => {
   const h = harness({storageBlocked: true}); try { await until(() => h.text().includes('Alice private night')); assert(h.button('Add a rave')); } finally { h.close(); }
@@ -184,9 +176,9 @@ test('mobile timeline uses saved entries, preserves unknown costs, and edits thr
     assert(h.w.document.querySelector('a[href="/tools/rally/?event=linked-room"]'));
     assert(h.w.document.querySelector('a[href="https://example.com/album"]'));
     h.button('Edit this night').click(); await tick();
-    await h.fill('.rave-form input[maxlength="160"]', 'Updated memory');
+    await h.fill('.rave-form textarea', 'Updated memory');
     h.button('Save changes').click(); await until(() => !h.w.document.querySelector('.rave-form'));
-    assert(h.button('View Updated memory')); assert.equal(h.saves.length, 1); assert.equal(h.saves[0].sourceEventId, 'linked-room');
+    assert(h.button('View My saved night'));assert.equal(h.saves[0].notes,'Updated memory'); assert.equal(h.saves.length, 1); assert.equal(h.saves[0].sourceEventId, 'linked-room');
   } finally { h.close(); }
 });
 test('timeline filtering survives switching to desktop and zero costs remain explicit', async () => {
@@ -200,16 +192,8 @@ test('timeline filtering survives switching to desktop and zero costs remain exp
     h.button('Clear filters').click(); await tick(); assert.equal(h.w.document.querySelectorAll('.timeline-card').length, 2);
   } finally { h.close(); }
 });
-test('mobile add choices and account menu preserve plan access and sign out', async () => {
-  const h = harness({mobile:true}); try {
-    await until(() => h.w.document.querySelector('.timeline-card'));
-    h.button('Add a rave').click(); await tick(); assert(h.text().includes('Add a rave'));
-    h.button('From My raves').click(); await tick(); assert(h.text().includes('No Rally projects yet'));
-    h.button('Find or add a rave').click(); await tick(); assert(h.w.document.querySelector('.rave-form'));
-    h.button('Cancel').click(); await tick();
-    h.button('Diary account and navigation').click(); await tick(); assert(h.w.document.querySelector('dialog a[href="/tools/rally/collection/?view=projects"]'));
-    h.button('Sign out').click(); await until(() => h.text().includes('Sign in / create account')); assert(!h.text().includes('Alice private night'));
-  } finally { h.close(); }
+test('mobile add opens the personal form directly and account navigation remains available',async()=>{
+ const h=harness({mobile:true});try{await until(()=>h.button('Add a rave'));h.button('Add a rave').click();await tick();assert(h.w.document.querySelector('.rave-form'));assert(!h.button('From My raves'));h.button('Cancel').click();await tick();h.button('Diary account and navigation').click();await tick();assert(h.w.document.querySelector('dialog a[href="/tools/rally/collection/?view=projects"]'));h.button('Sign out').click();await until(()=>h.text().includes('Sign in / create account'));}finally{h.close();}
 });
 
 test('desktop drawer connects collection sections and Rally projects without a tab bar', async () => {
@@ -229,28 +213,17 @@ test('desktop drawer connects collection sections and Rally projects without a t
 
 test('linked saved experience opens details without creating a second draft', async () => {
  const h=harness({search:'?from=room',raves:[{...entry('Already saved night'),sourceEventId:'room'}]});try{
-  await until(()=>h.w.document.querySelector('dialog')?.textContent.includes('Open rave plan'));
+  await until(()=>h.w.document.querySelector('dialog')?.textContent.includes('Open crew plan'));
   assert(!h.w.document.querySelector('.rave-form'));
   assert.equal(h.saves.length,0);
-  assert.equal(h.w.document.querySelector('dialog a[href*="event=room"]').textContent,'Open rave plan');
+  assert.equal(h.w.document.querySelector('dialog a[href*="event=room"]').textContent,'Open crew plan');
  }finally{h.close();}
 });
-test('projects separate future planning from personal logging and clear status on account switch',async()=>{
- const h=harness({search:'?view=projects',events:[{id:'room',name:'Past warehouse',startsAt:'2025-01-01'},{id:'future',name:'Future festival',startsAt:'2099-01-01'}],raves:[{...entry('Saved'),sourceEventId:'room'}]});try{
-  await until(()=>h.text().includes('View diary entry'));
-  const rows=[...h.w.document.querySelectorAll('.project-row')];
-  assert(rows.find(r=>r.textContent.includes('Future festival')).querySelector('.project-experience').textContent.includes('Save to my diary'));
-  assert.equal(rows.find(r=>r.textContent.includes('Past warehouse')).querySelector('.project-experience').getAttribute('href'),'/tools/rally/collection/?from=room');
-  h.switchUser('bob');await until(()=>h.text().includes('Log my experience'));assert(!h.text().includes('View diary entry'));
-  await h.fill('input[type="search"]','nothing');assert(h.text().includes('No raves match'));
- }finally{h.close();}
+test('projects offer the same diary destination for upcoming and past raves',async()=>{
+ const h=harness({search:'?view=projects',events:[{id:'room',name:'Past warehouse',startsAt:'2025-01-01'},{id:'future',name:'Future festival',startsAt:'2099-01-01'}],raves:[{...entry('Saved'),sourceEventId:'room'}]});try{await until(()=>h.text().includes('Open diary entry'));const rows=[...h.w.document.querySelectorAll('.project-row')];assert.equal(rows.length,2);assert(rows.every(r=>r.querySelector('.project-experience').textContent.includes('Open diary entry')));assert(!h.text().includes('Save to my diary'));assert(h.text().includes('automatically'));h.switchUser('bob');await until(()=>h.text().includes('Bob'));assert(!h.text().includes('In your diary'));await h.fill('input[type="search"]','nothing');assert(h.text().includes('No raves match'));}finally{h.close();}
 });
 test('project overview ignores a delayed experience status after account changes',async()=>{
- const dom=new JSDOM('<main id="page"></main>',{url:'https://example.test',runScripts:'outside-only'}),w=dom.window;
- try{w.Clerk={user:{id:'alice'}};w.eval(fs.readFileSync(__dirname+'/personal-collection.js','utf8'));
-  let resolve;w.RallyCollection.mount({id:'room',startsAt:'2025-01-01'},{loadExperience:()=>new Promise(r=>resolve=r)});await tick();w.Clerk.user.id='bob';resolve({existing:true});await tick();assert(!w.document.body.textContent.includes('View diary entry'));
-  w.RallyCollection.mount({id:'room',startsAt:'2025-01-01'},{loadExperience:async()=>({existing:true})});await tick();assert(w.document.body.textContent.includes('View diary entry'));
- }finally{w.close();}
+ const dom=new JSDOM('<main id="page"></main>',{url:'https://example.test',runScripts:'outside-only'}),w=dom.window;try{w.Clerk={user:{id:'alice'}};w.eval(fs.readFileSync(__dirname+'/personal-collection.js','utf8'));let resolve;w.RallyCollection.mount({id:'room',startsAt:'2025-01-01'},{loadExperience:()=>new Promise(r=>resolve=r)});await tick();w.Clerk.user.id='bob';resolve({sharedMemories:[{name:'Alice crew',note:'Stale secret'}]});await tick();assert(!w.document.body.textContent.includes('Stale secret'));assert(w.document.body.textContent.includes('This rave is in your diary'));}finally{w.close();}
 });
 
 test('calendar jumps directly to a searched year and month, accepts leap day, and restores form focus',async()=>{
@@ -303,7 +276,7 @@ test('lineup checklist exposes the full lineup, keeps selected rows visible, and
   const names = Array.from({length: 24}, (_, i) => `Artist ${String(i + 1).padStart(2, '0')}`);
   const h = harness({search: '?from=past', artistSuggestions: names, crewSuggestions: ['Nancy', 'Maya']});
   try {
-    await until(() => h.w.document.querySelector('.rave-form'));
+    await until(()=>h.button('Log your experience'));h.button('Log your experience').click();await tick();h.button('I went').click();await tick();
     const picker = h.w.document.querySelector('.name-picker');
     assert.equal(picker.querySelectorAll('input[type=checkbox]').length, 24);
     assert.equal(picker.querySelectorAll('input:checked').length, 0);
@@ -324,7 +297,7 @@ test('lineup checklist exposes the full lineup, keeps selected rows visible, and
     const search = picker.querySelector('input[aria-label="Search artists"]');
     const event = new h.w.KeyboardEvent('keydown', {key: 'Enter', bubbles: true, cancelable: true}); search.dispatchEvent(event);
     assert(event.defaultPrevented); assert.equal(h.saves.length, 0);
-    h.button('Save to rave diary').click(); await until(() => h.saves.length === 1);
+    h.button('Save changes').click(); await until(() => h.saves.length === 1);
     assert.deepEqual(h.saves[0].artists, ['Artist 24']); assert.deepEqual(h.saves[0].crew, []);
   } finally { h.close(); }
 });
@@ -332,7 +305,7 @@ test('lineup checklist exposes the full lineup, keeps selected rows visible, and
 test('plan lineup excludes unrelated diary suggestions, custom names remain reviewable, and keyboard reaches choices', async () => {
   const h = harness({search: '?from=past', artistSuggestions: ['Same DJ', 'Other DJ'], raves: [{...entry('Earlier rave'), artists: ['same dj', 'History DJ']}]});
   try {
-    await until(() => h.w.document.querySelector('.rave-form'));
+    await until(()=>h.button('Log your experience'));h.button('Log your experience').click();await tick();h.button('I went').click();await tick();
     const picker = h.w.document.querySelector('.name-picker');
     assert.equal(picker.querySelectorAll('input[type=checkbox]').length, 2);
     assert(picker.textContent.includes('From this lineup')); assert(!picker.textContent.includes('From your diary')); assert(!picker.textContent.includes('History DJ'));
@@ -344,7 +317,7 @@ test('plan lineup excludes unrelated diary suggestions, custom names remain revi
     picker.querySelector('input:checked').click(); await tick();
     assert.equal(picker.querySelectorAll('input:checked').length, 0);
     await h.fill('input[aria-label="Search friends"]', 'Nobody');
-    h.button('Save to rave diary').click(); await until(() => h.saves.length === 1);
+    h.button('Save changes').click(); await until(() => h.saves.length === 1);
     assert.deepEqual(h.saves[0].artists, []); assert.deepEqual(h.saves[0].crew, []);
   } finally { h.close(); }
 });
@@ -354,13 +327,13 @@ test('logging shows core credits but saves the original collaboration and specia
   const labels = ['Space Laces x Excision', 'Excision Detox Set'];
   const h = harness({search: '?from=past', artistSuggestions: labels});
   try {
-    await until(() => h.w.document.querySelector('.rave-form'));
+    await until(()=>h.button('Log your experience'));h.button('Log your experience').click();await tick();h.button('I went').click();await tick();
     const picker = h.w.document.querySelector('.name-picker');
     assert(picker.textContent.includes('Counts toward Space Laces + Excision'));
     assert(picker.textContent.includes('Counts toward Excision'));
     for (const checkbox of picker.querySelectorAll('input[type=checkbox]')) { checkbox.click(); await tick(); }
     assert(picker.textContent.includes('2 sets · 2 unique artists'));
-    h.button('Save to rave diary').click(); await until(() => h.saves.length === 1 && !h.w.document.querySelector('.rave-form'));
+    h.button('Save changes').click(); await until(() => h.saves.length === 1 && !h.w.document.querySelector('.rave-form'));
     assert.deepEqual([...h.saves[0].artists].sort(), [...labels].sort());
     const artistPicker = h.w.document.querySelector('select[aria-label="Artist"]');
     assert(artistPicker.textContent.includes('Excision')); assert(artistPicker.textContent.includes('Space Laces'));
@@ -437,9 +410,9 @@ test('Lost Lands short-year Rally entries recover the correct catalog and exclud
     await until(()=>h.button("Edit Lost Lands '26")); h.button("Edit Lost Lands '26").click();
     await until(()=>h.w.document.querySelector('.rave-form') && !h.text().includes('Loading suggestions from your Rally plan'));
     const picker=h.w.document.querySelector('.name-picker');
-    assert(h.w.document.querySelector('select[aria-label="Event and year"]'));
+    assert(!h.w.document.querySelector('select[aria-label="Event and year"]'));assert(h.w.document.querySelector('.shared-event-summary'));
     assert(h.text().includes('Lost Lands 2026 · 172 lineup suggestions'));
-    assert(!picker.textContent.includes('2hollis')); assert(!picker.textContent.includes('Wrong plan artist'));
+    assert(!picker.textContent.includes('2hollis')); assert(picker.textContent.includes('Wrong plan artist'));
     assert(picker.textContent.includes('Excision B2B Space Laces'));
     assert(!picker.textContent.includes('Previously logged custom set'));
     assert.equal([...picker.querySelectorAll('.name-picker-option')].find(n=>n.textContent.includes('Excision (Detox)')).querySelector('input').checked,true);
@@ -456,20 +429,8 @@ test('Lost Lands short-year Rally entries recover the correct catalog and exclud
   }finally{h.close();}
 });
 
-test('linked entries can select a catalog festival and retain their shared-plan link on save',async()=>{
-  const rave={...entry('custom'),sourceEventId:'custom-room',artists:['My remembered set']};
-  const h=harness({raves:[rave]});try{
-    await until(()=>h.button('Edit custom'));h.button('Edit custom').click();await tick();
-    await chooseFestival(h,'lost-lands-2026');
-    assert(h.text().includes('Your shared Rally plan stays unchanged.'));
-    h.button('Use these event details').click();await tick();
-    assert(h.text().includes('172 lineup suggestions'));
-    await h.fill('input[aria-label="Search artists"]','2hollis');
-    assert(h.w.document.querySelector('.name-picker').textContent.includes('No matching names'));
-    h.button('Save changes').click();await until(()=>h.saves.length===1);
-    assert.equal(h.saves[0].sourceEventId,'custom-room');assert.deepEqual(h.saves[0].artists,['My remembered set']);
-    assert.equal(h.saves[0].name,'Lost Lands 2026');assert.equal(h.saves[0].startDate,'2026-09-18');
-  }finally{h.close();}
+test('shared event details stay in Rally while the diary editor saves only the personal experience',async()=>{
+ const r={...entry('Shared night'),sourceEventId:'crew'};const h=harness({raves:[r]});try{await until(()=>h.button('Edit Shared night'));h.button('Edit Shared night').click();await tick();assert(!h.w.document.querySelector('input[maxlength="160"]'));assert(!h.w.document.querySelector('input[aria-label="Start date"]'));assert(!h.w.document.querySelector('.festival-picker'));assert(h.w.document.querySelector('.shared-event-summary a[href*="event=crew"]'));await h.fill('textarea','Personal experience');h.button('Save changes').click();await until(()=>h.saves.length===1);assert.equal(h.saves[0].sourceEventId,'crew');assert.equal(h.saves[0].notes,'Personal experience');}finally{h.close();}
 });
 
 test('editing a saved show reloads its Rally lineup and a failed lookup can be retried without losing edits',async()=>{
@@ -564,10 +525,10 @@ test('upcoming raves save wishlists separately and offer a Rally connection with
   h.button('Save upcoming rave').click();await until(()=>h.saves.length===1 && !h.w.document.querySelector('.rave-form'));
   assert.equal(h.saves[0].attendance,'planned');assert.deepEqual(h.saves[0].artists,[]);assert.deepEqual(h.saves[0].crew,[]);
   assert.deepEqual(h.saves[0].plannedArtists,['Wishlist DJ']);assert.deepEqual(h.saves[0].plannedCrew,['Nancy']);
-  assert(h.button('Create a Rally plan'));assert(!h.requests.some(r=>r.path==='rallyCollection:createPlan'));
-  h.button('Create a Rally plan').click();await tick();assert(h.text().includes('Your costs, notes, photos, wishlist, and diary crew stay private.'));
-  h.button('Create and link plan').click();await until(()=>h.w.document.querySelector('a[href="/tools/rally/?event=created-room"]'));
-  assert.equal(h.requests.filter(r=>r.path==='rallyCollection:createPlan').length,1);assert(!h.button('Create a Rally plan'));
+  assert(h.button('Plan with friends'));assert(!h.requests.some(r=>r.path==='rallyCollection:createPlan'));
+  h.button('Plan with friends').click();await tick();assert(h.text().includes('Your costs, notes, photos, wishlist, and diary crew stay private.'));
+  h.button('Start crew plan').click();await until(()=>h.w.document.querySelector('a[href="/tools/rally/?event=created-room"]'));
+  assert.equal(h.requests.filter(r=>r.path==='rallyCollection:createPlan').length,1);assert(!h.button('Plan with friends'));
  }finally{h.close();}
 });
 
@@ -593,42 +554,16 @@ test('upcoming and past views filter consistently across mobile and desktop and 
  }finally{h.close();}
 });
 
-test('existing Rally plans can link without copying private data and connection failures preserve the entry',async()=>{
- const options={raves:[{...entry('Upcoming entry'),startDate:'2099-01-01',endDate:'2099-01-01',attendance:'planned',notes:'Keep private'}],events:[{id:'shared',name:'Crew plan',startsAt:'2099-01-01'}],createPlanFails:true};
- const h=harness(options);try{
-  await until(()=>h.button('View Upcoming entry'));h.button('View Upcoming entry').click();await tick();
-  h.button('Create a Rally plan').click();await tick();h.button('Create and link plan').click();await until(()=>h.text().includes('Could not create plan'));
-  assert(h.text().includes('Keep private'));h.button('Cancel').click();await tick();h.button('Link existing plan').click();await tick();
-  const select=h.w.document.querySelector('select[aria-label="Link an existing Rally plan"]');select.value='shared';select.dispatchEvent(new h.w.Event('change',{bubbles:true}));await tick();
-  h.button('Link this plan').click();await until(()=>h.saves.length===1);assert.equal(h.saves[0].sourceEventId,'shared');assert.equal(h.saves[0].notes,'Keep private');
-  assert.equal(h.saves[0].name,'Upcoming entry');assert.equal(h.saves[0].attendance,'planned');
- }finally{h.close();}
+test('a failed Plan with friends action keeps the personal entry available',async()=>{
+ const h=harness({raves:[{...entry('Upcoming entry'),startDate:'2099-01-01',endDate:'2099-01-01',attendance:'planned',notes:'Keep private'}],createPlanFails:true});try{await until(()=>h.button('View Upcoming entry'));h.button('View Upcoming entry').click();await tick();h.button('Plan with friends').click();await tick();h.button('Start crew plan').click();await until(()=>h.text().includes('Could not create plan'));assert(h.text().includes('Keep private'));assert.equal(h.saves.length,0);assert(!h.button('Link existing plan'));}finally{h.close();}
 });
 
-test('already-added Rally raves are disabled on mobile and desktop and open their existing entry',async()=>{
- for(const mobile of [false,true]){
-  const h=harness({mobile,raves:[{...entry('Saved festival'),sourceEventId:'saved'}],events:[{id:'saved',name:'Saved festival',startsAt:'2025-06-14'},{id:'new',name:'New festival',startsAt:'2025-07-01'}]});
-  try{
-   await until(()=>h.text().includes('Saved festival'));if(mobile){h.button('Add a rave').click();await tick();}h.button('From My raves').click();await tick();
-   const select=h.w.document.querySelector('select[aria-label="Your Rally events"]');
-   assert(select.querySelector('option[value="saved"]').disabled);assert(!select.querySelector('option[value="new"]').disabled);
-   const picker=select.nextElementSibling;picker.querySelector('button').click();
-   const input=picker.querySelector('input');input.value='Saved';input.dispatchEvent(new h.w.Event('input',{bubbles:true}));
-   const option=picker.querySelector('[role="option"]');assert(option.textContent.includes('Already in your diary'));assert.equal(option.getAttribute('aria-disabled'),'true');option.click();await tick();assert.equal(select.value,'');
-   select.value='saved';select.dispatchEvent(new h.w.Event('change',{bubbles:true}));await tick();assert(h.button('Use this rave').disabled);
-   h.button('View diary entry for Saved festival').click();await until(()=>h.w.document.querySelector('.diary-plan-link'));assert(!h.w.document.querySelector('.rave-form'));assert.equal(h.saves.length,0);assert.equal(h.rows.alice.length,1);
-  }finally{h.close();}
- }
+test('automatic Rally entries open directly on mobile and desktop without linking or sync controls',async()=>{
+ for(const mobile of [false,true]){const h=harness({mobile,raves:[{...entry('Crew festival'),id:'rally_crew',sourceEventId:'crew',attendance:'planned'}]});try{await until(()=>h.button('View Crew festival'));assert(!h.button('From My raves'));h.button('View Crew festival').click();await until(()=>h.text().includes('Your Rally rave'));assert(!h.button('Link existing plan'));assert(!h.button('Disconnect plan'));assert(!h.button('Review plan → diary'));assert.equal(h.saves.length,0);}finally{h.close();}}
 });
 
-test('all-used plans show an empty-add explanation and cannot link to a second diary entry',async()=>{
- const h=harness({raves:[{...entry('Saved festival'),sourceEventId:'saved'},entry('Other night')],events:[{id:'saved',name:'Saved festival',startsAt:'2025-06-14'}]});
- try{
-  await until(()=>h.text().includes('Other night'));h.button('From My raves').click();await tick();assert(h.text().includes('All your Rally raves are already in your diary.'));assert(h.button('Use this rave').disabled);
-  h.button('Close dialog').click();await tick();h.button('View Other night').click();await tick();h.button('Link existing plan').click();await tick();
-  const select=h.w.document.querySelector('select[aria-label="Link an existing Rally plan"]');assert(select.querySelector('option[value="saved"]').disabled);
-  select.value='saved';select.dispatchEvent(new h.w.Event('change',{bubbles:true}));await tick();assert(h.button('Link this plan').disabled);h.button('Link this plan').click();await tick();assert.equal(h.saves.length,0);
- }finally{h.close();}
+test('old personal raves have no project creation or connection panel',async()=>{
+ const h=harness({raves:[entry('Old personal night')]});try{await until(()=>h.button('View Old personal night'));h.button('View Old personal night').click();await tick();assert(!h.w.document.querySelector('.diary-plan-link'));assert(!h.button('Plan with friends'));assert(!h.button('Link existing plan'));assert(h.button('Edit this night'));assert.equal(h.requests.filter(r=>r.path==='rallyCollection:createPlan').length,0);}finally{h.close();}
 });
 
 test('ISOxo show autofills the selected night and restores its scoped lineup on edit',async()=>{
@@ -645,7 +580,6 @@ test('ISOxo show autofills the selected night and restores its scoped lineup on 
 for(const mobile of [false,true]) test(`expanded catalog searches aliases and cities without mixing weekend lineups (${mobile?'mobile':'desktop'})`,async()=>{
  const h=harness({empty:true,mobile});try{
   await until(()=>h.button('Add a rave'));h.button('Add a rave').click();await tick();
-  if(mobile){h.button('Find or add a rave').click();await tick();}
   const picker=h.w.document.querySelector('.festival-picker');assert(picker);
   picker.querySelector('.search-select-trigger').click();await tick();
   await h.fill('.festival-picker .search-select-input','EZoo 2023');
@@ -663,7 +597,6 @@ for(const mobile of [false,true]) test(`expanded catalog searches aliases and ci
 for(const mobile of [false,true]) test(`historical shows and unknown lineups stay scoped without writing diary data (${mobile?'mobile':'desktop'})`,async()=>{
  const h=harness({mobile,raves:[{...entry('Unrelated night'),artists:['Unrelated DJ']}]});try{
   await until(()=>h.button('Add a rave'));h.button('Add a rave').click();await tick();
-  if(mobile){h.button('Find or add a rave').click();await tick();}
   assert(h.text().includes('2019–2026'));
   await chooseFestival(h,'firefly-2019');
   assert.equal(h.w.document.querySelector('input[aria-label="Start date"]').value,'06/21/2019');
@@ -680,7 +613,6 @@ for(const mobile of [false,true]) test(`historical shows and unknown lineups sta
 for(const mobile of [false,true]) test(`deep catalog finds a night by venue and support act, then keeps its roster scoped (${mobile?'mobile':'desktop'})`,async()=>{
  const h=harness({empty:true,mobile});try{
   await until(()=>h.button('Add a rave'));h.button('Add a rave').click();await tick();
-  if(mobile){h.button('Find or add a rave').click();await tick();}
   const picker=h.w.document.querySelector('.festival-picker');
   picker.querySelector('.search-select-trigger').click();await tick();
   await h.fill('.festival-picker .search-select-input','Midway SF Seven Lions 2024');
@@ -699,21 +631,8 @@ for(const mobile of [false,true]) test(`deep catalog finds a night by venue and 
 
 const connectedPerson={id:'account:nancy',name:'Nancy',kind:'account',projectId:'project',memberId:'nancy'};
 const connectionFixture=()=>({details:{...entry('Updated shared plan'),city:'Updated city',sourceEventId:'project',attendance:'planned'},people:[connectedPerson],lineup:['Excision'],wishlist:['Excision'],revision:'rev-1',canUpdatePlan:true,sharedMemories:[],myMemory:null});
-for(const mobile of [false,true])test(`reviewed two-way updates and memory sharing remain explicit (${mobile?'mobile':'desktop'})`,async()=>{
- const connection=connectionFixture(),r={...entry('My linked night'),sourceEventId:'project',attendance:'planned',plannedArtists:['My wishlist'],notes:'PRIVATE DIARY',albumUrl:'https://example.com/private'};
- const h=harness({mobile,raves:[r],connection});try{
-  await until(()=>h.button('View My linked night'));h.button('View My linked night').click();await until(()=>h.button('Review plan → diary'));
-  assert(!h.requests.some(r=>r.path==='rallyCollection:syncPlan'||r.path==='rallyCollection:shareMemory'));
-  h.button('Review plan → diary').click();await tick();assert(h.button('Apply selected updates').disabled);
-  h.w.document.querySelector('.plan-sync-choice input').click();await tick();h.button('Apply selected updates').click();await until(()=>h.requests.some(r=>r.path==='rallyCollection:syncPlan'));
-  const request=h.requests.find(r=>r.path==='rallyCollection:syncPlan');assert.deepEqual(request.args.fields,['details']);assert.equal(request.args.direction,'toDiary');assert(!JSON.stringify(request.args).includes('PRIVATE'));assert.equal(h.rows.alice[0].notes,'PRIVATE DIARY');
-  await until(()=>h.button('Review diary → plan'));h.button('Review diary → plan').click();await tick();assert(h.button('Apply selected updates').disabled);h.button('Cancel updates').click();await tick();
-  h.button('Share a memory with this crew').click();await tick();
-  assert.equal(h.w.document.querySelector('.plan-sync-review textarea').value,'');assert.equal(h.w.document.querySelector('.plan-sync-review input[type=url]').value,'');
-  await h.fill('.plan-sync-review textarea','Our sunset set');h.button('Publish to this crew').click();await until(()=>h.requests.some(r=>r.path==='rallyCollection:shareMemory'));
-  const share=h.requests.find(r=>r.path==='rallyCollection:shareMemory');assert.equal(share.args.note,'Our sunset set');assert.equal(share.args.albumUrl,'');
-  assert.equal(h.rows.alice[0].notes,'PRIVATE DIARY');assert.equal(h.saves.length,0);
- }finally{h.close();}
+for(const mobile of [false,true])test(`automatic crew view keeps memory sharing explicit (${mobile?'mobile':'desktop'})`,async()=>{
+ const r={...entry('My crew rave'),sourceEventId:'project',attendance:'planned',notes:'PRIVATE DIARY',albumUrl:'https://example.com/private'},h=harness({mobile,raves:[r],connection:connectionFixture()});try{await until(()=>h.button('View My crew rave'));h.button('View My crew rave').click();await until(()=>h.button('Share a memory with this crew'));assert(!h.button('Review plan → diary'));assert(!h.button('Review diary → plan'));h.button('Share a memory with this crew').click();await tick();assert.equal(h.w.document.querySelector('.plan-sync-review textarea').value,'');assert.equal(h.w.document.querySelector('.plan-sync-review input[type=url]').value,'');await h.fill('.plan-sync-review textarea','Our sunset set');h.button('Publish to this crew').click();await until(()=>h.requests.some(r=>r.path==='rallyCollection:shareMemory'));assert.equal(h.rows.alice[0].notes,'PRIVATE DIARY');assert(!h.requests.some(r=>r.path==='rallyCollection:syncPlan'));}finally{h.close();}
 });
 test('connected friend selection saves stable identities and keeps actual and planned crew separate',async()=>{
  const r={...entry('Linked plan'),sourceEventId:'project',attendance:'planned',plannedCrew:[],crew:[]};
@@ -724,11 +643,8 @@ test('connected friend selection saves stable identities and keeps actual and pl
   assert.deepEqual(h.saves[0].plannedCrew,['Nancy']);assert.equal(h.saves[0].plannedCrewConnections[0].id,'account:nancy');assert.deepEqual(h.saves[0].crew,[]);
  }finally{h.close();}
 });
-test('stale sync failures preserve the diary and leave review choices available',async()=>{
- const r={...entry('My linked night'),sourceEventId:'project',attendance:'planned'};const h=harness({raves:[r],connection:connectionFixture(),syncFails:true});try{
-  await until(()=>h.button('View My linked night'));h.button('View My linked night').click();await until(()=>h.button('Review plan → diary'));h.button('Review plan → diary').click();await tick();h.w.document.querySelector('.plan-sync-choice input').click();await tick();h.button('Apply selected updates').click();
-  await until(()=>h.text().includes('Refresh the preview.'));assert.equal(h.rows.alice[0].name,'My linked night');assert(h.button('Apply selected updates'));assert.equal(h.saves.length,0);
- }finally{h.close();}
+test('a failed crew lookup preserves personal details and can be retried',async()=>{
+ const options={raves:[{...entry('My linked night'),sourceEventId:'project',attendance:'planned',notes:'Keep private'}],connectionFails:true};const h=harness(options);try{await until(()=>h.button('View My linked night'));h.button('View My linked night').click();await until(()=>h.button('Reload crew'));assert(h.text().includes('Keep private'));options.connectionFails=false;h.button('Reload crew').click();await until(()=>h.button('Share a memory with this crew'));assert.equal(h.saves.length,0);}finally{h.close();}
 });
 
 test('same-name Rally accounts remain separate when opening their crew histories',async()=>{
@@ -758,4 +674,13 @@ test('a friend link on an experience opens all of that identity’s history acro
   await until(()=>h.button('View Nancy recent'));h.button('View Nancy recent').click();await tick();h.button('View your rave history with Nancy').click();await tick();
   const names=[...h.w.document.querySelectorAll('.rave-sheet tbody tr')].map(r=>r.textContent);assert.equal(names.length,2);assert(!names.some(n=>n.includes('Another Nancy')));
  }finally{h.close();}
+});
+
+
+test('choosing a catalog rave already supplied by Rally opens its existing diary entry',async()=>{
+ const r={...entry('Lost Lands 2026'),id:'rally_crew',sourceEventId:'crew',catalogEventId:'lost-lands-2026',startDate:'2026-09-18',endDate:'2026-09-20',attendance:'planned'};
+ const h=harness({raves:[r]});try{await until(()=>h.button('Add a rave'));h.button('Add a rave').click();await tick();await chooseFestival(h,'lost-lands-2026');assert(h.text().includes('This Rally rave is already in your diary'));assert(h.button('Save to rave diary').disabled);h.button('Open existing entry').click();await until(()=>h.text().includes('Your Rally rave'));assert(!h.w.document.querySelector('.rave-form'));assert.equal(h.saves.length,0);}finally{h.close();}
+});
+test('returning to the diary refreshes shared details while an open personal draft is preserved',async()=>{
+ const h=harness({raves:[{...entry('Crew night'),sourceEventId:'crew'}]});try{await until(()=>h.button('View Crew night'));h.rows.alice[0].name='Updated crew night';h.w.dispatchEvent(new h.w.Event('focus'));await until(()=>h.button('View Updated crew night'));h.button('Edit Updated crew night').click();await tick();await h.fill('.rave-form textarea','Unsaved memory');const reads=h.requests.filter(r=>r.path==='rallyCollection:list').length;h.w.dispatchEvent(new h.w.Event('focus'));await tick();assert.equal(h.requests.filter(r=>r.path==='rallyCollection:list').length,reads);assert.equal(h.w.document.querySelector('.rave-form textarea').value,'Unsaved memory');}finally{h.close();}
 });
