@@ -73,7 +73,7 @@ test('artist identity separates explicit collaborations and special sets while p
 
 const {festivalEditions, festivalForRave, applyFestival} = moduleAt('festivals.ts');
 test('festival editions have unique identities, real dates, sources, and clean distinct suggestions', () => {
-  assert.equal(festivalEditions.length, 286);
+  assert.equal(festivalEditions.length, 287);
   assert.equal(new Set(festivalEditions.map(e => e.id)).size, festivalEditions.length);
   for (const e of festivalEditions) {
     assert.equal(new Date(e.startDate).toISOString().slice(0,10), e.startDate, e.id);
@@ -322,4 +322,13 @@ test('artist insights count performances separately from B2B credits, raves and 
  assert.equal(year.newArtists,1);assert.equal(year.performances,2);assert.equal(year.repeat,0);assert.equal(year.rows.find(a=>a.name==='Excision').debut,'2023-01-01');assert.equal(year.rows.find(a=>a.name==='Excision').first,'2024-01-01');
  assert.deepEqual(JSON.parse(JSON.stringify(all.timeline)),[{year:'2023',fresh:1,returning:0,total:1},{year:'2024',fresh:1,returning:1,total:2}]);
  assert.equal(artistHistory(rows,'2022').rows.length,0);
+});
+
+
+test('Decadence Digital City matches Colorado 2026 without mixing in Arizona or another year',()=>{
+ const colorado=festivalForRave({...emptyRave(),name:'Decadence: The Digital City',startDate:'2026-12-30',endDate:'2026-12-31',sourceEventId:'crew-decadence'});
+ assert.equal(colorado?.id,'decadence-colorado-2026');assert.equal(colorado.artists.length,23);assert(colorado.artists.includes('GRiZ'));assert(!colorado.artists.includes('Wankdat (Crankdat B2B Wooli)'));
+ assert.equal(festivalForRave({...emptyRave(),name:'Decadence Arizona 2026',startDate:'2026-12-30',endDate:'2026-12-31'})?.id,'decadence-arizona-2026');
+ assert.equal(festivalForRave({...emptyRave(),name:'Decadence: The Digital City',startDate:'2025-12-30',endDate:'2025-12-31'}),undefined);
+ assert.equal(festivalForRave({...emptyRave(),name:'Decadence',startDate:'2026-12-30',endDate:'2026-12-31'}),undefined);
 });

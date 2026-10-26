@@ -845,3 +845,13 @@ for(const mobile of [false,true])test(`artist insights filter, drill into credit
   (mobile?h.w.document.querySelector('.artist-mobile-list>button'):h.button('Explore Excision history')).click();await tick();h.w.document.querySelector('.artist-history-night').click();await tick();assert(h.w.document.querySelector('dialog[aria-label="B2B night"]'));assert.equal(h.saves.length,0);
  }finally{h.close();}
 });
+
+
+test('a linked Digital City plan loads the Colorado lineup even when its Rally lineup is empty',async()=>{
+ const r={...entry('Decadence: The Digital City'),sourceEventId:'decadence-crew',startDate:'2026-12-30',endDate:'2026-12-31',attendance:'planned'};
+ const h=harness({raves:[r],artistSuggestions:[],crewSuggestions:[]});try{
+  await until(()=>h.button('Edit Decadence: The Digital City'));h.button('Edit Decadence: The Digital City').click();await tick();
+  const picker=h.w.document.querySelector('.name-picker');assert(picker.textContent.includes('GRiZ'));assert(picker.textContent.includes('Lane 8'));assert(picker.textContent.includes('23'));assert(!picker.textContent.includes('Wankdat'));
+  assert.equal(picker.querySelectorAll('input:checked').length,0);assert.equal(h.saves.length,0);assert(h.w.document.querySelector('.festival-sources a[href="https://decadencenye.com/lineup/"]'));
+ }finally{h.close();}
+});
