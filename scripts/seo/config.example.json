@@ -1,0 +1,15 @@
+{
+  "site":"sc-domain:nextcard.com",
+  "country":"usa",
+  "keyPath":"/absolute/path/to/existing-readonly-service-account.json",
+  "inventoryPointer":"https://nextcard-static.s3.us-east-1.amazonaws.com/cms/articles/v1/current.json",
+  "draftSnapshot":"/absolute/path/to/office-article-titles.md",
+  "vercelSnapshot":"/absolute/path/to/article-traffic.csv",
+  "keywordEvidence":"/absolute/path/to/keyword-evidence.json",
+  "extraPlannerFiles":[],
+  "thresholds":{"monthlySearches":100,"gscImpressions28d":300,"serpMaxAgeDays":14},
+  "excludedPatterns":["\\bpaze\\b","\\bclover\\b"],
+  "families":[{"id":"edit","label":"Chase Edit hotels","pattern":"\\bedit\\b.*hotel|hotel.*\\bedit\\b|chase.*\\bedit\\b","advantage":"Dated hotel pricing research","strength":2,"constraint":"Verify data availability before promising a live tool."}],
+  "docket":[],
+  "docketAsOf":null
+}

@@ -17,6 +17,12 @@ type MonitoringSnapshot = {
 };
 
 const EXTERNAL_MONITORS = {
+  "seo-content-opportunities": {
+    name: "nextcard SEO opportunities",
+    description: "Content and tool opportunities from GSC, published coverage, Keyword Planner and dated competitor reviews.",
+    cadence: "On-demand research refresh",
+    defaultSource: "https://www.nextcard.com",
+  },
   "edit-hotels-ranking": {
     name: "Cheapest Edit Hotels · keyword bundle",
     description: "Tracks exact-query performance, related Edit searches, and original versus Select Hotels URL visibility. US Search Console data, not a live Google rank tracker.",
@@ -97,7 +103,7 @@ function validateSnapshot(value: unknown): asserts value is MonitoringSnapshot {
 }
 
 function validateReport(value: unknown): ExternalReport {
-  if (!isRecord(value) || JSON.stringify(value).length > 50_000) {
+  if (!isRecord(value) || JSON.stringify(value).length > (value.monitorId === "seo-content-opportunities" ? 200_000 : 50_000)) {
     throw new Error("External monitor report must be a reasonably sized object.");
   }
 

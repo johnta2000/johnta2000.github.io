@@ -78,6 +78,9 @@ function statusMeta(status) {
 }
 
 function monitorStats(monitor) {
+  if (monitor.id === "seo-content-opportunities") {
+    return [["Update candidates", number(monitor.metrics?.updateCount)], ["Research gaps", number(monitor.metrics?.researchCount)], ["Planner keywords", number(monitor.metrics?.plannerKeywords)]];
+  }
   if (monitor.id === "edit-hotels-ranking") {
     return [["Exact query · 3d position", Number.isFinite(monitor.metrics?.recentPosition) ? monitor.metrics.recentPosition.toFixed(2) : "Not observed"],
       ["Exact impressions · 7d", number(monitor.metrics?.impressions)], ["Tracked keywords", number(monitor.metrics?.keywordCount)]];
@@ -632,10 +635,12 @@ function renderMonitorDialog(monitor) {
   if (!monitor.configured) els.monitorDialogContent.innerHTML = placeholderDialogMarkup(monitor);
   else if (monitor.id === "paze-directory") els.monitorDialogContent.innerHTML = pazeDialogMarkup(monitor);
   else if (monitor.id === "edit-hotels-ranking") els.monitorDialogContent.innerHTML = editRankingDialogMarkup(monitor);
+  else if (monitor.id === "seo-content-opportunities") els.monitorDialogContent.innerHTML = window.SeoOpportunities.markup(monitor);
   else if (["paze-clover-map-ranking", "bilt-calculator-ranking"].includes(monitor.id)) els.monitorDialogContent.innerHTML = rankingDialogMarkup(monitor);
   else if (monitor.id === "transfer-bonus-discovery") els.monitorDialogContent.innerHTML = bonusDialogMarkup(monitor);
   else if (monitor.id === "chase-sapphire-reserve-tables") els.monitorDialogContent.innerHTML = chaseDialogMarkup(monitor);
   else els.monitorDialogContent.innerHTML = placeholderDialogMarkup(monitor);
+  if (monitor.id === "seo-content-opportunities" && monitor.configured) window.SeoOpportunities.mount(els.monitorDialogContent);
   if (monitor.id === "edit-hotels-ranking" && monitor.configured) {
     window.EditDailyChart.mount(els.monitorDialogContent.querySelector('.edit-daily-chart'), monitor.details ?? {});
   }
@@ -720,6 +725,8 @@ async function unlockDashboard() {
     renderSnapshot(result.snapshot);
     els.gate.hidden = true;
     els.app.hidden = false;
+    const requestedMonitor = new URLSearchParams(window.location.search).get("monitor");
+    if (requestedMonitor && currentSnapshot.state.monitors.some(m => m.id === requestedMonitor)) await openMonitorDialog(requestedMonitor);
   } catch (error) {
     console.error(error);
     showAuthError(error);

@@ -1,0 +1,1 @@
+{"name":"nextcard-seo-engine","private":true,"type":"module","scripts":{"refresh":"node refresh.mjs","build":"node build.mjs","test":"node --test engine.test.mjs"}}

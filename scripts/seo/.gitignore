@@ -1,0 +1,5 @@
+.cache/
+reports/
+node_modules
+config.json
+reviews.json
