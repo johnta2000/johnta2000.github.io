@@ -106,6 +106,7 @@ test('failed collection load is not presented as an empty collection; retry reco
 test('searchable filters preserve chosen values and an unmatched search has a clear empty state', async () => {
   const h = harness(); try {
     await until(() => h.text().includes('Alice private night'));
+    h.button('Filters').click();await tick();
     const select = h.w.document.querySelector('select[aria-label="Year"]'); await until(() => select.hidden);
     const picker = select.nextElementSibling; picker.querySelector('button').click();
     const search = picker.querySelector('input'); search.value = 'nothing'; search.dispatchEvent(new h.w.Event('input', {bubbles: true})); assert(picker.textContent.includes('No'));
@@ -265,7 +266,7 @@ test('calendar keyboard navigation crosses months and Escape only closes the cal
 test('partial date filters do not hide nights and clearing filters resets their text',async()=>{
  const h=harness();try{
   await until(()=>h.text().includes('Alice private night'));
-  h.button('More filters').click();await tick();
+  h.button('Filters').click();await tick();h.button('More filters').click();await tick();
   await h.fill('input[aria-label="From date"]','02/');assert(h.text().includes('Alice private night'));
   h.button('Reset').click();await tick();assert.equal(h.w.document.querySelector('input[aria-label="From date"]').value,'');
  }finally{h.close();}
@@ -335,7 +336,7 @@ test('logging shows core credits but saves the original collaboration and specia
     assert(picker.textContent.includes('2 sets · 2 unique artists'));
     h.button('Save changes').click(); await until(() => h.saves.length === 1 && !h.w.document.querySelector('.rave-form'));
     assert.deepEqual([...h.saves[0].artists].sort(), [...labels].sort());
-    const artistPicker = h.w.document.querySelector('select[aria-label="Artist"]');
+    h.button('Filters').click();await tick();const artistPicker = h.w.document.querySelector('select[aria-label="Artist"]');
     assert(artistPicker.textContent.includes('Excision')); assert(artistPicker.textContent.includes('Space Laces'));
     assert(!artistPicker.textContent.includes('Detox'));
     artistPicker.value = 'Excision'; artistPicker.dispatchEvent(new h.w.Event('change',{bubbles:true})); await tick();
@@ -553,7 +554,7 @@ test('upcoming and past views filter consistently across mobile and desktop and 
   h.button('All filters').click();await tick();h.button('Upcoming 1').click();await tick();h.button('Reset').click();await tick();assert(h.button('View Past attended'));h.button('Upcoming 1').click();await tick();
   h.resize(false);await tick();assert(h.button('View Next rave'));assert(!h.button('View Past attended'));
   h.button('Past 2').click();await tick();assert(!h.button('View Next rave'));assert(h.button('View Past attended'));
-  assert(h.w.document.querySelector('.result-summary').textContent.includes('1artists seen'));
+  assert(h.w.document.querySelector('.result-summary').textContent.includes('1Artists seen'));
  }finally{h.close();}
 });
 

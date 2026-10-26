@@ -1,0 +1,38 @@
+@media (min-width:761px) {
+  .spreadsheet-app .desktop-analysis { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:16px; padding:0; margin:0 0 28px; border:0; }
+  .desktop-analysis .analysis-metric { position:relative; display:flex; flex-direction:column; align-items:flex-start; gap:7px; min-width:0; padding:22px; background:#fff; border:1px solid var(--line); border-radius:14px; }
+  .desktop-analysis .analysis-metric > svg { position:absolute; top:23px; right:20px; color:var(--secondary); opacity:.7; }
+  .desktop-analysis .analysis-metric > strong { font-size:34px; line-height:1.2; letter-spacing:-1px; font-weight:650; font-variant-numeric:tabular-nums; max-width:100%; overflow-wrap:anywhere; padding-right:22px; }
+  .desktop-analysis .analysis-metric > span { font-size:14px; font-weight:600; color:var(--ink); }
+  .desktop-analysis .analysis-metric > small { font-size:12px; line-height:1.5; color:var(--secondary); margin:0; }
+  .spreadsheet-app .desktop-explorer-toolbar { display:flex; gap:24px; align-items:center; margin:0 0 16px; flex-wrap:wrap; }
+  .desktop-explorer-toolbar .results-label h2 { font-size:18px; }
+  .desktop-explorer-toolbar .results-label > span { font-size:12px; }
+  .desktop-explorer-toolbar .results-controls { flex:1; justify-content:flex-end; gap:10px; min-width:0; }
+  .desktop-explorer-toolbar .results-search { flex:1; max-width:440px; min-width:170px; min-height:44px; padding:10px 13px; border-radius:10px; background:#fff; }
+  .desktop-explorer-toolbar .results-search input { font-size:14px; width:100%; min-width:0; }
+  .desktop-explorer-toolbar .utility-button { min-height:44px; padding:10px 13px; font-size:13px; border-radius:10px; white-space:nowrap; }
+  .desktop-explorer-toolbar .desktop-filter-trigger.active { color:var(--accent); background:#f2edf9; border-color:#d9c9ee; }
+  .desktop-filter-trigger .filter-count { display:grid; place-items:center; min-width:20px; height:20px; border-radius:50%; color:var(--accent); background:#eee5fa; font-size:11px; font-weight:700; }
+  .explorer:not(.timeline-explorer) .filter-panel { margin:0 0 16px; padding:20px; border-radius:12px; background:#faf9fc; }
+  .explorer:not(.timeline-explorer) .filter-panel-label { font-size:13px; margin-bottom:18px; }
+  .explorer:not(.timeline-explorer) .filter-panel-label > span { font-size:12px; }
+  .explorer:not(.timeline-explorer) .filter-panel-label > button { font-size:12px; min-height:32px; }
+  .explorer:not(.timeline-explorer) .filter-grid { gap:14px; }
+  .explorer:not(.timeline-explorer) .filter-grid .picker-label { font-size:12px; }
+  .explorer:not(.timeline-explorer) .filter-grid .search-select-trigger { min-height:44px; font-size:13px; }
+  .explorer:not(.timeline-explorer) .filter-extras > button { min-height:36px; font-size:12px; }
+  .spreadsheet-app .recap .recap-big { font-size:32px; line-height:1.25; }
+  .spreadsheet-app .recap .cost-breakdown strong { font-size:20px; }
+  .spreadsheet-app .recap .month-col > span { font-size:16px; font-weight:600; }
+}
+@media (min-width:761px) and (max-width:1100px) {
+  .spreadsheet-app .desktop-analysis { gap:10px; }
+  .desktop-analysis .analysis-metric { padding:18px 14px; }
+  .desktop-analysis .analysis-metric > strong { font-size:27px; }
+  .desktop-analysis .analysis-metric > svg { right:14px; top:20px; width:15px; }
+  .desktop-analysis .analysis-metric > span { font-size:13px; }
+  .desktop-explorer-toolbar .results-label { width:100%; }
+  .desktop-explorer-toolbar .results-controls { width:100%; }
+  .desktop-explorer-toolbar .results-search { max-width:none; }
+}

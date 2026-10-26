@@ -11,6 +11,7 @@ import './rally.css';
 import './usability.css';
 import './timeline.css';
 import './navigation.css';
+import './desktop-explorer.css';
 
 const CONVEX_URL = 'https://dashing-heron-837.convex.cloud';
 type Viewer = {name: string; subject: string; sessionId?: string};
