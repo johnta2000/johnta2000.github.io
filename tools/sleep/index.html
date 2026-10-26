@@ -17,7 +17,7 @@
     <meta name="theme-color" content="#f7f8fa" />
     <title>Daylight — Your sleep, in perspective</title>
     <link rel="stylesheet" href="/assets/css/searchable-select.css" />
-    <link rel="stylesheet" href="./styles.css?v=20261025-4" />
+    <link rel="stylesheet" href="./styles.css?v=20261025-5" />
   <link rel="stylesheet" href="../../assets/css/clerk-auth.css?v=20261011-otp1">
   </head>
   <body>
@@ -377,10 +377,11 @@
               <div class="group-plot-wrap"><div id="groupPlot" tabindex="0" role="group" aria-label="Group history. Use left and right arrow keys to explore dates." aria-describedby="groupChartStatus"></div><div id="groupTooltip" class="group-tooltip" hidden></div><p id="groupEmpty" class="chart-empty" hidden>Select a person above to show their history.</p></div>
               <p id="groupChartStatus" class="sr-only" role="status" aria-live="polite"></p>
               <p class="group-chart-note">WHOOP · Missing days appear as gaps. Select a person above to hide or show their line.</p>
-              <div class="group-summary-heading"><h3>Consistency &amp; chaos</h3><p class="small-note">Same average, different story. Stats use the selected period; swings require consecutive tracked days.</p></div>
+              <div class="group-summary-heading"><h3>Consistency &amp; chaos</h3><p class="small-note">Compare the average and how much each person varies day to day.</p></div>
               <div id="groupVariability" class="group-variability"></div>
-              <div class="group-summary-heading"><h3>Averages over this period</h3><p id="groupBaselineNote" class="small-note"></p></div>
-              <div class="table-wrap"><table><caption class="sr-only">Selected members’ average, change from their own previous period, and data coverage</caption><thead><tr><th scope="col">Person</th><th scope="col" id="groupMetricHeading">Time asleep</th><th scope="col">Change vs. own previous period</th><th scope="col">Days tracked</th></tr></thead><tbody id="groupSummaryRows"></tbody></table></div>
+              <details class="stats-method"><summary>How these stats work</summary><p>Typical swing is the average absolute change between consecutive tracked days. Volatility is the population standard deviation; trend is a fitted change per calendar day. Gaps are excluded. Highlights compare shown people only when everyone has at least 80% day and pair coverage, with at least four daily pairs. Ties share highlights. These describe variation, not health.</p></details>
+              <details class="stats-previous"><summary>Compare with the previous period</summary><p id="groupBaselineNote" class="small-note"></p>
+              <div class="table-wrap"><table><caption class="sr-only">Selected members’ average, change from their own previous period, and data coverage</caption><thead><tr><th scope="col">Person</th><th scope="col" id="groupMetricHeading">Time asleep</th><th scope="col">Change vs. own previous period</th><th scope="col">Days tracked</th></tr></thead><tbody id="groupSummaryRows"></tbody></table></div></details>
             </article>
             <section id="groupStandings" class="panel group-standings" hidden>
               <div class="panel-heading"><div><p class="eyebrow" id="standingsPeriod">LAST 7 COMPLETE DAYS</p><h2>Weekly standings</h2></div><button id="customizeStandings" type="button" class="secondary-button">Choose metrics</button></div>
@@ -654,6 +655,6 @@
     <script defer src="./model.js?v=20261025-4"></script>
     <script defer src="./comparison.js?v=20261025-4"></script>
     <script defer src="./groups.js?v=20261025-2"></script>
-    <script defer src="./app.js?v=20261025-4"></script>
+    <script defer src="./app.js?v=20261025-5"></script>
   </body>
 </html>
