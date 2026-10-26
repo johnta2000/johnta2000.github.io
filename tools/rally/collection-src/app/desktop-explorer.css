@@ -14,14 +14,6 @@
   .desktop-explorer-toolbar .utility-button { min-height:44px; padding:10px 13px; font-size:13px; border-radius:10px; white-space:nowrap; }
   .desktop-explorer-toolbar .desktop-filter-trigger.active { color:var(--accent); background:#f2edf9; border-color:#d9c9ee; }
   .desktop-filter-trigger .filter-count { display:grid; place-items:center; min-width:20px; height:20px; border-radius:50%; color:var(--accent); background:#eee5fa; font-size:11px; font-weight:700; }
-  .explorer:not(.timeline-explorer) .filter-panel { margin:0 0 16px; padding:20px; border-radius:12px; background:#faf9fc; }
-  .explorer:not(.timeline-explorer) .filter-panel-label { font-size:13px; margin-bottom:18px; }
-  .explorer:not(.timeline-explorer) .filter-panel-label > span { font-size:12px; }
-  .explorer:not(.timeline-explorer) .filter-panel-label > button { font-size:12px; min-height:32px; }
-  .explorer:not(.timeline-explorer) .filter-grid { gap:14px; }
-  .explorer:not(.timeline-explorer) .filter-grid .picker-label { font-size:12px; }
-  .explorer:not(.timeline-explorer) .filter-grid .search-select-trigger { min-height:44px; font-size:13px; }
-  .explorer:not(.timeline-explorer) .filter-extras > button { min-height:36px; font-size:12px; }
   .spreadsheet-app .recap .recap-big { font-size:32px; line-height:1.25; }
   .spreadsheet-app .recap .cost-breakdown strong { font-size:20px; }
   .spreadsheet-app .recap .month-col > span { font-size:16px; font-weight:600; }
@@ -49,4 +41,48 @@
 @media (min-width:1100px) {
   .modal.wide .rave-people-grid { display:grid; grid-template-columns:minmax(0,1.15fr) minmax(0,1fr); gap:28px; align-items:start; }
   .modal.wide .form-fields > .form-grid, .modal.wide .form-grid.costs { grid-template-columns:repeat(4,minmax(0,1fr)); gap:0 20px; }
+}
+
+/* Keep everyday filters visible; secondary criteria float over the results. */
+@media (min-width:761px) {
+  .spreadsheet-app .desktop-explorer-toolbar { margin-bottom:12px; padding-top:0; border-top:0; }
+  .desktop-explorer-toolbar .results-label { width:auto; }
+  .desktop-explorer-toolbar .results-controls { width:auto; flex:0; }
+  .desktop-filter-bar { display:grid; grid-template-columns:minmax(220px,2fr) minmax(110px,1fr) minmax(100px,.85fr) minmax(115px,1fr) minmax(145px,1.2fr) auto; gap:8px; align-items:center; margin-bottom:16px; }
+  .desktop-filter-bar > * { min-width:0; }
+  .desktop-filter-bar .results-search { min-height:44px; padding:10px 12px; border-radius:9px; }
+  .desktop-filter-bar .results-search input { width:100%; min-width:0; font-size:13px; }
+  .desktop-filter-bar .results-search > svg { flex-shrink:0; }
+  .desktop-filter-bar .shared-picker, .desktop-filter-bar .search-select { width:100%; }
+  .desktop-filter-bar .search-select-trigger, .desktop-filter-bar .utility-button { min-height:44px; font-size:13px; border-radius:9px; padding:10px 12px; }
+  .desktop-filter-bar .desktop-filter-trigger.active { color:var(--accent); background:#f2edf9; border-color:#d9c9ee; }
+  .explorer .desktop-filter-popover { z-index:80; box-sizing:border-box; margin:0; padding:20px 20px 0; overflow:auto; overscroll-behavior:contain; background:#fff; border:1px solid var(--line); border-radius:14px; box-shadow:0 12px 40px #28203326,0 2px 8px #2820330d; }
+  .filter-popover-heading { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom:20px; }
+  .filter-popover-heading > div { display:flex; flex-direction:column; gap:5px; }
+  .filter-popover-heading strong { font-size:16px; color:var(--ink); }
+  .filter-popover-heading span { font-size:12px; color:var(--secondary); }
+  .filter-popover-heading > button { display:grid; place-items:center; width:32px; height:32px; border-radius:8px; background:var(--surface); }
+  .desktop-filter-popover .filter-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; }
+  .desktop-filter-popover .picker-label { font-size:12px; }
+  .desktop-filter-popover .search-select-trigger { min-height:44px; font-size:13px; }
+  .desktop-filter-popover .filter-extras { flex-wrap:wrap; gap:8px; padding:14px 0; }
+  .desktop-filter-popover .filter-extras > button { min-height:36px; padding:8px 10px; font-size:12px; border:1px solid var(--line); border-radius:8px; }
+  .desktop-filter-popover .filter-extras > button.active { background:#f2edf9; color:var(--accent); border-color:#d9c9ee; }
+  .desktop-filter-popover .advanced-filters { grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; }
+  .desktop-filter-popover .advanced-filters > .shared-picker { grid-column:1/-1; }
+  .desktop-filter-popover .date-field { margin:0; }
+  .desktop-filter-popover .date-field > label { font-size:12px; }
+  .desktop-filter-popover .date-field > small { font-size:10px; line-height:1.5; }
+  .desktop-filter-popover .advanced-filters > label { font-size:12px; }
+  .desktop-filter-popover .advanced-filters input { min-height:44px; border-radius:8px; }
+  .filter-popover-footer { position:sticky; bottom:0; display:flex; align-items:center; justify-content:space-between; gap:16px; padding:14px 0; background:#fff; border-top:1px solid var(--line); }
+  .filter-popover-footer > button { display:flex; gap:6px; align-items:center; min-height:40px; font-size:13px; }
+  .filter-popover-footer .primary { border-radius:8px; }
+  .sheet-footer { align-items:center; gap:20px; }
+  .sheet-footer p { margin-right:auto; }
+  .sheet-footer > .utility-button { margin-left:auto; min-height:40px; font-size:12px; background:transparent; }
+}
+@media (min-width:761px) and (max-width:1150px) {
+  .desktop-filter-bar { grid-template-columns:repeat(4,minmax(0,1fr)) auto; }
+  .desktop-filter-bar > .results-search { grid-column:1/-1; }
 }

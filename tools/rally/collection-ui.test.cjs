@@ -106,7 +106,6 @@ test('failed collection load is not presented as an empty collection; retry reco
 test('searchable filters preserve chosen values and an unmatched search has a clear empty state', async () => {
   const h = harness(); try {
     await until(() => h.text().includes('Alice private night'));
-    h.button('Filters').click();await tick();
     const select = h.w.document.querySelector('select[aria-label="Year"]'); await until(() => select.hidden);
     const picker = select.nextElementSibling; picker.querySelector('button').click();
     const search = picker.querySelector('input'); search.value = 'nothing'; search.dispatchEvent(new h.w.Event('input', {bubbles: true})); assert(picker.textContent.includes('No'));
@@ -266,7 +265,7 @@ test('calendar keyboard navigation crosses months and Escape only closes the cal
 test('partial date filters do not hide nights and clearing filters resets their text',async()=>{
  const h=harness();try{
   await until(()=>h.text().includes('Alice private night'));
-  h.button('Filters').click();await tick();h.button('More filters').click();await tick();
+  h.button('More filters').click();await tick();
   await h.fill('input[aria-label="From date"]','02/');assert(h.text().includes('Alice private night'));
   h.button('Reset').click();await tick();assert.equal(h.w.document.querySelector('input[aria-label="From date"]').value,'');
  }finally{h.close();}
@@ -336,7 +335,7 @@ test('logging shows core credits but saves the original collaboration and specia
     assert(picker.textContent.includes('2 sets · 2 unique artists'));
     h.button('Save changes').click(); await until(() => h.saves.length === 1 && !h.w.document.querySelector('.rave-form'));
     assert.deepEqual([...h.saves[0].artists].sort(), [...labels].sort());
-    h.button('Filters').click();await tick();const artistPicker = h.w.document.querySelector('select[aria-label="Artist"]');
+    h.button('More filters').click();await tick();const artistPicker = h.w.document.querySelector('select[aria-label="Artist"]');
     assert(artistPicker.textContent.includes('Excision')); assert(artistPicker.textContent.includes('Space Laces'));
     assert(!artistPicker.textContent.includes('Detox'));
     artistPicker.value = 'Excision'; artistPicker.dispatchEvent(new h.w.Event('change',{bubbles:true})); await tick();
@@ -553,7 +552,7 @@ test('upcoming and past views filter consistently across mobile and desktop and 
   h.button('Remove date period filter').click();await tick();assert(h.button('View Past attended'));
   h.button('All filters').click();await tick();h.button('Upcoming 1').click();await tick();h.button('Reset').click();await tick();assert(h.button('View Past attended'));h.button('Upcoming 1').click();await tick();
   h.resize(false);await tick();assert(h.button('View Next rave'));assert(!h.button('View Past attended'));
-  h.button('Past 2').click();await tick();assert(!h.button('View Next rave'));assert(h.button('View Past attended'));
+  const when=h.w.document.querySelector('select[aria-label="When"]');when.value='past';when.dispatchEvent(new h.w.Event('change',{bubbles:true}));await tick();assert(!h.button('View Next rave'));assert(h.button('View Past attended'));
   assert(h.w.document.querySelector('.result-summary').textContent.includes('1Artists seen'));
  }finally{h.close();}
 });
@@ -714,5 +713,31 @@ for (const mobile of [false, true]) test(`EDC 2027 weekend selection fills only 
   assert.equal(h.w.document.querySelector('input[aria-label="End date"]').value,'05/23/2027');
   assert(h.text().includes('No verified lineup is available'));
   assert.equal(h.saves.length,0);
+ }finally{h.close();}
+});
+
+
+test('desktop extra filters dismiss without losing criteria and return keyboard focus',async()=>{
+ const h=harness({raves:[{...entry('Favorite night'),rating:5},{...entry('Other night'),rating:3}]});try{
+  await until(()=>h.button('More filters'));
+  assert(h.w.document.querySelector('.desktop-filter-bar select[aria-label="Year"]'));
+  assert(h.w.document.querySelector('.sheet-footer').contains(h.button('Export CSV')));
+  h.button('More filters').click();await tick();
+  const panel=h.w.document.querySelector('[role="dialog"][aria-label="More filters"]');assert(panel);assert.equal(panel.style.position,'fixed');
+  h.button('5-star nights').click();await tick();assert(h.button('View Favorite night'));assert(!h.button('View Other night'));
+  panel.dispatchEvent(new h.w.KeyboardEvent('keydown',{key:'Escape',bubbles:true}));await tick();
+  assert(!h.w.document.querySelector('.desktop-filter-popover'));assert.equal(h.w.document.activeElement,h.button('More filters'));assert(h.button('Remove Rating filter'));
+  h.button('More filters').click();await tick();
+  h.button('Choose from date on calendar').click();await tick();
+  const calendar=h.w.document.querySelector('.date-calendar-dialog');assert(calendar);
+  calendar.dispatchEvent(new h.w.KeyboardEvent('keydown',{key:'Escape',bubbles:true}));await tick();assert(h.w.document.querySelector('.desktop-filter-popover'));
+  calendar.dispatchEvent(new h.w.Event('cancel',{cancelable:true}));await tick();assert(!h.w.document.querySelector('.date-calendar-dialog'));assert(h.w.document.querySelector('.desktop-filter-popover'));
+  const artist=h.w.document.querySelector('select[aria-label="Artist"]').nextElementSibling;
+  artist.querySelector('button').click();await tick();
+  artist.querySelector('input').dispatchEvent(new h.w.KeyboardEvent('keydown',{key:'Escape',bubbles:true}));await tick();
+  assert(h.w.document.querySelector('.desktop-filter-popover'));
+  h.w.document.querySelector('input[aria-label="Search results"]').dispatchEvent(new h.w.Event('pointerdown',{bubbles:true}));await tick();
+  assert(!h.w.document.querySelector('.desktop-filter-popover'));assert(h.button('Remove Rating filter'));
+  h.button('Remove Rating filter').click();await tick();assert(h.button('View Other night'));
  }finally{h.close();}
 });
