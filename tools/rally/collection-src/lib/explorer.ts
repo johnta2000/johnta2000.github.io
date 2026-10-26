@@ -1,5 +1,6 @@
 import {festivalForRave} from './festivals';
 import {parseDate} from './dates';
+import {locationSearchText,searchDocument,scoreSearch} from './search';
 import {artistsForRave} from './artists';
 import { isAttended, displaySets, displayCrew, totalCost, type Rave } from './raves.ts';
 export type Filters = { year: string; kind: string; city: string; artist: string; crew: string; from: string; to: string; minCost: string; maxCost: string; rating: number; photosOnly: boolean; costStatus: ''|'unlogged'|'partial'|'complete' };
@@ -8,9 +9,8 @@ export type Sort = {key:SortKey;direction:'asc'|'desc'};
 export const emptyFilters=():Filters=>({year:'all',kind:'',city:'',artist:'',crew:'',from:'',to:'',minCost:'',maxCost:'',rating:0,photosOnly:false,costStatus:''});
 const same=(a:string,b:string)=>a.toLocaleLowerCase()===b.toLocaleLowerCase();
 export function filterRaves(raves:Rave[],filters:Filters,query:string) {
-  const words=query.trim().toLocaleLowerCase().split(/\s+/).filter(Boolean);
-  const from=parseDate(filters.from),to=parseDate(filters.to);
-  return raves.filter(r=>{
+  const from=parseDate(filters.from),to=parseDate(filters.to),searchCache=new Map<string,number>();
+  const filtered=raves.filter(r=>{
     if(filters.year!=='all' && !r.startDate.startsWith(filters.year))return false;
     if(filters.kind && r.kind!==filters.kind)return false;
     if(filters.city && !same(r.city,filters.city))return false;
@@ -27,9 +27,15 @@ export function filterRaves(raves:Rave[],filters:Filters,query:string) {
     const cost=totalCost(r);
     if(filters.minCost!=='' && (cost===null || cost<Number(filters.minCost)))return false;
     if(filters.maxCost!=='' && (cost===null || cost>Number(filters.maxCost)))return false;
-    const text=[r.name,festivalForRave(r)?.name||'',r.startDate,r.endDate,r.city,r.venue,r.kind,...displaySets(r),...artistsForRave({artists:displaySets(r)}),...displayCrew(r),r.favoriteArtist,r.notes].join(' ').toLocaleLowerCase();
-    return words.every(word=>text.includes(word));
+    return true;
   });
+  if(!query.trim())return filtered;
+  const documents=filtered.map(r=>{
+    const edition=festivalForRave(r);
+    return {r,document:searchDocument([r.name,edition?.name||'',...(edition?.aliases||[])],[r.startDate,r.endDate,r.city,locationSearchText(r.city),r.venue,r.kind],[...displaySets(r),...artistsForRave({artists:displaySets(r)}),...displayCrew(r),r.favoriteArtist,r.notes])};
+  });
+  const exact=documents.filter(row=>scoreSearch(query,row.document,searchCache,false)>=0);
+  return (exact.length?exact:documents.filter(row=>scoreSearch(query,row.document,searchCache)>=0)).map(row=>row.r);
 }
 export function sortRaves(raves:Rave[],sort:Sort) {
   const value=(r:Rave):string|number|null=>{

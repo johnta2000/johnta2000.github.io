@@ -73,7 +73,7 @@ test('artist identity separates explicit collaborations and special sets while p
 
 const {festivalEditions, festivalForRave, applyFestival} = moduleAt('festivals.ts');
 test('festival editions have unique identities, real dates, sources, and clean distinct suggestions', () => {
-  assert.equal(festivalEditions.length, 256);
+  assert.equal(festivalEditions.length, 286);
   assert.equal(new Set(festivalEditions.map(e => e.id)).size, festivalEditions.length);
   for (const e of festivalEditions) {
     assert.equal(new Date(e.startDate).toISOString().slice(0,10), e.startDate, e.id);
@@ -279,4 +279,32 @@ test('renaming a connected catalog event keeps it searchable by its shared festi
   }
   assert.notEqual(dusk.id, dawn.id);
   assert.equal(festivalForRave({...applyFestival(emptyRave(), dusk), endDate: dawn.endDate}), undefined);
+});
+
+test('Calvin Harris US tour nights are separate sourced shows with only the confirmed headliner',()=>{
+ const dates=festivalEditions.filter(e=>e.id.startsWith('calvin-harris-')&&e.year===2027);
+ assert.equal(dates.length,30);assert.equal(new Set(dates.map(e=>e.id)).size,30);
+ assert.deepEqual(Array.from(dates.filter(e=>e.city==='Oakland, CA'),e=>e.startDate),['2027-05-09','2027-05-08','2027-05-07'].sort((a,b)=>a.localeCompare(b)));
+ for(const e of dates){assert.equal(e.kind,'Show');assert.equal(e.startDate,e.endDate);assert.deepEqual(Array.from(e.artists),['Calvin Harris']);assert.equal(e.coverage,'partial');assert(e.sources.some(s=>s.url==='https://drop.cobrand.com/d/CalvinHarris/2027'));}
+});
+
+test('event search handles misspellings and joined words while keeping exact years and dates distinct',()=>{
+ const {scoreCatalogEvent}=moduleAt('catalogSearch.ts');
+ const find=q=>Array.from(festivalEditions,e=>({e,score:scoreCatalogEvent(q,e.id)})).filter(r=>r.score>=0).sort((a,b)=>b.score-a.score).map(r=>r.e.id);
+ assert.deepEqual(find('lostlands 2026'),['lost-lands-2026']);
+ assert.deepEqual(find('nitehearts 2026'),['niteharts-2026']);
+ assert.equal(find('portloa 2025')[0],'portola-2025');
+ assert.deepEqual(find('calvn haris oak 2027'),['calvin-harris-oakland-2027-05-07','calvin-harris-oakland-2027-05-08','calvin-harris-oakland-2027-05-09']);
+ assert.deepEqual(find('2027 calvin SF'),find('calvin oakland 2027'));
+ assert.equal(find('Daly City 2025').length,2);
+ assert.equal(find('lostlands 2028').length,0);
+ assert.deepEqual(find('calvin oakland 2027-05-08'),['calvin-harris-oakland-2027-05-08']);
+ assert.equal(find('tomorowland 2022').length,3);
+});
+
+test('diary search accepts typos, reordered words, and accent-free artist names',()=>{
+ const r={...applyFestival(emptyRave(),festivalEditions.find(e=>e.id==='lost-lands-2026')),id:'search-night',artists:['RÜFÜS DU SOL']};
+ assert.equal(filterRaves([r],emptyFilters(),'2026 lostlnads').length,1);
+ assert.equal(filterRaves([r],emptyFilters(),'rufus').length,1);
+ assert.equal(filterRaves([r],emptyFilters(),'lostlands 2028').length,0);
 });

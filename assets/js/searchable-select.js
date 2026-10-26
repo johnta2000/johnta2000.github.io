@@ -3,7 +3,7 @@
   'use strict';
   const instances = new WeakMap();
   let sequence = 0, current = null;
-  function enhance(select, { focusSearchOnOpen = true, onCreate, customMaxLength = 150 } = {}) {
+  function enhance(select, { focusSearchOnOpen = true, onCreate, customMaxLength = 150, scoreOption } = {}) {
     if (instances.has(select)) return instances.get(select);
     const listeners = new AbortController(), wasHidden = select.hidden;
     const id = select.id || `picker-${++sequence}`;
@@ -42,7 +42,7 @@
     function filter() {
       const query = normalized(search.value.trim());
       const terms = select.dataset.searchTokens === 'true' ? query.split(/\s+/).filter(Boolean) : [query];
-      matches = Array.from(select.options).filter(option => !option.hidden && terms.every(term => normalized(`${option.textContent} ${option.dataset.searchText || ''}`).includes(term)));
+      matches = scoreOption && query ? Array.from(select.options).filter(option => !option.hidden).map(option => ({option, score: scoreOption(search.value, option)})).filter(result => result.score >= 0).sort((a,b) => b.score-a.score).map(result => result.option) : Array.from(select.options).filter(option => !option.hidden && terms.every(term => normalized(`${option.textContent} ${option.dataset.searchText || ''}`).includes(term)));
       const customValue = search.value.trim();
       if (onCreate && customValue && customValue.length <= customMaxLength && !Array.from(select.options).some(option => normalized(option.value.trim()) === query)) {
         matches.push({value: customValue, textContent: `Use “${customValue}”`, selected: false, disabled: false, custom: true});
@@ -61,7 +61,7 @@
       });
       empty.hidden = matches.length > 0;
       const selected = matches.findIndex(option => option.selected && !option.disabled);
-      activate(selected >= 0 ? selected : matches.findIndex(option => !option.disabled), false);
+      activate(selected >= 0 && !(scoreOption && query) ? selected : matches.findIndex(option => !option.disabled), false);
     }
     function position() {
       if (!opened) return;

@@ -1,5 +1,6 @@
 import data from '../data/festivals.json';
 import type {Rave} from './raves';
+import {locationSearchText} from './search';
 
 export type FestivalEdition = {
   id: string; festival: string; year: number; weekend?: number; kind?: Rave['kind']; name: string; aliases?: string[];
@@ -11,8 +12,7 @@ export const catalogYearRange = `${Math.min(...festivalEditions.map(e => e.year)
 // Include support acts and ISO dates so an old night can be found even when
 // someone remembers the venue, artist, or month rather than its billed title.
 export function catalogSearchText(edition: FestivalEdition) {
-  const cityAliases = edition.city === 'San Francisco, CA' ? 'SF San Fran Bay Area' : edition.city === 'Los Angeles, CA' ? 'LA' : edition.city === 'New York, NY' ? 'NYC' : '';
-  return [edition.city, cityAliases, edition.venue, edition.startDate, edition.endDate, ...(edition.aliases || []), ...edition.artists].join(' ');
+  return [edition.city, locationSearchText(edition.city), edition.venue, edition.startDate, edition.endDate, ...(edition.aliases || []), ...edition.artists].join(' ');
 }
 const key = (s: string) => s.trim().toLocaleLowerCase().replace(/[’']/g, '').replace(/\s+/g, ' ');
 

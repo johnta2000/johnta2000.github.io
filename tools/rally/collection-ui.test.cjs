@@ -798,3 +798,15 @@ test('missing lineup artists can be added from a bounded shared catalog search w
   }finally{h.close();}
  }
 });
+
+for(const mobile of [false,true])test(`catalog typo search ranks and selects the correct Calvin Harris night (${mobile?'mobile':'desktop'})`,async()=>{
+ const h=harness({mobile});try{
+  await until(()=>h.button('Add a rave'));h.button('Add a rave').click();await tick();
+  const picker=h.w.document.querySelector('.festival-picker');picker.querySelector('.search-select-trigger').click();await tick();
+  await h.fill('.festival-picker .search-select-input','calvn haris oak 2027');
+  const options=[...picker.querySelectorAll('[role=option]')];assert.equal(options.length,3);assert(options.every(o=>o.textContent.includes('Oakland')));assert(options[0].textContent.includes('May 7'));
+  picker.querySelector('.search-select-input').dispatchEvent(new h.w.KeyboardEvent('keydown',{key:'Enter',bubbles:true,cancelable:true}));await tick();
+  assert.equal(h.w.document.querySelector('input[aria-label="Start date"]').value,'05/07/2027');assert(h.w.document.querySelector('input[aria-label="Artists you want to see"]'));assert.equal(h.saves.length,0);
+  assert.equal(h.w.document.querySelectorAll('.name-picker-option input:checked').length,0);
+ }finally{h.close();}
+});
