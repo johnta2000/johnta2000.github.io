@@ -16,9 +16,10 @@
 .festival-preview p { margin: 10px 0; font-size: 12px; color: var(--secondary); }
 .festival-preview-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 .festival-preview-actions button { min-height: 44px; padding: 10px 14px; font-size: 12px; }
-.festival-lineup-note { margin: 0 0 18px; padding: 14px; border: 1px solid var(--line); border-radius: 9px; background: var(--subtle); font-size: 12px; line-height: 1.6; }
-.festival-lineup-note > strong { display: block; color: var(--ink); font-size: 13px; }
-.festival-lineup-note > p { margin: 4px 0 0; color: var(--secondary); }
+.lineup-context { font-size:12px; line-height:1.6; color:var(--secondary); margin:0 0 14px; }
+.festival-reference { border-top:1px solid var(--line); padding:12px 0 18px; margin-top:8px; }
+.festival-reference summary > span { margin-left:10px; color:var(--secondary); font-size:11px; font-weight:400; }
+.festival-reference .festival-sources > strong { display:block; margin:8px 0; font-size:13px; }
 .festival-sources { margin-top: 5px; }
 .festival-sources summary { min-height: 44px; display: list-item; cursor: pointer; padding: 12px 0 8px; color: var(--accent-hover); font-size: 12px; }
 .festival-sources p, .festival-sources small { color: var(--secondary); font-size: 12px; }

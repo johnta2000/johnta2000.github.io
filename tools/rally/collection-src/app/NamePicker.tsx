@@ -4,10 +4,12 @@ import {uniqueNames} from '../lib/raves';
 import {artistsForRave, creditDescription, performanceKey} from '../lib/artists';
 import './name-picker.css';
 
-export default function NamePicker({label, noun, values, onChange, suggestions, planSuggestions = [], text, onText, lineupOnly = false}: {
+export default function NamePicker({label, noun, values, onChange, suggestions, planSuggestions = [], text, onText, lineupOnly = false, archivedLineup = false}: {
   label: string; noun: 'artist' | 'friend'; values: string[]; onChange: (v: string[]) => void;
-  suggestions: string[]; planSuggestions?: string[]; text: string; onText: (v: string) => void; lineupOnly?: boolean;
+  suggestions: string[]; planSuggestions?: string[]; text: string; onText: (v: string) => void; lineupOnly?: boolean; archivedLineup?: boolean;
 }) {
+  const lineupLabel=archivedLineup?'Archived lineup':'Lineup';
+  const lineupGroup=archivedLineup?'From the archived lineup':'From this lineup';
   const id = useId(), list = useRef<HTMLDivElement>(null), search = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState(''), [selectedOnly, setSelectedOnly] = useState(false);
   const key = (name: string) => noun === 'artist' ? performanceKey(name) : name.trim().toLocaleLowerCase();
@@ -15,10 +17,10 @@ export default function NamePicker({label, noun, values, onChange, suggestions, 
   const history = new Set(suggestions.map(key));
   const outsideLineup = values.filter(n => !planned.has(key(n)));
   const groups = (lineupOnly ? [
-    {title: 'From this lineup', names: uniqueNames(planSuggestions)},
+    {title: lineupGroup, names: uniqueNames(planSuggestions)},
     {title: planSuggestions.length ? 'Other logged sets · not in this lineup' : 'Your logged sets', names: selectedOnly ? outsideLineup : []},
   ] : [
-    {title: noun === 'artist' ? 'From this lineup' : 'From this crew', names: uniqueNames(planSuggestions)},
+    {title: noun === 'artist' ? lineupGroup : 'From this crew', names: uniqueNames(planSuggestions)},
     {title: 'From your diary', names: uniqueNames(suggestions).filter(n => !planned.has(key(n)))},
     {title: 'Added by you', names: values.filter(n => !planned.has(key(n)) && !history.has(key(n)))},
   ]).map(group => ({...group, names: group.names.filter(n => (!selectedOnly || selected.has(key(n))) && n.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase())).sort((a,b) => a.localeCompare(b))}));
@@ -33,7 +35,7 @@ export default function NamePicker({label, noun, values, onChange, suggestions, 
     {noun === 'artist' && <div className="name-picker-credit-summary"><p>Keep the set name. B2Bs and special sets count toward the artists behind them.</p><strong aria-live="polite">{values.length} {values.length === 1 ? 'set' : 'sets'} · {artistsForRave({artists:values}).length} unique {artistsForRave({artists:values}).length === 1 ? 'artist' : 'artists'}</strong></div>}
     <div className="name-picker-panel">
       <div className="name-picker-search"><Search size={17} aria-hidden="true"/>
-        <input ref={search} aria-label={`Search ${noun === 'artist' ? 'artists' : 'friends'}`} placeholder={noun === 'artist' ? (lineupOnly ? (selectedOnly ? 'Search your selected sets…' : 'Search this event’s lineup…') : 'Search the lineup or your diary…') : 'Search your crew or diary…'} value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => {
+        <input ref={search} aria-label={`Search ${noun === 'artist' ? 'artists' : 'friends'}`} placeholder={noun === 'artist' ? (lineupOnly ? (selectedOnly ? 'Search your selected sets…' : (archivedLineup?'Search the archived lineup…':'Search this event’s lineup…')) : 'Search the lineup or your diary…') : 'Search your crew or diary…'} value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => {
           if (e.key === 'Enter') e.preventDefault();
           if (e.key === 'ArrowDown') { e.preventDefault(); list.current?.querySelector<HTMLInputElement>('input')?.focus(); }
           if (e.key === 'Escape' && query) { e.preventDefault(); e.stopPropagation(); setQuery(''); }
@@ -41,7 +43,7 @@ export default function NamePicker({label, noun, values, onChange, suggestions, 
         {query && <button type="button" aria-label={`Clear ${noun} search`} onClick={() => { setQuery(''); search.current?.focus(); }}><X size={16}/></button>}
       </div>
       <div className="name-picker-filters" aria-label={`${label} filters`}>
-        <button type="button" aria-pressed={!selectedOnly} onClick={() => setSelectedOnly(false)}>{lineupOnly ? 'Lineup' : 'All'} <span>{total}</span></button>
+        <button type="button" aria-pressed={!selectedOnly} onClick={() => setSelectedOnly(false)}>{lineupOnly ? lineupLabel : 'All'} <span>{total}</span></button>
         <button type="button" aria-pressed={selectedOnly} onClick={() => setSelectedOnly(true)}>Selected <span>{values.length}</span></button>
         {query && <small role="status">{count} {count === 1 ? 'match' : 'matches'}</small>}
       </div>
@@ -53,7 +55,7 @@ export default function NamePicker({label, noun, values, onChange, suggestions, 
             <input type="checkbox" checked={selected.has(key(name))} onChange={() => onChange(selected.has(key(name)) ? values.filter(v => key(v) !== key(name)) : uniqueNames([...values, name]))}/>
             <span>{name}{noun === 'artist' && creditDescription(name) && <small className="set-credit">{creditDescription(name)}</small>}</span>
           </label>)}
-        </div>) : <div className="name-picker-empty"><strong>{query ? 'No matching names' : selectedOnly ? 'No one selected yet' : lineupOnly ? 'No lineup loaded yet' : 'Start with a name'}</strong><p>{query ? 'Try another search or add a missing name below.' : selectedOnly ? `Choose names from ${lineupOnly ? 'Lineup' : 'All'} to build your list.` : lineupOnly ? 'Choose a festival above or add a set you saw below.' : `Add an ${noun === 'artist' ? 'artist' : 'attendee'} below. Names from your diary will appear here next time.`}</p></div>}
+        </div>) : <div className="name-picker-empty"><strong>{query ? 'No matching names' : selectedOnly ? 'No one selected yet' : lineupOnly ? 'No lineup loaded yet' : 'Start with a name'}</strong><p>{query ? 'Try another search or add a missing name below.' : selectedOnly ? `Choose names from ${lineupOnly ? lineupLabel : 'All'} to build your list.` : lineupOnly ? 'Choose a festival above or add a set you saw below.' : `Add an ${noun === 'artist' ? 'artist' : 'attendee'} below. Names from your diary will appear here next time.`}</p></div>}
       </div>
       <div className="name-picker-add"><label htmlFor={`${id}-add`}>Missing {noun === 'artist' ? 'an artist' : 'someone'}?</label><div>
         <input id={`${id}-add`} aria-label={label} value={text} placeholder={noun === 'artist' ? 'Add an artist…' : 'Add a friend…'} onChange={e => onText(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); add(); } }}/>

@@ -40,6 +40,7 @@ export default function RaveForm({initial, all, onSave, onClose, suggestedArtist
   const close = () => { if (saving) return; if (dirty) setDiscard(true); else onClose(); };
   const field = <K extends keyof Rave>(key: K, value: Rave[K]) => setR(prev => ({...prev, [key]: value}));
   const festival = festivalForRave(r);
+  const archivedLineup=!!r.startDate&&(r.endDate||r.startDate)<diaryToday();
   const originalEdition = initial && festivalForRave(initial);
   const unavailableIds = all.filter(n=>n.id!==r.id).map(n=>festivalForRave(n)?.id).filter((id):id is string=>!!id && id!==originalEdition?.id);
   const duplicate = all.find(n => n.id !== r.id && ((!!festival && festivalForRave(n)?.id === festival.id) ||
@@ -104,11 +105,12 @@ export default function RaveForm({initial, all, onSave, onClose, suggestedArtist
           <summary><Music2 size={17}/><span>Artists & crew<small>{planning?'Your wishlist and possible crew':'Who made the night'}</small></span><ChevronDown size={16}/></summary>
           <div className="disclosure-body">
 
-            {r.sourceEventId && planStatus === 'loading' && <p className="form-help" role="status">Loading suggestions from your Rally plan…</p>}
-            {r.sourceEventId && planStatus === 'error' && <p className="form-help" role="status">Your Rally plan’s suggestions could not load.{festival ? ' The festival catalog lineup is available below.' : ' Choose a festival or add sets manually.'} <button type="button" className="text-button" onClick={() => setPlanAttempt(n => n + 1)}>Retry plan suggestions</button></p>}
-            {festival && <div className="festival-lineup-note"><strong>{festival.name} · {festival.artists.length} lineup suggestions</strong><p>{!festival.artists.length ? 'No verified lineup is available for this event yet.' : festival.coverage === 'partial' ? 'Partial lineup — only verified artists are listed here.' : planning ? 'Published lineup — choose the sets you want to see.' : 'Archived lineup — select only the sets you actually saw.'} You can add missing artists or special sets below.</p><FestivalSources edition={festival}/></div>}
+            {r.sourceEventId && planStatus === 'loading' && <p className="form-help" role="status">Loading the lineup and crew from Rally…</p>}
+            {r.sourceEventId && planStatus === 'error' && <p className="form-help" role="status">The lineup and crew from Rally could not load.{festival ? ' The festival catalog lineup is available below.' : ' Choose a festival or add sets manually.'} <button type="button" className="text-button" onClick={() => setPlanAttempt(n => n + 1)}>Retry lineup and crew</button></p>}
+
             <div className="rave-people-grid"><div>
-            <NamePicker label={planning?'Artists you want to see':'Artists you actually saw'} noun="artist" lineupOnly={!!festival || !!r.sourceEventId || !!plan.artists.length} planSuggestions={festival ? uniqueNames([...festival.artists,...plan.artists]) : uniqueNames([...plan.artists,...(r.plannedArtists||[])])} values={selectedArtists} text={artistText} onText={setArtistText}
+            {festival&&<p className="lineup-context">{festival.artists.length ? `${archivedLineup?'Archived lineup':'Published lineup'}${festival.coverage==='partial'?' · partial':''}. ${archivedLineup?'Select only the sets you saw.':'Choose the sets you want to see.'}` : 'No verified lineup is available for this event yet. Add artists below.'}</p>}
+            <NamePicker archivedLineup={archivedLineup} label={planning?'Artists you want to see':'Artists you actually saw'} noun="artist" lineupOnly={!!festival || !!r.sourceEventId || !!plan.artists.length} planSuggestions={festival ? uniqueNames([...festival.artists,...plan.artists]) : uniqueNames([...plan.artists,...(r.plannedArtists||[])])} values={selectedArtists} text={artistText} onText={setArtistText}
               onChange={artists => setR(prev => ({...prev, [artistField]:artists, favoriteArtist: planning ? prev.favoriteArtist : artists.some(a => a.toLowerCase() === prev.favoriteArtist.toLowerCase()) ? prev.favoriteArtist : ''}))}
               suggestions={uniqueNames(all.flatMap(rave => rave.artists))}/>
             </div><div>
@@ -133,6 +135,7 @@ export default function RaveForm({initial, all, onSave, onClose, suggestedArtist
             <label className="field">A note to future you<textarea maxLength={10000} rows={3} placeholder="The set you loved, the funniest moment, the afters…" value={r.notes} onChange={e => field('notes', e.target.value)}/></label>
           </div>
         </details>
+        {festival&&<div className="festival-reference"><FestivalSources edition={festival}/></div>}
       </fieldset>
       {error && <p role="alert" className="error form-feedback">{error} Your changes are still here.</p>}
       <div className="form-footer">

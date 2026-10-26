@@ -6,10 +6,13 @@ import {diaryToday} from '../lib/raves';
 import './festival-picker.css';
 
 export function FestivalSources({edition}: {edition: FestivalEdition}) {
-  return <details className="festival-sources"><summary>Sources & coverage</summary>
+  const archived=edition.endDate<diaryToday();
+  return <details className="festival-sources"><summary>{archived?'Archived lineup & sources':'Event lineup & sources'} <span>For reference</span></summary>
+    <strong>{edition.name} · {edition.artists.length} {edition.artists.length===1?'set':'sets'} listed</strong>
+    <p>{!edition.artists.length?'No verified lineup is available for this event yet.':edition.coverage==='partial'?'Partial lineup — only verified artists are listed here.':archived?'Archived lineup for this event edition.':'Published lineup for this event edition; it may change.'}</p>
     <p>{edition.note || 'Published lineup archive. Last-minute changes may differ.'}</p>
     <ul>{edition.sources.map(source => <li key={source.url}><a href={source.url} target="_blank" rel="noopener noreferrer">{source.label} ↗</a></li>)}</ul>
-    <small>Checked {edition.verifiedOn}. Suggestions are not a record of attendance.</small>
+    <small>Checked {edition.verifiedOn}. Use these sources as a reference when logging your own experience.</small>
   </details>;
 }
 
@@ -34,6 +37,6 @@ export default function FestivalPicker({current, hasDetails, onChoose, focusOnOp
       <span><MapPin size={14}/>{pending.venue} · {pending.city}</span>
       <p>This replaces this diary entry’s event name, dates, city, and venue.{linked && ' Your shared Rally plan stays unchanged.'} Your selected sets, crew, costs, and memories stay as they are. Review your sets for this edition.</p>
       <div className="festival-preview-actions"><button type="button" className="primary" disabled={unavailableIds.includes(pending.id)} onClick={() => {if(unavailableIds.includes(pending.id))return;onChoose(pending); setPending(undefined);}}>Use these event details</button><button type="button" className="secondary" onClick={() => setPending(undefined)}>Keep current details</button></div>
-    </div> : current ? !linked && <p className="festival-applied" role="status"><Check size={15}/>{current.name} {current.artists.length ? 'lineup loaded.' : 'event details loaded. Lineup not available yet.'} {current.startDate > diaryToday() ? 'Choose the sets you want to see below.' : 'Choose the sets you saw below.'}</p> : <p className="festival-picker-hint">{festivalEditions.length} events in the catalog. Events already in your diary are unavailable. Search an event, artist, year, city, or venue. For another show or club night, enter its details below.</p>}
+    </div> : current ? !linked && <p className="festival-applied" role="status"><Check size={15}/>{current.name} {current.artists.length ? (current.endDate<diaryToday()?'archived lineup loaded.':'lineup loaded.') : 'event details loaded. Lineup not available yet.'} {current.startDate > diaryToday() ? 'Choose the sets you want to see below.' : 'Choose the sets you saw below.'}</p> : <p className="festival-picker-hint">{festivalEditions.length} events in the catalog. Events already in your diary are unavailable. Search an event, artist, year, city, or venue. For another show or club night, enter its details below.</p>}
   </section>;
 }

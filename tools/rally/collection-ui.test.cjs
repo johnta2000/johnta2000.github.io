@@ -290,7 +290,7 @@ test('lineup checklist exposes the full lineup, keeps selected rows visible, and
     const selected = [...picker.querySelectorAll('button')].find(b => b.textContent === 'Selected 1');
     selected.click(); await tick(); assert.equal(picker.querySelectorAll('input[type=checkbox]').length, 1);
     picker.querySelector('input[type=checkbox]').click(); await tick(); assert(picker.textContent.includes('No one selected yet'));
-    [...picker.querySelectorAll('button')].find(b => b.textContent === 'Lineup 24').click(); await tick();
+    [...picker.querySelectorAll('button')].find(b => b.textContent === 'Archived lineup 24').click(); await tick();
     await h.fill('input[aria-label="Search artists"]', '24');
     picker.querySelector('input[type=checkbox]').click(); await tick();
     await h.fill('input[aria-label="Search artists"]', 'Unmatched search');
@@ -309,7 +309,7 @@ test('plan lineup excludes unrelated diary suggestions, custom names remain revi
     await until(()=>h.button('Log your experience'));h.button('Log your experience').click();await tick();h.button('I went').click();await tick();
     const picker = h.w.document.querySelector('.name-picker');
     assert.equal(picker.querySelectorAll('input[type=checkbox]').length, 2);
-    assert(picker.textContent.includes('From this lineup')); assert(!picker.textContent.includes('From your diary')); assert(!picker.textContent.includes('History DJ'));
+    assert(picker.textContent.includes('From the archived lineup')); assert(!picker.textContent.includes('From your diary')); assert(!picker.textContent.includes('History DJ'));
     const search = picker.querySelector('input[aria-label="Search artists"]'); search.focus();
     search.dispatchEvent(new h.w.KeyboardEvent('keydown', {key: 'ArrowDown', bubbles: true}));
     assert.equal(h.w.document.activeElement, picker.querySelector('input[type=checkbox]'));
@@ -378,7 +378,7 @@ test('switching festival editions requires explicit replacement and preserves pr
     assert.equal(h.w.document.querySelector('input[maxlength="160"]').value,'My custom night');
     await chooseFestival(h,'countdown-nye-2025');h.button('Use these event details').click();await tick();
     assert.equal(h.w.document.querySelector('input[maxlength="160"]').value,'Countdown NYE 2025');
-    assert(h.text().includes('24 lineup suggestions'));
+    assert(h.text().includes('24 sets listed'));
     await until(()=>h.w.document.querySelector('input[aria-label="Start date"]').value==='12/31/2025');
     h.button('Save to rave diary').click();await until(()=>h.saves.length===1);
     assert.deepEqual(h.saves[0].artists,['My own set']);assert.deepEqual(h.saves[0].crew,['My friend']);
@@ -392,7 +392,7 @@ test('reopened historical festival entries recover suggestions and clearly ident
     assert(h.text().includes('Excision B2B Wooli'));
     assert.equal(h.w.document.querySelectorAll('.name-picker input[type=checkbox]:checked').length,1);
     assert.equal(h.saves.length,0);
-    await h.fill('input[maxlength="160"]','Unrelated festival');assert(!h.w.document.querySelector('.festival-lineup-note'));
+    await h.fill('input[maxlength="160"]','Unrelated festival');assert(!h.w.document.querySelector('.festival-reference'));
   }finally{h.close();}
 });
 
@@ -409,10 +409,10 @@ test('Lost Lands short-year Rally entries recover the correct catalog and exclud
   const rave={...entry('lost-2026'),name:"Lost Lands '26",sourceEventId:'lost-lands-2026',startDate:'2026-09-18',endDate:'2026-09-20',artists:['EXCISION (DETOX SET)','Previously logged custom set']};
   const h=harness({raves:[rave,{...entry('another'),artists:['2hollis']}],artistSuggestions:['Wrong plan artist'],crewSuggestions:['Nancy']});try{
     await until(()=>h.button("Edit Lost Lands '26")); h.button("Edit Lost Lands '26").click();
-    await until(()=>h.w.document.querySelector('.rave-form') && !h.text().includes('Loading suggestions from your Rally plan'));
+    await until(()=>h.w.document.querySelector('.rave-form') && !h.text().includes('Loading the lineup and crew from Rally'));
     const picker=h.w.document.querySelector('.name-picker');
     assert(!h.w.document.querySelector('select[aria-label="Event and year"]'));assert(h.w.document.querySelector('.shared-event-summary'));
-    assert(h.text().includes('Lost Lands 2026 · 172 lineup suggestions'));
+    assert(h.text().includes('Lost Lands 2026 · 172 sets listed'));
     assert(!picker.textContent.includes('2hollis')); assert(picker.textContent.includes('Wrong plan artist'));
     assert(picker.textContent.includes('Excision B2B Space Laces'));
     assert(!picker.textContent.includes('Previously logged custom set'));
@@ -426,7 +426,7 @@ test('Lost Lands short-year Rally entries recover the correct catalog and exclud
     assert.deepEqual(h.saves[0].artists,rave.artists);assert.equal(h.saves[0].sourceEventId,rave.sourceEventId);
     // A second edit must recover the same lineup after the round trip.
     await until(()=>!h.w.document.querySelector('.rave-form'));h.button("Edit Lost Lands '26").click();await tick();
-    assert(h.text().includes('172 lineup suggestions'));
+    assert(h.text().includes('172 sets listed'));
   }finally{h.close();}
 });
 
@@ -438,10 +438,10 @@ test('editing a saved show reloads its Rally lineup and a failed lookup can be r
   const options={planSuggestionsFail:true,raves:[{...entry('saved-show'),sourceEventId:'show',kind:'Show',artists:['Remembered DJ']},{...entry('other'),artists:['2hollis']}],artistSuggestions:['Actual show DJ']};
   const h=harness(options);try{
     await until(()=>h.button('Edit saved-show'));h.button('Edit saved-show').click();
-    await until(()=>h.button('Retry plan suggestions'));
+    await until(()=>h.button('Retry lineup and crew'));
     assert(!h.w.document.querySelector('.name-picker').textContent.includes('2hollis'));
     await h.fill('input[aria-label="Artists you actually saw"]','My pending set');
-    options.planSuggestionsFail=false;h.button('Retry plan suggestions').click();
+    options.planSuggestionsFail=false;h.button('Retry lineup and crew').click();
     await until(()=>h.w.document.querySelector('.name-picker').textContent.includes('Actual show DJ'));
     assert.equal(h.w.document.querySelector('input[aria-label="Artists you actually saw"]').value,'My pending set');
     h.button('Save changes').click();await until(()=>h.saves.length===1);
@@ -575,9 +575,9 @@ test('ISOxo show autofills the selected night and restores its scoped lineup on 
   await until(()=>h.button('Add a rave'));h.button('Add a rave').click();await tick();await chooseFestival(h,'isoxo-cow-palace-2026-04-04');
   await until(()=>h.w.document.querySelector('input[aria-label="Start date"]').value==='04/04/2026');
   assert.equal(h.w.document.querySelector('input[aria-label="End date"]').value,'04/04/2026');assert.equal(h.button('Show').getAttribute('aria-pressed'),'true');
-  assert(h.text().includes('1 lineup suggestions'));assert(h.text().includes('Partial lineup'));assert(h.text().includes('ISOxo'));assert.equal(h.w.document.querySelectorAll('.name-picker input:checked').length,0);
+  assert(h.text().includes('1 set listed'));assert(h.text().includes('Partial lineup'));assert(h.text().includes('ISOxo'));assert.equal(h.w.document.querySelectorAll('.name-picker input:checked').length,0);
   h.button('Save to rave diary').click();await until(()=>h.saves.length===1);assert.equal(h.saves[0].kind,'Show');assert.equal(h.saves[0].city,'Daly City, CA');assert.equal(h.saves[0].artists.length,0);
-  await until(()=>h.button('Edit ISOxo at Cow Palace · April 4, 2026'));h.button('Edit ISOxo at Cow Palace · April 4, 2026').click();await tick();assert(h.text().includes('1 lineup suggestions'));
+  await until(()=>h.button('Edit ISOxo at Cow Palace · April 4, 2026'));h.button('Edit ISOxo at Cow Palace · April 4, 2026').click();await tick();assert(h.text().includes('1 set listed'));
  }finally{h.close();}
 });
 
