@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {parsePlanner,parseDelimited,dedupePlanner,canonical,aggregate,classify,buildOpportunities} from './engine.mjs';
+import {parsePlanner,parseDelimited,dedupePlanner,canonical,aggregate,classify,buildOpportunities,articleTargets} from './engine.mjs';
 const config=JSON.parse(fs.readFileSync(new URL('./config.example.json',import.meta.url)));
 config.families.push(
   {id:'csr-dining',label:'Sapphire dining',pattern:'sapphire(?!.*preferred).*(dining|restaurant|table)',advantage:'Inventory',constraint:'Verify eligibility'},
@@ -38,6 +38,22 @@ test('tool visibility is a research lead, not proof an article is missing; fragm
 });
 test('planned content is excluded from new research',()=>{
   const i=input();i.drafts=['Amex FHR Tokyo Hotels'];assert.equal(buildOpportunities(i).opportunities[0].lane,'Already planned');
+});
+test('article targets require page-level evidence, ignore fragments and rank observed articles first',()=>{
+  const articles=[{title:'Amex FHR Tokyo unobserved',url:'https://nextcard.com/articles/no-data'},{title:'Amex FHR Tokyo observed',url:'https://www.nextcard.com/articles/observed',officeUrl:'https://office.affil.ai/content/articles/test'}];
+  const current=[metric(['amex fhr tokyo','https://nextcard.com/articles/observed'],100),metric(['amex fhr tokyo','https://nextcard.com/articles/no-data#section'],900)];
+  const previous=[{...metric(['amex fhr tokyo','https://www.nextcard.com/articles/observed'],200),clicks:25}];
+  const targets=articleTargets(articles,[{keyword:'amex fhr tokyo'}],current,previous);
+  assert.equal(targets.length,1);assert.equal(targets[0].title,'Amex FHR Tokyo observed');assert.equal(targets[0].current.impressions,100);assert.match(targets[0].reason,/25 → 10/);assert.equal(targets[0].officeUrl,articles[1].officeUrl);
+});
+test('another comparison in a broad group is not an update target for its headline query',()=>{
+  const articles=[{title:'Bilt Palladium vs Chase Sapphire Reserve',url:'https://nextcard.com/articles/bilt-palladium-vs-csr'}];
+  const queries=[{keyword:'bilt palladium vs venture x'},{keyword:'bilt palladium vs chase sapphire reserve'}];
+  assert.deepEqual(articleTargets(articles,queries,[metric([queries[1].keyword,articles[0].url])],[]),[]);
+});
+test('title match and group-level opportunity alone cannot recommend an article update',()=>{
+  const i=input();i.inventory.articles=[{id:'draft-id',title:'Amex FHR Tokyo Hotels',slug:'amex-fhr-tokyo-hotels'}];
+  const row=buildOpportunities(i).opportunities[0];assert.equal(row.lane,'Coverage review');assert.deepEqual(row.targets,[]);
 });
 test('stale or incomplete reviews cannot promote new article assignments',()=>{
   const i=input(),id=classify('amex fhr tokyo',config).id;

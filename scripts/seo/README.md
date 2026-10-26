@@ -29,6 +29,7 @@ Build reads the local Keyword Planner exports and available draft/docket/Vercel 
 - Research demand order is the larger of strongest-keyword monthly volume and current disclosed impressions scaled by 30.4/28. It is not traffic potential or an SEO difficulty score.
 - Article coverage uses titles/slugs and intent. The current published inventory is live; unpublished coverage uses an old draft snapshot plus the user's docket. A body and current draft check is required before commissioning.
 - An existing article earning clicks leads to a coverage review. Tool intent points to tool work. Generic Resy city intent is explicitly flagged as navigational demand.
+- Update candidates must identify a matching published article with its own query/page evidence: at least 20 impressions at positions 4–20, or a loss of at least 10 clicks across the compared periods. Without such an article, the group becomes a coverage review. Cards show the leading article, Office link and article-specific reason outside the disclosure. Matching articles are ordered by observed clicks, then impressions; this is a review starting point, not a prescribed rewrite.
 - Broad opportunities outside the configured dataset categories remain in a separate discovery queue; their data advantage has not been established.
 - New articles qualify for the shortlist only after a dated result review within 14 days, verified dataset access, verified coverage gap, suitable intent and difficulty below high. This prevents high-volume generic guides from being presented as easy wins.
 

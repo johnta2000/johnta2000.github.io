@@ -53,6 +53,23 @@ export function coverageFor(group,articles,docket,config){
   const scheduled=docket.filter(title=>{const c=classify(title,config);return c&&c.family.id===group.family.id&&c.scope===group.scope&&c.city===group.city&&(c.intent===group.intent||Math.max(...group.queries.slice(0,12).map(q=>titleSimilarity(q.keyword,title)))>=0.8);});
   return {articles:matches,scheduled};
 }
+export function articleTargets(articles,queries,currentRows,previousRows){
+  const querySet=new Set(queries.map(q=>q.keyword));
+  const matching=(rows,url)=>rows.filter(r=>!r.keys[1].includes('#')&&canonical(r.keys[1])===canonical(url)&&querySet.has(normalize(r.keys[0])));
+  return articles.map(article=>{
+    // A broad group may contain different card comparisons. Do not attach an article
+    // to its headline keyword merely because it ranks for another query in that group.
+    const headline=queries[0]?.keyword??'';
+    if(titleSimilarity(headline,article.title+' '+new URL(article.url).pathname)<(/\bvs\b|\bversus\b/.test(headline)?0.8:0.6))return null;
+    const current=aggregate(matching(currentRows,article.url)),previous=aggregate(matching(previousRows,article.url));
+    const lost=previous&&current?previous.clicks-current.clicks:null;
+    const actionable=current&&(current.impressions>=20&&current.position>=4&&current.position<=20||lost>=10);
+    if(!actionable)return null;
+    const reason=lost>=10?`This article lost ${lost} clicks for this query group (${previous.clicks} → ${current.clicks}) across the compared 28-day periods. Check its query mix and current content before editing.`:
+      `This article received ${current.impressions} impressions and ${current.clicks} ${current.clicks===1?'click':'clicks'} for this query group, averaging position ${current.position.toFixed(2)}. Review how directly it answers these searches.`;
+    return {...article,current,previous,reason};
+  }).filter(Boolean).sort((a,b)=>b.current.clicks-a.current.clicks||b.current.impressions-a.current.impressions);
+}
 export function buildOpportunities({gsc,inventory,planner,config,drafts=[],reviews={}}){
   const current=new Map(gsc.current.queries.rows.map(r=>[normalize(r.keys[0]),r]));
   const previous=new Map(gsc.previous.queries.rows.map(r=>[normalize(r.keys[0]),r]));
@@ -95,10 +112,12 @@ export function buildOpportunities({gsc,inventory,planner,config,drafts=[],revie
     if(reviewFresh&&review.difficulty==='high')blockers.push('High competition in reviewed results');
     if(lane==='Research gap'&&sufficient&&reviewFresh&&review.datasetVerified&&review.coverageVerified&&review.intentFits&&review.difficulty!=='high')lane='New article shortlist';
     if(lane==='Research gap'&&reviewFresh&&(review.difficulty==='high'||review.intentFits===false))lane='Deprioritized';
+    const targets=lane==='Update candidate'?articleTargets(coverage.articles,group.queries,gsc.current.queryPages.rows,gsc.previous.queryPages?.rows??[]):[];
+    if(lane==='Update candidate'&&!targets.length)lane='Coverage review';
     const footholds=group.queries.filter(q=>q.current?.impressions>=20&&q.current.position>=4&&q.current.position<=20).slice(0,5).map(q=>q.keyword);
     result.push({id:group.id,family:group.family.label,intent:group.intent,scope:group.scope,city:group.city,keyword:head.keyword,lane,current:cur,previous:prev,clickChange:loss===null?null:-loss,
       strongestKeywordVolume:demand?{keyword:demand.keyword,monthlySearches:demand.monthlySearches,source:demand.plannerSource}:null,
-      queryCount:group.queries.length,queries:group.queries.slice(0,12),pages:pages.slice(0,5),coverage,advantage:group.family.advantage,constraint:group.family.constraint,
+      queryCount:group.queries.length,queries:group.queries.slice(0,12),pages:pages.slice(0,5),coverage,targets,advantage:group.family.advantage,constraint:group.family.constraint,
       difficulty:reviewFresh?review.difficulty:'Unreviewed',review:reviewFresh?review:null,blockers,footholds,
       demandOrder:Math.max(demand?.monthlySearches??0,(cur?.impressions??0)*30.4/28),
       nextStep:lane==='Already planned'?'Confirm publication status; support the existing assignment.':lane==='Update candidate'?'Review the current page and exact queries before prescribing an edit.':lane==='Coverage review'?'An existing article already earns clicks here. Read it before claiming a new content gap.':lane==='Tool opportunity'?'Improve the existing tool for this task; a separate article may not fit the search intent.':lane==='Navigational demand'?'Most of this headline demand may seek Resy itself. Validate a specific credit-use question rather than commission a generic city list.':lane==='Existing coverage'?'Keep one owner for this intent; check bodies before proposing a second article.':reviewFresh?review.angle:'Inspect current results, drafts and data availability. This is a research lead, not a writing assignment.'});

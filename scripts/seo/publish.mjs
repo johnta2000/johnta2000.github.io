@@ -8,7 +8,7 @@ const data=JSON.parse(await fs.readFile(path.join(root,'reports/latest.json'),'u
 const counts=data.opportunities.reduce((a,r)=>(a[r.lane]=(a[r.lane]??0)+1,a),{});
 const compact=r=>({id:r.id,keyword:r.keyword,lane:r.lane,family:r.family,city:r.city,volume:r.strongestKeywordVolume?.monthlySearches??null,
   plannerEvidence:r.strongestKeywordVolume?path.basename(r.strongestKeywordVolume.source.file)+' · row '+r.strongestKeywordVolume.source.row:null,
-  current:r.current,previous:r.previous,advantage:r.advantage,constraint:r.constraint,nextStep:r.nextStep,difficulty:r.difficulty,review:r.review,
+  current:r.current,previous:r.previous,targets:(r.targets??[]).slice(0,3),advantage:r.advantage,constraint:r.constraint,nextStep:r.nextStep,difficulty:r.difficulty,review:r.review,
   queries:r.queries.slice(0,3).map(q=>({keyword:q.keyword,monthlySearches:q.monthlySearches,impressions:q.current?.impressions??null,position:q.current?.position??null})),
   pages:r.pages.slice(0,2),articles:r.coverage.articles.slice(0,2).map(({title,url,officeUrl})=>({title,url,officeUrl})),scheduled:r.coverage.scheduled.slice(0,2),blockers:r.blockers});
 const report={monitorId:'seo-content-opportunities',timestamp:data.generatedAt,status:'healthy',summary:`US GSC through ${data.finalizedThrough}: ${counts['Update candidate']??0} update candidates, ${counts['Tool opportunity']??0} tool opportunities and ${counts['Research gap']??0} research gaps. Unverified gaps are not writing assignments.`,meaningful:false,eventType:'research-refresh',

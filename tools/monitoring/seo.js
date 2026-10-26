@@ -3,9 +3,16 @@
   const num=v=>Number.isFinite(v)?new Intl.NumberFormat('en-US').format(v):'Not observed';
   const pos=v=>Number.isFinite(v)?v.toFixed(2):'Not observed';
   const link=(url,label)=>/^https:\/\//.test(url??'')?`<a href="${esc(url)}" target="_blank" rel="noopener noreferrer">${esc(label)}</a>`:esc(label);
-  function card(r){return `<article class="seo-card" data-lane="${esc(r.lane)}" data-search="${esc([r.keyword,r.family,r.city,r.id].join(' ').toLowerCase())}">
+  function articleAction(r){
+    if(r.lane!=='Update candidate')return '';
+    const target=r.targets?.[0];
+    if(!target)return '<section class="seo-article-action"><strong>Article not yet confirmed</strong><p>This saved report has not identified an article with its own update signal. Review the matching pages before assigning an edit.</p></section>';
+    return `<section class="seo-article-action"><p class="seo-action-label">Start with this article</p><h4>${link(target.url,target.title)}</h4><div class="seo-article-links">${link(target.url,'Read article')}${target.officeUrl?link(target.officeUrl,'Open in Office'):''}</div><p><strong>Why review it:</strong> ${esc(target.reason)}</p><p class="seo-article-note">The evidence above is for this article within the query group. The figures below cover the whole query group. A content review is still needed to choose the edits.</p></section>`;
+  }
+  function card(r){return `<article class="seo-card" data-lane="${esc(r.lane)}" data-search="${esc([r.keyword,r.family,r.city,r.id,...(r.targets??[]).map(a=>a.title)].join(' ').toLowerCase())}">
     <div class="seo-card-heading"><span class="seo-label">${esc(r.lane)}</span><span>${esc(r.family)}${r.city?' · '+esc(r.city):''}</span></div>
     <h3>${esc(r.keyword)}</h3><p>${esc(r.nextStep)}</p>
+    ${articleAction(r)}
     <dl class="seo-metrics"><div><dt>Strongest keyword / month</dt><dd>${r.volume==null?'Not measured':num(r.volume)}</dd></div><div><dt>Disclosed impressions · 28d</dt><dd>${num(r.current?.impressions)}</dd></div><div><dt>Clicks · previous → recent</dt><dd>${num(r.previous?.clicks)} → ${num(r.current?.clicks)}</dd></div><div><dt>Average position · 28d</dt><dd>${pos(r.current?.position)}</dd></div></dl>
     <p><strong>Possible advantage:</strong> ${esc(r.advantage)}</p><p><strong>What must hold:</strong> ${esc(r.constraint)}</p>
     <details><summary>Evidence, existing coverage and next checks</summary>
@@ -15,6 +22,7 @@
       <div class="seo-table-wrap"><table><thead><tr><th>Example query</th><th>Monthly searches</th><th>GSC impressions</th><th>Position</th></tr></thead><tbody>${(r.queries??[]).map(q=>`<tr><td>${esc(q.keyword)}</td><td>${q.monthlySearches==null?'Unknown':num(q.monthlySearches)}</td><td>${num(q.impressions)}</td><td>${pos(q.position)}</td></tr>`).join('')}</tbody></table></div>
       <p><strong>Pages observed for these queries:</strong></p><ul>${(r.pages??[]).map(p=>`<li>${link(p.url,new URL(p.url).pathname)} — ${num(p.clicks)} clicks / ${num(p.impressions)} impressions</li>`).join('')||'<li>No disclosed page observations.</li>'}</ul>
       <p><strong>Possible existing article coverage:</strong></p><ul>${(r.articles??[]).map(a=>`<li>${link(a.url,a.title)} ${a.officeUrl?' · '+link(a.officeUrl,'Office'):''}</li>`).join('')||'<li>No title-level match. This does not prove a gap.</li>'}</ul>
+      ${r.targets?.length>1?`<p><strong>Other articles with update signals:</strong></p><ul>${r.targets.slice(1).map(a=>`<li>${link(a.url,a.title)}${a.officeUrl?' · '+link(a.officeUrl,'Office'):''}<br>${esc(a.reason)}</li>`).join('')}</ul>`:''}
       ${r.scheduled?.length?`<p><strong>Already on the docket / draft snapshot:</strong> ${esc(r.scheduled.join('; '))}</p>`:''}
       <ul>${(r.blockers??[]).map(s=>`<li>${esc(s)}</li>`).join('')}</ul>
     </details></article>`;}
