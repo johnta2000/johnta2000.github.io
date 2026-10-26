@@ -339,7 +339,7 @@ test('logging shows core credits but saves the original collaboration and specia
     assert(artistPicker.textContent.includes('Excision')); assert(artistPicker.textContent.includes('Space Laces'));
     assert(!artistPicker.textContent.includes('Detox'));
     artistPicker.value = 'Excision'; artistPicker.dispatchEvent(new h.w.Event('change',{bubbles:true})); await tick();
-    assert(h.text().includes('Plan night')); h.button('View attended sets for Plan night').click(); await tick(); assert(h.w.document.querySelector('.sets-popover').textContent.includes('Space Laces x Excision'));
+    assert(h.text().includes('Plan night')); assert(h.text().includes('Space Laces x Excision'));
   } finally { h.close(); }
 });
 
@@ -745,25 +745,21 @@ test('desktop extra filters dismiss without losing criteria and return keyboard 
 });
 
 
-test('set counts open a searchable popup with actual credits, preserve wishlist separation and dismiss accessibly',async()=>{
+test('raves preview artist names and expand the remaining sets without opening the rave',async()=>{
  for(const mobile of [false,true]){
-  const h=harness({mobile,raves:[{...entry('My sets night'),attendance:'attended',artists:['Space Laces x Excision','Excision Detox Set','Wooli'],plannedArtists:['Never saw this DJ']},{...entry('Future sets night'),startDate:'2099-01-01',endDate:'2099-01-01',attendance:'planned',artists:['Old actual artist'],plannedArtists:['Wishlist DJ']}]});
+  const names=['Space Laces x Excision','Excision Detox Set','Wooli','REZZ','Seven Lions'];
+  const h=harness({mobile,raves:[{...entry('My sets night'),attendance:'attended',artists:names,plannedArtists:['Never saw this DJ']},{...entry('Future sets night'),startDate:'2099-01-01',endDate:'2099-01-01',attendance:'planned',artists:['Old actual artist'],plannedArtists:['Wishlist DJ']}]});
   try{
-   await until(()=>h.button('View attended sets for My sets night'));
-   const trigger=h.button('View attended sets for My sets night');assert(trigger.textContent.includes('3'));assert(!h.w.document.querySelector('.sets-popover'));
-   trigger.click();await tick();let panel=h.w.document.querySelector('.sets-popover');assert(panel);assert.equal(panel.getAttribute('role'),'dialog');
-   assert(panel.textContent.includes('3 sets · 3 artists'));assert(panel.textContent.includes('Space Laces x Excision'));assert(panel.textContent.includes('Counts toward Space Laces + Excision'));assert(panel.textContent.includes('Excision Detox Set'));assert(!panel.textContent.includes('Never saw this DJ'));
-   assert(!h.w.document.querySelector('.modal'));assert.equal(h.saves.length,0);
-   await h.fill('input[aria-label="Search logged sets"]','Detox');assert.equal(panel.querySelectorAll('li').length,1);
-   await h.fill('input[aria-label="Search logged sets"]','Missing DJ');assert(panel.textContent.includes('No matching sets'));
-   panel.dispatchEvent(new h.w.KeyboardEvent('keydown',{key:'Escape',bubbles:true}));await tick();assert(!h.w.document.querySelector('.sets-popover'));assert.equal(h.w.document.activeElement,trigger);
-   h.button('View planned sets for Future sets night').click();await tick();panel=h.w.document.querySelector('.sets-popover');assert(panel.textContent.includes('Planned sets'));assert(panel.textContent.includes('Wishlist DJ'));assert(!panel.textContent.includes('Old actual artist'));
-   h.w.document.body.dispatchEvent(new h.w.Event('pointerdown',{bubbles:true}));await tick();assert(!h.w.document.querySelector('.sets-popover'));assert.equal(h.saves.length,0);
+   await until(()=>h.button('Show all sets for My sets night'));
+   const trigger=h.button('Show all sets for My sets night'),container=trigger.closest(mobile?'.timeline-card':'tr');
+   assert(container.textContent.includes('Space Laces x Excision'));assert(container.textContent.includes('Excision Detox Set'));assert(!container.textContent.includes('Seven Lions'));assert(!container.textContent.includes('Never saw this DJ'));assert(trigger.textContent.includes('more'));
+   trigger.click();await tick();assert(container.textContent.includes('Seven Lions'));assert.equal(trigger.getAttribute('aria-expanded'),'true');assert(!h.w.document.querySelector('.modal'));assert(!h.w.document.querySelector('.sets-popover'));assert.equal(h.saves.length,0);
+   h.button('Show fewer sets for My sets night').click();await tick();assert(!container.textContent.includes('Seven Lions'));assert.equal(trigger.getAttribute('aria-expanded'),'false');
+   assert(h.text().includes('Wishlist DJ'));assert(!h.text().includes('Old actual artist'));
    h.button('View My sets night').click();await tick();assert(h.w.document.querySelector('.modal'));
   }finally{h.close();}
  }
 });
-
 
 test('changing a rave between past and future preserves separate typed sets and crew without attendance controls',async()=>{
  const h=harness();try{

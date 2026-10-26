@@ -38,7 +38,7 @@
   .timeline-month { display:flex; align-items:center; gap:12px; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:1.2px; color:#83758f; margin:24px 0 12px; }
   .rave-timeline article:first-child .timeline-month { margin-top:0; }
   .timeline-month:after { content:''; flex:1; height:1px; background:#e4dee8; }
-  .timeline-card { display:block; width:100%; text-align:left; padding:17px; border:1px solid #e4dee8; border-radius:17px; background:white; color:#292430; margin-bottom:14px; }
+  .timeline-card { position:relative; display:block; width:100%; text-align:left; padding:17px; border:1px solid #e4dee8; border-radius:17px; background:white; color:#292430; margin-bottom:14px; }
   .timeline-card:hover { border-color:#bda9d2; }
   .timeline-card-head { display:flex; gap:12px; align-items:flex-start; }
   .timeline-date { width:42px; flex-shrink:0; background:#f3eef8; border-radius:10px; padding:7px 0; text-align:center; font-size:10px; text-transform:uppercase; color:#84738f; line-height:1.5; }
@@ -96,4 +96,11 @@
   .timeline-totals strong { font-size:13px; }
   .timeline-totals > span+span { padding-left:8px; }
   .timeline-card { padding:14px; }
+}
+
+@media(max-width:760px) {
+  .timeline-card > .timeline-card-open { position:absolute; inset:0; width:100%; border:0; border-radius:inherit; background:transparent; }
+  .timeline-card > span { position:relative; pointer-events:none; }
+  .timeline-card > .timeline-artists { position:relative; }
+  .timeline-card:focus-within { border-color:#bda9d2; }
 }

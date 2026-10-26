@@ -1,0 +1,13 @@
+.artist-set-preview { color:#6e617b; font-size:12px; line-height:1.8; }
+.artist-preview-label { display:block; color:#8b759d; font-size:10px; margin-bottom:3px; }
+.artist-preview-names { display:inline; overflow-wrap:anywhere; }
+.artist-preview-names > span+span::before { content:' · '; color:#a496af; }
+.artist-set-preview > button { display:inline-flex; align-items:center; gap:4px; min-height:44px; padding:0 4px; margin-left:6px; color:var(--accent); font-size:12px; font-weight:550; vertical-align:middle; }
+.artist-set-preview.is-expanded .artist-preview-names { display:block; max-height:240px; overflow:auto; overscroll-behavior:contain; }
+.artist-set-preview.is-expanded .artist-preview-names > span { display:block; padding:4px 0; }
+.artist-set-preview.is-expanded .artist-preview-names > span+span::before { content:none; }
+.artist-set-preview.is-expanded > button { margin:4px 0 0; padding:0; }
+.artist-set-preview.is-expanded > button > svg { transform:rotate(180deg); }
+@media(min-width:761px) {
+  .spreadsheet-app .table-chips .more-chip { font-size:11px; min-height:28px; padding:4px 6px; color:var(--accent)!important; }
+}
