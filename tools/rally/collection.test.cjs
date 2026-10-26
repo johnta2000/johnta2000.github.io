@@ -127,3 +127,15 @@ test('membership loss removes automatic rows but keeps an owner’s already save
 test('automatic diary entries can share explicit crew memories without saving private details',async()=>{
  const s=linkedSetup(),id=(await s.call('list')).raves[0].id;const state=await s.call('connection',{id});await s.call('shareMemory',{id,note:'A crew memory',albumUrl:'',revision:state.revision});assert.equal(s.docs.filter(d=>d._table==='rallyCollections').length,0);assert.equal((await s.call('connection',{id})).sharedMemories[0].note,'A crew memory');
 });
+
+test('catalog uniqueness protects stale forms, changed editions and imports per account without blocking edits or separate weekends',async()=>{
+ const s=setup();s.signIn('alice');
+ const dusk=rave({id:'dusk',catalogEventId:'edc-las-vegas-2027-w1',name:'EDC 2027',startDate:'2027-05-14',endDate:'2027-05-16'});
+ const dawn={...dusk,id:'dawn',catalogEventId:'edc-las-vegas-2027-w2',startDate:'2027-05-21',endDate:'2027-05-23'};
+ await s.call('save',{rave:dusk});await s.call('save',{rave:{...dusk,notes:'Edited'}});
+ await assert.rejects(s.call('save',{rave:{...dusk,id:'duplicate',catalogEventId:undefined,startDate:'2027-05-15'}}),/already in your diary/);
+ await s.call('save',{rave:dawn});await assert.rejects(s.call('save',{rave:{...dusk,id:'dawn'}}),/already in your diary/);
+ await assert.rejects(s.call('importEntries',{raves:[{...dusk,id:'imported'}]}),/already in your diary/);
+ assert.equal((await s.call('list')).raves.length,2);
+ s.signIn('bob');await s.call('save',{rave:dusk});assert.equal((await s.call('list')).raves.length,1);
+});

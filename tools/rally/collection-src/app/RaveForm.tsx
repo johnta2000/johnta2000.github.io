@@ -40,8 +40,11 @@ export default function RaveForm({initial, all, onSave, onClose, suggestedArtist
   const close = () => { if (saving) return; if (dirty) setDiscard(true); else onClose(); };
   const field = <K extends keyof Rave>(key: K, value: Rave[K]) => setR(prev => ({...prev, [key]: value}));
   const festival = festivalForRave(r);
-  const duplicate = all.find(n => n.id !== r.id && n.startDate === r.startDate &&
-    (n.name.toLowerCase().trim() === r.name.toLowerCase().trim() || (!!festival && festivalForRave(n)?.id === festival.id)));
+  const originalEdition = initial && festivalForRave(initial);
+  const unavailableIds = all.filter(n=>n.id!==r.id).map(n=>festivalForRave(n)?.id).filter((id):id is string=>!!id && id!==originalEdition?.id);
+  const duplicate = all.find(n => n.id !== r.id && ((!!festival && festivalForRave(n)?.id === festival.id) ||
+    (n.startDate === r.startDate && n.name.toLowerCase().trim() === r.name.toLowerCase().trim())));
+  const blockedDuplicate = !!duplicate && (!!festival || !!duplicate.sourceEventId) && !(isEdit && festival && festival.id===originalEdition?.id);
   const sum = totalCost(r);
   const attendance=attendanceOf(r), planning=attendance!=='attended', future=!!r.startDate&&r.startDate>diaryToday();
   const artistField=planning?'plannedArtists':'artists', crewField=planning?'plannedCrew':'crew';
@@ -57,7 +60,7 @@ export default function RaveForm({initial, all, onSave, onClose, suggestedArtist
     return () => window.removeEventListener('beforeunload', warn);
   }, [dirty, saving]);
   const submit = async (event: FormEvent) => {
-    event.preventDefault(); if (saving||duplicate?.sourceEventId) return;
+    event.preventDefault(); if (saving||blockedDuplicate) return;
     setError(''); setSaving(true); setDiscard(false);
     try {
       const clean = validateRave({...r, endDate: r.endDate || r.startDate,
@@ -74,7 +77,7 @@ export default function RaveForm({initial, all, onSave, onClose, suggestedArtist
     }}>
       <p className="form-intro">{planning ? 'Keep your plans, artists to see, and costs together. Confirm attendance after the rave to add it to your history.' : r.sourceEventId ? 'This rave is already in your diary. Add the artists you actually saw and your own share of the costs.' : 'Add a past night or an upcoming rave. Start with a name and date.'}</p>
       <fieldset disabled={saving} className="form-fields">
-        {!r.sourceEventId && <FestivalPicker onClear={()=>setR(prev=>({...prev,catalogEventId:null}))} current={festival} focusOnOpen={!isEdit && !focusSection} hasDetails={!!(r.name || r.startDate || r.city || r.venue)} onChoose={edition => setR(prev => applyFestival(prev, edition))}/>}
+        {!r.sourceEventId && <FestivalPicker unavailableIds={unavailableIds} onClear={()=>setR(prev=>({...prev,catalogEventId:null}))} current={festival} focusOnOpen={!isEdit && !focusSection} hasDetails={!!(r.name || r.startDate || r.city || r.venue)} onChoose={edition => setR(prev => applyFestival(prev, edition))}/>}
         {r.sourceEventId?<div className="shared-event-summary"><strong>{r.name}</strong><span>{eventDate(r.startDate)}{r.endDate!==r.startDate?' – '+eventDate(r.endDate):''} · {[r.venue,r.city].filter(Boolean).join(' · ')}</span><p>Event details are shared with your crew and stay up to date in Rally.</p><a href={`/tools/rally/?event=${encodeURIComponent(r.sourceEventId)}`}>View event details in Rally ↗</a></div>:<>
         <label className="field">Rave / event name <span className="required-label">Required</span><input data-autofocus={!focusSection && (isEdit || !!r.sourceEventId) || undefined} autoFocus={!focusSection && (isEdit || !!r.sourceEventId)} required maxLength={160} placeholder="The festival, show, or club night" value={r.name} onChange={e => field('name', e.target.value)}/></label>
         <div className="form-grid">
@@ -96,7 +99,7 @@ export default function RaveForm({initial, all, onSave, onClose, suggestedArtist
           </div>
         </section>
         {!r.sourceEventId&&<div className="field"><span className="field-label">Type of night</span><div className="segmented">{(['Festival', 'Club night', 'Show'] as const).map(k => <button type="button" key={k} aria-pressed={r.kind === k} className={r.kind === k ? 'active' : ''} onClick={() => field('kind', k)}>{k}</button>)}</div></div>}
-        {duplicate && <div className="form-notice">{duplicate.sourceEventId?<>This Rally rave is already in your diary. <button type="button" className="secondary" onClick={()=>onOpenExisting?.(duplicate)}>Open existing entry</button></>:<>You already have “{duplicate.name}” on this date. Saving will add a separate entry.</>}</div>}
+        {duplicate && <div className="form-notice">{blockedDuplicate?<>This rave is already in your diary. <button type="button" className="secondary" onClick={()=>onOpenExisting?.(duplicate)}>Open existing entry</button></>:<>You already have “{duplicate.name}” on this date. Saving will add a separate entry.</>}</div>}
         <details className="form-disclosure" open>
           <summary><Music2 size={17}/><span>Artists & crew<small>{planning?'Your wishlist and possible crew':'Who made the night'}</small></span><ChevronDown size={16}/></summary>
           <div className="disclosure-body">
@@ -131,7 +134,7 @@ export default function RaveForm({initial, all, onSave, onClose, suggestedArtist
       {error && <p role="alert" className="error form-feedback">{error} Your changes are still here.</p>}
       <div className="form-footer">
         {discard ? <div className="discard-confirm" role="alert"><span>Discard your unsaved changes?</span><button type="button" className="secondary" autoFocus onClick={() => setDiscard(false)}>Keep editing</button><button type="button" className="danger" onClick={onClose}>Discard changes</button></div>
-          : <><span className="form-private"><LockKeyhole size={13}/>Only you</span><button type="button" className="secondary" disabled={saving} onClick={close}>Cancel</button><button className="primary" disabled={saving||!!duplicate?.sourceEventId}>{saving ? <LoaderCircle className="spin" size={17}/> : <Check size={17}/>} {saving ? 'Saving…' : isEdit ? 'Save changes' : planning ? 'Save upcoming rave' : 'Save to rave diary'}</button></>}
+          : <><span className="form-private"><LockKeyhole size={13}/>Only you</span><button type="button" className="secondary" disabled={saving} onClick={close}>Cancel</button><button className="primary" disabled={saving||blockedDuplicate}>{saving ? <LoaderCircle className="spin" size={17}/> : <Check size={17}/>} {saving ? 'Saving…' : isEdit ? 'Save changes' : planning ? 'Save upcoming rave' : 'Save to rave diary'}</button></>}
       </div>
     </form>
   </Modal>;

@@ -107,9 +107,10 @@ async function saveOne(ctx:MutationCtx,user:Awaited<ReturnType<typeof requireUse
     const matching=view.find(r=>r.id===rave.id&&r.sourceEventId);
     if(matching)rave={...rave,sourceEventId:matching.sourceEventId};
   }
-  if(!existing&&!rave.sourceEventId){
+  if(!rave.sourceEventId){
     const edition=festivalForRave(rave);
-    if(edition&&view.some(r=>r.sourceEventId&&festivalForRave(r)?.id===edition.id))throw new ConvexError('This rave is already in your diary from Rally. Open its existing entry to add your experience.');
+    const unchangedEdition=existing && festivalForRave(storedRave(existing))?.id===edition?.id;
+    if(edition&&!unchangedEdition&&view.some(r=>r.id!==rave.id&&festivalForRave(r)?.id===edition.id))throw new ConvexError('This rave is already in your diary. Open its existing entry to add your experience.');
   }
   if(rave.id.startsWith('rally_')&&rave.id!==automaticId(rave.sourceEventId||''))throw new ConvexError('Open this rave from your diary before saving.');
   if(rave.sourceEventId){

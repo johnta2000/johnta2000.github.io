@@ -398,7 +398,7 @@ test('reopened historical festival entries recover suggestions and clearly ident
 test('catalog editions warn about existing entries even when their old name omitted the year',async()=>{
   const h=harness({raves:[{...entry('old-edc'),name:'EDC Las Vegas',startDate:'2022-05-20',endDate:'2022-05-22'}]});try{
     await until(()=>h.button('Add a rave'));h.button('Add a rave').click();await tick();
-    await chooseFestival(h,'edc-las-vegas-2022');assert(h.text().includes('You already have “EDC Las Vegas” on this date.'));
+    assert(h.w.document.querySelector('option[value="edc-las-vegas-2022"]').disabled);await chooseFestival(h,'edc-las-vegas-2022');assert.equal(h.w.document.querySelector('input[maxlength="160"]').value,'');
     assert.equal(h.saves.length,0);
   }finally{h.close();}
 });
@@ -677,9 +677,23 @@ test('a friend link on an experience opens all of that identity’s history acro
 });
 
 
-test('choosing a catalog rave already supplied by Rally opens its existing diary entry',async()=>{
+for(const mobile of [false,true]) test(`catalog disables existing Rally editions and keeps other years selectable (${mobile?'mobile':'desktop'})`,async()=>{
  const r={...entry('Lost Lands 2026'),id:'rally_crew',sourceEventId:'crew',catalogEventId:'lost-lands-2026',startDate:'2026-09-18',endDate:'2026-09-20',attendance:'planned'};
- const h=harness({raves:[r]});try{await until(()=>h.button('Add a rave'));h.button('Add a rave').click();await tick();await chooseFestival(h,'lost-lands-2026');assert(h.text().includes('This Rally rave is already in your diary'));assert(h.button('Save to rave diary').disabled);h.button('Open existing entry').click();await until(()=>h.text().includes('Your Rally rave'));assert(!h.w.document.querySelector('.rave-form'));assert.equal(h.saves.length,0);}finally{h.close();}
+ const h=harness({mobile,raves:[r]});try{
+  await until(()=>h.button('Add a rave'));h.button('Add a rave').click();await tick();
+  const picker=h.w.document.querySelector('.festival-picker');picker.querySelector('.search-select-trigger').click();await tick();
+  const search=picker.querySelector('.search-select-input');search.value='Lost Lands';search.dispatchEvent(new h.w.Event('input',{bubbles:true}));await tick();
+  const options=[...picker.querySelectorAll('[role="option"]')];const existing=options.find(o=>o.textContent.includes('2026'));
+  assert.equal(existing.getAttribute('aria-disabled'),'true');assert(existing.textContent.includes('Already in your diary'));
+  existing.click();await tick();assert.equal(h.w.document.querySelector('input[maxlength="160"]').value,'');
+  assert.equal(options.find(o=>o.textContent.includes('2025')).getAttribute('aria-disabled'),'false');
+  await chooseFestival(h,'lost-lands-2026');assert.equal(h.w.document.querySelector('input[maxlength="160"]').value,'');assert.equal(h.saves.length,0);
+ }finally{h.close();}
+});
+test('editing an existing catalog entry keeps its own edition available',async()=>{
+ const h=harness({raves:[{...entry('EDC Las Vegas 2022'),catalogEventId:'edc-las-vegas-2022',startDate:'2022-05-20',endDate:'2022-05-22'}]});try{
+ await until(()=>h.button('Edit EDC Las Vegas 2022'));h.button('Edit EDC Las Vegas 2022').click();await tick();assert.equal(h.w.document.querySelector('option[value="edc-las-vegas-2022"]').disabled,false);
+ }finally{h.close();}
 });
 test('returning to the diary refreshes shared details while an open personal draft is preserved',async()=>{
  const h=harness({raves:[{...entry('Crew night'),sourceEventId:'crew'}]});try{await until(()=>h.button('View Crew night'));h.rows.alice[0].name='Updated crew night';h.w.dispatchEvent(new h.w.Event('focus'));await until(()=>h.button('View Updated crew night'));h.button('Edit Updated crew night').click();await tick();await h.fill('.rave-form textarea','Unsaved memory');const reads=h.requests.filter(r=>r.path==='rallyCollection:list').length;h.w.dispatchEvent(new h.w.Event('focus'));await tick();assert.equal(h.requests.filter(r=>r.path==='rallyCollection:list').length,reads);assert.equal(h.w.document.querySelector('.rave-form textarea').value,'Unsaved memory');}finally{h.close();}
