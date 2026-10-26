@@ -42,3 +42,5 @@ The shared planning index is labeled **My raves**; the personal history is **Rav
 ### Set labels and artist history
 
 Saved `artists` strings are performance labels. The shared artist helpers derive individual artist credits from explicit B2B / x / × labels and recognized set suffixes such as Detox Set and (DJ Set). Original labels, favorite sets, and JSON backups are preserved; older entries receive the same aggregation without a rewrite. Artist directories, recap totals, and artist filters use individual credits, counting an artist once per rave. CSV exports include both Artists seen and Sets seen. Ambiguous act names, ampersands, and aliases are kept intact; the parser does not guess group membership.
+
+The connected network uses explicit event edition IDs and verified friend identities. Optional reviewed updates connect Rally projects and private diary entries in either direction. Shared crew memories use a separate opt-in editor. See `data/UPCOMING.md` for the data model, permissions, and synchronization boundaries.

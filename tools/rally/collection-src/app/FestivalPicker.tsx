@@ -13,8 +13,8 @@ export function FestivalSources({edition}: {edition: FestivalEdition}) {
   </details>;
 }
 
-export default function FestivalPicker({current, hasDetails, onChoose, focusOnOpen = false, linked = false}: {
-  current?: FestivalEdition; hasDetails: boolean; onChoose: (edition: FestivalEdition) => void; focusOnOpen?: boolean; linked?: boolean;
+export default function FestivalPicker({current, hasDetails, onChoose, focusOnOpen = false, linked = false, onClear}: {
+  onClear?:()=>void; current?: FestivalEdition; hasDetails: boolean; onChoose: (edition: FestivalEdition) => void; focusOnOpen?: boolean; linked?: boolean;
 }) {
   const [pending, setPending] = useState<FestivalEdition>();
   const choose = (id: string) => {
@@ -27,6 +27,7 @@ export default function FestivalPicker({current, hasDetails, onChoose, focusOnOp
     <div className="festival-picker-heading"><Search size={18}/><div><h3>{linked ? 'Event lineup' : 'Find a festival or show'}</h3><p>{linked ? 'Choose the event and date to load its sets.' : 'Dates, venue, and lineup — ready to fill in.'}</p></div><span>{catalogYearRange}</span></div>
     <SharedPicker label="Event and year" searchTokens value={pending?.id || current?.id || ''} onChange={choose}
       options={[{value: '', label: 'Search events and years…'}, ...festivalEditions.map(e => ({value: e.id, label: `${e.name} — ${festivalDates(e)}`, searchText: catalogSearchText(e)}))]}/>
+    {current&&onClear&&<button type="button" className="catalog-disconnect" onClick={()=>{setPending(undefined);onClear();}}>Use a custom event instead</button>}
     {pending ? <div className="festival-preview" role="status">
       <strong>{pending.name}</strong>
       <span><CalendarDays size={14}/>{festivalDates(pending)}</span>

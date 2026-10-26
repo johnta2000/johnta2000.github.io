@@ -101,7 +101,7 @@ test('catalog application never claims attendance, changes personal fields, or c
   assert.equal(festivalForRave(applied).id,e.id);
   assert.equal(festivalForRave({...applied,startDate:'2022-07-23',endDate:'2022-07-23'}).id,e.id);
   assert.equal(festivalForRave({...applied,startDate:'2022-07-15',endDate:'2022-07-17'}),undefined);
-  assert.equal(festivalForRave({...applied,name:'My unrelated show'}),undefined);
+  assert.equal(festivalForRave({...applied,catalogEventId:undefined,name:'My unrelated show'}),undefined);
   assert.equal(festivalForRave({...applied,kind:'Club night'}),undefined);
   assert.equal(festivalForRave({...applied,name:'Tomorrowland Belgium'}).id,e.id);
 });
@@ -190,7 +190,7 @@ test('expanded catalog scopes cancelled days, changing venues, and Coachella wee
  assert.deepEqual(plain(artistsForSet('Excision B2B Wooli')),['Excision','Wooli']);
  assert(byId('hijinx-festival-2026').artists.includes('Excision B2B Wooli'));assert(!byId('hijinx-festival-2026').artists.includes('Excision'));
  assert.equal(festivalForRave({...applyFestival(emptyRave(),zoo),name:'EZoo 2023'}).id,zoo.id);
- assert.equal(festivalForRave({...applyFestival(emptyRave(),zoo),name:'EZoo 2022'}),undefined);
+ assert.equal(festivalForRave({...applyFestival(emptyRave(),zoo),catalogEventId:undefined,name:'EZoo 2022'}),undefined);
 });
 
 test('show catalog separates dates, consolidates support acts, and does not infer attendance', () => {
@@ -239,4 +239,29 @@ test('deep historical catalog excludes cancelled days and keeps venue-night line
  assert(!get('martin-garrix-bill-graham-2024-06-15').artists.includes('Austin Millz'));
  const {catalogSearchText}=moduleAt('festivals.ts');
  assert(catalogSearchText(day).includes('SF'));assert(catalogSearchText(day).includes('Seven Lions'));assert(catalogSearchText(day).includes('2024-10-12'));
+});
+
+test('network identities connect renamed events and artists without merging unlinked people or guessing attendance',()=>{
+ const {raveNetwork}=moduleAt('network.ts');const edition=festivalEditions.find(e=>e.id==='lost-lands-2026');
+ const nancy={id:'account:nancy',name:'Nancy',kind:'account',projectId:'crew-a',memberId:'nancy-a'};
+ const one={...applyFestival(emptyRave(),edition),id:'one',name:'Our renamed rave',sourceEventId:'crew-a',attendance:'attended',artists:['Excision (Detox Set)','Space Laces x Excision'],crew:['Nancy'],crewConnections:[nancy]};
+ const two={...one,id:'two',sourceEventId:'crew-b',artists:['EXCISION'],crewConnections:[{...nancy,name:'Nancy New Name',projectId:'crew-b',memberId:'nancy-b'}],crew:['Nancy New Name']};
+ const planned={...one,id:'three',attendance:'planned',crewConnections:[],plannedCrewConnections:[nancy],plannedCrew:['Nancy']};
+ const graph=raveNetwork([one,two,planned]);assert.equal(graph.nodes.filter(n=>n.kind==='event').length,1);assert.equal(graph.nodes.filter(n=>n.kind==='person').length,1);assert.equal(graph.nodes.filter(n=>n.kind==='artist').length,2);
+ assert.equal(graph.edges.filter(e=>e.kind==='logged-with').length,2);assert.equal(graph.edges.filter(e=>e.kind==='planned-with').length,1);
+ const history=leaderboard([one,two,planned],'crew');assert.equal(history.length,1);assert.equal(history[0].count,2);
+ const sameName={...one,id:'other-nancy',crewConnections:[{...nancy,id:'account:another-nancy'}]};assert.equal(leaderboard([one,sameName],'crew').length,2);
+ assert.equal(festivalForRave(one).id,edition.id);
+ assert.equal(validateRave(one).crewConnections[0].id,'account:nancy');
+});
+
+test('an explicit custom event choice clears public identity and backups preserve it',()=>{
+ const e=festivalEditions.find(e=>e.id==='lost-lands-2026');const r={...applyFestival(emptyRave(),e),catalogEventId:null,id:'custom'};
+ assert.equal(festivalForRave(r),undefined);assert.equal(validateRave(r).catalogEventId,null);
+ assert.equal(festivalForRave(applyFestival(r,e)).id,e.id);
+});
+
+test('renaming a connected catalog event keeps it searchable by its shared festival identity',()=>{
+ const r={...applyFestival(emptyRave(),festivalEditions.find(e=>e.id==='lost-lands-2026')),id:'renamed',name:'Our best weekend'};
+ assert.equal(filterRaves([r],emptyFilters(),'Lost Lands 2026').length,1);
 });

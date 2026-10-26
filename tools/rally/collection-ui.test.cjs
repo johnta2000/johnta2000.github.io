@@ -36,9 +36,23 @@ function harness(options = {}) {
       rows[subject] = [args.rave, ...rows[subject].filter(r => r.id !== args.rave.id)];
       return success(args.rave);
     }
+    if(path==='rallyCollection:connection') {
+      if(optionsRef.connectionFails)return failure('Connection unavailable');
+      return success(optionsRef.connection || {details:{...entry('Shared crew plan'),sourceEventId:'project',attendance:'planned'},people:[],lineup:['Suggested DJ'],wishlist:[],revision:'rev-1',canUpdatePlan:true,sharedMemories:[],myMemory:null});
+    }
+    if(path==='rallyCollection:syncPlan') {
+      if(optionsRef.syncFails)return failure('The plan or diary changed. Refresh the preview.');
+      let r=rows[subject].find(r=>r.id===args.id);
+      if(args.direction==='toDiary'&&args.fields.includes('details'))r={...r,name:optionsRef.connection.details.name,city:optionsRef.connection.details.city};
+      rows[subject]=rows[subject].map(old=>old.id===r.id?r:old);return success(r);
+    }
+    if(path==='rallyCollection:shareMemory') {
+      optionsRef.connection.myMemory={memberId:'alice',name:'Alice',note:args.note,albumUrl:args.albumUrl,updatedAt:Date.now()};
+      optionsRef.connection.sharedMemories=[optionsRef.connection.myMemory];return success({ok:true});
+    }
     if (path === 'rallyCollection:createPlan') {if(optionsRef.createPlanFails) return failure('Could not create plan'); const saved={...rows[subject].find(r=>r.id===args.id),sourceEventId:'created-room'}; rows[subject]=rows[subject].map(r=>r.id===saved.id?saved:r);return success(saved);}
     if (path === 'rallyCollection:remove') { rows[subject] = rows[subject].filter(r => r.id !== args.id); return success({ok: true}); }
-    if (path === 'rallyCollection:draftFromEvent') { if (optionsRef.planSuggestionsFail) return failure('Plan unavailable'); if (optionsRef.holdPlan) await new Promise(r => optionsRef.releasePlan = r); return success({rave: rows[subject].find(r => r.sourceEventId === args.eventId) || {...entry('Plan night'), id: '', sourceEventId: args.eventId, notes: ''}, existing: rows[subject].some(r => r.sourceEventId === args.eventId), artistSuggestions: optionsRef.artistSuggestions || ['Suggested DJ'], crewSuggestions: optionsRef.crewSuggestions || ['Suggested Friend']}); }
+    if (path === 'rallyCollection:draftFromEvent') { if (optionsRef.planSuggestionsFail) return failure('Plan unavailable'); if (optionsRef.holdPlan) await new Promise(r => optionsRef.releasePlan = r); return success({rave: rows[subject].find(r => r.sourceEventId === args.eventId) || {...entry('Plan night'), id: '', sourceEventId: args.eventId, notes: ''}, existing: rows[subject].some(r => r.sourceEventId === args.eventId), artistSuggestions: optionsRef.artistSuggestions || ['Suggested DJ'], crewSuggestions: optionsRef.crewSuggestions || ['Suggested Friend'],crewPeople:optionsRef.crewPeople||[]}); }
     throw new Error('Unexpected test request: ' + path);
   };
   const optionsRef = options;
@@ -680,5 +694,68 @@ for(const mobile of [false,true]) test(`deep catalog finds a night by venue and 
   await h.fill('.festival-picker .search-select-input','Bill Graham SF 2025-10 INZO');
   options=[...picker.querySelectorAll('[role=option]')];assert.equal(options.length,1);assert(options[0].textContent.includes('Oct 24, 2025'));
   assert.equal(h.saves.length,0);
+ }finally{h.close();}
+});
+
+const connectedPerson={id:'account:nancy',name:'Nancy',kind:'account',projectId:'project',memberId:'nancy'};
+const connectionFixture=()=>({details:{...entry('Updated shared plan'),city:'Updated city',sourceEventId:'project',attendance:'planned'},people:[connectedPerson],lineup:['Excision'],wishlist:['Excision'],revision:'rev-1',canUpdatePlan:true,sharedMemories:[],myMemory:null});
+for(const mobile of [false,true])test(`reviewed two-way updates and memory sharing remain explicit (${mobile?'mobile':'desktop'})`,async()=>{
+ const connection=connectionFixture(),r={...entry('My linked night'),sourceEventId:'project',attendance:'planned',plannedArtists:['My wishlist'],notes:'PRIVATE DIARY',albumUrl:'https://example.com/private'};
+ const h=harness({mobile,raves:[r],connection});try{
+  await until(()=>h.button('View My linked night'));h.button('View My linked night').click();await until(()=>h.button('Review plan → diary'));
+  assert(!h.requests.some(r=>r.path==='rallyCollection:syncPlan'||r.path==='rallyCollection:shareMemory'));
+  h.button('Review plan → diary').click();await tick();assert(h.button('Apply selected updates').disabled);
+  h.w.document.querySelector('.plan-sync-choice input').click();await tick();h.button('Apply selected updates').click();await until(()=>h.requests.some(r=>r.path==='rallyCollection:syncPlan'));
+  const request=h.requests.find(r=>r.path==='rallyCollection:syncPlan');assert.deepEqual(request.args.fields,['details']);assert.equal(request.args.direction,'toDiary');assert(!JSON.stringify(request.args).includes('PRIVATE'));assert.equal(h.rows.alice[0].notes,'PRIVATE DIARY');
+  await until(()=>h.button('Review diary → plan'));h.button('Review diary → plan').click();await tick();assert(h.button('Apply selected updates').disabled);h.button('Cancel updates').click();await tick();
+  h.button('Share a memory with this crew').click();await tick();
+  assert.equal(h.w.document.querySelector('.plan-sync-review textarea').value,'');assert.equal(h.w.document.querySelector('.plan-sync-review input[type=url]').value,'');
+  await h.fill('.plan-sync-review textarea','Our sunset set');h.button('Publish to this crew').click();await until(()=>h.requests.some(r=>r.path==='rallyCollection:shareMemory'));
+  const share=h.requests.find(r=>r.path==='rallyCollection:shareMemory');assert.equal(share.args.note,'Our sunset set');assert.equal(share.args.albumUrl,'');
+  assert.equal(h.rows.alice[0].notes,'PRIVATE DIARY');assert.equal(h.saves.length,0);
+ }finally{h.close();}
+});
+test('connected friend selection saves stable identities and keeps actual and planned crew separate',async()=>{
+ const r={...entry('Linked plan'),sourceEventId:'project',attendance:'planned',plannedCrew:[],crew:[]};
+ const h=harness({raves:[r],crewPeople:[connectedPerson],crewSuggestions:['Nancy']});try{
+  await until(()=>h.button('Edit Linked plan'));h.button('Edit Linked plan').click();await until(()=>h.w.document.querySelector('.crew-connection input'));
+  assert(!h.w.document.querySelector('.crew-connection input').checked);h.w.document.querySelector('.crew-connection input').click();await tick();
+  h.button('Save changes').click();await until(()=>h.saves.length===1);
+  assert.deepEqual(h.saves[0].plannedCrew,['Nancy']);assert.equal(h.saves[0].plannedCrewConnections[0].id,'account:nancy');assert.deepEqual(h.saves[0].crew,[]);
+ }finally{h.close();}
+});
+test('stale sync failures preserve the diary and leave review choices available',async()=>{
+ const r={...entry('My linked night'),sourceEventId:'project',attendance:'planned'};const h=harness({raves:[r],connection:connectionFixture(),syncFails:true});try{
+  await until(()=>h.button('View My linked night'));h.button('View My linked night').click();await until(()=>h.button('Review plan → diary'));h.button('Review plan → diary').click();await tick();h.w.document.querySelector('.plan-sync-choice input').click();await tick();h.button('Apply selected updates').click();
+  await until(()=>h.text().includes('Refresh the preview.'));assert.equal(h.rows.alice[0].name,'My linked night');assert(h.button('Apply selected updates'));assert.equal(h.saves.length,0);
+ }finally{h.close();}
+});
+
+test('same-name Rally accounts remain separate when opening their crew histories',async()=>{
+ const a={...entry('Nancy A night'),attendance:'attended',crew:['Nancy'],crewConnections:[connectedPerson]};
+ const b={...entry('Nancy B night'),attendance:'attended',crew:['Nancy'],crewConnections:[{...connectedPerson,id:'account:nancy-b',memberId:'nancy-b'}]};
+ const h=harness({raves:[a,b]});try{
+  await until(()=>h.button('Open navigation'));h.button('Open navigation').click();await tick();[...h.w.document.querySelectorAll('#collectionNavigation button')].find(b=>b.textContent.trim()==='Crew').click();await tick();
+  const rows=[...h.w.document.querySelectorAll('.ranking-sheet tbody tr')];assert.equal(rows.length,2,h.text());
+  rows[0].querySelector('button').click();await tick();assert.equal(h.w.document.querySelectorAll('.rave-sheet tbody tr').length,1);
+ }finally{h.close();}
+});
+
+test('Rally project renders only explicitly shared memories as text and rejects unsafe album links',async()=>{
+ const dom=new JSDOM('<main id="page"></main>',{url:'https://example.test',runScripts:'outside-only'}),w=dom.window;
+ try{w.Clerk={user:{id:'alice'}};w.eval(fs.readFileSync(__dirname+'/personal-collection.js','utf8'));
+  w.RallyCollection.mount({id:'room',startsAt:'2025-01-01'},{loadExperience:async()=>({existing:true,rave:{notes:'PRIVATE MUST STAY HIDDEN',albumUrl:'https://example.com/private'},sharedMemories:[{memberId:'nancy',name:'Nancy',note:'<img src=x onerror=alert(1)>',albumUrl:'javascript:alert(1)'},{memberId:'maya',name:'Maya',note:'Our shared night',albumUrl:'https://example.com/shared'}]})});
+  await tick();assert(w.document.body.textContent.includes('Our shared night'));assert(w.document.body.textContent.includes('<img'));assert(!w.document.querySelector('img'));assert(!w.document.body.textContent.includes('PRIVATE MUST STAY HIDDEN'));
+  assert.equal(w.document.querySelectorAll('.project-shared-memories a').length,1);assert.equal(w.document.querySelector('.project-shared-memories a').href,'https://example.com/shared');
+ }finally{w.close();}
+});
+
+test('a friend link on an experience opens all of that identity’s history across name changes',async()=>{
+ const a={...entry('Nancy recent'),attendance:'attended',crew:['Nancy'],crewConnections:[connectedPerson]};
+ const b={...entry('Nancy earlier'),attendance:'attended',crew:['Nance'],crewConnections:[{...connectedPerson,name:'Nance'}]};
+ const other={...entry('Another Nancy'),attendance:'attended',crew:['Nancy'],crewConnections:[{...connectedPerson,id:'account:different',memberId:'other'}]};
+ const h=harness({raves:[a,b,other]});try{
+  await until(()=>h.button('View Nancy recent'));h.button('View Nancy recent').click();await tick();h.button('View your rave history with Nancy').click();await tick();
+  const names=[...h.w.document.querySelectorAll('.rave-sheet tbody tr')].map(r=>r.textContent);assert.equal(names.length,2);assert(!names.some(n=>n.includes('Another Nancy')));
  }finally{h.close();}
 });

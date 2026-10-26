@@ -26,7 +26,7 @@ function NameChips({names,type,onFilter}:{names:string[];type:'artist'|'crew';on
   const [expanded,setExpanded]=useState(false);
   return <div className={`table-chips ${type}`}>{(expanded?names:names.slice(0,3)).map(n=><button key={n} title={type==='artist' && creditDescription(n) ? `${creditDescription(n)} · Filter by this set` : `Filter by ${n}`} onClick={()=>onFilter(n)}>{n}</button>)}{names.length>3 && <button className="more-chip" aria-expanded={expanded} onClick={()=>setExpanded(!expanded)}>{expanded?'Less':`+${names.length-3}`}</button>}{!names.length && <span className="unlogged">—</span>}</div>;
 }
-type Props={raves:Rave[];demo:boolean;year:string;onYearChange:(year:string)=>void;focus:{type:'artists'|'crew';name:string}|null;onClearFocus:()=>void;onOpen:(r:Rave)=>void;onEdit:(r:Rave,target?:'photos')=>void;onAdd:()=>void;onSave:(r:Rave)=>Promise<void>;onExport:(rows:Rave[])=>void;};
+type Props={raves:Rave[];demo:boolean;year:string;onYearChange:(year:string)=>void;focus:{type:'artists'|'crew';name:string;identity?:string}|null;onClearFocus:()=>void;onOpen:(r:Rave)=>void;onEdit:(r:Rave,target?:'photos')=>void;onAdd:()=>void;onSave:(r:Rave)=>Promise<void>;onExport:(rows:Rave[])=>void;};
 export default function RaveExplorer({raves,demo,year,onYearChange,focus,onClearFocus,onOpen,onEdit,onAdd,onSave,onExport}:Props){
   const mobile=useMobileLayout();
   const [period,setPeriod]=useState('all');
@@ -57,7 +57,7 @@ export default function RaveExplorer({raves,demo,year,onYearChange,focus,onClear
   const change=<K extends keyof Filters>(key:K,value:Filters[K])=>{setFilters(f=>({...f,[key]:value}));if(key==='year')onYearChange(String(value)||'all');if((key==='artist'||key==='crew')&&focus)onClearFocus();};
   const reset=()=>{setFilters(emptyFilters());setQuery('');onYearChange('all');onClearFocus();};
   const allArtists=uniqueNames(raves.flatMap(r=>artistsForRave({artists:displaySets(r)}))).sort((a,b)=>a.localeCompare(b)),allCrew=uniqueNames(raves.flatMap(displayCrew)).sort((a,b)=>a.localeCompare(b));
-  const filtered=useMemo(()=>sortRaves(filterRaves(raves.filter(r=>period==='all'||(period==='upcoming'?r.startDate>diaryToday():r.startDate<=diaryToday())),filters,query),period==='upcoming'?{key:'date',direction:'asc'}:mobile?{key:'date',direction:'desc'}:sort),[raves,filters,query,sort,mobile,period]);
+  const filtered=useMemo(()=>sortRaves(filterRaves(raves.filter(r=>!focus?.identity||(r.crewConnections||[]).some(p=>p.id===focus.identity)||(focus.identity.startsWith('name:')&&r.crew.some(n=>'name:'+n.toLowerCase()===focus.identity&&!(r.crewConnections||[]).some(p=>p.name.toLowerCase()===n.toLowerCase())))).filter(r=>period==='all'||(period==='upcoming'?r.startDate>diaryToday():r.startDate<=diaryToday())),focus?.identity?{...filters,crew:''}:filters,query),period==='upcoming'?{key:'date',direction:'asc'}:mobile?{key:'date',direction:'desc'}:sort),[raves,filters,query,sort,mobile,period,focus?.identity]);
   const known=filtered.filter(r=>totalCost(r)!==null),spent=known.reduce((s,r)=>s+totalCost(r)!,0),artistCount=leaderboard(filtered,'artists').length,crewCount=leaderboard(filtered,'crew').length;
   const summaryArtists=period==='upcoming'?uniqueNames(filtered.flatMap(r=>artistsForRave({artists:displaySets(r)}))).length:artistCount;
   const summaryCrew=period==='upcoming'?uniqueNames(filtered.flatMap(displayCrew)).length:crewCount;

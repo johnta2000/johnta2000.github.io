@@ -18,7 +18,10 @@ const modules=path.resolve(process.env.RALLY_DEPLOY_NODE_MODULES||path.join(root
  const patched=buildSync({entryPoints:[path.join(root,'convex/rallyCollection.ts')],bundle:true,write:false,format:'esm',platform:'browser',target:'es2022',external:['convex/*']}).outputFiles[0].text;
  const expected=['draftFromEvent','importEntries','list','remove','save'];
  const liveExports=collection.source.slice(collection.source.lastIndexOf('export {')+8).split('}')[0].split(',').map(s=>s.trim().split(/\s+as\s+/).pop()).filter(Boolean);
- assert.deepEqual(liveExports.filter(n=>n!=='createPlan').sort(),expected.sort(),'Unexpected live diary exports; preserve any newer functions before deploying');
+ const allowed=[...expected,'createPlan','connection','syncPlan','shareMemory'];
+ assert(expected.every(n=>liveExports.includes(n))&&liveExports.every(n=>allowed.includes(n)),'Unexpected live diary exports; preserve any newer functions before deploying');
+ const replacementExports=patched.slice(patched.lastIndexOf('export {')+8).split('}')[0].split(',').map(s=>s.trim().split(/\s+as\s+/).pop()).filter(Boolean);
+ assert.deepEqual([...replacementExports].sort(),allowed.sort(),'Unexpected replacement diary exports');
  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'rally-diary-upcoming-deploy-')),stamp=Date.now();
  const paths=new Map(before.modules.map(m=>[`${m.environment}:${m.path}`,m.path.startsWith('_')?`_auditSnapshot${stamp}/${m.environment}/${m.path}`:m.path]));
  const destination=module=>paths.get(`${module.environment}:${module.path}`);

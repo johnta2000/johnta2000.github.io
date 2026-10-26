@@ -3,10 +3,11 @@ import {Check, ChevronDown, Heart, LoaderCircle, LockKeyhole, Music2, Star, Wall
 import Modal from './Modal';
 import DateField from './DateField';
 import NamePicker from './NamePicker';
+import CrewPicker from './CrewPicker';
 import CityPicker from './CityPicker';
 import FestivalPicker, {FestivalSources} from './FestivalPicker';
 import {applyFestival, festivalForRave} from '../lib/festivals';
-import {attendanceOf, diaryToday, costKeys, emptyRave, leaderboard, totalCost, uniqueNames, validateRave, type Rave} from '../lib/raves';
+import {attendanceOf, diaryToday, costKeys, emptyRave, leaderboard, totalCost, uniqueNames, validateRave, type Rave, type CrewConnection} from '../lib/raves';
 
 const costLabels = {ticket: 'Tickets', travel: 'Travel', stay: 'Stay', other: 'Food & other'};
 const money = (n: number) => new Intl.NumberFormat('en-US', {style: 'currency', currency: 'USD'}).format(n);
@@ -14,17 +15,18 @@ const money = (n: number) => new Intl.NumberFormat('en-US', {style: 'currency', 
 export default function RaveForm({initial, all, onSave, onClose, suggestedArtists = [], suggestedCrew = [], focusSection, loadPlan}: {
   initial?: Rave; all: Rave[]; onSave: (r: Rave) => Promise<void>; onClose: () => void;
   suggestedArtists?: string[]; suggestedCrew?: string[]; focusSection?: 'photos';
-  loadPlan?: (eventId: string) => Promise<{artistSuggestions: string[]; crewSuggestions: string[]}>;
+  loadPlan?: (eventId: string) => Promise<{artistSuggestions: string[]; crewSuggestions: string[];crewPeople?:CrewConnection[]}>;
 }) {
   const [r, setR] = useState<Rave>(() => ({...structuredClone(initial || emptyRave()), id: initial?.id || crypto.randomUUID()}));
   const [plan, setPlan] = useState({artists: suggestedArtists, crew: suggestedCrew});
+  const [people,setPeople]=useState<CrewConnection[]>([]);
   const [planStatus, setPlanStatus] = useState(''), [planAttempt, setPlanAttempt] = useState(0);
   useEffect(() => {
     if (!r.sourceEventId || !loadPlan) return;
     let active = true;
     setPlanStatus('loading');
     loadPlan(r.sourceEventId).then(result => {
-      if (active) {setPlan({artists: result.artistSuggestions, crew: result.crewSuggestions}); setPlanStatus('');}
+      if (active) {setPlan({artists: result.artistSuggestions, crew: result.crewSuggestions});setPeople(result.crewPeople||[]); setPlanStatus('');}
     }).catch(() => {if (active) setPlanStatus('error');});
     return () => {active = false;};
   }, [r.sourceEventId, loadPlan, planAttempt]);
@@ -70,7 +72,7 @@ export default function RaveForm({initial, all, onSave, onClose, suggestedArtist
     }}>
       <p className="form-intro">{planning ? 'Keep your plans, artists to see, and costs together. Confirm attendance after the rave to add it to your history.' : r.sourceEventId ? 'Started from your rave plan. Add the artists you actually saw and your own share of the costs.' : 'Add a past night or an upcoming rave. Start with a name and date.'}</p>
       <fieldset disabled={saving} className="form-fields">
-        {!r.sourceEventId && <FestivalPicker current={festival} focusOnOpen={!isEdit && !focusSection} hasDetails={!!(r.name || r.startDate || r.city || r.venue)} onChoose={edition => setR(prev => applyFestival(prev, edition))}/>}
+        {!r.sourceEventId && <FestivalPicker onClear={()=>setR(prev=>({...prev,catalogEventId:null}))} current={festival} focusOnOpen={!isEdit && !focusSection} hasDetails={!!(r.name || r.startDate || r.city || r.venue)} onChoose={edition => setR(prev => applyFestival(prev, edition))}/>}
         <label className="field">Rave / event name <span className="required-label">Required</span><input data-autofocus={!focusSection && (isEdit || !!r.sourceEventId) || undefined} autoFocus={!focusSection && (isEdit || !!r.sourceEventId)} required maxLength={160} placeholder="The festival, show, or club night" value={r.name} onChange={e => field('name', e.target.value)}/></label>
         <div className="form-grid">
           <DateField label="Start date" required value={r.startDate} onChange={next => {
@@ -94,15 +96,16 @@ export default function RaveForm({initial, all, onSave, onClose, suggestedArtist
         <details className="form-disclosure" open>
           <summary><Music2 size={17}/><span>Artists & crew<small>{planning?'Your wishlist and possible crew':'Who made the night'}</small></span><ChevronDown size={16}/></summary>
           <div className="disclosure-body">
-            {r.sourceEventId && <FestivalPicker current={festival} hasDetails onChoose={edition => setR(prev => applyFestival(prev, edition))} linked/>}
+            {r.sourceEventId && <FestivalPicker onClear={()=>setR(prev=>({...prev,catalogEventId:null}))} current={festival} hasDetails onChoose={edition => setR(prev => applyFestival(prev, edition))} linked/>}
             {r.sourceEventId && planStatus === 'loading' && <p className="form-help" role="status">Loading suggestions from your Rally plan…</p>}
             {r.sourceEventId && planStatus === 'error' && <p className="form-help" role="status">Your Rally plan’s suggestions could not load.{festival ? ' The festival catalog lineup is available below.' : ' Choose a festival or add sets manually.'} <button type="button" className="text-button" onClick={() => setPlanAttempt(n => n + 1)}>Retry plan suggestions</button></p>}
             {festival && <div className="festival-lineup-note"><strong>{festival.name} · {festival.artists.length} lineup suggestions</strong><p>{!festival.artists.length ? 'No verified lineup is available for this event yet.' : festival.coverage === 'partial' ? 'Partial lineup — only verified artists are listed here.' : planning ? 'Published lineup — choose the sets you want to see.' : 'Archived lineup — select only the sets you actually saw.'} You can add missing artists or special sets below.</p><FestivalSources edition={festival}/></div>}
             <NamePicker label={planning?'Artists you want to see':'Artists you actually saw'} noun="artist" lineupOnly={!!festival || !!r.sourceEventId || !!plan.artists.length} planSuggestions={festival ? festival.artists : uniqueNames([...plan.artists,...(r.plannedArtists||[])])} values={selectedArtists} text={artistText} onText={setArtistText}
               onChange={artists => setR(prev => ({...prev, [artistField]:artists, favoriteArtist: planning ? prev.favoriteArtist : artists.some(a => a.toLowerCase() === prev.favoriteArtist.toLowerCase()) ? prev.favoriteArtist : ''}))}
               suggestions={uniqueNames(all.flatMap(rave => rave.artists))}/>
-            <NamePicker label={planning?'Who are you going with?':'Who did you go with?'} noun="friend" planSuggestions={uniqueNames([...plan.crew,...(r.plannedCrew||[])])} values={selectedCrew} text={crewText} onText={setCrewText} onChange={v => field(crewField, v)}
-              suggestions={leaderboard(all, 'crew').map(a => a.name)}/>
+            <CrewPicker label={planning?'Who are you going with?':'Who did you go with?'} values={selectedCrew} connections={r[planning?'plannedCrewConnections':'crewConnections']||[]} people={[...all.flatMap(entry=>[...(entry.crewConnections||[]),...(entry.plannedCrewConnections||[])]),...people]}
+              text={crewText} onText={setCrewText} planSuggestions={uniqueNames([...plan.crew,...(r.plannedCrew||[])])} suggestions={leaderboard(all,'crew').map(a=>a.name)}
+              onChange={(names,connections)=>setR(prev=>({...prev,[crewField]:names,[planning?'plannedCrewConnections':'crewConnections']:connections}))}/>
           </div>
         </details>
         <details className="form-disclosure" open={costKeys.some(k => initial?.costs[k] != null) || undefined}>

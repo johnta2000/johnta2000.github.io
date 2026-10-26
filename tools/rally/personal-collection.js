@@ -16,6 +16,16 @@ window.RallyCollection={
     if(loadExperience&&!offline())Promise.resolve().then(loadExperience).then(result=>{
       if(!section.isConnected||window.Clerk?.user?.id!==owner)return;
       link.textContent=result.existing?'View diary entry ↗':upcoming?'Save to my diary ↗':'Log my experience ↗';
+      if(Array.isArray(result.sharedMemories)&&result.sharedMemories.length){
+        const memories=document.createElement('div');memories.className='project-shared-memories';
+        const heading=document.createElement('h3');heading.textContent='Memories shared with this crew';memories.append(heading);
+        result.sharedMemories.forEach(memory=>{
+          const item=document.createElement('article'),name=document.createElement('strong');name.textContent=memory.name||'Crew member';item.append(name);
+          if(memory.note){const note=document.createElement('p');note.textContent=memory.note;item.append(note);}
+          if(memory.albumUrl){try{const url=new URL(memory.albumUrl);if(['https:','http:'].includes(url.protocol)){const album=document.createElement('a');album.href=url.href;album.target='_blank';album.rel='noopener noreferrer';album.textContent='Open shared album ↗';item.append(album);}}catch{}}
+          memories.append(item);
+        });section.classList.add('has-shared-memories');section.append(memories);
+      }
       title.textContent=result.existing?'This rave is in your diary':upcoming?'Keep this rave in your diary':'Keep your experience';
     }).catch(()=>{ /* Opening the collection retries the account-bound lookup. */ });
   }

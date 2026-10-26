@@ -1,3 +1,4 @@
+import {festivalForRave} from './festivals';
 import {parseDate} from './dates';
 import {artistsForRave} from './artists';
 import { isAttended, displaySets, displayCrew, totalCost, type Rave } from './raves.ts';
@@ -26,7 +27,7 @@ export function filterRaves(raves:Rave[],filters:Filters,query:string) {
     const cost=totalCost(r);
     if(filters.minCost!=='' && (cost===null || cost<Number(filters.minCost)))return false;
     if(filters.maxCost!=='' && (cost===null || cost>Number(filters.maxCost)))return false;
-    const text=[r.name,r.startDate,r.endDate,r.city,r.venue,r.kind,...displaySets(r),...artistsForRave({artists:displaySets(r)}),...displayCrew(r),r.favoriteArtist,r.notes].join(' ').toLocaleLowerCase();
+    const text=[r.name,festivalForRave(r)?.name||'',r.startDate,r.endDate,r.city,r.venue,r.kind,...displaySets(r),...artistsForRave({artists:displaySets(r)}),...displayCrew(r),r.favoriteArtist,r.notes].join(' ').toLocaleLowerCase();
     return words.every(word=>text.includes(word));
   });
 }

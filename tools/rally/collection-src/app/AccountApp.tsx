@@ -59,6 +59,9 @@ function SignedInCollection({viewer, onSignOut}: {viewer: Viewer; onSignOut: () 
   const [eventsLoading, setEventsLoading] = useState(true);
   const [attempt, setAttempt] = useState(0);
   const backend = useMemo<CollectionBackend>(() => ({
+    connection:id=>accountCall(viewer,'query','rallyCollection:connection',{id}),
+    syncPlan:(id,direction,fields,revision)=>accountCall(viewer,'mutation','rallyCollection:syncPlan',{id,direction,fields,revision}),
+    shareMemory:(id,note,albumUrl,revision)=>accountCall(viewer,'mutation','rallyCollection:shareMemory',{id,note,albumUrl,revision}),
     list: () => accountCall(viewer, 'query', 'rallyCollection:list'),
     save: rave => accountCall(viewer, 'mutation', 'rallyCollection:save', {rave}),
     remove: id => accountCall(viewer, 'mutation', 'rallyCollection:remove', {id}),

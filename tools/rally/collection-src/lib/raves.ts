@@ -1,6 +1,7 @@
-import {artistsForRave} from './artists';
+import {artistsForRave, artistId} from './artists';
+export type CrewConnection = {id: string; name: string; kind: 'account' | 'guest'; projectId: string; memberId: string};
 export type Rave = {
-  id: string; sourceEventId?: string; name: string; startDate: string; endDate: string; city: string; venue: string;
+  id: string; sourceEventId?: string; catalogEventId?: string | null; crewConnections?: CrewConnection[]; plannedCrewConnections?: CrewConnection[]; name: string; startDate: string; endDate: string; city: string; venue: string;
   attendance?: 'planned' | 'attended' | 'skipped'; plannedArtists?: string[]; plannedCrew?: string[];
   kind: 'Festival' | 'Club night' | 'Show'; artists: string[]; crew: string[];
   costs: { ticket: number | null; travel: number | null; stay: number | null; other: number | null };
@@ -20,8 +21,16 @@ export const raveStatus = (r: Rave, today = diaryToday()) => attendanceOf(r,toda
 export const displaySets = (r: Rave) => attendanceOf(r) === 'attended' ? r.artists : r.plannedArtists || [];
 export const displayCrew = (r: Rave) => attendanceOf(r) === 'attended' ? r.crew : r.plannedCrew || [];
 export function leaderboard(raves: Rave[], field: 'artists' | 'crew') {
-  const map = new Map<string,{name:string;count:number;raves:Rave[]}>();
-  for (const r of raves.filter(r=>isAttended(r))) for (const name of field === 'artists' ? artistsForRave(r) : uniqueNames(r.crew)) { const key=name.toLocaleLowerCase(); const row=map.get(key) ?? {name,count:0,raves:[]}; row.count++; row.raves.push(r); map.set(key,row); }
+  const map = new Map<string,{id:string;name:string;connected:boolean;count:number;raves:Rave[]}>();
+  for (const r of raves.filter(r=>isAttended(r))) {
+    const people = r.crewConnections || [];
+    const entries = field === 'artists' ? artistsForRave(r).map(name=>({id:artistId(name),name,connected:false})) : [
+      ...people.map(p=>({id:p.id,name:p.name,connected:p.kind==='account'})),
+      ...uniqueNames(r.crew).filter(name=>!people.some(p=>p.name.toLocaleLowerCase()===name.toLocaleLowerCase())).map(name=>({id:'name:'+name.toLocaleLowerCase(),name,connected:false})),
+    ];
+    const seen = new Set<string>();
+    for (const entry of entries) {if(seen.has(entry.id))continue;seen.add(entry.id);const row=map.get(entry.id) ?? {...entry,count:0,raves:[]};row.count++;row.raves.push(r);map.set(entry.id,row);}
+  }
   return [...map.values()].sort((a,b)=>b.count-a.count || a.name.localeCompare(b.name));
 }
 const validDate = (v: unknown) => typeof v==='string' && /^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(Date.parse(v)) && new Date(v).toISOString().slice(0,10)===v;
@@ -49,7 +58,20 @@ export function validateRave(input: unknown): Rave {
   const id=typeof x.id==='string' && /^[a-zA-Z0-9_-]{1,100}$/.test(x.id) ? x.id : crypto.randomUUID();
   const sourceEventId=typeof x.sourceEventId==='string' && /^[a-zA-Z0-9_-]{1,120}$/.test(x.sourceEventId)?x.sourceEventId:undefined;
   if(x.sourceEventId!==undefined&&!sourceEventId)throw new Error('Invalid linked Rally event.');
-  return {id,attendance:attendance as Rave['attendance'],plannedArtists,plannedCrew,...(sourceEventId?{sourceEventId}:{}),name,startDate,endDate,city:str('city',150),venue:str('venue',150),kind:x.kind as Rave['kind'],artists,crew,costs,albumUrl,notes:str('notes',10000),rating:x.rating,favoriteArtist,color};
+  const connections=(key:string,names:string[]):CrewConnection[]=>{
+    if(x[key]===undefined)return [];
+    if(!Array.isArray(x[key]) || x[key].length>150)throw new Error('Check your crew connections.');
+    const seen=new Set<string>();
+    return (x[key] as unknown[]).map(raw=>{
+      const p=raw as CrewConnection;
+      if(!p || typeof p!=='object' || typeof p.id!=='string' || p.id.length>300 || typeof p.name!=='string' || !p.name.trim() || p.name.length>120 || !['account','guest'].includes(p.kind) || !/^[a-zA-Z0-9_-]{1,120}$/.test(p.projectId) || !/^[a-zA-Z0-9_-]{1,160}$/.test(p.memberId))throw new Error('Check your crew connections.');
+      return {id:p.id,name:p.name.trim(),kind:p.kind,projectId:p.projectId,memberId:p.memberId};
+    }).filter(p=>names.some(n=>n.toLocaleLowerCase()===p.name.toLocaleLowerCase()) && !seen.has(p.id) && !!seen.add(p.id));
+  };
+  const crewConnections=connections('crewConnections',crew),plannedCrewConnections=connections('plannedCrewConnections',plannedCrew);
+  const catalogEventId=x.catalogEventId;
+  if(catalogEventId!==undefined && catalogEventId!==null && (typeof catalogEventId!=='string'||!/^[a-zA-Z0-9_-]{1,120}$/.test(catalogEventId)))throw new Error('Invalid catalog event.');
+  return {id,...(catalogEventId!==undefined?{catalogEventId:catalogEventId as string|null}:{}),...(x.crewConnections!==undefined?{crewConnections}:{}),...(x.plannedCrewConnections!==undefined?{plannedCrewConnections}:{}),attendance:attendance as Rave['attendance'],plannedArtists,plannedCrew,...(sourceEventId?{sourceEventId}:{}),name,startDate,endDate,city:str('city',150),venue:str('venue',150),kind:x.kind as Rave['kind'],artists,crew,costs,albumUrl,notes:str('notes',10000),rating:x.rating,favoriteArtist,color};
 }
 export const demoRaves: Rave[] = [
   {id:'demo-1',name:'Lost Lands',startDate:'2026-09-18',endDate:'2026-09-20',city:'Thornville, OH',venue:'Legend Valley',kind:'Festival',artists:['Subtronics','Excision','Wooli','Sullivan King','Seven Lions','REZZ'],crew:['Alex','Maya','Sam','Jordan'],costs:{ticket:450,travel:190,stay:210,other:85},albumUrl:'',notes:'The sunset set. The walk back to camp. The kind of weekend you wish you could bottle up.',rating:5,favoriteArtist:'Subtronics',color:0},
