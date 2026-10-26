@@ -60,4 +60,4 @@ Event search includes venue, city aliases (including SF), ISO dates, billed arti
 
 ## EDC Las Vegas 2027 weekends
 
-Dusk (May 14–16) and Dawn (May 21–23) are separate catalog editions with distinct identities. The full Dusk Till Dawn camping/event window is not an attendance default. Each weekend has an empty, explicitly unverified roster until that weekend’s lineup is sourced; no older roster is reused. Existing multiweekend crew plans require a weekend choice before changing their shared dates.
+Dusk (May 14–16) and Dawn (May 21–23) are separate catalog editions with distinct identities. The full Dusk Till Dawn camping/event window is not an attendance default. Each weekend has an empty, explicitly unverified roster until that weekend’s lineup is sourced; no older roster is reused. The existing EDC 2027 crew explicitly chose Dawn; its shared name, dates, and catalog identity were corrected by the guarded, idempotent `rallyEdc2027.selectDawn` internal migration. Crew, bookings, and personal experience fields remain intact.

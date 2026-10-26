@@ -169,9 +169,10 @@ function seedState(eventId: string, adminEmail: string, adminSubject: string): R
   if (eventId === EDC) {
     return {
       ...base,
-      name: "EDC Las Vegas 2027",
+      name: "EDC Las Vegas 2027 — Dawn (Weekend 2)",
+      catalogEventId: "edc-las-vegas-2027-w2",
       location: "Las Vegas Motor Speedway",
-      startsAt: "2027-05-14",
+      startsAt: "2027-05-21",
       endsAt: "2027-05-23",
       members: [{ id: `${eventId}-admin`, name: "John", email: adminEmail, origin: "TBD", initials: "JO", color: "coral", role: "admin", status: "confirmed", clerkSubject: adminSubject }],
     };
