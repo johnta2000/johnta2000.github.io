@@ -79,6 +79,7 @@ function statusMeta(status) {
 
 function monitorStats(monitor) {
   if (monitor.id === "seo-content-opportunities") {
+    if (monitor.metrics?.readyTaskCount != null) return [["Reviewed tasks ready", number(monitor.metrics.readyTaskCount)], ["Source checks", number(monitor.metrics.sourceCheckCount)], ["Planner keywords", number(monitor.metrics.plannerKeywords)]];
     return [["Update candidates", number(monitor.metrics?.updateCount)], ["Research gaps", number(monitor.metrics?.researchCount)], ["Planner keywords", number(monitor.metrics?.plannerKeywords)]];
   }
   if (monitor.id === "edit-hotels-ranking") {

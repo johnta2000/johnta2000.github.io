@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {parsePlanner,parseDelimited,dedupePlanner,canonical,aggregate,classify,buildOpportunities,articleTargets} from './engine.mjs';
+import {parsePlanner,parseDelimited,dedupePlanner,canonical,aggregate,classify,buildOpportunities,articleTargets,pageMetrics} from './engine.mjs';
 const config=JSON.parse(fs.readFileSync(new URL('./config.example.json',import.meta.url)));
 config.families.push(
   {id:'csr-dining',label:'Sapphire dining',pattern:'sapphire(?!.*preferred).*(dining|restaurant|table)',advantage:'Inventory',constraint:'Verify eligibility'},
@@ -60,7 +60,7 @@ test('update assignments require an exact-query review, reviewed body and explic
   i.inventory.articles=[{title:'Amex FHR Tokyo Hotels',slug:'amex-fhr-tokyo-hotels'}];
   i.gsc.current.queryPages.rows.push(metric(['amex fhr tokyo',url]));
   let row=buildOpportunities(i).opportunities[0];assert.equal(row.lane,'GSC lead');assert.equal(row.targets.length,1);assert.equal(row.exactPages.length,2);
-  i.reviews={[id]:{checkedAt:'2026-10-24',query:'amex fhr tokyo',updateApproved:true,articleReviewed:true,intentFits:true,targetUrl:url,sources:['https://example.com/observed'],angle:'A verified edit'}};
+  i.reviews={[id]:{checkedAt:new Date(Date.now()-86400000).toISOString(),query:'amex fhr tokyo',updateApproved:true,articleReviewed:true,intentFits:true,targetUrl:url,sources:['https://example.com/observed'],angle:'A verified edit'}};
   assert.equal(buildOpportunities(i).opportunities[0].lane,'Update candidate');
   i.reviews[id].query='amex fhr miami';assert.equal(buildOpportunities(i).opportunities[0].lane,'GSC lead');
   i.reviews[id].query='amex fhr tokyo';i.reviews[id].articleReviewed=false;assert.equal(buildOpportunities(i).opportunities[0].lane,'GSC lead');
@@ -68,8 +68,31 @@ test('update assignments require an exact-query review, reviewed body and explic
 });
 test('stale or incomplete reviews cannot promote new article assignments',()=>{
   const i=input(),id=classify('amex fhr tokyo',config).id;
-  i.reviews={[id]:{checkedAt:'2026-09-01',difficulty:'low',datasetVerified:true,coverageVerified:true,intentFits:true,angle:'Angle'}};
+  i.reviews={[id]:{query:'amex fhr tokyo',checkedAt:new Date(Date.now()-30*86400000).toISOString(),difficulty:'low',datasetVerified:true,coverageVerified:true,intentFits:true,angle:'Angle'}};
   assert.equal(buildOpportunities(i).opportunities[0].lane,'Research gap');
-  i.reviews[id].checkedAt='2026-10-24';assert.equal(buildOpportunities(i).opportunities[0].lane,'New article shortlist');
+  i.reviews[id].checkedAt=new Date(Date.now()-86400000).toISOString();assert.equal(buildOpportunities(i).opportunities[0].lane,'New article shortlist');
   i.reviews[id].difficulty='high';assert.equal(buildOpportunities(i).opportunities[0].lane,'Deprioritized');
+});
+test('different programs, card pairs and geographic scopes do not share article ownership',()=>{
+  const c=structuredClone(config);c.families.unshift({id:'resy',pattern:'resy',label:'Resy'});
+  assert.notEqual(classify('amex platinum resy credit',c).id,classify('amex gold resy credit',c).id);
+  assert.notEqual(classify('resy ny',c).id,classify('amex platinum resy credit',c).id);
+  assert.notEqual(classify('chase edit points boost hotels',c).id,classify('chase edit hotels',c).id);
+  assert.notEqual(classify('cheapest edit hotels asia',c).id,classify('cheapest edit hotels',c).id);
+});
+test('normalized query variants retain their metrics instead of silently overwriting observations',()=>{
+  const i=input();i.gsc.current.queries.rows=[{...metric(['Amex FHR Tokyo'],100),clicks:2,position:2},{...metric(['amex-fhr tokyo'],300),clicks:3,position:10}];
+  const r=buildOpportunities(i).opportunities[0];assert.equal(r.current.impressions,400);assert.equal(r.current.clicks,5);assert.equal(r.current.position,8);
+});
+test('page metrics exclude fragment observations and retain separate parameter URLs',()=>{
+  const m=pageMetrics([metric(['https://www.nextcard.com/articles/test'],500),metric(['https://www.nextcard.com/articles/test#section'],900),metric(['https://www.nextcard.com/articles/test?q=1'],20)]);
+  assert.equal(m.get('https://nextcard.com/articles/test').impressions,500);assert.equal(m.get('https://nextcard.com/articles/test').clicks,10);assert.equal(m.size,2);
+});
+test('an observed article blocks a missing-content claim even when its title match fails',()=>{
+  const i=input();i.gsc.current.queryPages.rows=[{...metric(['amex fhr tokyo','https://nextcard.com/articles/unexpected-title']),clicks:0}];
+  assert.equal(buildOpportunities(i).opportunities[0].lane,'Coverage review');
+});
+test('a review for a different headline cannot supply difficulty or approve work',()=>{
+  const i=input(),id=classify('amex fhr tokyo',config).id;i.reviews={[id]:{query:'amex fhr miami',checkedAt:new Date().toISOString(),difficulty:'low',datasetVerified:true,coverageVerified:true,intentFits:true,angle:'Wrong query'}};
+  const r=buildOpportunities(i).opportunities[0];assert.equal(r.difficulty,'Unreviewed');assert.equal(r.review,null);assert.equal(r.lane,'Research gap');
 });

@@ -46,11 +46,19 @@ async function rows(range,dimensions,byProperty=false){
 const dates=await query({startDate:day(today,-14),endDate:day(today,-1),dimensions:['date'],rowLimit:30});
 const end=(dates.rows||[]).map(r=>r.keys[0]).sort().at(-1);if(!end)throw Error('No finalized GSC dates available');
 const periods={current:{startDate:day(end,-27),endDate:end},previous:{startDate:day(end,-55),endDate:day(end,-28)}};
+const recentPeriods={current:{startDate:day(end,-6),endDate:end},previous:{startDate:day(end,-13),endDate:day(end,-7)}};
 const gsc={fetchedAt:now.toISOString(),country:config.country,periods,finalizedThrough:end,notes:['GSC returns disclosed top rows, not all searches. Missing query observations are not zero demand.','Country is US; page/query data and property data have different aggregation.']};
 for(const [label,range] of Object.entries(periods)){
   gsc[label]={};
   for(const [name,dims,property] of [['queries',['query'],true],['pages',['page'],false],['queryPages',['query','page'],false]]){
     gsc[label][name]=await rows(range,dims,property);console.log(label,name,gsc[label][name].rows.length);
+  }
+}
+gsc.recent={periods:recentPeriods};
+for(const [label,range] of Object.entries(recentPeriods)){
+  gsc.recent[label]={};
+  for(const [name,dims,property] of [['queries',['query'],true],['pages',['page'],false],['queryPages',['query','page'],false]]){
+    gsc.recent[label][name]=await rows(range,dims,property);console.log('recent',label,name,gsc.recent[label][name].rows.length);
   }
 }
 async function get(url){const u=new URL(url);if(u.protocol!=='https:'||u.hostname!=='nextcard-static.s3.us-east-1.amazonaws.com')throw Error('Unexpected inventory host');const r=await fetch(u,{signal:AbortSignal.timeout(60000)});if(!r.ok)throw Error('Article inventory HTTP '+r.status);return r.json();}

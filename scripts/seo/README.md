@@ -21,6 +21,8 @@ Build reads the local Keyword Planner exports and available draft/docket/Vercel 
 ## Decision rules
 
 - Query groups use program, subject, intent and city. This is rule-based candidate discovery, not a semantic proof of identical search intent.
+- Gold and Platinum Resy intent, specific Bilt card comparison pairs, Edit Points Boost and named regions have separate groups. A result review applies only when its recorded query matches the current group headline.
+- Normalized query variants retain their combined observed metrics instead of overwriting each other. Fragment page rows are excluded before attaching target-page totals.
 - Current and prior GSC query metrics use property aggregation. Query/page observations are separate and must not be summed into property totals. Fragment rows are excluded from page ownership. Query strings are preserved. Unusually long query strings are excluded from automatic clustering and counted in diagnostics.
 - No disclosed observations stay null. A missing row does not establish absent demand, deindexing or zero rank.
 - Keyword volumes are never summed across close variants or repeated exports. Each group shows its strongest individual keyword and the original file/row. Conflicting exports remain recorded in the local input evidence.
@@ -37,6 +39,14 @@ Build reads the local Keyword Planner exports and available draft/docket/Vercel 
 ## Review format
 
 `reviews.json` is keyed by the `id` in the report. Each entry records `checkedAt`, `query`, `method`, `difficulty` (low/medium/high), `datasetVerified`, `coverageVerified`, `intentFits`, `angle`, `reason`, and HTTPS `sources`. Use real observations. A general web search sample must not be labeled a fixed-location Google ranking audit. Expired reviews are not used to approve new content.
+
+## Reviewed work and source checks
+
+The default desktop view opens **Reviewed work** when available. The private, ignored `.cache/editorial-review.json` contains dated tasks with a specific page, rationale, sources, readiness, priority and completion criteria. Maintenance and scope decisions are separate from research opportunities; an accuracy fix does not promise a ranking gain. Ready status expires after 14 days without a renewed review.
+
+Reviewed-work metrics use the target page's non-fragment GSC observations. Research metrics use query groups. The interface labels the active basis and never combines them. Source-verification findings appear in Data & methodology. Keep positive catalogue counts separate from usable row/price evidence; a connector failure does not establish that a public tool is broken.
+
+Refresh also collects adjacent recent seven-day windows when the API is available. Until that collection succeeds, recent movement remains unavailable. Never infer recovery from a 28-day average after an acute drop. The existing quota cooldown takes precedence; failed refreshes preserve the complete prior snapshot. The dashboard reloads saved reports; reopening it does not collect fresh GSC data.
 
 ## Next connections
 
