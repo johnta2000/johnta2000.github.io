@@ -17,7 +17,7 @@
     <meta name="theme-color" content="#f7f8fa" />
     <title>Daylight — Your sleep, in perspective</title>
     <link rel="stylesheet" href="/assets/css/searchable-select.css" />
-    <link rel="stylesheet" href="./styles.css?v=20261025-6" />
+    <link rel="stylesheet" href="./styles.css?v=20261025-7" />
   <link rel="stylesheet" href="../../assets/css/clerk-auth.css?v=20261011-otp1">
   </head>
   <body>
@@ -374,7 +374,7 @@
               <label class="group-mode-picker"><span class="sr-only">Chart view</span><select id="groupChartView" aria-label="Chart view"><option value="values">Values</option><option value="changes">Daily changes</option><option value="whiplash">Whiplash</option></select></label></div>
               <div id="groupAdvancedControls" class="group-advanced-controls"><div class="group-chart-modes" role="group" aria-label="Chart view"><button type="button" data-group-mode="values" aria-pressed="true">Values</button><button type="button" data-group-mode="changes" aria-pressed="false">Daily changes</button><button type="button" data-group-mode="whiplash" aria-pressed="false">Whiplash</button></div>
               <p id="groupModeNote" class="small-note"></p></div>
-              <div class="group-readout-heading"><strong id="groupSelectedDate"></strong><span class="group-inspect-desktop">Hover or tap the chart for exact values</span><span class="group-inspect-mobile">Tap graph to inspect</span></div>
+              <div class="group-readout-heading"><strong id="groupSelectedDate"></strong><span class="group-inspect-desktop">Hover or tap the chart for exact values</span><div class="group-day-controls" role="group" aria-label="Selected day"><button id="groupPreviousDay" type="button" aria-label="Previous day">←</button><button id="groupNextDay" type="button" aria-label="Next day">→</button></div></div>
               <div id="groupMembers" class="group-members" role="group" aria-label="People shown in the chart"></div>
               <div class="group-plot-wrap"><div id="groupPlot" tabindex="0" role="group" aria-label="Group history. Use left and right arrow keys to explore dates." aria-describedby="groupChartStatus"></div><div id="groupTooltip" class="group-tooltip" hidden></div><p id="groupEmpty" class="chart-empty" hidden>Select a person to show their history.</p></div>
               <p id="groupChartStatus" class="sr-only" role="status" aria-live="polite"></p>
@@ -657,6 +657,6 @@
     <script defer src="./model.js?v=20261025-6"></script>
     <script defer src="./comparison.js?v=20261025-6"></script>
     <script defer src="./groups.js?v=20261025-2"></script>
-    <script defer src="./app.js?v=20261025-6"></script>
+    <script defer src="./app.js?v=20261025-7"></script>
   </body>
 </html>

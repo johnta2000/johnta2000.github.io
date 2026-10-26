@@ -2329,3 +2329,21 @@ body:has(#standingsDialog[open]) { overflow:hidden; }
   .group-mode-picker { flex-basis:116px; }
   .group-history .metric-picker .search-select-trigger, .group-mode-picker .search-select-trigger { padding:8px; gap:6px; font-size:11px; }
 }
+
+/* Touch inspection stays in the page so the selected graph never disappears. */
+.group-day-controls, .group-member-change { display:none; }
+@media(max-width:700px) {
+  #groupTooltip { display:none; }
+  #groupPlot:focus:not(:focus-visible) { outline:none; }
+  .group-readout-heading { margin:10px 0 8px; min-height:44px; }
+  .group-day-controls { display:flex; gap:6px; }
+  .group-day-controls button { display:grid; place-items:center; width:44px; height:44px; padding:0; border:1px solid #dfe7e1; border-radius:9px; background:white; color:var(--ink); font:inherit; font-size:19px; }
+  .group-day-controls button:disabled { opacity:.3; cursor:default; }
+  .group-day-controls button:focus-visible { outline:2px solid #397967; outline-offset:2px; }
+  .group-members { grid-template-columns:1fr; gap:0; }
+  .group-members button { display:grid; grid-template-columns:minmax(0,1fr) auto; column-gap:12px; row-gap:4px; padding:10px 2px; min-height:60px; border-radius:0; border-bottom:1px solid #edf1ed; background:transparent; }
+  .group-members button[aria-pressed="false"] { background:transparent; }
+  .group-member-name { font-size:12px; }
+  .group-member-value { font-size:15px; }
+  .group-member-change { display:block; grid-column:1/-1; padding-left:17px; font-size:11px; color:var(--muted); line-height:1.4; }
+}

@@ -144,6 +144,12 @@ function bindEvents() {
   );
   $("#chartMetric").addEventListener("change", renderCharts);
   $("#groupMetric").addEventListener("change", drawGroupChart);
+  for (const [id, offset] of [["groupPreviousDay", -1], ["groupNextDay", 1]]) {
+    $(`#${id}`).addEventListener("click", () => {
+      if (!groupHistory) return;
+      showGroupDay(groupHistory.dates.indexOf(groupSelectedDate) + offset);
+    });
+  }
   const changeGroupMode = mode => {
     groupChartMode = mode;
     document.querySelectorAll("[data-group-mode]").forEach(item => item.setAttribute("aria-pressed", String(item.dataset.groupMode === mode)));
@@ -1777,7 +1783,7 @@ function drawGroupChart() {
   $("#groupMetricHeading").textContent = metricName;
   $("#groupBaselineNote").textContent = selectedRange === "all" ? "All available shared history. Each person’s sharing window still applies; coverage may differ. There is no previous period for All." : `Compared with each person’s previous ${selectedDays} days. Only tracked days count. HRV and resting heart rate are personal measures.`;
   if (!$("#groupMembers").children.length) {
-    $("#groupMembers").innerHTML = groupSample.map(member => `<button type="button" data-member="${member.id}" aria-pressed="${visibleGroupMembers.has(member.id)}" style="--member-color:${member.color}"><span class="group-member-name"><svg width="22" height="12" aria-hidden="true"><line x1="0" x2="22" y1="6" y2="6" stroke="currentColor" stroke-width="3" stroke-dasharray="${member.dash}"/></svg>${escapeHtml(member.name.replace(' (sample)', ''))}</span><strong class="group-member-value"></strong></button>`).join("");
+    $("#groupMembers").innerHTML = groupSample.map(member => `<button type="button" data-member="${member.id}" aria-pressed="${visibleGroupMembers.has(member.id)}" style="--member-color:${member.color}"><span class="group-member-name"><svg width="22" height="12" aria-hidden="true"><line x1="0" x2="22" y1="6" y2="6" stroke="currentColor" stroke-width="3" stroke-dasharray="${member.dash}"/></svg>${escapeHtml(member.name.replace(' (sample)', ''))}</span><strong class="group-member-value"></strong><small class="group-member-change"></small></button>`).join("");
     $("#groupMembers").querySelectorAll("button").forEach(button => button.addEventListener("click", () => {
       const id = button.dataset.member;
       if (visibleGroupMembers.has(id)) visibleGroupMembers.delete(id); else visibleGroupMembers.add(id);
@@ -1825,7 +1831,7 @@ function drawGroupChart() {
     const px = (event.clientX - rect.left) * w / rect.width;
     showGroupDay(Math.round((px - left) / (w - left - right) * (selectedDays - 1)), true);
   };
-  plot.onpointermove = event => { if (event.pointerType !== "touch") explore(event); };
+  plot.onpointermove = event => { if (!window.matchMedia("(max-width:700px)").matches && event.pointerType !== "touch") explore(event); };
   plot.onclick = explore;
   plot.onpointerleave = event => { if (!$("#groupTooltip").contains(event.relatedTarget)) $("#groupTooltip").hidden = true; };
   $("#groupTooltip").onpointerleave = event => { if (!plot.contains(event.relatedTarget)) $("#groupTooltip").hidden = true; };
@@ -1838,7 +1844,7 @@ function drawGroupChart() {
   };
   $("#groupEmpty").hidden = values.length > 0;
   $("#groupEmpty").textContent = !groupHistory.members.length
-    ? "Select a person above to show their history."
+    ? "Select a person to show their history."
     : !isDemo && !liveGroup.members.some(member => member.metrics.includes(metric))
       ? "This metric isn’t shared yet. Use Edit sharing in Members below to choose what to share."
       : difference ? `No ${groupChartMode === "whiplash" ? "three-day runs" : "consecutive-day pairs"} in this period. Try Values or a longer period.`
@@ -1863,6 +1869,8 @@ function showGroupDay(index, tooltip = false) {
   groupSelectedDate = groupHistory.dates[index];
   const {x, y, w} = groupGeometry;
   $("#groupSelectedDate").textContent = formatTableDate(groupSelectedDate);
+  $("#groupPreviousDay").disabled = index === 0;
+  $("#groupNextDay").disabled = index === groupHistory.dates.length - 1;
   $("#groupCursor").setAttribute("x1", x(index));
   $("#groupCursor").setAttribute("x2", x(index));
   $("#groupCursor").setAttribute("visibility", groupHistory.members.length ? "visible" : "hidden");
@@ -1870,6 +1878,11 @@ function showGroupDay(index, tooltip = false) {
   $("#groupMembers").querySelectorAll("button").forEach(button => {
     const member = groupHistory.members.find(member => member.id === button.dataset.member);
     button.querySelector(".group-member-value").textContent = member ? formatGroupPoint(member, member.points[index]) : "Hidden";
+    const point = member?.points[index];
+    const detail = !member ? "Tap to show" : groupChartMode === "values"
+      ? Number.isFinite(point.change) ? `${formatGroupDifference(point.change)} vs. yesterday` : "No previous-day comparison"
+      : Number.isFinite(point.rawValue) ? `Daily value: ${formatGroupValue(point.rawValue)}` : "No daily reading";
+    button.querySelector(".group-member-change").textContent = detail;
   });
   const rows = groupHistory.members.map(member => {
     const p = member.points[index];
@@ -1879,7 +1892,7 @@ function showGroupDay(index, tooltip = false) {
   }).join("");
   const tip = $("#groupTooltip");
   tip.innerHTML = `<p>${formatTableDate(groupSelectedDate)}</p>${rows}`;
-  tip.hidden = !tooltip || !groupHistory.members.length;
+  tip.hidden = window.matchMedia("(max-width:700px)").matches || !tooltip || !groupHistory.members.length;
   const tipWidth = Math.min(310, w - 16);
   tip.style.width = `${tipWidth}px`;
   tip.style.left = `${clamp(x(index) + (x(index) < w / 2 ? 18 : -tipWidth - 18), 8, w - tipWidth - 8)}px`;
