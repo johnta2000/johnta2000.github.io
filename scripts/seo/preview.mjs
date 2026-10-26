@@ -13,7 +13,8 @@ try{for(const width of [1200,390]){
   await page.evaluate(r=>{const root=document.querySelector('#root');root.innerHTML=window.SeoOpportunities.markup(r);window.SeoOpportunities.mount(root);},report);
   await page.screenshot({path:fileURLToPath(new URL('./.cache/preview-'+width+'.png',import.meta.url))});
   const overflow=await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth);if(overflow)throw Error('Viewport overflow at '+width);
-  await page.locator('[data-seo-lane="Update candidate"]').click();const count=await page.locator('.seo-card:visible').count();if(!count)throw Error('No update candidates');
+  const lane=report.details.opportunities.some(r=>r.lane==='Update candidate')?'Update candidate':'GSC lead';
+  await page.locator('[data-seo-lane="'+lane+'"]').click();const count=await page.locator('.seo-card:visible').count();if(!count)throw Error('No review candidates');
   await page.locator('.seo-card:visible summary').first().click();await page.screenshot({path:fileURLToPath(new URL('./.cache/expanded-'+width+'.png',import.meta.url))});
-  console.log(JSON.stringify({width,overflow,visibleUpdates:count}));await page.close();
+  console.log(JSON.stringify({width,overflow,lane,visibleCandidates:count}));await page.close();
 }}finally{await browser.close();}

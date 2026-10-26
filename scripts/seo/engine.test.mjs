@@ -55,6 +55,17 @@ test('title match and group-level opportunity alone cannot recommend an article 
   const i=input();i.inventory.articles=[{id:'draft-id',title:'Amex FHR Tokyo Hotels',slug:'amex-fhr-tokyo-hotels'}];
   const row=buildOpportunities(i).opportunities[0];assert.equal(row.lane,'Coverage review');assert.deepEqual(row.targets,[]);
 });
+test('update assignments require an exact-query review, reviewed body and explicit target approval',()=>{
+  const i=input(),id=classify('amex fhr tokyo',config).id,url='https://www.nextcard.com/articles/amex-fhr-tokyo-hotels';
+  i.inventory.articles=[{title:'Amex FHR Tokyo Hotels',slug:'amex-fhr-tokyo-hotels'}];
+  i.gsc.current.queryPages.rows.push(metric(['amex fhr tokyo',url]));
+  let row=buildOpportunities(i).opportunities[0];assert.equal(row.lane,'GSC lead');assert.equal(row.targets.length,1);assert.equal(row.exactPages.length,2);
+  i.reviews={[id]:{checkedAt:'2026-10-24',query:'amex fhr tokyo',updateApproved:true,articleReviewed:true,intentFits:true,targetUrl:url,sources:['https://example.com/observed'],angle:'A verified edit'}};
+  assert.equal(buildOpportunities(i).opportunities[0].lane,'Update candidate');
+  i.reviews[id].query='amex fhr miami';assert.equal(buildOpportunities(i).opportunities[0].lane,'GSC lead');
+  i.reviews[id].query='amex fhr tokyo';i.reviews[id].articleReviewed=false;assert.equal(buildOpportunities(i).opportunities[0].lane,'GSC lead');
+  i.reviews[id].articleReviewed=true;i.reviews[id].targetUrl='https://nextcard.com/articles/another';assert.equal(buildOpportunities(i).opportunities[0].lane,'GSC lead');
+});
 test('stale or incomplete reviews cannot promote new article assignments',()=>{
   const i=input(),id=classify('amex fhr tokyo',config).id;
   i.reviews={[id]:{checkedAt:'2026-09-01',difficulty:'low',datasetVerified:true,coverageVerified:true,intentFits:true,angle:'Angle'}};

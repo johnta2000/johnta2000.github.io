@@ -4,14 +4,15 @@
   const pos=v=>Number.isFinite(v)?v.toFixed(2):'Not observed';
   const link=(url,label)=>/^https:\/\//.test(url??'')?`<a href="${esc(url)}" target="_blank" rel="noopener noreferrer">${esc(label)}</a>`:esc(label);
   function articleAction(r){
-    if(r.lane!=='Update candidate')return '';
+    if(!['Update candidate','GSC lead'].includes(r.lane))return '';
     const target=r.targets?.[0];
     if(!target)return '<section class="seo-article-action"><strong>Article not yet confirmed</strong><p>This saved report has not identified an article with its own update signal. Review the matching pages before assigning an edit.</p></section>';
-    return `<section class="seo-article-action"><p class="seo-action-label">Start with this article</p><h4>${link(target.url,target.title)}</h4><div class="seo-article-links">${link(target.url,'Read article')}${target.officeUrl?link(target.officeUrl,'Open in Office'):''}</div><p><strong>Why review it:</strong> ${esc(target.reason)}</p><p class="seo-article-note">The evidence above is for this article within the query group. The figures below cover the whole query group. A content review is still needed to choose the edits.</p></section>`;
+    return `<section class="seo-article-action"><p class="seo-action-label">${r.lane==='GSC lead'?'Algorithm-matched article — not a confirmed update target':'Recommended article update'}</p><h4>${link(target.url,target.title)}</h4><div class="seo-article-links">${link(target.url,'Read article')}${target.officeUrl?link(target.officeUrl,'Open in Office'):''}</div><p><strong>GSC signal:</strong> ${esc(target.reason)}</p><p class="seo-article-note">This evidence covers a query group, not necessarily the headline query. Title matching can select the wrong article. Average position alone does not establish a content problem.</p></section>`;
   }
   function card(r){return `<article class="seo-card" data-lane="${esc(r.lane)}" data-search="${esc([r.keyword,r.family,r.city,r.id,...(r.targets??[]).map(a=>a.title)].join(' ').toLowerCase())}">
     <div class="seo-card-heading"><span class="seo-label">${esc(r.lane)}</span><span>${esc(r.family)}${r.city?' · '+esc(r.city):''}</span></div>
     <h3>${esc(r.keyword)}</h3><p>${esc(r.nextStep)}</p>
+    ${r.review?`<p><strong>Search check:</strong> ${esc(r.review.reason)} <small>${esc(r.review.method)} · ${esc(r.review.checkedAt.slice(0,10))}</small></p>`:''}
     ${articleAction(r)}
     <dl class="seo-metrics"><div><dt>Strongest keyword / month</dt><dd>${r.volume==null?'Not measured':num(r.volume)}</dd></div><div><dt>Disclosed impressions · 28d</dt><dd>${num(r.current?.impressions)}</dd></div><div><dt>Clicks · previous → recent</dt><dd>${num(r.previous?.clicks)} → ${num(r.current?.clicks)}</dd></div><div><dt>Average position · 28d</dt><dd>${pos(r.current?.position)}</dd></div></dl>
     <p><strong>Possible advantage:</strong> ${esc(r.advantage)}</p><p><strong>What must hold:</strong> ${esc(r.constraint)}</p>
@@ -19,6 +20,7 @@
       <p><strong>Competition:</strong> ${esc(r.difficulty)}${r.review?' · checked '+esc(r.review.checkedAt.slice(0,10)):''}. ${esc(r.review?.reason??'A current result review is required before calling this an attainable opportunity.')}</p>
       ${r.review?`<p>${esc(r.review.method)}. ${r.review.sources.map((u,i)=>link(u,'Source '+(i+1))).join(' · ')}</p>`:''}
       <p><strong>Planner evidence:</strong> ${esc(r.plannerEvidence??'No matching keyword volume supplied.')} Individual close-variant volumes are not added together.</p>
+      <p><strong>Pages observed for the exact headline query (28-day GSC, not live ranks):</strong></p><ul>${(r.exactPages??[]).map(p=>`<li>${link(p.url,new URL(p.url).pathname)} — ${num(p.impressions)} impressions / position ${pos(p.position)}</li>`).join('')||'<li>No disclosed exact-query page observations in this report.</li>'}</ul>
       <div class="seo-table-wrap"><table><thead><tr><th>Example query</th><th>Monthly searches</th><th>GSC impressions</th><th>Position</th></tr></thead><tbody>${(r.queries??[]).map(q=>`<tr><td>${esc(q.keyword)}</td><td>${q.monthlySearches==null?'Unknown':num(q.monthlySearches)}</td><td>${num(q.impressions)}</td><td>${pos(q.position)}</td></tr>`).join('')}</tbody></table></div>
       <p><strong>Pages observed for these queries:</strong></p><ul>${(r.pages??[]).map(p=>`<li>${link(p.url,new URL(p.url).pathname)} — ${num(p.clicks)} clicks / ${num(p.impressions)} impressions</li>`).join('')||'<li>No disclosed page observations.</li>'}</ul>
       <p><strong>Possible existing article coverage:</strong></p><ul>${(r.articles??[]).map(a=>`<li>${link(a.url,a.title)} ${a.officeUrl?' · '+link(a.officeUrl,'Office'):''}</li>`).join('')||'<li>No title-level match. This does not prove a gap.</li>'}</ul>
