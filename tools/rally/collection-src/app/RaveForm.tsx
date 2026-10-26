@@ -7,7 +7,7 @@ import CrewPicker from './CrewPicker';
 import CityPicker from './CityPicker';
 import FestivalPicker, {FestivalSources} from './FestivalPicker';
 import {applyFestival, festivalForRave} from '../lib/festivals';
-import {attendanceOf, diaryToday, costKeys, emptyRave, leaderboard, totalCost, uniqueNames, validateRave, type Rave, type CrewConnection} from '../lib/raves';
+import {diaryToday, costKeys, emptyRave, leaderboard, totalCost, uniqueNames, validateRave, type Rave, type CrewConnection} from '../lib/raves';
 
 const costLabels = {ticket: 'Tickets', travel: 'Travel', stay: 'Stay', other: 'Food & other'};
 const eventDate = (s:string)=>new Date(s+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
@@ -47,12 +47,16 @@ export default function RaveForm({initial, all, onSave, onClose, suggestedArtist
     (n.startDate === r.startDate && n.name.toLowerCase().trim() === r.name.toLowerCase().trim())));
   const blockedDuplicate = !!duplicate && (!!festival || !!duplicate.sourceEventId) && !(isEdit && festival && festival.id===originalEdition?.id);
   const sum = totalCost(r);
-  const attendance=attendanceOf(r), planning=attendance!=='attended', future=!!r.startDate&&r.startDate>diaryToday();
+  const planning=!!r.startDate&&r.startDate>diaryToday();
+  const attendance=planning?'planned':'attended';
   const artistField=planning?'plannedArtists':'artists', crewField=planning?'plannedCrew':'crew';
   const selectedArtists=r[artistField]||[], selectedCrew=r[crewField]||[];
-  const changeAttendance=(next:Rave['attendance'])=>{
-    setR(prev=>({...prev,[artistField]:uniqueNames([...(prev[artistField]||[]),...artistText.split(',')]),[crewField]:uniqueNames([...(prev[crewField]||[]),...crewText.split(',')]),attendance:next}));
-    setArtistText('');setCrewText('');
+  const changeEventDetails=(update:(previous:Rave)=>Rave)=>{
+    const next=update(r);
+    if((r.startDate>diaryToday())!==(next.startDate>diaryToday())){
+      setR({...next,[artistField]:uniqueNames([...selectedArtists,...artistText.split(',')]),[crewField]:uniqueNames([...selectedCrew,...crewText.split(',')])});
+      setArtistText('');setCrewText('');
+    }else setR(next);
   };
   useEffect(() => {
     if (!dirty && !saving) return;
@@ -76,29 +80,20 @@ export default function RaveForm({initial, all, onSave, onClose, suggestedArtist
       const section = input.closest('details');
       if (section) section.open = true;
     }}>
-      <p className="form-intro">{planning ? 'Keep your plans, artists to see, and costs together. Confirm attendance after the rave to add it to your history.' : r.sourceEventId ? 'This rave is already in your diary. Add the artists you actually saw and your own share of the costs.' : 'Add a past night or an upcoming rave. Start with a name and date.'}</p>
+      <p className="form-intro">{planning ? 'Keep your plans, artists to see, and costs together.' : r.sourceEventId ? 'This rave is already in your diary. Add the artists you actually saw and your own share of the costs.' : 'Add a past night or an upcoming rave. Start with a name and date.'}</p>
       <fieldset disabled={saving} className="form-fields">
-        {!r.sourceEventId && <FestivalPicker unavailableIds={unavailableIds} onClear={()=>setR(prev=>({...prev,catalogEventId:null}))} current={festival} focusOnOpen={!isEdit && !focusSection} hasDetails={!!(r.name || r.startDate || r.city || r.venue)} onChoose={edition => setR(prev => applyFestival(prev, edition))}/>}
+        {!r.sourceEventId && <FestivalPicker unavailableIds={unavailableIds} onClear={()=>setR(prev=>({...prev,catalogEventId:null}))} current={festival} focusOnOpen={!isEdit && !focusSection} hasDetails={!!(r.name || r.startDate || r.city || r.venue)} onChoose={edition => changeEventDetails(prev => applyFestival(prev, edition))}/>}
         {r.sourceEventId?<div className="shared-event-summary"><strong>{r.name}</strong><span>{eventDate(r.startDate)}{r.endDate!==r.startDate?' – '+eventDate(r.endDate):''} · {[r.venue,r.city].filter(Boolean).join(' · ')}</span><p>Event details are shared with your crew and stay up to date in Rally.</p><a href={`/tools/rally/?event=${encodeURIComponent(r.sourceEventId)}`}>View event details in Rally ↗</a></div>:<>
         <label className="field">Rave / event name <span className="required-label">Required</span><input data-autofocus={!focusSection && (isEdit || !!r.sourceEventId) || undefined} autoFocus={!focusSection && (isEdit || !!r.sourceEventId)} required maxLength={160} placeholder="The festival, show, or club night" value={r.name} onChange={e => field('name', e.target.value)}/></label>
         <div className="form-grid">
           <DateField label="Start date" required value={r.startDate} onChange={next => {
-            setR(prev => ({...prev, startDate: next, ...(next>diaryToday()?{attendance:'planned' as const}:{}), endDate: prev.endDate === prev.startDate ? next : prev.endDate}));
+            changeEventDetails(prev => ({...prev, startDate: next, endDate: prev.endDate === prev.startDate ? next : prev.endDate}));
           }}/>
           <DateField label="End date" hint="For multiple days" min={r.startDate} value={r.endDate} onChange={value => field('endDate', value)}/>
           <CityPicker value={r.city} cities={all.map(rave => rave.city)} onChange={city => field('city', city)}/>
           <label className="field">Venue<input maxLength={150} placeholder="The Midway" value={r.venue} onChange={e => field('venue', e.target.value)}/></label>
         </div>
         </>}
-        <section className="attendance-choice" aria-label="Attendance">
-          <strong>{future?'Upcoming rave':attendance==='planned'?'Did you go?':'Your attendance'}</strong>
-          <p>{future?'Keep your plans here. This won’t count toward your attended raves or artist history.':attendance==='planned'?'The date has arrived. Confirm attendance, then choose the sets you actually saw.':'Only attended raves count toward your history and recap.'}</p>
-          <div className="segmented">
-            <button type="button" aria-pressed={attendance==='planned'} onClick={()=>changeAttendance('planned')}>{future?'Planning to go':'Still to log'}</button>
-            {!future&&<button type="button" aria-pressed={attendance==='attended'} onClick={()=>changeAttendance('attended')}>I went</button>}
-            <button type="button" aria-pressed={attendance==='skipped'} onClick={()=>changeAttendance('skipped')}>{future?'Not going':'Didn’t go'}</button>
-          </div>
-        </section>
         {!r.sourceEventId&&<div className="field"><span className="field-label">Type of night</span><div className="segmented">{(['Festival', 'Club night', 'Show'] as const).map(k => <button type="button" key={k} aria-pressed={r.kind === k} className={r.kind === k ? 'active' : ''} onClick={() => field('kind', k)}>{k}</button>)}</div></div>}
         {duplicate && <div className="form-notice">{blockedDuplicate?<>This rave is already in your diary. <button type="button" className="secondary" onClick={()=>onOpenExisting?.(duplicate)}>Open existing entry</button></>:<>You already have “{duplicate.name}” on this date. Saving will add a separate entry.</>}</div>}
         <details className="form-disclosure" open>

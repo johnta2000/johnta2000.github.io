@@ -145,7 +145,7 @@ test('a token delayed across account switching cannot send the old draft as the 
   } finally { h.close(); }
 });
 test('Rally deep links open an automatic entry with explicit attendance and no preselected sets',async()=>{
- const h=harness({search:'?from=past'});try{await until(()=>h.button('Edit your diary'));assert(!h.w.document.querySelector('.rave-form'));assert(h.button('Log your experience'));h.button('Log your experience').click();await tick();assert(h.button('I went'));assert.equal(h.w.document.querySelectorAll('.input-tag').length,0);assert(h.text().includes('Suggested DJ'));assert.equal(h.saves.length,0);}finally{h.close();}
+ const h=harness({search:'?from=past'});try{await until(()=>h.button('Log your experience'));assert(!h.w.document.querySelector('.rave-form'));h.button('Log your experience').click();await tick();assert(!h.w.document.querySelector('.attendance-choice'));assert(h.w.document.querySelector('input[aria-label="Artists you actually saw"]'));assert.equal(h.w.document.querySelectorAll('.input-tag').length,0);assert(h.text().includes('Suggested DJ'));assert.equal(h.saves.length,0);}finally{h.close();}
 });
 test('browser storage restrictions do not break the collection', async () => {
   const h = harness({storageBlocked: true}); try { await until(() => h.text().includes('Alice private night')); assert(h.button('Add a rave')); } finally { h.close(); }
@@ -276,7 +276,7 @@ test('lineup checklist exposes the full lineup, keeps selected rows visible, and
   const names = Array.from({length: 24}, (_, i) => `Artist ${String(i + 1).padStart(2, '0')}`);
   const h = harness({search: '?from=past', artistSuggestions: names, crewSuggestions: ['Nancy', 'Maya']});
   try {
-    await until(()=>h.button('Log your experience'));h.button('Log your experience').click();await tick();h.button('I went').click();await tick();
+    await until(()=>h.button('Log your experience'));h.button('Log your experience').click();await tick();
     const picker = h.w.document.querySelector('.name-picker');
     assert.equal(picker.querySelectorAll('input[type=checkbox]').length, 24);
     assert.equal(picker.querySelectorAll('input:checked').length, 0);
@@ -305,7 +305,7 @@ test('lineup checklist exposes the full lineup, keeps selected rows visible, and
 test('plan lineup excludes unrelated diary suggestions, custom names remain reviewable, and keyboard reaches choices', async () => {
   const h = harness({search: '?from=past', artistSuggestions: ['Same DJ', 'Other DJ'], raves: [{...entry('Earlier rave'), artists: ['same dj', 'History DJ']}]});
   try {
-    await until(()=>h.button('Log your experience'));h.button('Log your experience').click();await tick();h.button('I went').click();await tick();
+    await until(()=>h.button('Log your experience'));h.button('Log your experience').click();await tick();
     const picker = h.w.document.querySelector('.name-picker');
     assert.equal(picker.querySelectorAll('input[type=checkbox]').length, 2);
     assert(picker.textContent.includes('From the archived lineup')); assert(!picker.textContent.includes('From your diary')); assert(!picker.textContent.includes('History DJ'));
@@ -327,7 +327,7 @@ test('logging shows core credits but saves the original collaboration and specia
   const labels = ['Space Laces x Excision', 'Excision Detox Set'];
   const h = harness({search: '?from=past', artistSuggestions: labels});
   try {
-    await until(()=>h.button('Log your experience'));h.button('Log your experience').click();await tick();h.button('I went').click();await tick();
+    await until(()=>h.button('Log your experience'));h.button('Log your experience').click();await tick();
     const picker = h.w.document.querySelector('.name-picker');
     assert(picker.textContent.includes('Counts toward Space Laces + Excision'));
     assert(picker.textContent.includes('Counts toward Excision'));
@@ -520,7 +520,7 @@ test('upcoming raves save wishlists separately and offer a Rally connection with
  const h=harness({empty:true});try{
   await until(()=>h.button('Add a rave'));h.button('Add a rave').click();await tick();
   await h.fill('input[maxlength="160"]','My future rave');await h.fill('input[aria-label="Start date"]','01/01/2099');
-  assert(h.text().includes('Upcoming rave'));assert(!h.button('I went'));
+  assert(h.button('Save upcoming rave'));assert(!h.w.document.querySelector('[aria-label="Attendance"]'));
   await h.fill('input[aria-label="Artists you want to see"]','Wishlist DJ');await h.fill('input[aria-label="Who are you going with?"]','Nancy');
   h.button('Save upcoming rave').click();await until(()=>h.saves.length===1 && !h.w.document.querySelector('.rave-form'));
   assert.equal(h.saves[0].attendance,'planned');assert.deepEqual(h.saves[0].artists,[]);assert.deepEqual(h.saves[0].crew,[]);
@@ -532,12 +532,12 @@ test('upcoming raves save wishlists separately and offer a Rally connection with
  }finally{h.close();}
 });
 
-test('expired plans require explicit attendance and selecting the sets actually seen',async()=>{
+test('saving an expired plan logs the experience directly without copying its wishlist into sets seen',async()=>{
  const r={...entry('Unconfirmed night'),attendance:'planned',plannedArtists:['Wishlist DJ'],plannedCrew:['Nancy']};
  const h=harness({raves:[r]});try{
   await until(()=>h.button('Edit Unconfirmed night'));assert(h.text().includes('To log'));
-  h.button('Edit Unconfirmed night').click();await tick();assert(h.button('I went'));
-  h.button('I went').click();await tick();
+  h.button('Edit Unconfirmed night').click();await tick();assert(!h.w.document.querySelector('.attendance-choice'));assert(h.w.document.querySelector('input[aria-label="Artists you actually saw"]'));
+
   const picker=h.w.document.querySelector('.name-picker');assert(picker.textContent.includes('Wishlist DJ'));assert.equal(picker.querySelectorAll('input:checked').length,0);
   await h.fill('input[aria-label="Artists you actually saw"]','Actual DJ');h.button('Save changes').click();await until(()=>h.saves.length===1);
   assert.equal(h.saves[0].attendance,'attended');assert.deepEqual(h.saves[0].artists,['Actual DJ']);assert.deepEqual(h.saves[0].plannedArtists,['Wishlist DJ']);assert.deepEqual(h.saves[0].crew,[]);
@@ -637,14 +637,16 @@ const connectionFixture=()=>({details:{...entry('Updated shared plan'),city:'Upd
 for(const mobile of [false,true])test(`automatic crew view keeps memory sharing explicit (${mobile?'mobile':'desktop'})`,async()=>{
  const r={...entry('My crew rave'),sourceEventId:'project',attendance:'planned',notes:'PRIVATE DIARY',albumUrl:'https://example.com/private'},h=harness({mobile,raves:[r],connection:connectionFixture()});try{await until(()=>h.button('View My crew rave'));h.button('View My crew rave').click();await until(()=>h.button('Share a memory with this crew'));assert(!h.button('Review plan → diary'));assert(!h.button('Review diary → plan'));h.button('Share a memory with this crew').click();await tick();assert.equal(h.w.document.querySelector('.plan-sync-review textarea').value,'');assert.equal(h.w.document.querySelector('.plan-sync-review input[type=url]').value,'');await h.fill('.plan-sync-review textarea','Our sunset set');h.button('Publish to this crew').click();await until(()=>h.requests.some(r=>r.path==='rallyCollection:shareMemory'));assert.equal(h.rows.alice[0].notes,'PRIVATE DIARY');assert(!h.requests.some(r=>r.path==='rallyCollection:syncPlan'));}finally{h.close();}
 });
-test('connected friend selection saves stable identities and keeps actual and planned crew separate',async()=>{
- const r={...entry('Linked plan'),sourceEventId:'project',attendance:'planned',plannedCrew:[],crew:[]};
+test('connected friend selection saves stable identities to actual or planned crew based on the rave date',async()=>{
+ for(const future of [false,true]){
+ const r={...entry('Linked plan'),...(future?{startDate:'2099-01-01',endDate:'2099-01-01'}:{}),sourceEventId:'project',attendance:'planned',plannedCrew:[],crew:[]};
  const h=harness({raves:[r],crewPeople:[connectedPerson],crewSuggestions:['Nancy']});try{
   await until(()=>h.button('Edit Linked plan'));h.button('Edit Linked plan').click();await until(()=>h.w.document.querySelector('.crew-connection input'));
   assert(!h.w.document.querySelector('.crew-connection input').checked);h.w.document.querySelector('.crew-connection input').click();await tick();
   h.button('Save changes').click();await until(()=>h.saves.length===1);
-  assert.deepEqual(h.saves[0].plannedCrew,['Nancy']);assert.equal(h.saves[0].plannedCrewConnections[0].id,'account:nancy');assert.deepEqual(h.saves[0].crew,[]);
+  assert.deepEqual(h.saves[0][future?'plannedCrew':'crew'],['Nancy']);assert.equal(h.saves[0][future?'plannedCrewConnections':'crewConnections'][0].id,'account:nancy');assert.deepEqual(h.saves[0][future?'crew':'plannedCrew'],[]);
  }finally{h.close();}
+ }
 });
 test('a failed crew lookup preserves personal details and can be retried',async()=>{
  const options={raves:[{...entry('My linked night'),sourceEventId:'project',attendance:'planned',notes:'Keep private'}],connectionFails:true};const h=harness(options);try{await until(()=>h.button('View My linked night'));h.button('View My linked night').click();await until(()=>h.button('Reload crew'));assert(h.text().includes('Keep private'));options.connectionFails=false;h.button('Reload crew').click();await until(()=>h.button('Share a memory with this crew'));assert.equal(h.saves.length,0);}finally{h.close();}
@@ -760,4 +762,19 @@ test('set counts open a searchable popup with actual credits, preserve wishlist 
    h.button('View My sets night').click();await tick();assert(h.w.document.querySelector('.modal'));
   }finally{h.close();}
  }
+});
+
+
+test('changing a rave between past and future preserves separate typed sets and crew without attendance controls',async()=>{
+ const h=harness();try{
+  await until(()=>h.button('Add a rave'));h.button('Add a rave').click();await tick();
+  await h.fill('.rave-form input[maxlength="160"]','Date switch night');await h.fill('input[aria-label="Start date"]','01/01/2099');
+  await h.fill('input[aria-label="Artists you want to see"]','Wishlist DJ');await h.fill('input[aria-label="Who are you going with?"]','Nancy');
+  await h.fill('input[aria-label="Start date"]','01/01/2025');assert(!h.w.document.querySelector('[aria-label="Attendance"]'));
+  await h.fill('input[aria-label="Artists you actually saw"]','Actual DJ');await h.fill('input[aria-label="Who did you go with?"]','Maya');
+  await h.fill('input[aria-label="Start date"]','01/01/2099');assert(h.w.document.querySelector('.name-picker').textContent.includes('Wishlist DJ'));
+  await h.fill('input[aria-label="Start date"]','01/01/2025');assert(h.w.document.querySelector('.name-picker').textContent.includes('Actual DJ'));
+  h.button('Save to rave diary').click();await until(()=>h.saves.length===1);
+  assert.equal(h.saves[0].attendance,'attended');assert.deepEqual(h.saves[0].artists,['Actual DJ']);assert.deepEqual(h.saves[0].crew,['Maya']);assert.deepEqual(h.saves[0].plannedArtists,['Wishlist DJ']);assert.deepEqual(h.saves[0].plannedCrew,['Nancy']);
+ }finally{h.close();}
 });
