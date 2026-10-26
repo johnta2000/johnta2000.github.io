@@ -93,6 +93,9 @@
       { label: "REM", minutes: row.remMinutes, color: "#c6bfd8" },
     ];
   }
+  function durationTick(minutes) {
+    return duration(minutes).replace(/h 00m$/, "h");
+  }
   function duration(minutes, signed = false) {
     if (!finite(minutes)) return "—";
     const rounded = Math.round(Math.abs(minutes));
@@ -288,7 +291,7 @@
     stats,
     matchedDevices,
     stages,
-    duration,
+    duration, durationTick,
     sample,
     value,
     mean,

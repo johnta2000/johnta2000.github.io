@@ -106,14 +106,29 @@ async function init() {
 
 function bindEvents() {
   bindGroupEvents();
+  const mobileLayout = window.matchMedia("(max-width:700px)");
+  const arrangeMobile = () => {
+    const toolbar = $("#groupToolbar");
+    SearchableSelect.enhance($("#groupSelect")).close();
+    (mobileLayout.matches ? $("#mobileGroupSlot") : $("#groupToolbarHome")).append(toolbar);
+    const readout = $(".group-readout-heading"), members = $("#groupMembers"), plot = $(".group-plot-wrap");
+    if (mobileLayout.matches) {
+      plot.after(readout, members);
+    } else {
+      plot.before(readout, members);
+    }
+  };
+  arrangeMobile();
+  mobileLayout.addEventListener("change", arrangeMobile);
   $("#previewButton").addEventListener("click", startPreview);
   $("#retryLoad").addEventListener("click", loadDashboard);
   document
     .querySelectorAll("[data-view], [data-go]")
     .forEach((button) =>
-      button.addEventListener("click", () =>
-        switchView(button.dataset.view || button.dataset.go),
-      ),
+      button.addEventListener("click", () => {
+        switchView(button.dataset.view || button.dataset.go);
+        if (mobileLayout.matches) window.scrollTo({top: 0, behavior: "instant"});
+      }),
     );
   document.querySelectorAll("[data-range]").forEach((button) =>
     button.addEventListener("click", () => {
@@ -129,11 +144,15 @@ function bindEvents() {
   );
   $("#chartMetric").addEventListener("change", renderCharts);
   $("#groupMetric").addEventListener("change", drawGroupChart);
-  document.querySelectorAll("[data-group-mode]").forEach(button => button.addEventListener("click", () => {
-    groupChartMode = button.dataset.groupMode;
-    document.querySelectorAll("[data-group-mode]").forEach(item => item.setAttribute("aria-pressed", String(item === button)));
+  const changeGroupMode = mode => {
+    groupChartMode = mode;
+    document.querySelectorAll("[data-group-mode]").forEach(item => item.setAttribute("aria-pressed", String(item.dataset.groupMode === mode)));
+    $("#groupChartView").value = mode;
+    SearchableSelect.enhance($("#groupChartView")).sync();
     drawGroupChart();
-  }));
+  };
+  document.querySelectorAll("[data-group-mode]").forEach(button => button.addEventListener("click", () => changeGroupMode(button.dataset.groupMode)));
+  $("#groupChartView").addEventListener("change", () => changeGroupMode($("#groupChartView").value));
 
   els.lockButton.addEventListener("click", signOut);
   els.authSignOut.addEventListener("click", signOut);
@@ -1774,7 +1793,7 @@ function drawGroupChart() {
   const unit = Daylight.metrics[metric].unit;
   const percent = unit === "%";
   const w = Math.max(240, $("#groupPlot").clientWidth || 900);
-  const h = w < 500 ? 240 : 280, left = 70, right = 22, top = 24, bottom = 34;
+  const h = w < 500 ? 250 : 280, left = w < 500 ? 54 : 70, right = 16, top = 20, bottom = 34;
   const values = groupHistory.members.flatMap(member => member.points.map(point => point.value)).filter(Number.isFinite);
   const maximum = Math.max(...values, percent ? 100 : metric === "strain" ? 21 : 1);
   const span = maximum - Math.min(...values, 0);
@@ -1794,7 +1813,7 @@ function drawGroupChart() {
   const y = value => top + (1 - (value - lower) / (upper - lower)) * (h - top - bottom);
   groupGeometry = { w, h, x, y, left, right };
   const ticks = Array.from({length: Math.round((upper - lower) / step) + 1}, (_, i) => lower + i * step);
-  const grid = ticks.map(value => `<line x1="${left}" x2="${w - right}" y1="${y(value)}" y2="${y(value)}" stroke="${difference && value === 0 ? "#82958a" : "#e4eae5"}" stroke-dasharray="${difference && value === 0 ? "none" : "3 5"}"/><text x="0" y="${y(value) + 4}" fill="#6d7c75" font-size="12">${percent ? `${value}${difference ? "pt" : "%"}` : unit === "min" ? formatDuration(value) : Number(value.toFixed(1))}</text>`).join("");
+  const grid = ticks.map(value => `<line x1="${left}" x2="${w - right}" y1="${y(value)}" y2="${y(value)}" stroke="${difference && value === 0 ? "#82958a" : "#e4eae5"}" stroke-dasharray="${difference && value === 0 ? "none" : "3 5"}"/><text x="0" y="${y(value) + 4}" fill="#6d7c75" font-size="12">${percent ? `${value}${difference ? "pt" : "%"}` : unit === "min" ? Daylight.durationTick(value) : Number(value.toFixed(1))}</text>`).join("");
   const labelCount = Math.min(selectedDays, selectedDays === 7 && w > 500 ? 7 : w < 400 ? 3 : 5);
   const labels = Array.from({length: labelCount}, (_, i) => Math.round(i * (selectedDays - 1) / Math.max(1, labelCount - 1))).map(i => `<text x="${x(i)}" y="${h - 5}" text-anchor="${i === 0 ? "start" : i === selectedDays - 1 ? "end" : "middle"}" fill="#6d7c75" font-size="12">${formatShortDate(groupHistory.dates[i])}</text>`).join("");
   const series = groupHistory.members.map(member => member.segments.map(segment => `<path d="${segment.map((point, i) => `${i ? "L" : "M"}${x(point.index)},${y(point.value)}`).join(" ")}" fill="none" stroke="${member.color}" stroke-width="2.5" stroke-dasharray="${member.dash}" stroke-linecap="round" stroke-linejoin="round"/>${segment.map(point => `<circle cx="${x(point.index)}" cy="${y(point.value)}" r="${selectedDays > 28 ? 1.8 : 3.5}" fill="${member.color}"/>`).join("")}`).join("")).join("");

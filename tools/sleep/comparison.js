@@ -63,7 +63,7 @@
         this.geometry[metric.id]={x,y,w,h,left,right};
         const tickCount=w<400?3:count===7?7:5;
         const indices=[...new Set(Array.from({length:tickCount},(_,i)=>Math.round(i*(count-1)/(tickCount-1))))];
-        let markup=ticks.map(v=>`<line x1="${left}" x2="${w-right}" y1="${y(v)}" y2="${y(v)}" class="comparison-grid"/><text x="${left-8}" y="${y(v)+4}" text-anchor="end">${metric.id==='durationMinutes'?Daylight.duration(v):v}</text>`).join('');
+        let markup=ticks.map(v=>`<line x1="${left}" x2="${w-right}" y1="${y(v)}" y2="${y(v)}" class="comparison-grid"/><text x="${left-8}" y="${y(v)+4}" text-anchor="end">${metric.id==='durationMinutes'?Daylight.durationTick(v):Number(v.toFixed(1))}</text>`).join('');
         markup+=indices.map((i,j)=>`<text x="${x(i)}" y="${h-6}" text-anchor="${j===0?'start':j===indices.length-1?'end':'middle'}">${dateLabel(this.history.dates[i])}</text>`).join('');
         for(const p of this.visible()){
           let open=false;const path=rows.map((row,i)=>{const n=value(row,p.id,metric.id);if(!finite(n)){open=false;return '';}const command=open?'L':'M';open=true;return `${command}${x(i)},${y(n)}`;}).join(' ');
