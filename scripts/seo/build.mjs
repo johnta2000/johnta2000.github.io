@@ -33,7 +33,7 @@ const workPlan=(editorial.workPlan??[]).map(t=>{
     current:t.measureTargetTraffic===false?null:currentPages.get(canonical(t.targetUrl))??null,previous:t.measureTargetTraffic===false?null:previousPages.get(canonical(t.targetUrl))??null,
     targets:t.targetUrl?[{title:article?.title??t.targetTitle??t.targetUrl,url:t.targetUrl,officeUrl:article?.id?'https://office.affil.ai/content/articles/'+article.id+'?panel=article-inspector':null}]:[],
     articles:[],queries:t.queries??[],pages:[],exactPages:[],blockers:t.doneWhen??[]};
-});
+}).toSorted((a,b)=>Number(b.status==='Ready')-Number(a.status==='Ready')||Number(a.priority?.replace('P','')??9)-Number(b.priority?.replace('P','')??9));
 for(const item of engine.opportunities)for(const article of item.coverage.articles)article.historicalVercel=vercel.get(canonical(article.url))??null;
 warnings.push('Draft inventory is a September 12 snapshot plus the October 10 docket; current unpublished coverage is not verified.');
 warnings.push('Keyword Planner files are September exports. US was the intended audience in prior instructions; location settings are not recorded in these files. Volumes include close variants and are not summed.');
