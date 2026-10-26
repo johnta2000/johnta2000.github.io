@@ -204,7 +204,7 @@ test('desktop drawer connects collection sections and Rally projects without a t
     assert(h.w.document.querySelector('.collection-drawer[open]'));
     assert(h.w.document.querySelector('.collection-drawer a[href="/tools/rally/collection/?view=projects"]'));
     h.button('Artists').click(); await tick();
-    assert(!h.w.document.querySelector('.collection-drawer')); assert(h.text().includes('Artists you’ve seen')); assert(h.text().includes('Test DJ'));
+    assert(!h.w.document.querySelector('.collection-drawer')); assert(h.text().includes('Artist history')); assert(h.text().includes('Test DJ'));
     h.button('Open navigation').click(); await tick(); h.button('Rave history').click(); await tick(); assert(h.w.document.querySelector('.rave-sheet'));
     h.button('Open navigation').focus(); h.button('Open navigation').click(); await tick(); h.w.document.querySelector('.collection-drawer').dispatchEvent(new h.w.Event('cancel', {cancelable:true})); await tick(); assert(!h.w.document.querySelector('.collection-drawer')); assert.equal(h.w.document.activeElement,h.button('Open navigation'));
     h.resize(true); await tick(); assert(h.w.document.querySelector('.collection-nav')); assert(!h.button('Open navigation'));
@@ -832,5 +832,16 @@ test('opening a Rally result confirms unsaved work and keeps it on a failed load
   await chooseFestival(h,'rally:crew');assert(h.text().includes('unsaved changes'));h.button('Keep editing').click();await tick();assert.equal(h.requests.filter(r=>r.path==='rallyCollection:draftFromEvent').length,0);
   await chooseFestival(h,'rally:crew');h.button('Open Rally rave').click();await until(()=>h.text().includes('Plan unavailable'));assert.equal(h.w.document.querySelector('input[maxlength="160"]').value,'My unsaved night');assert.equal(h.saves.length,0);
   options.planSuggestionsFail=false;await chooseFestival(h,'rally:crew');h.button('Open Rally rave').click();await until(()=>h.w.document.querySelector('.shared-event-summary'));assert.equal(h.saves.length,0);
+ }finally{h.close();}
+});
+
+for(const mobile of [false,true])test(`artist insights filter, drill into credited sets and open the original rave (${mobile?'mobile':'desktop'})`,async()=>{
+ const h=harness({mobile,raves:[{...entry('First night'),startDate:'2023-01-01',endDate:'2023-01-01',artists:['Excision'],favoriteArtist:'Excision'},{...entry('B2B night'),startDate:'2024-01-01',endDate:'2024-01-01',artists:['Excision B2B Space Laces','Excision (Detox Set)']},{...entry('Future rave'),startDate:'2099-01-01',endDate:'2099-01-01',attendance:'planned',plannedArtists:['Not seen DJ']}]});try{
+  await until(()=>h.button('Add a rave'));if(!mobile){h.button('Open navigation').click();await tick();}h.button('Artists').click();await tick();
+  assert(h.text().includes('Your most-seen artists'));assert.equal(h.w.document.querySelectorAll('.artist-metric')[0].querySelector('strong').textContent,'2');assert(!h.w.document.querySelector('.artist-page').textContent.includes('Not seen DJ'));
+  h.button('2024: 1 new artists, 1 returning artists. Show 2024').click();await tick();assert.equal(h.w.document.querySelectorAll('.artist-metric')[3].querySelector('strong').textContent,'1');
+  h.button('Explore Excision').click();await tick();const detail=h.w.document.querySelector('.artist-detail');assert(detail.textContent.includes('Excision B2B Space Laces'));assert(detail.textContent.includes('Detox'));assert(detail.textContent.includes('Jan 1, 2023'));assert(!detail.textContent.includes('First night'));
+  h.button('Close dialog').click();await tick();await h.fill('input[aria-label="Search your artists"]','excsion');assert.equal(h.w.document.querySelectorAll('.artist-table tbody tr').length,1);assert(!h.w.document.querySelector('.artist-insights'));
+  (mobile?h.w.document.querySelector('.artist-mobile-list>button'):h.button('Explore Excision history')).click();await tick();h.w.document.querySelector('.artist-history-night').click();await tick();assert(h.w.document.querySelector('dialog[aria-label="B2B night"]'));assert.equal(h.saves.length,0);
  }finally{h.close();}
 });

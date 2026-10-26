@@ -308,3 +308,18 @@ test('diary search accepts typos, reordered words, and accent-free artist names'
  assert.equal(filterRaves([r],emptyFilters(),'rufus').length,1);
  assert.equal(filterRaves([r],emptyFilters(),'lostlands 2028').length,0);
 });
+
+const {artistHistory}=moduleAt('artistHistory.ts');
+test('artist insights count performances separately from B2B credits, raves and discoveries',()=>{
+ const rows=[{...free,id:'old',startDate:'2023-01-01',endDate:'2023-01-01',artists:['Excision'],favoriteArtist:'Excision',city:'SF'},
+ {...free,id:'new',startDate:'2024-01-01',endDate:'2024-01-01',artists:['Excision B2B Space Laces','Excision (Detox Set)','EXCISION DETOX SET'],favoriteArtist:'Excision Detox Set',city:'LA'},
+ {...free,id:'wish',startDate:'2099-01-01',artists:['Must not count'],plannedArtists:['Wishlist DJ'],attendance:'planned'},
+ {...free,id:'skipped',artists:['Also not counted'],attendance:'skipped'},
+ {...free,id:'blank',startDate:'2024-02-01',endDate:'2024-02-01',artists:[]}];
+ const all=artistHistory(rows),year=artistHistory(rows,'2024');
+ assert.equal(all.performances,3);assert.equal(all.rows.length,2);assert.equal(all.repeat,1);assert.equal(all.scope.length,3);assert.equal(all.logged,2);
+ const ex=all.rows.find(a=>a.name==='Excision');assert.equal(ex.sets.length,3);assert.equal(ex.raves.length,2);assert.equal(ex.favorites,2);assert.equal(ex.cities.length,2);
+ assert.equal(year.newArtists,1);assert.equal(year.performances,2);assert.equal(year.repeat,0);assert.equal(year.rows.find(a=>a.name==='Excision').debut,'2023-01-01');assert.equal(year.rows.find(a=>a.name==='Excision').first,'2024-01-01');
+ assert.deepEqual(JSON.parse(JSON.stringify(all.timeline)),[{year:'2023',fresh:1,returning:0,total:1},{year:'2024',fresh:1,returning:1,total:2}]);
+ assert.equal(artistHistory(rows,'2022').rows.length,0);
+});
