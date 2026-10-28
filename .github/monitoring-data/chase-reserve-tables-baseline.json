@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "collectionVersion": 2,
   "monitorId": "chase-sapphire-reserve-tables",
-  "capturedAt": "2026-10-27T20:47:50.610Z",
+  "capturedAt": "2026-10-28T14:42:23.522Z",
   "sources": [
     {
       "id": "atlanta",
@@ -763,6 +763,11 @@
           "key": "opentable:173869"
         },
         {
+          "id": "200008",
+          "name": "Next",
+          "key": "opentable:200008"
+        },
+        {
           "id": "211456",
           "name": "Mott Street",
           "key": "opentable:211456"
@@ -804,8 +809,8 @@
         }
       ],
       "completeness": {
-        "total": 30,
-        "pages": 1,
+        "total": 31,
+        "pages": 2,
         "complete": true
       }
     },
