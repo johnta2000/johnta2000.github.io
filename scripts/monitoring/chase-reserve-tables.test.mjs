@@ -94,6 +94,66 @@ test("collects every configured city with distinct freshness identifiers", async
   assert.equal(new Set(urls.map((url) => url.searchParams.get("_monitor_ts"))).size, 2);
 });
 
+test("an exhausted timeout does not abandon other cities and recovers after a cooldown", async () => {
+  const sources = Array.from({ length: 6 }, (_, index) => ({ ...city, id: `city-${index}`,
+    url: `https://www.opentable.com/city-${index}` }));
+  const calls = [];
+  const waits = [];
+  let timeouts = 0;
+  const result = await collectCities(async url => {
+    const path = new URL(url).pathname;
+    calls.push(path);
+    if (path === "/city-0" && ++timeouts <= 3) throw new DOMException("Timed out", "TimeoutError");
+    return new Response(page(["Restaurant"]));
+  }, { sources, wait: async delay => { waits.push(delay); } });
+  assert.equal(result.cities.length, 6);
+  assert.ok(result.cities.every(item => item.completeness.complete));
+  assert.ok(waits.includes(30_000));
+  assert.equal(calls.filter(path => path === "/city-0").length, 4);
+  for (let index = 1; index < 6; index++) assert.equal(calls.filter(path => path === `/city-${index}`).length, 1);
+  assert.deepEqual(result.cache.crawlIds, ["primary", "primary-recovery"]);
+  assert.equal(new Set(result.cache.requestIds).size, result.cache.requestCount);
+});
+
+test("recovery recollects every page instead of combining a partial city with a later page", async () => {
+  const calls = [];
+  let secondPageCalls = 0;
+  const result = await collectCities(async url => {
+    const second = new URL(url).searchParams.get("pageNumber") === "2";
+    calls.push(second ? 2 : 1);
+    if (second && ++secondPageCalls <= 3) return new Response("Unavailable", { status: 503 });
+    return new Response(page([], { pageNumber: second ? 2 : 1, totalRestaurantCount: 2, limit: 1,
+      restaurants: [{ restaurantId: second ? 2 : 1, name: second ? "Second" : "First" }] }));
+  }, { sources: [city], wait: async () => {} });
+  assert.deepEqual(calls, [1, 2, 2, 2, 1, 2]);
+  assert.equal(result.cities[0].restaurants.length, 2);
+});
+
+test("persistent timeouts and invalid restaurant metadata still reject the whole crawl", async () => {
+  let attempts = 0;
+  await assert.rejects(collectCities(async () => {
+    attempts++;
+    throw new DOMException("Timed out", "TimeoutError");
+  }, { sources: [city], wait: async () => {} }), /Test City: Timed out/);
+  assert.equal(attempts, 6);
+  const waits = [];
+  await assert.rejects(collectCities(async () => new Response(page([], { metroId: 99 })),
+    { sources: [city], wait: async delay => waits.push(delay) }), /metadata/);
+  assert.ok(!waits.includes(30_000));
+});
+
+test("site-wide failures stay bounded instead of retrying every market in recovery", async () => {
+  const sources = Array.from({ length: 6 }, (_, index) => ({ ...city, id: String(index) }));
+  let attempts = 0;
+  const waits = [];
+  await assert.rejects(collectCities(async () => {
+    attempts++;
+    return new Response("Unavailable", { status: 503 });
+  }, { sources, wait: async delay => waits.push(delay) }), /HTTP 503/);
+  assert.equal(attempts, 18);
+  assert.ok(!waits.includes(30_000));
+});
+
 test("detects additions and removals independently by city", () => {
   const restaurant = (name) => ({ name, key: restaurantKey(name) });
   const previous = [{ ...city, restaurants: [restaurant("Alpha"), restaurant("Gone")] }];

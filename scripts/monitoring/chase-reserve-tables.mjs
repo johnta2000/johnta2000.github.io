@@ -112,6 +112,7 @@ export async function fetchWithRetry(city, fetchImpl, {
   pageNumber = 1,
   crawlId = "primary",
   freshness = createFreshnessContext(),
+  timeoutMs = 25_000,
   wait = (delay) => new Promise((done) => setTimeout(done, delay)),
 } = {}) {
   let lastError;
@@ -130,49 +131,79 @@ export async function fetchWithRetry(city, fetchImpl, {
           pragma: "no-cache",
           "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
         },
-        signal: AbortSignal.timeout(25_000),
+        signal: AbortSignal.timeout(timeoutMs),
       });
-      if (!response.ok) throw new Error(`HTTP ${response.status} ${response.statusText}`);
+      if (!response.ok) {
+        const error = new Error(`HTTP ${response.status} ${response.statusText}`);
+        error.recoverable = [408, 429].includes(response.status) || response.status >= 500;
+        throw error;
+      }
       return parseCityPage(await response.text(), city, pageNumber);
     } catch (error) {
       lastError = error;
       if (attempt < attempts) await wait(750 * attempt);
     }
   }
-  throw new Error(`${city.name}: ${lastError instanceof Error ? lastError.message : String(lastError)}`);
+  const error = new Error(`${city.name}: ${lastError instanceof Error ? lastError.message : String(lastError)}`);
+  error.recoverable = lastError?.recoverable === true
+    || ["TimeoutError", "AbortError", "TypeError"].includes(lastError?.name);
+  throw error;
 }
 
 export async function collectCities(fetchImpl = fetch, {
   crawlId = "primary",
   freshness = createFreshnessContext(),
   sources = CITY_SOURCES,
+  wait = (delay) => new Promise((done) => setTimeout(done, delay)),
 } = {}) {
-  // Bound concurrency as coverage grows. A failure anywhere preserves the entire baseline.
+  // Finish the other markets before giving transient failures a slower, isolated retry.
   const cities = new Array(sources.length);
+  const failures = new Map();
+  const collectCity = async (index, recovery = false) => {
+    const city = sources[index];
+    const options = { crawlId: recovery ? `${crawlId}-recovery` : crawlId, freshness, wait,
+      timeoutMs: recovery ? 45_000 : 25_000 };
+    const first = await fetchWithRetry(city, fetchImpl, options);
+    const restaurants = [...first.restaurants];
+    const pageCount = Math.max(1, Math.ceil(first.total / first.limit));
+    for (let pageNumber = 2; pageNumber <= pageCount; pageNumber++) {
+      const page = await fetchWithRetry(city, fetchImpl, { ...options, pageNumber });
+      if (page.total !== first.total || page.limit !== first.limit) {
+        throw new Error(`${city.name}: pagination totals changed during collection.`);
+      }
+      restaurants.push(...page.restaurants);
+    }
+    if (new Set(restaurants.map(r => r.key)).size !== first.total) {
+      throw new Error(`${city.name}: pagination overlap or missing restaurants; refusing partial list.`);
+    }
+    cities[index] = { ...city, restaurants: restaurants.sort((a, b) => a.key.localeCompare(b.key)),
+      completeness: { total: first.total, pages: pageCount, complete: true } };
+  };
   let cursor = 0;
-  const results = await Promise.allSettled(Array.from({ length: Math.min(4, sources.length) }, async () => {
+  await Promise.all(Array.from({ length: Math.min(4, sources.length) }, async () => {
     while (cursor < sources.length) {
       const index = cursor++;
-      const city = sources[index];
-      const first = await fetchWithRetry(city, fetchImpl, { crawlId, freshness });
-      const restaurants = [...first.restaurants];
-      const pageCount = Math.max(1, Math.ceil(first.total / first.limit));
-      for (let pageNumber = 2; pageNumber <= pageCount; pageNumber++) {
-        const page = await fetchWithRetry(city, fetchImpl, { crawlId, freshness, pageNumber });
-        if (page.total !== first.total || page.limit !== first.limit) {
-          throw new Error(`${city.name}: pagination totals changed during collection.`);
-        }
-        restaurants.push(...page.restaurants);
+      try {
+        await collectCity(index);
+      } catch (error) {
+        failures.set(index, error);
       }
-      if (new Set(restaurants.map(r => r.key)).size !== first.total) {
-        throw new Error(`${city.name}: pagination overlap or missing restaurants; refusing partial list.`);
-      }
-      cities[index] = { ...city, restaurants: restaurants.sort((a, b) => a.key.localeCompare(b.key)),
-        completeness: { total: first.total, pages: pageCount, complete: true } };
     }
   }));
-  const failures = results.filter(result => result.status === "rejected");
-  if (failures.length) throw new Error(failures.map(result => result.reason.message).join("; "));
+  const recoverable = [...failures].filter(([, error]) => error.recoverable);
+  // Avoid multiplying a site-wide outage into an unbounded recovery crawl.
+  if (recoverable.length && recoverable.length <= 4) {
+    await wait(30_000);
+    for (const [index] of recoverable) {
+      try {
+        await collectCity(index, true);
+        failures.delete(index);
+      } catch (error) {
+        failures.set(index, error);
+      }
+    }
+  }
+  if (failures.size) throw new Error([...failures.values()].map(error => error.message).join("; "));
   return { cities, cache: freshness.snapshot() };
 }
 

@@ -104,7 +104,7 @@ function monitorStats(monitor) {
     return [
       ["Restaurants", number(monitor.metrics?.restaurantCount)],
       ["Cities", number(monitor.metrics?.cityCount)],
-      ["Latest diff", `+${number(monitor.metrics?.addedCount)} / −${number(monitor.metrics?.removedCount)}`],
+      ["Latest diff", ["error", "failure", "unavailable"].includes(monitor.status) ? "Not verified" : `+${number(monitor.metrics?.addedCount)} / −${number(monitor.metrics?.removedCount)}`],
     ];
   }
   return [
@@ -516,18 +516,21 @@ function chaseDialogMarkup(monitor) {
   const history = currentSnapshot.monitorHistory?.[monitor.id]?.runs ?? [];
   const latestRun = history[0];
   const latestChange = history.find((run) => run.changed);
+  const incomplete = ["error", "failure", "unavailable"].includes(monitor.status);
+  const lastVerified = monitor.latestSuccessAt ?? history.find((run) => run.status === "success")?.timestamp;
+  const failureReason = (monitor.error ?? latestRun?.error ?? "OpenTable could not be checked completely").replace(/[.!?]$/, "");
   return `
     <div class="dialog-meta"><p>${escapeHtml(monitor.description)}</p><div><span>${escapeHtml(monitor.cadence)}</span><span>${number(metrics.cityCount)} OpenTable markets</span></div></div>
-    ${statusBanner(monitor)}
+    ${statusBanner(incomplete ? { ...monitor, summary: `${failureReason}. The saved restaurant list is unchanged; additions and removals have not been verified.` } : monitor)}
     <section class="dialog-metrics" aria-label="Chase Exclusive Tables monitor summary">
       <div><span>Restaurants</span><strong>${number(metrics.uniqueRestaurantCount ?? metrics.restaurantCount)}</strong><small>Unique restaurants across all markets</small></div>
       <div><span>Cities</span><strong>${number(metrics.cityCount)}</strong><small>All required on every crawl</small></div>
-      <div><span>Latest additions</span><strong>${number(metrics.addedCount)}</strong><small>Confirmed membership changes</small></div>
-      <div><span>Latest removals</span><strong>${number(metrics.removedCount)}</strong><small>Never inferred from partial data</small></div>
+      <div><span>Latest additions</span><strong>${incomplete ? "—" : number(metrics.addedCount)}</strong><small>${incomplete ? "Not verified — check incomplete" : "Confirmed membership changes"}</small></div>
+      <div><span>Latest removals</span><strong>${incomplete ? "—" : number(metrics.removedCount)}</strong><small>${incomplete ? "Not verified — check incomplete" : "Never inferred from partial data"}</small></div>
     </section>
-    <div class="cache-proof"><div><span>Freshness ID</span><code>${escapeHtml(latestRun?.cache?.runId ?? details.cache?.runId ?? "Pending next run")}</code></div><p>${number(latestRun?.cache?.requestCount ?? details.cache?.requestCount)} unique no-store requests · ${escapeHtml((latestRun?.cache?.crawlIds ?? details.cache?.crawlIds ?? []).join(" + ") || "legacy run")}</p></div>
+    <div class="cache-proof"><div><span>Last verified</span><strong>${escapeHtml(fullDate(lastVerified))}</strong></div><p>${incomplete ? "Showing the last complete restaurant list" : "All markets checked successfully"} · ${escapeHtml(relativeTime(lastVerified))}</p></div>
     <section class="dialog-section">
-      <div class="dialog-section-heading"><div><p class="eyebrow">Complete market baseline</p><h3>Current restaurant lists</h3></div><span class="dialog-note">Last change ${escapeHtml(latestChange ? relativeTime(latestChange.timestamp) : "not recorded")}</span></div>
+      <div class="dialog-section-heading"><div><p class="eyebrow">Complete market baseline</p><h3>${incomplete ? "Saved restaurant lists" : "Current restaurant lists"}</h3></div><span class="dialog-note">Last change ${escapeHtml(latestChange ? relativeTime(latestChange.timestamp) : "not recorded")}</span></div>
       <div class="city-lists">${(details.cities ?? []).map(chaseCityMarkup).join("")}</div>
     </section>
     <section class="dialog-section">
@@ -861,8 +864,18 @@ els.monitorDialogContent.addEventListener("change", (event) => {
   section.outerHTML = positionHistoryMarkup(monitor.details?.positionHistory, positionHistoryDays);
   els.monitorDialogContent.querySelector("[data-position-range]")?.focus();
 });
+let dialogPointerStartedOutside = false;
+function isDialogBackdrop(event) {
+  const rect = els.monitorDialog.getBoundingClientRect();
+  return event.target === els.monitorDialog
+    && (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom);
+}
+els.monitorDialog.addEventListener("pointerdown", (event) => {
+  dialogPointerStartedOutside = isDialogBackdrop(event);
+});
 els.monitorDialog.addEventListener("click", (event) => {
-  if (event.target === els.monitorDialog) els.monitorDialog.close();
+  if (dialogPointerStartedOutside && isDialogBackdrop(event)) els.monitorDialog.close();
+  dialogPointerStartedOutside = false;
 });
 document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "visible") refreshDashboard();

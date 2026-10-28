@@ -1,6 +1,11 @@
 name: Chase Sapphire Reserve tables monitor
 
 on:
+  push:
+    branches: [master]
+    paths:
+      - '.github/workflows/chase-reserve-tables-monitor.yml'
+      - 'scripts/monitoring/chase-reserve-*.mjs'
   schedule:
     - cron: "23 */4 * * *"
   workflow_dispatch:
