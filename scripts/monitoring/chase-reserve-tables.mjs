@@ -129,7 +129,6 @@ export async function fetchWithRetry(city, fetchImpl, {
           "accept-language": "en-US,en;q=0.9",
           "cache-control": "no-cache, no-store, max-age=0",
           pragma: "no-cache",
-          "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
         },
         signal: AbortSignal.timeout(timeoutMs),
       });
