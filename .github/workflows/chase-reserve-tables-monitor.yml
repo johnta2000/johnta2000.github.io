@@ -7,7 +7,7 @@ on:
       - '.github/workflows/chase-reserve-tables-monitor.yml'
       - 'scripts/monitoring/chase-reserve-*.mjs'
   schedule:
-    - cron: "23 */4 * * *"
+    - cron: "23,53 * * * *"
   workflow_dispatch:
 
 permissions:
