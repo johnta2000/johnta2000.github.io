@@ -160,3 +160,9 @@ a.record{display:block;text-decoration:none;color:inherit;}
 .live-column>.viewport-label{grid-column:2;grid-row:3;padding-top:12px}
 }
 .embed-note{font-size:12px;line-height:1.5;margin:12px 0 0}
+
+.live-preview{height:670px;overflow:auto;background:white}
+.production-image{display:block;width:100%;height:auto}
+.capture-meta{font-size:12px;line-height:1.5;margin:12px 0 0}
+#capture-full{display:block;text-align:center;margin-top:8px;padding:8px;color:inherit}
+@media(max-width:760px){.live-preview{height:520px}}

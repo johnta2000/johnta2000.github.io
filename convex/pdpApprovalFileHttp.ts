@@ -8,10 +8,10 @@ export const file=httpAction(async(ctx,req)=>{
   const h=headers(req);
   try{
     await requireOwner(ctx);
-    const key=new URL(req.url).searchParams.get('key')||'';
-    const record=await ctx.runQuery(anyApi.pdpApprovals.fileMetadata,{key});
+    const params=new URL(req.url).searchParams,key=params.get('key')||'',isCapture=params.get('kind')==='capture';
+    const record=isCapture?await ctx.runQuery(anyApi.pdpApprovals.captureMetadata,{key}):await ctx.runQuery(anyApi.pdpApprovals.fileMetadata,{key});
     const blob=await ctx.storage.get(record.storageId);
     if(!blob)return new Response('PDF not found.',{status:404,headers:h});
-    return new Response(blob,{headers:{...h,'Content-Type':'application/pdf','Content-Disposition':"inline; filename*=UTF-8''"+encodeURIComponent(record.name)}});
+    return new Response(blob,{headers:{...h,'Content-Type':isCapture?'image/png':'application/pdf','Content-Disposition':"inline; filename*=UTF-8''"+encodeURIComponent(record.name)}});
   }catch(error){const denied=/not authorized/.test(error instanceof Error?error.message:'');return new Response(denied?'Not authorized.':'Could not load this PDF.',{status:denied?403:400,headers:h});}
 });

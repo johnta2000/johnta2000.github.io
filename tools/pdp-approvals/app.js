@@ -27,11 +27,11 @@
     return {...value,exactMatch:$('form').elements.exactMatch.checked,archived:$('form').elements.archived.checked,references:{...base.references,[device]:reference}};
   }
   function releasePreviews(){++previewEpoch;for(const url of objectUrls)URL.revokeObjectURL(url);objectUrls.clear();}
-  async function privatePdf(key){
+  async function privatePdf(key,kind='pdf'){
     const current=epoch,s=session;if(!s)throw Error('Sign in to load this PDF.');
     const token=await tokenFor(s);if(current!==epoch)throw Error('Your session changed.');
-    const response=await fetch('https://rapid-shark-565.convex.site/pdp-approval-file?key='+encodeURIComponent(key),{headers:{Authorization:'Bearer '+token},cache:'no-store',signal:AbortSignal.timeout(30000)});
-    if(!response.ok)throw Error('Could not load the private PDF. Try again.');
+    const response=await fetch('https://rapid-shark-565.convex.site/pdp-approval-file?key='+encodeURIComponent(key)+'&kind='+kind,{headers:{Authorization:'Bearer '+token},cache:'no-store',signal:AbortSignal.timeout(30000)});
+    if(!response.ok)throw Error('Could not load the private file. Try again.');
     const blob=await response.blob();if(current!==epoch)throw Error('Your session changed.');return blob;
   }
   async function downloadPdf(key,name){const current=epoch;try{const blob=await privatePdf(key);if(current!==epoch)return;const url=URL.createObjectURL(blob);objectUrls.add(url);const a=document.createElement('a');a.href=url;a.download=name.endsWith('.pdf')?name:name+'.pdf';a.click();}catch(error){if(current===epoch)$('message').textContent=error.message;}}
@@ -100,32 +100,38 @@
     const r=records.find(r=>r.key===selected);
     if(!r){releasePreviews();$('detail').innerHTML=`<div class="empty"><div class="symbol">▤</div><h2>${selected?'PDP unavailable':records.length?'Your references, side by side.':'Start your approval library.'}</h2><p>${selected?'This record could not be found in your workspace.':records.length?'Choose a PDP to open its live page, approved mockup, and approval email.':'Add a production page now. Attach its approved mockup and email chain whenever they are ready.'}</p><button class="primary" id="empty-add">＋ Add PDP</button></div>`;$('empty-add').onclick=()=>openEditor();return;}
     const v=r.value, ref=referenceFor(v), modeLabel=device==='desktop'?'Desktop':'Mobile';
-    const reopen=new URL(location.href).searchParams.get('preview')==='1';releasePreviews();
+    const reopen=new URL(location.href).searchParams.get('preview')!=='0';releasePreviews();
     $('detail').innerHTML=`<div class="detail-head"><div><p class="eyebrow">${esc(v.issuer)} / ${esc(v.publisher)}</p><h2>${esc(v.name)}</h2><div class="badges"><span class="badge ${linked(v)?'':'warn'}">${linked(v)?'Evidence linked':'Missing evidence'}</span>${v.archived?'<span class="badge">Archived</span>':''}${v.exactMatch?'<span class="badge strict">1:1 match required</span>':''}</div></div><button id="edit">Edit record</button></div>
     ${v.exactMatch?'<div class="notice"><strong>Exact match required.</strong> Use the approved version as the reference for this PDP. This tracker does not scan or certify the live page.</div>':''}
     <div class="device-controls" role="group" aria-label="Comparison device"><button data-device="desktop" aria-pressed="${device==='desktop'}">Desktop</button><button data-device="mobile" aria-pressed="${device==='mobile'}">Mobile</button><span>${modeLabel} reference and approval evidence</span></div>
-    <div class="preview-actions"><p>Open the original links, or show previews below. Some sources require sign-in or block embedding.</p><button id="preview" aria-expanded="false" aria-controls="approved-preview live-preview">Show previews</button></div>
+    <div class="preview-actions"><p>Approved reference on the left. A timestamped production capture on the right. Use Open live page for the current interactive page.</p><button id="preview" aria-expanded="false" aria-controls="approved-preview live-preview">Show previews</button></div>
     <div class="comparison">
       <div class="comparison-column approved-column">
         <article class="pane" aria-labelledby="approved-title"><div class="pane-inner"><p class="eyebrow">APPROVED REFERENCE</p><h3 id="approved-title">Approved mockup · ${modeLabel}</h3>${ref.fileKey||ref.mockupUrl?`<p class="url">${esc(ref.approvalVersion||ref.mockupUrl)}${ref.pdfPage?'<br>Starting page '+esc(ref.pdfPage):''}</p>${ref.fileKey?'<button id="saved-pdf">Preview saved PDF</button>':''}${link(pdfUrl(ref),ref.fileKey?'Open source package':'Open approved mockup')}${ref.fileKey?'<button id="download-pdf" class="text-action">Download PDF</button>':''}`:'<p class="missing">No '+esc(device)+' mockup linked yet.</p>'}</div><div id="approved-preview" class="preview-slot" hidden></div></article>
         <section class="evidence" aria-labelledby="evidence-title"><p class="eyebrow">APPROVAL RECORD</p><h3 id="evidence-title">${modeLabel} approval evidence</h3>${ref.emailUrl?link(ref.emailUrl,'Open approval email chain'):'<p class="badge warn">Approval email is missing</p>'}<dl class="meta"><div><dt>Approval date</dt><dd>${esc(ref.approvalDate||'Not recorded')}</dd></div><div><dt>Approved version</dt><dd>${esc(ref.approvalVersion||'Not recorded')}</dd></div></dl>${ref.notes?`<p class="notes">${esc(ref.notes)}</p>`:''}${v.notes?`<h3>Notes</h3><p class="notes">${esc(v.notes)}</p>`:''}<p class="record-meta">Record revision ${r.version} · Saved ${esc(date(r.updatedAt))}</p><div class="record-actions"><button id="history">View record history</button><button id="copy">Copy PDP shortcut</button></div><div id="history-list" class="history"></div></section>
       </div>
       <div class="comparison-column live-column">
-        <article class="pane" aria-labelledby="live-title"><div class="pane-inner"><p class="eyebrow">PRODUCTION</p><h3 id="live-title">Live PDP · ${modeLabel}</h3><p class="url">${esc(v.liveUrl)}</p>${link(v.liveUrl,'Open live page')}${['nextcard.com','www.nextcard.com'].includes(new URL(v.liveUrl).hostname)?'<p class="embed-note">NextCard currently blocks previews on this site. Use Open live page alongside the approved reference until embedding is enabled.</p>':''}</div><div id="live-preview" class="preview-slot live-preview" hidden></div></article><p class="viewport-label">${device==='mobile'?'402 px mobile viewport':'1440 px desktop viewport'} · same live URL</p>
+        <article class="pane" aria-labelledby="live-title"><div class="pane-inner"><p class="eyebrow">PRODUCTION CAPTURE</p><h3 id="live-title">Production capture · ${modeLabel}</h3><p class="url">${esc(v.liveUrl)}</p>${link(v.liveUrl,'Open live page')}<p id="capture-meta" class="capture-meta">Saved screenshot, not a live feed.</p><a id="capture-full" class="text-action" target="_blank" rel="noopener noreferrer" hidden>Open capture full size ↗</a></div><div id="live-preview" class="preview-slot live-preview" hidden></div></article><p class="viewport-label">${device==='mobile'?'402 px mobile viewport':'1440 px desktop viewport'} · original page capture</p>
       </div>
     </div>`;
     document.querySelectorAll('[data-device]').forEach(button=>button.onclick=()=>{device=button.dataset.device;setSelection(r.key);});
     $('edit').onclick=()=>openEditor(r);
-    const renderPreviews=async open=>{
-      route({preview:open?'1':null});releasePreviews();const request=previewEpoch,current=epoch;
+    const renderPreviews=async(open,restoring=false)=>{
+      route({preview:open?'1':'0'},restoring);releasePreviews();const request=previewEpoch,current=epoch;
       $('preview').textContent=open?'Hide previews':'Show previews';$('preview').setAttribute('aria-expanded',String(open));
       for(const id of ['approved-preview','live-preview']){$(id).hidden=!open;$(id).replaceChildren();}
-      if(!open)return;
-      const live=document.createElement('iframe');live.title='Live production page';live.src=v.liveUrl;live.referrerPolicy='no-referrer';live.setAttribute('sandbox','allow-scripts allow-same-origin allow-forms allow-popups');
-      const shell=document.createElement('div');shell.className='live-viewport';shell.append(live);$('live-preview').append(shell);
-      const width=device==='mobile'?402:1440;live.style.width=width+'px';
-      const size=()=>{const scale=Math.min(1,shell.clientWidth/width);live.style.transform='scale('+scale+')';live.style.height=(670/scale)+'px';shell.style.height='670px';};
-      const observer=new ResizeObserver(()=>{if(!shell.isConnected)observer.disconnect();else size();});observer.observe(shell);size();
+      if(!open){$('capture-full').hidden=true;$('capture-full').removeAttribute('href');return;}
+      const production=$('live-preview'),meta=$('capture-meta'),full=$('capture-full');
+      production.textContent='Loading production capture…';full.hidden=true;full.removeAttribute('href');
+      void(async()=>{try{
+        const captured=await api('capture',{recordKey:r.key,device});
+        if(request!==previewEpoch||current!==epoch)return;
+        if(!captured){production.innerHTML='<p class="preview-empty">No '+esc(device)+' production capture saved yet. Open the live page using the link above.</p>';meta.textContent='No capture saved for this page and device.';return;}
+        meta.textContent='Captured '+new Date(captured.capturedAt).toLocaleString(undefined,{timeZoneName:'short'})+' · '+captured.viewportWidth+' px wide. Saved screenshot, not a live feed.';
+        const blob=await privatePdf(captured.key,'capture');if(request!==previewEpoch||current!==epoch)return;
+        const url=URL.createObjectURL(blob);objectUrls.add(url);const img=document.createElement('img');img.src=url;img.alt=modeLabel+' production page captured '+date(captured.capturedAt);img.className='production-image';img.dataset.viewportWidth=String(captured.viewportWidth);
+        production.replaceChildren(img);full.href=url;full.hidden=false;
+      }catch(error){if(request===previewEpoch&&current===epoch){production.textContent=error.message;meta.textContent='Capture unavailable. Open the live page above.';}}})();
       const approved=$('approved-preview');approved.textContent='Loading approved reference…';
       try{
         let url=pdfUrl(ref);
@@ -138,7 +144,7 @@
     $('preview').onclick=()=>void renderPreviews($('approved-preview').hidden);
     if($('saved-pdf'))$('saved-pdf').onclick=()=>void renderPreviews(true);
     if($('download-pdf'))$('download-pdf').onclick=()=>void downloadPdf(ref.fileKey,ref.approvalVersion||v.name+' '+device);
-    if(reopen)void renderPreviews(true);
+    if(reopen)void renderPreviews(true,true);
     $('history').onclick=()=>{if($('history-list').children.length){$('history-list').replaceChildren();$('history').textContent='View record history';route({history:null,before:null,revision:null});}else void loadHistory(r.key);};if(new URL(location.href).searchParams.get('history')==='1')void loadHistory(r.key,Number(new URL(location.href).searchParams.get('before'))||undefined);$('copy').onclick=async()=>{try{await navigator.clipboard.writeText(location.origin+location.pathname+location.search);$('message').textContent='Shortcut copied. Sign-in is still required.';}catch{$('message').textContent='Copy the page URL from your address bar.';}};
   }
   async function loadHistory(key,beforeVersion,resetRevision=false) {

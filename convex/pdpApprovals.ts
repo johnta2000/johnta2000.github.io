@@ -103,3 +103,39 @@ export const saveDraft = mutation({args:{key:v.string(),device:v.union(v.literal
   if(current)await ctx.db.patch(current._id,record);else await ctx.db.insert('pdpApprovalDrafts',record);
   return {version:record.version};
 }});
+
+const captureFields={key:v.string(),recordKey:v.string(),device:v.union(v.literal('desktop'),v.literal('mobile')),storageId:v.id('_storage'),liveUrl:v.string(),capturedAt:v.number(),viewportWidth:v.number(),viewportHeight:v.number()};
+export const registerCapture=action({args:captureFields,handler:async(ctx,args)=>{
+  await requireOwner(ctx);key(args.key);key(args.recordKey);
+  const expectedWidth=args.device==='desktop'?1440:402;
+  if(args.viewportWidth!==expectedWidth||!Number.isSafeInteger(args.viewportHeight)||args.viewportHeight<400||args.viewportHeight>2000||!Number.isFinite(args.capturedAt)||args.capturedAt<=0||args.capturedAt>Date.now()+60000)throw Error('Invalid capture metadata.');
+  const blob=await ctx.storage.get(args.storageId);
+  if(!blob||blob.size<24||blob.size>20*1024*1024)throw Error('Choose a PNG capture under 20 MB.');
+  const head=new Uint8Array(await blob.slice(0,24).arrayBuffer());
+  if(![137,80,78,71,13,10,26,10].every((b,i)=>head[i]===b)||new TextDecoder().decode(head.slice(12,16))!=='IHDR')throw Error('This capture is not a PNG.');
+  const dimensions=new DataView(head.buffer),width=dimensions.getUint32(16),height=dimensions.getUint32(20);
+  if(width!==expectedWidth||height<args.viewportHeight||height>50000)throw Error('Capture dimensions do not match the device.');
+  return ctx.runMutation(anyApi.pdpApprovals.registerCaptureRecord,{...args,imageHeight:height,size:blob.size});
+}});
+export const registerCaptureRecord=internalMutation({args:{...captureFields,imageHeight:v.number(),size:v.number()},handler:async(ctx,args)=>{
+  const email=await requireOwner(ctx);
+  const record=await ctx.db.query('pdpApprovals').withIndex('by_key',q=>q.eq('key',args.recordKey)).unique();
+  if(!record||record.value.liveUrl!==args.liveUrl)throw Error('The production URL changed. Capture the current page again.');
+  const existing=await ctx.db.query('pdpApprovalCaptures').withIndex('by_key',q=>q.eq('key',args.key)).unique();
+  if(existing){if(existing.recordKey!==args.recordKey||existing.storageId!==args.storageId||existing.device!==args.device)throw Error('Capture key already exists.');return {key:existing.key};}
+  await ctx.db.insert('pdpApprovalCaptures',{...args,name:args.recordKey+'-'+args.device+'.png',createdBy:email});
+  return {key:args.key};
+}});
+export const capture=query({args:{recordKey:v.string(),device:v.union(v.literal('desktop'),v.literal('mobile'))},handler:async(ctx,args)=>{
+  await requireOwner(ctx);key(args.recordKey);
+  const record=await ctx.db.query('pdpApprovals').withIndex('by_key',q=>q.eq('key',args.recordKey)).unique();
+  if(!record)return null;
+  const latest=await ctx.db.query('pdpApprovalCaptures').withIndex('by_record_device_time',q=>q.eq('recordKey',args.recordKey).eq('device',args.device)).order('desc').first();
+  if(!latest||latest.liveUrl!==record.value.liveUrl)return null;
+  return {key:latest.key,liveUrl:latest.liveUrl,capturedAt:latest.capturedAt,viewportWidth:latest.viewportWidth,viewportHeight:latest.viewportHeight,imageHeight:latest.imageHeight};
+}});
+export const captureMetadata=internalQuery({args:{key:v.string()},handler:async(ctx,args)=>{
+  await requireOwner(ctx);key(args.key);
+  const capture=await ctx.db.query('pdpApprovalCaptures').withIndex('by_key',q=>q.eq('key',args.key)).unique();
+  if(!capture)throw Error('Capture not found.');return capture;
+}});

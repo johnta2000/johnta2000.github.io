@@ -13,6 +13,7 @@ export const pdpValue = v.object({
 });
 const record = { key: v.string(), value: pdpValue, version: v.number(), updatedAt: v.number(), updatedBy: v.string() };
 export const pdpApprovalTables = {
+  pdpApprovalCaptures: defineTable({ key:v.string(), recordKey:v.string(), device:v.union(v.literal('desktop'),v.literal('mobile')), storageId:v.id('_storage'), liveUrl:v.string(), capturedAt:v.number(), viewportWidth:v.number(), viewportHeight:v.number(), imageHeight:v.number(), name:v.string(), size:v.number(), createdBy:v.string() }).index('by_key',['key']).index('by_record_device_time',['recordKey','device','capturedAt']),
   pdpApprovalDrafts: defineTable({ key:v.string(), device:v.union(v.literal('desktop'),v.literal('mobile')), owner:v.string(), value:pdpValue, baseVersion:v.number(), version:v.number(), updatedAt:v.number() }).index('by_owner_key_device',['owner','key','device']),
   pdpApprovalFiles: defineTable({ key: v.string(), recordKey: v.string(), device: v.union(v.literal('desktop'), v.literal('mobile')), storageId: v.id('_storage'), name: v.string(), size: v.number(), createdAt: v.number(), createdBy: v.string() }).index('by_key',['key']),
   pdpApprovals: defineTable(record).index('by_key', ['key']),
