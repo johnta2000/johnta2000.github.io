@@ -105,6 +105,7 @@
         ['packing', endpoints.tools, 'packing:verify'],
         ['costco', endpoints.tools, 'costco:verify'],
         ['nextcardLaunches', endpoints.tools, 'nextcardLaunches:verify'],
+        ['andrew', endpoints.tools, 'andrew:verify'],
         ['accessOverview', endpoints.tools, 'accessOverview:verify'],
         ['pdpApprovals', endpoints.tools, 'pdpApprovals:verify'],
       ];
@@ -127,6 +128,7 @@
       if (values.paymentQuestions) addApp('Payment questions', '../tools/payment/questions/', 'Notes and screenshots for charges and reimbursements.');
       if (values.costco) addApp('Costco archive', '../tools/costco/', 'Search orders, items, and private receipt images.');
       if (values.packing) addApp('Packing', '../tools/packing/', 'A fresh packing checklist for every trip.');
+      if (values.andrew) addApp('Andrew Mission Control', '../tools/andrew/', 'Article progress, updates, and social account performance.');
       if (values.nextcardLaunches) addApp('NextCard Launches', '../tools/launches/', 'Plan a launch, choose channels, and track distribution.');
       if (values.rent) {
         addApp('Rent', '../tools/rent/', 'Monthly rent splits and shared payment history.');

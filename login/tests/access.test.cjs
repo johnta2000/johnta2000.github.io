@@ -80,7 +80,7 @@ test('only server-authorized apps appear, with an accessible Rally event', async
   assert.equal(links[0].href, '../tools/rally/?event=my-room%20%26%20friends');
   assert.equal(p.element('directory').hidden, false);
   assert.equal(p.mounts, 0);
-  assert.equal(p.requests.length, 12);
+  assert.equal(p.requests.length, 13);
   assert.ok(p.requests.every(req => req.token.startsWith('Bearer test.')));
   assert.ok(p.requests.find(req => req.path === 'rally:listEvents').url.includes('dashing-heron-837'));
   assert.ok(p.requests.find(req => req.path === 'standups:verify').url.includes('rapid-shark-565'));
@@ -117,7 +117,7 @@ test('signing in updates the directory without a reload; session refreshes do no
   p.change({ session: p.session, user: p.user }); await settle();
   assert.equal(p.element('apps').children[0].children[0].textContent, 'Monitoring');
   p.change({ session: p.session, user: p.user }); await settle();
-  assert.equal(p.requests.length, 12);
+  assert.equal(p.requests.length, 13);
 });
 test('an unavailable identity provider fails closed with a retry', async () => {
   const p = setup({ loadError: true }); await settle();
@@ -162,4 +162,9 @@ test('the owner overview appears only when its own server guard approves', async
 test('PDP approvals appears only after its own owner access check', async () => {
   const p = setup({ signedIn: true, responses: { 'pdpApprovals:verify': success({ email: 'owner@example.com' }) } }); await settle();
   assert.deepEqual(p.element('apps').children.map(item => [item.children[0].textContent, item.children[0].href]), [['PDP approvals', '../tools/pdp-approvals/']]);
+});
+
+test('Andrew Mission Control is listed only for approved project members', async () => {
+ const allowed=setup({signedIn:true,responses:{'andrew:verify':success({email:'member@example.com'})}});await settle();await settle();assert.ok(allowed.element('apps').children.some(item=>item.children[0].textContent==='Andrew Mission Control'));
+ const denied=setup({signedIn:true});await settle();await settle();assert.ok(!denied.element('apps').children.some(item=>item.children[0].textContent==='Andrew Mission Control'));
 });
