@@ -61,3 +61,18 @@ for(const width of [1440,390])test(`history pagination restores from copied URL 
   await page.getByRole('button',{name:'Latest revisions',exact:true}).click();await page.getByText(/Revision 55 ·/).waitFor();await page.goBack();await page.locator('details[data-revision="3"][open]').waitFor();
  }finally{await browser.close();}
 });
+
+test('PDF actions never misalign the approved and live preview areas',async()=>{
+ const browser=await chromium.launch({headless:true});try{
+  const initial=structuredClone(seed);initial.value.references={desktop:{mockupUrl:'https://example.com/source',emailUrl:'',approvalDate:'',approvalVersion:'Saved approved desktop.pdf',pdfPage:'1',fileKey:'private-file'}};
+  const {page,errors}=await open(browser,{initial,width:1440,url:'https://www.john-ta.com/tools/pdp-approvals/?pdp=card-a&device=desktop&preview=1'});
+  await page.locator('#approved-preview iframe').waitFor();
+  for(const width of [1440,1100,900]){
+   await page.setViewportSize({width,height:1000});
+   const boxes=await page.evaluate(()=>Object.fromEntries(['approved-preview','live-preview'].map(id=>{const r=document.getElementById(id).getBoundingClientRect();return[id,{x:r.x,y:r.y,width:r.width}];})));
+   assert.equal(boxes['approved-preview'].y,boxes['live-preview'].y);assert.ok(boxes['live-preview'].x>boxes['approved-preview'].x+boxes['approved-preview'].width);
+  }
+  await page.setViewportSize({width:1440,height:1000});await page.screenshot({path:'/private/tmp/pdp-aligned-previews.png',fullPage:true});
+  await page.setViewportSize({width:390,height:1000});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);assert.deepEqual(errors,[]);
+ }finally{await browser.close();}
+});
