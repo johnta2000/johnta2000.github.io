@@ -130,6 +130,12 @@
     "title": "Statement review — Payments"
   },
   {
+    "path": "/tools/pdp-approvals/",
+    "file": "tools/pdp-approvals/index.html",
+    "analytics": false,
+    "title": "PDP approvals — John Ta"
+  },
+  {
     "path": "/tools/rally/collection/",
     "file": "tools/rally/collection-src/index.html",
     "analytics": false,
@@ -153,15 +159,15 @@
     "title": "Rent — John Ta"
   },
   {
-    "app": "seometadata",
-    "path": "/tools/seometadata/",
-    "file": "tools/seometadata/index.html"
-  },
-  {
     "path": "/tools/seo/",
     "file": "tools/seo/index.html",
     "analytics": false,
     "title": "nextcard SEO — John Ta"
+  },
+  {
+    "app": "seometadata",
+    "path": "/tools/seometadata/",
+    "file": "tools/seometadata/index.html"
   },
   {
     "app": "sleep",
