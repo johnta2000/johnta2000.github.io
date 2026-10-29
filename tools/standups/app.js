@@ -748,6 +748,7 @@ async function loadPersonContext({ scrollToUpdate = false } = {}) {
   const personName = els.personName.value.trim();
   const standupDate = els.date.value;
   setPersonEditingEnabled(false);
+  activateCommentThread(null);
   const saved = await flushAutosave();
   if (version !== personLoadVersion) return;
   if (!saved) { restoreDocumentContext(); return; }
@@ -1362,17 +1363,17 @@ async function loadCommentsForDate() {
 }
 
 function renderGlobalComments() {
-  const visibleComments = spotlightMode ? commentsForDate.filter((comment) => comment.personName === els.personName.value) : commentsForDate;
+  const selectedPerson = els.personName.value.trim();
+  const visibleComments = commentsForDate.filter((comment) => comment.personName === selectedPerson);
   const groups = groupComments(visibleComments);
   const drafts = [...openCommentThreads.values()]
-    .filter((thread) => !spotlightMode || thread.target.personName === els.personName.value)
+    .filter((thread) => thread.target.personName === selectedPerson)
     .filter((thread) => !groups.some((group) => group.key === thread.target.key))
     .map((thread) => thread.target);
   els.commentsCount.textContent = String(groups.length);
   els.commentsCount.setAttribute("aria-label", `${groups.length} comment thread${groups.length === 1 ? "" : "s"}`);
-  els.commentsSummary.textContent = spotlightMode
-    ? groups.length ? `${groups.length} thread${groups.length === 1 ? "" : "s"} for ${els.personName.value}.` : "No comments on this update."
-    : groups.length ? `${groups.length} comment thread${groups.length === 1 ? "" : "s"} across this date's standups.` : "No comments for this date yet.";
+  els.commentsSummary.textContent = !selectedPerson ? "Choose a team member to view comments."
+    : groups.length ? `${groups.length} thread${groups.length === 1 ? "" : "s"} for ${selectedPerson}.` : `No comments for ${selectedPerson} yet.`;
   els.commentsOverview.replaceChildren(...[...drafts, ...groups].map(renderGlobalCommentButton));
 }
 
@@ -1624,6 +1625,7 @@ async function deleteItemComment(commentId) {
 }
 
 function openCommentThread(target, { opener, focusReply = false, anchor } = {}) {
+  if (target.personName !== els.personName.value) return;
   if (spotlightMode && !spotlightCommentsVisible) return;
   if (!spotlightMode && !editingCommentsVisible) {
     editingCommentsVisible = true;
@@ -2088,6 +2090,7 @@ function updateTodayHeading() {
   const personName = els.personName.value.trim();
   els.todayEyebrow.textContent = `Today ${formatDate(els.date.value)}`;
   els.todayTitle.textContent = personName ? `${personName}'s updates` : "Select a person";
+  renderGlobalComments();
   updateMeetingNavigation();
   document.querySelectorAll(".entry-row").forEach((row) => {
     const selected = row.querySelector(".entry-name").textContent === personName;

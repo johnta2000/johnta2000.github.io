@@ -272,3 +272,35 @@ test('adding a comment restores hidden discussions and keeps an unsaved reply wh
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 });
+
+test('regular view scopes comments and counts to the presenter, including slow switches and failed saves', async () => {
+  const browser = await browserType.launch();
+  try {
+    const fixture = await openStandups(browser, 1440, 900);
+    const { page, controls, errors } = fixture;
+    await addMockComments(fixture);
+    assert.equal(await page.locator('#commentsCount').textContent(), '1');
+    assert.equal(await page.locator('#commentsSummary').textContent(), '1 thread for Jenny.');
+    assert.equal(await page.locator('#commentsOverview').getByText('John private discussion context').count(), 0);
+    await page.locator('#commentsOverview button').click();
+    controls.loadDelays.set('John', 800);
+    await page.locator('[data-person-jump="John"]').click();
+    assert.equal(await page.locator('.comment-thread-panel:visible').count(), 0);
+    assert.equal(await page.locator('#commentsOverview').getByText('Discuss the publishing schedule').count(), 0);
+    assert.equal(await page.locator('#commentsOverview').getByText('John private discussion context').count(), 1);
+    await page.waitForFunction(() => document.querySelector('#today').isContentEditable);
+    await page.locator('[data-person-jump="Vivek"]').click();
+    await page.waitForFunction(() => document.querySelector('#today').isContentEditable && document.querySelector('#personName').value === 'Vivek');
+    assert.equal(await page.locator('#commentsCount').textContent(), '0');
+    assert.equal(await page.locator('#commentsOverview button').count(), 0);
+    assert.equal(await page.locator('#commentsSummary').textContent(), 'No comments for Vivek yet.');
+    controls.failSave = true;
+    await page.locator('#today').fill('Keep Vivek selected when saving fails');
+    await page.locator('[data-person-jump="Jenny"]').click();
+    await page.getByRole('button', { name: 'Retry save', exact: true }).waitFor();
+    await page.waitForFunction(() => document.querySelector('#personName').value === 'Vivek');
+    assert.equal(await page.locator('#commentsOverview button').count(), 0);
+    assert.equal(await page.locator('#commentsSummary').textContent(), 'No comments for Vivek yet.');
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});
