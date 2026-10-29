@@ -5,6 +5,8 @@
   let device = new URL(location.href).searchParams.get('device') === 'mobile' ? 'mobile' : 'desktop', draftFileKey = '', previewEpoch = 0;
   let editorRequest=0,drafts=[],draftVersion=0,draftSaved='',draftTimer,draftPromise=Promise.resolve(),lastRoute=location.href;
   const objectUrls = new Set();
+  const fileCache=new Map(),fileCacheLimit=32*1024*1024;
+  function clearFileCache(){for(const entry of fileCache.values())entry.controller.abort();fileCache.clear();}
   const referenceFields = ['mockupUrl','emailUrl','approvalDate','approvalVersion','pdfPage'];
   const referenceFor = (v,mode=device) => v.references?.[mode] || (mode==='desktop' ? Object.fromEntries(referenceFields.map(f=>[f,v[f]||''])) : Object.fromEntries(referenceFields.map(f=>[f,''])));
   const fields = ['name','issuer','publisher','liveUrl','mockupUrl','emailUrl','approvalDate','approvalVersion','pdfPage','notes'];
@@ -28,18 +30,29 @@
   }
   function releasePreviews(){++previewEpoch;for(const url of objectUrls)URL.revokeObjectURL(url);objectUrls.clear();}
   async function privatePdf(key,kind='pdf'){
-    const current=epoch,s=session;if(!s)throw Error('Sign in to load this PDF.');
-    const token=await tokenFor(s);if(current!==epoch)throw Error('Your session changed.');
-    const response=await fetch('https://rapid-shark-565.convex.site/pdp-approval-file?key='+encodeURIComponent(key)+'&kind='+kind,{headers:{Authorization:'Bearer '+token},cache:'no-store',signal:AbortSignal.timeout(30000)});
-    if(!response.ok)throw Error('Could not load the private file. Try again.');
-    const blob=await response.blob();if(current!==epoch)throw Error('Your session changed.');return blob;
+    const current=epoch,s=session;if(!s)throw Error('Sign in to load this file.');
+    const cacheKey=kind+':'+key,existing=fileCache.get(cacheKey);
+    if(existing&&existing.expires>Date.now()){fileCache.delete(cacheKey);fileCache.set(cacheKey,existing);return existing.promise;}
+    if(existing){existing.controller.abort();fileCache.delete(cacheKey);}
+    const entry={controller:new AbortController(),bytes:0,expires:Date.now()+5*60*1000};
+    entry.promise=(async()=>{try{
+      const token=await tokenFor(s);if(current!==epoch)throw Error('Your session changed.');
+      const response=await fetch('https://rapid-shark-565.convex.site/pdp-approval-file?key='+encodeURIComponent(key)+'&kind='+kind,{headers:{Authorization:'Bearer '+token},cache:'no-store',signal:AbortSignal.any([entry.controller.signal,AbortSignal.timeout(30000)])});
+      if(!response.ok)throw Error('Could not load the private file. Try again.');
+      const blob=await response.blob();if(current!==epoch)throw Error('Your session changed.');
+      entry.bytes=blob.size;
+      let bytes=[...fileCache.values()].reduce((sum,item)=>sum+item.bytes,0);
+      for(const [id,item]of fileCache){if(bytes<=fileCacheLimit)break;if(item.bytes){fileCache.delete(id);bytes-=item.bytes;}}
+      return blob;
+    }catch(error){if(fileCache.get(cacheKey)===entry)fileCache.delete(cacheKey);throw error;}})();
+    fileCache.set(cacheKey,entry);return entry.promise;
   }
   async function downloadPdf(key,name){const current=epoch;try{const blob=await privatePdf(key);if(current!==epoch)return;const url=URL.createObjectURL(blob);objectUrls.add(url);const a=document.createElement('a');a.href=url;a.download=name.endsWith('.pdf')?name:name+'.pdf';a.click();}catch(error){if(current===epoch)$('message').textContent=error.message;}}
 
   function dirty() { return editing && JSON.stringify(formValue()) !== initialForm; }
   function lockForm(locked) { $('form').querySelectorAll('input,textarea,button').forEach(e=>e.disabled=locked); $('cancel-top').disabled=locked; if(!locked)syncStrict(); }
   function clearPrivate() {
-    releasePreviews();clearTimeout(draftTimer);drafts=[];draftVersion=0;draftSaved='';draftPromise=Promise.resolve();draftFileKey='';records=[]; editing=null; saving=false; lockForm(false); ++loadId;
+    releasePreviews();clearFileCache();clearTimeout(draftTimer);drafts=[];draftVersion=0;draftSaved='';draftPromise=Promise.resolve();draftFileKey='';records=[]; editing=null; saving=false; lockForm(false); ++loadId;
     $('workspace').hidden=true; $('editor').hidden=true; $('add').hidden=true; $('detail').replaceChildren(); $('list').replaceChildren(); $('form').reset(); initialForm=''; $('search').value=''; $('message').textContent=''; $('save-message').textContent='';$('draft-status').textContent='';$('draft-list').replaceChildren();
     for (const id of ['total','paired','missing','strict']) $(id).textContent='0';
   }
