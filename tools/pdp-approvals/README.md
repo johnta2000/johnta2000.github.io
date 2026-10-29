@@ -1,0 +1,15 @@
+# PDP approvals
+
+Private owner workspace at `/tools/pdp-approvals/`, discoverable from `/login/` after `pdpApprovals:verify`. Each record pairs a production URL, approved PDF / data room / DocSend URL, and approval email chain. Search, missing-evidence and exact-match filters, optional two-pane previews, private record shortcuts, exports, and archival are supported. External sources may block embedding; original links are always available. No crawling, visual comparison, or compliance certification occurs.
+
+The backend pins the production Clerk issuer and the site's two existing owner aliases. Every query and mutation authorizes before reading or writing. No sensitive record, document, or email URLs ship in static assets; the shell and program source are public GitHub Pages files. Records are fetched only with an authenticated token, never stored in localStorage/sessionStorage, and cleared on account changes. The app contains no analytics. External documents keep their original permissions. Links are validated as HTTPS without embedded credentials.
+
+The `pdpApprovals` table holds the current record and `pdpApprovalHistory` keeps every saved revision in the same transaction, including archived and restored states. Expected-version checks reject stale edits. History is paginated in batches of 50. The library supports up to 2,000 records; excess is an explicit error, never silent truncation. Failed saves preserve the draft, with a download action. Drafts are held only in memory and are cleared at sign-out; navigation warns before loss. A missing PDF or email remains missing evidence. Bank of America records always require the 1:1 flag, but no linked record is certified as matching. Approved document contents are not snapshotted by this tool; reference versions are labels and URLs, so preserve the source PDF in the original document system.
+
+No production data is seeded. Add the user's confirmed PDP inventory and approved evidence only when provided. All tests use synthetic records; do not exercise writes against real compliance data.
+
+Run `node --test tools/pdp-approvals/tests/*.test.cjs login/tests/access.test.cjs`. Browser tests cover private gates, signed-in workflows, rendering at desktop and phone sizes, draft retention, session races, and safe text rendering. Production sign-in requires john-ta.com.
+
+## Release
+
+Use a current production Git checkout and publish only the tracker, its schema additions, login integration, and tests. Never deploy the broad local Convex checkout. `scripts/pdp-approvals/deploy.mjs dry-run` reads current production configuration, merges only the two tracker tables, compiles only `pdpApprovals`, and retains other modules by hash. `deploy` publishes after a concurrent-change check and verifies the resulting schema, unchanged modules and existing endpoint signatures. `verify` checks a deployment without changing it. Credentials remain in memory and are never printed. The website uses its existing GitHub Pages publishing process.

@@ -1,3 +1,4 @@
+import { pdpApprovalTables } from './pdpApprovalTables';
 import { costcoTables } from './costcoTables';
 import { nextcardLaunchTables } from "./nextcardLaunchTables";
 import { rallyCollectionTables } from './rallyCollectionTables';
@@ -17,6 +18,7 @@ import { rentTables } from "./rentTables";
 import { sleepTables } from "./sleepTables";
 
 export default defineSchema({
+  ...pdpApprovalTables,
   ...costcoTables,
   ...nextcardLaunchTables,
   ...rallyCollectionTables,
