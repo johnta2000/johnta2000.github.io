@@ -57,6 +57,12 @@
     "title": "Site access — John Ta"
   },
   {
+    "path": "/tools/andrew/",
+    "file": "tools/andrew/index.html",
+    "analytics": false,
+    "title": "Andrew · Mission Control"
+  },
+  {
     "path": "/tools/card-payments/",
     "file": "tools/card-payments/index.html",
     "analytics": false,
