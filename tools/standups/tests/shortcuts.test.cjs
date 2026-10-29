@@ -122,10 +122,10 @@ test('shortcut letters are remappable, validated, persisted and can be disabled'
   } finally { await browser.close(); }
 });
 
-test('shortcut hints and settings fit phone, tablet and desktop', async () => {
+test('shortcut hints and settings fit tablet and desktop', async () => {
   const browser = await browserType.launch();
   try {
-    for (const width of [320, 390, 768, 1280]) {
+    for (const width of [768, 1280]) {
       const { page, errors } = await openStandups(browser, width, 900);
       await page.locator('#spotlightToggle').click();
       await page.locator('#spotlightCommentsToggle').click();

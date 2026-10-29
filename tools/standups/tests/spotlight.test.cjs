@@ -118,12 +118,12 @@ function assertUnmoved(before, after, context) {
 test('Spotlight, discussions and exit preserve document geometry and scroll position', async () => {
   const browser = await browserType.launch();
   try {
-    for (const width of [320, 390, 768, 1280, 1440]) {
+    for (const width of [768, 1280, 1440]) {
       const fixture = await openStandups(browser, width, 900);
       const { page, errors } = fixture;
       await addMockComments(fixture);
       await page.locator('#notes').fill(Array.from({ length: 35 }, (_, i) => `Long discussion context ${i}`).join('\n'));
-      await page.evaluate(() => scrollToSubmission(document.querySelector('#today')));
+      await page.evaluate(async () => { await flushAutosave(); scrollToSubmission(document.querySelector('#today')); });
       const before = await captureWorkspacePositions(page);
       await page.locator('#spotlightToggle').click();
       await page.getByRole('button', { name: 'Exit spotlight', exact: true }).waitFor();
@@ -168,10 +168,10 @@ test('spotlight saves pending edits and stays in editing mode when that save fai
   } finally { await browser.close(); }
 });
 
-test('spotlight navigation stays usable on phone, tablet and desktop, including date changes', async () => {
+test('spotlight navigation stays usable on tablet and desktop, including date changes', async () => {
   const browser = await browserType.launch();
   try {
-    for (const width of [320, 390, 768, 1280]) {
+    for (const width of [768, 1280]) {
       const { page, errors } = await openStandups(browser, width, 900);
       await page.getByRole('button', { name: 'Spotlight', exact: true }).click();
       await assertNoOverflow(page);
@@ -226,11 +226,11 @@ test('desktop navigation uses one row without a duplicate picker or shifting com
 test('Comments stays visible in the toolbar and toggles editing discussions without moving the document', async () => {
   const browser = await browserType.launch();
   try {
-    for (const width of [320, 390, 768, 1280, 1440]) {
+    for (const width of [768, 1280, 1440]) {
       const fixture = await openStandups(browser, width, 900);
       const { page, errors } = fixture;
       await addMockComments(fixture);
-      await page.evaluate(() => scrollToSubmission(document.querySelector('#today')));
+      await page.evaluate(async () => { await flushAutosave(); scrollToSubmission(document.querySelector('#today')); });
       const before = await captureWorkspacePositions(page);
       await page.getByRole('button', { name: 'Hide comments', exact: true }).click();
       assert.equal(await page.locator('.comments-card').isVisible(), false);

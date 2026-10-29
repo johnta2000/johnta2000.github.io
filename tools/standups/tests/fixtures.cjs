@@ -2,13 +2,14 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs/promises');
 const path = require('node:path');
 
-async function openStandups(browser, width, height = 844, { platform, fathomNotes = [] } = {}) {
+async function openStandups(browser, width, height = 844, { platform, fathomNotes = [], initialPerson = "Jenny" } = {}) {
   const page = await browser.newPage({ viewport: { width, height }, isMobile: width <= 760, hasTouch: true });
   page.setDefaultTimeout(10000);
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
   const entries = new Map();
   const comments = [];
+  const dayNotes = new Map();
   const mutations = [];
   const controls = { failSave: false, saveDelay: 0, loadDelays: new Map() };
   if (platform) await page.addInitScript(platform => Object.defineProperty(navigator, 'platform', { value: platform }), platform);
@@ -50,13 +51,20 @@ async function openStandups(browser, width, height = 844, { platform, fathomNote
       value = `comment-${comments.length}`;
       comments.push({ ...args, _id: value, personKey: args.personName.toLowerCase(), authorEmail: 'tester@example.com', createdAt: Date.now() });
     } else if (endpoint === 'standups:listItemComments') value = comments.filter(c => c.personName === args.personName && c.standupDate === args.standupDate);
+    else if (endpoint === 'standups:listForDate') value = [...entries.values()].filter(e => e.standupDate === args.standupDate);
+    else if (endpoint === 'standups:getDayNotes') value = dayNotes.get(args.standupDate) || null;
+    else if (endpoint === 'standups:saveDayNotes') { dayNotes.set(args.standupDate, {...args, updatedAt: Date.now()}); value = 'day-notes-1'; }
     else if (endpoint === 'standups:listFathomNotesForDate') value = fathomNotes;
     else if (endpoint.includes('list')) value = [];
     return route.fulfill({ json: { status: 'success', value } });
   });
   await page.goto('http://localhost/');
-  await page.waitForFunction(() => document.querySelector('#today').textContent.includes('Schedule posts') && !document.querySelector('#previousContent').textContent.includes('Looking for'));
-  return { page, errors, comments, mutations, controls, entries };
+  await page.waitForFunction(() => !document.querySelector('#standupsApp').hidden && document.querySelector('#generalPanel').getAttribute('aria-busy') === 'false');
+  if (initialPerson === 'General') await page.evaluate(() => selectMeetingPerson('General'));
+  else if (width <= 760) await page.evaluate(person => selectMeetingPerson(person), initialPerson);
+  if (initialPerson !== 'General') await page.waitForFunction(() => document.querySelector('#today').textContent.includes('Schedule posts') && !document.querySelector('#previousContent').textContent.includes('Looking for'));
+  if (width <= 760 && initialPerson !== 'General') await page.locator('#mobileFormat').click();
+  return { page, errors, comments, mutations, controls, entries, dayNotes };
 }
 
 async function assertNoOverflow(page) {

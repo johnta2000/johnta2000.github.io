@@ -9,6 +9,7 @@ test('View notes opens an empty state instead of leaving a waiting cursor on dat
   try {
     for (const width of [390, 1440]) {
       const { page, errors, mutations } = await openStandups(browser, width, 900);
+      if (width <= 760) await page.locator('.mobile-bottom-nav [data-mobile-nav=general]').click();
       const button = page.getByRole('button', { name: 'View notes', exact: true });
       await page.waitForFunction(() => document.querySelector('#notetakerViewButton').getAttribute('aria-busy') === 'false');
       assert.equal(await button.isEnabled(), true);

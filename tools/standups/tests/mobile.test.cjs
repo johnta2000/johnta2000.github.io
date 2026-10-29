@@ -33,7 +33,7 @@ test('phone and tablet layouts keep headings, editors, and date controls in boun
         const previous = await page.locator('.previous-panel').boundingBox();
         assert.ok(today.y < previous.y, 'Editing should come before previous submissions on a phone');
         assert.ok(await page.locator('#today').evaluate(node => parseFloat(getComputedStyle(node).fontSize) >= 16));
-        const controls = await page.locator('.editor-toolbar button').evaluateAll(nodes => nodes.map(node => ({ width: node.clientWidth, scroll: node.scrollWidth, height: node.getBoundingClientRect().height })));
+        const controls = await page.locator('.editor-toolbar button').evaluateAll(nodes => nodes.filter(node => node.getClientRects().length).map(node => ({ width: node.clientWidth, scroll: node.scrollWidth, height: node.getBoundingClientRect().height })));
         assert.ok(controls.every(control => control.height >= 44 && control.scroll <= control.width + 1), 'Formatting controls must fit and have touch height');
       }
       if ([320, 390, 768, 1280].includes(width)) await page.screenshot({ path: `/tmp/standup-mobile-${width}${screenshotSuffix}.png` });
@@ -57,9 +57,11 @@ test('phone editing, autosave, dates, comments, and reduced keyboard viewport', 
     await page.locator('#today').fill('Writing an update from my phone');
     await page.waitForFunction(() => document.querySelector('#saveStatus').textContent.startsWith('Last saved'));
     assert.ok(mutations.some(m => m.endpoint === 'standups:save' && m.args.personName === 'John' && m.args.today.includes('Writing an update from my phone')));
+    await page.locator('.mobile-bottom-nav [data-mobile-nav=general]').click();
     await page.locator('#dailyNotes').fill('Shared context entered on a phone');
     await page.waitForFunction(() => document.querySelector('#dailyNotesStatus').textContent.startsWith('Last saved'));
     assert.ok(mutations.some(m => m.endpoint === 'standups:saveDayNotes' && m.args.notes.includes('Shared context entered on a phone')));
+    await page.locator('.mobile-bottom-nav [data-mobile-nav=updates]').click();
     const initialDate = await page.locator('#standupDate').inputValue();
     await page.locator('[data-date-step="-1"]').tap();
     await page.waitForFunction(date => document.querySelector('#standupDate').value !== date && document.querySelector('#today').textContent.includes('Schedule posts'), initialDate);

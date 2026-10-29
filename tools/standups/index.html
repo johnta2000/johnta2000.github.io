@@ -7,7 +7,7 @@
     <meta name="robots" content="noindex, nofollow" />
     <title>Daily Standups</title>
     <link rel="stylesheet" href="../../assets/css/searchable-select.css?v=20261010-1" />
-    <link rel="stylesheet" href="./styles.css?v=20261012-copy2" />
+    <link rel="stylesheet" href="./styles.css?v=20261029-brief1" />
     <link rel="stylesheet" href="../../assets/css/clerk-auth.css?v=20261011-otp1">
 </head>
   <body>
@@ -49,7 +49,7 @@
           <label class="field name-field">
             <span id="personNameLabel">Team member</span>
             <select id="personName" form="standupForm" aria-labelledby="personNameLabel" name="personName" required>
-              <option value="">Select a person</option>
+              <option value="General">General</option>
               <option value="John">John</option>
               <option value="Vivek">Vivek</option>
               <option value="Vishal">Vishal</option>
@@ -68,7 +68,8 @@
         </div>
 
         <div class="meeting-navigation">
-          <nav class="member-navigation" aria-label="Team members">
+          <nav class="member-navigation" aria-label="Standup views">
+            <button type="button" id="generalViewButton" aria-pressed="false">General</button>
             <button type="button" data-person-jump="John" aria-pressed="false">John<kbd class="member-shortcut-hint" aria-hidden="true">1</kbd><span class="submission-dot" aria-hidden="true"></span></button>
             <button type="button" data-person-jump="Vivek" aria-pressed="false">Vivek<kbd class="member-shortcut-hint" aria-hidden="true">2</kbd><span class="submission-dot" aria-hidden="true"></span></button>
             <button type="button" data-person-jump="Vishal" aria-pressed="false">Vishal<kbd class="member-shortcut-hint" aria-hidden="true">3</kbd><span class="submission-dot" aria-hidden="true"></span></button>
@@ -95,6 +96,26 @@
 
       <section class="workspace" aria-label="Standup entry workspace">
         <form id="standupForm" class="entry-form">
+          <section id="generalPanel" class="general-panel" aria-labelledby="generalTitle" hidden>
+            <div class="panel-heading">
+              <p id="generalDate" class="eyebrow"></p>
+              <h2 id="generalTitle">General</h2>
+              <p class="general-description">Shared notes, discussions, and everyone’s updates for this day.</p>
+            </div>
+            <div id="generalNotesSlot"></div>
+            <div id="generalDiscussionSlot"></div>
+            <section class="general-updates" aria-labelledby="generalUpdatesTitle">
+              <h3 id="generalUpdatesTitle">Everyone’s updates</h3>
+              <div id="generalUpdatesList"></div>
+            </section>
+            <div id="generalMeetingSlot"></div>
+          </section>
+          <div class="mobile-person-header mobile-only">
+            <div class="mobile-heading-row"><button type="button" data-mobile-nav="general" aria-label="Back to General">← General</button><button id="mobileFormat" type="button" aria-pressed="false">Format</button></div>
+            <h2 id="mobilePersonTitle"></h2>
+            <nav class="mobile-person-tabs" aria-label="Update or comments"><button type="button" data-mobile-person-tab="update" aria-pressed="true">Update</button><button type="button" data-mobile-person-tab="comments" aria-pressed="false">Comments <span id="mobileCommentCount">0</span></button></nav>
+          </div>
+          <div id="mobilePersonComments" class="mobile-only"></div>
           <div class="compare-grid">
             <section class="previous-panel" aria-labelledby="previousTitle">
               <div class="panel-heading">
@@ -194,6 +215,7 @@
               <span id="commentsCount" class="comments-count" aria-label="0 commented items">0</span>
             </div>
             <p id="commentsSummary" class="comments-summary">Loading comments...</p>
+            <button id="addGeneralComment" class="general-comment-button" type="button" hidden disabled>New general comment</button>
             <div id="commentsOverview" class="comments-overview" aria-live="polite"></div>
           </section>
 
@@ -201,6 +223,7 @@
             <div class="panel-heading">
               <p id="dailyNotesDate" class="eyebrow"></p>
               <h2 id="dailyNotesTitle">Team notes</h2>
+              <button id="mobileNotesFormat" class="mobile-only" type="button" aria-pressed="false" aria-label="Format team notes">Format</button>
             </div>
             <section class="field rich-field daily-notes-field">
               <span>Shared notes for this date</span>
@@ -231,6 +254,12 @@
           </section>
         </aside>
       </section>
+      <nav class="mobile-bottom-nav mobile-only" aria-label="Mobile workspace">
+        <button type="button" data-mobile-nav="general" aria-pressed="true"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>General</button>
+        <button type="button" data-mobile-nav="updates" aria-pressed="false"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M8 6h13M8 12h13M8 18h13M3 6h1M3 12h1M3 18h1"/></svg><span id="mobileUpdateLabel">Updates</span></button>
+        <button type="button" data-mobile-nav="discussions" aria-pressed="false"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M20 15a3 3 0 0 1-3 3H8l-5 3V6a3 3 0 0 1 3-3h11a3 3 0 0 1 3 3z"/><path d="M7 8h9M7 12h6"/></svg>Discussions</button>
+      </nav>
+      <div id="mobileCommentBackdrop" class="mobile-comment-backdrop" hidden></div>
     </main>
 
     <dialog id="shortcutDialog" class="shortcut-dialog" aria-labelledby="shortcutDialogTitle">
@@ -321,6 +350,6 @@
       type="text/javascript"
     ></script>
     <script defer src="../../assets/js/searchable-select.js?v=20261010-2"></script>
-    <script defer src="./app.js?v=20261029-presenter1"></script>
+    <script defer src="./app.js?v=20261029-brief1"></script>
   </body>
 </html>

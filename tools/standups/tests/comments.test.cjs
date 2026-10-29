@@ -123,8 +123,9 @@ test('one visible comment at a time preserves drafts, replies, and responsive po
     assert.equal(await page.locator('.comment-thread-panel:visible').count(), 1);
     await page.screenshot({ path: '/tmp/standup-comments-mobile.png' });
     await active.locator('textarea').press('Escape');
-    assert.equal(await cards.count(), 1);
+    assert.equal(await cards.count(), 2, 'Closing preserves the unsaved reply');
     assert.equal(await visibleCards.count(), 0);
+    await page.locator('[data-mobile-person-tab=comments]').click();
     await page.locator('#commentsOverview button').filter({ hasText: 'Second independent thread' }).click();
     assert.equal(await visibleCards.count(), 1);
     await page.setViewportSize({ width: 1600, height: 1100 });
@@ -135,11 +136,11 @@ test('one visible comment at a time preserves drafts, replies, and responsive po
     await cards.first().getByRole('button', { name: 'Reply', exact: true }).click();
     await request;
     await page.locator('[data-person-jump="John"]').click();
-    assert.equal(await cards.count(), 0);
+    assert.equal(await visibleCards.count(), 0);
     finishSave();
     await page.waitForFunction(() => document.querySelector('#saveStatus').textContent.includes('Comment saved'));
     assert.equal(comments.at(-1).personName, 'Jenny');
-    assert.equal(await cards.count(), 0);
+    assert.equal(await visibleCards.count(), 0);
     assert.deepEqual(errors, []);
   } finally {
     await browser.close();

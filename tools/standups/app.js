@@ -8,9 +8,11 @@ const DEFAULT_MEMBER_KEYS = { John: "1", Vivek: "2", Vishal: "3", Jenny: "4" };
 const RESERVED_CALL_LETTERS = new Set(["Q", "I", "A", "V"]);
 const isMacKeyboard = /Mac|iPhone|iPad/.test(navigator.platform);
 let callShortcuts = readCallShortcuts();
+const GENERAL_VIEW = "General";
 const TEAM_MEMBERS = ["John", "Vivek", "Vishal", "Jenny"];
 const COMMENT_FIELDS = ["yesterday", "today", "blockers", "notes"];
 const COMMENT_FIELD_LABELS = {
+  general: "General discussion",
   yesterday: "Yesterday / things I did",
   today: "Today / things to do",
   blockers: "Blockers",
@@ -94,6 +96,11 @@ let dailyNotesDirty = false;
 let dailyNotesRevision = 0;
 let pendingDailyNotesSave = Promise.resolve(true);
 let dateLoadVersion = 0;
+let activeViewContext = null;
+let mobileTab = "general";
+let mobilePersonTab = "update";
+let mobileLastPerson = TEAM_MEMBERS.includes(localStorage.getItem(LOCAL_NAME_KEY)) ? localStorage.getItem(LOCAL_NAME_KEY) : TEAM_MEMBERS[0];
+const isMobileBrief = () => window.matchMedia("(max-width: 760px)").matches;
 let spotlightMode = false;
 let spotlightCommentsVisible = false;
 let editingCommentsVisible = true;
@@ -110,14 +117,17 @@ function init() {
 
 function initStandups() {
   els.date.value = toDateInputValue(new Date());
-  els.personName.value = localStorage.getItem(LOCAL_NAME_KEY) || "";
+  els.personName.value = isMobileBrief() ? GENERAL_VIEW : localStorage.getItem(LOCAL_NAME_KEY) || GENERAL_VIEW;
+  if (!els.personName.value) els.personName.value = GENERAL_VIEW;
   personPicker = window.SearchableSelect.enhance(els.personName);
   document.querySelector("#saveRetry").addEventListener("click", () => flushAutosave());
   configureRichTextCommands();
   configureEditorTools();
   configureMeetingControls();
+  configureMobileBrief();
   setPersonEditingEnabled(false);
   updateDateShortcuts();
+  updateTodayHeading();
   els.date.addEventListener("click", openDatePicker);
   els.date.addEventListener("focus", openDatePicker);
   els.date.addEventListener("change", handleDateChange);
@@ -125,6 +135,7 @@ function initStandups() {
   els.notetakerViewButton.addEventListener("click", openNotetakerModal);
   els.notetakerCloseButton.addEventListener("click", closeNotetakerModal);
   window.addEventListener("resize", scheduleCommentLayout);
+  window.addEventListener("resize", () => { updateGeneralView(); setPersonEditingEnabled(personEditingAvailable); });
   window.visualViewport?.addEventListener("resize", scheduleCommentLayout);
   window.visualViewport?.addEventListener("scroll", scheduleCommentLayout);
   new ResizeObserver(scheduleCommentLayout).observe(els.form);
@@ -227,6 +238,8 @@ function configureMeetingControls() {
   document.querySelectorAll("[data-person-jump]").forEach((button) => {
     button.addEventListener("click", () => selectMeetingPerson(button.dataset.personJump));
   });
+  document.querySelector("#generalViewButton").addEventListener("click", () => selectMeetingPerson(GENERAL_VIEW));
+  document.querySelector("#addGeneralComment").addEventListener("click", addGeneralComment);
   document.querySelector("#previousPerson").addEventListener("click", () => stepMeetingPerson(-1));
   document.querySelector("#nextPerson").addEventListener("click", () => stepMeetingPerson(1));
   document.querySelectorAll("[data-section-jump]").forEach((link) => {
@@ -273,7 +286,7 @@ function updateCallShortcutHints() {
   const buttons = { spotlight: "#spotlightToggle", discussions: "#spotlightCommentsToggle", next: "#nextPerson", previous: "#previousPerson" };
   for (const [action, selector] of Object.entries(buttons)) {
     const button = document.querySelector(selector);
-    const enabled = callShortcuts.enabled && (action !== "discussions" || spotlightMode);
+    const enabled = callShortcuts.enabled && (action !== "discussions" || spotlightMode) && (action !== "spotlight" || !isGeneralView());
     const shortcut = `${prefix}${callShortcuts.letters[action]}`;
     const hint = button.querySelector("[data-shortcut-hint]");
     if (hint) { hint.textContent = shortcut; hint.hidden = !enabled; }
@@ -339,14 +352,14 @@ function configureCallShortcuts() {
     if (!primaryModifier || !event.altKey || event.shiftKey) return;
     const person = TEAM_MEMBERS.find(name => event.code === `Digit${callShortcuts.members[name]}`);
     if (person) {
-      if (document.querySelector("#spotlightToggle").disabled || !personEditingAvailable) return;
+      if (!personEditingAvailable) return;
       event.preventDefault();
       selectMeetingPerson(person);
       return;
     }
     const action = Object.keys(DEFAULT_CALL_LETTERS).find((key) => event.code === `Key${callShortcuts.letters[key]}`);
-    if (!action || (action === "discussions" && !spotlightMode)) return;
-    if (document.querySelector("#spotlightToggle").disabled || !personEditingAvailable) return;
+    if (!action || (action === "discussions" && !spotlightMode) || (action === "spotlight" && isGeneralView())) return;
+    if (!personEditingAvailable) return;
     event.preventDefault();
     if (action === "spotlight") toggleSpotlight();
     else if (action === "discussions") setSpotlightCommentsVisible(!spotlightCommentsVisible);
@@ -356,6 +369,7 @@ function configureCallShortcuts() {
 }
 
 async function toggleSpotlight() {
+  if (isGeneralView() && !spotlightMode) return;
   const button = document.querySelector("#spotlightToggle");
   button.disabled = true;
   try {
@@ -431,7 +445,7 @@ function updateSpotlightSections() {
 function updateMeetingNavigation() {
   const selected = els.personName.value;
   const index = TEAM_MEMBERS.indexOf(selected);
-  document.querySelector("#memberPosition").textContent = index >= 0 ? `${index + 1} of ${TEAM_MEMBERS.length}` : "Choose a person";
+  document.querySelector("#memberPosition").textContent = index >= 0 ? `${index + 1} of ${TEAM_MEMBERS.length}` : isGeneralView() ? "All teammates" : "Choose a person";
   const submitted = new Set(entriesForDate.map((entry) => entry.personName));
   document.querySelectorAll("[data-person-jump]").forEach((button) => {
     const person = button.dataset.personJump;
@@ -440,6 +454,7 @@ function updateMeetingNavigation() {
     button.title = `${person} · ${submitted.has(person) ? "Update submitted" : "No update yet"}`;
     button.setAttribute("aria-label", button.title);
   });
+  document.querySelector("#generalViewButton").setAttribute("aria-pressed", String(isGeneralView()));
   updateMemberShortcutHints();
 }
 
@@ -460,7 +475,7 @@ function stepMeetingPerson(direction) {
   selectMeetingPerson(TEAM_MEMBERS[next]);
 }
 
-function scrollToSubmission(target = document.querySelector(".today-panel")) {
+function scrollToSubmission(target = document.querySelector(isGeneralView() ? "#generalPanel" : ".today-panel")) {
   const bar = document.querySelector("#meetingControls");
   const height = bar.getBoundingClientRect().height;
   document.documentElement.style.setProperty("--meeting-controls-height", `${Math.ceil(height)}px`);
@@ -470,6 +485,149 @@ function scrollToSubmission(target = document.querySelector(".today-panel")) {
   window.scrollTo({ top: Math.max(0, window.scrollY + scrollTarget.getBoundingClientRect().top - height - toolbarOffset), behavior: "instant" });
 }
 
+function configureMobileBrief() {
+  document.querySelectorAll('[data-mobile-nav]').forEach(button => button.addEventListener('click', async () => {
+    const tab = button.dataset.mobileNav;
+    const previousTab = mobileTab;
+    const person = tab === 'updates' ? mobileLastPerson : GENERAL_VIEW;
+    mobileTab = tab;
+    await selectMeetingPerson(person);
+    if (els.personName.value !== person) mobileTab = previousTab;
+    else if (isGeneralView()) mobileTab = tab;
+    updateMobileBrief();
+    if (els.personName.value === person) window.scrollTo({ top: 0, behavior: 'instant' });
+  }));
+  document.querySelectorAll('[data-mobile-person-tab]').forEach(button => button.addEventListener('click', async () => {
+    if (!await flushAutosave()) return;
+    mobilePersonTab = button.dataset.mobilePersonTab;
+    editingCommentsVisible = true;
+    setSpotlightCommentsVisible(false);
+    activateCommentThread(null);
+    updateMobileBrief();
+  }));
+  document.querySelector('#mobileFormat').addEventListener('click', () => {
+    const active = document.body.classList.toggle('mobile-formatting');
+    document.querySelector('#mobileFormat').setAttribute('aria-pressed', String(active));
+  });
+  document.querySelector('#mobileNotesFormat').addEventListener('click', () => {
+    const active = document.body.classList.toggle('mobile-notes-formatting');
+    document.querySelector('#mobileNotesFormat').setAttribute('aria-pressed', String(active));
+  });
+  const backdrop = document.querySelector('#mobileCommentBackdrop');
+  let downOnBackdrop = false;
+  backdrop.addEventListener('pointerdown', event => { downOnBackdrop = event.target === backdrop; });
+  backdrop.addEventListener('click', event => {
+    if (downOnBackdrop && event.target === backdrop && activeCommentKey) closeCommentThread(activeCommentKey);
+    downOnBackdrop = false;
+  });
+}
+
+function updateMobileBrief() {
+  const general = isGeneralView();
+  document.body.classList.toggle('mobile-discussions', general && mobileTab === 'discussions');
+  document.body.classList.toggle('mobile-person-comments', !general && mobilePersonTab === 'comments');
+  document.querySelector('#mobilePersonTitle').textContent = `${els.personName.value}’s update`;
+  document.querySelector('#mobileUpdateLabel').textContent = general ? 'Updates' : els.personName.value;
+  document.querySelectorAll('.mobile-bottom-nav [data-mobile-nav]').forEach(button => {
+    const active = button.dataset.mobileNav === (general ? mobileTab : 'updates');
+    button.setAttribute('aria-pressed', String(active));
+  });
+  document.querySelectorAll('[data-mobile-person-tab]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.mobilePersonTab === mobilePersonTab)));
+  document.querySelector('#mobileCommentBackdrop').hidden = !isMobileBrief() || !activeCommentKey;
+  if (isMobileBrief()) {
+    document.querySelector('#generalTitle').textContent = mobileTab === 'discussions' ? 'Discussions' : 'The daily brief';
+    // The compact app has one discussion surface; desktop visibility preferences should not hide it.
+    editingCommentsVisible = true;
+    document.body.classList.remove('editing-comments-hidden');
+    document.querySelector('.comments-card').inert = false;
+  } else document.querySelector('#generalTitle').textContent = 'General';
+}
+
+function isGeneralView() {
+  return els.personName.value === GENERAL_VIEW;
+}
+
+function updateGeneralView() {
+  const general = isGeneralView();
+  document.body.classList.toggle("is-general-view", general);
+  document.querySelector("#generalPanel").hidden = !general;
+  document.querySelector(".compare-grid").hidden = general;
+  document.querySelector(".section-navigation").hidden = general;
+  document.querySelector("#addGeneralComment").hidden = !general;
+  document.querySelector("#commentsTitle").textContent = general ? "All comments" : "Comments";
+  document.querySelector("#generalDate").textContent = formatDate(els.date.value);
+  const comments = document.querySelector(".comments-card");
+  const compactComments = general && window.innerWidth <= 1100;
+  const commentsHome = isMobileBrief() && !general ? document.querySelector("#mobilePersonComments") : compactComments ? document.querySelector("#generalDiscussionSlot") : document.querySelector(".daily-list");
+  if (comments.parentElement !== commentsHome) {
+    if (compactComments || isMobileBrief()) commentsHome.append(comments);
+    else commentsHome.insertBefore(comments, document.querySelector(".daily-notes-card")?.parentElement === commentsHome ? document.querySelector(".daily-notes-card") : document.querySelector(".roster-card"));
+  }
+  const notes = document.querySelector(".daily-notes-card");
+  const destination = general ? document.querySelector("#generalNotesSlot") : document.querySelector(".daily-list");
+  if (notes.parentElement !== destination) {
+    if (general) destination.append(notes);
+    else destination.insertBefore(notes, document.querySelector(".roster-card"));
+  }
+  const meeting = document.querySelector(".notetaker-card");
+  const meetingHome = isMobileBrief() ? document.querySelector("#generalMeetingSlot") : document.querySelector(".daily-list");
+  if (meeting.parentElement !== meetingHome) meetingHome.prepend(meeting);
+  updateMobileBrief();
+}
+
+function addGeneralComment() {
+  const itemKey = `general:${crypto.randomUUID()}`;
+  openCommentThread({
+    key: `general:general:${itemKey}`, personKey: "general", personName: GENERAL_VIEW,
+    fieldName: "general", itemKey, itemText: "General discussion", comments: [],
+  }, { opener: document.querySelector("#addGeneralComment"), focusReply: true });
+}
+
+function renderGeneralUpdates() {
+  const list = document.querySelector("#generalUpdatesList");
+  const cards = TEAM_MEMBERS.map((personName) => {
+    const entry = entriesForDate.find(entry => entry.personName === personName);
+    const card = document.createElement("article");
+    card.className = "general-member-update";
+    const header = document.createElement("div");
+    header.className = "general-member-heading";
+    const title = document.createElement("h4");
+    title.textContent = personName;
+    const open = document.createElement("button");
+    open.type = "button";
+    const desktopLabel = document.createElement("span");
+    desktopLabel.className = "desktop-open-label";
+    desktopLabel.textContent = "Open update";
+    const mobileName = document.createElement("span");
+    mobileName.className = "mobile-person-name";
+    mobileName.textContent = personName;
+    open.append(desktopLabel, mobileName);
+    open.setAttribute("aria-label", `Open ${personName}'s update`);
+    open.addEventListener("click", () => selectMeetingPerson(personName));
+    header.append(title, open);
+    card.append(header);
+    const preview = document.createElement("p");
+    preview.className = "mobile-update-preview";
+    const text = document.createElement("div");
+    text.innerHTML = sanitizeRichText(entry?.today || entry?.yesterday || "");
+    preview.textContent = (text.querySelector("li, p, div")?.textContent || text.textContent).trim() || "No update submitted yet";
+    open.append(preview);
+    const avatar = document.createElement("span");
+    avatar.className = "mobile-member-avatar";
+    avatar.textContent = personName[0];
+    avatar.setAttribute("aria-hidden", "true");
+    open.prepend(avatar);
+    open.dataset.mobilePerson = personName;
+    if (entry) {
+      for (const [field, label] of [["yesterday", "Yesterday"], ["today", "Today"], ["blockers", "Blockers"], ["notes", "Notes"]]) {
+        if (entry[field]?.trim()) card.append(renderSection(label, entry[field]));
+      }
+    } else card.append(renderRosterEmpty("No update submitted yet."));
+    return card;
+  });
+  list.replaceChildren(...cards);
+}
+
 function getToolbarEditor(button) {
   return button.closest(".rich-field")?.querySelector(".rich-editor") || activePersonEditor;
 }
@@ -477,12 +635,14 @@ function getToolbarEditor(button) {
 function setPersonEditingEnabled(enabled) {
   personEditingAvailable = enabled;
   document.querySelector(".today-panel").setAttribute("aria-busy", String(!enabled));
+  document.querySelector("#generalPanel").setAttribute("aria-busy", String(!enabled));
   personEditors.forEach((editor) => {
-    editor.contentEditable = String(enabled && !spotlightMode);
+    editor.contentEditable = String(enabled && !spotlightMode && !isGeneralView());
     editor.setAttribute("aria-readonly", String(spotlightMode));
     editor.setAttribute("aria-disabled", String(!enabled));
   });
-  document.querySelectorAll("#documentToolbar button, .today-panel [data-copy-editor]").forEach((button) => { button.disabled = !enabled; });
+  document.querySelectorAll("#documentToolbar button, .today-panel [data-copy-editor]").forEach((button) => { button.disabled = !enabled || isGeneralView(); });
+  document.querySelector("#spotlightToggle").disabled = !enabled || isGeneralView();
   document.querySelector("#editorContext").textContent = enabled
     ? `Editing ${COMMENT_FIELD_LABELS[activePersonEditor.id].split(" /")[0]} · select text to format or comment`
     : els.personName.value ? "Loading update…" : "Choose a team member to start writing";
@@ -713,6 +873,7 @@ async function handleDateChange() {
   const version = ++dateLoadVersion;
   ++personLoadVersion;
   setPersonEditingEnabled(false);
+  activateCommentThread(null);
   const saved = await flushAutosave();
   const dailySaved = await flushDailyNotesAutosave();
   if (version !== dateLoadVersion) return;
@@ -728,17 +889,24 @@ async function handleDateChange() {
 }
 
 async function refreshDailyList() {
+  const requestedDate = els.date.value;
+  document.querySelector("#generalUpdatesList").replaceChildren(renderRosterEmpty("Loading everyone’s updates…"));
   els.rosterDate.textContent = formatDate(els.date.value);
   setEntriesState("Loading submitted updates...");
   try {
-    entriesForDate = await convexQuery("standups:listForDate", {
+    const entries = await convexQuery("standups:listForDate", {
       teamId: TEAM_ID,
-      standupDate: els.date.value,
+      standupDate: requestedDate,
     });
+    if (requestedDate !== els.date.value) return;
+    entriesForDate = entries;
     renderEntries(entriesForDate);
+    renderGeneralUpdates();
   } catch (error) {
     console.error(error);
+    if (requestedDate !== els.date.value) return;
     setEntriesState("Could not load Convex data. Check that the standup functions are deployed.");
+    document.querySelector("#generalUpdatesList").replaceChildren(renderRosterEmpty("Could not load everyone’s updates. Try refreshing."));
   }
 }
 
@@ -750,11 +918,30 @@ async function loadPersonContext({ scrollToUpdate = false } = {}) {
   setPersonEditingEnabled(false);
   activateCommentThread(null);
   const saved = await flushAutosave();
+  const dailySaved = await flushDailyNotesAutosave();
   if (version !== personLoadVersion) return;
-  if (!saved) { restoreDocumentContext(); return; }
-  closeAllCommentThreads();
+  if (!saved || !dailySaved) { restoreDocumentContext(); return; }
+  if (spotlightMode && personName === GENERAL_VIEW) await toggleSpotlight();
+  activateCommentThread(null);
   personPicker.sync();
+  if (personName !== GENERAL_VIEW) { mobileLastPerson = personName; mobileTab = "updates"; }
+  else if (mobileTab !== "discussions") mobileTab = "general";
+  mobilePersonTab = "update";
   updateTodayHeading();
+  if (personName === GENERAL_VIEW) {
+    clearForm();
+    activeEntryContext = null;
+    activeViewContext = { personName, standupDate };
+    localStorage.setItem(LOCAL_NAME_KEY, personName);
+    await Promise.all([refreshDailyList(), loadCommentsForDate()]);
+    if (version !== personLoadVersion || personName !== els.personName.value || standupDate !== els.date.value) return;
+    editingCommentsVisible = true;
+    setPersonEditingEnabled(true);
+    setSpotlightCommentsVisible(false);
+    renderGeneralUpdates();
+    if (scrollToUpdate) scrollToSubmission();
+    return;
+  }
   if (!personName) {
     clearForm();
     activeEntryContext = null;
@@ -788,6 +975,7 @@ async function loadPersonContext({ scrollToUpdate = false } = {}) {
 
     if (version !== personLoadVersion || personName !== els.personName.value || standupDate !== els.date.value) return;
     activeEntryContext = { personName, standupDate };
+    activeViewContext = { personName, standupDate };
     activePrevious = previous;
     setPersonEditingEnabled(true);
     standupComments = commentsForDate.filter((comment) => comment.personName === personName);
@@ -1330,12 +1518,13 @@ function clearItemComments() {
 async function loadCommentsForDate() {
   const requestedDate = els.date.value;
   els.commentsDate.textContent = formatDate(els.date.value);
+  document.querySelector("#addGeneralComment").disabled = true;
   els.commentsSummary.textContent = "Loading comments...";
   els.commentsOverview.replaceChildren();
 
   try {
     const results = await Promise.all(
-      TEAM_MEMBERS.map((personName) =>
+      [GENERAL_VIEW, ...TEAM_MEMBERS].map((personName) =>
         convexQuery("standups:listItemComments", {
           teamId: TEAM_ID,
           standupDate: requestedDate,
@@ -1345,8 +1534,9 @@ async function loadCommentsForDate() {
     );
     if (els.date.value !== requestedDate) return;
     commentsForDate = results.flat().sort((a, b) => a.createdAt - b.createdAt);
+    document.querySelector("#addGeneralComment").disabled = false;
     const selectedPerson = els.personName.value.trim();
-    standupComments = selectedPerson
+    standupComments = selectedPerson && selectedPerson !== GENERAL_VIEW
       ? commentsForDate.filter((comment) => comment.personName === selectedPerson)
       : [];
     renderGlobalComments();
@@ -1363,18 +1553,19 @@ async function loadCommentsForDate() {
 }
 
 function renderGlobalComments() {
-  const selectedPerson = els.personName.value.trim();
-  const visibleComments = commentsForDate.filter((comment) => comment.personName === selectedPerson);
+  const visibleComments = isGeneralView() ? commentsForDate : commentsForDate.filter((comment) => comment.personName === els.personName.value);
   const groups = groupComments(visibleComments);
   const drafts = [...openCommentThreads.values()]
-    .filter((thread) => thread.target.personName === selectedPerson)
+    .filter((thread) => isGeneralView() || thread.target.personName === els.personName.value)
     .filter((thread) => !groups.some((group) => group.key === thread.target.key))
     .map((thread) => thread.target);
   els.commentsCount.textContent = String(groups.length);
   els.commentsCount.setAttribute("aria-label", `${groups.length} comment thread${groups.length === 1 ? "" : "s"}`);
-  els.commentsSummary.textContent = !selectedPerson ? "Choose a team member to view comments."
-    : groups.length ? `${groups.length} thread${groups.length === 1 ? "" : "s"} for ${selectedPerson}.` : `No comments for ${selectedPerson} yet.`;
+  els.commentsSummary.textContent = !isGeneralView()
+    ? groups.length ? `${groups.length} thread${groups.length === 1 ? "" : "s"} for ${els.personName.value}.` : `No comments for ${els.personName.value} yet.`
+    : groups.length ? `${groups.length} comment thread${groups.length === 1 ? "" : "s"} across today’s discussions and updates.` : "No comments for this date yet.";
   els.commentsOverview.replaceChildren(...[...drafts, ...groups].map(renderGlobalCommentButton));
+  document.querySelector("#mobileCommentCount").textContent = String(groups.length);
 }
 
 function renderGlobalCommentButton(group) {
@@ -1390,7 +1581,7 @@ function renderGlobalCommentButton(group) {
   marker.textContent = group.comments.length ? String(group.comments.length) : "＋";
   copy.className = "comment-overview-copy";
   meta.className = "comment-overview-meta";
-  meta.textContent = `${group.personName} · ${COMMENT_FIELD_LABELS[group.fieldName] || group.fieldName}`;
+  meta.textContent = group.personName === GENERAL_VIEW ? "General discussion" : `${group.personName} · ${COMMENT_FIELD_LABELS[group.fieldName] || group.fieldName}`;
   excerpt.className = "comment-overview-excerpt";
   excerpt.textContent = group.comments[0]?.comment || "New comment";
   copy.append(meta, excerpt);
@@ -1540,12 +1731,12 @@ function renderCommentHighlights() {
   }
   const targets = new Map(groupComments(standupComments).map((group) => [group.key, group]));
   const active = openCommentThreads.get(activeCommentKey);
-  if (active?.target.personName === els.personName.value) targets.set(activeCommentKey, active.target);
+  if (!isGeneralView() && active?.target.personName === els.personName.value) targets.set(activeCommentKey, active.target);
   const ranges = [];
   const activeRanges = [];
   targets.forEach((target, key) => {
     const editor = els[target.fieldName];
-    if (!editor || target.personName !== els.personName.value) return;
+    if (isGeneralView() || !editor || target.personName !== els.personName.value) return;
     const range = resolveCommentRange(editor, target);
     if (!range) return;
     ranges.push(range);
@@ -1625,7 +1816,7 @@ async function deleteItemComment(commentId) {
 }
 
 function openCommentThread(target, { opener, focusReply = false, anchor } = {}) {
-  if (target.personName !== els.personName.value) return;
+  if (!isGeneralView() && target.personName !== els.personName.value) return;
   if (spotlightMode && !spotlightCommentsVisible) return;
   if (!spotlightMode && !editingCommentsVisible) {
     editingCommentsVisible = true;
@@ -1658,6 +1849,13 @@ function openCommentThread(target, { opener, focusReply = false, anchor } = {}) 
         refs.commentReplyForm.requestSubmit();
       }
     });
+    panel.addEventListener("keydown", event => {
+      if (!isMobileBrief() || event.key !== "Tab") return;
+      const controls = [...panel.querySelectorAll("button:not(:disabled), textarea, a[href]")].filter(element => element.getClientRects().length);
+      const first = controls[0], last = controls.at(-1);
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+    });
     panel.addEventListener("focusin", () => activateCommentThread(target.key));
     panel.addEventListener("pointerdown", () => activateCommentThread(target.key));
     els.app.append(panel);
@@ -1681,6 +1879,7 @@ function activateCommentThread(key) {
     thread.panel.hidden = key !== threadKey;
     thread.panel.classList.toggle("is-active", key === threadKey);
   });
+  document.querySelector("#mobileCommentBackdrop").hidden = !key || !isMobileBrief();
   renderGlobalComments();
   scheduleCommentLayout();
 }
@@ -1688,6 +1887,11 @@ function activateCommentThread(key) {
 function closeCommentThread(key, { restoreFocus = true } = {}) {
   const thread = openCommentThreads.get(key);
   if (!thread) return;
+  if (thread.refs.commentReply.value.trim() || thread.saving) {
+    activateCommentThread(null);
+    if (restoreFocus && thread.opener?.isConnected) thread.opener.focus({ preventScroll: true });
+    return;
+  }
   thread.observer.disconnect();
   thread.panel.remove();
   openCommentThreads.delete(key);
@@ -1703,7 +1907,9 @@ function closeCommentThread(key, { restoreFocus = true } = {}) {
 }
 
 function closeAllCommentThreads() {
-  [...openCommentThreads.keys()].forEach((key) => closeCommentThread(key, { restoreFocus: false }));
+  openCommentThreads.forEach(thread => { thread.observer.disconnect(); thread.panel.remove(); });
+  openCommentThreads.clear();
+  activateCommentThread(null);
 }
 
 function scheduleCommentLayout() {
@@ -1718,7 +1924,9 @@ function positionCommentThreads() {
   renderCommentHighlights();
   openCommentThreads.forEach((thread) => {
     if (thread.panel.hidden) return;
-    const editor = thread.target.personName === els.personName.value ? els[thread.target.fieldName] : null;
+    if (isMobileBrief()) thread.panel.setAttribute("aria-modal", "true");
+    else thread.panel.removeAttribute("aria-modal");
+    const editor = !isGeneralView() && thread.target.personName === els.personName.value ? els[thread.target.fieldName] : null;
     const anchor = thread.anchor?.isConnected ? thread.anchor
       : editor && findCommentTargetBlock(editor, thread.target);
 
@@ -2008,9 +2216,10 @@ async function flushDailyNotesAutosave() {
 }
 
 function restoreDocumentContext() {
-  if (activeEntryContext) {
-    els.personName.value = activeEntryContext.personName;
-    els.date.value = activeEntryContext.standupDate;
+  const context = activeEntryContext || activeViewContext;
+  if (context) {
+    els.personName.value = context.personName;
+    els.date.value = context.standupDate;
     personPicker.sync();
     updateTodayHeading();
     updateDateShortcuts();
@@ -2090,6 +2299,7 @@ function updateTodayHeading() {
   const personName = els.personName.value.trim();
   els.todayEyebrow.textContent = `Today ${formatDate(els.date.value)}`;
   els.todayTitle.textContent = personName ? `${personName}'s updates` : "Select a person";
+  updateGeneralView();
   renderGlobalComments();
   updateMeetingNavigation();
   document.querySelectorAll(".entry-row").forEach((row) => {

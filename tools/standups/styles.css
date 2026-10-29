@@ -212,6 +212,8 @@ body:has(.access-gate:not([hidden])) {
   padding: 16px 0 0;
 }
 
+
+
 .auth-status,
 .access-footnote {
   margin: 0;
@@ -2156,4 +2158,158 @@ body:not(.is-spotlight) .spotlight-comments-toggle { visibility: visible; }
 .is-spotlight .note-area > .copy-editor-button { visibility: hidden; }
 @media (max-width: 760px) {
   .note-area .copy-editor-button { width: 44px; height: 44px; }
+}
+
+/* General is the shared day overview; individual standups keep their editor. */
+.general-panel { min-width: 0; padding: 24px 28px; border: 1px solid var(--line); border-radius: 14px; background: #fff; box-shadow: var(--shadow); }
+.general-panel > .panel-heading { margin-bottom: 24px; }
+.general-description { margin: 8px 0 0; color: var(--muted); font-size: 13px; line-height: 1.6; }
+.general-panel .daily-notes-card { margin-bottom: 28px; }
+.general-panel .daily-notes-card .eyebrow { display: none; }
+.general-panel .daily-notes-card h2, .general-updates > h3 { margin: 0 0 14px; font-size: 16px; font-weight: 600; }
+.general-panel .daily-notes-editor { min-height: 140px; font: 15px/1.7 Arial, sans-serif; }
+.general-panel .editor-toolbar { flex-wrap: wrap; background: #edf2fa; }
+.general-updates > h3 { padding-top: 24px; border-top: 1px solid var(--line); }
+#generalUpdatesList { display: grid; gap: 18px; }
+.general-member-update { min-width: 0; padding: 18px; border: 1px solid var(--line); border-radius: 10px; background: #fafbfd; }
+.general-member-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+.general-member-heading h4 { margin: 0; font-size: 16px; }
+.general-member-heading button, .general-comment-button { min-height: 36px; padding: 8px 12px; border: 1px solid #c6dafb; border-radius: 8px; background: var(--accent-soft); color: var(--accent-strong); font-size: 12px; font-weight: 600; }
+.general-comment-button { width: 100%; margin: 0 0 14px; }
+.general-comment-button:disabled { opacity: .4; }
+.general-member-update section + section { margin-top: 16px; }
+.general-member-update section h3 { margin: 0 0 6px; color: #5f6368; font-size: 12px; font-weight: 600; }
+.general-member-update .rendered-rich-text { font: 14px/1.7 Arial, sans-serif; overflow-wrap: anywhere; }
+@media (max-width: 760px) {
+  .general-panel { padding: 20px 16px; }
+  .general-panel .daily-notes-editor { font-size: 16px; }
+  .general-member-update { padding: 14px; }
+  .general-member-heading button, .general-comment-button { min-height: 44px; }
+}
+
+@media (min-width: 1280px) and (max-width: 1399px) {
+  .meeting-controls .date-control { width: 248px; }
+  .meeting-controls .section-navigation-label { display: none; }
+}
+
+#generalDiscussionSlot:empty { display: none; }
+.general-panel .daily-notes-card { border-bottom: 0; }
+.general-panel .comments-card { margin-bottom: 28px; }
+.general-panel .comments-card .eyebrow { display: none; }
+.general-panel .comments-card h2 { font-size: 16px; }
+
+/* Daily Brief: a compact phone overview, with one person's update at a time. */
+.mobile-only, .mobile-update-preview, .mobile-member-avatar, .mobile-person-name { display: none; }
+@media (max-width: 760px) {
+  body { background: #f5f7fc; }
+  .app-shell { width: 100%; max-width: 100%; padding: 16px 16px calc(96px + env(safe-area-inset-bottom)); }
+  .mobile-only { display: block; }
+  .topbar { align-items: center; gap: 12px; margin-bottom: 12px; }
+  .topbar h1 { font-size: 21px; letter-spacing: -.5px; }
+  .topbar .eyebrow, .workspace-subtitle { display: none; }
+  .topbar .lock-button { width: auto; min-height: 44px; padding: 8px 10px; font-size: 12px; }
+  .meeting-controls { position: relative; top: auto; padding: 0; margin-bottom: 18px; border: 0; box-shadow: none; background: transparent; }
+  .meeting-controls .identity-row { display: flex; flex-direction: column-reverse; align-items: stretch; gap: 10px; }
+  .meeting-controls .date-control { width: 100%; }
+  .meeting-controls .date-control > label { position: absolute; clip-path: inset(50%); width: 1px; height: 1px; overflow: hidden; }
+  .meeting-controls .date-navigation { grid-template-columns: 44px minmax(0,1fr) 44px 56px; gap: 4px; }
+  .meeting-controls .date-navigation input { text-align: center; background: #fff; border-radius: 10px; min-height: 44px; }
+  .meeting-controls .name-field { width: 100%; margin: 0; }
+  .meeting-controls .name-field > span { display: none; }
+  .is-general-view .meeting-controls .name-field { display: none; }
+  .meeting-controls .meeting-navigation, .meeting-controls .meeting-actions { display: none; }
+  .workspace { display: block; }
+  .entry-form { padding: 0; border: 0; background: transparent; box-shadow: none; }
+  .general-panel { padding: 0; border: 0; background: transparent; box-shadow: none; }
+  .general-panel > .panel-heading { padding: 0; margin-bottom: 20px; border: 0; }
+  .general-panel h2#generalTitle { font-size: 26px; letter-spacing: -.7px; }
+  .general-description { display: none; }
+  .general-panel .daily-notes-card { padding: 16px; margin-bottom: 24px; border: 0; border-left: 3px solid var(--accent); border-radius: 0 14px 14px 0; background: #eaf2ff; }
+  .general-panel .daily-notes-card .panel-heading { border: 0; padding: 0; margin-bottom: 4px; }
+  .general-panel .daily-notes-card h2 { margin-bottom: 6px; }
+  .general-panel .daily-notes-field > span { display: none; }
+  .general-panel .daily-notes-editor { min-height: 72px; padding: 8px 48px 8px 0; background: transparent; border: 0; font-size: 16px; line-height: 1.5; }
+  .general-panel .daily-notes-card .editor-toolbar { display: none; }
+  .mobile-notes-formatting .general-panel .daily-notes-card .editor-toolbar { display: flex; }
+  .general-panel .daily-notes-status { font-size: 11px; margin-top: 6px; }
+  .general-updates > h3 { padding: 0; border: 0; margin-bottom: 12px; }
+  #generalUpdatesList { gap: 10px; }
+  .general-member-update { padding: 0; border: 0; background: transparent; }
+  .general-member-heading { margin: 0; display: block; }
+  .general-member-heading > h4, .general-member-update > section, .general-member-update > .empty-state { display: none; }
+  .general-member-heading > button { display: grid; grid-template-columns: 42px minmax(0,1fr) 16px; gap: 3px 12px; width: 100%; min-height: 84px; padding: 14px; text-align: left; background: #fff; border: 1px solid #dfe5ef; border-radius: 14px; color: var(--ink); font-size: 15px; }
+  .general-member-heading > button::after { content: '›'; grid-column: 3; grid-row: 1 / 3; align-self: center; font-size: 22px; color: var(--muted); }
+  .mobile-member-avatar { grid-column: 1; grid-row: 1 / 3; display: grid; place-items: center; width: 42px; height: 42px; align-self: center; border-radius: 13px; background: #eaf2ff; color: #1767dc; font-size: 16px; }
+  .mobile-update-preview { grid-column: 2; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin: 0; color: var(--muted); font-size: 12px; font-weight: 400; line-height: 1.5; }
+  .general-member-update > p { display: none; }
+  .daily-list { display: none; }
+  #generalMeetingSlot { margin-top: 24px; }
+  #generalMeetingSlot .notetaker-card { padding: 16px; border: 1px solid var(--line); background: #fff; border-radius: 14px; }
+  #generalMeetingSlot .panel-heading { margin-bottom: 8px; padding: 0; border: 0; }
+  #generalMeetingSlot .eyebrow { display: none; }
+  #generalMeetingSlot h2 { font-size: 16px; }
+  #generalMeetingSlot .notetaker-summary { font-size: 13px; }
+  #generalDiscussionSlot { display: none; }
+  .mobile-discussions #generalDiscussionSlot { display: block; }
+  .mobile-discussions #generalNotesSlot, .mobile-discussions .general-updates, .mobile-discussions #generalMeetingSlot { display: none; }
+  .mobile-person-header { margin-bottom: 16px; }
+  .is-general-view .mobile-person-header, .is-general-view #mobilePersonComments { display: none; }
+  .mobile-heading-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+  .mobile-heading-row button { min-height: 44px; padding: 8px 0; background: transparent; color: var(--accent-strong); border: 0; font-size: 13px; }
+  .mobile-person-header h2 { font-size: 24px; margin: 4px 0 16px; }
+  .mobile-person-tabs { display: flex; gap: 4px; background: #eaf0f8; border-radius: 12px; padding: 4px; }
+  .mobile-person-tabs button { flex: 1; min-height: 44px; background: transparent; color: var(--muted); border-radius: 9px; font-size: 14px; }
+  .mobile-person-tabs button[aria-pressed=true] { background: #fff; color: var(--ink); box-shadow: 0 2px 4px #2021240a; }
+  #mobilePersonComments { display: none; }
+  .mobile-person-comments #mobilePersonComments { display: block; }
+  .mobile-person-comments .compare-grid { display: none; }
+  .comments-card { border: 0; }
+  .comments-card .eyebrow { display: none; }
+  .comments-card h2 { font-size: 18px; }
+  .comments-overview button { min-height: 66px; }
+  .compare-grid { gap: 24px; }
+  .today-panel { padding: 0; border: 0; background: transparent; box-shadow: none; }
+  .today-panel > .panel-heading, #editorContext { display: none; }
+  #documentToolbar { display: none; }
+  .mobile-formatting #documentToolbar { display: flex; position: relative; top: auto; margin: 0 0 16px; }
+  .today-panel > .rich-field { padding: 0; margin: 0 0 18px; }
+  .today-panel > .rich-field:last-of-type { padding: 0; }
+  .today-panel .rich-editor { min-height: 80px; padding: 12px 52px 12px 12px; font: 16px/1.5 Arial,sans-serif; border: 1px solid #dfe5ef; border-radius: 14px; background: #fff; overflow-wrap: anywhere; }
+  .today-panel #blockers, .today-panel #notes { min-height: 64px; }
+  .today-panel .rich-field > span { margin-bottom: 8px; }
+  .today-panel .rich-field small { display: none; }
+  .today-panel .rich-editor li + li { margin-top: 5px; }
+  .today-panel .note-area .copy-editor-button { top: 6px; right: 6px; background: #fff; border-radius: 10px; }
+  .form-actions { position: static; padding: 0; border: 0; background: transparent; box-shadow: none; }
+  .previous-panel { background: #eef2f8; border-radius: 14px; padding: 16px; }
+  .mobile-bottom-nav { display: flex; position: fixed; z-index: 45; bottom: 0; left: 0; right: 0; gap: 6px; padding: 10px 16px calc(10px + env(safe-area-inset-bottom)); background: #fff; border-top: 1px solid #dfe5ef; }
+  .mobile-bottom-nav button { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-height: 50px; padding: 4px; border: 0; border-radius: 10px; background: transparent; color: var(--muted); font-size: 12px; }
+  .mobile-bottom-nav button > span:first-child { font-size: 20px; line-height: 22px; }
+  .mobile-bottom-nav button[aria-pressed=true] { background: #eaf2ff; color: #1767dc; }
+  .is-keyboard-open .mobile-bottom-nav { display: none; }
+  .mobile-comment-backdrop { position: fixed; inset: 0; z-index: 49; background: #15294466; }
+  .comment-thread-panel { z-index: 50; border-radius: 20px; }
+}
+
+@media (max-width: 760px) { .desktop-open-label { display: none; } .mobile-person-name { display: block; grid-column: 2; } }
+@media (max-width: 760px) {
+  .app-shell .topbar { display: flex; flex-direction: row; flex-wrap: nowrap; }
+  .topbar > div { flex: 1; min-width: 0; }
+  .topbar .lock-button { flex: 0 0 auto; align-self: center; }
+  .mobile-person-tabs button { border: 0; }
+  .mobile-bottom-nav button > svg { width: 20px; height: 20px; }
+  .mobile-bottom-nav button > #mobileUpdateLabel { font-size: 12px; line-height: normal; }
+}
+@media (max-width: 760px) {
+  .comment-thread-panel, .comment-thread-panel.is-active { z-index: 60; }
+}
+
+@media (max-width: 760px) {
+  .general-panel .daily-notes-card .panel-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  #mobileNotesFormat { min-height: 44px; padding: 0 8px; background: transparent; color: var(--accent-strong); border: 0; font-size: 12px; }
+}
+@media (max-width: 760px) {
+  .app-shell .topbar { padding-bottom: 0; }
+  .general-panel .daily-notes-card { gap: 6px; }
+  .general-panel .daily-notes-editor { max-height: none; overflow: visible; }
 }
