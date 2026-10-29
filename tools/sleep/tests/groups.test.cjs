@@ -10,11 +10,11 @@ before(async()=>{
  groups=await bundle('sleepGroups.ts');sleep=await bundle('sleep.ts');whoop=await bundle('whoopData.ts');
 });
 function fixture(){
- const tables=Object.fromEntries(['sleepNights','alertnessRatings','sleepProfiles','sleepGroups','sleepMembers','sleepInvites','whoopConnections','whoopDays'].map(t=>[t,[]]));let n=0;
- const db={query(table){let filters=[];const q={withIndex(_,fn){const builder={eq(k,v){filters.push(r=>r[k]===v);return this},gte(k,v){filters.push(r=>r[k]>=v);return this},lte(k,v){filters.push(r=>r[k]<=v);return this}};fn(builder);return q},collect:async()=>tables[table].filter(r=>filters.every(f=>f(r))),async unique(){const rows=await q.collect();assert.ok(rows.length<=1);return rows[0]||null},async take(limit){return (await q.collect()).slice(0,limit)}};return q},get:async id=>Object.values(tables).flat().find(r=>r._id===id)||null,insert:async(t,v)=>{const id=t+ ++n;tables[t].push({...v,_id:id});return id},patch:async(id,v)=>Object.assign(await db.get(id),v),delete:async id=>{for(const rows of Object.values(tables)){const i=rows.findIndex(r=>r._id===id);if(i>=0)rows.splice(i,1)}}};
+ const tables=Object.fromEntries(['sleepNights','alertnessRatings','sleepProfiles','sleepGroups','sleepMembers','sleepInvites','whoopConnections','whoopDays'].map(t=>[t,[]]));let n=0;const reads=[];
+ const db={query(table){let filters=[];const q={withIndex(index,fn){reads.push({table,index});const builder={eq(k,v){filters.push(r=>r[k]===v);return this},gte(k,v){filters.push(r=>r[k]>=v);return this},lte(k,v){filters.push(r=>r[k]<=v);return this}};fn(builder);return q},collect:async()=>tables[table].filter(r=>filters.every(f=>f(r))),async unique(){const rows=await q.collect();assert.ok(rows.length<=1);return rows[0]||null},async take(limit){return (await q.collect()).slice(0,limit)}};return q},get:async id=>Object.values(tables).flat().find(r=>r._id===id)||null,insert:async(t,v)=>{const id=t+ ++n;tables[t].push({...v,_id:id});return id},patch:async(id,v)=>Object.assign(await db.get(id),v),delete:async id=>{for(const rows of Object.values(tables)){const i=rows.findIndex(r=>r._id===id);if(i>=0)rows.splice(i,1)}}};
  const context=subject=>({db,auth:{getUserIdentity:async()=>subject===null?null:{subject,email:subject==='owner'?'owner@example.com':`${subject}@example.com`,emailVerified:subject!=='unverified'}}});
  const run=(api,name,subject,args={})=>api[name].handler(context(subject),args);
- return {tables,db,context,run,group:(name,subject,args)=>run(groups,name,subject,args)};
+ return {tables,db,reads,context,run,group:(name,subject,args)=>run(groups,name,subject,args)};
 }
 const settings={name:'Owner',metrics:['durationMinutes'],shareDays:28};
 async function setup(){const f=fixture();f.id=await f.group('create','owner',{groupName:'Friends',...settings});return f}
@@ -118,4 +118,17 @@ test('invitation history supports old rows and rejects non-owner or cross-group 
  assert.equal(history.find(i=>i.status==='expired').label,'Unlabeled invitation');
  assert.ok(history.some(i=>i.status==='accepted'));assert.ok(history.some(i=>i.status==='revoked'));
  await assert.rejects(f.group('issueInvite','owner',{groupId:f.id,tokenHash:'x',label:'x'.repeat(81)}),/80/);
+});
+
+test('group reads select only WHOOP records and skip nights for daily-only sharing',async()=>{
+ const f=await setup();await join(f,'friend',['recovery']);
+ f.tables.sleepNights.push({...night('apple_health'),ownerSubject:'owner'}, {...night(),ownerSubject:'owner'});
+ f.tables.whoopDays.push({ownerSubject:'friend',sleepDate:today(),recovery:80});
+ f.reads.length=0;
+ const result=await f.group('history','owner',{groupId:f.id});
+ const sleepReads=f.reads.filter(r=>r.table==='sleepNights');
+ assert.equal(sleepReads.length,1,'daily-only member must not load any sleep records');
+ assert.equal(sleepReads[0].index,'by_owner_source_date');
+ assert.equal(result.members.find(m=>m.self).nights.length,1);
+ assert.equal(result.members.find(m=>!m.self).nights[0].recovery,80);
 });

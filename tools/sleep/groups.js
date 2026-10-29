@@ -141,7 +141,7 @@ async function initializeGroups() {
     await refreshLiveGroup();
     if (unavailableLink) $('#groupMessage').textContent = 'This group is not available to your account. Choose one of your groups or ask its owner for an invitation.';
     clearInterval(groupPoll);
-    groupPoll = setInterval(() => { if (!document.hidden && activeView === 'friends' && activeGroupId) refreshLiveGroup(); }, 30000);
+    groupPoll = setInterval(() => { if (!document.hidden && activeView === 'friends' && activeGroupId) refreshLiveGroup(); }, 5 * 60 * 1000);
   } catch (error) { clearLiveGroup(); $('#groupMessage').textContent = groupError(error); }
 }
 function updateGroupPageIdentity() {

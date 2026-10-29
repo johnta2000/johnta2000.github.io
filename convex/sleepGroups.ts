@@ -145,8 +145,9 @@ export const history = query({args: {groupId: v.id("sleepGroups")}, handler: asy
   const members = await ctx.db.query("sleepMembers").withIndex("by_group", q => q.eq("groupId", args.groupId)).collect();
   const visible = [];
   for (const member of members) {
-    const nights = member.metrics.length ? await ctx.db.query("sleepNights").withIndex("by_owner_date", q => q.eq("ownerSubject", member.subject).gte("sleepDate", dateShift(today, 1 - member.shareDays)).lte("sleepDate", today)).collect() : [];
     const dailyMetrics = new Set(["recovery", "hrv", "restingHeartRate", "strain", "workoutMinutes", "workoutCount"]);
+    // Read only the selected provider, and skip sleep records for daily-only sharing.
+    const nights = member.metrics.some(m => !dailyMetrics.has(m)) ? await ctx.db.query("sleepNights").withIndex("by_owner_source_date", q => q.eq("ownerSubject", member.subject).eq("source", "whoop").gte("sleepDate", dateShift(today, 1 - member.shareDays)).lte("sleepDate", today)).collect() : [];
     const days = member.metrics.some(m => dailyMetrics.has(m)) ? await ctx.db.query("whoopDays").withIndex("by_owner_date", q => q.eq("ownerSubject", member.subject).gte("sleepDate", dateShift(today, 1 - member.shareDays)).lte("sleepDate", today)).collect() : [];
     const merged = new Map<string, any>();
     for (const n of [...nights.filter(n => n.source === "whoop"), ...days]) {
