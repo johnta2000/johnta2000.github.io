@@ -16,6 +16,7 @@ function validate(value:any){
  const url=(s:any)=>{str(s,2000);if(s){let u;try{u=new URL(s);}catch{throw Error("Use a full https or http link.");}if(!["http:","https:"].includes(u.protocol)||u.username||u.password)throw Error("Use a full https or http link.");}};
  if(value.type==="task"){
   if(!["scheduled","demand","update"].includes(value.group))throw Error("Invalid task group.");
+  if(value.status!==undefined&&!["not_submitted","submitted","kitchen","published"].includes(value.status))throw Error("Invalid article status.");
   str(value.title,300);str(value.notes);str(value.blocker,1000);url(value.url);date(value.due);
   if(!Array.isArray(value.checks)||value.checks.length!==4||value.checks.some((x:any)=>typeof x!=="boolean")||typeof value.accepted!=="boolean"||typeof value.assigned!=="boolean")throw Error("Invalid checklist.");
   if(!value.assigned&&value.checks.some(Boolean))throw Error("Assign this slot before recording progress.");
