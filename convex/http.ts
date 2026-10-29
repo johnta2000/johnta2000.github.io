@@ -1,3 +1,4 @@
+import { file as pdpApprovalFile, preflight as pdpApprovalPreflight } from './pdpApprovalFileHttp';
 import { receipt as costcoReceipt, preflight as costcoPreflight } from './costcoHttp';
 import { receipt as burgeryReceipt, preflight as burgeryPreflight } from "./burgeryHttp";
 import { pdf as statementPdf, preflight as statementPreflight } from './statementHttp';
@@ -97,4 +98,6 @@ function redirect(appUrl: URL, status: string, reason?: string) {
 http.route({ path: "/rent-file", method: "GET", handler: rentAttachment });
 http.route({ path: "/rent-file", method: "POST", handler: rentAttachment });
 http.route({ path: "/rent-file", method: "OPTIONS", handler: rentPreflight });
+http.route({path:'/pdp-approval-file',method:'GET',handler:pdpApprovalFile});
+http.route({path:'/pdp-approval-file',method:'OPTIONS',handler:pdpApprovalPreflight});
 export default http;

@@ -140,3 +140,9 @@ h1{font-size:32px}
 .filters{flex-basis:100%}
 .empty{padding:30px 5px}
 }
+
+.device-controls{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:20px 0}.device-controls button[aria-pressed=true]{background:#222;color:#fff;border-color:#222}.device-controls span{font-size:12px;color:var(--muted);margin-left:10px}.viewport-label{font-size:11px;color:var(--muted);padding:0 20px 14px;margin:0}.live-viewport{width:100%;overflow:hidden;position:relative;background:#fff}.live-viewport iframe{max-width:none;transform-origin:top left;border:0}.pane-inner .text-action{border:0;background:transparent;font-size:12px}.pane-inner>button,.pane-inner>.action{margin-top:8px}.preview-slot{overflow:hidden}.preview-slot:not(:has(iframe)){font-size:13px;color:#666}.device-controls+ .preview-actions{margin-top:12px}#upload-status{display:block;font-weight:400;line-height:1.5;margin-top:8px;overflow-wrap:anywhere}
+
+#draft-status{font-size:12px;color:var(--muted)}#draft-list:not(:empty){border-top:1px solid var(--line);margin-top:20px;padding-top:20px}.draft-link{display:block;line-height:1.5;padding:10px;font-size:12px;overflow-wrap:anywhere}
+
+a.record{display:block;text-decoration:none;color:inherit;}

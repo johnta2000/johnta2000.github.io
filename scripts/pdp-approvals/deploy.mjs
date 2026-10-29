@@ -35,36 +35,44 @@ const schemaModule = { exports: {} }; vm.runInNewContext(sb.outputFiles[0].text,
 const ownSchema = JSON.parse(schemaModule.exports.default.export()), merged = structuredClone(beforeSchema);
 for (const table of ownSchema.tables) {
   const existing = merged.tables.find(t => t.tableName === table.tableName);
-  if (existing && canonical(existing) !== canonical(table)) throw Error('Existing PDP schema differs; review before deploying.');
-  if (!existing) merged.tables.push(table);
+  const legacy=structuredClone(table);
+  if(legacy.documentType?.value?.value?.fieldType?.value)delete legacy.documentType.value.value.fieldType.value.references;
+  if(existing && canonical(existing)!==canonical(table) && canonical(existing)!==canonical(legacy))throw Error('Unexpected PDP schema change.');
+  if(existing)merged.tables[merged.tables.indexOf(existing)]=table;else merged.tables.push(table);
 
 }
 const snapshot = await request('/api/get_config', { adminKey: credentials.adminKey, version: '1.41.0' });
 const definition = snapshot.modules?.find(m => m.path === 'convex.config.js');
 if (!definition || hash(definition) !== before.moduleHashes.find(m => m.path === definition.path)?.hash) throw Error('Could not verify current app definition.');
+const baseHttp=snapshot.modules.find(m=>m.path==='pdpApprovalBaseHttp.js') || {...snapshot.modules.find(m=>m.path==='http.js'),path:'pdpApprovalBaseHttp.js'};
+if(!baseHttp.source)throw Error('Live HTTP module is missing.');
+const httpBundle=await build({absWorkingDir:projectRoot,stdin:{contents:"import http from './pdpApprovalBaseHttp.js';import {file,preflight} from './pdpApprovalFileHttp';for(const method of ['GET','OPTIONS'])http.exactRoutes.get('/pdp-approval-file')?.delete(method);http.route({path:'/pdp-approval-file',method:'GET',handler:file});http.route({path:'/pdp-approval-file',method:'OPTIONS',handler:preflight});export default http;",resolveDir:projectRoot+'/convex',sourcefile:'http.ts'},bundle:true,write:false,platform:'browser',format:'esm',target:'esnext',external:['./pdpApprovalBaseHttp.js']});
+const httpModule={path:'http.js',source:httpBundle.outputFiles[0].text,environment:'isolate'};
+const changedModules=[ownModule,httpModule,baseHttp];
+const changedPaths=new Set(changedModules.map(m=>m.path));
 const beforeSpec = await client.query('_system/cli/modules:apiSpec', {});
 const members = [{email:'john@affil.ai'}, {email:'johnta2018@gmail.com'}];
 if (mode !== 'verify') {
   const dryRun = mode === 'dry-run';
-  const push = { adminKey: credentials.adminKey, dryRun, functions: before.config.functions, appDefinition: { definition, dependencies: [], schema: { path: 'schema.js', source: `const active=${JSON.stringify(JSON.stringify(merged))};\nexport default {export(){return active;}};\n`, environment: 'isolate' }, changedModules: [ownModule], unchangedModuleHashes: before.moduleHashes.filter(m => ![ownModule.path, definition.path, 'schema.js'].includes(m.path)).map(m => ({ path: m.path, environment: m.environment, sha256: m.hash })), udfServerVersion: before.udfServerVersion }, componentDefinitions: [], nodeDependencies: before.nodeDependencies || [], ...(before.nodeVersion ? { nodeVersion: before.nodeVersion } : {}) };
-  console.log(JSON.stringify({ mode, changedModules: [ownModule.path], retainedModules: push.appDefinition.unchangedModuleHashes.length, changedTables: ownSchema.tables.map(t=>t.tableName) }));
+  const push = { adminKey: credentials.adminKey, dryRun, functions: before.config.functions, appDefinition: { definition, dependencies: [], schema: { path: 'schema.js', source: `const active=${JSON.stringify(JSON.stringify(merged))};\nexport default {export(){return active;}};\n`, environment: 'isolate' }, changedModules, unchangedModuleHashes: before.moduleHashes.filter(m => !changedPaths.has(m.path) && ![definition.path,'schema.js'].includes(m.path)).map(m => ({ path: m.path, environment: m.environment, sha256: m.hash })), udfServerVersion: before.udfServerVersion }, componentDefinitions: [], nodeDependencies: before.nodeDependencies || [], ...(before.nodeVersion ? { nodeVersion: before.nodeVersion } : {}) };
+  console.log(JSON.stringify({ mode, changedModules: [...changedPaths], retainedModules: push.appDefinition.unchangedModuleHashes.length, changedTables: ownSchema.tables.map(t=>t.tableName) }));
   const start = await request('/api/deploy2/start_push', push, true);
   let state; do { state = await request('/api/deploy2/wait_for_schema', { adminKey: credentials.adminKey, schemaChange: start.schemaChange, timeoutMs: 10000, dryRun }); if (!['inProgress','complete'].includes(state.type)) throw Error('Schema validation failed.'); } while (state.type === 'inProgress');
   // New indexes are limited to the two new PDP tables by the exact merged-schema check.
   if (canonical((await metadata()).moduleHashes) !== canonical(before.moduleHashes)) throw Error('Concurrent backend change; do not finish.');
-  const result = await request('/api/deploy2/finish_push', { adminKey: credentials.adminKey, startPush: start, dryRun, message: 'Add owner-only PDP approval references and immutable record history; preserve existing services' }, true);
+  const result = await request('/api/deploy2/finish_push', { adminKey: credentials.adminKey, startPush: start, dryRun, message: 'Add device-specific PDP references and authenticated private PDF access; preserve existing services' }, true);
   if ((result.authDiff?.added || []).length || (result.authDiff?.removed || []).length) throw Error('Unexpected auth change.');
   for (const [component, diff] of Object.entries(result.componentDiffs || {})) {
     if (component !== '') throw Error('Unexpected component change.');
-    if ((diff.moduleDiff?.removed || []).length || (diff.moduleDiff?.added || []).some(p => (typeof p === 'string' ? p : p.path) !== ownModule.path)) throw Error('Unexpected module change.');
+    if ((diff.moduleDiff?.removed || []).length || (diff.moduleDiff?.added || []).some(p => !changedPaths.has(typeof p === 'string' ? p : p.path))) throw Error('Unexpected module change.');
     for (const d of [diff.cronDiff]) if (Object.values(d || {}).some(v => Array.isArray(v) && v.length)) throw Error('Unexpected index or cron change.');
   }
   console.log(JSON.stringify({ mode, schemaValidation: state.type, authPreserved: true, existingServicesPreserved: true }));
   if (dryRun) process.exit(0);
 }
 const after = await metadata(), afterMap = new Map(after.moduleHashes.map(m => [m.path, m]));
-for (const item of before.moduleHashes) if (![ownModule.path, 'schema.js'].includes(item.path) && canonical(afterMap.get(item.path)) !== canonical(item)) throw Error('An unrelated backend module changed: ' + item.path);
-if (afterMap.get(ownModule.path)?.hash !== hash(ownModule)) throw Error('Published PDP module differs from source.');
+for (const item of before.moduleHashes) if (!changedPaths.has(item.path) && item.path!=='schema.js' && canonical(afterMap.get(item.path)) !== canonical(item)) throw Error('An unrelated backend module changed: ' + item.path);
+for(const module of changedModules)if(afterMap.get(module.path)?.hash!==hash(module))throw Error('Published module differs: '+module.path);
 const actualSchema = normalize(JSON.parse((await client.query('_system/frontend/getSchemas', {})).active));
 if (canonical({...merged,tables:[...merged.tables].sort((a,b)=>a.tableName.localeCompare(b.tableName))}) !== canonical({...actualSchema,tables:[...actualSchema.tables].sort((a,b)=>a.tableName.localeCompare(b.tableName))})) throw Error('Published schema differs from the preserved schema.');
 const afterSpec = new Set((await client.query('_system/cli/modules:apiSpec', {})).map(canonical));

@@ -2,10 +2,10 @@
 <html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex,nofollow"><meta name="referrer" content="no-referrer">
 <title>PDP approvals — John Ta</title>
-<link rel="icon" href="../../assets/img/jt-mark.svg" type="image/svg+xml"><link rel="stylesheet" href="styles.css?v=20261029-mono"><link rel="stylesheet" href="../../assets/css/clerk-auth.css">
+<link rel="icon" href="../../assets/img/jt-mark.svg" type="image/svg+xml"><link rel="stylesheet" href="styles.css?v=20261029-devices"><link rel="stylesheet" href="../../assets/css/clerk-auth.css">
 <script async data-clerk-script crossorigin="anonymous" src="https://clerk.john-ta.com/npm/@clerk/ui@1/dist/ui.browser.js"></script>
 <script async data-clerk-script crossorigin="anonymous" data-clerk-publishable-key="pk_live_Y2xlcmsuam9obi10YS5jb20k" src="https://clerk.john-ta.com/npm/@clerk/clerk-js@6/dist/clerk.browser.js"></script>
-<script defer src="app.js?v=20261029-mono"></script>
+<script defer src="app.js?v=20261029-devices"></script>
 </head><body>
 <nav class="top"><a href="../../login/" class="brand">JT<span> / </span>Your apps</a><span class="private">◈ Private workspace</span><button id="sign-out" hidden>Sign out</button></nav>
 <main><header class="heading"><div><p class="eyebrow">COMPLIANCE LIBRARY</p><h1>PDP approvals<span>.</span></h1><p class="subtitle">Every live page. Its approved reference. One place to find both.</p></div><button id="add" class="primary" hidden>＋ Add PDP</button></header>
@@ -14,17 +14,18 @@
 <div class="stats"><div><strong id="total">0</strong><span>Active PDPs tracked</span></div><div><strong id="paired">0</strong><span>Evidence linked</span></div><div><strong id="missing">0</strong><span>Missing evidence</span></div><div><strong id="strict">0</strong><span>Require a 1:1 match</span></div></div>
 <div class="toolbar"><label class="search"><span class="sr-only">Search PDPs</span><input id="search" type="search" placeholder="Search product, issuer, publisher, or URL…" autocomplete="off"></label><div class="filters" role="group" aria-label="Filter PDPs"><button data-filter="active" aria-pressed="true">Active</button><button data-filter="missing" aria-pressed="false">Missing evidence</button><button data-filter="strict" aria-pressed="false">1:1 required</button><button data-filter="archived" aria-pressed="false">Archived</button></div><button id="refresh">Refresh</button><button id="export">Export</button></div>
 <p id="message" role="status" aria-live="polite"></p>
-<div class="layout"><aside aria-label="PDP library"><p id="count" class="list-label"></p><div id="list"></div></aside><section id="detail" aria-label="Selected PDP"></section></div>
+<div class="layout"><aside aria-label="PDP library"><p id="count" class="list-label"></p><div id="list"></div><div id="draft-list"></div></aside><section id="detail" aria-label="Selected PDP"></section></div>
 <footer>Reference access only. Linking evidence does not verify that a live page matches. Records are saved privately; source documents retain their own access settings.</footer>
 </section>
 <section id="editor" class="editor" hidden aria-labelledby="editor-title">
-<div class="section-head"><div><p class="eyebrow">PDP RECORD</p><h2 id="editor-title">Add PDP</h2></div><button id="cancel-top">Cancel</button></div>
+<div class="section-head"><div><p class="eyebrow">PDP RECORD</p><h2 id="editor-title">Add PDP</h2></div><button id="cancel-top">Close editor</button></div>
 <form id="form"><div class="form-grid">
 <label>Product name<input name="name" required maxlength="200" placeholder="Card or product name"></label>
 <label>Issuer<input name="issuer" required maxlength="200" placeholder="e.g. Bank of America"></label>
 <label>Publisher / site<input name="publisher" required maxlength="200" placeholder="Site hosting this PDP"></label>
 <label>Production page<input name="liveUrl" type="url" required maxlength="4000" placeholder="https://…"></label>
-</div><div class="form-section"><h3>Approved reference</h3><p>Use the exact approved PDF or its data room / DocSend link. Leave unavailable evidence blank.</p><div class="form-grid">
+</div><div class="form-section"><h3 id="reference-device">Desktop approved reference</h3><p>Use the exact approved PDF or its data room / DocSend link. Leave unavailable evidence blank.</p><div class="form-grid">
+<label>Save a private PDF<input id="pdf-upload" type="file" accept="application/pdf,.pdf"><span id="upload-status" role="status">No saved PDF attached.</span></label><label>Reference notes<textarea name="referenceNotes" rows="2" maxlength="10000" placeholder="Device-specific context, file version, or source package"></textarea></label>
 <label>Approved mockup link<input name="mockupUrl" type="url" maxlength="4000" placeholder="https://…"></label>
 <label>Approval email chain<input name="emailUrl" type="url" maxlength="4000" placeholder="Link to the approval conversation"></label>
 <label>Approval date<input name="approvalDate" type="date"></label>
@@ -34,7 +35,7 @@
 <label class="checkbox"><input name="exactMatch" type="checkbox"><span><strong>1:1 match required</strong><small>Always enabled for Bank of America.</small></span></label>
 <label>Notes<textarea name="notes" rows="4" maxlength="10000" placeholder="Approved variants, page ranges, restrictions, or context…"></textarea></label>
 <label class="checkbox"><input name="archived" type="checkbox"><span>Archive this PDP <small>Keeps the record and its history.</small></span></label>
-<p id="save-message" role="alert"></p><div class="form-actions"><button type="submit" id="save" class="primary">Save PDP</button><button type="button" id="cancel">Cancel</button><button type="button" id="draft">Download draft</button></div>
+<p id="draft-status" role="status"></p><p id="save-message" role="alert"></p><div class="form-actions"><button type="submit" id="save" class="primary">Save PDP</button><button type="button" id="cancel">Close editor</button><button type="button" id="draft">Download draft</button></div>
 </form></section>
 </main><noscript>JavaScript is required to sign in and access this private tracker.</noscript>
 </body></html>
