@@ -1,5 +1,5 @@
 // Only Rally assets are handled. No credentials, API responses, or other site pages.
-const CACHE = 'rally-shell-offline-20261022-product-audit';
+const CACHE = 'rally-shell-offline-20261029-invite-links';
 const ASSETS = ['/tools/rally/', '/tools/rally/app.js', '/tools/rally/offline.js', '/tools/rally/keyboard.js', '/tools/rally/styles.css', '/tools/rally/boot.css', '/lost-lands-2026-lineup/', '/lost-lands-2026-lineup/mobile.css', '/lost-lands-2026-lineup/set-times.js', '/lost-lands-2026-lineup/assets/lost-lands-2026-lineup.jpg'];
 ASSETS.push('/tools/rally/meetup-timing.js', '/tools/rally/meetups.js', '/tools/rally/meetups.css', '/tools/rally/assets/lost-lands-2026-map.png');
 ASSETS.push('/tools/rally/lineup.js','/tools/rally/lineup-template.js','/lost-lands-2026-lineup/controller.js');
@@ -9,6 +9,7 @@ ASSETS.push('/tools/rally/mascot.js','/tools/rally/assets/dancing-dino.png','/to
 ASSETS.push('/tools/rally/event-lifecycle.js','/tools/rally/event-history.js','/tools/rally/event-history.css');
 ASSETS.push('/tools/rally/theme.css','/assets/js/searchable-select.js','/assets/css/searchable-select.css','/assets/css/clerk-auth.css','/assets/css/clerk-otp.css');
 ASSETS.push('/tools/rally/project-theme.css','/tools/rally/project-theme.js');
+ASSETS.push('/tools/rally/invite-links.js','/tools/rally/invite-links.css');
 ASSETS.push('/tools/rally/lineup-discovery.js','/tools/rally/lineup-discovery.css');
 ASSETS.push('/tools/rally/lineup-controls.css');
 ASSETS.push('/tools/rally/assets/get-it-on-itunes.svg');

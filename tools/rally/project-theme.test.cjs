@@ -13,7 +13,7 @@ function uiHarness(){
  ctx.showToast=message=>ctx.messages.push(message);
  ctx.convexMutation=async(path,args)=>{ctx.request={path,args};return {projectTheme:args.theme};};
  const app=read('app.js');vm.createContext(ctx);
- vm.runInContext(app.slice(app.indexOf('function applyProjectTheme'),app.indexOf('function openSectionSettings'))+'\n'+app.slice(app.indexOf('function dialogTrigger('),app.indexOf('async function openInvite(')),ctx);
+ vm.runInContext(app.slice(app.indexOf('function applyProjectTheme'),app.indexOf('function openSectionSettings'))+'\n'+app.slice(app.indexOf('function dialogTrigger('),app.indexOf('function openInvite(member)')),ctx);
  return {ctx,w,close:()=>w.close()};
 }
 test('theme preview cancels without saving; admin save persists the project palette and offline snapshot',async()=>{

@@ -117,7 +117,7 @@ async function init() {
   activeEvent = params.get("event") || null;
   wireShell();
   setupOffline();
-  if (offlineMode && openSavedRoom()) return;
+  if (offlineMode && !params.has('join') && openSavedRoom()) return;
   await initializeClerk();
 }
 
@@ -184,6 +184,12 @@ async function syncFavorites() {
 }
 
 function wireShell() {
+  window.RallyInvites?.configure({
+    state:()=>data,offline:()=>offlineMode,query:convexQuery,mutate:convexMutation,
+    dialog:openDialog,field,select:selectField,toast:showToast,navigate:navigateTo,
+    email:openEmailInvite,recovery:showAuthRecovery,
+    enter:async url=>{history.replaceState({},'',url.pathname+url.search);activeEvent=url.searchParams.get('event');activeView='crew';await openAuthorizedRoom();},
+  });
   document.addEventListener('click',event=>{if(offlineMode&&event.target.closest('[data-rally-collection]')){event.preventDefault();showToast('Reconnect to open your personal collection.');}});
   el.openMenu.innerHTML=rallyIcon('more');
   document.addEventListener("click", handleAppLink);
@@ -246,8 +252,9 @@ function handleAppLink(event) {
 
 async function navigateTo(url, { push = true } = {}) {
   const route = readRoute(url);
-  closeDialog();
+  closeDialog({preserveRoute:true});
   if (push) history.pushState({}, "", `${url.pathname}${url.search}${url.hash}`);
+  if(url.searchParams.has('join')){await initializeClerk();return;}
   closeMenu();
   el.eventMenu.hidden = true;
   const eventChanged = route.eventId !== activeEvent || data?.id !== route.eventId;
@@ -274,6 +281,7 @@ async function navigateTo(url, { push = true } = {}) {
   render();
   el.accessGate.hidden=true;el.rallyApp.hidden=false;
   document.body.classList.remove('booting');
+  void window.RallyInvites?.restore();
   window.scrollTo({ top: 0, behavior: "auto" });
 }
 
@@ -321,6 +329,10 @@ async function openAuthorizedRoom() {
     const owner = window.Clerk.user.id;
     RallyOffline.identify(owner);
     offlineMode = false;
+    if(new URLSearchParams(location.search).has('join')){
+      if(!window.RallyInvites)throw new Error('Invitation tools did not load. Refresh to try again.');
+      await window.RallyInvites.join();return;
+    }
     // Resolve membership before opening a room. A generic landing URL must not
     // require membership in Lost Lands, and authorization errors are redacted
     // by Convex in production, so matching their error text isn't reliable.
@@ -352,6 +364,7 @@ async function openAuthorizedRoom() {
     el.accessGate.hidden = true;
     el.rallyApp.hidden = false;
     document.body.classList.remove("booting");
+    void window.RallyInvites?.restore();
     updateOfflineStatus();
     void (async () => {
       for (const event of events) {
@@ -961,7 +974,7 @@ function dialogTrigger(){
   return node;
 }
 function openDialog(title,description,formHtml,onSubmit,footerHtml=""){
-  const returnFocus=dialogTrigger();closeDialog();
+  const returnFocus=dialogTrigger();closeDialog({preserveRoute:true});
   el.dialogRoot.innerHTML=`<div class="dialog-backdrop"><section class="dialog" role="dialog" aria-modal="true" aria-labelledby="rallyDialogTitle"><button type="button" class="dialog-close" aria-label="Close dialog">×</button><span class="eyebrow">Rally project room</span><h2 id="rallyDialogTitle">${title}</h2><p>${description}</p><form>${formHtml}<div class="dialog-actions${footerHtml?" split":""}"><button class="primary" type="submit">Save</button>${footerHtml}</div></form></section></div>`;
   const backdrop=el.dialogRoot.firstElementChild,form=backdrop.querySelector('form');
   enhanceDialogSelects(form);wireDialog(backdrop,returnFocus);
@@ -1008,7 +1021,8 @@ function enhanceDialogSelects(form){
     window.SearchableSelect?.enhance(select);
   });
 }
-function closeDialog(){
+function closeDialog(options={}){
+  window.RallyInvites?.dismiss(options);
   el.dialogRoot.querySelectorAll('select').forEach(select=>window.SearchableSelect?.enhance(select).destroy());
   el.dialogRoot.innerHTML="";
   el.rallyApp.inert=false;
@@ -1019,7 +1033,8 @@ function closeDialog(){
 function field(label,name,value="",type="text",required=true){return `<label class="field"><span>${label}</span><input name="${name}" type="${type}" value="${escapeAttr(value)}" ${required?"required":""}></label>`}
 function selectField(label,name,options,value=""){return `<label class="field"><span>${label}</span><select name="${name}">${options.map(([id,text])=>`<option value="${escapeAttr(id)}" ${id===value?"selected":""}>${escapeHtml(text)}</option>`).join("")}</select></label>`}
 
-async function openInvite(member){const context=projectContext();let shared=[];try{shared=await convexQuery("rally:sharedCrewCandidates",{eventId:context.eventId})}catch(error){return showToast(error.message||"Could not load invite options")}try{assertProjectContext(context);if(context.dialog!==el.dialogRoot.firstElementChild)return;}catch{return;}const profiles=data.members.filter((person)=>!["admin","leader"].includes(person.role)&&(person.status!=="confirmed"||!person.email)),selected=member||null,choice=(person,attribute,value)=>`<button type="button" ${attribute}="${escapeAttr(value)}" class="${selected?.id===person.id?"selected":""}"><i class="avatar-${person.color||"purple"}">${escapeHtml(person.initials||initials(person.name))}</i>${escapeHtml(person.name)}</button>`,profilePicker=profiles.length?`<div class="invite-section"><span>Unclaimed profiles in this room</span><div class="member-picker">${profiles.map((person)=>choice(person,"data-invite-profile",person.id)).join("")}</div></div>`:"",sharedPicker=shared.length?`<div class="invite-section"><span>From your other crews</span><div class="member-picker">${shared.map((person,index)=>choice(person,"data-invite-shared",index)).join("")}</div></div>`:"";openDialog("Invite crew","Add someone by exact email, or choose a person you already share another Rally room with. Rally never exposes a global user directory.",`<input type="hidden" name="memberId" value="${escapeAttr(selected?.id||"")}">${profilePicker}${sharedPicker}${field("Name","name",selected?.name||"")}${field("Email address","email",selected?.email||"","email")}${field("Home airport or city","origin",selected?.origin==="TBD"?"":selected?.origin||"","text",false)}<p class="invite-privacy">Existing Clerk users get access with this verified email. New users receive a secure signup invitation.</p>`,async(values)=>{const submitContext=projectContext();const result=await convexAction("rally:sendInvitation",{eventId:context.eventId,...values});assertProjectContext(submitContext);data=result.room;closeDialog();render();showToast(`Clerk invite sent to ${result.memberName}`)});const form=el.dialogRoot.querySelector("form"),memberId=form.elements.memberId,nameInput=form.elements.name,emailInput=form.elements.email,originInput=form.elements.origin,buttons=[...form.querySelectorAll("[data-invite-profile],[data-invite-shared]")],selectChoice=(person,id="")=>{memberId.value=id;nameInput.value=person.name||"";emailInput.value=person.email||"";originInput.value=person.origin==="TBD"?"":person.origin||"";buttons.forEach((button)=>button.classList.toggle("selected",button.dataset.inviteProfile===id||(button.dataset.inviteShared!==undefined&&shared[Number(button.dataset.inviteShared)]?.email===person.email)))};form.querySelectorAll("[data-invite-profile]").forEach((button)=>button.onclick=()=>selectChoice(profiles.find((person)=>person.id===button.dataset.inviteProfile),button.dataset.inviteProfile));form.querySelectorAll("[data-invite-shared]").forEach((button)=>button.onclick=()=>selectChoice(shared[Number(button.dataset.inviteShared)]));nameInput.addEventListener("input",()=>{memberId.value="";buttons.forEach((button)=>button.classList.remove("selected"))})}
+function openInvite(member){return window.RallyInvites?window.RallyInvites.open(member):openEmailInvite(member);}
+async function openEmailInvite(member){const context=projectContext();let shared=[];try{shared=await convexQuery("rally:sharedCrewCandidates",{eventId:context.eventId})}catch(error){return showToast(error.message||"Could not load invite options")}try{assertProjectContext(context);if(context.dialog!==el.dialogRoot.firstElementChild)return;}catch{return;}const profiles=data.members.filter((person)=>!["admin","leader"].includes(person.role)&&(person.status!=="confirmed"||!person.email)),selected=member||null,choice=(person,attribute,value)=>`<button type="button" ${attribute}="${escapeAttr(value)}" class="${selected?.id===person.id?"selected":""}"><i class="avatar-${person.color||"purple"}">${escapeHtml(person.initials||initials(person.name))}</i>${escapeHtml(person.name)}</button>`,profilePicker=profiles.length?`<div class="invite-section"><span>Unclaimed profiles in this room</span><div class="member-picker">${profiles.map((person)=>choice(person,"data-invite-profile",person.id)).join("")}</div></div>`:"",sharedPicker=shared.length?`<div class="invite-section"><span>From your other crews</span><div class="member-picker">${shared.map((person,index)=>choice(person,"data-invite-shared",index)).join("")}</div></div>`:"";openDialog("Invite crew","Add someone by exact email, or choose a person you already share another Rally room with. Rally never exposes a global user directory.",`<input type="hidden" name="memberId" value="${escapeAttr(selected?.id||"")}">${profilePicker}${sharedPicker}${field("Name","name",selected?.name||"")}${field("Email address","email",selected?.email||"","email")}${field("Home airport or city","origin",selected?.origin==="TBD"?"":selected?.origin||"","text",false)}<p class="invite-privacy">Existing Clerk users get access with this verified email. New users receive a secure signup invitation.</p>`,async(values)=>{const submitContext=projectContext();const result=await convexAction("rally:sendInvitation",{eventId:context.eventId,...values});assertProjectContext(submitContext);data=result.room;window.RallyInvites?.clearEmailDraft();closeDialog();render();showToast(`Clerk invite sent to ${result.memberName}`)});const form=el.dialogRoot.querySelector("form"),memberId=form.elements.memberId,nameInput=form.elements.name,emailInput=form.elements.email,originInput=form.elements.origin,buttons=[...form.querySelectorAll("[data-invite-profile],[data-invite-shared]")],selectChoice=(person,id="")=>{memberId.value=id;nameInput.value=person.name||"";emailInput.value=person.email||"";originInput.value=person.origin==="TBD"?"":person.origin||"";buttons.forEach((button)=>button.classList.toggle("selected",button.dataset.inviteProfile===id||(button.dataset.inviteShared!==undefined&&shared[Number(button.dataset.inviteShared)]?.email===person.email)))};form.querySelectorAll("[data-invite-profile]").forEach((button)=>button.onclick=()=>selectChoice(profiles.find((person)=>person.id===button.dataset.inviteProfile),button.dataset.inviteProfile));form.querySelectorAll("[data-invite-shared]").forEach((button)=>button.onclick=()=>selectChoice(shared[Number(button.dataset.inviteShared)]));nameInput.addEventListener("input",()=>{memberId.value="";buttons.forEach((button)=>button.classList.remove("selected"))})}
 function openProfile(member){if(!member)return;openDialog("Edit my profile","Change how your name and home airport appear throughout this rave room.",field("Name","name",member.name)+field("Home airport or city","origin",member.origin==="TBD"?"":member.origin,"text",false),async(values)=>{await act("update-profile",values,"Profile updated");closeDialog()});}
 function openRemoveMember(member){if(!member)return;openDangerDialog(`Remove ${escapeHtml(member.name)}?`,"They will lose access to this rave room. Their room assignment and flight legs will be removed; their tickets, passes, and rental cars will remain but become unassigned.","Remove from crew",async()=>{await act("remove-member",{id:member.id},`${member.name} removed`);closeDialog()});}
 function openTask(task){const opts=data.members.map((m)=>[m.id,m.name]);openDialog(task?"Edit ticket":"New ticket","Give every loose end an owner and a clear status.",field("Ticket title","title",task?.title||"")+`<div class="form-row">${selectField("Status","status",[["todo","To do"],["doing","In progress"],["done","Done"]],task?.status||"todo")}${selectField("Category","category",[["General","General"],["Stay","Stay"],["Travel","Travel"],["Passes","Passes"],["Crew","Crew"]],task?.category||"General")}</div>`+selectField("Assigned to","assigneeId",[["","Unassigned"],...opts],task?.assigneeId||"")+field("Due date","dueDate",task?.dueDate||"","date",false),async(values)=>{await act("save-task",{...values,id:task?.id||""},task?"Ticket updated":"Ticket created");closeDialog()},task?`<button id="deleteTask" class="danger-button" type="button">Delete ticket</button>`:"");if(task)wireDangerButton("deleteTask",async()=>{await act("delete-task",{id:task.id},"Ticket deleted");closeDialog()});}
