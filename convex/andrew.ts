@@ -17,6 +17,7 @@ function validate(value:any){
  if(value.type==="task"){
   if(!["scheduled","demand","update"].includes(value.group))throw Error("Invalid task group.");
   if(value.status!==undefined&&!["not_submitted","submitted","kitchen","published"].includes(value.status))throw Error("Invalid article status.");
+  if(value.actualSubmitted!==undefined&&!["unknown","na"].includes(value.actualSubmitted)){date(value.actualSubmitted);if(!value.actualSubmitted)throw Error("Choose a submission date, Unknown, or N/A.");}
   str(value.title,300);str(value.notes);str(value.blocker,1000);url(value.url);date(value.due);
   if(!Array.isArray(value.checks)||value.checks.length!==4||value.checks.some((x:any)=>typeof x!=="boolean")||typeof value.accepted!=="boolean"||typeof value.assigned!=="boolean")throw Error("Invalid checklist.");
   if(!value.assigned&&value.checks.some(Boolean))throw Error("Assign this slot before recording progress.");
