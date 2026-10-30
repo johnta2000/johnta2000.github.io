@@ -110,7 +110,7 @@
         event.preventDefault();const button=form.querySelector('button');if(button.disabled)return;button.disabled=true;
         const errorBox=form.querySelector('[role=alert]');errorBox.hidden=true;
         try{
-          if(!invitation.alreadyMember)await app.mutate('rallyInvites:claim',{eventId,invitationId,name:form.elements.name.value});
+          if(!invitation.alreadyMember)await app.action('rallyInvites:accept',{eventId,invitationId,name:form.elements.name.value});
           if(!still())return;
           try{localStorage.removeItem(nameKey);}catch{}
           const destination=route();destination.searchParams.delete('join');destination.searchParams.set('view','crew');

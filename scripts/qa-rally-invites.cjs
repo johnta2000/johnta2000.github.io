@@ -30,7 +30,7 @@ const state={id:eventId,name:'Midnight Carnival · Test Crew',location:'San Fran
      else if(api==='rallyInvites:create'){value={id:args.requestId||id,name:args.name||'',memberId:args.memberId||'',createdAt:Date.now(),expiresAt:Date.now()+7*86400000,status:'active'};if(!invitations.some(i=>i.id===value.id))invitations.push(value);}
      else if(api==='rallyInvites:revoke'){invitations.find(i=>i.id===args.invitationId).status='revoked';value={revoked:true};}
      else if(api==='rallyInvites:inspect')value={eventId,eventName:state.name,name:'Sam',alreadyMember:false};
-     else if(api==='rallyInvites:claim'){claims++;if(failClaim){failClaim=false;return route.fulfill({contentType:'application/json',body:JSON.stringify({status:'error',errorData:'Connection interrupted. Please try again.'})});}value={eventId,memberId:'sam'};}
+     else if(api==='rallyInvites:accept'){claims++;if(failClaim){failClaim=false;return route.fulfill({contentType:'application/json',body:JSON.stringify({status:'error',errorData:'Connection interrupted. Please try again.'})});}value={eventId,memberId:'sam'};}
      else if(api==='rally:sendInvitation'){emails++;value={room,memberName:'Sam'};}
      else if(api==='rallyCollection:getExperience')value={sharedMemories:[]};
      else throw Error('Unexpected backend request: '+api);

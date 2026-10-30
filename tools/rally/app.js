@@ -185,7 +185,7 @@ async function syncFavorites() {
 
 function wireShell() {
   window.RallyInvites?.configure({
-    state:()=>data,offline:()=>offlineMode,query:convexQuery,mutate:convexMutation,
+    state:()=>data,offline:()=>offlineMode,query:convexQuery,mutate:convexMutation,action:convexAction,
     dialog:openDialog,field,select:selectField,toast:showToast,navigate:navigateTo,
     email:openEmailInvite,recovery:showAuthRecovery,
     enter:async url=>{history.replaceState({},'',url.pathname+url.search);activeEvent=url.searchParams.get('event');activeView='crew';await openAuthorizedRoom();},

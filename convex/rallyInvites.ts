@@ -1,4 +1,5 @@
-import { mutation, query } from './_generated/server';
+import { action, internalMutation, mutation, query } from './_generated/server';
+import { makeFunctionReference } from 'convex/server';
 import { ConvexError, v } from 'convex/values';
 
 // Invitations live outside room buckets so regular room reads/offline snapshots
@@ -12,10 +13,10 @@ function memberFor(state: State, identity: any) {
   return state.members.find((person: any) => person.clerkSubject === identity.subject ||
     (identity.email && emailOf(person.email) === identity.email));
 }
-async function identityFor(ctx: any) {
+async function identityFor(ctx: any, requireClaim = false) {
   const identity = await ctx.auth.getUserIdentity();
   const email = emailOf(identity?.email);
-  if (!identity || !email || identity.emailVerified !== true) throw new ConvexError('Sign in with a verified email to use this invitation.');
+  if (!identity || !email || identity.emailVerified === false || (requireClaim && identity.emailVerified !== true)) throw new ConvexError('Sign in with a verified email to use this invitation.');
   return { ...identity, email };
 }
 async function roomFor(ctx: any, eventId: string) {
@@ -99,10 +100,8 @@ export const inspect = query({
   },
 });
 
-export const claim = mutation({
-  args: { eventId: v.string(), invitationId: v.string(), name: v.string() },
-  handler: async (ctx, { eventId, invitationId, name }) => {
-    const identity = await identityFor(ctx), doc = await invitationFor(ctx, eventId, invitationId), roomDoc = await roomFor(ctx, eventId), invite = doc.buckets;
+async function finishMembership(ctx: any, { eventId, invitationId, name }: {eventId: string; invitationId: string; name: string}, identity: any) {
+    const doc = await invitationFor(ctx, eventId, invitationId), roomDoc = await roomFor(ctx, eventId), invite = doc.buckets;
     const room = structuredClone(roomDoc.buckets), existing = memberFor(room, identity);
     if (invite.usedAt && invite.usedBySubject === identity.subject && existing) return { eventId, memberId: existing.id };
     assertActive(invite, room, Date.now());
@@ -123,6 +122,37 @@ export const claim = mutation({
     await ctx.db.patch(roomDoc._id, { buckets: room, updatedAt: now });
     await ctx.db.patch(doc._id, { buckets: { ...invite, usedAt: now, usedBySubject: identity.subject, usedMemberId: target.id }, updatedAt: now });
     return { eventId, memberId: target.id };
+}
+
+// Keep the original mutation available for already-open clients whose JWTs
+// carry the verification claim. New clients use accept's provider fallback.
+export const claim = mutation({
+  args: { eventId: v.string(), invitationId: v.string(), name: v.string() },
+  handler: async (ctx, args) => finishMembership(ctx, args, await identityFor(ctx, true)),
+});
+
+export const finishClaim = internalMutation({
+  args: { eventId: v.string(), invitationId: v.string(), name: v.string(), subject: v.string(), email: v.string() },
+  handler: async (ctx, args) => {
+    const identity = await identityFor(ctx);
+    if (identity.subject !== args.subject || identity.email !== args.email) throw new ConvexError('Your account changed. Reopen the invitation.');
+    return finishMembership(ctx, args, identity);
+  },
+});
+
+export const accept = action({
+  args: { eventId: v.string(), invitationId: v.string(), name: v.string() },
+  handler: async (ctx, args): Promise<{eventId: string; memberId: string}> => {
+    const identity = await identityFor(ctx);
+    if (identity.emailVerified !== true) {
+      const key = process.env.CLERK_SECRET_KEY;
+      if (!key) throw new ConvexError('Email verification is temporarily unavailable. Please try again later.');
+      const response = await fetch('https://api.clerk.com/v1/users/' + encodeURIComponent(identity.subject), { headers: { Authorization: 'Bearer ' + key }, signal: AbortSignal.timeout(10000) });
+      if (!response.ok) throw new ConvexError('Could not verify your account. Please try again.');
+      const user = await response.json();
+      if (user.id !== identity.subject || !user.email_addresses?.some((address: any) => emailOf(address.email_address) === identity.email && address.verification?.status === 'verified')) throw new ConvexError('Verify your email address, then reopen this invitation.');
+    }
+    return ctx.runMutation(makeFunctionReference<'mutation'>('rallyInvites:finishClaim'), { ...args, subject: identity.subject, email: identity.email });
   },
 });
 

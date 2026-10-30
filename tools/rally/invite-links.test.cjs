@@ -2,21 +2,21 @@ const {test}=require('node:test'),assert=require('node:assert/strict'),vm=requir
 const source=buildSync({entryPoints:[__dirname+'/../../convex/rallyInvites.ts'],bundle:true,write:false,platform:'node',format:'cjs',packages:'external'}).outputFiles[0].text;
 const clone=value=>JSON.parse(JSON.stringify(value));
 function fixture(){
- let now=1793314800000,identity={subject:'admin',email:'admin@example.test',emailVerified:true},serial=0;
- const module={exports:{}};vm.runInNewContext(source,{module,exports:module.exports,require,structuredClone,crypto:require('node:crypto').webcrypto,Date:class extends Date{static now(){return now;}}});
+ let now=1793314800000,identity={subject:'admin',email:'admin@example.test',emailVerified:true},serial=0,providerVerified=true,providerAvailable=true,fetches=0;
+ const module={exports:{}};vm.runInNewContext(source,{module,exports:module.exports,require,structuredClone,AbortSignal,process:{env:{CLERK_SECRET_KEY:'test-fixture-key'}},fetch:async()=>{fetches++;return {ok:providerAvailable,json:async()=>({id:identity.subject,email_addresses:[{email_address:identity.email,verification:{status:providerVerified?'verified':'unverified'}}]})};},crypto:require('node:crypto').webcrypto,Date:class extends Date{static now(){return now;}}});
  const state={id:'festival',name:'Test festival',members:[{id:'a',name:'Alex',role:'admin',clerkSubject:'admin',email:'admin@example.test'},{id:'s',name:'Sam',role:'member',status:'not_invited',email:'',clerkSubject:''}],rooms:[{id:'room',memberIds:['s']}],passes:[{id:'pass',ticketAssignments:[{slot:0,memberId:'s'}]}],lineupFavorites:{s:['artist']},notes:[{id:'private',body:'Private crew note'}],projectTheme:'midnight'};
  const docs=new Map([['room',{_id:'room',boardId:'rally:festival',buckets:state}]]);
- const ctx={auth:{getUserIdentity:async()=>identity},db:{
+ const ctx={auth:{getUserIdentity:async()=>identity},runMutation:async(reference,args)=>module.exports.finishClaim._handler(ctx,args),db:{
   query(table){assert.equal(table,'warRoomState');return {withIndex(index,callback){assert.equal(index,'by_board');const filters=[],builder={eq(k,v){filters.push(row=>row[k]===v);return builder;},gte(k,v){filters.push(row=>row[k]>=v);return builder;},lt(k,v){filters.push(row=>row[k]<v);return builder;}};callback(builder);const rows=()=>[...docs.values()].filter(row=>filters.every(filter=>filter(row)));return {unique:async()=>{assert(rows().length<=1);return rows()[0]||null;},collect:async()=>rows()};}};},
   async insert(table,row){const id='invite'+(++serial);docs.set(id,{...clone(row),_id:id});return id;},async patch(id,value){Object.assign(docs.get(id),clone(value));},
  }};
- return {docs,ctx,call:(action,args={})=>module.exports[action]._handler(ctx,{eventId:'festival',...args}),as:(subject,email=subject+'@example.test',verified=true)=>{identity=subject?{subject,email,emailVerified:verified,name:subject}:null;},advance:value=>now+=value,room:()=>docs.get('room').buckets};
+ return {docs,ctx,call:(action,args={})=>module.exports[action]._handler(ctx,{eventId:'festival',...args}),as:(subject,email=subject+'@example.test',verified=true)=>{identity=subject?{subject,email,emailVerified:verified,name:subject}:null;},advance:value=>now+=value,room:()=>docs.get('room').buckets,provider:(verified,available=true)=>{providerVerified=verified;providerAvailable=available;},fetches:()=>fetches};
 }
 test('only verified project admins can create, list, or revoke invitations',async()=>{
  const f=fixture();
  for(const subject of [null,'outsider','sam']){f.as(subject);for(const method of ['create','list','revoke'])await assert.rejects(f.call(method,{invitationId:'00000000-0000-4000-8000-000000000000'}),/verified|admin/);}
  f.as('admin','admin@example.test',false);await assert.rejects(f.call('create'),/verified/);
- f.as('admin','admin@example.test',null);await assert.rejects(f.call('create'),/verified/);
+ f.as('admin','',true);await assert.rejects(f.call('create'),/verified/);
  assert.equal(f.docs.size,1);
 });
 test('creating a link leaves all crew data intact and stores its record outside room buckets',async()=>{
@@ -71,4 +71,15 @@ test('invitation metadata is scoped to its project and listing never reveals acc
  const f=fixture(),invite=await f.call('create');
  await assert.rejects(f.call('inspect',{eventId:'different',invitationId:invite.id}),/not available/);
  const serialized=JSON.stringify(await f.call('list'));assert(!serialized.includes('admin@example'));assert(!serialized.includes('createdBySubject'));assert(!serialized.includes('Private crew note'));
+});
+test('a token without the verification claim must pass the provider check before joining',async()=>{
+ const f=fixture(),invite=await f.call('create');f.as('friend','friend@example.test',null);f.provider(false);
+ await f.call('inspect',{invitationId:invite.id});
+ await assert.rejects(f.call('accept',{invitationId:invite.id,name:'Friend'}),/Verify your email/);assert.equal(f.room().members.length,2);
+ f.provider(true);const result=await f.call('accept',{invitationId:invite.id,name:'Friend'});assert.equal(f.room().members.find(m=>m.id===result.memberId).email,'friend@example.test');assert.equal(f.fetches(),2);
+});
+test('provider outages retain the invitation for retry, and verified JWTs need no provider round-trip',async()=>{
+ const f=fixture(),invite=await f.call('create');f.as('friend','friend@example.test',null);f.provider(true,false);
+ await assert.rejects(f.call('accept',{invitationId:invite.id,name:'Friend'}),/try again/);assert.equal(f.room().members.length,2);
+ f.as('friend','friend@example.test',true);await f.call('accept',{invitationId:invite.id,name:'Friend'});assert.equal(f.fetches(),1);assert.equal(f.room().members.length,3);
 });
