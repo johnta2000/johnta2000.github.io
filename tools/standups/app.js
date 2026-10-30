@@ -281,18 +281,35 @@ function callShortcutContextBlocked(event) {
     || !els.notetakerModal.hidden || Boolean(activeCommentKey);
 }
 
+function actionShortcutModifiers(action) {
+  if (isMacKeyboard && action === "spotlight") {
+    return { label: "Control + Shift", hint: "⌃⇧", aria: "Control+Shift" };
+  }
+  return isMacKeyboard
+    ? { label: "Command + Option", hint: "⌘⌥", aria: "Meta+Alt" }
+    : { label: "Control + Alt", hint: "Ctrl+Alt+", aria: "Control+Alt" };
+}
+
+function matchesActionModifiers(action, event) {
+  if (isMacKeyboard && action === "spotlight") {
+    return event.ctrlKey && event.shiftKey && !event.metaKey && !event.altKey;
+  }
+  return (isMacKeyboard ? event.metaKey && !event.ctrlKey : event.ctrlKey && !event.metaKey)
+    && event.altKey && !event.shiftKey;
+}
+
 function updateCallShortcutHints() {
-  const prefix = isMacKeyboard ? "⌘⌥" : "Ctrl+Alt+";
   const buttons = { spotlight: "#spotlightToggle", discussions: "#spotlightCommentsToggle", next: "#nextPerson", previous: "#previousPerson" };
   for (const [action, selector] of Object.entries(buttons)) {
     const button = document.querySelector(selector);
     const enabled = callShortcuts.enabled && (action !== "discussions" || spotlightMode) && (action !== "spotlight" || !isGeneralView());
-    const shortcut = `${prefix}${callShortcuts.letters[action]}`;
+    const modifiers = actionShortcutModifiers(action);
+    const shortcut = `${modifiers.hint}${callShortcuts.letters[action]}`;
     const hint = button.querySelector("[data-shortcut-hint]");
     if (hint) { hint.textContent = shortcut; hint.hidden = !enabled; }
     button.title = `${button.getAttribute("aria-label")}${enabled ? ` (${shortcut})` : ""}`;
     if (enabled) {
-      button.setAttribute("aria-keyshortcuts", `${isMacKeyboard ? "Meta" : "Control"}+Alt+${callShortcuts.letters[action]}`);
+      button.setAttribute("aria-keyshortcuts", `${modifiers.aria}+${callShortcuts.letters[action]}`);
     } else button.removeAttribute("aria-keyshortcuts");
   }
   updateMemberShortcutHints();
@@ -321,9 +338,22 @@ function configureCallShortcuts() {
     memberFields.forEach(input => { input.value = settings.members[input.dataset.shortcutMember]; });
     error.textContent = "";
   };
+  document.querySelector("#spotlightShortcutModifiers").textContent = actionShortcutModifiers("spotlight").label;
   document.querySelector("#shortcutModifiers").textContent = isMacKeyboard ? "Command + Option" : "Control + Alt";
   document.querySelector("#memberShortcutModifiers").textContent = isMacKeyboard ? "Command + Option" : "Control + Alt";
-  document.querySelector("#shortcutSettingsButton").addEventListener("click", () => { populate(callShortcuts); dialog.showModal(); });
+  populate(callShortcuts);
+  document.querySelector("#shortcutSettingsButton").addEventListener("click", () => dialog.showModal());
+  const outsideDialog = event => {
+    const bounds = dialog.getBoundingClientRect();
+    return event.clientX < bounds.left || event.clientX > bounds.right
+      || event.clientY < bounds.top || event.clientY > bounds.bottom;
+  };
+  let beganOnBackdrop = false;
+  dialog.addEventListener("pointerdown", event => { beganOnBackdrop = event.target === dialog && outsideDialog(event); });
+  dialog.addEventListener("click", event => {
+    if (beganOnBackdrop && event.target === dialog && outsideDialog(event)) dialog.close();
+    beganOnBackdrop = false;
+  });
   document.querySelector("#shortcutClose").addEventListener("click", () => dialog.close());
   dialog.addEventListener("close", () => document.querySelector("#shortcutSettingsButton").focus({ preventScroll: true }));
   document.querySelector("#shortcutReset").addEventListener("click", () => populate({ enabled: true, letters: DEFAULT_CALL_LETTERS, members: DEFAULT_MEMBER_KEYS }));
@@ -348,17 +378,15 @@ function configureCallShortcuts() {
   });
   document.addEventListener("keydown", (event) => {
     if (!callShortcuts.enabled || callShortcutContextBlocked(event)) return;
-    const primaryModifier = isMacKeyboard ? event.metaKey && !event.ctrlKey : event.ctrlKey && !event.metaKey;
-    if (!primaryModifier || !event.altKey || event.shiftKey) return;
     const person = TEAM_MEMBERS.find(name => event.code === `Digit${callShortcuts.members[name]}`);
-    if (person) {
+    if (person && matchesActionModifiers("members", event)) {
       if (!personEditingAvailable) return;
       event.preventDefault();
       selectMeetingPerson(person);
       return;
     }
     const action = Object.keys(DEFAULT_CALL_LETTERS).find((key) => event.code === `Key${callShortcuts.letters[key]}`);
-    if (!action || (action === "discussions" && !spotlightMode) || (action === "spotlight" && isGeneralView())) return;
+    if (!action || !matchesActionModifiers(action, event) || (action === "discussions" && !spotlightMode) || (action === "spotlight" && isGeneralView())) return;
     if (!personEditingAvailable) return;
     event.preventDefault();
     if (action === "spotlight") toggleSpotlight();

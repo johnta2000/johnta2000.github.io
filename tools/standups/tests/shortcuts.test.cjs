@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const { chromium, webkit } = require('playwright');
 const { openStandups, assertNoOverflow } = require('./fixtures.cjs');
 const browserType = process.env.STANDUPS_BROWSER === 'webkit' ? webkit : chromium;
-const hotkey = letter => `Meta+Alt+${letter}`;
+const hotkey = letter => `${["S", "F"].includes(letter) ? "Control+Shift" : "Meta+Alt"}+${letter}`;
 const inSpotlight = page => page.locator('#spotlightToggle').getAttribute('aria-pressed');
 
 test('mnemonic call shortcuts switch states and teammates; Escape dismisses one layer', async () => {
@@ -15,7 +15,7 @@ test('mnemonic call shortcuts switch states and teammates; Escape dismisses one 
     assert.equal(await inSpotlight(page), 'false', 'Discussions shortcut only applies in Spotlight');
     await page.keyboard.press(hotkey('S'));
     await page.getByRole('button', { name: 'Exit spotlight', exact: true }).waitFor();
-    assert.equal(await page.locator('[data-shortcut-hint="spotlight"]').textContent(), '⌘⌥S');
+    assert.equal(await page.locator('[data-shortcut-hint="spotlight"]').textContent(), '⌃⇧S');
     await page.keyboard.press(hotkey('D'));
     assert.equal(await page.locator('.comments-card').isVisible(), true);
     await page.keyboard.press(hotkey('D'));
@@ -53,7 +53,7 @@ test('call shortcuts leave editing, composition, menus and already-handled event
     await page.keyboard.press(hotkey('S'));
     assert.equal(await inSpotlight(page), 'false');
     await page.locator('#shortcutSettingsButton').focus();
-    for (const combination of ['s', 'Meta+s', 'Meta+Alt+Shift+s', 'Meta+Shift+s', 'Control+Meta+Alt+s']) {
+    for (const combination of ['s', 'Meta+s', 'Meta+Alt+s', 'Meta+Alt+Shift+s', 'Meta+Shift+s', 'Control+Meta+Alt+s', 'Control+s', 'Control+Alt+Shift+s']) {
       // Synthetic dispatch avoids invoking browser Save for deliberately unmatched combinations.
       const parts = combination.split('+');
       const consumed = await page.evaluate(parts => {
@@ -67,7 +67,7 @@ test('call shortcuts leave editing, composition, menus and already-handled event
     }
     for (const flags of [{ repeat: true }, { isComposing: true }, { handled: true }]) {
       await page.evaluate(flags => {
-        const event = new KeyboardEvent('keydown', { code: 'KeyS', key: 'S', metaKey: true, altKey: true, shiftKey: false, bubbles: true, cancelable: true, ...flags });
+        const event = new KeyboardEvent('keydown', { code: 'KeyS', key: 'S', ctrlKey: true, metaKey: false, altKey: false, shiftKey: true, bubbles: true, cancelable: true, ...flags });
         if (flags.handled) event.preventDefault();
         document.querySelector('#shortcutSettingsButton').dispatchEvent(event);
       }, flags);
@@ -99,14 +99,14 @@ test('shortcut letters are remappable, validated, persisted and can be disabled'
     assert.ok((await page.locator('#shortcutError').textContent()).includes('reserved'));
     await page.locator('#shortcutSpotlight').fill('f');
     await page.getByRole('button', { name: 'Save shortcuts', exact: true }).click();
-    assert.equal(await page.locator('#spotlightToggle').getAttribute('aria-keyshortcuts'), 'Meta+Alt+F');
+    assert.equal(await page.locator('#spotlightToggle').getAttribute('aria-keyshortcuts'), 'Control+Shift+F');
     await page.keyboard.press(hotkey('S'));
     assert.equal(await inSpotlight(page), 'false');
     await page.keyboard.press(hotkey('F'));
     await page.getByRole('button', { name: 'Exit spotlight', exact: true }).waitFor();
     await page.reload();
     await page.waitForFunction(() => document.querySelector('#today').getAttribute('aria-disabled') === 'false');
-    assert.equal(await page.locator('#spotlightToggle').getAttribute('aria-keyshortcuts'), 'Meta+Alt+F');
+    assert.equal(await page.locator('#spotlightToggle').getAttribute('aria-keyshortcuts'), 'Control+Shift+F');
     await page.locator('#shortcutSettingsButton').click();
     await page.locator('#shortcutsEnabled').uncheck();
     await page.getByRole('button', { name: 'Save shortcuts', exact: true }).click();
@@ -179,6 +179,57 @@ test('non-Mac keyboards use Control instead of Command and show matching hints',
     assert.equal(await page.locator('.comments-card').isVisible(), true);
     await page.locator('#shortcutSettingsButton').click();
     assert.equal(await page.locator('#shortcutModifiers').textContent(), 'Control + Alt');
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});
+
+test('existing Mac preferences use the new Spotlight modifiers without resetting custom letters or teammate numbers', async () => {
+  const browser = await browserType.launch();
+  try {
+    const { page, errors } = await openStandups(browser, 1280, 900, { platform: 'MacIntel' });
+    await page.evaluate(() => localStorage.setItem('standups:call-shortcuts:v1', JSON.stringify({
+      enabled: true, letters: { spotlight: 'S', discussions: 'D', next: 'N', previous: 'P' },
+      members: { John: '5', Vivek: '2', Vishal: '3', Jenny: '4' },
+    })));
+    await page.reload();
+    await page.waitForFunction(() => document.querySelector('#today').isContentEditable);
+    assert.equal(await page.locator('#spotlightToggle').getAttribute('aria-keyshortcuts'), 'Control+Shift+S');
+    assert.equal(await page.locator('[data-person-jump=John]').getAttribute('aria-keyshortcuts'), 'Meta+Alt+5');
+    await page.locator('#shortcutSettingsButton').focus();
+    await page.keyboard.press('Meta+Alt+S');
+    assert.equal(await inSpotlight(page), 'false');
+    await page.keyboard.press('Control+Shift+S');
+    await page.getByRole('button', { name: 'Exit spotlight', exact: true }).waitFor();
+    await page.keyboard.press('Control+Shift+S');
+    await page.getByRole('button', { name: 'Spotlight', exact: true }).waitFor();
+    await page.locator('#shortcutSettingsButton').click();
+    assert.equal(await page.locator('#spotlightShortcutModifiers').innerText(), 'Control + Shift');
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});
+
+test('shortcut settings dismiss on the backdrop and preserve a draft through dismissal on desktop and phone', async () => {
+  const browser = await browserType.launch();
+  try {
+    const { page, errors } = await openStandups(browser, 1280);
+    for (const width of [1280, 390]) {
+      await page.locator('#shortcutSettingsButton').click();
+      await page.setViewportSize({ width, height: 900 });
+      await page.locator('#shortcutSpotlight').fill('F');
+      await page.locator('#shortcutDialog h2').click();
+      assert.equal(await page.locator('#shortcutDialog').isVisible(), true);
+      const box = await page.locator('#shortcutDialog h2').boundingBox();
+      await page.mouse.move(box.x + 4, box.y + 4);
+      await page.mouse.down(); await page.mouse.move(4, 4); await page.mouse.up();
+      assert.equal(await page.locator('#shortcutDialog').isVisible(), true);
+      await page.mouse.click(4, 4);
+      assert.equal(await page.locator('#shortcutDialog').isVisible(), false);
+      await page.setViewportSize({ width:1280, height:900 });
+      await page.locator('#shortcutSettingsButton').click();
+      assert.equal(await page.locator('#shortcutSpotlight').inputValue(), 'F');
+      await page.keyboard.press('Escape');
+      assert.equal(await page.locator('#shortcutSettingsButton').evaluate(el => el === document.activeElement), true);
+    }
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 });
