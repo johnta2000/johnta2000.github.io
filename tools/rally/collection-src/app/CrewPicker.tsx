@@ -20,10 +20,10 @@ export default function CrewPicker({label,values,connections,people,onChange,tex
  return <div className="crew-identity-picker">
   {options.length>0&&<section className="crew-connections" aria-labelledby={id}>
     <h3 id={id}><Users size={17}/>Your connected friends</h3>
-    <p>Choose people from Rally or your diary. Only the people you select are included.</p>
+    <p>Choose people from Raveington or your diary. Only the people you select are included.</p>
     <label className="crew-connection-search"><Search size={16}/><input aria-label="Search connected friends" placeholder="Search connected friends…" value={query} onChange={e=>setQuery(e.target.value)} onKeyDown={e=>{if(e.key==='Enter')e.preventDefault();}}/></label>
     <div className="crew-connection-options">{linked.length?linked.map(p=><label key={p.id} className={'crew-connection'+(selected(p)?' chosen':'')}>
-      <input type="checkbox" checked={selected(p)} onChange={()=>toggle(p)}/><span><strong>{p.name}</strong><small>{p.kind==='account'?'Rally account · history stays connected':'Rally guest · linked to this crew'}</small></span>
+      <input type="checkbox" checked={selected(p)} onChange={()=>toggle(p)}/><span><strong>{p.name}</strong><small>{p.kind==='account'?'Raveington account · history stays connected':'Raveington guest · linked to this crew'}</small></span>
     </label>):<p>No connected friends match this search.</p>}</div>
   </section>}
   <NamePicker label={label} noun="friend" values={values.filter(n=>!connections.some(p=>p.name.toLowerCase()===n.toLowerCase()))} text={text} onText={onText}

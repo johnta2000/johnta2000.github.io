@@ -57,7 +57,7 @@ export function validateRave(input: unknown): Rave {
   const color=typeof x.color==='number' && Number.isInteger(x.color) && x.color>=0 && x.color<4 ? x.color : 0;
   const id=typeof x.id==='string' && /^[a-zA-Z0-9_-]{1,160}$/.test(x.id) ? x.id : crypto.randomUUID();
   const sourceEventId=typeof x.sourceEventId==='string' && /^[a-zA-Z0-9_-]{1,120}$/.test(x.sourceEventId)?x.sourceEventId:undefined;
-  if(x.sourceEventId!==undefined&&!sourceEventId)throw new Error('Invalid linked Rally event.');
+  if(x.sourceEventId!==undefined&&!sourceEventId)throw new Error('Invalid linked Raveington event.');
   const connections=(key:string,names:string[]):CrewConnection[]=>{
     if(x[key]===undefined)return [];
     if(!Array.isArray(x[key]) || x[key].length>150)throw new Error('Check your crew connections.');

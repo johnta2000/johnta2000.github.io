@@ -1,4 +1,4 @@
-// Every Rally rave is automatically available in each crew member’s personal diary.
+// Every Raveington rave is automatically available in each crew member’s personal diary.
 window.RallyCollection={
   url(eventId=''){return '/tools/rally/collection/'+(eventId?'?from='+encodeURIComponent(eventId):'');},
   mount(room,{offline=()=>false,loadExperience}={}){
@@ -8,7 +8,7 @@ window.RallyCollection={
     const upcoming=room.startsAt>today;
     const section=document.createElement('section');section.id='personalExperience';section.className='personal-experience';
     const copy=document.createElement('div'),title=document.createElement('strong'),description=document.createElement('p'),link=document.createElement('a');
-    title.textContent='This rave is in your diary';description.textContent=upcoming?'Added automatically with your Rally crew. Keep your wishlist and personal costs here, then confirm attendance after the rave.':'Confirm you went, then add the sets you saw, your costs, and your memories — private to your account.';
+    title.textContent='This rave is in your diary';description.textContent=upcoming?'Added automatically with your Raveington crew. Keep your wishlist and personal costs here, then confirm attendance after the rave.':'Confirm you went, then add the sets you saw, your costs, and your memories — private to your account.';
     copy.append(title,description);link.href=this.url(room.id);link.className='primary';link.textContent=upcoming?'Open my diary entry ↗':'Open my experience ↗';link.dataset.rallyCollection='';
     link.addEventListener('click',event=>{if(offline()){event.preventDefault();showToast('Reconnect to open your personal collection.');}});
     section.append(copy,link);const overview=document.querySelector('.overview-grid');if(overview)overview.after(section);else document.getElementById('page')?.prepend(section);

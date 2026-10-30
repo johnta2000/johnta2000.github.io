@@ -16,16 +16,16 @@ export default function PlanConnection({rave,backend,onUpdated}:{rave:Rave;raves
  const publish=async()=>{if(!preview||busy)return;setBusy(true);setError('');try{await backend.shareMemory(rave.id,note,album,preview.revision);if(active.current){setSharing(false);setNotice('Crew memory updated.');await refresh();}}catch(e){if(active.current)setError(e instanceof Error?e.message:'Could not share your memory.');}finally{if(active.current)setBusy(false);}};
  // A past personal memory has no need for an empty planning project.
  if(!rave.sourceEventId&&(rave.startDate<diaryToday()||rave.attendance!=='planned'))return null;
- return <section className="diary-plan-link" aria-label={rave.sourceEventId?'Your Rally rave':'Plan with friends'}>
+ return <section className="diary-plan-link" aria-label={rave.sourceEventId?'Your Raveington rave':'Plan with friends'}>
   {rave.sourceEventId?<>
-   <h3><Users size={17}/>Your Rally rave</h3>
-   <p>Already in your diary because you’re in this rave’s crew. Event details stay up to date from Rally.</p>
+   <h3><Users size={17}/>Your Raveington rave</h3>
+   <p>Already in your diary because you’re in this rave’s crew. Event details stay up to date from Raveington.</p>
    <a className="secondary" href={`/tools/rally/?event=${encodeURIComponent(rave.sourceEventId)}`}>Open crew plan<ArrowUpRight size={16}/></a>
    {preview&&<>
     <small className="detail-caption">{preview.people.length} other crew {preview.people.length===1?'member':'members'} · {preview.lineup.length} billed sets</small>
     {preview.sharedMemories.length>0&&<details className="shared-crew-memories"><summary>Memories from the crew ({preview.sharedMemories.length})</summary>{preview.sharedMemories.map(m=><article key={m.memberId}><strong>{m.name}</strong>{m.note&&<p>{m.note}</p>}{m.albumUrl&&<a href={m.albumUrl} target="_blank" rel="noopener noreferrer">Open shared album ↗</a>}</article>)}</details>}
     {!sharing?<button className="connection-refresh" disabled={busy} onClick={()=>{setNote(preview.myMemory?.note||'');setAlbum(preview.myMemory?.albumUrl||'');setSharing(true);setNotice('');}}>Share a memory with this crew</button>:<div className="plan-sync-review">
-     <h4>A memory for your crew</h4><p>Everyone in this Rally rave can read what you publish here. Your private diary note and album stay personal.</p>
+     <h4>A memory for your crew</h4><p>Everyone in this Raveington rave can read what you publish here. Your private diary note and album stay personal.</p>
      <label className="field">A shared memory<textarea rows={3} maxLength={2000} value={note} onChange={e=>setNote(e.target.value)} placeholder="Write something for this crew…"/></label>
      <label className="field">Shared album link<input type="url" value={album} maxLength={2000} onChange={e=>setAlbum(e.target.value)} placeholder="https://photos.app.goo.gl/…"/></label>
      <small>Clear both fields to remove your shared memory. Album permissions still apply.</small>

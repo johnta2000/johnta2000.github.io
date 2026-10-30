@@ -12,7 +12,7 @@ export function raveNetwork(raves:Rave[]){
   const event=festivalForRave(r),eventId=event?'event:'+event.id:r.sourceEventId?'project-event:'+r.sourceEventId:'personal-event:'+r.id,entryId='entry:'+r.id;
   nodes.set(eventId,{id:eventId,kind:'event',name:event?.name||r.name});nodes.set(entryId,{id:entryId,kind:'entry',name:r.name});
   edges.push({from:'you',to:entryId,kind:'saved'},{from:entryId,to:eventId,kind:'for-event'});
-  if(r.sourceEventId){const projectId='project:'+r.sourceEventId;nodes.set(projectId,{id:projectId,kind:'project',name:'Rally plan'});edges.push({from:entryId,to:projectId,kind:'linked-plan'},{from:projectId,to:eventId,kind:'for-event'});}
+  if(r.sourceEventId){const projectId='project:'+r.sourceEventId;nodes.set(projectId,{id:projectId,kind:'project',name:'Raveington plan'});edges.push({from:entryId,to:projectId,kind:'linked-plan'},{from:projectId,to:eventId,kind:'for-event'});}
   const attended=isAttended(r);
   for(const p of (r.attendance==='skipped'?[]:attended?r.crewConnections:r.plannedCrewConnections)||[]){nodes.set(p.id,{id:p.id,kind:'person',name:p.name});edges.push({from:entryId,to:p.id,kind:attended?'logged-with':'planned-with'});}
   if(attended)for(const name of artistsForRave(r)){const id=artistId(name);nodes.set(id,{id,kind:'artist',name});edges.push({from:entryId,to:id,kind:'saw'});}

@@ -7,7 +7,9 @@
     <meta name="robots" content="noindex, nofollow" />
     <meta name="referrer" content="same-origin" />
     <meta name="theme-color" content="#18181b" />
-    <title>Rally · Rave project rooms</title>
+    <title>Raveington · Plan with your crew</title>
+    <meta name="application-name" content="Raveington" />
+    <meta name="apple-mobile-web-app-title" content="Raveington" />
     <!-- Critical loading styles precede external assets: never paint another room. -->
     <style>
       html{background:#18181b}.booting{background:var(--rally-loading-paper,#18181b)!important}
@@ -137,9 +139,9 @@
     <link rel="stylesheet" href="./personal-collection.css?v=20261025-auto-diary">
   </head>
   <body class="booting">
-    <div class="rally-loader" role="status" aria-live="polite"><strong>Rally</strong><p>Loading project…</p></div>
+    <div class="rally-loader" role="status" aria-live="polite"><strong>Raveington</strong><p>Loading project…</p></div>
     <section data-auth-screen="rally" id="accessGate" class="access-gate" hidden>
-      <div class="gate-brand"><span class="brand-mark"><i></i><i></i><i></i></span> Rally</div>
+      <div class="gate-brand"><span class="brand-mark"><i></i><i></i><i></i></span> Raveington</div>
       <div class="access-card">
         <p class="eyebrow">Private rave rooms</p>
         <h1>Everyone on the<br><em>same wavelength.</em></h1>
@@ -154,10 +156,10 @@
 
     <div id="rallyApp" class="app-shell">
       <aside id="sidebar" class="sidebar">
-        <div class="brand"><span class="brand-mark"><i></i><i></i><i></i></span><strong>Rally</strong><button id="closeMenu" class="mobile-only" aria-label="Close navigation">×</button></div>
+        <div class="brand"><span class="brand-mark"><i></i><i></i><i></i></span><strong>Raveington</strong><button id="closeMenu" class="mobile-only" aria-label="Close navigation">×</button></div>
         <button id="eventSwitcher" class="event-switcher"><span id="eventThumb">⋯</span><span><small>Rave plan</small><strong id="eventName">Loading project…</strong></span><b>⌄</b></button>
         <div id="eventMenu" class="event-menu" hidden></div>
-        <nav id="sideNav" aria-label="Rally sections"><span class="nav-skeleton"></span><span class="nav-skeleton"></span><span class="nav-skeleton short"></span></nav>
+        <nav id="sideNav" aria-label="Raveington sections"><span class="nav-skeleton"></span><span class="nav-skeleton"></span><span class="nav-skeleton short"></span></nav>
         <div class="sidebar-bottom"><a class="collection-nav-link" href="./collection/?view=projects">My raves <small>Shared</small></a><a class="collection-nav-link" data-rally-collection href="./collection/">♫ Rave diary <small>Private</small></a><button id="sidebarSearch">Search this rave</button><button id="signOut">Sign out</button><a href="/">← john-ta.com</a></div>
       </aside>
       <button id="menuBackdrop" class="menu-backdrop" hidden aria-label="Close menu"></button>
@@ -185,15 +187,15 @@
     <script defer src="./lineup.js?v=4"></script>
     <script defer src="./meetup-timing.js?v=1"></script>
     <script defer src="./meetups.js?v=4"></script>
-    <script defer src="./crew-location.js?v=4"></script>
+    <script defer src="./crew-location.js?v=5"></script>
     <script defer src="./note-rich-text.js?v=1"></script>
     <script defer src="./note-editor.js?v=2"></script>
     <script defer src="./mascot.js?v=1"></script>
     <script defer src="./event-lifecycle.js?v=1"></script>
     <script defer src="./event-history.js?v=2"></script>
     <script defer src="../../assets/js/searchable-select.js?v=3"></script>
-    <script defer src="./personal-collection.js?v=20261025-auto-diary"></script>
-    <script defer src="./invite-links.js?v=2"></script>
-    <script defer src="./app.js?v=20261029-invite-links-2"></script>
+    <script defer src="./personal-collection.js?v=20261029-raveington"></script>
+    <script defer src="./invite-links.js?v=3"></script>
+    <script defer src="./app.js?v=20261029-raveington"></script>
   </body>
 </html>

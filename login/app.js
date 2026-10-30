@@ -115,7 +115,7 @@
       const values = Object.fromEntries(results.map((result, index) => [checks[index][0], result.status === 'fulfilled' ? result.value : null]));
       if (values.rally !== null && !Array.isArray(values.rally)) incomplete = true;
       if (Array.isArray(values.rally) && values.rally.length) {
-        addApp('Rally', '../tools/rally/?event=' + encodeURIComponent(values.rally[0].id), 'Trips and festivals with your crew.');
+        addApp('Raveington', '../tools/rally/?event=' + encodeURIComponent(values.rally[0].id), 'Trips and festivals with your crew.');
       }
       if (values.standups) addApp('Standups', '../tools/standups/', 'Team updates.');
       if (values.sleep) addApp('Sleep', '../tools/sleep/', 'Your sleep dashboard.');

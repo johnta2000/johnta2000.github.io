@@ -76,7 +76,7 @@ test('only server-authorized apps appear, with an accessible Rally event', async
     'standups:verify': success({ email: 'member@example.com' }),
   } }); await settle();
   const links = p.element('apps').children.map(item => item.children[0]);
-  assert.deepEqual(links.map(link => link.textContent), ['Rally', 'Standups']);
+  assert.deepEqual(links.map(link => link.textContent), ['Raveington', 'Standups']);
   assert.equal(links[0].href, '../tools/rally/?event=my-room%20%26%20friends');
   assert.equal(p.element('directory').hidden, false);
   assert.equal(p.mounts, 0);

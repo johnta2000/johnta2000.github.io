@@ -49,7 +49,7 @@ export default function RaveForm({initial, all, onSave, onClose, suggestedArtist
       setR(structuredClone(draft.rave)); baseline.current=JSON.stringify(draft.rave);
       setPlan({artists:draft.artistSuggestions,crew:draft.crewSuggestions});setPeople(draft.crewPeople||[]);
       setArtistText('');setCrewText('');setDiscard(false);
-    } catch (e) { setError(e instanceof Error ? e.message : 'Could not open this Rally rave. Please try again.'); }
+    } catch (e) { setError(e instanceof Error ? e.message : 'Could not open this Raveington rave. Please try again.'); }
     finally { setSaving(false); }
   };
   const close = () => { if (saving) return; if (dirty) setDiscard(true); else onClose(); };
@@ -99,7 +99,7 @@ export default function RaveForm({initial, all, onSave, onClose, suggestedArtist
       <fieldset disabled={saving} className="form-fields">
         <div className="rave-event-fields">
         {!r.sourceEventId && <FestivalPicker rallyEvents={initial ? [] : rallyEvents} diary={all} eventsLoading={!initial && eventsLoading} eventsError={initial ? '' : eventsError} onRetryEvents={onRetryEvents} onChooseRally={loadPlan && !initial ? openRallyEvent : undefined} hasDraft={dirty} unavailableIds={unavailableIds} onClear={()=>setR(prev=>({...prev,catalogEventId:null}))} current={festival} focusOnOpen={!isEdit && !focusSection} hasDetails={!!(r.name || r.startDate || r.city || r.venue)} onChoose={edition => changeEventDetails(prev => applyFestival(prev, edition))}/>}
-        {r.sourceEventId?<div ref={sharedSummary} tabIndex={-1} className="shared-event-summary"><strong>{r.name}</strong><span>{eventDate(r.startDate)}{r.endDate!==r.startDate?' – '+eventDate(r.endDate):''} · {[r.venue,r.city].filter(Boolean).join(' · ')}</span><p>Event details are shared with your crew and stay up to date in Rally.</p><a href={`/tools/rally/?event=${encodeURIComponent(r.sourceEventId)}`}>View event details in Rally ↗</a></div>:<>
+        {r.sourceEventId?<div ref={sharedSummary} tabIndex={-1} className="shared-event-summary"><strong>{r.name}</strong><span>{eventDate(r.startDate)}{r.endDate!==r.startDate?' – '+eventDate(r.endDate):''} · {[r.venue,r.city].filter(Boolean).join(' · ')}</span><p>Event details are shared with your crew and stay up to date in Raveington.</p><a href={`/tools/rally/?event=${encodeURIComponent(r.sourceEventId)}`}>View event details in Raveington ↗</a></div>:<>
         <label className="field">Rave / event name <span className="required-label">Required</span><input data-autofocus={!focusSection && (isEdit || !!r.sourceEventId) || undefined} autoFocus={!focusSection && (isEdit || !!r.sourceEventId)} required maxLength={160} placeholder="The festival, show, or club night" value={r.name} onChange={e => field('name', e.target.value)}/></label>
         <div className="form-grid">
           <DateField label="Start date" required value={r.startDate} onChange={next => {
@@ -118,8 +118,8 @@ export default function RaveForm({initial, all, onSave, onClose, suggestedArtist
           <summary><Music2 size={17}/><span>Artists & crew<small>{planning?'Your wishlist and possible crew':'Who made the night'}</small></span><ChevronDown size={16}/></summary>
           <div className="disclosure-body">
 
-            {r.sourceEventId && planStatus === 'loading' && <p className="form-help" role="status">Loading the lineup and crew from Rally…</p>}
-            {r.sourceEventId && planStatus === 'error' && <p className="form-help" role="status">The lineup and crew from Rally could not load.{festival ? ' The festival catalog lineup is available below.' : ' Choose a festival or add sets manually.'} <button type="button" className="text-button" onClick={() => setPlanAttempt(n => n + 1)}>Retry lineup and crew</button></p>}
+            {r.sourceEventId && planStatus === 'loading' && <p className="form-help" role="status">Loading the lineup and crew from Raveington…</p>}
+            {r.sourceEventId && planStatus === 'error' && <p className="form-help" role="status">The lineup and crew from Raveington could not load.{festival ? ' The festival catalog lineup is available below.' : ' Choose a festival or add sets manually.'} <button type="button" className="text-button" onClick={() => setPlanAttempt(n => n + 1)}>Retry lineup and crew</button></p>}
 
             <div className="rave-people-grid"><div>
             {festival&&<p className="lineup-context">{festival.artists.length ? `${archivedLineup?'Archived lineup':'Published lineup'}${festival.coverage==='partial'?' · partial':''}. ${archivedLineup?'Select only the sets you saw.':'Choose the sets you want to see.'}` : 'No verified lineup is available for this event yet. Add artists below.'}</p>}

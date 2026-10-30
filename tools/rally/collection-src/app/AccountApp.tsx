@@ -44,12 +44,12 @@ export async function accountCall(viewer: Viewer, kind: string, path: string, ar
       method: 'POST', signal: controller.signal, headers: {'Content-Type': 'application/json', Authorization: `Bearer ${token}`},
       body: JSON.stringify({path, args}),
     });
-  } catch { throw new Error(controller.signal.aborted ? 'Rally took too long to respond. Please try again.' : 'Could not connect to Rally. Check your connection and try again.'); }
+  } catch { throw new Error(controller.signal.aborted ? 'Raveington took too long to respond. Please try again.' : 'Could not connect to Raveington. Check your connection and try again.'); }
   finally { window.clearTimeout(timer); }
   assertAccount();
   const body = await res.json().catch(() => null);
   if (!res.ok || body?.status !== 'success') {
-    throw new Error(typeof body?.errorData === 'string' ? body.errorData : 'Rally could not complete that request. Please try again.');
+    throw new Error(typeof body?.errorData === 'string' ? body.errorData : 'Raveington could not complete that request. Please try again.');
   }
   return body.value;
 }
@@ -86,7 +86,7 @@ function SignedInCollection({viewer, onSignOut}: {viewer: Viewer; onSignOut: () 
 
 function AccountApp() {
   const [viewer, setViewer] = useState<Viewer | null>(null);
-  useEffect(() => { document.title = (new URLSearchParams(location.search).get('view') === 'projects' ? 'My raves' : 'Rave diary') + ' · Rally'; }, []);
+  useEffect(() => { document.title = (new URLSearchParams(location.search).get('view') === 'projects' ? 'My raves' : 'Rave diary') + ' · Raveington'; }, []);
   const [status, setStatus] = useState<'loading' | 'signed-out' | 'error'>('loading');
   const [error, setError] = useState('');
   const [attempt, setAttempt] = useState(0);
@@ -99,7 +99,7 @@ function AccountApp() {
     (async () => {
       try {
         const clerk = (window as any).Clerk;
-        if (!clerk) throw new Error('Rally sign-in did not load. Check your connection and retry.');
+        if (!clerk) throw new Error('Raveington sign-in did not load. Check your connection and retry.');
         await clerk.load({ui: {ClerkUI: (window as any).__internal_ClerkUICtor}});
         if (!active) return;
         const update = () => {
@@ -135,11 +135,11 @@ function AccountApp() {
   if (viewer) return <SignedInCollection key={`${viewer.subject}:${viewer.sessionId || ''}`} viewer={viewer}
     onSignOut={async () => { await (window as any).Clerk.signOut(); setViewer(null); setShowSignIn(false); }}/>;
   return <main className="collection-gate">
-    <a href="/tools/rally/collection/?view=projects">Rally <span>/ Rave diary</span></a>
+    <a href="/tools/rally/collection/?view=projects">Raveington <span>/ Rave diary</span></a>
     <div className="gate-icon"><LockKeyhole size={24}/></div>
     <h1>Your nights.<br/>Your rave diary.</h1>
-    <p>Keep every rave, artist, friend, and memory together. Use your Rally account, even if you haven’t joined a plan.</p>
-    {status === 'loading' ? <p role="status" className="gate-loading"><LoaderCircle size={18} className="spin"/>Opening your Rally account…</p>
+    <p>Keep every rave, artist, friend, and memory together. Use your Raveington account, even if you haven’t joined a plan.</p>
+    {status === 'loading' ? <p role="status" className="gate-loading"><LoaderCircle size={18} className="spin"/>Opening your Raveington account…</p>
       : status === 'error' ? <><p role="alert" className="error">{error}</p><button className="primary" onClick={() => {
         if (!(window as any).Clerk) location.reload(); else setAttempt(n => n + 1);
       }}>Retry sign-in</button></>

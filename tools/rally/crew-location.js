@@ -27,7 +27,7 @@
     const names=Object.fromEntries(ctx.room.members.map(m=>[m.id,m.name]));
     host.innerHTML=`<section class="crew-location"><header><h2>Find your crew</h2><span data-mode></span></header><p>Opt in to share GPS with this crew for 30 minutes while this screen is open. Updates pause in the background. Saved locations expire after 30 minutes; they may be wrong if someone has moved.</p><div class="crew-location-actions"><button type="button" data-locate>Find my position</button><button type="button" data-share>Share for 30 min</button><button type="button" data-stop hidden>Stop sharing</button></div><p role="status" data-status></p><div data-plot></div><ol data-people></ol><p class="crew-location-footnote">No signal? Only previously received locations are available. No Bluetooth relay or offline messaging. This diagram is north-up, not the festival map or walking directions.</p></section>`;
     if(ctx.room.id==='lost-lands-2026'){
-      host.querySelector('.crew-location > p').textContent='Lost Lands: September 18–20, 7 PM–2 AM Eastern. Sharing continues across Rally sections. When the browser closes or pauses, your last-known location stays visible until the cutoff; updates resume when you return.';
+      host.querySelector('.crew-location > p').textContent='Lost Lands: September 18–20, 7 PM–2 AM Eastern. Sharing continues across Raveington sections. When the browser closes or pauses, your last-known location stays visible until the cutoff; updates resume when you return.';
       host.querySelector('[data-share]').textContent='Share until 2 AM ET';
     }
     function draw(){
@@ -66,7 +66,7 @@
         if(session&&Date.now()>=expiresAt){stop();return;}
         own={latitude:p.coords.latitude,longitude:p.coords.longitude,accuracy:p.coords.accuracy,observedAt:p.timestamp};
         if(!valid(own))return;
-        latest=own;message=session?'Sharing across Rally. Screen-off may pause updates; your last-known position stays visible.':'Your position is only on this device. It has not been shared.';draw();void sync();
+        latest=own;message=session?'Sharing across Raveington. Screen-off may pause updates; your last-known position stays visible.':'Your position is only on this device. It has not been shared.';draw();void sync();
       },error=>{if(error.code===1)stop();message=error.code===1?'Location permission denied. Allow location access in browser settings to try again.':'Could not get a GPS fix. Move outdoors and try again.';draw();},{enableHighAccuracy:true,maximumAge:15000,timeout:20000});
     }
     async function sync(){

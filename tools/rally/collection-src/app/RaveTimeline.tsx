@@ -14,7 +14,7 @@ export default function RaveTimeline({rows,onOpen}:{rows:Rave[];onOpen:(r:Rave)=
         <span className="timeline-card-head"><span className="timeline-date" aria-hidden="true">{start.toLocaleDateString('en-US',{month:'short'})}<strong>{start.getDate()}</strong></span><span className="timeline-title"><strong>{r.name}</strong>{!isAttended(r)&&<small className="rave-status">{raveStatus(r)}</small>}<span>{r.city||r.venue||'Location not logged'} · {range}</span></span>{attendanceOf(r)==='attended'&&r.rating>0&&<span className="timeline-rating" aria-label={`${r.rating} out of 5 stars`}><Star size={13} fill={r.rating===5?'currentColor':'none'}/>{r.rating<5?r.rating:''}</span>}</span>
         <div className="timeline-artists"><ArtistSetPreview names={sets} eventName={r.name} planned={attendanceOf(r)!=='attended'}/></div>
         <span className="timeline-card-bottom"><span className="timeline-crew"><span className="timeline-avatars" aria-hidden="true">{crew.slice(0,3).map(n=><i key={n}>{n.slice(0,1).toUpperCase()}</i>)}</span><span>{crew.length?`${crew[0]}${crew.length>1?` + ${crew.length-1}`:''}`:'Crew not logged'}</span></span><span className="timeline-cost">{cost===null?'Cost unlogged':money(cost)}</span></span>
-        {(r.albumUrl||r.sourceEventId)&&<span className="timeline-links">{r.albumUrl&&<span><Link2 size={12}/>Photo album</span>}{r.sourceEventId&&<span><ArrowUpRight size={12}/>Rally crew</span>}</span>}
+        {(r.albumUrl||r.sourceEventId)&&<span className="timeline-links">{r.albumUrl&&<span><Link2 size={12}/>Photo album</span>}{r.sourceEventId&&<span><ArrowUpRight size={12}/>Raveington crew</span>}</span>}
       </div>
     </article>;
   })}</div>;

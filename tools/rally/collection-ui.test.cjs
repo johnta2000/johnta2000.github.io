@@ -144,7 +144,7 @@ test('a token delayed across account switching cannot send the old draft as the 
     await until(() => h.text().includes('Bob private night')); h.releaseToken(); await tick(); await tick(); assert.equal(h.saves.length, 0);
   } finally { h.close(); }
 });
-test('Rally deep links open an automatic entry with explicit attendance and no preselected sets',async()=>{
+test('Raveington deep links open an automatic entry with explicit attendance and no preselected sets',async()=>{
  const h=harness({search:'?from=past'});try{await until(()=>h.button('Log your experience'));assert(!h.w.document.querySelector('.rave-form'));h.button('Log your experience').click();await tick();assert(!h.w.document.querySelector('.attendance-choice'));assert(h.w.document.querySelector('input[aria-label="Artists you actually saw"]'));assert.equal(h.w.document.querySelectorAll('.input-tag').length,0);assert(h.text().includes('Suggested DJ'));assert.equal(h.saves.length,0);}finally{h.close();}
 });
 test('browser storage restrictions do not break the collection', async () => {
@@ -196,7 +196,7 @@ test('mobile add opens the personal form directly and account navigation remains
  const h=harness({mobile:true});try{await until(()=>h.button('Add a rave'));h.button('Add a rave').click();await tick();assert(h.w.document.querySelector('.rave-form'));assert(!h.button('From My raves'));h.button('Cancel').click();await tick();h.button('Diary settings').click();await tick();assert(h.w.document.querySelector('dialog a[href="/tools/rally/collection/?view=projects"]'));h.button('Sign out').click();await until(()=>h.text().includes('Sign in / create account'));}finally{h.close();}
 });
 
-test('desktop drawer connects collection sections and Rally projects without a tab bar', async () => {
+test('desktop drawer connects collection sections and Raveington projects without a tab bar', async () => {
   const h = harness({raves:[{...entry('A night'), artists:['Test DJ'], crew:['Nancy']}]}); try {
     await until(() => h.button('Open navigation'));
     assert(!h.w.document.querySelector('.collection-nav'));
@@ -404,11 +404,11 @@ test('catalog editions warn about existing entries even when their old name omit
 });
 
 
-test('Lost Lands short-year Rally entries recover the correct catalog and exclude other diary artists', async()=>{
+test('Lost Lands short-year Raveington entries recover the correct catalog and exclude other diary artists', async()=>{
   const rave={...entry('lost-2026'),name:"Lost Lands '26",sourceEventId:'lost-lands-2026',startDate:'2026-09-18',endDate:'2026-09-20',artists:['EXCISION (DETOX SET)','Previously logged custom set']};
   const h=harness({raves:[rave,{...entry('another'),artists:['2hollis']}],artistSuggestions:['Wrong plan artist'],crewSuggestions:['Nancy']});try{
     await until(()=>h.button("Edit Lost Lands '26")); h.button("Edit Lost Lands '26").click();
-    await until(()=>h.w.document.querySelector('.rave-form') && !h.text().includes('Loading the lineup and crew from Rally'));
+    await until(()=>h.w.document.querySelector('.rave-form') && !h.text().includes('Loading the lineup and crew from Raveington'));
     const picker=h.w.document.querySelector('.name-picker');
     assert(!h.w.document.querySelector('select[aria-label="Event and year"]'));assert(h.w.document.querySelector('.shared-event-summary'));
     assert(h.text().includes('Lost Lands 2026 · 172 sets listed'));
@@ -429,11 +429,11 @@ test('Lost Lands short-year Rally entries recover the correct catalog and exclud
   }finally{h.close();}
 });
 
-test('shared event details stay in Rally while the diary editor saves only the personal experience',async()=>{
+test('shared event details stay in Raveington while the diary editor saves only the personal experience',async()=>{
  const r={...entry('Shared night'),sourceEventId:'crew'};const h=harness({raves:[r]});try{await until(()=>h.button('Edit Shared night'));h.button('Edit Shared night').click();await tick();assert(!h.w.document.querySelector('input[maxlength="160"]'));assert(!h.w.document.querySelector('input[aria-label="Start date"]'));assert(!h.w.document.querySelector('.festival-picker'));assert(h.w.document.querySelector('.shared-event-summary a[href*="event=crew"]'));await h.fill('textarea','Personal experience');h.button('Save changes').click();await until(()=>h.saves.length===1);assert.equal(h.saves[0].sourceEventId,'crew');assert.equal(h.saves[0].notes,'Personal experience');}finally{h.close();}
 });
 
-test('editing a saved show reloads its Rally lineup and a failed lookup can be retried without losing edits',async()=>{
+test('editing a saved show reloads its Raveington lineup and a failed lookup can be retried without losing edits',async()=>{
   const options={planSuggestionsFail:true,raves:[{...entry('saved-show'),sourceEventId:'show',kind:'Show',artists:['Remembered DJ']},{...entry('other'),artists:['2hollis']}],artistSuggestions:['Actual show DJ']};
   const h=harness(options);try{
     await until(()=>h.button('Edit saved-show'));h.button('Edit saved-show').click();
@@ -516,7 +516,7 @@ test('festival autofill updates the city picker and other selectors never offer 
   }finally{h.close();}
 });
 
-test('upcoming raves save wishlists separately and offer a Rally connection without auto-creating a room',async()=>{
+test('upcoming raves save wishlists separately and offer a Raveington connection without auto-creating a room',async()=>{
  const h=harness({empty:true});try{
   await until(()=>h.button('Add a rave'));h.button('Add a rave').click();await tick();
   await h.fill('input[maxlength="160"]','My future rave');await h.fill('input[aria-label="Start date"]','01/01/2099');
@@ -561,8 +561,8 @@ test('a failed Plan with friends action keeps the personal entry available',asyn
  const h=harness({raves:[{...entry('Upcoming entry'),startDate:'2099-01-01',endDate:'2099-01-01',attendance:'planned',notes:'Keep private'}],createPlanFails:true});try{await until(()=>h.button('View Upcoming entry'));h.button('View Upcoming entry').click();await tick();h.button('Plan with friends').click();await tick();h.button('Start crew plan').click();await until(()=>h.text().includes('Could not create plan'));assert(h.text().includes('Keep private'));assert.equal(h.saves.length,0);assert(!h.button('Link existing plan'));}finally{h.close();}
 });
 
-test('automatic Rally entries open directly on mobile and desktop without linking or sync controls',async()=>{
- for(const mobile of [false,true]){const h=harness({mobile,raves:[{...entry('Crew festival'),id:'rally_crew',sourceEventId:'crew',attendance:'planned'}]});try{await until(()=>h.button('View Crew festival'));assert(!h.button('From My raves'));h.button('View Crew festival').click();await until(()=>h.text().includes('Your Rally rave'));assert(!h.button('Link existing plan'));assert(!h.button('Disconnect plan'));assert(!h.button('Review plan → diary'));assert.equal(h.saves.length,0);}finally{h.close();}}
+test('automatic Raveington entries open directly on mobile and desktop without linking or sync controls',async()=>{
+ for(const mobile of [false,true]){const h=harness({mobile,raves:[{...entry('Crew festival'),id:'rally_crew',sourceEventId:'crew',attendance:'planned'}]});try{await until(()=>h.button('View Crew festival'));assert(!h.button('From My raves'));h.button('View Crew festival').click();await until(()=>h.text().includes('Your Raveington rave'));assert(!h.button('Link existing plan'));assert(!h.button('Disconnect plan'));assert(!h.button('Review plan → diary'));assert.equal(h.saves.length,0);}finally{h.close();}}
 });
 
 test('old personal raves have no project creation or connection panel',async()=>{
@@ -652,7 +652,7 @@ test('a failed crew lookup preserves personal details and can be retried',async(
  const options={raves:[{...entry('My linked night'),sourceEventId:'project',attendance:'planned',notes:'Keep private'}],connectionFails:true};const h=harness(options);try{await until(()=>h.button('View My linked night'));h.button('View My linked night').click();await until(()=>h.button('Reload crew'));assert(h.text().includes('Keep private'));options.connectionFails=false;h.button('Reload crew').click();await until(()=>h.button('Share a memory with this crew'));assert.equal(h.saves.length,0);}finally{h.close();}
 });
 
-test('same-name Rally accounts remain separate when opening their crew histories',async()=>{
+test('same-name Raveington accounts remain separate when opening their crew histories',async()=>{
  const a={...entry('Nancy A night'),attendance:'attended',crew:['Nancy'],crewConnections:[connectedPerson]};
  const b={...entry('Nancy B night'),attendance:'attended',crew:['Nancy'],crewConnections:[{...connectedPerson,id:'account:nancy-b',memberId:'nancy-b'}]};
  const h=harness({raves:[a,b]});try{
@@ -662,7 +662,7 @@ test('same-name Rally accounts remain separate when opening their crew histories
  }finally{h.close();}
 });
 
-test('Rally project renders only explicitly shared memories as text and rejects unsafe album links',async()=>{
+test('Raveington project renders only explicitly shared memories as text and rejects unsafe album links',async()=>{
  const dom=new JSDOM('<main id="page"></main>',{url:'https://example.test',runScripts:'outside-only'}),w=dom.window;
  try{w.Clerk={user:{id:'alice'}};w.eval(fs.readFileSync(__dirname+'/personal-collection.js','utf8'));
   w.RallyCollection.mount({id:'room',startsAt:'2025-01-01'},{loadExperience:async()=>({existing:true,rave:{notes:'PRIVATE MUST STAY HIDDEN',albumUrl:'https://example.com/private'},sharedMemories:[{memberId:'nancy',name:'Nancy',note:'<img src=x onerror=alert(1)>',albumUrl:'javascript:alert(1)'},{memberId:'maya',name:'Maya',note:'Our shared night',albumUrl:'https://example.com/shared'}]})});
@@ -682,7 +682,7 @@ test('a friend link on an experience opens all of that identity’s history acro
 });
 
 
-for(const mobile of [false,true]) test(`catalog disables existing Rally editions and keeps other years selectable (${mobile?'mobile':'desktop'})`,async()=>{
+for(const mobile of [false,true]) test(`catalog disables existing Raveington editions and keeps other years selectable (${mobile?'mobile':'desktop'})`,async()=>{
  const r={...entry('Lost Lands 2026'),id:'rally_crew',sourceEventId:'crew',catalogEventId:'lost-lands-2026',startDate:'2026-09-18',endDate:'2026-09-20',attendance:'planned'};
  const h=harness({mobile,raves:[r]});try{
   await until(()=>h.button('Add a rave'));h.button('Add a rave').click();await tick();
@@ -811,13 +811,13 @@ for(const mobile of [false,true])test(`catalog typo search ranks and selects the
  }finally{h.close();}
 });
 
-for(const mobile of [false,true])test(`unified event search opens a Rally diary entry without duplicating it (${mobile?'mobile':'desktop'})`,async()=>{
+for(const mobile of [false,true])test(`unified event search opens a Raveington diary entry without duplicating it (${mobile?'mobile':'desktop'})`,async()=>{
  const existing={...entry('Lost Lands memories'),id:'my-original-entry',sourceEventId:'crew',catalogEventId:'lost-lands-2026',startDate:'2026-09-18',endDate:'2026-09-20',artists:['Wooli'],notes:'Keep my memory',costs:{ticket:150,travel:null,stay:null,other:null}};
  const h=harness({mobile,raves:[existing],events:[{id:'crew',name:'Nancy’s Lost Lands crew',startsAt:'2026-09-18',endsAt:'2026-09-20',location:'Legend Valley'}]});try{
   await until(()=>h.button('Add a rave'));h.button('Add a rave').click();await tick();
   const picker=h.w.document.querySelector('.festival-picker');picker.querySelector('.search-select-trigger').click();await tick();
   await h.fill('.festival-picker .search-select-input','lostlands 2026');
-  const options=[...picker.querySelectorAll('[role=option]')],plan=options.find(o=>o.textContent.includes('Rally ·'));
+  const options=[...picker.querySelectorAll('[role=option]')],plan=options.find(o=>o.textContent.includes('Raveington ·'));
   assert(plan);assert(plan.textContent.includes('Open diary entry'));assert(options.some(o=>o.textContent.includes('Already in your diary')&&o.getAttribute('aria-disabled')==='true'));
   plan.click();await until(()=>h.w.document.querySelector('.shared-event-summary'));
   assert(h.text().includes('Lost Lands memories'));assert.equal(h.w.document.querySelector('.rave-form textarea').value,'Keep my memory');assert.equal(h.saves.length,0);
@@ -826,12 +826,12 @@ for(const mobile of [false,true])test(`unified event search opens a Rally diary 
  }finally{h.close();}
 });
 
-test('opening a Rally result confirms unsaved work and keeps it on a failed load',async()=>{
+test('opening a Raveington result confirms unsaved work and keeps it on a failed load',async()=>{
  const options={events:[{id:'crew',name:'Warehouse Reunion',startsAt:'2025-09-20'}],planSuggestionsFail:true},h=harness(options);try{
   await until(()=>h.button('Add a rave'));h.button('Add a rave').click();await tick();await h.fill('input[maxlength="160"]','My unsaved night');
   await chooseFestival(h,'rally:crew');assert(h.text().includes('unsaved changes'));h.button('Keep editing').click();await tick();assert.equal(h.requests.filter(r=>r.path==='rallyCollection:draftFromEvent').length,0);
-  await chooseFestival(h,'rally:crew');h.button('Open Rally rave').click();await until(()=>h.text().includes('Plan unavailable'));assert.equal(h.w.document.querySelector('input[maxlength="160"]').value,'My unsaved night');assert.equal(h.saves.length,0);
-  options.planSuggestionsFail=false;await chooseFestival(h,'rally:crew');h.button('Open Rally rave').click();await until(()=>h.w.document.querySelector('.shared-event-summary'));assert.equal(h.saves.length,0);
+  await chooseFestival(h,'rally:crew');h.button('Open Raveington rave').click();await until(()=>h.text().includes('Plan unavailable'));assert.equal(h.w.document.querySelector('input[maxlength="160"]').value,'My unsaved night');assert.equal(h.saves.length,0);
+  options.planSuggestionsFail=false;await chooseFestival(h,'rally:crew');h.button('Open Raveington rave').click();await until(()=>h.w.document.querySelector('.shared-event-summary'));assert.equal(h.saves.length,0);
  }finally{h.close();}
 });
 
@@ -847,7 +847,7 @@ for(const mobile of [false,true])test(`artist insights filter, drill into credit
 });
 
 
-test('a linked Digital City plan loads the Colorado lineup even when its Rally lineup is empty',async()=>{
+test('a linked Digital City plan loads the Colorado lineup even when its Raveington lineup is empty',async()=>{
  const r={...entry('Decadence: The Digital City'),sourceEventId:'decadence-crew',startDate:'2026-12-30',endDate:'2026-12-31',attendance:'planned'};
  const h=harness({raves:[r],artistSuggestions:[],crewSuggestions:[]});try{
   await until(()=>h.button('Edit Decadence: The Digital City'));h.button('Edit Decadence: The Digital City').click();await tick();

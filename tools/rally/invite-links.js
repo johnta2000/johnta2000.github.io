@@ -1,4 +1,4 @@
-/* Shared invitations are saved by Rally. Only unsent form drafts stay on-device,
+/* Shared invitations are saved by Raveington. Only unsent form drafts stay on-device,
    scoped to the signed-in account; URLs contain opaque record IDs, never drafts. */
 (() => {
   let app, generation=0;
@@ -55,13 +55,13 @@
         if(!invitation)throw Error('This invitation is not available.');
         const active=invitation.status==='active',url=shareUrl(context.eventId,invitation.id);
         app.dialog(invitation.name?'Invite '+escape(invitation.name):'Invite a friend',active?'Send this link by text, email, or DM. One friend can claim it after signing in.':'This invitation is '+invitation.status+'.',
-          `<a class="invite-back" href="${escape(href(editorUrl()))}">← All invitations</a>${active?`<label class="field"><span>Invitation link</span><input class="invite-url" readonly aria-label="Invitation link" value="${escape(url)}"></label><div class="invite-share-actions"><button id="copyInviteLink" class="primary" type="button">Copy link</button><button id="shareInviteLink" class="secondary" type="button">Share…</button><a class="secondary" href="${escape('mailto:?subject='+encodeURIComponent('Join our Rally crew')+'&body='+encodeURIComponent('Join our '+app.state().name+' crew on Rally: '+url))}">Open email</a></div>`:''}<p class="invite-help">${active?'Expires '+escape(new Date(invitation.expiresAt).toLocaleString())+'. ':''}Revoking a link prevents future claims. It does not remove someone who has already joined.</p>${active?'<button id="revokeInviteLink" class="danger-button" type="button">Revoke link</button>':''}`,async()=>{});
+          `<a class="invite-back" href="${escape(href(editorUrl()))}">← All invitations</a>${active?`<label class="field"><span>Invitation link</span><input class="invite-url" readonly aria-label="Invitation link" value="${escape(url)}"></label><div class="invite-share-actions"><button id="copyInviteLink" class="primary" type="button">Copy link</button><button id="shareInviteLink" class="secondary" type="button">Share…</button><a class="secondary" href="${escape('mailto:?subject='+encodeURIComponent('Join our Raveington crew')+'&body='+encodeURIComponent('Join our '+app.state().name+' crew on Raveington: '+url))}">Open email</a></div>`:''}<p class="invite-help">${active?'Expires '+escape(new Date(invitation.expiresAt).toLocaleString())+'. ':''}Revoking a link prevents future claims. It does not remove someone who has already joined.</p>${active?'<button id="revokeInviteLink" class="danger-button" type="button">Revoke link</button>':''}`,async()=>{});
         root().querySelector('[type=submit]').hidden=true;
         root().querySelector('.invite-url')?.addEventListener('click',event=>event.target.select());
         const copy=root().querySelector('#copyInviteLink');
         if(copy)copy.onclick=async()=>{try{await navigator.clipboard.writeText(url);if(copy.isConnected){copy.textContent='Copied';app.toast('Invite link copied');}}catch{root().querySelector('.invite-url')?.select();app.toast('Select and copy the invitation link above.');}};
         const share=root().querySelector('#shareInviteLink');
-        if(share){share.hidden=!navigator.share;share.onclick=async()=>{try{await navigator.share({title:'Join our Rally crew',text:'Join our '+app.state().name+' crew',url});}catch(error){if(error.name!=='AbortError')app.toast('Sharing is unavailable. Use Copy link instead.');}};}
+        if(share){share.hidden=!navigator.share;share.onclick=async()=>{try{await navigator.share({title:'Join our Raveington crew',text:'Join our '+app.state().name+' crew',url});}catch(error){if(error.name!=='AbortError')app.toast('Sharing is unavailable. Use Copy link instead.');}};}
         const revoke=root().querySelector('#revokeInviteLink');
         if(revoke)revoke.onclick=async()=>{if(revoke.disabled)return;revoke.disabled=true;try{await app.mutate('rallyInvites:revoke',{eventId:context.eventId,invitationId});if(!current(context))return;app.toast('Invite link revoked');await open(undefined,{restore:true});}catch(error){if(current(context)){app.toast(error.message||'Could not revoke this link.');revoke.disabled=false;}}};
       }catch(error){if(current(context)){app.dialog('Invite unavailable',escape(error.message||'Could not load the invitation.'),`<a class="secondary" href="${escape(href(editorUrl()))}">All invitations</a>`,async()=>{});root().querySelector('[type=submit]').hidden=true;}}
@@ -117,7 +117,7 @@
           await app.enter(destination);
         }catch(error){if(still()&&form.isConnected){errorBox.textContent=error.message||'Could not join. Please try again.';errorBox.hidden=false;button.disabled=false;}}
       };
-    }catch(error){if(still()){document.getElementById('authTitle').textContent='Invitation unavailable';document.getElementById('authStatus').textContent=error.message||'Reconnect and open your invitation again.';options.innerHTML='<button class="secondary" type="button">Try again</button><a class="secondary" href="/tools/rally/">My Rally rooms</a>';options.querySelector('button').onclick=()=>join();}}
+    }catch(error){if(still()){document.getElementById('authTitle').textContent='Invitation unavailable';document.getElementById('authStatus').textContent=error.message||'Reconnect and open your invitation again.';options.innerHTML='<button class="secondary" type="button">Try again</button><a class="secondary" href="/tools/rally/">My Raveington rooms</a>';options.querySelector('button').onclick=()=>join();}}
   }
   window.RallyInvites={
     configure(hooks){app=hooks;},open,join,shareUrl,clearEmailDraft(){clearDraft('email');},
