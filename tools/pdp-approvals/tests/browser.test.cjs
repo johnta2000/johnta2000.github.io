@@ -166,3 +166,14 @@ for(const width of [1440,390])test(`approved file variants restore direct links 
  await page.getByRole('button',{name:'Mobile',exact:true}).click();assert.equal(new URL(page.url()).searchParams.has('reference'),false);await page.locator('.production-image[data-viewport-width="402"]').waitFor();assert.equal(await page.locator('[data-reference]').count(),0);assert.deepEqual(errors,[]);
  }finally{await browser.close();}
 });
+
+for(const width of [1440,390])test(`complete desktop evidence clearly identifies a missing mobile mockup at ${width}px`,async()=>{
+ const browser=await chromium.launch({headless:true});try{
+  const initial=structuredClone(seed),ref={mockupUrl:'',emailUrl:'https://example.com/approval-email',approvalDate:'2026-10-01',approvalVersion:'Approved desktop.pdf',pdfPage:'2',fileKey:'approved-desktop'};
+  initial.value.references={desktop:ref,mobile:{mockupUrl:'',emailUrl:ref.emailUrl,approvalDate:'',approvalVersion:'',pdfPage:''}};
+  const{page,errors}=await open(browser,{width,initial,url:'https://www.john-ta.com/tools/pdp-approvals/?pdp=card-a&device=desktop'});
+  await page.locator('#approved-preview iframe').waitFor();assert.equal(await page.locator('.record .badge.warn').textContent(),'Mobile mockup missing');assert.equal(await page.locator('.badges .badge.warn').textContent(),'Mobile mockup missing');assert.match(await page.locator('#approved-preview iframe').getAttribute('src'),/#page=2$/);assert.equal(await page.getByRole('link',{name:'Open approval email chain'}).count(),1);
+  await page.getByRole('button',{name:'Mobile',exact:true}).click();await page.getByText('No mobile mockup linked yet.').waitFor();assert.equal(await page.locator('#approved-preview iframe').count(),0);assert.equal(await page.locator('.record .badge.warn').textContent(),'Mobile mockup missing');
+  await page.goBack();await page.locator('#approved-preview iframe').waitFor();assert.match(await page.locator('#approved-preview iframe').getAttribute('src'),/#page=2$/);assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);assert.deepEqual(errors,[]);
+ }finally{await browser.close();}
+});

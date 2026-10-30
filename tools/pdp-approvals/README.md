@@ -49,3 +49,5 @@ Each editable record value has an Add/Edit control next to its displayed value. 
 ## Additional approved files
 
 Each record can retain device-specific supporting references with independent approval date, filename, starting page, and notes. PDP alternatives can be selected for side-by-side review using an authenticated `reference=<opaque-file-key>` URL. Marketplace references are grouped separately and suppress the PDP production image to avoid implying that the surfaces are comparable. Additional references are read-only; primary fields retain inline editing. Every file is bound to its PDP/device and original bytes remain private. Older editors cannot erase supporting references by omitting them.
+
+Evidence badges name the missing desktop/mobile mockup or approval email explicitly. A complete desktop reference with no mobile PDF is labeled “Mobile mockup missing”; the aggregate evidence count still requires both devices.

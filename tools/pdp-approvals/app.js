@@ -68,7 +68,13 @@
     const label=inlineFields[field][0],present=value!==''&&value!==undefined;
     return `<div class="inline-field" data-field="${field}"><div class="inline-label"><span>${esc(label)}</span><button type="button" class="field-edit" data-inline="${field}" aria-label="${present?'Edit':'Add'} ${esc(label.toLowerCase())}">${present?'Edit':'＋ Add'}</button></div><div class="inline-display">${display||esc(value)||'<span class="field-missing">Not added</span>'}</div><div class="inline-host"></div></div>`;
   }
-  function evidenceLabel(value){const refs=['desktop','mobile'].map(mode=>referenceFor(value,mode)),mockup=refs.some(ref=>!ref.mockupUrl&&!ref.fileKey),email=refs.some(ref=>!ref.emailUrl);return mockup&&email?'Mockup and approval email missing':mockup?'Mockup missing':email?'Approval email missing':'Evidence linked';}
+  function evidenceLabel(value){
+    const modes=['desktop','mobile'],mockups=modes.filter(mode=>{const ref=referenceFor(value,mode);return !ref.mockupUrl&&!ref.fileKey;}),emails=modes.filter(mode=>!referenceFor(value,mode).emailUrl);
+    const missing=(affected,subject)=>affected.map(mode=>mode==='desktop'?'Desktop':'Mobile').join(' + ')+' '+subject+' missing';
+    if(!mockups.length&&!emails.length)return 'Evidence linked';
+    if(mockups.join()===emails.join())return missing(mockups,'mockup and approval email');
+    return [mockups.length?missing(mockups,mockups.length===1?'mockup':'mockups'):'',emails.length?missing(emails,emails.length===1?'approval email':'approval emails'):''].filter(Boolean).join(' · ');
+  }
   function inlineStatus(text){if(inline?.host?.isConnected)inline.host.querySelector('[data-field-status]').textContent=text;}
   function persistInline(){
     clearTimeout(inlineTimer);const state=inline;if(!state)return Promise.resolve();
