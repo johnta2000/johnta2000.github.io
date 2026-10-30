@@ -184,3 +184,5 @@ a.record{display:block;text-decoration:none;color:inherit;}
 #detail>.inline-field{display:inline-block;vertical-align:top;margin:0 20px 12px 0;max-width:100%}
 .pane-inner .inline-field{width:100%}.meta .inline-field{margin:0}
 .evidence>.inline-field{margin-top:20px}
+
+.reference-picker{margin:16px 0;padding:16px;border:1px solid var(--line,#ddd);border-radius:10px}.reference-picker .action{margin:5px 0;overflow-wrap:anywhere}.reference-picker [aria-current="true"]{background:#171717;color:#fff}.reference-picker .list-label:not(:first-child){margin-top:16px}

@@ -56,9 +56,12 @@ async function writeRecord(ctx:MutationCtx,args:Infer<typeof saveValidator>){
   const current = await ctx.db.query('pdpApprovals').withIndex('by_key', q => q.eq('key', args.key)).unique();
   if ((current?.version ?? 0) !== args.expectedVersion) throw Error('This PDP changed since you opened it. Download your draft, cancel, then refresh before editing again.');
   if (!current && (await ctx.db.query('pdpApprovals').take(2000)).length >= 2000) throw Error('The tracker is full.');
-  const value = current?.value.references && args.value.references === undefined ? {...args.value, references: current.value.references} : args.value;
-  for (const device of ['desktop','mobile'] as const) {
-    const reference = value.references?.[device];
+  let value = current?.value.references && args.value.references === undefined ? {...args.value, references: current.value.references} : args.value;
+  if(value.supportingReferences===undefined&&current?.value.supportingReferences)value={...value,supportingReferences:current.value.supportingReferences};
+  if((value.supportingReferences?.length||0)>40)throw Error('Too many supporting references.');
+  const attachments=[...(['desktop','mobile'] as const).map(device=>({device,reference:value.references?.[device]})),...(value.supportingReferences||[])];
+  for(const item of value.supportingReferences||[]){if(!item.label.trim()||item.label.length>200||!item.reference.fileKey)throw Error('A supporting reference needs a label and saved PDF.');}
+  for (const {device,reference} of attachments) {
     if (!reference) continue;
     validate({ ...args.value, ...reference, notes: reference.notes || '' });
     if (reference.fileKey) {

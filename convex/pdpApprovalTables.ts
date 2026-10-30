@@ -11,6 +11,7 @@ export const pdpValue = v.object({
   mockupUrl: v.string(), emailUrl: v.string(), approvalDate: v.string(),
   approvalVersion: v.string(), pdfPage: v.string(), notes: v.string(),
   exactMatch: v.boolean(), archived: v.boolean(),
+  supportingReferences: v.optional(v.array(v.object({device:v.union(v.literal('desktop'),v.literal('mobile')),surface:v.union(v.literal('pdp'),v.literal('marketplace')),label:v.string(),reference:deviceReference}))),
   references: v.optional(v.object({ desktop: v.optional(deviceReference), mobile: v.optional(deviceReference) })),
 });
 const record = { key: v.string(), value: pdpValue, version: v.number(), updatedAt: v.number(), updatedBy: v.string() };

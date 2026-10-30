@@ -44,3 +44,13 @@ test('inline drafts reject stale tabs and uploads stay bound to the correct PDP 
  await assert.rejects(api.saveField.handler(ctx,{key:'a',device:'mobile',field:'fileKey',value:'file',expectedVersion:1,draftVersion:0}),/different PDP or device/);
  const saved=await api.saveField.handler(ctx,{key:'a',device:'desktop',field:'fileKey',value:'file',expectedVersion:1,draftVersion:0});assert.equal(saved.value.references.desktop.fileKey,'file');assert.equal(saved.value.references.desktop.approvalVersion,'Desktop.pdf');
 });
+
+test('supporting references preserve originals, reject wrong bindings, and survive older editors',async()=>{
+ const api=await backend,ctx=context();ctx.tables.pdpApprovalFiles.push({key:'alternate',recordKey:'a',device:'desktop'});
+ const supportingReferences=[{device:'desktop',surface:'pdp',label:'Alternate approved PDP',reference:{...ref(),fileKey:'alternate',approvalDate:'2026-07-21',pdfPage:'3'}}];
+ await api.save.handler(ctx,{key:'a',value:{...value(),supportingReferences},expectedVersion:0});
+ await api.save.handler(ctx,{key:'a',value:{...value(),notes:'Older editor'},expectedVersion:1});assert.deepEqual(ctx.tables.pdpApprovals[0].value.supportingReferences,supportingReferences);
+ await assert.rejects(api.save.handler(ctx,{key:'a',value:{...value(),supportingReferences:[{...supportingReferences[0],device:'mobile'}]},expectedVersion:2}),/different PDP or device/);
+ await assert.rejects(api.save.handler(ctx,{key:'a',value:{...value(),supportingReferences:[{...supportingReferences[0],reference:{...supportingReferences[0].reference,emailUrl:'javascript:bad'}}]},expectedVersion:2}),/HTTPS/);
+ assert.equal(ctx.tables.pdpApprovalHistory.length,2);
+});

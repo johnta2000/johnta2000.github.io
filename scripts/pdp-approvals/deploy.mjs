@@ -35,9 +35,11 @@ const schemaModule = { exports: {} }; vm.runInNewContext(sb.outputFiles[0].text,
 const ownSchema = JSON.parse(schemaModule.exports.default.export()), merged = structuredClone(beforeSchema);
 for (const table of ownSchema.tables) {
   const existing = merged.tables.find(t => t.tableName === table.tableName);
-  const legacy=structuredClone(table);
+  const previous=structuredClone(table);
+  if(previous.documentType?.value?.value?.fieldType?.value)delete previous.documentType.value.value.fieldType.value.supportingReferences;
+  const legacy=structuredClone(previous);
   if(legacy.documentType?.value?.value?.fieldType?.value)delete legacy.documentType.value.value.fieldType.value.references;
-  if(existing && canonical(existing)!==canonical(table) && canonical(existing)!==canonical(legacy))throw Error('Unexpected PDP schema change.');
+  if(existing && canonical(existing)!==canonical(table) && canonical(existing)!==canonical(previous) && canonical(existing)!==canonical(legacy))throw Error('Unexpected PDP schema change.');
   if(existing)merged.tables[merged.tables.indexOf(existing)]=table;else merged.tables.push(table);
 
 }

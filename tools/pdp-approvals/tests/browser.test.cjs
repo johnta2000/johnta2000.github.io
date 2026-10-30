@@ -151,3 +151,18 @@ test('a copied record link in a fresh tab reuses the authorized session capture 
   await first.page.reload();await first.page.locator('.production-image').waitFor();assert.equal(first.fileCalls.length,2);assert.deepEqual([...first.errors,...second.errors],[]);
  }finally{await browser.close();}
 });
+
+for(const width of [1440,390])test(`approved file variants restore direct links and keep marketplace separate at ${width}px`,async()=>{
+ const browser=await chromium.launch({headless:true});try{
+ const initial=structuredClone(seed),reference={mockupUrl:'',emailUrl:'',approvalDate:'2026-07-21',approvalVersion:'Alternate original.pdf',pdfPage:'3',fileKey:'alternate'};
+ initial.value.supportingReferences=[{device:'desktop',surface:'pdp',label:'XX.XX PDP',reference},{device:'desktop',surface:'marketplace',label:'See Terms marketplace',reference:{...reference,fileKey:'marketplace',pdfPage:'4'}}];
+ const{page,errors}=await open(browser,{width,initial,url:'https://www.john-ta.com/tools/pdp-approvals/?pdp=card-a&device=desktop'});
+ await page.getByRole('link',{name:'XX.XX PDP',exact:true}).click();await page.locator('#approved-preview iframe').waitFor();assert.match(page.url(),/reference=alternate/);assert.match(await page.locator('#approved-preview iframe').getAttribute('src'),/#page=3$/);await page.locator('.production-image').waitFor();assert.equal(await page.getByRole('button',{name:'Edit approval date',exact:true}).count(),0);
+ await page.reload();await page.locator('#approved-preview iframe').waitFor();assert.match(await page.locator('#approved-preview iframe').getAttribute('src'),/#page=3$/);
+ const copied=await open(browser,{width,initial,url:page.url()});await copied.page.locator('#approved-preview iframe').waitFor();assert.match(await copied.page.locator('#approved-preview iframe').getAttribute('src'),/#page=3$/);
+ await page.getByRole('link',{name:'See Terms marketplace',exact:true}).click();await page.getByText(/Marketplace reference only/).waitFor();await page.locator('#approved-preview iframe').waitFor();assert.equal(await page.locator('.production-image').count(),0);assert.match(await page.locator('#approved-preview iframe').getAttribute('src'),/#page=4$/);
+ await page.goBack();await page.locator('.production-image').waitFor();assert.match(page.url(),/reference=alternate/);await page.goForward();await page.getByText(/Marketplace reference only/).waitFor();
+ assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);await page.screenshot({path:'/private/tmp/pdp-reference-files-'+width+'.png',fullPage:true});
+ await page.getByRole('button',{name:'Mobile',exact:true}).click();assert.equal(new URL(page.url()).searchParams.has('reference'),false);await page.locator('.production-image[data-viewport-width="402"]').waitFor();assert.equal(await page.locator('[data-reference]').count(),0);assert.deepEqual(errors,[]);
+ }finally{await browser.close();}
+});
