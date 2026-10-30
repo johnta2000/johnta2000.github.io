@@ -7,6 +7,48 @@
   const objectUrls = new Set();
   const fileCache=new Map(),fileCacheLimit=32*1024*1024;
   function clearFileCache(){for(const entry of fileCache.values())entry.controller.abort();fileCache.clear();}
+  // Only production images persist locally; source PDFs and editable records do not.
+  // Metadata is reauthorized by capture() before a cached immutable file key is used.
+  const captureCacheLimit=128*1024*1024,captureCacheAge=7*24*60*60*1000;
+  function storedCapture(action,key='',blob=null,scope=sessionId,current=epoch){
+    return new Promise(resolve=>{
+      let db,tx,done=false,result=null;
+      const finish=value=>{if(done)return;done=true;clearTimeout(timer);db?.close();resolve(value);};
+      const timer=setTimeout(()=>{try{tx?.abort();}catch{}finish(null);},1500);
+      try{
+        const request=indexedDB.open('pdp-production-cache',1);
+        request.onupgradeneeded=()=>{request.result.createObjectStore('images');request.result.createObjectStore('metadata',{keyPath:'id'});};
+        request.onerror=()=>finish(null);
+        request.onsuccess=()=>{
+          db=request.result;if(done){db.close();return;}
+          if(current!==epoch){finish(null);return;}
+          tx=db.transaction(['images','metadata'],'readwrite');
+          tx.oncomplete=()=>finish(current===epoch?result:null);tx.onabort=tx.onerror=()=>finish(null);
+          const images=tx.objectStore('images'),metadata=tx.objectStore('metadata'),all=metadata.getAll();
+          all.onsuccess=()=>{
+            if(current!==epoch){tx.abort();return;}
+            const now=Date.now(),id=scope+':'+key,valid=[];
+            for(const item of all.result){
+              if(!scope||item.scope!==scope||item.expires<=now){images.delete(item.id);metadata.delete(item.id);}
+              else valid.push(item);
+            }
+            if(!scope)return;
+            if(action==='read'){
+              const item=valid.find(item=>item.id===id);
+              if(item){item.usedAt=now;metadata.put(item);const read=images.get(id);read.onsuccess=()=>{result=read.result||null;};}
+            }
+            if(action==='write'&&blob&&blob.size<=captureCacheLimit){
+              let bytes=blob.size;
+              for(const item of valid.filter(item=>item.id!==id).sort((a,b)=>b.usedAt-a.usedAt)){
+                bytes+=item.size;if(bytes>captureCacheLimit){images.delete(item.id);metadata.delete(item.id);}
+              }
+              images.put(blob,id);metadata.put({id,scope,size:blob.size,expires:now+captureCacheAge,usedAt:now});
+            }
+          };
+        };
+      }catch{finish(null);}
+    });
+  }
   const referenceFields = ['mockupUrl','emailUrl','approvalDate','approvalVersion','pdfPage'];
   const referenceFor = (v,mode=device) => v.references?.[mode] || (mode==='desktop' ? Object.fromEntries(referenceFields.map(f=>[f,v[f]||''])) : Object.fromEntries(referenceFields.map(f=>[f,''])));
   const fields = ['name','issuer','publisher','liveUrl','mockupUrl','emailUrl','approvalDate','approvalVersion','pdfPage','notes'];
@@ -88,10 +130,16 @@
     if(existing){existing.controller.abort();fileCache.delete(cacheKey);}
     const entry={controller:new AbortController(),bytes:0,expires:Date.now()+5*60*1000};
     entry.promise=(async()=>{try{
-      const token=await tokenFor(s);if(current!==epoch)throw Error('Your session changed.');
-      const response=await fetch('https://rapid-shark-565.convex.site/pdp-approval-file?key='+encodeURIComponent(key)+'&kind='+kind,{headers:{Authorization:'Bearer '+token},cache:'no-store',signal:AbortSignal.any([entry.controller.signal,AbortSignal.timeout(30000)])});
-      if(!response.ok)throw Error('Could not load the private file. Try again.');
-      const blob=await response.blob();if(current!==epoch)throw Error('Your session changed.');
+      let blob=kind==='capture'?await storedCapture('read',key,null,s.id,current):null;
+      if(current!==epoch)throw Error('Your session changed.');
+      if(!blob){
+        const token=await tokenFor(s);if(current!==epoch)throw Error('Your session changed.');
+        const response=await fetch('https://rapid-shark-565.convex.site/pdp-approval-file?key='+encodeURIComponent(key)+'&kind='+kind,{headers:{Authorization:'Bearer '+token},cache:'no-store',signal:AbortSignal.any([entry.controller.signal,AbortSignal.timeout(30000)])});
+        if(!response.ok)throw Error('Could not load the private file. Try again.');
+        blob=await response.blob();if(current!==epoch)throw Error('Your session changed.');
+        if(kind==='capture')await storedCapture('write',key,blob,s.id,current);
+      }
+      if(current!==epoch)throw Error('Your session changed.');
       entry.bytes=blob.size;
       let bytes=[...fileCache.values()].reduce((sum,item)=>sum+item.bytes,0);
       for(const [id,item]of fileCache){if(bytes<=fileCacheLimit)break;if(item.bytes){fileCache.delete(id);bytes-=item.bytes;}}
@@ -253,7 +301,7 @@
     finally{if(current===epoch&&request===loadId)$('refresh').disabled=false;}
   }
   function changed({session:next}) {
-    if(next===undefined)return;const id=next?.id||null;if(id===sessionId)return;sessionId=id;session=next||null;++epoch;clearPrivate();$('gate').hidden=false;$('sign-out').hidden=!session;
+    if(next===undefined)return;const id=next?.id||null;if(id===sessionId)return;sessionId=id;session=next||null;++epoch;clearPrivate();void storedCapture('prune');$('gate').hidden=false;$('sign-out').hidden=!session;
     if(session){$('gate-message').textContent='Opening your private library…';void load();return;}
     $('sign-in').hidden=false;$('gate-message').textContent='Sign in with your approved owner account to access PDP records.';
     if(!mounted){const dest=location.href.split('#')[0];window.Clerk.mountSignIn($('sign-in'),{routing:'hash',withSignUp:false,forceRedirectUrl:dest,signUpForceRedirectUrl:dest});mounted=true;}
@@ -283,7 +331,7 @@
   $('add').onclick=()=>openEditor();$('refresh').onclick=()=>load();$('retry').onclick=()=>session?load():location.reload();$('search').oninput=()=>{route({},true);renderList();};$('form').addEventListener('input',scheduleDraft);$('form').addEventListener('change',scheduleDraft);
   $('export').onclick=()=>download({exportedAt:new Date().toISOString(),records},'pdp-approvals.json');
   document.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>{filter=b.dataset.filter;document.querySelectorAll('[data-filter]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));route({filter:filter==='active'?null:filter});renderList();});
-  $('sign-out').onclick=async()=>{if(saving)return;try{if(inline)await persistInline();if(editing)await persistDraft();}catch{return;}++epoch;clearPrivate();$('gate').hidden=false;$('gate-message').textContent='Signing out…';try{await window.Clerk.signOut();location.replace(location.pathname);}catch{$('gate-message').textContent='Sign-out failed. Please retry.';}};
+  $('sign-out').onclick=async()=>{if(saving)return;try{if(inline)await persistInline();if(editing)await persistDraft();}catch{return;}++epoch;clearPrivate();$('gate').hidden=false;$('gate-message').textContent='Signing out…';try{await window.Clerk.signOut();await storedCapture('prune','',null,null);location.replace(location.pathname);}catch{$('gate-message').textContent='Sign-out failed. Please retry.';}};
   document.addEventListener('click',async event=>{const target=event.target.closest('[data-key],[data-device],#edit,#add,#empty-add,#refresh,.draft-link');if(!target||!inline||replayingNavigation||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return;event.preventDefault();event.stopImmediatePropagation();if(saving)return;try{await closeInline(false);replayingNavigation=true;target.click();}catch{}finally{replayingNavigation=false;}},true);
   window.addEventListener('beforeunload',e=>{if((inline&&JSON.stringify(inline.value)!==inline.saved)||(dirty()&&JSON.stringify(formValue())!==draftSaved)||saving){e.preventDefault();e.returnValue='';}});
   window.addEventListener('popstate',async()=>{if(!session)return;const destination=location.href;if(saving){history.pushState({},'',lastRoute);return;}try{if(inline)await persistInline();if(editing)await persistDraft();if(location.href!==destination)return;await restoreRoute();}catch{history.pushState({},'',lastRoute);}});
