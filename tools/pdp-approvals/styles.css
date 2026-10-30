@@ -166,3 +166,21 @@ a.record{display:block;text-decoration:none;color:inherit;}
 .capture-meta{font-size:12px;line-height:1.5;margin:12px 0 0}
 #capture-full{display:block;text-align:center;margin-top:8px;padding:8px;color:inherit}
 @media(max-width:760px){.live-preview{height:520px}}
+
+.inline-field{min-width:0;margin:12px 0;text-align:left}
+.inline-label{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:11px;color:#666;margin-bottom:5px}
+.field-edit{padding:3px 7px;min-height:30px;border-color:transparent;border-radius:5px;background:transparent;font-size:12px;font-weight:500;flex-shrink:0}
+.inline-display{font-size:13px;line-height:1.5;overflow-wrap:anywhere;white-space:pre-wrap}
+.inline-display h2{margin:0}.inline-display .action{white-space:normal}
+.field-missing{color:#777}.inline-field.is-editing>.inline-display,.inline-field.is-editing>.inline-label{display:none}
+.field-form{background:#fafafa;border:1px solid #ccc;border-radius:8px;padding:12px}
+.field-form input,.field-form textarea,.field-form select{font:inherit;width:100%;max-width:100%;background:white}
+.field-form select{padding:10px;margin-top:8px;border:1px solid #ccc;border-radius:6px}
+.field-form p{font-size:12px;margin:10px 0}
+.field-actions{display:flex;gap:6px;flex-wrap:wrap}.field-actions button{font-size:12px;min-height:36px;padding:6px 10px}
+.field-actions [data-download]{border:0;background:transparent}
+.record-identity{display:flex;gap:24px;flex-wrap:wrap}.record-identity .inline-field{margin-top:0;min-width:120px}
+.detail-head>div{flex:1;min-width:0}.detail-head .all-fields{font-size:12px;white-space:nowrap}
+#detail>.inline-field{display:inline-block;vertical-align:top;margin:0 20px 12px 0;max-width:100%}
+.pane-inner .inline-field{width:100%}.meta .inline-field{margin:0}
+.evidence>.inline-field{margin-top:20px}

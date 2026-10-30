@@ -1,8 +1,8 @@
 import { query, mutation, action, internalQuery, internalMutation } from './_generated/server';
-import type { QueryCtx } from './_generated/server';
+import type { QueryCtx, MutationCtx } from './_generated/server';
 import { v, type Infer } from 'convex/values';
 import { anyApi } from 'convex/server';
-import { pdpValue } from './pdpApprovalTables';
+import { pdpValue, inlineField, inlineValue } from './pdpApprovalTables';
 
 export async function requireOwner(ctx: Pick<QueryCtx, 'auth'>) {
   const user = await ctx.auth.getUserIdentity();
@@ -37,7 +37,9 @@ export const workspace = query({ args: {}, handler: async ctx => {
   if (records.length > 2000) throw Error('The tracker exceeds its supported size. Contact the site owner.');
   const drafts=await ctx.db.query('pdpApprovalDrafts').withIndex('by_owner_key_device',q=>q.eq('owner',owner)).take(201);
   if(drafts.length>200)throw Error('More than 200 unfinished drafts. Open a draft shortcut to finish your work.');
-  return { records: records.map(exposed), drafts:drafts.map(d=>({key:d.key,device:d.device,name:d.value.name,baseVersion:d.baseVersion,updatedAt:d.updatedAt})) };
+  const fieldDrafts=await ctx.db.query('pdpApprovalFieldDrafts').withIndex('by_owner_key_device_field',q=>q.eq('owner',owner)).take(501);
+  if(fieldDrafts.length>500)throw Error('Too many unfinished field edits. Finish a saved edit before adding more.');
+  return { records: records.map(exposed), fieldDrafts:fieldDrafts.map(d=>({key:d.key,device:d.device,field:d.field,updatedAt:d.updatedAt})), drafts:drafts.map(d=>({key:d.key,device:d.device,name:d.value.name,baseVersion:d.baseVersion,updatedAt:d.updatedAt})) };
 } });
 export const history = query({ args: { key: v.string(), beforeVersion: v.optional(v.number()) }, handler: async (ctx, args) => {
   await requireOwner(ctx); key(args.key);
@@ -46,7 +48,9 @@ export const history = query({ args: { key: v.string(), beforeVersion: v.optiona
   const rows = await ctx.db.query('pdpApprovalHistory').withIndex('by_key_version', q => q.eq('key', args.key).lt('version', before)).order('desc').take(51);
   return { records: rows.slice(0, 50).map(exposed), nextBeforeVersion: rows.length > 50 ? rows[49].version : null };
 } });
-export const save = mutation({ args: { key: v.string(), value: pdpValue, expectedVersion: v.number(), draftDevice:v.optional(v.union(v.literal('desktop'),v.literal('mobile'))), draftVersion:v.optional(v.number()) }, handler: async (ctx, args) => {
+const saveArgs = { key: v.string(), value: pdpValue, expectedVersion: v.number(), draftDevice:v.optional(v.union(v.literal('desktop'),v.literal('mobile'))), draftVersion:v.optional(v.number()) };
+const saveValidator=v.object(saveArgs);
+async function writeRecord(ctx:MutationCtx,args:Infer<typeof saveValidator>){
   const email = await requireOwner(ctx); key(args.key); validate(args.value);
   if (!Number.isSafeInteger(args.expectedVersion) || args.expectedVersion < 0) throw Error('Invalid saved version.');
   const current = await ctx.db.query('pdpApprovals').withIndex('by_key', q => q.eq('key', args.key)).unique();
@@ -68,7 +72,8 @@ export const save = mutation({ args: { key: v.string(), value: pdpValue, expecte
   await ctx.db.insert('pdpApprovalHistory', record);
   if(args.draftDevice && args.draftVersion!==undefined){const draft=await ctx.db.query('pdpApprovalDrafts').withIndex('by_owner_key_device',q=>q.eq('owner',email).eq('key',args.key).eq('device',args.draftDevice!)).unique();if(draft?.version===args.draftVersion)await ctx.db.delete(draft._id);}
   return exposed(record);
-} });
+}
+export const save=mutation({args:saveArgs,handler:writeRecord});
 
 // PDF uploads are private: signed upload URLs accept bytes, but no public read URL is returned.
 export const uploadUrl = mutation({ args: {}, handler: async ctx => { await requireOwner(ctx); return ctx.storage.generateUploadUrl(); } });
@@ -138,4 +143,37 @@ export const captureMetadata=internalQuery({args:{key:v.string()},handler:async(
   await requireOwner(ctx);key(args.key);
   const capture=await ctx.db.query('pdpApprovalCaptures').withIndex('by_key',q=>q.eq('key',args.key)).unique();
   if(!capture)throw Error('Capture not found.');return capture;
+}});
+
+
+const fieldArgs={key:v.string(),device:v.union(v.literal('desktop'),v.literal('mobile')),field:inlineField};
+export const fieldDraft=query({args:fieldArgs,handler:async(ctx,args)=>{const owner=await requireOwner(ctx);key(args.key);const row=await ctx.db.query('pdpApprovalFieldDrafts').withIndex('by_owner_key_device_field',q=>q.eq('owner',owner).eq('key',args.key).eq('device',args.device).eq('field',args.field)).unique();return row?{value:row.value,baseVersion:row.baseVersion,version:row.version}:null;}});
+export const saveFieldDraft=mutation({args:{...fieldArgs,value:inlineValue,baseVersion:v.number(),expectedVersion:v.number()},handler:async(ctx,args)=>{
+ const owner=await requireOwner(ctx);key(args.key);
+ if(typeof args.value==='string'&&args.value.length>10000||!Number.isSafeInteger(args.baseVersion)||args.baseVersion<1||!Number.isSafeInteger(args.expectedVersion)||args.expectedVersion<0)throw Error('Invalid field draft.');
+ const current=await ctx.db.query('pdpApprovalFieldDrafts').withIndex('by_owner_key_device_field',q=>q.eq('owner',owner).eq('key',args.key).eq('device',args.device).eq('field',args.field)).unique();
+ if((current?.version||0)!==args.expectedVersion)throw Error('This field draft changed in another tab. Download your edit before reloading.');
+ const row={owner,key:args.key,device:args.device,field:args.field,value:args.value,baseVersion:args.baseVersion,version:args.expectedVersion+1,updatedAt:Date.now()};
+ if(current)await ctx.db.patch(current._id,row);else await ctx.db.insert('pdpApprovalFieldDrafts',row);return {version:row.version};
+}});
+export const saveField=mutation({args:{...fieldArgs,value:inlineValue,expectedVersion:v.number(),draftVersion:v.number()},handler:async(ctx,args)=>{
+ const owner=await requireOwner(ctx);key(args.key);
+ const current=await ctx.db.query('pdpApprovals').withIndex('by_key',q=>q.eq('key',args.key)).unique();if(!current)throw Error('PDP not found.');
+ const value={...current.value},field=args.field;
+ if(field==='exactMatch'||field==='archived'){if(typeof args.value!=='boolean')throw Error('Choose yes or no.');value[field]=args.value;}
+ else{
+  if(typeof args.value!=='string')throw Error('Enter a text value.');const text=args.value.trim();
+  if(field==='name'||field==='issuer'||field==='publisher'||field==='liveUrl'||field==='notes')value[field]=text;
+  else{
+   const empty={mockupUrl:'',emailUrl:'',approvalDate:'',approvalVersion:'',pdfPage:''};
+   const ref={...(value.references?.[args.device]||(args.device==='desktop'?{mockupUrl:value.mockupUrl,emailUrl:value.emailUrl,approvalDate:value.approvalDate,approvalVersion:value.approvalVersion,pdfPage:value.pdfPage}:empty))};
+   if(field==='fileKey'){if(text){const file=await ctx.db.query('pdpApprovalFiles').withIndex('by_key',q=>q.eq('key',text)).unique();if(!file||file.recordKey!==args.key||file.device!==args.device)throw Error('This PDF belongs to a different PDP or device.');ref.fileKey=text;ref.approvalVersion=file.name;}else delete ref.fileKey;}
+   else if(field==='referenceNotes')ref.notes=text;else ref[field]=text;
+   value.references={...value.references,[args.device]:ref};
+  }
+ }
+ if(field==='issuer'&&/bank\s*of\s*america|\bbofa\b/i.test(value.issuer))value.exactMatch=true;
+ const saved=await writeRecord(ctx,{key:args.key,value,expectedVersion:args.expectedVersion});
+ const draft=await ctx.db.query('pdpApprovalFieldDrafts').withIndex('by_owner_key_device_field',q=>q.eq('owner',owner).eq('key',args.key).eq('device',args.device).eq('field',args.field)).unique();if(draft?.version===args.draftVersion)await ctx.db.delete(draft._id);
+ return saved;
 }});

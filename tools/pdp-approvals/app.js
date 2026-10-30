@@ -19,6 +19,58 @@
   const link = (url, label, cls = 'action') => safeUrl(url) ? `<a class="${cls}" href="${esc(url)}" target="_blank" rel="noopener noreferrer">${esc(label)} ↗</a>` : '';
   function pdfUrl(v) { const url = safeUrl(v.mockupUrl); if (!url || !v.pdfPage || !/\.pdf$/i.test(new URL(url).pathname)) return url; const u = new URL(url); u.hash = 'page=' + v.pdfPage; return u.href; }
   function download(value, name) { const url = URL.createObjectURL(new Blob([JSON.stringify(value, null, 2)], {type:'application/json'})); const a = document.createElement('a'); a.href=url; a.download=name; a.click(); setTimeout(() => URL.revokeObjectURL(url),1000); }
+  const inlineFields={name:['Product name','text',200],issuer:['Issuer','text',200],publisher:['Publisher / site','text',200],liveUrl:['Production page','url',4000],notes:['Notes','textarea',10000],exactMatch:['1:1 match required','boolean'],archived:['Record status','boolean'],mockupUrl:['Mockup source link','url',4000],emailUrl:['Approval email','url',4000],approvalDate:['Approval date','date'],approvalVersion:['Approved version','text',200],pdfPage:['PDF starting page','text',4],referenceNotes:['Reference notes','textarea',10000],fileKey:['Saved PDF','file']};
+  let inline=null,inlineTimer,inlineQueue=Promise.resolve(),fieldDrafts=[],replayingNavigation=false;
+  function inlineValue(value,field,mode=device){const ref=referenceFor(value,mode);return field==='referenceNotes'?ref.notes||'':field==='fileKey'?ref.fileKey||'':referenceFields.includes(field)?ref[field]||'':value[field]??'';}
+  function editable(field,value,display=''){
+    const label=inlineFields[field][0],present=value!==''&&value!==undefined;
+    return `<div class="inline-field" data-field="${field}"><div class="inline-label"><span>${esc(label)}</span><button type="button" class="field-edit" data-inline="${field}" aria-label="${present?'Edit':'Add'} ${esc(label.toLowerCase())}">${present?'Edit':'＋ Add'}</button></div><div class="inline-display">${display||esc(value)||'<span class="field-missing">Not added</span>'}</div><div class="inline-host"></div></div>`;
+  }
+  function evidenceLabel(value){const refs=['desktop','mobile'].map(mode=>referenceFor(value,mode)),mockup=refs.some(ref=>!ref.mockupUrl&&!ref.fileKey),email=refs.some(ref=>!ref.emailUrl);return mockup&&email?'Mockup and approval email missing':mockup?'Mockup missing':email?'Approval email missing':'Evidence linked';}
+  function inlineStatus(text){if(inline?.host?.isConnected)inline.host.querySelector('[data-field-status]').textContent=text;}
+  function persistInline(){
+    clearTimeout(inlineTimer);const state=inline;if(!state)return Promise.resolve();
+    if(state.loading)return state.ready.then(()=>persistInline());
+    if(state.loadError)return Promise.reject(Error('Saved edit could not be loaded. Retry before continuing.'));
+    const value=state.value,current=epoch;
+    inlineQueue=inlineQueue.catch(()=>{}).then(async()=>{
+      if(inline!==state||current!==epoch||JSON.stringify(value)===state.saved)return;
+      inlineStatus('Saving unfinished edit…');
+      try{const saved=await api('saveFieldDraft',{key:state.key,device:state.device,field:state.field,value,baseVersion:state.baseVersion,expectedVersion:state.draftVersion},true);if(inline!==state||current!==epoch)return;state.draftVersion=saved.version;state.saved=JSON.stringify(value);fieldDrafts=fieldDrafts.filter(d=>!(d.key===state.key&&d.device===state.device&&d.field===state.field)).concat({key:state.key,device:state.device,field:state.field});inlineStatus('Unfinished edit saved privately.');}
+      catch(error){if(inline===state)inlineStatus(error.message+' Your edit is still here. Download it to keep a copy.');throw error;}
+    });return inlineQueue;
+  }
+  async function closeInline(updateRoute=true){if(!inline)return;await persistInline();const state=inline;inline=null;clearTimeout(inlineTimer);state.host.replaceChildren();state.host.parentElement.classList.remove('is-editing');if(updateRoute){route({field:null});state.host.parentElement.querySelector('[data-inline]')?.focus({preventScroll:true});}renderList();}
+  async function openInline(field,restoring=false){
+    if(saving||!inlineFields[field])return;if(inline){if(inline.field===field)return;try{await closeInline(false);}catch{return;}}
+    const record=records.find(r=>r.key===selected),host=$('detail').querySelector(`[data-field="${field}"] .inline-host`);if(!record||!host)return;
+    const state=inline={key:record.key,device,field,baseVersion:record.version,value:inlineValue(record.value,field),draftVersion:0,saved:'',host,loading:true,loadError:false};
+    if(!restoring)route({field,edit:null});
+    const [label,type,max]=inlineFields[field];host.parentElement.classList.add('is-editing');host.innerHTML=`<form class="field-form"><label>${esc(label)}${type==='textarea'?'<textarea data-value rows="3"></textarea>':type==='boolean'?`<select data-value><option value="false">${field==='archived'?'Active':'No'}</option><option value="true">${field==='archived'?'Archived':'Yes'}</option></select>`:type==='file'?'<input data-file type="file" accept="application/pdf,.pdf"><p data-file-name></p><button type="button" data-remove>Remove PDF attachment</button>':`<input data-value type="${type}" ${max?'maxlength="'+max+'"':''} ${type==='url'?'placeholder="https://…"':''}>`}</label>${field==='exactMatch'&&isBofa(record.value.issuer)?'<p>Bank of America always requires a 1:1 match.</p>':''}<p data-field-status role="status">Loading saved edit…</p><div class="field-actions"><button type="submit" class="primary" data-save>Save</button><button type="button" data-close>Close</button><button type="button" data-download>Download edit</button></div></form>`;
+    const form=host.querySelector('form'),input=host.querySelector('[data-value]');
+    const lock=locked=>{form.querySelectorAll('input,textarea,select,button').forEach(el=>el.disabled=locked);if(!locked&&field==='exactMatch'&&isBofa(record.value.issuer))input.disabled=true;};
+    const showValue=()=>{if(input)input.value=String(state.value);else host.querySelector('[data-file-name]').textContent=state.value?'A private PDF is attached. Choose a PDF to replace it.':'No saved PDF attached.';};showValue();lock(true);
+    state.ready=(async()=>{try{const draft=await api('fieldDraft',{key:state.key,device:state.device,field});if(inline!==state)return;if(draft){state.value=draft.value;state.baseVersion=draft.baseVersion;state.draftVersion=draft.version;showValue();}state.saved=JSON.stringify(state.value);inlineStatus(draft?'Recovered unfinished edit.':'Only this field will change when you save.');}
+    catch(error){if(inline===state){state.loadError=true;inlineStatus(error.message+' Close and reopen this field to retry.');}}
+    finally{state.loading=false;if(inline===state){lock(false);if(state.loadError){host.querySelector('[data-save]').disabled=true;host.querySelector('[data-close]').onclick=()=>{inline=null;host.replaceChildren();host.parentElement.classList.remove('is-editing');route({field:null});};}else input?.focus();}}})();
+    if(input)input.oninput=()=>{state.value=type==='boolean'?input.value==='true':input.value;inlineStatus('Unsaved edit…');clearTimeout(inlineTimer);inlineTimer=setTimeout(()=>void persistInline().catch(()=>{}),400);};
+    host.querySelector('[data-close]').onclick=()=>void closeInline().catch(()=>{});
+    host.querySelector('[data-download]').onclick=()=>download({record:state.key,device:state.device,field:state.field,value:state.value},'pdp-field-edit.json');
+    form.onkeydown=event=>{if(event.key==='Escape'){event.preventDefault();void closeInline().catch(()=>{});}};
+    form.onsubmit=async event=>{event.preventDefault();if(saving||state.loading||state.loadError)return;saving=true;lock(true);const current=epoch;
+      try{await persistInline();const saved=await api('saveField',{key:state.key,device:state.device,field,value:state.value,expectedVersion:state.baseVersion,draftVersion:state.draftVersion},true);if(current!==epoch||inline!==state)return;records=records.filter(r=>r.key!==saved.key).concat(saved);fieldDrafts=fieldDrafts.filter(d=>!(d.key===state.key&&d.device===state.device&&d.field===field));inline=null;route({field:null});renderList();renderDetail();$('detail').querySelector(`[data-inline="${field}"]`)?.focus({preventScroll:true});$('message').textContent=label+' saved.';}
+      catch(error){if(inline===state)inlineStatus(error.message+' Your edit is still here.');}finally{if(current===epoch){saving=false;if(inline===state)lock(false);}}
+    };
+    if(type==='file'){
+      host.querySelector('[data-remove]').onclick=()=>{state.value='';showValue();void persistInline().catch(()=>{});};
+      host.querySelector('[data-file]').onchange=async event=>{const file=event.target.files[0];if(!file)return;if(file.size>20*1024*1024){inlineStatus('Choose a PDF under 20 MB.');return;}saving=true;lock(true);inlineStatus('Uploading privately…');const current=epoch;
+        try{const url=await api('uploadUrl',{},true);const response=await fetch(url,{method:'POST',headers:{'Content-Type':'application/pdf'},body:file,signal:AbortSignal.timeout(60000)});if(!response.ok)throw Error('Upload failed. Try again.');const {storageId}=await response.json();if(current!==epoch)return;const uploaded=await api('registerFile',{key:crypto.randomUUID(),recordKey:state.key,device:state.device,storageId,name:file.name},'action');if(current!==epoch||inline!==state)return;state.value=uploaded.key;host.querySelector('[data-file-name]').textContent=uploaded.name;await persistInline();}
+        catch(error){if(inline===state)inlineStatus(error.message);}finally{if(current===epoch){saving=false;if(inline===state)lock(false);}}
+      };
+    }
+    await state.ready;
+  }
+
   function formValue() {
     const value=Object.fromEntries(fields.map(f=>[f,$('form').elements[f].value.trim()]));
     const reference=Object.fromEntries(referenceFields.map(f=>[f,value[f]]));
@@ -52,7 +104,7 @@
   function dirty() { return editing && JSON.stringify(formValue()) !== initialForm; }
   function lockForm(locked) { $('form').querySelectorAll('input,textarea,button').forEach(e=>e.disabled=locked); $('cancel-top').disabled=locked; if(!locked)syncStrict(); }
   function clearPrivate() {
-    releasePreviews();clearFileCache();clearTimeout(draftTimer);drafts=[];draftVersion=0;draftSaved='';draftPromise=Promise.resolve();draftFileKey='';records=[]; editing=null; saving=false; lockForm(false); ++loadId;
+    inline=null;clearTimeout(inlineTimer);inlineQueue=Promise.resolve();fieldDrafts=[];releasePreviews();clearFileCache();clearTimeout(draftTimer);drafts=[];draftVersion=0;draftSaved='';draftPromise=Promise.resolve();draftFileKey='';records=[]; editing=null; saving=false; lockForm(false); ++loadId;
     $('workspace').hidden=true; $('editor').hidden=true; $('add').hidden=true; $('detail').replaceChildren(); $('list').replaceChildren(); $('form').reset(); initialForm=''; $('search').value=''; $('message').textContent=''; $('save-message').textContent='';$('draft-status').textContent='';$('draft-list').replaceChildren();
     for (const id of ['total','paired','missing','strict']) $(id).textContent='0';
   }
@@ -74,7 +126,7 @@
   }
   function route(changes={},replace=false){
     const old=new URL(location.href),u=new URL(location.origin+location.pathname);
-    const state={pdp:selected,device,filter:filter==='active'?null:filter,q:$('search').value.trim(),edit:old.searchParams.get('edit'),preview:old.searchParams.get('preview'),history:old.searchParams.get('history'),before:old.searchParams.get('before'),revision:old.searchParams.get('revision'),...changes};
+    const state={pdp:selected,device,filter:filter==='active'?null:filter,q:$('search').value.trim(),edit:old.searchParams.get('edit'),preview:old.searchParams.get('preview'),history:old.searchParams.get('history'),before:old.searchParams.get('before'),revision:old.searchParams.get('revision'),field:old.searchParams.get('field'),...changes};
     if(state.q && (/https?:|@|[?=]/i.test(state.q)||state.q.length>100))state.q=null;
     for(const [key,value]of Object.entries(state))if(value)u.searchParams.set(key,value);
     if(u.href!==location.href)history[replace?'replaceState':'pushState']({},'',u);
@@ -82,11 +134,11 @@
   }
   function readRoute(){const u=new URL(location.href);device=u.searchParams.get('device')==='mobile'?'mobile':'desktop';filter=['active','missing','strict','archived'].includes(u.searchParams.get('filter'))?u.searchParams.get('filter'):'active';selected=u.searchParams.get('pdp');if(selected&&!/^[a-zA-Z0-9_-]{1,100}$/.test(selected))selected=null;$('search').value=(u.searchParams.get('q')||'').slice(0,100);document.querySelectorAll('[data-filter]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.filter===filter)));lastRoute=location.href;}
   async function restoreRoute(){
-    readRoute();const edit=new URL(location.href).searchParams.get('edit');
+    inline=null;readRoute();const edit=new URL(location.href).searchParams.get('edit');
     if(edit==='1'||edit==='new'){const record=records.find(r=>r.key===selected);if(record||edit==='new'){await openEditor(record,true);return;}}
     editing=null;$('form').reset();$('editor').hidden=true;$('workspace').hidden=false;$('add').hidden=false;renderList();renderDetail();
   }
-  function setSelection(key,replace=false){selected=key;route({pdp:key,edit:null,history:null,before:null,revision:null},replace);renderList();renderDetail();}
+  function setSelection(key,replace=false){selected=key;route({pdp:key,edit:null,field:null,history:null,before:null,revision:null},replace);renderList();renderDetail();}
   function persistDraft(){
     clearTimeout(draftTimer);if(!editing)return Promise.resolve();
     const record=editing,mode=device,current=epoch,value=formValue(),snapshot=JSON.stringify(value);
@@ -104,9 +156,10 @@
     const term=$('search').value.toLowerCase().trim();
     const shown=records.filter(r=>{const v=r.value;return (filter==='archived'?v.archived:!v.archived)&&(filter!=='missing'||!linked(v))&&(filter!=='strict'||v.exactMatch)&&[v.name,v.issuer,v.publisher,v.liveUrl,v.approvalVersion].join(' ').toLowerCase().includes(term);}).sort((a,b)=>a.value.issuer.localeCompare(b.value.issuer)||a.value.name.localeCompare(b.value.name));
     $('count').textContent=shown.length+' PDP'+(shown.length===1?'':'s');
-    $('list').innerHTML=shown.map(r=>`<a class="record" href="?pdp=${encodeURIComponent(r.key)}&device=${device}${filter==='active'?'':'&filter='+filter}${$('search').value.trim()&&!/https?:|@|[?=]/i.test($('search').value)?'&q='+encodeURIComponent($('search').value.trim().slice(0,100)):''}" data-key="${esc(r.key)}" aria-current="${r.key===selected}"><strong>${esc(r.value.name)}</strong><small>${esc(r.value.publisher)} · ${esc(r.value.issuer)}</small><span class="badge ${linked(r.value)?'':'warn'}">${linked(r.value)?'Evidence linked':'Missing evidence'}</span>${r.value.exactMatch?' <span class="badge strict">1:1</span>':''}</a>`).join('')||'<p class="empty">No PDPs in this view.</p>';
+    $('list').innerHTML=shown.map(r=>`<a class="record" href="?pdp=${encodeURIComponent(r.key)}&device=${device}${filter==='active'?'':'&filter='+filter}${$('search').value.trim()&&!/https?:|@|[?=]/i.test($('search').value)?'&q='+encodeURIComponent($('search').value.trim().slice(0,100)):''}" data-key="${esc(r.key)}" aria-current="${r.key===selected}"><strong>${esc(r.value.name)}</strong><small>${esc(r.value.publisher)} · ${esc(r.value.issuer)}</small><span class="badge ${linked(r.value)?'':'warn'}">${esc(evidenceLabel(r.value))}</span>${r.value.exactMatch?' <span class="badge strict">1:1</span>':''}</a>`).join('')||'<p class="empty">No PDPs in this view.</p>';
     $('list').querySelectorAll('[data-key]').forEach(b=>b.onclick=event=>{if(event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return;event.preventDefault();setSelection(b.dataset.key);});
     $('draft-list').innerHTML=drafts.length?'<p class="list-label">Unfinished drafts</p>'+drafts.map(d=>`<a class="draft-link" href="?pdp=${encodeURIComponent(d.key)}&device=${d.device}&edit=${d.baseVersion?'1':'new'}">Resume ${esc(d.name||'Untitled PDP')} · ${d.device}</a>`).join(''):'';
+    $('draft-list').innerHTML+=fieldDrafts.map(d=>`<a class="draft-link" href="?pdp=${encodeURIComponent(d.key)}&device=${d.device}&field=${d.field}">Resume ${esc(inlineFields[d.field]?.[0]||'field edit')} · ${esc(records.find(r=>r.key===d.key)?.value.name||'PDP')} · ${d.device}</a>`).join('');
     $('draft-list').querySelectorAll('a').forEach(a=>a.onclick=event=>{if(event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return;event.preventDefault();history.pushState({},'',a.href);void restoreRoute();});
   }
   function renderDetail() {
@@ -114,21 +167,24 @@
     if(!r){releasePreviews();$('detail').innerHTML=`<div class="empty"><div class="symbol">▤</div><h2>${selected?'PDP unavailable':records.length?'Your references, side by side.':'Start your approval library.'}</h2><p>${selected?'This record could not be found in your workspace.':records.length?'Choose a PDP to open its live page, approved mockup, and approval email.':'Add a production page now. Attach its approved mockup and email chain whenever they are ready.'}</p><button class="primary" id="empty-add">＋ Add PDP</button></div>`;$('empty-add').onclick=()=>openEditor();return;}
     const v=r.value, ref=referenceFor(v), modeLabel=device==='desktop'?'Desktop':'Mobile';
     const reopen=new URL(location.href).searchParams.get('preview')!=='0';releasePreviews();
-    $('detail').innerHTML=`<div class="detail-head"><div><p class="eyebrow">${esc(v.issuer)} / ${esc(v.publisher)}</p><h2>${esc(v.name)}</h2><div class="badges"><span class="badge ${linked(v)?'':'warn'}">${linked(v)?'Evidence linked':'Missing evidence'}</span>${v.archived?'<span class="badge">Archived</span>':''}${v.exactMatch?'<span class="badge strict">1:1 match required</span>':''}</div></div><button id="edit">Edit record</button></div>
+    $('detail').innerHTML=`<div class="detail-head"><div><div class="record-identity">${editable('issuer',v.issuer)}${editable('publisher',v.publisher)}</div>${editable('name',v.name,'<h2>'+esc(v.name)+'</h2>')}<div class="badges"><span class="badge ${linked(v)?'':'warn'}">${esc(evidenceLabel(v))}</span>${v.archived?'<span class="badge">Archived</span>':''}${v.exactMatch?'<span class="badge strict">1:1 match required</span>':''}</div></div></div>
+    ${editable('exactMatch',v.exactMatch,v.exactMatch?'Yes':'No')}${editable('archived',v.archived,v.archived?'Archived':'Active')}
     ${v.exactMatch?'<div class="notice"><strong>Exact match required.</strong> Use the approved version as the reference for this PDP. This tracker does not scan or certify the live page.</div>':''}
     <div class="device-controls" role="group" aria-label="Comparison device"><button data-device="desktop" aria-pressed="${device==='desktop'}">Desktop</button><button data-device="mobile" aria-pressed="${device==='mobile'}">Mobile</button><span>${modeLabel} reference and approval evidence</span></div>
     <div class="preview-actions"><p>Approved reference on the left. A timestamped production capture on the right. Use Open live page for the current interactive page.</p><button id="preview" aria-expanded="false" aria-controls="approved-preview live-preview">Show previews</button></div>
     <div class="comparison">
       <div class="comparison-column approved-column">
-        <article class="pane" aria-labelledby="approved-title"><div class="pane-inner"><p class="eyebrow">APPROVED REFERENCE</p><h3 id="approved-title">Approved mockup · ${modeLabel}</h3>${ref.fileKey||ref.mockupUrl?`<p class="url">${esc(ref.approvalVersion||ref.mockupUrl)}${ref.pdfPage?'<br>Starting page '+esc(ref.pdfPage):''}</p>${ref.fileKey?'<button id="saved-pdf">Preview saved PDF</button>':''}${link(pdfUrl(ref),ref.fileKey?'Open source package':'Open approved mockup')}${ref.fileKey?'<button id="download-pdf" class="text-action">Download PDF</button>':''}`:'<p class="missing">No '+esc(device)+' mockup linked yet.</p>'}</div><div id="approved-preview" class="preview-slot" hidden></div></article>
-        <section class="evidence" aria-labelledby="evidence-title"><p class="eyebrow">APPROVAL RECORD</p><h3 id="evidence-title">${modeLabel} approval evidence</h3>${ref.emailUrl?link(ref.emailUrl,'Open approval email chain'):'<p class="badge warn">Approval email is missing</p>'}<dl class="meta"><div><dt>Approval date</dt><dd>${esc(ref.approvalDate||'Not recorded')}</dd></div><div><dt>Approved version</dt><dd>${esc(ref.approvalVersion||'Not recorded')}</dd></div></dl>${ref.notes?`<p class="notes">${esc(ref.notes)}</p>`:''}${v.notes?`<h3>Notes</h3><p class="notes">${esc(v.notes)}</p>`:''}<p class="record-meta">Record revision ${r.version} · Saved ${esc(date(r.updatedAt))}</p><div class="record-actions"><button id="history">View record history</button><button id="copy">Copy PDP shortcut</button></div><div id="history-list" class="history"></div></section>
+        <article class="pane" aria-labelledby="approved-title"><div class="pane-inner"><p class="eyebrow">APPROVED REFERENCE</p><h3 id="approved-title">Approved mockup · ${modeLabel}</h3>${editable('fileKey',ref.fileKey||'',ref.fileKey?'<span>Private PDF attached</span>':'<span class="field-missing">No '+device+' PDF attached</span>')}${ref.fileKey?'<button id="saved-pdf">Preview saved PDF</button><button id="download-pdf" class="text-action">Download PDF</button>':''}${editable('mockupUrl',ref.mockupUrl,ref.mockupUrl?link(pdfUrl(ref),ref.fileKey?'Open source package':'Open approved mockup'):'<span class="field-missing">No '+device+' mockup linked yet.</span>')}${editable('pdfPage',ref.pdfPage)}</div><div id="approved-preview" class="preview-slot" hidden></div></article>
+        <section class="evidence" aria-labelledby="evidence-title"><p class="eyebrow">APPROVAL RECORD</p><h3 id="evidence-title">${modeLabel} approval evidence</h3>${editable('emailUrl',ref.emailUrl,ref.emailUrl?link(ref.emailUrl,'Open approval email chain'):'<span class="field-missing">Approval email missing</span>')}<div class="meta">${editable('approvalDate',ref.approvalDate)}${editable('approvalVersion',ref.approvalVersion)}</div>${editable('referenceNotes',ref.notes||'')}${editable('notes',v.notes)}<p class="record-meta">Record revision ${r.version} · Saved ${esc(date(r.updatedAt))}</p><div class="record-actions"><button id="history">View record history</button><button id="copy">Copy PDP shortcut</button><button id="edit" class="all-fields">All fields</button></div><div id="history-list" class="history"></div></section>
       </div>
       <div class="comparison-column live-column">
-        <article class="pane" aria-labelledby="live-title"><div class="pane-inner"><p class="eyebrow">PRODUCTION CAPTURE</p><h3 id="live-title">Production capture · ${modeLabel}</h3><p class="url">${esc(v.liveUrl)}</p>${link(v.liveUrl,'Open live page')}<p id="capture-meta" class="capture-meta">Saved screenshot, not a live feed.</p><a id="capture-full" class="text-action" target="_blank" rel="noopener noreferrer" hidden>Open capture full size ↗</a></div><div id="live-preview" class="preview-slot live-preview" hidden></div></article><p class="viewport-label">${device==='mobile'?'402 px mobile viewport':'1440 px desktop viewport'} · original page capture</p>
+        <article class="pane" aria-labelledby="live-title"><div class="pane-inner"><p class="eyebrow">PRODUCTION CAPTURE</p><h3 id="live-title">Production capture · ${modeLabel}</h3>${editable('liveUrl',v.liveUrl)}${link(v.liveUrl,'Open live page')}<p id="capture-meta" class="capture-meta">Saved screenshot, not a live feed.</p><a id="capture-full" class="text-action" target="_blank" rel="noopener noreferrer" hidden>Open capture full size ↗</a></div><div id="live-preview" class="preview-slot live-preview" hidden></div></article><p class="viewport-label">${device==='mobile'?'402 px mobile viewport':'1440 px desktop viewport'} · original page capture</p>
       </div>
     </div>`;
     document.querySelectorAll('[data-device]').forEach(button=>button.onclick=()=>{device=button.dataset.device;setSelection(r.key);});
     $('edit').onclick=()=>openEditor(r);
+    $('detail').querySelectorAll('[data-inline]').forEach(b=>b.onclick=()=>void openInline(b.dataset.inline));
+    const requestedField=new URL(location.href).searchParams.get('field');if(inlineFields[requestedField])void openInline(requestedField,true);
     const renderPreviews=async(open,restoring=false)=>{
       route({preview:open?'1':'0'},restoring);releasePreviews();const request=previewEpoch,current=epoch;
       $('preview').textContent=open?'Hide previews':'Show previews';$('preview').setAttribute('aria-expanded',String(open));
@@ -183,7 +239,7 @@
     const key=record?.key||(restoring&&selected)||crypto.randomUUID();
     editing=record?structuredClone(record):{key,version:0,value:Object.fromEntries(fields.map(f=>[f,'']))};
     selected=key;draftVersion=0;draftSaved='';draftPromise=Promise.resolve();
-    if(!restoring)route({pdp:key,edit:record?'1':'new',preview:null,history:null,before:null,revision:null});
+    if(!restoring)route({pdp:key,field:null,edit:record?'1':'new',preview:null,history:null,before:null,revision:null});
     fillEditor();$('save-message').textContent='';$('draft-status').textContent='Checking saved draft…';$('workspace').hidden=true;$('editor').hidden=false;$('add').hidden=true;$('editor-title').textContent=(record?'Edit PDP':'Add PDP')+' · '+(device==='desktop'?'Desktop':'Mobile');lockForm(true);
     try{const draft=await api('draft',{key,device});if(current!==epoch||generation!==editorRequest||editing?.key!==key||device!==mode)return;if(draft){editing.value=draft.value;editing.version=draft.baseVersion;draftVersion=draft.version;fillEditor();draftSaved=JSON.stringify(formValue());$('draft-status').textContent=record&&record.version!==draft.baseVersion?'Recovered draft. The saved PDP has changed; download this draft before reconciling it.':'Recovered your saved draft.';}else{$('draft-status').textContent='Changes are saved as a private draft.';draftSaved=JSON.stringify(formValue());}}
     catch(error){if(current===epoch)$('draft-status').textContent='Could not check saved drafts. '+error.message;}
@@ -192,7 +248,7 @@
   async function closeEditor(){if(saving)return;try{await persistDraft();}catch{return;}const key=records.some(r=>r.key===editing?.key)?editing.key:null;editing=null;$('form').reset();initialForm='';$('editor').hidden=true;$('workspace').hidden=false;$('add').hidden=false;selected=key;route({pdp:key,edit:null,preview:null,history:null,before:null,revision:null});renderList();renderDetail();$('add').focus();}
   async function load() {
     const current=epoch, request=++loadId;$('refresh').disabled=true;$('retry').hidden=true;
-    try {const data=await api('workspace');if(current!==epoch||request!==loadId)return;records=data.records;drafts=data.drafts||[];$('gate').hidden=true;$('sign-in').hidden=true;if(mounted){window.Clerk.unmountSignIn($('sign-in'));mounted=false;}$('workspace').hidden=false;$('add').hidden=false;$('message').textContent='';await restoreRoute();}
+    try {const data=await api('workspace');if(current!==epoch||request!==loadId)return;records=data.records;drafts=data.drafts||[];fieldDrafts=data.fieldDrafts||[];$('gate').hidden=true;$('sign-in').hidden=true;if(mounted){window.Clerk.unmountSignIn($('sign-in'));mounted=false;}$('workspace').hidden=false;$('add').hidden=false;$('message').textContent='';await restoreRoute();}
     catch(error){if(current!==epoch||request!==loadId)return;$('message').textContent=error.message;$('gate-message').textContent=error.message;$('retry').hidden=false;}
     finally{if(current===epoch&&request===loadId)$('refresh').disabled=false;}
   }
@@ -227,9 +283,10 @@
   $('add').onclick=()=>openEditor();$('refresh').onclick=()=>load();$('retry').onclick=()=>session?load():location.reload();$('search').oninput=()=>{route({},true);renderList();};$('form').addEventListener('input',scheduleDraft);$('form').addEventListener('change',scheduleDraft);
   $('export').onclick=()=>download({exportedAt:new Date().toISOString(),records},'pdp-approvals.json');
   document.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>{filter=b.dataset.filter;document.querySelectorAll('[data-filter]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));route({filter:filter==='active'?null:filter});renderList();});
-  $('sign-out').onclick=async()=>{if(saving)return;try{if(editing)await persistDraft();}catch{return;}++epoch;clearPrivate();$('gate').hidden=false;$('gate-message').textContent='Signing out…';try{await window.Clerk.signOut();location.replace(location.pathname);}catch{$('gate-message').textContent='Sign-out failed. Please retry.';}};
-  window.addEventListener('beforeunload',e=>{if((dirty()&&JSON.stringify(formValue())!==draftSaved)||saving){e.preventDefault();e.returnValue='';}});
-  window.addEventListener('popstate',async()=>{if(!session)return;const destination=location.href;if(saving){history.pushState({},'',lastRoute);return;}try{if(editing)await persistDraft();if(location.href!==destination)return;await restoreRoute();}catch{history.pushState({},'',lastRoute);}});
+  $('sign-out').onclick=async()=>{if(saving)return;try{if(inline)await persistInline();if(editing)await persistDraft();}catch{return;}++epoch;clearPrivate();$('gate').hidden=false;$('gate-message').textContent='Signing out…';try{await window.Clerk.signOut();location.replace(location.pathname);}catch{$('gate-message').textContent='Sign-out failed. Please retry.';}};
+  document.addEventListener('click',async event=>{const target=event.target.closest('[data-key],[data-device],#edit,#add,#empty-add,#refresh,.draft-link');if(!target||!inline||replayingNavigation||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return;event.preventDefault();event.stopImmediatePropagation();if(saving)return;try{await closeInline(false);replayingNavigation=true;target.click();}catch{}finally{replayingNavigation=false;}},true);
+  window.addEventListener('beforeunload',e=>{if((inline&&JSON.stringify(inline.value)!==inline.saved)||(dirty()&&JSON.stringify(formValue())!==draftSaved)||saving){e.preventDefault();e.returnValue='';}});
+  window.addEventListener('popstate',async()=>{if(!session)return;const destination=location.href;if(saving){history.pushState({},'',lastRoute);return;}try{if(inline)await persistInline();if(editing)await persistDraft();if(location.href!==destination)return;await restoreRoute();}catch{history.pushState({},'',lastRoute);}});
   window.addEventListener('pageshow',e=>{if(e.persisted){++epoch;clearPrivate();location.reload();}});
   async function start(){try{await new Promise((resolve,reject)=>{const start=Date.now();const check=()=>{if(window.Clerk&&window.__internal_ClerkUICtor)resolve();else if(Date.now()-start>20000)reject(Error('Sign-in could not load. Please retry.'));else setTimeout(check,100);};check();});await Promise.race([window.Clerk.load({ui:{ClerkUI:window.__internal_ClerkUICtor},appearance:{variables:{colorPrimary:'#171717',colorText:'#171717',colorTextSecondary:'#666666',colorBackground:'#ffffff',colorDanger:'#333333',colorSuccess:'#333333',colorWarning:'#555555',colorNeutral:'#333333'}}}),new Promise((_,reject)=>setTimeout(()=>reject(Error('Sign-in timed out.')),20000))]);changed({session:window.Clerk.session});window.Clerk.addListener(changed);}catch(error){$('gate-message').textContent=error.message;$('retry').hidden=false;}}
   void start();
