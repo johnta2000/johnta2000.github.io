@@ -69,6 +69,12 @@
     "title": "Payments — John Ta"
   },
   {
+    "path": "/tools/coffee/compare/",
+    "file": "tools/coffee/compare/index.html",
+    "analytics": false,
+    "title": "Coffee price comparison — John Ta"
+  },
+  {
     "path": "/tools/coffee/",
     "file": "tools/coffee/index.html",
     "analytics": false,

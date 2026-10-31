@@ -1,0 +1,67 @@
+{
+  "capturedDate": "2026-10-31",
+  "currency": "USD",
+  "scope": "Four size-matched Sightglass drinks; direct online pickup is not confirmed in-store pricing.",
+  "cafe": {
+    "id": "sightglass",
+    "name": "Sightglass Coffee",
+    "address": "270 7th Street, San Francisco",
+    "directMenuUrl": "https://sightglasscoffee7thst.toast.site/order/sightglass-coffee-7th-st-270-7th-street",
+    "doorDashUrl": "https://www.doordash.com/store/sightglass-san-francisco-25557305/"
+  },
+  "items": [
+    {
+      "name": "Cappuccino",
+      "menuName": "CAPPUCCINO",
+      "sizeOz": 8,
+      "directPrice": 6.25,
+      "doorDashPrice": 7.25,
+      "directItemUrl": "https://sightglasscoffee7thst.toast.site/order/sightglass-coffee-7th-st-270-7th-street/item-cappuccino_0f7e7e9e-5aaa-479d-8c13-5e0fbb708fb3"
+    },
+    {
+      "name": "Latte",
+      "menuName": "LATTE",
+      "sizeOz": 10,
+      "directPrice": 6.75,
+      "doorDashPrice": 7.75,
+      "directItemUrl": "https://sightglasscoffee7thst.toast.site/order/sightglass-coffee-7th-st-270-7th-street/item-latte_1d0c36a8-aa18-4e37-a634-aadcadd933df"
+    },
+    {
+      "name": "Iced latte",
+      "menuName": "ICED LATTE",
+      "sizeOz": 12,
+      "directPrice": 6.75,
+      "doorDashPrice": 7.75,
+      "directItemUrl": "https://sightglasscoffee7thst.toast.site/order/sightglass-coffee-7th-st-270-7th-street/item-iced-latte_b8063259-28f5-47a5-a2b4-fd120fc47db9"
+    },
+    {
+      "name": "Quick Cup drip",
+      "menuName": "QUICK CUP DRIP",
+      "sizeOz": 10,
+      "directPrice": 4.75,
+      "doorDashPrice": 5.75,
+      "directItemUrl": "https://sightglasscoffee7thst.toast.site/order/sightglass-coffee-7th-st-270-7th-street/item-quick-cup-drip_a40ff825-5e51-47f1-9b4b-e164d0ccc986"
+    }
+  ],
+  "priceBasis": "Base price, one drink, no paid add-ons; before tax, fees, tips or rewards. Portion confirmed in both live item details. Counter prices remain unverified.",
+  "sourcesChecked": [
+    {
+      "cafe": "Delah",
+      "sourceType": "official_posted_menu",
+      "url": "https://delahcoffee.com/delah-menu/",
+      "status": "Menu photos available; branch and effective date unconfirmed. Not used for counter-price comparisons."
+    },
+    {
+      "cafe": "Philz",
+      "sourceType": "official_order_link",
+      "url": "https://philzcoffee.com/locations/potrero",
+      "status": "Official order link goes to a DoorDash-powered storefront. Does not establish register price."
+    },
+    {
+      "cafe": "Binge",
+      "sourceType": "official_order_link",
+      "url": "https://www.bingecoffeehouse.com/",
+      "status": "Official order link is the Berkeley Bancroft location; Valencia counter prices remain unconfirmed."
+    }
+  ]
+}
