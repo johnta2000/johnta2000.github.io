@@ -12,7 +12,7 @@
   function state() {
     const p = new URLSearchParams(location.search);
     return {
-      cafe: ['delah','sightglass','philz','binge'].includes(p.get('cafe')) ? p.get('cafe') : 'all',
+      cafe: ['delah','sightglass','philz','binge','nirvana','reveille'].includes(p.get('cafe')) ? p.get('cafe') : 'all',
       kind: ['drinks','food','pantry'].includes(p.get('kind')) ? p.get('kind') : 'all',
       source: ['store','online'].includes(p.get('source')) ? p.get('source') : 'all',
       q: p.get('q') || '', compared: p.get('compared') === '1',
@@ -43,9 +43,10 @@
     let count = 0, both = 0;
     const fragment = document.createDocumentFragment();
     for (const row of sorted) {
-      const visible = (s.cafe === 'all' || row.dataset.cafe === s.cafe) && (s.kind === 'all' || row.dataset.kind === s.kind) && (s.source === 'all' || row.dataset.source === s.source) && (!s.compared || row.dataset.direct !== '') && terms.every(term=>row.searchText.includes(term));
+      const hasBoth = row.dataset.direct !== '' && row.dataset.dd !== '';
+      const visible = (s.cafe === 'all' || row.dataset.cafe === s.cafe) && (s.kind === 'all' || row.dataset.kind === s.kind) && (s.source === 'all' || row.dataset.source === s.source) && (!s.compared || hasBoth) && terms.every(term=>row.searchText.includes(term));
       row.hidden = !visible;
-      if (visible) { count++; if (row.dataset.direct !== '') both++; }
+      if (visible) { count++; if (hasBoth) both++; }
       fragment.append(row);
     }
     tbody.append(fragment);

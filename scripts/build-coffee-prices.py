@@ -11,6 +11,26 @@ page = (ROOT / 'index.html').read_text()
 seen = set()
 e = html.escape
 
+# A café can have a photographed menu even when no exact-branch DoorDash
+# listing is available. Keep those items searchable without inventing DD prices.
+page = re.sub(r'<tr data-direct-only="true"[\s\S]*?</tr>\s*', '', page)
+extra_rows = []
+for item in data['items']:
+    if not item.get('directOnly'):
+        continue
+    source = data['sources'][item['sourceId']]
+    name, cafe = e(item['menuName']), e(source['cafeName'])
+    extra_rows.append(
+        f'<tr data-direct-only="true" data-cafe="{e(item["cafe"])}" '
+        f'data-kind="{e(item["kind"])}" data-name="{name}" '
+        f'data-category="{e(item["category"])}" data-dd="" data-direct="" data-diff="">'
+        f'<th scope="row">{name}<small class="mobile-meta">{cafe}</small></th>'
+        f'<td class="cafe-col">{cafe}</td><td class="size-col">—</td>'
+        '<td class="price"><span title="Exact-branch DoorDash price not verified">—</span></td>'
+        '<td class="price">—</td><td class="price difference">—</td></tr>'
+    )
+page = page.replace('</tbody>', '\n'.join(extra_rows) + '</tbody>')
+
 def update(match):
     row = match.group()
     attrs = dict(re.findall(r'data-([\w-]+)="([^"]*)"', row.split('>')[0]))
@@ -21,11 +41,12 @@ def update(match):
     seen.add(key)
     source = data['sources'][item['sourceId']]
     price = item['directPrice']
-    diff = round(float(attrs['dd']) - price, 2) if item['sizeMatched'] else None
+    diff = round(float(attrs['dd']) - price, 2) if item['sizeMatched'] and attrs['dd'] else None
     row = re.sub(r'data-direct="[^"]*"', f'data-direct="{price:g}"', row)
     row = re.sub(r'data-diff="[^"]*"', f'data-diff="{diff:g}"' if diff is not None else 'data-diff=""', row)
     row = re.sub(r' data-source="[^"]*"', '', row)
-    row = row.replace('<tr ', f'<tr data-source="{source["channel"]}" ', 1)
+    # Keep the direct-only marker first so rerunning this builder is idempotent.
+    row = row.replace(' data-cafe=', f' data-source="{source["channel"]}" data-cafe=', 1)
     cells = re.findall(r'<td\b[^>]*>.*?</td>', row)
     assert len(cells) == 5
     size = item['size']
@@ -49,6 +70,8 @@ def update(match):
 
 page = re.sub(r'<tr data-[\s\S]*?</tr>', update, page)
 assert seen == set(prices), set(prices) - seen
-page = re.sub(r'285 items · \d+ with both prices', f'285 items · {len(seen)} with both prices', page)
+total = len(re.findall(r'<tr data-', page))
+both = sum(not i.get('directOnly') for i in data['items'])
+page = re.sub(r'\d+ items · \d+ with both prices', f'{total} items · {both} with both prices', page)
 (ROOT / 'index.html').write_text(page)
 print(f'Updated {len(seen)} sourced prices; {sum(i["sizeMatched"] for i in data["items"])} size-matched differences.')
