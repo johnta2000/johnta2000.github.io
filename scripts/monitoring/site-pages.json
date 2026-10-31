@@ -69,6 +69,12 @@
     "title": "Payments — John Ta"
   },
   {
+    "path": "/tools/coffee/",
+    "file": "tools/coffee/index.html",
+    "analytics": false,
+    "title": "Coffee, decided. — John Ta"
+  },
+  {
     "path": "/tools/costco/",
     "file": "tools/costco/index.html",
     "analytics": false,
