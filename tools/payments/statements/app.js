@@ -16,33 +16,70 @@ function saved(){
  $('save-status').classList.toggle('error',!!warning);
 }
 let order='newest',kindFilter='all',dateFrom='',dateTo='';
+const kindNames={purchase:'Purchases',credit:'Credits & refunds',payment:'Payments',fee:'Fees',interest:'Interest',opening:'Opening balance'};
+const pickers=Object.fromEntries(['sort-order','filter-assignment','filter-kind','filter-period'].map(id=>[id,SearchableSelect.enhance($(id))]));
 let linkedView=new URLSearchParams(location.hash.split('&').slice(1).join('&')).has('view');
+const linkParams=()=>new URLSearchParams(location.hash.split('&').slice(1).join('&'));
 function readLinkView(){
- const params=new URLSearchParams(location.hash.split('&').slice(1).join('&'));
+ const params=linkParams();
  order=['newest','oldest','amount','type'].includes(params.get('sort'))?params.get('sort'):'newest';
  kindFilter=['purchase','credit','payment','fee','interest','opening'].includes(params.get('type'))?params.get('type'):'all';
  dateFrom=/^\d{4}-\d{2}-\d{2}$/.test(params.get('from'))?params.get('from'):'';
  dateTo=/^\d{4}-\d{2}-\d{2}$/.test(params.get('to'))?params.get('to'):'';
  filter=normalizeFilter(params.get('view')||data?.view?.filter);
 }
-function writeLinkView(replace=false){
+function writeLinkView(replace=false,panel=$('filters-dialog').open){
  const params=new URLSearchParams({view:filter,sort:order});
  if(kindFilter!=='all')params.set('type',kindFilter);
  if(dateFrom)params.set('from',dateFrom);if(dateTo)params.set('to',dateTo);
+ if(panel)params.set('panel','filters');
  history[replace?'replaceState':'pushState'](null,'',location.pathname+location.search+'#'+token+'&'+params);
  linkedView=true;
 }
 readLinkView();
-addEventListener('popstate',()=>{readLinkView();if(data)renderRows();});
+addEventListener('popstate',()=>{readLinkView();if(data){restoreFilterPanel();renderRows();}});
 function effectiveFilter(){return filter;}
-function normalizeFilter(value){return value==='auto'?'unassigned':value||'unassigned';}
+function normalizeFilter(value){return ['all','unassigned',...people].includes(value)?value:'unassigned';}
 function syncViewControls(){
  const current=effectiveFilter();
  for(const b of document.querySelectorAll('[data-filter]')){const active=b.dataset.filter===current;b.classList.toggle('active',active);b.setAttribute('aria-pressed',String(active));}
- $('view-summary').textContent='Newest first by default. Date, type and sort are kept in this link; search saves privately with the shared review.';
- for(const b of document.querySelectorAll('[data-sort]')){b.setAttribute('aria-pressed',String(b.dataset.sort===order));b.classList.toggle('active',b.dataset.sort===order);}
- for(const b of document.querySelectorAll('[data-kind]')){b.setAttribute('aria-pressed',String(b.dataset.kind===kindFilter));b.classList.toggle('active',b.dataset.kind===kindFilter);}
- $('date-from').value=dateFrom;$('date-to').value=dateTo;
+ $('sort-order').value=order;pickers['sort-order'].sync();
+ const chips=$('active-filters');chips.replaceChildren();
+ function chip(label,remove){const b=el('button',label);b.type='button';b.append(el('span','×','chip-close'));b.setAttribute('aria-label','Remove '+label+' filter');b.onclick=()=>{remove();writeLinkView();renderRows();queueView();};chips.append(b);}
+ if(people.includes(filter))chip(title(filter),()=>{filter='all';});
+ if(kindFilter!=='all')chip(kindNames[kindFilter],()=>{kindFilter='all';});
+ if(dateFrom||dateTo){const year=dateFrom.slice(0,4);const label=dateFrom===year+'-01-01'&&dateTo===year+'-12-31'?year:dateFrom&&dateTo?dateFrom+' – '+dateTo:dateFrom?'From '+dateFrom:'Through '+dateTo;chip(label,()=>{dateFrom='';dateTo='';});}
+ const count=chips.children.length;
+ $('filter-count').textContent=count;$('filter-count').hidden=!count;
+ if(count||$('search').value){const clear=el('button','Clear all','clear-all');clear.id='clear-filters';clear.onclick=()=>{kindFilter='all';dateFrom='';dateTo='';filter='all';$('search').value='';writeLinkView();renderRows();queueView();};chips.append(clear);}
+ chips.hidden=!chips.children.length;
+}
+
+function setPicker(id,value){$(id).value=value;pickers[id].sync();}
+function showFilterPanel(navigate=true){
+ if(!data)return;
+ const period=$('filter-period');period.replaceChildren(new Option('All dates','all'));
+ for(const year of [...new Set(data.rows.map(r=>r.date.slice(0,4)))].sort().reverse())period.add(new Option(year,year));
+ period.add(new Option('Custom dates','custom'));
+ setPicker('filter-assignment',filter);setPicker('filter-kind',kindFilter);
+ const year=dateFrom.slice(0,4),fullYear=dateFrom===year+'-01-01'&&dateTo===year+'-12-31'&&[...period.options].some(o=>o.value===year);
+ setPicker('filter-period',fullYear?year:dateFrom||dateTo?'custom':'all');
+ $('date-from').value=dateFrom;$('date-to').value=dateTo;$('custom-dates').hidden=period.value!=='custom';$('filter-error').hidden=true;
+ if(!$('filters-dialog').open)$('filters-dialog').showModal();
+ if(navigate)writeLinkView(false,true);
+ updateFilterPreview();
+}
+function closeFilterPanel(navigate=true){
+ $('filters-dialog').close();$('open-filters').focus({preventScroll:true});
+ if(navigate)writeLinkView(true,false);
+}
+function restoreFilterPanel(){if(linkParams().get('panel')==='filters'){if(!$('filters-dialog').open)showFilterPanel(false);}else if($('filters-dialog').open)closeFilterPanel(false);}
+function matchesView(r,assignment,kind,from,to,search){return (assignment==='all'||assignment==='unassigned'&&!r.allocation||people.includes(assignment)&&(r.allocation?.[assignment]??0)!==0)&&(kind==='all'||r.kind===kind)&&(!from||r.date>=from)&&(!to||r.date<=to)&&(!search||`${r.description} ${r.date} ${r.note} ${money(r.amountCents)}`.toLowerCase().includes(search));}
+function updateFilterPreview(){
+ const from=$('date-from').value,to=$('date-to').value,invalid=!!(from&&to&&from>to);
+ $('filter-error').hidden=!invalid;$('filter-error').textContent=invalid?'Choose an end date on or after the start date.':'';$('apply-filters').disabled=invalid;
+ const count=data.rows.filter(r=>matchesView(r,$('filter-assignment').value,$('filter-kind').value,from,to,$('search').value.toLowerCase().trim())).length;
+ $('apply-filters').textContent=`Show ${count} ${count===1?'transaction':'transactions'}`;
 }
 function updateTotals(){
  const totals={parents:0,john:0,jevin:0,other:0,unassigned:0};let assigned=0;
@@ -74,14 +111,14 @@ function render(){
  const kinds={opening:'Opening balance',purchase:'Purchases',credit:'Credits & adjustments',payment:'Card payments',fee:'Fees',interest:'Interest'};
  $('breakdown').replaceChildren();for(const [kind,label] of Object.entries(kinds)){const sum=data.rows.filter(r=>r.kind===kind).reduce((s,r)=>s+r.amountCents,0);if(!sum)continue;const n=el('div',undefined,'breakdown-row');n.append(el('span',label),el('strong',money(sum)));$('breakdown').append(n);}
  const sum=data.rows.reduce((s,r)=>s+r.amountCents,0);$('reconciled').textContent=sum===data.balanceCents?'✓ Reconciled':'Needs review';
- renderRows();
+ renderRows();restoreFilterPanel();
 }
 function renderRows(){
  syncViewControls();
  const root=$('transactions');root.replaceChildren();const search=$('search').value.toLowerCase().trim(),current=effectiveFilter();
- const rows=data.rows.filter(r=>(current==='all'||current==='unassigned'&&!r.allocation||people.includes(current)&&r.allocation?.[current]!==0&&r.allocation?.[current]!==undefined)&&(kindFilter==='all'||r.kind===kindFilter)&&(!dateFrom||r.date>=dateFrom)&&(!dateTo||r.date<=dateTo)&&(!search||`${r.description} ${r.date} ${r.note} ${money(r.amountCents)}`.toLowerCase().includes(search)));
+ const rows=data.rows.filter(r=>matchesView(r,current,kindFilter,dateFrom,dateTo,search));
  rows.sort((a,b)=>(order==='amount'?Math.abs(b.amountCents)-Math.abs(a.amountCents):order==='oldest'?a.date.localeCompare(b.date):b.date.localeCompare(a.date))||a.page-b.page||a._id.localeCompare(b._id));
- $('result-count').textContent=`Showing ${rows.length} of ${data.rows.length} items · ${money(rows.reduce((sum,r)=>sum+r.amountCents,0))} net`;
+ $('result-count').textContent=`${rows.length} of ${data.rows.length} · ${money(rows.reduce((sum,r)=>sum+r.amountCents,0))} net`;
  const groups=[['purchase','Purchases',''],['credit','Credits & adjustments',data.sourceType==='csv'?'Assign refunds to the person whose purchase they offset.':'Assign the rent adjustment to the same person as the corresponding rent charge if it offsets that charge.'],['fee','Fees',''],['interest','Interest',''],['opening','Opening balance','Allocate the carried balance based on the previous month’s split.'],['payment','Card payments','Assign payments to the share they paid down. They reduce the amount still owed.']];
  if(order!=='type'){for(const r of rows)root.append(row(r));}
  else for(const [kind,label,help] of groups){const group=rows.filter(r=>r.kind===kind);if(!group.length)continue;const heading=el('div',undefined,'group-heading');heading.append(el('h2',label),el('span',`${group.length} ${group.length===1?'item':'items'} · ${money(group.reduce((s,r)=>s+r.amountCents,0))}`));root.append(heading);if(help)root.append(el('p',help,'group-help'));for(const r of group)root.append(row(r));}
@@ -198,10 +235,17 @@ async function syncSharedView(){
  finally{viewReading=false;}
 }
 for(const b of document.querySelectorAll('[data-filter]'))b.onclick=()=>{filter=b.dataset.filter;writeLinkView();renderRows();queueView();};
-for(const b of document.querySelectorAll('[data-sort]'))b.onclick=()=>{order=b.dataset.sort;writeLinkView();renderRows();};
-for(const b of document.querySelectorAll('[data-kind]'))b.onclick=()=>{kindFilter=b.dataset.kind;writeLinkView();renderRows();};
-for(const id of ['date-from','date-to'])$(id).onchange=()=>{dateFrom=$('date-from').value;dateTo=$('date-to').value;writeLinkView();renderRows();};
-$('clear-filters').onclick=()=>{kindFilter='all';dateFrom='';dateTo='';filter='all';$('search').value='';writeLinkView();renderRows();queueView();};
+$('sort-order').onchange=()=>{order=$('sort-order').value;writeLinkView();renderRows();};
+$('open-filters').onclick=()=>showFilterPanel();
+$('close-filters').onclick=()=>closeFilterPanel();
+$('filters-dialog').addEventListener('cancel',e=>{e.preventDefault();closeFilterPanel();});
+let filterBackdropPress=false;
+$('filters-dialog').addEventListener('pointerdown',e=>{filterBackdropPress=e.target===$('filters-dialog');});
+$('filters-dialog').addEventListener('click',e=>{if(filterBackdropPress&&e.target===$('filters-dialog'))closeFilterPanel();filterBackdropPress=false;});
+$('filter-period').onchange=()=>{const value=$('filter-period').value;$('custom-dates').hidden=value!=='custom';if(value==='all'){$('date-from').value='';$('date-to').value='';}else if(value!=='custom'){$('date-from').value=value+'-01-01';$('date-to').value=value+'-12-31';}updateFilterPreview();};
+for(const id of ['filter-assignment','filter-kind','date-from','date-to'])$(id).addEventListener('change',updateFilterPreview);
+$('reset-filter-draft').onclick=()=>{setPicker('filter-assignment','all');setPicker('filter-kind','all');setPicker('filter-period','all');$('date-from').value='';$('date-to').value='';$('custom-dates').hidden=true;updateFilterPreview();};
+$('filters-form').onsubmit=e=>{e.preventDefault();updateFilterPreview();if($('apply-filters').disabled)return;filter=$('filter-assignment').value;kindFilter=$('filter-kind').value;dateFrom=$('date-from').value;dateTo=$('date-to').value;closeFilterPanel(false);writeLinkView(true,false);renderRows();queueView();};
 $('search').oninput=()=>{if(data){renderRows();queueView(200);}};
 $('export').onclick=()=>{const cell=(value,index)=>'"'+String(value??'').replace(index===1||index===people.length+5?/^[=+@\t\r-]/:/^[=+@\t\r]/,"'$&").replaceAll('"','""')+'"';const rows=[['Date','Description','Type','Amount',...people.map(title),'Unassigned','Note',data.sourceType==='csv'?'CSV row':'PDF page'],...data.rows.map(r=>[r.date,r.description,r.kind,(r.amountCents/100).toFixed(2),...people.map(p=>r.allocation?((r.allocation[p]??0)/100).toFixed(2):''),r.allocation?'':(r.amountCents/100).toFixed(2),r.note,r.page])];const url=URL.createObjectURL(new Blob(['\uFEFF'+rows.map(r=>r.map(cell).join(',')).join('\r\n')],{type:'text/csv;charset=utf-8'}));const a=el('a');a.href=url;a.download='statement-split.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};
 async function manager(){
