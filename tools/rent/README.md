@@ -1,6 +1,6 @@
 # Rent
 
-Private shared rent calculations and payment history at `/tools/rent/`. Every public Convex function enforces an exact allowlist of `vivek@affil.ai`, `cyin7890@gmail.com`, `john@affil.ai`, and `johnta2018@gmail.com`. All four accounts use the existing Clerk production instance and share one rent workspace. The site issuer's verified email-code sessions may omit `email_verified`; explicit false or an untrusted issuer without verification is rejected. The static page contains no apartment inputs or payment records. Data is not persisted in browser storage.
+Private shared rent calculations and payment history at `/tools/rent/`. Every public Convex function enforces an exact allowlist of `vivek@affil.ai`, `cyin7890@gmail.com`, `john@affil.ai`, and `johnta2018@gmail.com`. All four accounts use the existing Clerk production instance and share one rent workspace. The site issuer's verified email-code sessions may omit `email_verified`; explicit false or an untrusted issuer without verification is rejected. The static page contains no apartment inputs or payment records. Saved records remain in the shared backend. Per-account drafts sync privately to the backend; IndexedDB retains recoverable drafts and pending upload bytes on the device. Signing out clears private UI.
 
 ## Monthly workflow
 
@@ -34,7 +34,7 @@ The workbook's 54 resident-month calculated values were independently compared w
 
 ## Payment evidence and utility statements
 
-Received bars are solid teal; outstanding bars use amber diagonal hatching. Rent amounts stay in compact rectangular cells. A discreet top-right screenshot icon opens proof and individual receipt checkboxes; a tiny checkmark beside the icon and green shading indicate that all receipts in the cell are checked. Multiple receipts remain separately checkable inside the proof view. Payment activity retains the audit history. A screenshot may be linked to multiple receipts without adding to the recorded amounts. Changing a monthly total preserves evidence on the original, voided entries; replacement totals start unchecked.
+Received bars are solid teal; outstanding bars use amber diagonal hatching. Rent amounts stay in compact rectangular cells. A discreet top-right screenshot icon opens one amount-and-attachment panel; a tiny checkmark beside the icon and green shading indicate that all receipts in the cell are checked. Multiple receipts remain separately checkable inside the proof view. Payment activity retains the audit history. A screenshot may be linked to multiple receipts without adding to the recorded amounts. Changing a monthly total preserves evidence on the original, voided entries; replacement totals start unchecked.
 
 `rentRecords` authorizes the same four rent accounts. `/rent-file` authenticates every upload and download, validates file signatures and size (15 MB), serves private bytes with no-store headers, and never returns a public storage URL. Upload retries reuse a request key. Full-size screenshot previews and PDF previews are cleared on sign-out. Existing screenshots can be reused from the receipt view. Unmatched imported transfers remain accessible from the rent ledger toolbar; there is no standalone proof library.
 
@@ -52,3 +52,14 @@ Payment proof row flags
 Open a payment’s proof from its ledger cell, then use **Flag payment row**. Tap the matching row or adjust the position/height sliders; save the flag. Flags use normalized image coordinates so they track the same source row at every screen size. The full original remains downloadable without annotations.
 
 Each flag belongs to one file/payment pair. `rentProofMarks` stores append-only, versioned edits and removals with the authenticated editor and timestamp; `setProofMark` validates the file link, image type, active receipt, bounds, and expected version. It never changes receipt totals or confirmation status. Private overview access uses the same Rent allowlist. Older flags remain associated with superseded receipts rather than transferring to replacement totals automatically.
+
+
+## Quick capture and draft recovery
+
+Paste a screenshot into any received cell, drop one or more screenshots/PDFs onto the cell, or use its corner control even before a monthly amount is saved. The panel combines the total received, attachments, and an explicit payment check. Save changes saves all pending ledger edits and links files to their resulting receipts. Multiple existing receipts require an explicit receipt choice. Uploads alone never change totals or confirm payment. Existing saved attachments and row flags remain available through the panel.
+
+`rentDrafts` stores versioned, per-account workspace drafts in `rentWorkspaceDrafts`, enforcing the existing Rent allowlist and compare-and-set conflict detection. Pending upload bytes remain in IndexedDB until uploaded privately; uploaded file IDs and drafts restore on another device signed into the same account. Upload/link retries retain stable IDs, so partial saves do not duplicate payments. Concurrent draft conflicts expose Keep this draft / Load saved draft recovery; both copies are retained locally before resolving.
+
+Year, month, utility year and record/editor views use stable query parameters with opaque record IDs; no financial contents enter URLs. Authentication retains the requested URL. Back/Forward, refresh, copied links, backdrop/Escape dismissal and recovery are covered with synthetic desktop/mobile browser tests.
+
+Use `node scripts/rent/deploy-drafts.cjs` for a dry run or add `--publish` for the draft-only backend release. This snapshots the current live deployment, preserves unrelated modules and tables, and adds only the draft functions/table. Never deploy the whole dirty local checkout.

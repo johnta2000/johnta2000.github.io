@@ -1,3 +1,4 @@
+import { rentDraftTables } from './rentDraftTables';
 import { pdpApprovalTables } from './pdpApprovalTables';
 import {andrewTables} from "./andrewTables";
 import { costcoTables } from './costcoTables';
@@ -19,6 +20,7 @@ import { rentTables } from "./rentTables";
 import { sleepTables } from "./sleepTables";
 
 export default defineSchema({
+  ...rentDraftTables,
   ...pdpApprovalTables,
   ...andrewTables,
   ...costcoTables,

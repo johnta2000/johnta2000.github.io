@@ -9,9 +9,15 @@
   const button = (label, fn, className = 'quiet') => { const b = node('button', label, className); b.type = 'button'; b.onclick = fn; return b; };
   let session = null, sessionId, epoch = 0, serial = 0, mounted = false, data = null, calc = null, totals = null, busy = false, dirty = false, picker;
   let paymentTarget, configTarget, voidTarget, paymentAttempt, configAttempt, noteAttempt;
-  const sheet = RentSheet({ root: $('rent-sheet'), save: args => call('mutation', 'saveGrid', args), refreshed: () => refresh(), selectMonth: month => navigate(month), cellControls:(month,payer)=>records.cellControls(month,payer),reviewCount:()=>records.unmatchedCount(),reviewProof:()=>records.openUnmatched(),canEdit: () => { if (dirty || busy || records.hasChanges()) { notice('Save your monthly note or finish the pending save before editing the sheet.'); return false; } return true; } });
-  const records = RentRecords({root:$('rent-records'),call:(kind,name,args)=>call(kind,'rentRecords:'+name,args),fileRequest,refresh,canEdit:()=>{if(busy||dirty||sheet.hasChanges()){notice('Save your rent edits before changing documents or payment checks.');return false;}return true;}});
-  $('month').value = localDate().slice(0, 7);
+  const workspace=RentWorkspace({call,status:(text,conflict=false)=>{$('draft-sync').textContent=text;$('draft-conflict').hidden=!conflict;}});
+  let capture;
+  let latestLedger={months:[],payments:[]},latestDocuments={files:[]},applyingRoute=false,routeQueued=false;
+  const sheet = RentSheet({ root: $('rent-sheet'), save: args => call('mutation', 'saveGrid', args), refreshed: () => refresh(), selectMonth: month => navigate(month), cellControls:(month,payer)=>captureControl(month,payer),workspace,requestSave:()=>capture.save(),attachmentCount:()=>capture?.count()||0,attachFiles:(files,m,p)=>capture.add(files,m,p),reviewCount:()=>records.unmatchedCount(),reviewProof:()=>records.openUnmatched(),canEdit: () => { if (dirty || busy || records.hasChanges()) { notice('Save your monthly note or finish the pending save before editing the sheet.'); return false; } return true; } });
+  const records = RentRecords({root:$('rent-records'),workspace,call:(kind,name,args)=>call(kind,'rentRecords:'+name,args),fileRequest,refresh,canEdit:()=>{if(busy||dirty||sheet.hasChanges()){notice('Save your rent edits before changing documents or payment checks.');return false;}return true;}});
+  capture=RentCapture({sheet,workspace,call,fileRequest,refresh,review:(m,p)=>records.openPayments(m,p),canOpen:()=>{if(busy||dirty||records.hasChanges()){notice('Save your note or finish the active edit first.');return false;}return true;}});
+  for(const [id,useRemote] of [['draft-keep',false],['draft-remote',true]])$(id).onclick=async()=>{try{await workspace.resolve(useRemote);capture.close(false);capture.restore();sheet.restore();records.restore();await refresh(true);await applyRoute();}catch(e){notice(e.message);}};
+  function captureControl(m,p){const wrap=records.cellControls(m,p);let b=wrap.querySelector('button');if(!b){b=button('＋',()=>capture.open(m,p),'cell-proof empty-proof');b.setAttribute('aria-label',`${monthLabel(m)} ${p===3?'Affil':latestLedger.months.at(-1)?.config.people[p]?.name||'Resident'} payment and screenshots`);wrap.append(b);}else b.onclick=()=>capture.open(m,p);b.title='Amount, screenshots, and payment check';return wrap;}
+  $('month').value = /^20\d{2}-(0[1-9]|1[0-2])$/.test(RentRoute.read().month||'')?RentRoute.read().month:localDate().slice(0, 7);
   function notice(value = '') { $('notice').textContent = value; $('notice').hidden = !value; }
   function message(e) { return e.message?.match(/(?:This month changed[^\n]*|This imported payment[^\n]*|Enter [^\n]*|Parking credit[^\n]*|Affil contribution[^\n]*|Room adjustments[^\n]*|Save the month[^\n]*)/)?.[0] || 'Couldn’t save. Your changes are still here. Try again.'; }
   async function token(current) {
@@ -39,22 +45,22 @@
   }
   function lock(value) { busy = value; document.querySelectorAll('#app button, dialog button[type=submit], #month').forEach(n => n.disabled = value); sheet.setLocked(value); records.setLocked(value); if(value)$('sync').textContent='Saving…'; else if($('sync').textContent==='Saving…')$('sync').textContent=''; }
   function clearPrivate() {
-    sheet.clear(); records.clear();
+    workspace.clear();capture?.clear();sheet.clear(); records.clear();
     ++serial; data = calc = totals = null; busy = dirty = false; paymentTarget = configTarget = voidTarget = paymentAttempt = configAttempt = noteAttempt = null;
     document.querySelectorAll('dialog').forEach(d => d.close());
     document.querySelectorAll('dialog input, dialog textarea, #note').forEach(n => n.value = '');
     ['people','breakdown','method','payments','history','source-payments','resident-inputs','payer'].forEach(id => $(id).replaceChildren());
     ['remaining','collection-copy','received','target','gross','parking','total','source-note','sync','config-preview','payment-month','config-month','payment-error','config-error','void-error'].forEach(id => $(id).textContent = '');
-    $('requests').checked = false; $('note').disabled=$('requests').disabled=false; picker?.sync(); $('app').hidden = true; $('dashboard').hidden = true; notice(); lock(false);
+    $('draft-conflict').hidden=true;$('draft-sync').textContent='';$('requests').checked = false; $('note').disabled=$('requests').disabled=false; picker?.sync(); $('app').hidden = true; $('dashboard').hidden = true; notice(); lock(false);
   }
-  async function refresh() {
+  async function refresh(force=false) {
     const generation = epoch, request = ++serial, month = $('month').value;
     $('sync').textContent = 'Loading…';
     try {
       const [result, ledger, documents] = await Promise.all([call('query', 'dashboard', { month }), call('query', 'ledger'),call('query','rentRecords:overview')]);
       if (generation !== epoch || request !== serial || month !== $('month').value) return;
-      if (dirty || sheet.hasChanges() || records.hasChanges()) { $('sync').textContent='Unsaved changes'; return; }
-      data = result; dirty = false; noteAttempt = null; records.load(documents,ledger); render(); sheet.load(ledger, month); $('sync').textContent = 'Up to date';
+      if (!force&&(dirty || sheet.hasChanges() || records.hasChanges())) { $('sync').textContent='Unsaved changes'; return; }
+      latestLedger=ledger;latestDocuments=documents;capture.load(ledger,documents);data = result; dirty = false; noteAttempt = null; records.load(documents,ledger); render(); sheet.load(ledger, month); $('sync').textContent = 'Up to date';
     } catch (e) { if (generation === epoch && request === serial) { $('sync').textContent = 'Couldn’t refresh'; notice('Couldn’t load this month. Check your connection and refresh.'); } }
   }
   const names = () => [...data.item.config.people.map(p => p.name), 'Affil'];
@@ -80,7 +86,7 @@
     }));
     $('breakdown').replaceChildren(...calc.rows.map(r => { const tr = node('tr'); [r.name,cash(r.baseCents),'−'+cash(r.parkingCents),'−'+cash(r.creditCents),cash(r.dueCents)].forEach((v,i) => tr.append(node('td',v,i===2||i===3?'credit':''))); return tr; }));
     $('method').replaceChildren(...calc.rows.map(r => node('p', `${r.name}: ${r.room} room + ${r.closet} closet = ${r.area.toFixed(1)} sq ft (${(r.share*100).toFixed(1)}%).`)), node('p', `Loft adjustment: ${cash(item.config.loftCents)}. Bathroom adjustment: ${cash(item.config.bathroomCents)}.`));
-    $('note').value = item.note; $('requests').checked = item.requestsSent;
+    const noteDraft=workspace.get('notes')?.[item.month];$('note').value=noteDraft?.note??item.note;$('requests').checked=noteDraft?.requestsSent??item.requestsSent;dirty=!!noteDraft;
     $('source-review').hidden = !item.sourceNote; $('source-note').textContent = item.sourceNote || '';
     $('source-payments').replaceChildren(...(item.sourcePayments || []).map(p => {
       const row = node('div', undefined, 'source-row'), info = node('div'), confirmed = data.payments.some(x => x.sourcePayer === p.payer && !x.voidedAt), monthlyTotal = data.payments.some(x => x.payer === p.payer && x.date === data.item.month && !x.voidedAt);
@@ -92,24 +98,36 @@
     for (const p of [...data.payments].sort((a,b) => b.date.localeCompare(a.date) || b.createdAt-a.createdAt)) {
       const row = node('div', undefined, `activity-row${p.voidedAt?' voided':''}`), info = node('div'), right = node('div', undefined, 'entry-right');
       info.append(node('strong', `${labels[p.payer]}${p.voidedAt?' · Voided':''}`), node('p', `${p.date} · Recorded by ${p.createdBy}${p.note?'\n'+p.note:''}`));
-      right.append(node('strong', cash(p.amountCents), 'entry-amount')); if (!p.voidedAt) right.append(button('Void', () => { if(dirty||sheet.hasChanges()||records.hasChanges()){notice('Save your note and sheet edits before changing payments.');return;} voidTarget = p._id; $('void-error').textContent=''; $('void-dialog').showModal(); })); info.append(records.paymentControls(p)); row.append(info,right); $('payments').append(row);
+      right.append(node('strong', cash(p.amountCents), 'entry-amount')); if (!p.voidedAt) right.append(button('Void', () => { if(dirty||sheet.hasChanges()||records.hasChanges()){notice('Save your note and sheet edits before changing payments.');return;} voidTarget = p._id; $('void-error').textContent=''; $('void-dialog').showModal();RentRoute.go({view:'void',id:p._id},false,true); })); info.append(records.paymentControls(p)); row.append(info,right); $('payments').append(row);
     }
   }
   function navigate(month) {
-    if (busy) return;
-    if (sheet.hasChanges()||records.hasChanges()) { notice('Save or discard your sheet edits before changing month details.'); $('month').value = data?.item?.month || localDate().slice(0,7); return; }
-    if (dirty) { notice('Save your monthly note before changing months.'); $('month').value = data.item.month; return; }
-    if (!/^20\d{2}-(0[1-9]|1[0-2])$/.test(month)) { $('month').value = data?.item?.month || localDate().slice(0,7); return; }
-    $('month').value=month; $('dashboard').hidden=true; $('empty').hidden=true; notice(); void refresh();
+    if(busy||records.hasChanges())return;
+    if(dirty){notice('Save your monthly note before changing months.');$('month').value=data.item.month;return;}
+    if(!/^20\d{2}-(0[1-9]|1[0-2])$/.test(month))return;
+    RentRoute.go({month,year:month.slice(0,4),view:null,payer:null,id:null});
   }
+  async function applyRoute(){if(!session||!data)return;if(applyingRoute){routeQueued=true;return;}applyingRoute=true;try{
+    const r=RentRoute.read();records.closeView();records.syncRoute();if(/^20\d{2}-(0[1-9]|1[0-2])$/.test(r.month||''))$('month').value=r.month;
+    if(!capture.pending()&&!records.hasChanges())await refresh(true);
+    if(JSON.stringify(r)!==JSON.stringify(RentRoute.read())){routeQueued=true;return;}
+    if(r.view==='entry'){records.closeView();capture.open($('month').value,Number(r.payer||0),true);}
+    else {capture.close(false);if(r.view==='proof')records.openPayments($('month').value,Number(r.payer||0));else if(['file','bill','unmatched','upload','choose-proof','link-proof'].includes(r.view))records.restoreRoute(r);else records.closeView();}
+    for(const [view,id] of [['payment','payment-dialog'],['calculation','config-dialog'],['void','void-dialog']])if(r.view!==view)$(id).close();
+    if(r.view==='payment'&&!$('payment-dialog').open)openPayment(Number(r.payer||0));
+    if(r.view==='calculation'&&!$('config-dialog').open)openConfig(!data.item);
+    if(r.view==='void'&&r.id&&!$('void-dialog').open){voidTarget=r.id;$('void-dialog').showModal();}
+  }finally{applyingRoute=false;if(!RentRoute.read().view)window.rentRestoreFocus?.();if(routeQueued){routeQueued=false;void applyRoute();}}}
+  window.addEventListener('rent-route',()=>void applyRoute());
   function offsetMonth(delta) { const d = new Date($('month').value+'-15T12:00:00'); d.setMonth(d.getMonth()+delta); navigate(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`); }
   function openPayment(payer=0, source=null) {
+    if(!data?.item){notice('Set up this month before recording an individual receipt.');return;}if(!Number.isInteger(payer)||payer<0||payer>3)payer=0;
     if(sheet.hasChanges()||records.hasChanges()){notice('Save or discard your sheet edits before recording an individual receipt.');return;}
     if(dirty){notice('Save your monthly note before recording a payment.');return;}
-    paymentTarget = { month: data.item.month, sourcePayer: source?.payer }; paymentAttempt=null;
+    paymentTarget = { month: data.item.month, sourcePayer: source?.payer }; paymentAttempt=workspace.get('payment-attempt:'+data.item.month)||null;
     $('payment-month').textContent=monthLabel(paymentTarget.month); $('payer').replaceChildren(...names().map((name,i)=>{const o=node('option',name);o.value=i;return o;}));
     $('payer').value=String(payer); $('payer').disabled=!!source; if (!picker) picker=SearchableSelect.enhance($('payer')); picker.sync();
-    $('amount').value=((source?.amountCents ?? totals.rows[payer].remaining)/100).toFixed(2); $('date').value=source?'':localDate(); $('payment-note').value=source?`Imported workbook entry. ${source.note}`:''; $('payment-error').textContent=''; $('payment-dialog').showModal();
+    $('amount').value=((source?.amountCents ?? totals.rows[payer].remaining)/100).toFixed(2); $('date').value=source?'':localDate(); $('payment-note').value=source?`Imported workbook entry. ${source.note}`:''; $('payment-error').textContent=''; $('payment-dialog').showModal();restoreForm('payment-dialog');RentRoute.go({view:'payment',payer,id:null},false,true);
   }
   $('payer').onchange=()=>{if(paymentTarget?.sourcePayer===undefined && totals)$('amount').value=(totals.rows[Number($('payer').value)].remaining/100).toFixed(2);};
   function cents(id) { const value=$(id).value; if(value.trim()==='' || !/^\d+(\.\d{1,2})?$/.test(value)) throw Error('Enter dollar amounts with at most two decimal places.'); return Math.round(Number(value)*100); }
@@ -118,9 +136,9 @@
     try {
       const fields={month:paymentTarget.month,payer:Number($('payer').value),amountCents:cents('amount'),date:$('date').value,note:$('payment-note').value,...(paymentTarget.sourcePayer!==undefined?{sourcePayer:paymentTarget.sourcePayer}:{})};
       if(paymentAttempt && JSON.stringify(fields)!==JSON.stringify(paymentAttempt.fields)) throw Error('A payment save is unconfirmed. Retry the original values, or close and refresh to check the ledger before recording another payment.');
-      paymentAttempt ||= {fields,key:crypto.randomUUID()}; lock(true);
+      paymentAttempt ||= {fields,key:crypto.randomUUID()}; lock(true);workspace.set('payment-attempt:'+fields.month,paymentAttempt);await workspace.flush();
       await call('mutation','recordPayment',{...fields,requestKey:paymentAttempt.key}); if(generation!==epoch)return;
-      $('payment-dialog').close(); paymentAttempt=null; await refresh(); notice();
+      $('payment-dialog').close();dropForm('payment-dialog');workspace.set('payment-attempt:'+fields.month,null);RentRoute.close(); paymentAttempt=null; await refresh(); notice();
     } catch(e){if(generation===epoch)$('payment-error').textContent= /unconfirmed/.test(e.message)?e.message:message(e);}
     finally{if(generation===epoch)lock(false);}
   };
@@ -136,7 +154,7 @@
       const section=node('section',undefined,'resident-input');section.append(node('h3',['Private room · private bathroom','Loft · private bathroom','Private room · shared bathroom'][i]));
       const nameLabel=node('label','Resident name'),nameInput=node('input');nameInput.id=`name-${i}`;nameInput.value=p.name;nameInput.required=true;nameInput.maxLength=80;nameLabel.htmlFor=nameInput.id;section.append(nameLabel,nameInput);const grid=node('div',undefined,'form-grid');
       for(const [field,label,value,step] of [['room','Room (sq ft)',p.room,'0.1'],['closet','Closet (sq ft)',p.closet,'0.1'],['credit','Affil share ($)',p.creditCents/100,'0.01']]){const wrap=node('div'), l=node('label',label), input=node('input');input.id=`${field}-${i}`;input.type='number';input.min='0';input.step=step;input.required=true;input.value=value;l.htmlFor=input.id;wrap.append(l,input);grid.append(wrap);} section.append(grid); return section;
-    })); $('config-error').textContent='';preview();$('config-dialog').showModal();
+    })); $('config-error').textContent='';preview();$('config-dialog').showModal();restoreForm('config-dialog');RentRoute.go({view:'calculation',id:null,payer:null},false,true);
   }
   function configFields() {
     const config={...configTarget.config,rentCents:cents('rent-input'),loftCents:cents('loft-input'),bathroomCents:cents('bath-input'),people:configTarget.config.people.map((p,i)=>({...p,name:$(`name-${i}`).value.trim(),room:Number($(`room-${i}`).value),closet:Number($(`closet-${i}`).value),creditCents:cents(`credit-${i}`)}))};
@@ -146,22 +164,26 @@
   $('config-form').oninput=preview;
   $('config-form').onsubmit=async e=>{e.preventDefault();if(busy)return;const generation=epoch;try{
     const fields=configFields(); if(!configAttempt||JSON.stringify(configAttempt.fields)!==JSON.stringify(fields))configAttempt={fields,key:crypto.randomUUID()};lock(true);
-    await call('mutation','saveMonth',{...fields,requestKey:configAttempt.key});if(generation!==epoch)return;$('config-dialog').close();await refresh();notice();
+    await call('mutation','saveMonth',{...fields,requestKey:configAttempt.key});if(generation!==epoch)return;$('config-dialog').close();dropForm('config-dialog');RentRoute.close();await refresh();notice();
   }catch(e){if(generation===epoch)$('config-error').textContent=message(e);}finally{if(generation===epoch)lock(false);}};
   $('save-note').onclick=async()=>{if(busy)return;if(sheet.hasChanges()||records.hasChanges()){notice('Save or discard sheet edits before saving notes.');return;}const generation=epoch;try{
     const fields={month:data.item.month,config:data.item.config,parkingCents:data.item.parkingCents,note:$('note').value,requestsSent:$('requests').checked,expectedVersion:data.item.version};
     if(!noteAttempt||JSON.stringify(noteAttempt.fields)!==JSON.stringify(fields))noteAttempt={fields,key:crypto.randomUUID()};lock(true);$('note').disabled=$('requests').disabled=true;
-    await call('mutation','saveMonth',{...fields,requestKey:noteAttempt.key});if(generation!==epoch)return;dirty=false;await refresh();notice();
+    await call('mutation','saveMonth',{...fields,requestKey:noteAttempt.key});if(generation!==epoch)return;dirty=false;const notes={...workspace.get('notes')};delete notes[data.item.month];workspace.set('notes',notes);await refresh();notice();
   }catch(e){if(generation===epoch)notice(message(e));}finally{if(generation===epoch){lock(false);$('note').disabled=$('requests').disabled=false;}}};
-  $('void-form').onsubmit=async e=>{e.preventDefault();if(busy)return;const generation=epoch;lock(true);try{await call('mutation','voidPayment',{id:voidTarget});if(generation!==epoch)return;$('void-dialog').close();await refresh();}catch(e){if(generation===epoch)$('void-error').textContent=message(e);}finally{if(generation===epoch)lock(false);}};
+  $('void-form').onsubmit=async e=>{e.preventDefault();if(busy)return;const generation=epoch;lock(true);try{await call('mutation','voidPayment',{id:voidTarget});if(generation!==epoch)return;$('void-dialog').close();RentRoute.close();await refresh();}catch(e){if(generation===epoch)$('void-error').textContent=message(e);}finally{if(generation===epoch)lock(false);}};
   $('note').onbeforeinput=e=>{if(sheet.hasChanges()||records.hasChanges()){e.preventDefault();notice('Save or discard your sheet edits before changing monthly notes.');}};
   $('requests').onclick=e=>{if(sheet.hasChanges()||records.hasChanges()){e.preventDefault();notice('Save or discard your sheet edits before changing monthly notes.');}};
-  $('note').oninput=$('requests').onchange=()=>{dirty=true; $('sync').textContent='Unsaved note';};
+  $('note').oninput=$('requests').onchange=()=>{dirty=true;workspace.set('notes',{...workspace.get('notes'),[data.item.month]:{note:$('note').value,requestsSent:$('requests').checked}});$('sync').textContent='Unsaved note';};
   $('prev').onclick=()=>offsetMonth(-1);$('next').onclick=()=>offsetMonth(1);$('month').onchange=()=>navigate($('month').value);
   $('record').onclick=()=>openPayment();$('edit').onclick=()=>openConfig();$('create').onclick=()=>openConfig(true);
   $('refresh').onclick=()=>{if(dirty || sheet.hasChanges() || records.hasChanges()){notice('Save or discard your edits before refreshing. If another account changed them, copy your edits before reloading.');return;}notice();void refresh();};
-  document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>{if(!busy)$(b.dataset.close).close();});
-  document.querySelectorAll('dialog').forEach(d=>d.addEventListener('cancel',e=>{if(busy)e.preventDefault();}));
+  function restoreForm(id){const saved=workspace.get('forms')?.[id+':'+$('month').value];if(saved)for(const n of $(id).querySelectorAll('input,textarea,select'))if(saved[n.id]!==undefined){n.type==='checkbox'?n.checked=saved[n.id]:n.value=saved[n.id];}picker?.sync();}
+  function dropForm(id){const forms={...workspace.get('forms')};delete forms[id+':'+$('month').value];workspace.set('forms',forms);}
+  for(const id of ['payment-dialog','config-dialog'])$(id).addEventListener('input',()=>{const fields={};for(const n of $(id).querySelectorAll('input,textarea,select'))if(n.id)fields[n.id]=n.type==='checkbox'?n.checked:n.value;workspace.set('forms',{...workspace.get('forms'),[id+':'+$('month').value]:fields});});
+  document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>{if(!busy){$(b.dataset.close).close();RentRoute.close();}});
+  for(const id of ['payment-dialog','config-dialog','void-dialog']){const d=$(id),close=()=>{if(!busy){d.close();RentRoute.close();}};RentBackdrop(d,close);d.addEventListener('cancel',e=>{e.preventDefault();close();});}
+
   $('export').onclick=()=>{
     const rows=[['Month','Payer','Due','Received','Remaining','Overpaid'],...totals.rows.map((r,i)=>[data.item.month,names()[i],r.due/100,r.received/100,r.remaining/100,r.overpaid/100]),[],['Payment date','Payer','Amount','Note','Status','Recorded by'],...data.payments.map(p=>[p.date,names()[p.payer],p.amountCents/100,p.note,p.voidedAt?'Voided':'Recorded',p.createdBy])];
     const csv=rows.map(row=>row.map(value=>{let s=String(value);if(/^[=+@\-\t\r]/.test(s))s="'"+s;return '"'+s.replaceAll('"','""')+'"';}).join(',')).join('\r\n');
@@ -170,9 +192,9 @@
   async function sessionChanged(state){
     if(state.session===undefined||(state.session?.id||null)===sessionId)return;
     session=state.session;sessionId=session?.id||null;const generation=++epoch;clearPrivate();$('gate').hidden=false;$('sign-out').hidden=!session;$('retry').hidden=true;
-    if(!session){$('gate-message').textContent='Sign in with an approved email to open the shared rent tracker.';$('sign-in').hidden=false;if(!mounted){window.Clerk.mountSignIn($('sign-in'),{routing:'hash',withSignUp:false,forceRedirectUrl:location.origin+location.pathname,appearance:{variables:{colorPrimary:'#315e46'}}});mounted=true;}return;}
+    if(!session){$('gate-message').textContent='Sign in with an approved email to open the shared rent tracker.';$('sign-in').hidden=false;if(!mounted){window.Clerk.mountSignIn($('sign-in'),{routing:'hash',withSignUp:false,forceRedirectUrl:location.origin+location.pathname+location.search,appearance:{variables:{colorPrimary:'#315e46'}}});mounted=true;}return;}
     if(mounted){window.Clerk.unmountSignIn($('sign-in'));mounted=false;}$('sign-in').hidden=true;$('gate-message').textContent='Checking access…';
-    try{await call('query','verify');if(generation!==epoch)return;$('gate').hidden=true;$('app').hidden=false;await refresh();}catch(e){if(generation!==epoch)return;$('gate-message').textContent=/not authorized/.test(e.message)?'This account doesn’t have access to Rent. Sign out and use an approved email.':'The rent workspace couldn’t load. Try again.';$('retry').hidden=false;}
+    try{const identity=await call('query','verify');if(generation!==epoch)return;await workspace.load(identity.email);if(generation!==epoch)return;capture.restore();sheet.restore();records.restore();$('gate').hidden=true;$('app').hidden=false;await refresh(true);await applyRoute();}catch(e){if(generation!==epoch)return;$('gate-message').textContent=/not authorized/.test(e.message)?'This account doesn’t have access to Rent. Sign out and use an approved email.':'The rent workspace couldn’t load. Try again.';$('retry').hidden=false;}
   }
   $('sign-out').onclick=async()=>{++epoch;session=null;sessionId=undefined;clearPrivate();$('gate').hidden=false;$('gate-message').textContent='Signing out…';try{await window.Clerk.signOut();await sessionChanged({session:null});}catch{$('gate-message').textContent='Sign-out failed. Try again.';}};
   $('retry').onclick=()=>location.reload();

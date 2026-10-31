@@ -1,5 +1,5 @@
 /* Spreadsheet-style rent entry. All data arrives through the authenticated API. */
-window.RentSheet = function ({ root, save, refreshed, selectMonth, canEdit, cellControls, reviewCount, reviewProof }) {
+window.RentSheet = function ({ root, save, refreshed, selectMonth, canEdit, cellControls, reviewCount, reviewProof, workspace, requestSave, attachmentCount, attachFiles }) {
   const make = (tag, text, cls) => { const n = document.createElement(tag); if (text !== undefined) n.textContent = text; if (cls) n.className = cls; return n; };
   const dollars = n => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n / 100);
   const exact = n => (n / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -8,6 +8,8 @@ window.RentSheet = function ({ root, save, refreshed, selectMonth, canEdit, cell
   const svg = (tag, attrs = {}, text) => { const n = document.createElementNS('http://www.w3.org/2000/svg', tag); for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, v); if (text !== undefined) n.textContent = text; return n; };
   const fields = ['rent', 'parking', 'p0', 'p1', 'p2', 'p3'];
   let records = [], payments = [], selected = '', year = new Date().getFullYear(), drafts = new Map(), pending = false, attempt = null, generation = 0, locked = false;
+  let baselines = new Map();
+  const persist=()=>workspace.set('sheet',{drafts:[...drafts],baselines:[...baselines],attempt});
   let hideChart=()=>{},moveChart=()=>{};
   let reviewButton, tableBody, error, status, saveButton, undoButton, yearText, trend, split, summary, chartNote;
   const button = (text, fn, cls = 'quiet') => { const b = make('button', text, cls); b.type = 'button'; b.onclick = fn; return b; };
@@ -37,17 +39,19 @@ window.RentSheet = function ({ root, save, refreshed, selectMonth, canEdit, cell
   }
   function mark(month, field, value) {
     const original = base(month); if (!original) return;
+    if(!baselines.has(month))baselines.set(month,{expectedVersion:original.item?.version||0,expectedPayments:original.active.map(p=>p._id).sort().join('|')});
     let draft = { ...(drafts.get(month) || {}) };
     let same = false; try { same = cents(value) === original.values[fields.indexOf(field)]; } catch {}
     if (same) delete draft[field]; else draft[field] = value;
-    if (Object.keys(draft).length) drafts.set(month, draft); else drafts.delete(month);
+    if (Object.keys(draft).length) drafts.set(month, draft); else {drafts.delete(month);baselines.delete(month);}
+    persist();
   }
   function updateState() {
     const count = [...drafts.values()].reduce((n, d) => n + Object.keys(d).length, 0);
     status.textContent = pending ? 'Saving changes…' : count ? `${count} edited ${count === 1 ? 'cell' : 'cells'} in ${drafts.size} ${drafts.size === 1 ? 'month' : 'months'}` : 'All changes saved';
-    saveButton.disabled = !count || pending || locked; undoButton.disabled = !count || pending || locked || !!attempt;
-    root.classList.toggle('has-edits', count > 0);
-    root.querySelectorAll('.cell-receipts button,.cell-receipts input').forEach(n=>{n.disabled=pending||locked||count>0||n.dataset.empty==='true';});
+    saveButton.disabled = (!count&&!attachmentCount()) || pending || locked; undoButton.disabled = !count || pending || locked || !!attempt;
+    root.classList.toggle('has-edits', count > 0||attachmentCount()>0);if(attachmentCount())status.textContent+=` · ${attachmentCount()} proof/check change${attachmentCount()===1?'':'s'}`;
+    root.querySelectorAll('.cell-receipts button,.cell-receipts input').forEach(n=>{n.disabled=pending||locked||n.dataset.empty==='true';});
     root.querySelectorAll('.rent-cell').forEach(input => { input.readOnly = pending || locked || !!attempt; input.classList.toggle('edited', drafts.get(input.dataset.month)?.[input.dataset.field] !== undefined); });
   }
   function rowTotals(month) {
@@ -70,7 +74,7 @@ window.RentSheet = function ({ root, save, refreshed, selectMonth, canEdit, cell
     yearText.textContent = String(year); tableBody.replaceChildren();const reviews=reviewCount();reviewButton.textContent=`${reviews} unmatched transfer${reviews===1?'':'s'}`;reviewButton.hidden=!reviews;
     for (let n = 1; n <= 12; n++) {
       const month = `${year}-${String(n).padStart(2, '0')}`, original = base(month), tr = make('tr'); tr.dataset.month = month; tr.classList.toggle('selected-month', month === selected);
-      const monthCell = make('th'); monthCell.scope = 'row'; const open = button(new Date(month + '-15T12:00:00').toLocaleDateString('en-US', { month: 'short' }), () => { if (drafts.size || pending) return showError('Save or discard your cell edits before opening month details.'); selectMonth(month); }, 'month-link');
+      const monthCell = make('th'); monthCell.scope = 'row'; const open = button(new Date(month + '-15T12:00:00').toLocaleDateString('en-US', { month: 'short' }), () => { if (pending) return; selectMonth(month); }, 'month-link');
       open.setAttribute('aria-label', `Open ${label(month)} details`); monthCell.append(open); if (!original?.item) monthCell.append(make('span', 'new', 'new-month')); tr.append(monthCell);
       fields.forEach((field, i) => {
         const td = make('td', undefined, i === 2 ? 'payer-start' : ''), input = make('input', undefined, 'rent-cell');
@@ -85,9 +89,10 @@ window.RentSheet = function ({ root, save, refreshed, selectMonth, canEdit, cell
         input.onkeydown = e => {
           if(e.key==='Tab'){const inputs=[...root.querySelectorAll('.rent-cell:not(:disabled)')],next=inputs[inputs.indexOf(input)+(e.shiftKey?-1:1)];if(next){e.preventDefault();next.focus();}}
           if (['Enter', 'ArrowDown', 'ArrowUp'].includes(e.key)) { e.preventDefault(); const next = e.key === 'ArrowUp' || e.shiftKey ? -1 : 1; tableBody.rows[n - 1 + next]?.querySelector(`[data-field="${field}"]`)?.focus(); }
-          if (e.key === 'Escape' && !attempt) { const d = drafts.get(month); if (d) { delete d[field]; if (!Object.keys(d).length) drafts.delete(month); } input.value = original && (i < 2 || original.values[i]) ? (original.values[i] / 100).toFixed(2) : ''; rowTotals(month); updateState(); drawCharts(); }
+          if (e.key === 'Escape' && !attempt) { const d = drafts.get(month); if (d) { delete d[field]; if (!Object.keys(d).length) drafts.delete(month); } input.value = original && (i < 2 || original.values[i]) ? (original.values[i] / 100).toFixed(2) : ''; persist();rowTotals(month); updateState(); drawCharts(); }
         };
         input.onpaste = e => {
+          if(i>=2&&e.clipboardData.files.length){e.preventDefault();void attachFiles(e.clipboardData.files,month,i-2);return;}
           const text = e.clipboardData.getData('text'); if (!/[\t\n]/.test(text)) return;
           e.preventDefault(); if (pending || locked || attempt || !canEdit()) return;
           try {
@@ -101,7 +106,7 @@ window.RentSheet = function ({ root, save, refreshed, selectMonth, canEdit, cell
         td.append(input);
         const source = i >= 2 ? original?.item?.sourcePayments?.find(p => p.payer === i - 2) : null;
         if (source?.amountCents > 0 && !original.active.some(p => p.sourcePayer === i - 2 || p.payer === i - 2 && p.date === month)) { const hint = make('span', `Import ${exact(source.amountCents)} · review`, 'source-cell-note'); hint.title = 'Original workbook amount; not counted as received until confirmed in month details or entered above.'; td.append(hint); }
-        if(i>=2)td.append(cellControls(month,i-2));
+        if(i>=2){td.append(cellControls(month,i-2));td.ondragover=e=>{if(e.dataTransfer.types.includes('Files')){e.preventDefault();td.classList.add('file-over');}};td.ondragleave=()=>td.classList.remove('file-over');td.ondrop=e=>{e.preventDefault();td.classList.remove('file-over');void attachFiles(e.dataTransfer.files,month,i-2);};}
         tr.append(td);
       });
       tr.append(make('td', '—', 'row-total computed'), make('td', '—', 'row-balance computed'), make('td', '', 'row-status')); tableBody.append(tr); if (original) rowTotals(month);
@@ -162,16 +167,16 @@ window.RentSheet = function ({ root, save, refreshed, selectMonth, canEdit, cell
     const legend = make('div', undefined, 'split-legend'); names.forEach((name, i) => { const line = make('div'), dot = make('i'); dot.style.background = colors[i]; line.append(dot, make('span', name), make('strong', dollars(dueAmounts[i]))); legend.append(line); }); split.append(donut, legend);
   }
   async function commit() {
-    if (pending || locked || !drafts.size || !canEdit()) return;
+    if(!drafts.size)return true;if (pending || locked || !canEdit()) return false;
     const current = generation;
     try {
       if (!attempt) {
         if (drafts.size > 24) throw Error('Save at most 24 months at once. Use Escape on cells to remove extra edits.');
-        const rows = [...drafts].map(([month, draft]) => { const r = rowValue(month); return { month, config: r.config, parkingCents: r.values[1], expectedVersion: r.item?.version || 0, expectedPayments: r.active.map(p => p._id).sort().join('|'), receipts: [0, 1, 2, 3].filter(i => draft['p' + i] !== undefined).map(payer => ({ payer, amountCents: r.values[payer + 2] })) }; });
+        const rows = [...drafts].map(([month, draft]) => { const r = rowValue(month); return { month, config: r.config, parkingCents: r.values[1], expectedVersion: baselines.get(month)?.expectedVersion??r.item?.version??0, expectedPayments: baselines.get(month)?.expectedPayments??r.active.map(p => p._id).sort().join('|'), receipts: [0, 1, 2, 3].filter(i => draft['p' + i] !== undefined).map(payer => ({ payer, amountCents: r.values[payer + 2] })) }; });
         attempt = { rows, requestKey: crypto.randomUUID() };
       }
-      pending = true; showError(''); updateState(); await save(attempt); if (current !== generation) return;
-      drafts.clear(); attempt = null; pending = false; updateState(); await refreshed();
+      pending=true;updateState();persist();await workspace.flush();showError('');await save(attempt); if (current !== generation) return;
+      drafts.clear();baselines.clear();attempt = null;pending = false;persist();updateState();await refreshed();return true;
     } catch (e) {
       if (current !== generation) return;
       if (/another device/.test(e.message)) { attempt = null; showError(e.message + ' Copy your edits before using Discard edits to reload the latest values.'); }
@@ -184,9 +189,9 @@ window.RentSheet = function ({ root, save, refreshed, selectMonth, canEdit, cell
     const heading = make('div', undefined, 'chart-heading'); const legend=make('div',undefined,'coverage-legend');legend.append(make('span','Received','legend-received'),make('span','Outstanding','legend-outstanding'));heading.append(make('h2', 'The year at a glance'), legend); coverage.append(heading);
     summary = make('div', undefined, 'year-summary'); trend = make('div', undefined, 'rent-trend'); chartNote = make('p', undefined, 'chart-note'); coverage.append(summary, trend, chartNote);
     side.append(make('h2', 'Who covers what')); split = make('div', undefined, 'rent-split'); side.append(split); insights.append(coverage, side); root.append(insights);
-    const panel = make('section', undefined, 'sheet-panel'), toolbar = make('div', undefined, 'sheet-toolbar'), title = make('div'); title.append(make('h2', 'Monthly ledger'), make('p', 'Type or paste monthly amounts. The corner icon opens payment proof and checks.'));
+    const panel = make('section', undefined, 'sheet-panel'), toolbar = make('div', undefined, 'sheet-toolbar'), title = make('div'); title.append(make('h2', 'Monthly ledger'), make('p', 'Type an amount, then paste or drop a screenshot onto its cell. Save everything together.'));
     const controls = make('div', undefined, 'sheet-year'); yearText = make('strong', String(year));
-    const changeYear = delta => { if (year + delta < 2000 || year + delta > 2099) return; year += delta; drawRows(); };
+    const changeYear = delta => { if (year + delta < 2000 || year + delta > 2099) return; year += delta;RentRoute.go({year});drawRows(); };
     const prev = button('←', () => changeYear(-1)), next = button('→', () => changeYear(1)); prev.setAttribute('aria-label', 'Previous ledger year'); next.setAttribute('aria-label', 'Next ledger year'); controls.append(prev, yearText, next); reviewButton=button('Unmatched transfers',()=>{if(drafts.size)return showError('Save or discard your edits first.');reviewProof();},'review-transfers');reviewButton.hidden=true;const right=make('div',undefined,'ledger-toolbar-actions');right.append(reviewButton,controls);toolbar.append(title,right);panel.append(toolbar);
     const wrap = make('div', undefined, 'sheet-scroll'); wrap.tabIndex = 0; wrap.setAttribute('aria-label', 'Editable monthly rent ledger; scroll horizontally for all columns');
     const table = make('table', undefined, 'sheet-table'), head = make('thead'), groups = make('tr'), columns = make('colgroup');
@@ -194,7 +199,7 @@ window.RentSheet = function ({ root, save, refreshed, selectMonth, canEdit, cell
     for (const [text, span, cls] of [['', 1, ''], ['MONTHLY CHARGES', 2, ''], ['TOTAL RECEIVED · EDIT TO UPDATE', 4, 'received-heading'], ['CALCULATED', 3, '']]) { const th = make('th', text, cls); th.colSpan = span; groups.append(th); }
     head.append(groups, make('tr')); tableBody = make('tbody'); table.append(head, tableBody); wrap.append(table); panel.append(wrap);
     const foot = make('div', undefined, 'sheet-footer'); foot.append(make('span', 'Received cells are monthly totals, not additional payments. Earlier entries stay in history. Blank received cells = $0 confirmed.'));
-    const actions = make('div', undefined, 'sheet-actions'); status = make('span'); status.setAttribute('role', 'status'); undoButton = button('Discard edits', async () => { drafts.clear(); attempt = null; showError(''); drawRows(); await refreshed(); }, 'quiet'); saveButton = button('Save changes', commit, 'primary'); actions.append(status, undoButton, saveButton); foot.append(actions); panel.append(foot);
+    const actions = make('div', undefined, 'sheet-actions'); status = make('span'); status.setAttribute('role', 'status'); undoButton = button('Discard edits', async () => { drafts.clear();baselines.clear(); attempt = null;persist();showError(''); drawRows(); await refreshed(); }, 'quiet'); saveButton = button('Save changes', requestSave, 'primary'); actions.append(status, undoButton, saveButton); foot.append(actions); panel.append(foot);
     error = make('p', '', 'sheet-error'); error.hidden = true; error.setAttribute('role', 'alert'); panel.append(error); root.append(panel);
   }
   document.addEventListener('pointerdown',e=>{if(!trend?.contains(e.target))hideChart();});
@@ -203,9 +208,13 @@ window.RentSheet = function ({ root, save, refreshed, selectMonth, canEdit, cell
   window.addEventListener('scroll',()=>moveChart(),{passive:true});
   mount();
   return {
-    load(result, month) { if (drafts.size || pending) return; records = result.months; payments = result.payments; if (!selected || selected.slice(0,4) !== month.slice(0,4)) year = Number(month.slice(0, 4)); selected = month; drawRows(); },
-    clear() { hideChart(); hideChart=moveChart=()=>{}; generation++; records = []; payments = []; drafts.clear(); selected = ''; attempt = null; pending = false; root.replaceChildren(); mount(); },
+    load(result, month) { if (pending) return; records = result.months; payments = result.payments; if (!selected || selected.slice(0,4) !== month.slice(0,4)) year = Number(month.slice(0, 4)); selected = month;const routeYear=Number(RentRoute.read().year);if(routeYear>=2000&&routeYear<=2099)year=routeYear;drawRows(); },
+    clear() { hideChart(); hideChart=moveChart=()=>{}; generation++; records = []; payments = []; drafts.clear();baselines.clear();selected = ''; attempt = null; pending = false; root.replaceChildren(); mount(); },
     hasChanges: () => drafts.size > 0 || pending,
+    restore(){const value=workspace.get('sheet');drafts=new Map(value?.drafts||[]);baselines=new Map(value?.baselines||[]);attempt=value?.attempt||null;},
+    update:updateState,showError,commitRaw:commit,
+    cellValue(m,p){return drafts.get(m)?.['p'+p]??(base(m)?.amounts[p]?String(base(m).amounts[p]/100):'');},
+    editCell(m,p,value){if(pending||locked||attempt)return;mark(m,'p'+p,value);const input=root.querySelector(`[data-month="${m}"][data-field="p${p}"]`);if(input)input.value=value;rowTotals(m);updateState();drawCharts();},
     setLocked(value) { locked = value; updateState(); },
   };
 };
