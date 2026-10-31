@@ -4,7 +4,8 @@
   const rows = [...tbody.rows];
   const search = document.querySelector('#search');
   const compared = document.querySelector('#compared');
-  const filterLinks = [...document.querySelectorAll('[data-filter]')];
+  const filters = [...document.querySelectorAll('select[data-filter]')];
+  const pickers = new Map(filters.map(select => [select, SearchableSelect.enhance(select)]));
   const sortLinks = [...document.querySelectorAll('[data-sort]')];
   let editingSearch = false;
   const normalize = value => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
@@ -52,11 +53,12 @@
     tbody.append(fragment);
     document.querySelector('#count').textContent = `${count} ${count === 1 ? 'item' : 'items'} · ${both} with both prices`;
     document.querySelector('#empty').hidden = count !== 0;
-    filterLinks.forEach(link => {
-      if (s[link.dataset.filter] === link.dataset.value) link.setAttribute('aria-current','page');
-      else link.removeAttribute('aria-current');
-      link.href = url({...s,[link.dataset.filter]:link.dataset.value});
+    filters.forEach(select => {
+      select.value = s[select.dataset.filter];
+      select.parentElement.classList.toggle('is-filtered', select.value !== 'all');
+      pickers.get(select).sync();
     });
+    document.querySelector('#reset').hidden = !s.q && !s.compared && s.cafe === 'all' && s.kind === 'all' && s.source === 'all' && s.sort === 'name' && s.dir === 'asc';
     sortLinks.forEach(link => {
       const active = s.sort === link.dataset.sort;
       link.closest('th').setAttribute('aria-sort',active ? s.dir === 'asc' ? 'ascending' : 'descending' : 'none');
@@ -70,7 +72,11 @@
     render();
   }
   function isPlainClick(event) { return event.button === 0 && !event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey; }
-  [...filterLinks,...sortLinks].forEach(link=>link.addEventListener('click',event=>{
+  filters.forEach(select=>select.addEventListener('change',()=>{
+    editingSearch=false;
+    navigate({...state(),[select.dataset.filter]:select.value});
+  }));
+  sortLinks.forEach(link=>link.addEventListener('click',event=>{
     if (!isPlainClick(event)) return;
     event.preventDefault(); editingSearch=false; navigate(link.pathname+link.search);
   }));
