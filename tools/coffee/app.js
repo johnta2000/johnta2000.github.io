@@ -16,6 +16,7 @@
       cafe: ['delah','sightglass','philz','binge','nirvana','reveille'].includes(p.get('cafe')) ? p.get('cafe') : 'all',
       kind: ['drinks','food','pantry'].includes(p.get('kind')) ? p.get('kind') : 'all',
       source: ['store','online'].includes(p.get('source')) ? p.get('source') : 'all',
+      sources: p.get('sources') === '1',
       q: p.get('q') || '', compared: p.get('compared') === '1',
       sort: ['name','dd','direct','diff'].includes(p.get('sort')) ? p.get('sort') : 'name',
       dir: p.get('dir') === 'desc' ? 'desc' : 'asc'
@@ -24,6 +25,7 @@
   function url(s) {
     const p = new URLSearchParams();
     for (const key of ['cafe','kind','source']) if (s[key] !== 'all') p.set(key,s[key]);
+    if (s.sources) p.set('sources','1');
     if (s.q) p.set('q',s.q);
     if (s.compared) p.set('compared','1');
     if (s.sort !== 'name') p.set('sort',s.sort);
@@ -34,6 +36,12 @@
     const s = state(), terms = normalize(s.q).trim().split(/\s+/).filter(Boolean);
     if (search.value !== s.q) search.value = s.q;
     compared.checked = s.compared;
+    document.body.classList.toggle('show-sources',s.sources);
+    document.querySelector('#source-notes').hidden = !s.sources;
+    const sourcesToggle = document.querySelector('#sources-toggle');
+    sourcesToggle.href = url({...s,sources:!s.sources});
+    sourcesToggle.setAttribute('aria-expanded',String(s.sources));
+    sourcesToggle.textContent = s.sources ? 'Hide sources & notes' : 'Show sources & notes';
     document.querySelector('#clear-search').hidden = !s.q;
     const sorted = [...rows].sort((a,b) => {
       if (s.sort === 'name') return a.dataset.name.localeCompare(b.dataset.name,undefined,{sensitivity:'base'}) * (s.dir === 'desc' ? -1 : 1);
@@ -71,6 +79,10 @@
     if (dest !== location.pathname + location.search) history[replace ? 'replaceState' : 'pushState'](null,'',dest);
     render();
   }
+  document.querySelector('#sources-toggle').addEventListener('click',event=>{
+    if (!isPlainClick(event)) return;
+    event.preventDefault();editingSearch=false;navigate({...state(),sources:!state().sources});
+  });
   function isPlainClick(event) { return event.button === 0 && !event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey; }
   filters.forEach(select=>select.addEventListener('change',()=>{
     editingSearch=false;

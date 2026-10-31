@@ -56,10 +56,11 @@ td.price a:hover { text-decoration:underline; }
 footer { margin-top:22px; font-size:11px; line-height:1.8; color:var(--muted); }
 footer nav a { display:inline-block; padding:8px 0; }
 footer p { margin:5px 0; }
-footer>a { display:inline-block; min-height:44px; padding:12px 0; text-decoration:underline; }
+footer>a, #source-notes>a { display:inline-block; min-height:44px; padding:12px 0; text-decoration:underline; }
 .note { font-size:11px; color:var(--muted); line-height:1.6; }
 .price-source,.price-variant,.mobile-size { font-size:10px; line-height:1.35; color:var(--muted); white-space:normal; font-weight:400; margin-top:2px; }
-.price-source,.price-variant { display:block; }
+.price-source { display:none; }
+.show-sources .price-source,.price-variant { display:block; }
 .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
 @media(max-width:900px) {
   .toolbar { grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) auto; }
