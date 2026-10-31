@@ -14,6 +14,7 @@
     return {
       cafe: ['delah','sightglass','philz','binge'].includes(p.get('cafe')) ? p.get('cafe') : 'all',
       kind: ['drinks','food','pantry'].includes(p.get('kind')) ? p.get('kind') : 'all',
+      source: ['store','online'].includes(p.get('source')) ? p.get('source') : 'all',
       q: p.get('q') || '', compared: p.get('compared') === '1',
       sort: ['name','dd','direct','diff'].includes(p.get('sort')) ? p.get('sort') : 'name',
       dir: p.get('dir') === 'desc' ? 'desc' : 'asc'
@@ -21,7 +22,7 @@
   }
   function url(s) {
     const p = new URLSearchParams();
-    for (const key of ['cafe','kind']) if (s[key] !== 'all') p.set(key,s[key]);
+    for (const key of ['cafe','kind','source']) if (s[key] !== 'all') p.set(key,s[key]);
     if (s.q) p.set('q',s.q);
     if (s.compared) p.set('compared','1');
     if (s.sort !== 'name') p.set('sort',s.sort);
@@ -42,7 +43,7 @@
     let count = 0, both = 0;
     const fragment = document.createDocumentFragment();
     for (const row of sorted) {
-      const visible = (s.cafe === 'all' || row.dataset.cafe === s.cafe) && (s.kind === 'all' || row.dataset.kind === s.kind) && (!s.compared || row.dataset.direct !== '') && terms.every(term=>row.searchText.includes(term));
+      const visible = (s.cafe === 'all' || row.dataset.cafe === s.cafe) && (s.kind === 'all' || row.dataset.kind === s.kind) && (s.source === 'all' || row.dataset.source === s.source) && (!s.compared || row.dataset.direct !== '') && terms.every(term=>row.searchText.includes(term));
       row.hidden = !visible;
       if (visible) { count++; if (row.dataset.direct !== '') both++; }
       fragment.append(row);
