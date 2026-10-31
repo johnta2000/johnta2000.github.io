@@ -72,7 +72,8 @@ test('all published HTML pages declare their analytics policy and page identity'
     const html = fs.readFileSync(page.file,'utf8');
     if (page.analytics === false) {
       assert.ok(page.title, `${page.file}: pages without analytics need an identifying title`);
-      assert.ok(html.includes(`<title>${page.title}</title>`), page.file);
+      const actualTitle = html.match(/<title>([\s\S]*?)<\/title>/i)?.[1];
+      assert.equal(actualTitle, page.title, `${page.file}: update site-pages.json when renaming a page`);
       assert.doesNotMatch(html, /<script\b[^>]*\bsrc=["'][^"']*\/assets\/js\/analytics\.js(?:[?"'])/i, page.file);
       continue;
     }

@@ -28,8 +28,15 @@ Actions notification settings. This verifies public app shells and dependencies,
 not authenticated backend actions, local workers, native iOS builds or browser
 extensions. Existing business-specific monitoring jobs are unchanged.
 
+The run summary and error annotations link to the failing URL and explain the
+failure. A page-title mismatch reports the expected and received titles; after
+an intentional rename, update `title` in `site-pages.json` for both the source
+template and built HTML. They can share a deployed path, which is crawled only
+once. Conflicting identities for the same path fail validation.
+
 Validation:
 - `node --test tests/analytics.test.cjs`
+- `python3 scripts/monitoring/site-health.test.py`
 - `python3 scripts/monitoring/site-health.py` (requires network and deployed files)
 
 When adding a page, include the shared script with a static `data-app` name and

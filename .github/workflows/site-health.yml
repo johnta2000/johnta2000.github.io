@@ -11,6 +11,7 @@ on:
       - 'assets/js/analytics.js'
       - 'tests/analytics.test.cjs'
       - 'scripts/monitoring/site-health.py'
+      - 'scripts/monitoring/site-health.test.py'
       - 'scripts/monitoring/site-pages.json'
       - '.github/workflows/site-health.yml'
 
@@ -23,6 +24,7 @@ concurrency:
 
 jobs:
   analytics-checks:
+    name: Page metadata and analytics privacy
     # Source checks only need to run when code changes or on manual request.
     if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
@@ -31,8 +33,15 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: node --test tests/analytics.test.cjs
+      - name: Check page identities and analytics privacy
+        run: node --test tests/analytics.test.cjs
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Test crawler failure reporting
+        run: python scripts/monitoring/site-health.test.py
   availability:
+    name: Live pages and assets
     # Scheduled runs check the deployed site, after Pages has had time to build.
     if: github.event_name != 'push'
     runs-on: ubuntu-latest
@@ -42,4 +51,5 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - run: python scripts/monitoring/site-health.py
+      - name: Crawl deployed pages and their scripts/styles
+        run: python scripts/monitoring/site-health.py
