@@ -74,7 +74,7 @@ for(const browserType of [chromium,webkit])test(`${browserType.name()}: Jevin, l
   assert.deepEqual(buttons.map(b=>b.text),['Parents','John','Jevin','Other']);
   assert.ok(buttons.every(b=>b.height>=46&&b.width>=44));
   if(width<=430){assert.equal(buttons[0].y,buttons[1].y);assert.equal(buttons[2].y,buttons[3].y);assert.ok(buttons[2].y>buttons[0].y);}
-  const filters=await page.locator('.filters button').evaluateAll(nodes=>nodes.map(n=>({x:n.getBoundingClientRect().x,right:n.getBoundingClientRect().right,height:n.getBoundingClientRect().height})));
+  const filters=await page.locator('.toolbar .filters button').evaluateAll(nodes=>nodes.map(n=>({x:n.getBoundingClientRect().x,right:n.getBoundingClientRect().right,height:n.getBoundingClientRect().height})));
   assert.equal(filters.length,6);assert.ok(filters.every(b=>b.x>=0&&b.right<=width&&b.height>=44));
   await page.locator('[data-id="1"] summary').click();await page.locator('[data-id="1"] .edit-row').click();
   assert.equal(await page.locator('#split-jevin').inputValue(),'0.00');

@@ -2,7 +2,7 @@
 'use strict';
 const API='https://rapid-shark-565.convex.cloud', FILE='https://rapid-shark-565.convex.site/statement-pdf';
 const $=id=>document.getElementById(id), people=['parents','john','jevin','other'];
-const token=location.hash.slice(1), pending=new Map(), expandedRows=new Set(), failures=new Map(), needsRefresh=new Set();
+const token=location.hash.slice(1).split('&')[0], pending=new Map(), expandedRows=new Set(), failures=new Map(), needsRefresh=new Set();
 const pdfHome=$('pdf-panel').parentElement;
 let data=null,filter='unassigned',editing=null,pdfUrl=null,pdfLoading=null,request=0,saveWarning='',managerEpoch=0,sharedViewVersion=null,viewSaving=false,desiredView=null,viewRevision=0,viewTimer=null,viewRetryDelay=1000,viewReading=false;
 const money=n=>(n/100).toLocaleString('en-US',{style:'currency',currency:'USD'});
@@ -15,12 +15,34 @@ function saved(){
  $('save-status').textContent=pending.size?`Saving ${pending.size} ${pending.size===1?'change':'changes'}…${warning?' Some changes need review.':''}`:desiredView||viewSaving?'Saving view…':warning||'All changes saved';
  $('save-status').classList.toggle('error',!!warning);
 }
+let order='newest',kindFilter='all',dateFrom='',dateTo='';
+let linkedView=new URLSearchParams(location.hash.split('&').slice(1).join('&')).has('view');
+function readLinkView(){
+ const params=new URLSearchParams(location.hash.split('&').slice(1).join('&'));
+ order=['newest','oldest','amount','type'].includes(params.get('sort'))?params.get('sort'):'newest';
+ kindFilter=['purchase','credit','payment','fee','interest','opening'].includes(params.get('type'))?params.get('type'):'all';
+ dateFrom=/^\d{4}-\d{2}-\d{2}$/.test(params.get('from'))?params.get('from'):'';
+ dateTo=/^\d{4}-\d{2}-\d{2}$/.test(params.get('to'))?params.get('to'):'';
+ filter=normalizeFilter(params.get('view')||data?.view?.filter);
+}
+function writeLinkView(replace=false){
+ const params=new URLSearchParams({view:filter,sort:order});
+ if(kindFilter!=='all')params.set('type',kindFilter);
+ if(dateFrom)params.set('from',dateFrom);if(dateTo)params.set('to',dateTo);
+ history[replace?'replaceState':'pushState'](null,'',location.pathname+location.search+'#'+token+'&'+params);
+ linkedView=true;
+}
+readLinkView();
+addEventListener('popstate',()=>{readLinkView();if(data)renderRows();});
 function effectiveFilter(){return filter;}
 function normalizeFilter(value){return value==='auto'?'unassigned':value||'unassigned';}
 function syncViewControls(){
  const current=effectiveFilter();
  for(const b of document.querySelectorAll('[data-filter]')){const active=b.dataset.filter===current;b.classList.toggle('active',active);b.setAttribute('aria-pressed',String(active));}
- $('view-summary').textContent='Shared view · Filter and search save automatically for everyone.';
+ $('view-summary').textContent='Newest first by default. Date, type and sort are kept in this link; search saves privately with the shared review.';
+ for(const b of document.querySelectorAll('[data-sort]')){b.setAttribute('aria-pressed',String(b.dataset.sort===order));b.classList.toggle('active',b.dataset.sort===order);}
+ for(const b of document.querySelectorAll('[data-kind]')){b.setAttribute('aria-pressed',String(b.dataset.kind===kindFilter));b.classList.toggle('active',b.dataset.kind===kindFilter);}
+ $('date-from').value=dateFrom;$('date-to').value=dateTo;
 }
 function updateTotals(){
  const totals={parents:0,john:0,jevin:0,other:0,unassigned:0};let assigned=0;
@@ -41,7 +63,7 @@ function updateRow(r){
 }
 
 function clearReview(){++request;for(const entry of pending.values())entry.resolve(false);pending.clear();needsRefresh.clear();failures.clear();closePdf();data=null;sharedViewVersion=null;desiredView=null;clearTimeout(viewTimer);$('review').hidden=true;$('balance').hidden=true;$('copy-link').hidden=true;$('transactions').replaceChildren();if(pdfUrl)URL.revokeObjectURL(pdfUrl);pdfUrl=null;StatementPdf.reset();$('pdf-open').removeAttribute('href');$('edit-dialog').close();editing=null;}
-async function refresh(silent=false){if(pending.size||editing||viewSaving||desiredView)return;const seq=++request;try{const value=await call('query','review',{token});if(seq!==request||pending.size||editing||viewSaving||desiredView)return;const oldRows=new Map((data?.rows||[]).map(r=>[r._id,r]));const sameList=data&&data.rows.length===value.rows.length&&value.rows.every(r=>oldRows.has(r._id));value.rows=value.rows.map(r=>{const old=oldRows.get(r._id);if(old){delete old.allocation;Object.assign(old,r);return old;}return r;});const viewChanged=sharedViewVersion!==(value.viewVersion??0);data=value;if(viewChanged){sharedViewVersion=value.viewVersion??0;filter=normalizeFilter(value.view?.filter);$('search').value=value.view?.search||'';}needsRefresh.clear();$('status').textContent='';syncViewControls();if(sameList&&!viewChanged&&filter==='all'&&!$('search').value){updateTotals();data.rows.forEach(updateRow);}else render();}catch(e){if(seq!==request)return;if(/unavailable/.test(e.message)){clearReview();$('status').textContent='This statement link is unavailable. Ask John for a current link.';}else if(!silent||!data){$('status').textContent='Could not load the statement. Check your connection, then reload this page.';}else{saveWarning='Could not refresh. Displaying the last loaded version.';saved();}}}
+async function refresh(silent=false){if(pending.size||editing||viewSaving||desiredView)return;const seq=++request;try{const value=await call('query','review',{token});if(seq!==request||pending.size||editing||viewSaving||desiredView)return;const oldRows=new Map((data?.rows||[]).map(r=>[r._id,r]));const sameList=data&&data.rows.length===value.rows.length&&value.rows.every(r=>oldRows.has(r._id));value.rows=value.rows.map(r=>{const old=oldRows.get(r._id);if(old){delete old.allocation;Object.assign(old,r);return old;}return r;});const viewChanged=sharedViewVersion!==(value.viewVersion??0);data=value;if(viewChanged){sharedViewVersion=value.viewVersion??0;if(!linkedView||sameList){filter=normalizeFilter(value.view?.filter);if(linkedView)writeLinkView(true);}$('search').value=value.view?.search||'';}needsRefresh.clear();$('status').textContent='';syncViewControls();if(sameList&&!viewChanged&&filter==='all'&&!$('search').value){updateTotals();data.rows.forEach(updateRow);}else render();}catch(e){if(seq!==request)return;if(/unavailable/.test(e.message)){clearReview();$('status').textContent='This statement link is unavailable. Ask John for a current link.';}else if(!silent||!data){$('status').textContent='Could not load the statement. Check your connection, then reload this page.';}else{saveWarning='Could not refresh. Displaying the last loaded version.';saved();}}}
 function allocationLabel(row){if(!row.allocation)return null;return people.find(p=>row.allocation[p]===row.amountCents&&people.filter(x=>x!==p).every(x=>(row.allocation[x]??0)===0))||'split';}
 function render(){
  $('review').hidden=false;$('balance').hidden=false;$('copy-link').hidden=false;$('title').textContent=data.title;$('period').textContent=data.period;$('balance-amount').textContent=money(data.balanceCents);$('due-date').textContent=data.dueDate?'Due '+new Date(data.dueDate+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'Due date not provided';
@@ -57,10 +79,13 @@ function render(){
 function renderRows(){
  syncViewControls();
  const root=$('transactions');root.replaceChildren();const search=$('search').value.toLowerCase().trim(),current=effectiveFilter();
- const rows=data.rows.filter(r=>(current==='all'||current==='unassigned'&&!r.allocation||people.includes(current)&&r.allocation?.[current]!==0&&r.allocation?.[current]!==undefined)&&(!search||`${r.description} ${r.date} ${r.note} ${money(r.amountCents)}`.toLowerCase().includes(search)));
+ const rows=data.rows.filter(r=>(current==='all'||current==='unassigned'&&!r.allocation||people.includes(current)&&r.allocation?.[current]!==0&&r.allocation?.[current]!==undefined)&&(kindFilter==='all'||r.kind===kindFilter)&&(!dateFrom||r.date>=dateFrom)&&(!dateTo||r.date<=dateTo)&&(!search||`${r.description} ${r.date} ${r.note} ${money(r.amountCents)}`.toLowerCase().includes(search)));
+ rows.sort((a,b)=>(order==='amount'?Math.abs(b.amountCents)-Math.abs(a.amountCents):order==='oldest'?a.date.localeCompare(b.date):b.date.localeCompare(a.date))||a.page-b.page||a._id.localeCompare(b._id));
+ $('result-count').textContent=`Showing ${rows.length} of ${data.rows.length} items · ${money(rows.reduce((sum,r)=>sum+r.amountCents,0))} net`;
  const groups=[['purchase','Purchases',''],['credit','Credits & adjustments',data.sourceType==='csv'?'Assign refunds to the person whose purchase they offset.':'Assign the rent adjustment to the same person as the corresponding rent charge if it offsets that charge.'],['fee','Fees',''],['interest','Interest',''],['opening','Opening balance','Allocate the carried balance based on the previous month’s split.'],['payment','Card payments','Assign payments to the share they paid down. They reduce the amount still owed.']];
- for(const [kind,label,help] of groups){const group=rows.filter(r=>r.kind===kind);if(!group.length)continue;const heading=el('div',undefined,'group-heading');heading.append(el('h2',label),el('span',`${group.length} ${group.length===1?'item':'items'} · ${money(group.reduce((s,r)=>s+r.amountCents,0))}`));root.append(heading);if(help)root.append(el('p',help,'group-help'));for(const r of group)root.append(row(r));}
- if(!rows.length)root.append(el('p',current==='unassigned'&&!search?'All items are assigned. Choose All items to review them.':'No items match this view.','empty'));
+ if(order!=='type'){for(const r of rows)root.append(row(r));}
+ else for(const [kind,label,help] of groups){const group=rows.filter(r=>r.kind===kind);if(!group.length)continue;const heading=el('div',undefined,'group-heading');heading.append(el('h2',label),el('span',`${group.length} ${group.length===1?'item':'items'} · ${money(group.reduce((s,r)=>s+r.amountCents,0))}`));root.append(heading);if(help)root.append(el('p',help,'group-help'));for(const r of group)root.append(row(r));}
+ if(!rows.length)root.append(el('p',current==='unassigned'&&!search&&kindFilter==='all'&&!dateFrom&&!dateTo?'All items are assigned. Choose All items to review them.':'No items match this view.','empty'));
 }
 function merchantName(description){
  // Display-only shortening. The exact imported description stays in Details and export.
@@ -168,11 +193,15 @@ async function syncSharedView(){
  const revision=viewRevision;viewReading=true;
  try{const result=await call('query','view',{token});
   if(!data||desiredView||viewSaving||revision!==viewRevision||pending.size||editing)return;
-  if(result.viewVersion!==sharedViewVersion){data.view=result.view;data.viewVersion=result.viewVersion;sharedViewVersion=result.viewVersion;filter=normalizeFilter(result.view.filter);$('search').value=result.view.search;$('view-status').textContent='View synced';renderRows();}
+  if(result.viewVersion!==sharedViewVersion){data.view=result.view;data.viewVersion=result.viewVersion;sharedViewVersion=result.viewVersion;filter=normalizeFilter(result.view.filter);if(linkedView)writeLinkView(true);$('search').value=result.view.search;$('view-status').textContent='View synced';renderRows();}
  }catch(e){if(/unavailable/.test(e.message)){clearReview();$('status').textContent='This statement link is unavailable.';}}
  finally{viewReading=false;}
 }
-for(const b of document.querySelectorAll('[data-filter]'))b.onclick=()=>{filter=b.dataset.filter;renderRows();queueView();};
+for(const b of document.querySelectorAll('[data-filter]'))b.onclick=()=>{filter=b.dataset.filter;writeLinkView();renderRows();queueView();};
+for(const b of document.querySelectorAll('[data-sort]'))b.onclick=()=>{order=b.dataset.sort;writeLinkView();renderRows();};
+for(const b of document.querySelectorAll('[data-kind]'))b.onclick=()=>{kindFilter=b.dataset.kind;writeLinkView();renderRows();};
+for(const id of ['date-from','date-to'])$(id).onchange=()=>{dateFrom=$('date-from').value;dateTo=$('date-to').value;writeLinkView();renderRows();};
+$('clear-filters').onclick=()=>{kindFilter='all';dateFrom='';dateTo='';filter='all';$('search').value='';writeLinkView();renderRows();queueView();};
 $('search').oninput=()=>{if(data){renderRows();queueView(200);}};
 $('export').onclick=()=>{const cell=(value,index)=>'"'+String(value??'').replace(index===1||index===people.length+5?/^[=+@\t\r-]/:/^[=+@\t\r]/,"'$&").replaceAll('"','""')+'"';const rows=[['Date','Description','Type','Amount',...people.map(title),'Unassigned','Note',data.sourceType==='csv'?'CSV row':'PDF page'],...data.rows.map(r=>[r.date,r.description,r.kind,(r.amountCents/100).toFixed(2),...people.map(p=>r.allocation?((r.allocation[p]??0)/100).toFixed(2):''),r.allocation?'':(r.amountCents/100).toFixed(2),r.note,r.page])];const url=URL.createObjectURL(new Blob(['\uFEFF'+rows.map(r=>r.map(cell).join(',')).join('\r\n')],{type:'text/csv;charset=utf-8'}));const a=el('a');a.href=url;a.download='statement-split.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};
 async function manager(){
@@ -183,7 +212,7 @@ async function manager(){
  window.Clerk.addListener(update);await update({session:window.Clerk.session});
  }catch{$('status').textContent='Could not load sign-in. Reload this page to try again.';}
 }
-window.addEventListener('hashchange',()=>location.reload());
+window.addEventListener('hashchange',()=>{if(location.hash.slice(1).split('&')[0]!==token)location.reload();});
 window.addEventListener('beforeunload',e=>{if(desiredView)void flushView();if(pending.size||desiredView||viewSaving){e.preventDefault();e.returnValue='';}});
 if(token){if(/^[A-Za-z0-9_-]{43}$/.test(token)){refresh();setInterval(()=>{if(!document.hidden)refresh(true);},20000);setInterval(syncSharedView,3000);document.addEventListener('visibilitychange',()=>{if(document.hidden){if(desiredView)void flushView();}else{if(desiredView)void flushView();refresh(true);void syncSharedView();}});window.addEventListener('online',()=>{if(desiredView)void flushView();refresh(true);void syncSharedView();});}else $('status').textContent='This statement link is unavailable. Ask John for a current link.';}else manager();
 })();
