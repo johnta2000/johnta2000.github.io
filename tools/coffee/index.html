@@ -1,0 +1,431 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f6f2e9">
+  <title>Coffee, decided. — John Ta</title>
+  <meta name="description" content="Browse four San Francisco coffee menus in one place. Search drinks and food, compare saved DoorDash pickup prices, and open the exact café branch.">
+  <link rel="canonical" href="https://www.john-ta.com/tools/coffee/">
+  <link rel="stylesheet" href="./styles.css?v=1">
+  <script defer src="./app.js?v=1"></script>
+</head>
+<body>
+  <header class="site-header"><a class="brand" href="/">JT<span>John Ta</span></a><a href="/tools/menus/">All menus <span aria-hidden="true">↗</span></a></header>
+  <main>
+    <section class="intro">
+      <div><p class="eyebrow">The coffee shortlist · San Francisco</p><h1>Coffee,<br><em>decided.</em></h1><p class="lede">A good cup. Fewer tabs.<br>Your café menus, all in one place.</p></div>
+      <aside class="snapshot"><span class="stamp" aria-hidden="true">☕</span><p>4 cafés <span>·</span> 285 priced items</p><strong>Pickup menu snapshot</strong><span>Saved October 31, 2026</span></aside>
+    </section>
+    <section class="browser" aria-label="Browse coffee menus">
+      <nav class="cafe-tabs" aria-label="Choose a café">
+        <a href="?" data-filter="cafe" data-value="all" aria-current="page">All cafés <span>4</span></a>
+        <a href="?cafe=delah" data-filter="cafe" data-value="delah">Delah</a>
+        <a href="?cafe=sightglass" data-filter="cafe" data-value="sightglass">Sightglass</a>
+        <a href="?cafe=philz" data-filter="cafe" data-value="philz">Philz</a>
+        <a href="?cafe=binge" data-filter="cafe" data-value="binge">Binge</a>
+      </nav>
+      <div class="controls">
+        <form id="search-form" role="search"><label class="sr-only" for="search">Search drinks, food, or menu categories</label><input id="search" name="q" type="search" placeholder="Find a latte, matcha, pastry…" autocomplete="off"><button type="submit">Search</button></form>
+        <nav class="kind-tabs" aria-label="Menu type"><a href="?" data-filter="kind" data-value="all" aria-current="page">Everything</a><a href="?kind=drinks" data-filter="kind" data-value="drinks">Drinks</a><a href="?kind=food" data-filter="kind" data-value="food">Food</a><a href="?kind=pantry" data-filter="kind" data-value="pantry">Beans & more</a></nav>
+      </div>
+      <div class="results-bar"><p id="result-count" role="status" aria-live="polite">285 priced items · 4 cafés</p><a id="reset" href="?">Clear filters</a></div>
+      <p class="price-note">USD, before tax, fees, tips and customizations. <b>+</b> means a starting price. Prices and availability can change; confirm on DoorDash before ordering.</p>
+      <div id="menus"><section class="cafe-section" id="delah" data-cafe="delah"><header class="cafe-heading"><div><p class="eyebrow">370 4th Street</p><h2>Delah Coffee</h2></div><a class="order-link" href="https://www.doordash.com/store/delah-coffee-san-francisco-30864993/" target="_blank" rel="noopener">Open DoorDash <span aria-hidden="true">↗</span></a></header>
+<section class="menu-group"><h3>Chillers</h3><ul class="items">
+<li data-name="Hibiscus" data-kind="drinks" data-price="5.77"><span>Hibiscus</span><strong>$5.77</strong></li>
+<li data-name="Pink Socotra" data-kind="drinks" data-price="7.36"><span>Pink Socotra</span><strong>$7.36</strong></li>
+<li data-name="Red Bull Crush" data-kind="drinks" data-price="7.89"><span>Red Bull Crush</span><strong>$7.89</strong></li>
+<li data-name="Sahara Freeze" data-kind="drinks" data-price="7.36"><span>Sahara Freeze</span><strong>$7.36</strong></li>
+<li data-name="Strawberry Acai" data-kind="drinks" data-price="7.89"><span>Strawberry Acai</span><strong>$7.89</strong></li>
+</ul></section>
+<section class="menu-group"><h3>Coffee &amp; More</h3><ul class="items">
+<li data-name="Cold brew" data-kind="drinks" data-price="5.24"><span>Cold brew</span><strong>$5.24</strong></li>
+<li data-name="French Press" data-kind="drinks" data-price="5.24"><span>French Press</span><strong>$5.24</strong></li>
+<li data-name="Hot Chocolate" data-kind="drinks" data-price="4.18"><span>Hot Chocolate</span><strong>$4.18+</strong></li>
+<li data-name="Pour Over" data-kind="drinks" data-price="7.36"><span>Pour Over</span><strong>$7.36</strong></li>
+<li data-name="Turkish Coffee" data-kind="drinks" data-price="5.24"><span>Turkish Coffee</span><strong>$5.24</strong></li>
+</ul></section>
+<section class="menu-group"><h3>Coffee Beans/Mixes</h3><ul class="items">
+<li data-name="Adeni Chai Mix" data-kind="pantry" data-price="35.24"><span>Adeni Chai Mix</span><strong>$35.24</strong></li>
+<li data-name="Delah Blend" data-kind="pantry" data-price="27.5"><span>Delah Blend</span><strong>$27.50</strong></li>
+<li data-name="Delah Espresso" data-kind="pantry" data-price="26.44"><span>Delah Espresso</span><strong>$26.44</strong></li>
+<li data-name="Qahwah" data-kind="pantry" data-price="26.44"><span>Qahwah</span><strong>$26.44</strong></li>
+<li data-name="Sheikh espresso" data-kind="pantry" data-price="27.5"><span>Sheikh espresso</span><strong>$27.50</strong></li>
+</ul></section>
+<section class="menu-group"><h3>Delah Specialties</h3><ul class="items">
+<li data-name="Arabian Qahwah" data-kind="drinks" data-price="6.3"><span>Arabian Qahwah</span><strong>$6.30+</strong></li>
+<li data-name="Delah Mofawar" data-kind="drinks" data-price="6.3"><span>Delah Mofawar</span><strong>$6.30+</strong></li>
+<li data-name="Delah Qahwah" data-kind="drinks" data-price="6.3"><span>Delah Qahwah</span><strong>$6.30+</strong></li>
+<li data-name="Jubani" data-kind="drinks" data-price="6.3"><span>Jubani</span><strong>$6.30+</strong></li>
+<li data-name="Qishr" data-kind="drinks" data-price="6.3"><span>Qishr</span><strong>$6.30+</strong></li>
+<li data-name="Sana&#x27;ani" data-kind="drinks" data-price="6.3"><span>Sana&#x27;ani</span><strong>$6.30+</strong></li>
+</ul></section>
+<section class="menu-group"><h3>Espresso</h3><ul class="items">
+<li data-name="Affogato" data-kind="drinks" data-price="7.36"><span>Affogato</span><strong>$7.36</strong></li>
+<li data-name="Cappuccino" data-kind="drinks" data-price="5.77"><span>Cappuccino</span><strong>$5.77</strong></li>
+<li data-name="Caramel Macchiato" data-kind="drinks" data-price="7.15"><span>Caramel Macchiato</span><strong>$7.15</strong></li>
+<li data-name="cinnamon date latte" data-kind="drinks" data-price="8.74"><span>cinnamon date latte</span><strong>$8.74+</strong></li>
+<li data-name="Cortado" data-kind="drinks" data-price="5.24"><span>Cortado</span><strong>$5.24</strong></li>
+<li data-name="Delah Biscoff Latte" data-kind="drinks" data-price="7.89"><span>Delah Biscoff Latte</span><strong>$7.89+</strong></li>
+<li data-name="Delah Shaken Espresso" data-kind="drinks" data-price="7.36"><span>Delah Shaken Espresso</span><strong>$7.36</strong></li>
+<li data-name="Espresso" data-kind="drinks" data-price="2.38"><span>Espresso</span><strong>$2.38</strong></li>
+<li data-name="Flat white" data-kind="drinks" data-price="5.56"><span>Flat white</span><strong>$5.56</strong></li>
+<li data-name="hot Americano" data-kind="drinks" data-price="4.71"><span>hot Americano</span><strong>$4.71+</strong></li>
+<li data-name="hot Pistachio latte" data-kind="drinks" data-price="8.32"><span>hot Pistachio latte</span><strong>$8.32</strong></li>
+<li data-name="Hot Yemeni Latte" data-kind="drinks" data-price="7.15"><span>Hot Yemeni Latte</span><strong>$7.15</strong></li>
+<li data-name="ice Pistachio latte" data-kind="drinks" data-price="8.42"><span>ice Pistachio latte</span><strong>$8.42</strong></li>
+<li data-name="iced Caramel Macchiato" data-kind="drinks" data-price="7.15"><span>iced Caramel Macchiato</span><strong>$7.15</strong></li>
+<li data-name="Iced Yemeni Latte" data-kind="drinks" data-price="7.36"><span>Iced Yemeni Latte</span><strong>$7.36</strong></li>
+<li data-name="Latte" data-kind="drinks" data-price="5.56"><span>Latte</span><strong>$5.56+</strong></li>
+<li data-name="Macchiato" data-kind="drinks" data-price="5.24"><span>Macchiato</span><strong>$5.24</strong></li>
+<li data-name="Mocha latte" data-kind="drinks" data-price="7.15"><span>Mocha latte</span><strong>$7.15</strong></li>
+<li data-name="Rose Delah latte" data-kind="drinks" data-price="8.32"><span>Rose Delah latte</span><strong>$8.32</strong></li>
+<li data-name="Spanish latte" data-kind="drinks" data-price="6.62"><span>Spanish latte</span><strong>$6.62</strong></li>
+<li data-name="Yemeni Frappe" data-kind="drinks" data-price="8.32"><span>Yemeni Frappe</span><strong>$8.32</strong></li>
+</ul></section>
+<section class="menu-group"><h3>fall drinks</h3><ul class="items">
+<li data-name="hot pumpkin latte" data-kind="drinks" data-price="7.36"><span>hot pumpkin latte</span><strong>$7.36</strong></li>
+<li data-name="iced pumpkin matcha" data-kind="drinks" data-price="7.89"><span>iced pumpkin matcha</span><strong>$7.89</strong></li>
+<li data-name="pumpkin shaken espresso" data-kind="drinks" data-price="7.68"><span>pumpkin shaken espresso</span><strong>$7.68</strong></li>
+</ul></section>
+<section class="menu-group"><h3>Grab &amp; go drinks</h3><ul class="items">
+<li data-name="celsius" data-kind="drinks" data-price="4.22"><span>celsius</span><strong>$4.22</strong></li>
+<li data-name="gatorade" data-kind="drinks" data-price="2.65"><span>gatorade</span><strong>$2.65</strong></li>
+<li data-name="olipop soda" data-kind="drinks" data-price="4.22"><span>olipop soda</span><strong>$4.22</strong></li>
+<li data-name="poppi soda" data-kind="drinks" data-price="3.76"><span>poppi soda</span><strong>$3.76</strong></li>
+<li data-name="red bull white peach" data-kind="drinks" data-price="4.22"><span>red bull white peach</span><strong>$4.22</strong></li>
+<li data-name="S.pellegrino sparkling water" data-kind="drinks" data-price="3.69"><span>S.pellegrino sparkling water</span><strong>$3.69</strong></li>
+<li data-name="sunny D" data-kind="drinks" data-price="2.63"><span>sunny D</span><strong>$2.63</strong></li>
+<li data-name="water" data-kind="drinks" data-price="1.59"><span>water</span><strong>$1.59</strong></li>
+</ul></section>
+<section class="menu-group"><h3>matchas</h3><ul class="items">
+<li data-name="banana pudding Matcha" data-kind="drinks" data-price="7.89"><span>banana pudding Matcha</span><strong>$7.89</strong></li>
+<li data-name="Iced Mango Matcha" data-kind="drinks" data-price="7.89"><span>Iced Mango Matcha</span><strong>$7.89</strong></li>
+<li data-name="Matcha latte" data-kind="drinks" data-price="6.83"><span>Matcha latte</span><strong>$6.83</strong></li>
+<li data-name="pineapple Matcha" data-kind="drinks" data-price="7.89"><span>pineapple Matcha</span><strong>$7.89</strong></li>
+<li data-name="raspberry Matcha" data-kind="drinks" data-price="7.89"><span>raspberry Matcha</span><strong>$7.89</strong></li>
+<li data-name="strawberry Matcha" data-kind="drinks" data-price="7.89"><span>strawberry Matcha</span><strong>$7.89</strong></li>
+</ul></section>
+<section class="menu-group"><h3>Pastries</h3><ul class="items">
+<li data-name="Savory/Pies" data-kind="food" data-price="5.77"><span>Savory/Pies</span><strong>$5.77+</strong></li>
+<li data-name="Turkish Delights" data-kind="food" data-price="6.3"><span>Turkish Delights</span><strong>$6.30</strong></li>
+<li data-name="Turkish Desserts" data-kind="food" data-price="5.56"><span>Turkish Desserts</span><strong>$5.56+</strong></li>
+</ul></section>
+<section class="menu-group"><h3>Smoothies</h3><ul class="items">
+<li data-name="Blueberry Dates" data-kind="drinks" data-price="8.42"><span>Blueberry Dates</span><strong>$8.42</strong></li>
+<li data-name="Mangorabian" data-kind="drinks" data-price="7.36"><span>Mangorabian</span><strong>$7.36</strong></li>
+<li data-name="Strawberry Smoothie" data-kind="drinks" data-price="7.36"><span>Strawberry Smoothie</span><strong>$7.36</strong></li>
+</ul></section>
+<section class="menu-group"><h3>Tea</h3><ul class="items">
+<li data-name="Adeni Chai" data-kind="drinks" data-price="5.24"><span>Adeni Chai</span><strong>$5.24+</strong></li>
+<li data-name="Iced Delah Chai" data-kind="drinks" data-price="7.15"><span>Iced Delah Chai</span><strong>$7.15</strong></li>
+<li data-name="Iced Tea" data-kind="drinks" data-price="6.62"><span>Iced Tea</span><strong>$6.62</strong></li>
+<li data-name="Organic Tea" data-kind="drinks" data-price="3.97"><span>Organic Tea</span><strong>$3.97+</strong></li>
+<li data-name="Yemeni Tea" data-kind="drinks" data-price="5.24"><span>Yemeni Tea</span><strong>$5.24+</strong></li>
+</ul></section>
+<p class="unpriced">Milk Cakes and Bee bites also appear on Delah’s menu; choose options on DoorDash to see their prices.</p>
+</section>
+<section class="cafe-section" id="sightglass" data-cafe="sightglass"><header class="cafe-heading"><div><p class="eyebrow">270 7th Street</p><h2>Sightglass Coffee</h2></div><a class="order-link" href="https://www.doordash.com/store/sightglass-san-francisco-25557305/" target="_blank" rel="noopener">Open DoorDash <span aria-hidden="true">↗</span></a></header>
+<section class="menu-group"><h3>Coffee</h3><ul class="items">
+<li data-name="COFFEE TRAVELER" data-kind="pantry" data-price="55"><span>COFFEE TRAVELER</span><strong>$55.00</strong></li>
+<li data-name="POUR OVER" data-kind="drinks" data-price="7.75"><span>POUR OVER</span><strong>$7.75</strong></li>
+<li data-name="QUICK CUP DRIP" data-kind="drinks" data-price="5.75"><span>QUICK CUP DRIP</span><strong>$5.75</strong></li>
+</ul></section>
+<section class="menu-group"><h3>Cold Coffee</h3><ul class="items">
+<li data-name="TOKETEE COLD COFFEE" data-kind="drinks" data-price="6.75"><span>TOKETEE COLD COFFEE</span><strong>$6.75</strong></li>
+<li data-name="VANILLA ICED COLD COFFEE" data-kind="drinks" data-price="7.25"><span>VANILLA ICED COLD COFFEE</span><strong>$7.25</strong></li>
+</ul></section>
+<section class="menu-group"><h3>Cookies &amp; Scones</h3><ul class="items">
+<li data-name="BLUEBERRY SCONE" data-kind="food" data-price="7"><span>BLUEBERRY SCONE</span><strong>$7.00</strong></li>
+<li data-name="BROWN BUTTER CHOCOLATE CHIP COOKIE" data-kind="food" data-price="5.5"><span>BROWN BUTTER CHOCOLATE CHIP COOKIE</span><strong>$5.50</strong></li>
+<li data-name="JANE X SIGHTGLASS CHOCOLATE ESPRESSO SHORTBREAD" data-kind="food" data-price="19"><span>JANE X SIGHTGLASS CHOCOLATE ESPRESSO SHORTBREAD</span><strong>$19.00</strong></li>
+</ul></section>
+<section class="menu-group"><h3>Espresso Beverages</h3><ul class="items">
+<li data-name="AMERICANO" data-kind="drinks" data-price="5.75"><span>AMERICANO</span><strong>$5.75</strong></li>
+<li data-name="CAPPUCCINO" data-kind="drinks" data-price="7.25"><span>CAPPUCCINO</span><strong>$7.25</strong></li>
+<li data-name="CORTADO" data-kind="drinks" data-price="6.5"><span>CORTADO</span><strong>$6.50</strong></li>
+<li data-name="ESPRESSO" data-kind="drinks" data-price="5.5"><span>ESPRESSO</span><strong>$5.50</strong></li>
+<li data-name="FLAT WHITE" data-kind="drinks" data-price="7.25"><span>FLAT WHITE</span><strong>$7.25</strong></li>
+<li data-name="ICED AMERICANO" data-kind="drinks" data-price="5.75"><span>ICED AMERICANO</span><strong>$5.75</strong></li>
+<li data-name="ICED LATTE" data-kind="drinks" data-price="7.75"><span>ICED LATTE</span><strong>$7.75</strong></li>
+<li data-name="ICED MOCHA" data-kind="drinks" data-price="8.25"><span>ICED MOCHA</span><strong>$8.25</strong></li>
+<li data-name="ICED VANILLA PASTE LATTE" data-kind="drinks" data-price="8.25"><span>ICED VANILLA PASTE LATTE</span><strong>$8.25</strong></li>
+<li data-name="LATTE" data-kind="drinks" data-price="7.75"><span>LATTE</span><strong>$7.75</strong></li>
+<li data-name="MACCHIATO" data-kind="drinks" data-price="6"><span>MACCHIATO</span><strong>$6.00</strong></li>
+<li data-name="MOCHA" data-kind="drinks" data-price="8.25"><span>MOCHA</span><strong>$8.25</strong></li>
+<li data-name="VANILLA PASTE LATTE" data-kind="drinks" data-price="8.25"><span>VANILLA PASTE LATTE</span><strong>$8.25</strong></li>
+</ul></section>
+<section class="menu-group"><h3>George&#x27;s Donuts</h3><ul class="items">
+<li data-name="GEORGE&#x27;S CLASSIC CHOCOLATE" data-kind="food" data-price="7"><span>GEORGE&#x27;S CLASSIC CHOCOLATE</span><strong>$7.00</strong></li>
+<li data-name="GEORGE&#x27;S CLASSIC GLAZED" data-kind="food" data-price="7"><span>GEORGE&#x27;S CLASSIC GLAZED</span><strong>$7.00</strong></li>
+<li data-name="GEORGE&#x27;S CRULLER VANILLA BEAN" data-kind="food" data-price="7.5"><span>GEORGE&#x27;S CRULLER VANILLA BEAN</span><strong>$7.50</strong></li>
+</ul></section>
+<section class="menu-group"><h3>Grab &amp; Go</h3><ul class="items">
+<li data-name="HAPPY MOOSE - CALI ORANGE" data-kind="drinks" data-price="8.75"><span>HAPPY MOOSE - CALI ORANGE</span><strong>$8.75</strong></li>
+<li data-name="HAPPY MOOSE - RAINBOW GREENS" data-kind="drinks" data-price="8.75"><span>HAPPY MOOSE - RAINBOW GREENS</span><strong>$8.75</strong></li>
+<li data-name="JUICE SHOP TONIC ASSORTED" data-kind="drinks" data-price="5.25"><span>JUICE SHOP TONIC ASSORTED</span><strong>$5.25</strong></li>
+<li data-name="SPARKLING WATER - LARGE 22oz" data-kind="drinks" data-price="5.75"><span>SPARKLING WATER - LARGE 22oz</span><strong>$5.75</strong></li>
+<li data-name="SPARKLING WATER - SMALL 12oz" data-kind="drinks" data-price="4.25"><span>SPARKLING WATER - SMALL 12oz</span><strong>$4.25</strong></li>
+</ul></section>
+<section class="menu-group"><h3>Laminated Pastries</h3><ul class="items">
+<li data-name="BUTTER CROISSANT" data-kind="food" data-price="6"><span>BUTTER CROISSANT</span><strong>$6.00</strong></li>
+<li data-name="CHOCOLATE CROISSANT" data-kind="food" data-price="6.75"><span>CHOCOLATE CROISSANT</span><strong>$6.75</strong></li>
+<li data-name="CHOCOLATE HAZELNUT CROISSANT" data-kind="food" data-price="7.5"><span>CHOCOLATE HAZELNUT CROISSANT</span><strong>$7.50</strong></li>
+<li data-name="CURRY POTATO BOUREKA PUFF" data-kind="food" data-price="7.75"><span>CURRY POTATO BOUREKA PUFF</span><strong>$7.75</strong></li>
+<li data-name="EVERYTHING CROISSANT" data-kind="food" data-price="7.75"><span>EVERYTHING CROISSANT</span><strong>$7.75</strong></li>
+<li data-name="HAM &amp; GRUYERE CROISSANT" data-kind="food" data-price="8"><span>HAM &amp; GRUYERE CROISSANT</span><strong>$8.00</strong></li>
+<li data-name="MORNING BUN" data-kind="food" data-price="7"><span>MORNING BUN</span><strong>$7.00</strong></li>
+<li data-name="MUSHROOM TART" data-kind="food" data-price="7.75"><span>MUSHROOM TART</span><strong>$7.75</strong></li>
+<li data-name="PISTACHIO BLACKBERRY CROISSANT" data-kind="food" data-price="7.5"><span>PISTACHIO BLACKBERRY CROISSANT</span><strong>$7.50</strong></li>
+<li data-name="UBE CROISSANT" data-kind="food" data-price="7.5"><span>UBE CROISSANT</span><strong>$7.50</strong></li>
+</ul></section>
+<section class="menu-group"><h3>Loose Leaf Tea</h3><ul class="items">
+<li data-name="GREEN TEA - HOT" data-kind="drinks" data-price="6.25"><span>GREEN TEA - HOT</span><strong>$6.25</strong></li>
+<li data-name="MEADOW BOTANICAL - ICED" data-kind="drinks" data-price="6.25"><span>MEADOW BOTANICAL - ICED</span><strong>$6.25</strong></li>
+<li data-name="MEADOW BOTANICAL TEA - HOT" data-kind="drinks" data-price="6.25"><span>MEADOW BOTANICAL TEA - HOT</span><strong>$6.25</strong></li>
+<li data-name="RED TEA - HOT" data-kind="drinks" data-price="6.25"><span>RED TEA - HOT</span><strong>$6.25</strong></li>
+<li data-name="RED TEA - ICED" data-kind="drinks" data-price="6.25"><span>RED TEA - ICED</span><strong>$6.25</strong></li>
+</ul></section>
+<section class="menu-group"><h3>Masala Chai</h3><ul class="items">
+<li data-name="ICED MASALA CHAI LATTE" data-kind="drinks" data-price="8.25"><span>ICED MASALA CHAI LATTE</span><strong>$8.25</strong></li>
+<li data-name="MASALA CHAI LATTE" data-kind="drinks" data-price="8.25"><span>MASALA CHAI LATTE</span><strong>$8.25</strong></li>
+</ul></section>
+<section class="menu-group"><h3>Matcha</h3><ul class="items">
+<li data-name="Coconut Matcha Cloud" data-kind="drinks" data-price="9"><span>Coconut Matcha Cloud</span><strong>$9.00</strong></li>
+<li data-name="ICED MATCHA" data-kind="drinks" data-price="8.25"><span>ICED MATCHA</span><strong>$8.25</strong></li>
+<li data-name="MATCHA" data-kind="drinks" data-price="8.25"><span>MATCHA</span><strong>$8.25</strong></li>
+<li data-name="Matcha Tonic" data-kind="drinks" data-price="8.25"><span>Matcha Tonic</span><strong>$8.25</strong></li>
+</ul></section>
+<section class="menu-group"><h3>Muffins &amp; Danishes</h3><ul class="items">
+<li data-name="ALMOND FINANCIER" data-kind="food" data-price="6"><span>ALMOND FINANCIER</span><strong>$6.00</strong></li>
+<li data-name="BLUEBERRY MUFFIN" data-kind="food" data-price="7"><span>BLUEBERRY MUFFIN</span><strong>$7.00</strong></li>
+<li data-name="GF CARROT BANANA MUFFIN" data-kind="food" data-price="7.25"><span>GF CARROT BANANA MUFFIN</span><strong>$7.25</strong></li>
+</ul></section>
+<section class="menu-group"><h3>Prepared Foods</h3><ul class="items">
+<li data-name="GEORGE&#x27;S BACON BREAKFAST SANDWICH" data-kind="food" data-price="12.99"><span>GEORGE&#x27;S BACON BREAKFAST SANDWICH</span><strong>$12.99</strong></li>
+<li data-name="GEORGE&#x27;S CHICKEN PANINI" data-kind="food" data-price="15.99"><span>GEORGE&#x27;S CHICKEN PANINI</span><strong>$15.99</strong></li>
+<li data-name="GEORGE&#x27;S SAUSAGE BREAKFAST BURRITO" data-kind="food" data-price="12.99"><span>GEORGE&#x27;S SAUSAGE BREAKFAST BURRITO</span><strong>$12.99</strong></li>
+<li data-name="GEORGE&#x27;S VEGGIE BREAKFAST BURRITO" data-kind="food" data-price="12.99"><span>GEORGE&#x27;S VEGGIE BREAKFAST BURRITO</span><strong>$12.99</strong></li>
+</ul></section>
+<section class="menu-group"><h3>Tea &amp; Other Beverages</h3><ul class="items">
+<li data-name="COLD MILK" data-kind="drinks" data-price="5.5"><span>COLD MILK</span><strong>$5.50</strong></li>
+<li data-name="HOT CHOCOLATE" data-kind="drinks" data-price="7"><span>HOT CHOCOLATE</span><strong>$7.00</strong></li>
+<li data-name="SPARKLING CASCARA SHRUB" data-kind="drinks" data-price="7"><span>SPARKLING CASCARA SHRUB</span><strong>$7.00</strong></li>
+<li data-name="STEAMED MILK" data-kind="drinks" data-price="3.5"><span>STEAMED MILK</span><strong>$3.50</strong></li>
+</ul></section>
+<section class="menu-group"><h3>Whole Bean Coffee</h3><ul class="items">
+<li data-name="AUTUMNAL EQUINOX, 12 OZ" data-kind="pantry" data-price="26"><span>AUTUMNAL EQUINOX, 12 OZ</span><strong>$26.00</strong></li>
+<li data-name="BANNER DARK, 12OZ BAG" data-kind="pantry" data-price="23"><span>BANNER DARK, 12OZ BAG</span><strong>$23.00</strong></li>
+<li data-name="BLUEBOON BLEND, 12OZ BAG" data-kind="pantry" data-price="22"><span>BLUEBOON BLEND, 12OZ BAG</span><strong>$22.00</strong></li>
+<li data-name="COLOMBIA, FINCA ALCATRAZ, CATURRA 120Z BAG" data-kind="pantry" data-price="29"><span>COLOMBIA, FINCA ALCATRAZ, CATURRA 120Z BAG</span><strong>$29.00</strong></li>
+<li data-name="COLOMBIA, FINCA ALCATRAZ, PINK BOURBON 120Z BAG" data-kind="pantry" data-price="29"><span>COLOMBIA, FINCA ALCATRAZ, PINK BOURBON 120Z BAG</span><strong>$29.00</strong></li>
+<li data-name="ETHIOPIA, TAGEL ALEMAYEHU, HAMBELA, 12 OZ BAG" data-kind="pantry" data-price="28.5"><span>ETHIOPIA, TAGEL ALEMAYEHU, HAMBELA, 12 OZ BAG</span><strong>$28.50</strong></li>
+<li data-name="ETHIOPIA, WORKA CHELBESSA, YIRGACHEFFE, 12 OZ" data-kind="pantry" data-price="29"><span>ETHIOPIA, WORKA CHELBESSA, YIRGACHEFFE, 12 OZ</span><strong>$29.00</strong></li>
+<li data-name="GRIZZLY PEAK, REGENERATIVE ORGANIC, 12 OZ BAG" data-kind="pantry" data-price="23.5"><span>GRIZZLY PEAK, REGENERATIVE ORGANIC, 12 OZ BAG</span><strong>$23.50</strong></li>
+<li data-name="GUATEMALA, LA GUITARRA , 12 OZ BAG" data-kind="pantry" data-price="29.5"><span>GUATEMALA, LA GUITARRA , 12 OZ BAG</span><strong>$29.50</strong></li>
+<li data-name="HONDURAS NUEVA ESPERANZA, 12OZ BAG" data-kind="pantry" data-price="29"><span>HONDURAS NUEVA ESPERANZA, 12OZ BAG</span><strong>$29.00</strong></li>
+<li data-name="HUNKY DORY DECAF BLEND, 12 OZ BAG" data-kind="pantry" data-price="24.5"><span>HUNKY DORY DECAF BLEND, 12 OZ BAG</span><strong>$24.50</strong></li>
+<li data-name="KENYA, FLORENCE &amp; JESSICA MARIGI AB, KIAMBU" data-kind="pantry" data-price="29.5"><span>KENYA, FLORENCE &amp; JESSICA MARIGI AB, KIAMBU</span><strong>$29.50</strong></li>
+<li data-name="KENYA, KIANGOI AA, KIRINYAGA" data-kind="pantry" data-price="29.5"><span>KENYA, KIANGOI AA, KIRINYAGA</span><strong>$29.50</strong></li>
+<li data-name="MEXICO, RANCHO LA PERLA, ANTONIA FUENTES" data-kind="pantry" data-price="29.5"><span>MEXICO, RANCHO LA PERLA, ANTONIA FUENTES</span><strong>$29.50</strong></li>
+<li data-name="MEXICO, SILVIA HERRERA GESHA NATURAL" data-kind="pantry" data-price="46"><span>MEXICO, SILVIA HERRERA GESHA NATURAL</span><strong>$46.00</strong></li>
+<li data-name="MICRODOSE BLEND, 12 0Z BAG" data-kind="pantry" data-price="23.5"><span>MICRODOSE BLEND, 12 0Z BAG</span><strong>$23.50</strong></li>
+<li data-name="OWLS HOWL ESPRESSO BLEND, 12 OZ BAG" data-kind="pantry" data-price="22"><span>OWLS HOWL ESPRESSO BLEND, 12 OZ BAG</span><strong>$22.00</strong></li>
+<li data-name="WOMEN OF COFFEE, 10.9OZ BAG" data-kind="pantry" data-price="26"><span>WOMEN OF COFFEE, 10.9OZ BAG</span><strong>$26.00</strong></li>
+</ul></section>
+</section>
+<section class="cafe-section" id="philz" data-cafe="philz"><header class="cafe-heading"><div><p class="eyebrow">1775 17th Street</p><h2>Philz Coffee</h2></div><a class="order-link" href="https://www.doordash.com/store/philz-coffee-san-francisco-55374/" target="_blank" rel="noopener">Open DoorDash <span aria-hidden="true">↗</span></a></header>
+<section class="menu-group"><h3>Bakery Treats</h3><ul class="items">
+<li data-name="Bacon Onion Pretzel Croissant" data-kind="food" data-price="5.95"><span>Bacon Onion Pretzel Croissant</span><strong>$5.95</strong></li>
+<li data-name="Blueberry Muffin" data-kind="food" data-price="5.25"><span>Blueberry Muffin</span><strong>$5.25</strong></li>
+<li data-name="Chocolate Peppermint Cookie" data-kind="food" data-price="4.15"><span>Chocolate Peppermint Cookie</span><strong>$4.15</strong></li>
+<li data-name="Dulce de Leche Kouign Amann" data-kind="food" data-price="6.3"><span>Dulce de Leche Kouign Amann</span><strong>$6.30</strong></li>
+<li data-name="Everything Bagel" data-kind="food" data-price="4.35"><span>Everything Bagel</span><strong>$4.35</strong></li>
+<li data-name="Jalapeno Cheese Bagel" data-kind="food" data-price="4.35"><span>Jalapeno Cheese Bagel</span><strong>$4.35</strong></li>
+<li data-name="Mexican Hot Chocolate Croissant" data-kind="food" data-price="5.85"><span>Mexican Hot Chocolate Croissant</span><strong>$5.85</strong></li>
+<li data-name="Mini Banana Loaf" data-kind="food" data-price="4.75"><span>Mini Banana Loaf</span><strong>$4.75</strong></li>
+<li data-name="Plain Bagel" data-kind="food" data-price="3.95"><span>Plain Bagel</span><strong>$3.95</strong></li>
+<li data-name="Pumpkin Bread Slice (V)" data-kind="food" data-price="4.75"><span>Pumpkin Bread Slice (V)</span><strong>$4.75</strong></li>
+<li data-name="Twice Baked Almond Croissant" data-kind="food" data-price="5.45"><span>Twice Baked Almond Croissant</span><strong>$5.45</strong></li>
+</ul></section>
+<section class="menu-group"><h3>Beans 1 LB Bag - Dark Blend</h3><ul class="items">
+<li data-name="Aromatic Arabic (1 LB)" data-kind="pantry" data-price="22.5"><span>Aromatic Arabic (1 LB)</span><strong>$22.50</strong></li>
+<li data-name="Ecstatic (1 LB)" data-kind="pantry" data-price="22.5"><span>Ecstatic (1 LB)</span><strong>$22.50</strong></li>
+<li data-name="Ether (1 LB)" data-kind="pantry" data-price="22.5"><span>Ether (1 LB)</span><strong>$22.50</strong></li>
+<li data-name="Jacobs Wonderbar (1 LB)" data-kind="pantry" data-price="22.5"><span>Jacobs Wonderbar (1 LB)</span><strong>$22.50</strong></li>
+</ul></section>
+<section class="menu-group"><h3>Beans 1 LB Bag - Decaf</h3><ul class="items">
+<li data-name="Luca&#x27;s Unplugged Decaf (1 LB)" data-kind="pantry" data-price="22.5"><span>Luca&#x27;s Unplugged Decaf (1 LB)</span><strong>$22.50</strong></li>
+</ul></section>
+<section class="menu-group"><h3>Beans 1 LB Bag - Lighter Blend</h3><ul class="items">
+<li data-name="Ambrosia Coffee of God (1 LB)" data-kind="pantry" data-price="22.5"><span>Ambrosia Coffee of God (1 LB)</span><strong>$22.50</strong></li>
+<li data-name="Dancing Water (1 LB)" data-kind="pantry" data-price="22.5"><span>Dancing Water (1 LB)</span><strong>$22.50</strong></li>
+<li data-name="New Manhattan (1 LB)" data-kind="pantry" data-price="22.5"><span>New Manhattan (1 LB)</span><strong>$22.50</strong></li>
+</ul></section>
+<section class="menu-group"><h3>Beans 1 LB Bag - Medium Blend</h3><ul class="items">
+<li data-name="Gratitude (1 LB)" data-kind="pantry" data-price="22.5"><span>Gratitude (1 LB)</span><strong>$22.50</strong></li>
+<li data-name="Julie&#x27;s Ultimate (1 LB)" data-kind="pantry" data-price="22.5"><span>Julie&#x27;s Ultimate (1 LB)</span><strong>$22.50</strong></li>
+<li data-name="Philtered Soul (1 LB)" data-kind="pantry" data-price="22.5"><span>Philtered Soul (1 LB)</span><strong>$22.50</strong></li>
+<li data-name="Silken Splendor (1 LB)" data-kind="pantry" data-price="22.5"><span>Silken Splendor (1 LB)</span><strong>$22.50</strong></li>
+<li data-name="Tesora (1 LB)" data-kind="pantry" data-price="22.5"><span>Tesora (1 LB)</span><strong>$22.50</strong></li>
+</ul></section>
+<section class="menu-group"><h3>Coffee Carriers</h3><ul class="items">
+<li data-name="Joe to Go Dispenser - 96oz" data-kind="pantry" data-price="34.95"><span>Joe to Go Dispenser - 96oz</span><strong>$34.95+</strong></li>
+</ul></section>
+<section class="menu-group"><h3>Cold Brew Bottles</h3><ul class="items">
+<li data-name="Mission Cold Brew (32 Oz)" data-kind="drinks" data-price="14.25"><span>Mission Cold Brew (32 Oz)</span><strong>$14.25</strong></li>
+<li data-name="Philtered Soul Cold Brew (32 Oz)" data-kind="drinks" data-price="14.25"><span>Philtered Soul Cold Brew (32 Oz)</span><strong>$14.25</strong></li>
+</ul></section>
+<section class="menu-group"><h3>Featured Creations</h3><ul class="items">
+<li data-name="Dulce de Leche" data-kind="drinks" data-price="5.99"><span>Dulce de Leche</span><strong>$5.99+</strong></li>
+<li data-name="Fresh Chai" data-kind="drinks" data-price="4.99"><span>Fresh Chai</span><strong>$4.99+</strong></li>
+<li data-name="Hot Dulce de Leche" data-kind="drinks" data-price="5.99"><span>Hot Dulce de Leche</span><strong>$5.99+</strong></li>
+<li data-name="Hot Mocha Tesora" data-kind="drinks" data-price="5.99"><span>Hot Mocha Tesora</span><strong>$5.99+</strong></li>
+<li data-name="Hot Peppermint Bark" data-kind="drinks" data-price="5.99"><span>Hot Peppermint Bark</span><strong>$5.99+</strong></li>
+<li data-name="Hot Tiramisu" data-kind="drinks" data-price="5.99"><span>Hot Tiramisu</span><strong>$5.99+</strong></li>
+<li data-name="Mint Mojito Iced Coffee" data-kind="drinks" data-price="5.99"><span>Mint Mojito Iced Coffee</span><strong>$5.99+</strong></li>
+<li data-name="Peppermint Bark" data-kind="drinks" data-price="5.99"><span>Peppermint Bark</span><strong>$5.99+</strong></li>
+<li data-name="Spiced Gratitude Cold Brew" data-kind="drinks" data-price="5.99"><span>Spiced Gratitude Cold Brew</span><strong>$5.99+</strong></li>
+<li data-name="Tiramisu" data-kind="drinks" data-price="5.99"><span>Tiramisu</span><strong>$5.99+</strong></li>
+<li data-name="Winter Bliss" data-kind="drinks" data-price="5.99"><span>Winter Bliss</span><strong>$5.99+</strong></li>
+<li data-name="Winter Bliss Cold Brew" data-kind="drinks" data-price="5.99"><span>Winter Bliss Cold Brew</span><strong>$5.99+</strong></li>
+</ul></section>
+<section class="menu-group"><h3>Hot Breakfast</h3><ul class="items">
+<li data-name="Bacon &amp; Cheese Egg Bites" data-kind="food" data-price="6.75"><span>Bacon &amp; Cheese Egg Bites</span><strong>$6.75</strong></li>
+<li data-name="Bacon Burrito" data-kind="food" data-price="7.15"><span>Bacon Burrito</span><strong>$7.15</strong></li>
+<li data-name="Focaccia Club" data-kind="food" data-price="7.95"><span>Focaccia Club</span><strong>$7.95</strong></li>
+<li data-name="Green Chile Burrito" data-kind="food" data-price="7.15"><span>Green Chile Burrito</span><strong>$7.15</strong></li>
+<li data-name="Grilled Ham &amp; Cheese" data-kind="food" data-price="6.95"><span>Grilled Ham &amp; Cheese</span><strong>$6.95</strong></li>
+<li data-name="Plant Powered Sandwich." data-kind="food" data-price="8.45"><span>Plant Powered Sandwich.</span><strong>$8.45</strong></li>
+<li data-name="Pork Sausage &amp; Egg Burrito" data-kind="food" data-price="7.15"><span>Pork Sausage &amp; Egg Burrito</span><strong>$7.15</strong></li>
+<li data-name="Roasted Chicken &amp; Golden Rice Burrito" data-kind="food" data-price="9.45"><span>Roasted Chicken &amp; Golden Rice Burrito</span><strong>$9.45</strong></li>
+<li data-name="Spinach &amp; Feta Croissant" data-kind="food" data-price="5.95"><span>Spinach &amp; Feta Croissant</span><strong>$5.95</strong></li>
+<li data-name="Turkey Sausage Sandwich" data-kind="food" data-price="6.95"><span>Turkey Sausage Sandwich</span><strong>$6.95</strong></li>
+<li data-name="Veggie Egg White Bites" data-kind="food" data-price="6.75"><span>Veggie Egg White Bites</span><strong>$6.75</strong></li>
+</ul></section>
+<section class="menu-group"><h3>Hot Coffee - Darker Blends</h3><ul class="items">
+<li data-name="Aromatic Arabic" data-kind="drinks" data-price="4.99"><span>Aromatic Arabic</span><strong>$4.99+</strong></li>
+<li data-name="Ether" data-kind="drinks" data-price="4.99"><span>Ether</span><strong>$4.99+</strong></li>
+<li data-name="Jacobs Wonderbar" data-kind="drinks" data-price="4.99"><span>Jacobs Wonderbar</span><strong>$4.99+</strong></li>
+<li data-name="Tantalizing Turkish" data-kind="drinks" data-price="4.99"><span>Tantalizing Turkish</span><strong>$4.99+</strong></li>
+</ul></section>
+<section class="menu-group"><h3>Hot Coffee - Decaf</h3><ul class="items">
+<li data-name="Luca&#x27;s Unplugged Decaf" data-kind="drinks" data-price="4.99"><span>Luca&#x27;s Unplugged Decaf</span><strong>$4.99+</strong></li>
+</ul></section>
+<section class="menu-group"><h3>Hot Coffee - Lighter Blends</h3><ul class="items">
+<li data-name="Ambrosia Coffee of God" data-kind="drinks" data-price="4.99"><span>Ambrosia Coffee of God</span><strong>$4.99+</strong></li>
+<li data-name="Dancing Water" data-kind="drinks" data-price="4.99"><span>Dancing Water</span><strong>$4.99+</strong></li>
+<li data-name="New Manhattan" data-kind="drinks" data-price="4.99"><span>New Manhattan</span><strong>$4.99+</strong></li>
+</ul></section>
+<section class="menu-group"><h3>Hot Coffee - Medium Blends</h3><ul class="items">
+<li data-name="Gratitude" data-kind="drinks" data-price="4.99"><span>Gratitude</span><strong>$4.99+</strong></li>
+<li data-name="Julie&#x27;s Ultimate" data-kind="drinks" data-price="4.99"><span>Julie&#x27;s Ultimate</span><strong>$4.99+</strong></li>
+<li data-name="Philharmonic" data-kind="drinks" data-price="4.99"><span>Philharmonic</span><strong>$4.99+</strong></li>
+<li data-name="Philtered Soul" data-kind="drinks" data-price="4.99"><span>Philtered Soul</span><strong>$4.99+</strong></li>
+<li data-name="Silken Splendor" data-kind="drinks" data-price="4.99"><span>Silken Splendor</span><strong>$4.99+</strong></li>
+<li data-name="Tesora" data-kind="drinks" data-price="4.99"><span>Tesora</span><strong>$4.99+</strong></li>
+</ul></section>
+<section class="menu-group"><h3>Iced Coffee, Tea, and Others</h3><ul class="items">
+<li data-name="Banana Matcha" data-kind="drinks" data-price="7.59"><span>Banana Matcha</span><strong>$7.59+</strong></li>
+<li data-name="Black Tea" data-kind="drinks" data-price="4.99"><span>Black Tea</span><strong>$4.99+</strong></li>
+<li data-name="Chamomile" data-kind="drinks" data-price="4.99"><span>Chamomile</span><strong>$4.99+</strong></li>
+<li data-name="Cold Brew Black Tea" data-kind="drinks" data-price="4.99"><span>Cold Brew Black Tea</span><strong>$4.99+</strong></li>
+<li data-name="Ecstatic Iced Coffee" data-kind="drinks" data-price="4.99"><span>Ecstatic Iced Coffee</span><strong>$4.99+</strong></li>
+<li data-name="Honey Haze" data-kind="drinks" data-price="5.99"><span>Honey Haze</span><strong>$5.99+</strong></li>
+<li data-name="Hot Chocolate" data-kind="drinks" data-price="4.99"><span>Hot Chocolate</span><strong>$4.99+</strong></li>
+<li data-name="Iced Coffee Rose" data-kind="drinks" data-price="5.99"><span>Iced Coffee Rose</span><strong>$5.99+</strong></li>
+<li data-name="Iced Gingersnap Coffee" data-kind="drinks" data-price="5.99"><span>Iced Gingersnap Coffee</span><strong>$5.99+</strong></li>
+<li data-name="Iced Matcha" data-kind="drinks" data-price="6.59"><span>Iced Matcha</span><strong>$6.59+</strong></li>
+<li data-name="Iced Mocha Tesora" data-kind="drinks" data-price="5.99"><span>Iced Mocha Tesora</span><strong>$5.99+</strong></li>
+<li data-name="Mission Cold Brew" data-kind="drinks" data-price="5.99"><span>Mission Cold Brew</span><strong>$5.99+</strong></li>
+<li data-name="Oatmeal Cookie Cold Brew" data-kind="drinks" data-price="5.99"><span>Oatmeal Cookie Cold Brew</span><strong>$5.99+</strong></li>
+<li data-name="Philtered Soul Cold Brew" data-kind="drinks" data-price="5.99"><span>Philtered Soul Cold Brew</span><strong>$5.99+</strong></li>
+<li data-name="Salted Caramel Matcha" data-kind="drinks" data-price="7.59"><span>Salted Caramel Matcha</span><strong>$7.59+</strong></li>
+<li data-name="Strawberry Matcha" data-kind="drinks" data-price="7.59"><span>Strawberry Matcha</span><strong>$7.59+</strong></li>
+<li data-name="Strawberry Mint Matcha" data-kind="drinks" data-price="7.59"><span>Strawberry Mint Matcha</span><strong>$7.59+</strong></li>
+<li data-name="Yuzu Twist Lemon Tea" data-kind="drinks" data-price="5.99"><span>Yuzu Twist Lemon Tea</span><strong>$5.99+</strong></li>
+</ul></section>
+</section>
+<section class="cafe-section" id="binge" data-cafe="binge"><header class="cafe-heading"><div><p class="eyebrow">530 Valencia Street</p><h2>Binge Coffee House</h2></div><a class="order-link" href="https://www.doordash.com/store/binge-coffee-house-san-francisco-46435951/" target="_blank" rel="noopener">Open DoorDash <span aria-hidden="true">↗</span></a></header>
+<section class="menu-group"><h3>Caffeine Free</h3><ul class="items">
+<li data-name="Cloudy Mango" data-kind="drinks" data-price="6.8"><span>Cloudy Mango</span><strong>$6.80</strong></li>
+<li data-name="Cloudy Strawberry" data-kind="drinks" data-price="6.8"><span>Cloudy Strawberry</span><strong>$6.80</strong></li>
+<li data-name="Pandan Milk" data-kind="drinks" data-price="6.8"><span>Pandan Milk</span><strong>$6.80</strong></li>
+</ul></section>
+<section class="menu-group"><h3>Ceremonial Matcha</h3><ul class="items">
+<li data-name="Banana Matcha Latte" data-kind="drinks" data-price="7.99"><span>Banana Matcha Latte</span><strong>$7.99</strong></li>
+<li data-name="Black Sesame Matcha" data-kind="drinks" data-price="7.83"><span>Black Sesame Matcha</span><strong>$7.83</strong></li>
+<li data-name="Coco Matcha" data-kind="drinks" data-price="7.58"><span>Coco Matcha</span><strong>$7.58</strong></li>
+<li data-name="Cookie Butter Matcha" data-kind="drinks" data-price="8.3"><span>Cookie Butter Matcha</span><strong>$8.30</strong></li>
+<li data-name="Double Matcha" data-kind="drinks" data-price="7.83"><span>Double Matcha</span><strong>$7.83</strong></li>
+<li data-name="Earl Grey Matcha Latte" data-kind="drinks" data-price="7.58"><span>Earl Grey Matcha Latte</span><strong>$7.58</strong></li>
+<li data-name="Kyoto Fog" data-kind="drinks" data-price="8.3"><span>Kyoto Fog</span><strong>$8.30</strong></li>
+<li data-name="Mango Matcha Latte" data-kind="drinks" data-price="7.58"><span>Mango Matcha Latte</span><strong>$7.58</strong></li>
+<li data-name="Matcha Latte" data-kind="drinks" data-price="7.05"><span>Matcha Latte</span><strong>$7.05</strong></li>
+<li data-name="Melon Melon Matcha" data-kind="drinks" data-price="8.2"><span>Melon Melon Matcha</span><strong>$8.20</strong></li>
+<li data-name="Pandan Matcha Latte" data-kind="drinks" data-price="7.99"><span>Pandan Matcha Latte</span><strong>$7.99</strong></li>
+<li data-name="Peachy Peachy Matcha" data-kind="drinks" data-price="8.3"><span>Peachy Peachy Matcha</span><strong>$8.30</strong></li>
+<li data-name="Pistachio Matcha Latte" data-kind="drinks" data-price="8.3"><span>Pistachio Matcha Latte</span><strong>$8.30</strong></li>
+<li data-name="Strawberry Matcha Latte" data-kind="drinks" data-price="7.58"><span>Strawberry Matcha Latte</span><strong>$7.58</strong></li>
+<li data-name="Strawberry Shortcake Matcha" data-kind="drinks" data-price="8.09"><span>Strawberry Shortcake Matcha</span><strong>$8.09</strong></li>
+<li data-name="Ube Matcha Latte" data-kind="drinks" data-price="7.83"><span>Ube Matcha Latte</span><strong>$7.83</strong></li>
+<li data-name="White Peach Matcha" data-kind="drinks" data-price="7.79"><span>White Peach Matcha</span><strong>$7.79</strong></li>
+</ul></section>
+<section class="menu-group"><h3>Classic Phin Drip</h3><ul class="items">
+<li data-name="Binge House Coffee" data-kind="drinks" data-price="6.8"><span>Binge House Coffee</span><strong>$6.80</strong></li>
+<li data-name="Black Coffee" data-kind="drinks" data-price="5.22"><span>Black Coffee</span><strong>$5.22</strong></li>
+<li data-name="Egg Coffee" data-kind="drinks" data-price="7.26"><span>Egg Coffee</span><strong>$7.26</strong></li>
+<li data-name="Saigon Sua Da" data-kind="drinks" data-price="6.21"><span>Saigon Sua Da</span><strong>$6.21</strong></li>
+</ul></section>
+<section class="menu-group"><h3>Fall at Binge</h3><ul class="items">
+<li data-name="Apple Matcha Cloud" data-kind="drinks" data-price="7.83"><span>Apple Matcha Cloud</span><strong>$7.83</strong></li>
+<li data-name="Apple Pie Matcha" data-kind="drinks" data-price="8.09"><span>Apple Pie Matcha</span><strong>$8.09</strong></li>
+<li data-name="Pumpkin Pie Coffee" data-kind="drinks" data-price="7.99"><span>Pumpkin Pie Coffee</span><strong>$7.99</strong></li>
+<li data-name="Pumpkin Pie Matcha" data-kind="drinks" data-price="8.09"><span>Pumpkin Pie Matcha</span><strong>$8.09</strong></li>
+<li data-name="Tiramisu Coffee" data-kind="drinks" data-price="8.2"><span>Tiramisu Coffee</span><strong>$8.20</strong></li>
+<li data-name="Tiramisu Matcha" data-kind="drinks" data-price="8.2"><span>Tiramisu Matcha</span><strong>$8.20</strong></li>
+</ul></section>
+<section class="menu-group"><h3>Freshly Brewed Tea</h3><ul class="items">
+<li data-name="Mango Tea" data-kind="drinks" data-price="6.53"><span>Mango Tea</span><strong>$6.53</strong></li>
+<li data-name="Passion Fruit Tea" data-kind="drinks" data-price="6.53"><span>Passion Fruit Tea</span><strong>$6.53</strong></li>
+</ul></section>
+<section class="menu-group"><h3>Hojicha</h3><ul class="items">
+<li data-name="Hojicha Latte" data-kind="drinks" data-price="6.8"><span>Hojicha Latte</span><strong>$6.80</strong></li>
+<li data-name="Hojicha with Salted Cream Cheese" data-kind="drinks" data-price="7.83"><span>Hojicha with Salted Cream Cheese</span><strong>$7.83</strong></li>
+<li data-name="Strawberry Shortcake Hojicha" data-kind="drinks" data-price="7.83"><span>Strawberry Shortcake Hojicha</span><strong>$7.83</strong></li>
+</ul></section>
+<section class="menu-group"><h3>Signature Coffee</h3><ul class="items">
+<li data-name="Banana Coffee" data-kind="drinks" data-price="7.58"><span>Banana Coffee</span><strong>$7.58</strong></li>
+<li data-name="Black Sesame Coffee" data-kind="drinks" data-price="7.58"><span>Black Sesame Coffee</span><strong>$7.58</strong></li>
+<li data-name="Coconut Coffee" data-kind="drinks" data-price="7.26"><span>Coconut Coffee</span><strong>$7.26</strong></li>
+<li data-name="Cookie Butter Coffee" data-kind="drinks" data-price="8.09"><span>Cookie Butter Coffee</span><strong>$8.09</strong></li>
+<li data-name="Matcha Coffee" data-kind="drinks" data-price="7.58"><span>Matcha Coffee</span><strong>$7.58</strong></li>
+<li data-name="Pandan Coffee" data-kind="drinks" data-price="7.26"><span>Pandan Coffee</span><strong>$7.26</strong></li>
+<li data-name="Ube Coffee" data-kind="drinks" data-price="7.58"><span>Ube Coffee</span><strong>$7.58</strong></li>
+</ul></section>
+<section class="menu-group"><h3>Snack</h3><ul class="items">
+<li data-name="Pandan Waffle" data-kind="food" data-price="6.8"><span>Pandan Waffle</span><strong>$6.80</strong></li>
+<li data-name="Popcorn Chicken" data-kind="food" data-price="11.44"><span>Popcorn Chicken</span><strong>$11.44</strong></li>
+</ul></section>
+<section class="menu-group"><h3>Vietnamese Sandwiches ( Banh Mi)</h3><ul class="items">
+<li data-name="B1. Combination Banh Mi(Dac Biet)" data-kind="food" data-price="11.44"><span>B1. Combination Banh Mi(Dac Biet)</span><strong>$11.44</strong></li>
+<li data-name="B2. Grilled Pork Banh Mi(Heo)" data-kind="food" data-price="11.44"><span>B2. Grilled Pork Banh Mi(Heo)</span><strong>$11.44</strong></li>
+<li data-name="B3. Chicken Banh Mi (BM Gà)" data-kind="food" data-price="11.44"><span>B3. Chicken Banh Mi (BM Gà)</span><strong>$11.44</strong></li>
+<li data-name="B4. Grilled Beef Banh Mi(BM Bò)" data-kind="food" data-price="11.44"><span>B4. Grilled Beef Banh Mi(BM Bò)</span><strong>$11.44</strong></li>
+<li data-name="B5. Vegan Ham Banh Mi(Ham Chay)" data-kind="food" data-price="11.44"><span>B5. Vegan Ham Banh Mi(Ham Chay)</span><strong>$11.44</strong></li>
+<li data-name="B6. Lemongrass Tofu Banh Mi(BM Đậu Hũ)" data-kind="food" data-price="11.44"><span>B6. Lemongrass Tofu Banh Mi(BM Đậu Hũ)</span><strong>$11.44</strong></li>
+<li data-name="B7. Pork Loaf &amp; Pate Banh Mi(Pate Chả Lụa)" data-kind="food" data-price="11.44"><span>B7. Pork Loaf &amp; Pate Banh Mi(Pate Chả Lụa)</span><strong>$11.44</strong></li>
+<li data-name="B8. Meatball Banh Mi(Xíu Mại)" data-kind="food" data-price="11.44"><span>B8. Meatball Banh Mi(Xíu Mại)</span><strong>$11.44</strong></li>
+<li data-name="B9. Meatball &amp; Egg Banh Mi(Xiu Mại Trứng)" data-kind="food" data-price="14.1"><span>B9. Meatball &amp; Egg Banh Mi(Xiu Mại Trứng)</span><strong>$14.10</strong></li>
+<li data-name="BBQ Pork Banh Mi (Char Siu)" data-kind="food" data-price="11.44"><span>BBQ Pork Banh Mi (Char Siu)</span><strong>$11.44</strong></li>
+</ul></section>
+</section></div>
+      <section id="empty" class="empty" hidden><h2>No matches this time.</h2><p>Try a shorter search, another café, or a different menu type.</p><a href="?" class="order-link">Show all menus →</a></section>
+    </section>
+    <section class="pending"><p class="eyebrow">Still on the list</p><h2>Two menus to track down.</h2><div class="pending-grid"><article><h3>Nirvana Soul</h3><p>242 Townsend Street</p><span>DoorDash menu not confirmed for this branch.</span></article><article><h3>Café Réveille</h3><p>610 Long Bridge Street</p><span>The listing found was on Polk Street. Mission Bay prices aren’t included.</span></article></div></section>
+    <noscript><p class="notice">All saved menus are displayed below the café tabs. Enable JavaScript to search and filter.</p></noscript>
+  </main>
+  <footer><a href="/tools/menus/">← Menu collection</a><p>One-time snapshot. No automatic price updates.</p><a href="./menu-data.json" download>Download menu data</a></footer>
+</body>
+</html>

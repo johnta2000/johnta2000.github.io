@@ -1,0 +1,2336 @@
+{
+  "capturedDate": "2026-10-31",
+  "mode": "pickup",
+  "currency": "USD",
+  "menus": [
+    {
+      "id": "delah",
+      "name": "Delah Coffee",
+      "address": "370 4th Street",
+      "url": "https://www.doordash.com/store/delah-coffee-san-francisco-30864993/",
+      "unpriced": [
+        "Milk Cakes",
+        "Bee bites"
+      ],
+      "items": [
+        {
+          "category": "Chillers",
+          "name": "Hibiscus",
+          "displayPrice": "$5.77",
+          "basePrice": 5.77,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Chillers",
+          "name": "Pink Socotra",
+          "displayPrice": "$7.36",
+          "basePrice": 7.36,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Chillers",
+          "name": "Red Bull Crush",
+          "displayPrice": "$7.89",
+          "basePrice": 7.89,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Chillers",
+          "name": "Sahara Freeze",
+          "displayPrice": "$7.36",
+          "basePrice": 7.36,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Chillers",
+          "name": "Strawberry Acai",
+          "displayPrice": "$7.89",
+          "basePrice": 7.89,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Coffee & More",
+          "name": "Cold brew",
+          "displayPrice": "$5.24",
+          "basePrice": 5.24,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Coffee & More",
+          "name": "French Press",
+          "displayPrice": "$5.24",
+          "basePrice": 5.24,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Coffee & More",
+          "name": "Hot Chocolate",
+          "displayPrice": "$4.18+",
+          "basePrice": 4.18,
+          "startingPrice": true,
+          "kind": "drinks"
+        },
+        {
+          "category": "Coffee & More",
+          "name": "Pour Over",
+          "displayPrice": "$7.36",
+          "basePrice": 7.36,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Coffee & More",
+          "name": "Turkish Coffee",
+          "displayPrice": "$5.24",
+          "basePrice": 5.24,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Coffee Beans/Mixes",
+          "name": "Adeni Chai Mix",
+          "displayPrice": "$35.24",
+          "basePrice": 35.24,
+          "startingPrice": false,
+          "kind": "pantry"
+        },
+        {
+          "category": "Coffee Beans/Mixes",
+          "name": "Delah Blend",
+          "displayPrice": "$27.50",
+          "basePrice": 27.5,
+          "startingPrice": false,
+          "kind": "pantry"
+        },
+        {
+          "category": "Coffee Beans/Mixes",
+          "name": "Delah Espresso",
+          "displayPrice": "$26.44",
+          "basePrice": 26.44,
+          "startingPrice": false,
+          "kind": "pantry"
+        },
+        {
+          "category": "Coffee Beans/Mixes",
+          "name": "Qahwah",
+          "displayPrice": "$26.44",
+          "basePrice": 26.44,
+          "startingPrice": false,
+          "kind": "pantry"
+        },
+        {
+          "category": "Coffee Beans/Mixes",
+          "name": "Sheikh espresso",
+          "displayPrice": "$27.50",
+          "basePrice": 27.5,
+          "startingPrice": false,
+          "kind": "pantry"
+        },
+        {
+          "category": "Delah Specialties",
+          "name": "Arabian Qahwah",
+          "displayPrice": "$6.30+",
+          "basePrice": 6.3,
+          "startingPrice": true,
+          "kind": "drinks"
+        },
+        {
+          "category": "Delah Specialties",
+          "name": "Delah Mofawar",
+          "displayPrice": "$6.30+",
+          "basePrice": 6.3,
+          "startingPrice": true,
+          "kind": "drinks"
+        },
+        {
+          "category": "Delah Specialties",
+          "name": "Delah Qahwah",
+          "displayPrice": "$6.30+",
+          "basePrice": 6.3,
+          "startingPrice": true,
+          "kind": "drinks"
+        },
+        {
+          "category": "Delah Specialties",
+          "name": "Jubani",
+          "displayPrice": "$6.30+",
+          "basePrice": 6.3,
+          "startingPrice": true,
+          "kind": "drinks"
+        },
+        {
+          "category": "Delah Specialties",
+          "name": "Qishr",
+          "displayPrice": "$6.30+",
+          "basePrice": 6.3,
+          "startingPrice": true,
+          "kind": "drinks"
+        },
+        {
+          "category": "Delah Specialties",
+          "name": "Sana'ani",
+          "displayPrice": "$6.30+",
+          "basePrice": 6.3,
+          "startingPrice": true,
+          "kind": "drinks"
+        },
+        {
+          "category": "Espresso",
+          "name": "Affogato",
+          "displayPrice": "$7.36",
+          "basePrice": 7.36,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Espresso",
+          "name": "Cappuccino",
+          "displayPrice": "$5.77",
+          "basePrice": 5.77,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Espresso",
+          "name": "Caramel Macchiato",
+          "displayPrice": "$7.15",
+          "basePrice": 7.15,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Espresso",
+          "name": "cinnamon date latte",
+          "displayPrice": "$8.74+",
+          "basePrice": 8.74,
+          "startingPrice": true,
+          "kind": "drinks"
+        },
+        {
+          "category": "Espresso",
+          "name": "Cortado",
+          "displayPrice": "$5.24",
+          "basePrice": 5.24,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Espresso",
+          "name": "Delah Biscoff Latte",
+          "displayPrice": "$7.89+",
+          "basePrice": 7.89,
+          "startingPrice": true,
+          "kind": "drinks"
+        },
+        {
+          "category": "Espresso",
+          "name": "Delah Shaken Espresso",
+          "displayPrice": "$7.36",
+          "basePrice": 7.36,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Espresso",
+          "name": "Espresso",
+          "displayPrice": "$2.38",
+          "basePrice": 2.38,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Espresso",
+          "name": "Flat white",
+          "displayPrice": "$5.56",
+          "basePrice": 5.56,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Espresso",
+          "name": "hot Americano",
+          "displayPrice": "$4.71+",
+          "basePrice": 4.71,
+          "startingPrice": true,
+          "kind": "drinks"
+        },
+        {
+          "category": "Espresso",
+          "name": "hot Pistachio latte",
+          "displayPrice": "$8.32",
+          "basePrice": 8.32,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Espresso",
+          "name": "Hot Yemeni Latte",
+          "displayPrice": "$7.15",
+          "basePrice": 7.15,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Espresso",
+          "name": "ice Pistachio latte",
+          "displayPrice": "$8.42",
+          "basePrice": 8.42,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Espresso",
+          "name": "iced Caramel Macchiato",
+          "displayPrice": "$7.15",
+          "basePrice": 7.15,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Espresso",
+          "name": "Iced Yemeni Latte",
+          "displayPrice": "$7.36",
+          "basePrice": 7.36,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Espresso",
+          "name": "Latte",
+          "displayPrice": "$5.56+",
+          "basePrice": 5.56,
+          "startingPrice": true,
+          "kind": "drinks"
+        },
+        {
+          "category": "Espresso",
+          "name": "Macchiato",
+          "displayPrice": "$5.24",
+          "basePrice": 5.24,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Espresso",
+          "name": "Mocha latte",
+          "displayPrice": "$7.15",
+          "basePrice": 7.15,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Espresso",
+          "name": "Rose Delah latte",
+          "displayPrice": "$8.32",
+          "basePrice": 8.32,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Espresso",
+          "name": "Spanish latte",
+          "displayPrice": "$6.62",
+          "basePrice": 6.62,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Espresso",
+          "name": "Yemeni Frappe",
+          "displayPrice": "$8.32",
+          "basePrice": 8.32,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "fall drinks",
+          "name": "hot pumpkin latte",
+          "displayPrice": "$7.36",
+          "basePrice": 7.36,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "fall drinks",
+          "name": "iced pumpkin matcha",
+          "displayPrice": "$7.89",
+          "basePrice": 7.89,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "fall drinks",
+          "name": "pumpkin shaken espresso",
+          "displayPrice": "$7.68",
+          "basePrice": 7.68,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Grab & go drinks",
+          "name": "celsius",
+          "displayPrice": "$4.22",
+          "basePrice": 4.22,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Grab & go drinks",
+          "name": "gatorade",
+          "displayPrice": "$2.65",
+          "basePrice": 2.65,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Grab & go drinks",
+          "name": "olipop soda",
+          "displayPrice": "$4.22",
+          "basePrice": 4.22,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Grab & go drinks",
+          "name": "poppi soda",
+          "displayPrice": "$3.76",
+          "basePrice": 3.76,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Grab & go drinks",
+          "name": "red bull white peach",
+          "displayPrice": "$4.22",
+          "basePrice": 4.22,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Grab & go drinks",
+          "name": "S.pellegrino sparkling water",
+          "displayPrice": "$3.69",
+          "basePrice": 3.69,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Grab & go drinks",
+          "name": "sunny D",
+          "displayPrice": "$2.63",
+          "basePrice": 2.63,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Grab & go drinks",
+          "name": "water",
+          "displayPrice": "$1.59",
+          "basePrice": 1.59,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "matchas",
+          "name": "banana pudding Matcha",
+          "displayPrice": "$7.89",
+          "basePrice": 7.89,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "matchas",
+          "name": "Iced Mango Matcha",
+          "displayPrice": "$7.89",
+          "basePrice": 7.89,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "matchas",
+          "name": "Matcha latte",
+          "displayPrice": "$6.83",
+          "basePrice": 6.83,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "matchas",
+          "name": "pineapple Matcha",
+          "displayPrice": "$7.89",
+          "basePrice": 7.89,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "matchas",
+          "name": "raspberry Matcha",
+          "displayPrice": "$7.89",
+          "basePrice": 7.89,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "matchas",
+          "name": "strawberry Matcha",
+          "displayPrice": "$7.89",
+          "basePrice": 7.89,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Pastries",
+          "name": "Savory/Pies",
+          "displayPrice": "$5.77+",
+          "basePrice": 5.77,
+          "startingPrice": true,
+          "kind": "food"
+        },
+        {
+          "category": "Pastries",
+          "name": "Turkish Delights",
+          "displayPrice": "$6.30",
+          "basePrice": 6.3,
+          "startingPrice": false,
+          "kind": "food"
+        },
+        {
+          "category": "Pastries",
+          "name": "Turkish Desserts",
+          "displayPrice": "$5.56+",
+          "basePrice": 5.56,
+          "startingPrice": true,
+          "kind": "food"
+        },
+        {
+          "category": "Smoothies",
+          "name": "Blueberry Dates",
+          "displayPrice": "$8.42",
+          "basePrice": 8.42,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Smoothies",
+          "name": "Mangorabian",
+          "displayPrice": "$7.36",
+          "basePrice": 7.36,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Smoothies",
+          "name": "Strawberry Smoothie",
+          "displayPrice": "$7.36",
+          "basePrice": 7.36,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Tea",
+          "name": "Adeni Chai",
+          "displayPrice": "$5.24+",
+          "basePrice": 5.24,
+          "startingPrice": true,
+          "kind": "drinks"
+        },
+        {
+          "category": "Tea",
+          "name": "Iced Delah Chai",
+          "displayPrice": "$7.15",
+          "basePrice": 7.15,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Tea",
+          "name": "Iced Tea",
+          "displayPrice": "$6.62",
+          "basePrice": 6.62,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Tea",
+          "name": "Organic Tea",
+          "displayPrice": "$3.97+",
+          "basePrice": 3.97,
+          "startingPrice": true,
+          "kind": "drinks"
+        },
+        {
+          "category": "Tea",
+          "name": "Yemeni Tea",
+          "displayPrice": "$5.24+",
+          "basePrice": 5.24,
+          "startingPrice": true,
+          "kind": "drinks"
+        }
+      ]
+    },
+    {
+      "id": "sightglass",
+      "name": "Sightglass Coffee",
+      "address": "270 7th Street",
+      "url": "https://www.doordash.com/store/sightglass-san-francisco-25557305/",
+      "items": [
+        {
+          "category": "Coffee",
+          "name": "COFFEE TRAVELER",
+          "displayPrice": "$55.00",
+          "basePrice": 55,
+          "startingPrice": false,
+          "kind": "pantry"
+        },
+        {
+          "category": "Coffee",
+          "name": "POUR OVER",
+          "displayPrice": "$7.75",
+          "basePrice": 7.75,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Coffee",
+          "name": "QUICK CUP DRIP",
+          "displayPrice": "$5.75",
+          "basePrice": 5.75,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Cold Coffee",
+          "name": "TOKETEE COLD COFFEE",
+          "displayPrice": "$6.75",
+          "basePrice": 6.75,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Cold Coffee",
+          "name": "VANILLA ICED COLD COFFEE",
+          "displayPrice": "$7.25",
+          "basePrice": 7.25,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Cookies & Scones",
+          "name": "BLUEBERRY SCONE",
+          "displayPrice": "$7.00",
+          "basePrice": 7,
+          "startingPrice": false,
+          "kind": "food"
+        },
+        {
+          "category": "Cookies & Scones",
+          "name": "BROWN BUTTER CHOCOLATE CHIP COOKIE",
+          "displayPrice": "$5.50",
+          "basePrice": 5.5,
+          "startingPrice": false,
+          "kind": "food"
+        },
+        {
+          "category": "Cookies & Scones",
+          "name": "JANE X SIGHTGLASS CHOCOLATE ESPRESSO SHORTBREAD",
+          "displayPrice": "$19.00",
+          "basePrice": 19,
+          "startingPrice": false,
+          "kind": "food"
+        },
+        {
+          "category": "Espresso Beverages",
+          "name": "AMERICANO",
+          "displayPrice": "$5.75",
+          "basePrice": 5.75,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Espresso Beverages",
+          "name": "CAPPUCCINO",
+          "displayPrice": "$7.25",
+          "basePrice": 7.25,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Espresso Beverages",
+          "name": "CORTADO",
+          "displayPrice": "$6.50",
+          "basePrice": 6.5,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Espresso Beverages",
+          "name": "ESPRESSO",
+          "displayPrice": "$5.50",
+          "basePrice": 5.5,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Espresso Beverages",
+          "name": "FLAT WHITE",
+          "displayPrice": "$7.25",
+          "basePrice": 7.25,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Espresso Beverages",
+          "name": "ICED AMERICANO",
+          "displayPrice": "$5.75",
+          "basePrice": 5.75,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Espresso Beverages",
+          "name": "ICED LATTE",
+          "displayPrice": "$7.75",
+          "basePrice": 7.75,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Espresso Beverages",
+          "name": "ICED MOCHA",
+          "displayPrice": "$8.25",
+          "basePrice": 8.25,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Espresso Beverages",
+          "name": "ICED VANILLA PASTE LATTE",
+          "displayPrice": "$8.25",
+          "basePrice": 8.25,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Espresso Beverages",
+          "name": "LATTE",
+          "displayPrice": "$7.75",
+          "basePrice": 7.75,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Espresso Beverages",
+          "name": "MACCHIATO",
+          "displayPrice": "$6.00",
+          "basePrice": 6,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Espresso Beverages",
+          "name": "MOCHA",
+          "displayPrice": "$8.25",
+          "basePrice": 8.25,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Espresso Beverages",
+          "name": "VANILLA PASTE LATTE",
+          "displayPrice": "$8.25",
+          "basePrice": 8.25,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "George's Donuts",
+          "name": "GEORGE'S CLASSIC CHOCOLATE",
+          "displayPrice": "$7.00",
+          "basePrice": 7,
+          "startingPrice": false,
+          "kind": "food"
+        },
+        {
+          "category": "George's Donuts",
+          "name": "GEORGE'S CLASSIC GLAZED",
+          "displayPrice": "$7.00",
+          "basePrice": 7,
+          "startingPrice": false,
+          "kind": "food"
+        },
+        {
+          "category": "George's Donuts",
+          "name": "GEORGE'S CRULLER VANILLA BEAN",
+          "displayPrice": "$7.50",
+          "basePrice": 7.5,
+          "startingPrice": false,
+          "kind": "food"
+        },
+        {
+          "category": "Grab & Go",
+          "name": "HAPPY MOOSE - CALI ORANGE",
+          "displayPrice": "$8.75",
+          "basePrice": 8.75,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Grab & Go",
+          "name": "HAPPY MOOSE - RAINBOW GREENS",
+          "displayPrice": "$8.75",
+          "basePrice": 8.75,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Grab & Go",
+          "name": "JUICE SHOP TONIC ASSORTED",
+          "displayPrice": "$5.25",
+          "basePrice": 5.25,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Grab & Go",
+          "name": "SPARKLING WATER - LARGE 22oz",
+          "displayPrice": "$5.75",
+          "basePrice": 5.75,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Grab & Go",
+          "name": "SPARKLING WATER - SMALL 12oz",
+          "displayPrice": "$4.25",
+          "basePrice": 4.25,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Laminated Pastries",
+          "name": "BUTTER CROISSANT",
+          "displayPrice": "$6.00",
+          "basePrice": 6,
+          "startingPrice": false,
+          "kind": "food"
+        },
+        {
+          "category": "Laminated Pastries",
+          "name": "CHOCOLATE CROISSANT",
+          "displayPrice": "$6.75",
+          "basePrice": 6.75,
+          "startingPrice": false,
+          "kind": "food"
+        },
+        {
+          "category": "Laminated Pastries",
+          "name": "CHOCOLATE HAZELNUT CROISSANT",
+          "displayPrice": "$7.50",
+          "basePrice": 7.5,
+          "startingPrice": false,
+          "kind": "food"
+        },
+        {
+          "category": "Laminated Pastries",
+          "name": "CURRY POTATO BOUREKA PUFF",
+          "displayPrice": "$7.75",
+          "basePrice": 7.75,
+          "startingPrice": false,
+          "kind": "food"
+        },
+        {
+          "category": "Laminated Pastries",
+          "name": "EVERYTHING CROISSANT",
+          "displayPrice": "$7.75",
+          "basePrice": 7.75,
+          "startingPrice": false,
+          "kind": "food"
+        },
+        {
+          "category": "Laminated Pastries",
+          "name": "HAM & GRUYERE CROISSANT",
+          "displayPrice": "$8.00",
+          "basePrice": 8,
+          "startingPrice": false,
+          "kind": "food"
+        },
+        {
+          "category": "Laminated Pastries",
+          "name": "MORNING BUN",
+          "displayPrice": "$7.00",
+          "basePrice": 7,
+          "startingPrice": false,
+          "kind": "food"
+        },
+        {
+          "category": "Laminated Pastries",
+          "name": "MUSHROOM TART",
+          "displayPrice": "$7.75",
+          "basePrice": 7.75,
+          "startingPrice": false,
+          "kind": "food"
+        },
+        {
+          "category": "Laminated Pastries",
+          "name": "PISTACHIO BLACKBERRY CROISSANT",
+          "displayPrice": "$7.50",
+          "basePrice": 7.5,
+          "startingPrice": false,
+          "kind": "food"
+        },
+        {
+          "category": "Laminated Pastries",
+          "name": "UBE CROISSANT",
+          "displayPrice": "$7.50",
+          "basePrice": 7.5,
+          "startingPrice": false,
+          "kind": "food"
+        },
+        {
+          "category": "Loose Leaf Tea",
+          "name": "GREEN TEA - HOT",
+          "displayPrice": "$6.25",
+          "basePrice": 6.25,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Loose Leaf Tea",
+          "name": "MEADOW BOTANICAL - ICED",
+          "displayPrice": "$6.25",
+          "basePrice": 6.25,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Loose Leaf Tea",
+          "name": "MEADOW BOTANICAL TEA - HOT",
+          "displayPrice": "$6.25",
+          "basePrice": 6.25,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Loose Leaf Tea",
+          "name": "RED TEA - HOT",
+          "displayPrice": "$6.25",
+          "basePrice": 6.25,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Loose Leaf Tea",
+          "name": "RED TEA - ICED",
+          "displayPrice": "$6.25",
+          "basePrice": 6.25,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Masala Chai",
+          "name": "ICED MASALA CHAI LATTE",
+          "displayPrice": "$8.25",
+          "basePrice": 8.25,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Masala Chai",
+          "name": "MASALA CHAI LATTE",
+          "displayPrice": "$8.25",
+          "basePrice": 8.25,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Matcha",
+          "name": "Coconut Matcha Cloud",
+          "displayPrice": "$9.00",
+          "basePrice": 9,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Matcha",
+          "name": "ICED MATCHA",
+          "displayPrice": "$8.25",
+          "basePrice": 8.25,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Matcha",
+          "name": "MATCHA",
+          "displayPrice": "$8.25",
+          "basePrice": 8.25,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Matcha",
+          "name": "Matcha Tonic",
+          "displayPrice": "$8.25",
+          "basePrice": 8.25,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Muffins & Danishes",
+          "name": "ALMOND FINANCIER",
+          "displayPrice": "$6.00",
+          "basePrice": 6,
+          "startingPrice": false,
+          "kind": "food"
+        },
+        {
+          "category": "Muffins & Danishes",
+          "name": "BLUEBERRY MUFFIN",
+          "displayPrice": "$7.00",
+          "basePrice": 7,
+          "startingPrice": false,
+          "kind": "food"
+        },
+        {
+          "category": "Muffins & Danishes",
+          "name": "GF CARROT BANANA MUFFIN",
+          "displayPrice": "$7.25",
+          "basePrice": 7.25,
+          "startingPrice": false,
+          "kind": "food"
+        },
+        {
+          "category": "Prepared Foods",
+          "name": "GEORGE'S BACON BREAKFAST SANDWICH",
+          "displayPrice": "$12.99",
+          "basePrice": 12.99,
+          "startingPrice": false,
+          "kind": "food"
+        },
+        {
+          "category": "Prepared Foods",
+          "name": "GEORGE'S CHICKEN PANINI",
+          "displayPrice": "$15.99",
+          "basePrice": 15.99,
+          "startingPrice": false,
+          "kind": "food"
+        },
+        {
+          "category": "Prepared Foods",
+          "name": "GEORGE'S SAUSAGE BREAKFAST BURRITO",
+          "displayPrice": "$12.99",
+          "basePrice": 12.99,
+          "startingPrice": false,
+          "kind": "food"
+        },
+        {
+          "category": "Prepared Foods",
+          "name": "GEORGE'S VEGGIE BREAKFAST BURRITO",
+          "displayPrice": "$12.99",
+          "basePrice": 12.99,
+          "startingPrice": false,
+          "kind": "food"
+        },
+        {
+          "category": "Tea & Other Beverages",
+          "name": "COLD MILK",
+          "displayPrice": "$5.50",
+          "basePrice": 5.5,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Tea & Other Beverages",
+          "name": "HOT CHOCOLATE",
+          "displayPrice": "$7.00",
+          "basePrice": 7,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Tea & Other Beverages",
+          "name": "SPARKLING CASCARA SHRUB",
+          "displayPrice": "$7.00",
+          "basePrice": 7,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Tea & Other Beverages",
+          "name": "STEAMED MILK",
+          "displayPrice": "$3.50",
+          "basePrice": 3.5,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Whole Bean Coffee",
+          "name": "AUTUMNAL EQUINOX, 12 OZ",
+          "displayPrice": "$26.00",
+          "basePrice": 26,
+          "startingPrice": false,
+          "kind": "pantry"
+        },
+        {
+          "category": "Whole Bean Coffee",
+          "name": "BANNER DARK, 12OZ BAG",
+          "displayPrice": "$23.00",
+          "basePrice": 23,
+          "startingPrice": false,
+          "kind": "pantry"
+        },
+        {
+          "category": "Whole Bean Coffee",
+          "name": "BLUEBOON BLEND, 12OZ BAG",
+          "displayPrice": "$22.00",
+          "basePrice": 22,
+          "startingPrice": false,
+          "kind": "pantry"
+        },
+        {
+          "category": "Whole Bean Coffee",
+          "name": "COLOMBIA, FINCA ALCATRAZ, CATURRA 120Z BAG",
+          "displayPrice": "$29.00",
+          "basePrice": 29,
+          "startingPrice": false,
+          "kind": "pantry"
+        },
+        {
+          "category": "Whole Bean Coffee",
+          "name": "COLOMBIA, FINCA ALCATRAZ, PINK BOURBON 120Z BAG",
+          "displayPrice": "$29.00",
+          "basePrice": 29,
+          "startingPrice": false,
+          "kind": "pantry"
+        },
+        {
+          "category": "Whole Bean Coffee",
+          "name": "ETHIOPIA, TAGEL ALEMAYEHU, HAMBELA, 12 OZ BAG",
+          "displayPrice": "$28.50",
+          "basePrice": 28.5,
+          "startingPrice": false,
+          "kind": "pantry"
+        },
+        {
+          "category": "Whole Bean Coffee",
+          "name": "ETHIOPIA, WORKA CHELBESSA, YIRGACHEFFE, 12 OZ",
+          "displayPrice": "$29.00",
+          "basePrice": 29,
+          "startingPrice": false,
+          "kind": "pantry"
+        },
+        {
+          "category": "Whole Bean Coffee",
+          "name": "GRIZZLY PEAK, REGENERATIVE ORGANIC, 12 OZ BAG",
+          "displayPrice": "$23.50",
+          "basePrice": 23.5,
+          "startingPrice": false,
+          "kind": "pantry"
+        },
+        {
+          "category": "Whole Bean Coffee",
+          "name": "GUATEMALA, LA GUITARRA , 12 OZ BAG",
+          "displayPrice": "$29.50",
+          "basePrice": 29.5,
+          "startingPrice": false,
+          "kind": "pantry"
+        },
+        {
+          "category": "Whole Bean Coffee",
+          "name": "HONDURAS NUEVA ESPERANZA, 12OZ BAG",
+          "displayPrice": "$29.00",
+          "basePrice": 29,
+          "startingPrice": false,
+          "kind": "pantry"
+        },
+        {
+          "category": "Whole Bean Coffee",
+          "name": "HUNKY DORY DECAF BLEND, 12 OZ BAG",
+          "displayPrice": "$24.50",
+          "basePrice": 24.5,
+          "startingPrice": false,
+          "kind": "pantry"
+        },
+        {
+          "category": "Whole Bean Coffee",
+          "name": "KENYA, FLORENCE & JESSICA MARIGI AB, KIAMBU",
+          "displayPrice": "$29.50",
+          "basePrice": 29.5,
+          "startingPrice": false,
+          "kind": "pantry"
+        },
+        {
+          "category": "Whole Bean Coffee",
+          "name": "KENYA, KIANGOI AA, KIRINYAGA",
+          "displayPrice": "$29.50",
+          "basePrice": 29.5,
+          "startingPrice": false,
+          "kind": "pantry"
+        },
+        {
+          "category": "Whole Bean Coffee",
+          "name": "MEXICO, RANCHO LA PERLA, ANTONIA FUENTES",
+          "displayPrice": "$29.50",
+          "basePrice": 29.5,
+          "startingPrice": false,
+          "kind": "pantry"
+        },
+        {
+          "category": "Whole Bean Coffee",
+          "name": "MEXICO, SILVIA HERRERA GESHA NATURAL",
+          "displayPrice": "$46.00",
+          "basePrice": 46,
+          "startingPrice": false,
+          "kind": "pantry"
+        },
+        {
+          "category": "Whole Bean Coffee",
+          "name": "MICRODOSE BLEND, 12 0Z BAG",
+          "displayPrice": "$23.50",
+          "basePrice": 23.5,
+          "startingPrice": false,
+          "kind": "pantry"
+        },
+        {
+          "category": "Whole Bean Coffee",
+          "name": "OWLS HOWL ESPRESSO BLEND, 12 OZ BAG",
+          "displayPrice": "$22.00",
+          "basePrice": 22,
+          "startingPrice": false,
+          "kind": "pantry"
+        },
+        {
+          "category": "Whole Bean Coffee",
+          "name": "WOMEN OF COFFEE, 10.9OZ BAG",
+          "displayPrice": "$26.00",
+          "basePrice": 26,
+          "startingPrice": false,
+          "kind": "pantry"
+        }
+      ]
+    },
+    {
+      "id": "philz",
+      "name": "Philz Coffee",
+      "address": "1775 17th Street",
+      "url": "https://www.doordash.com/store/philz-coffee-san-francisco-55374/",
+      "items": [
+        {
+          "category": "Bakery Treats",
+          "name": "Bacon Onion Pretzel Croissant",
+          "displayPrice": "$5.95",
+          "basePrice": 5.95,
+          "startingPrice": false,
+          "kind": "food"
+        },
+        {
+          "category": "Bakery Treats",
+          "name": "Blueberry Muffin",
+          "displayPrice": "$5.25",
+          "basePrice": 5.25,
+          "startingPrice": false,
+          "kind": "food"
+        },
+        {
+          "category": "Bakery Treats",
+          "name": "Chocolate Peppermint Cookie",
+          "displayPrice": "$4.15",
+          "basePrice": 4.15,
+          "startingPrice": false,
+          "kind": "food"
+        },
+        {
+          "category": "Bakery Treats",
+          "name": "Dulce de Leche Kouign Amann",
+          "displayPrice": "$6.30",
+          "basePrice": 6.3,
+          "startingPrice": false,
+          "kind": "food"
+        },
+        {
+          "category": "Bakery Treats",
+          "name": "Everything Bagel",
+          "displayPrice": "$4.35",
+          "basePrice": 4.35,
+          "startingPrice": false,
+          "kind": "food"
+        },
+        {
+          "category": "Bakery Treats",
+          "name": "Jalapeno Cheese Bagel",
+          "displayPrice": "$4.35",
+          "basePrice": 4.35,
+          "startingPrice": false,
+          "kind": "food"
+        },
+        {
+          "category": "Bakery Treats",
+          "name": "Mexican Hot Chocolate Croissant",
+          "displayPrice": "$5.85",
+          "basePrice": 5.85,
+          "startingPrice": false,
+          "kind": "food"
+        },
+        {
+          "category": "Bakery Treats",
+          "name": "Mini Banana Loaf",
+          "displayPrice": "$4.75",
+          "basePrice": 4.75,
+          "startingPrice": false,
+          "kind": "food"
+        },
+        {
+          "category": "Bakery Treats",
+          "name": "Plain Bagel",
+          "displayPrice": "$3.95",
+          "basePrice": 3.95,
+          "startingPrice": false,
+          "kind": "food"
+        },
+        {
+          "category": "Bakery Treats",
+          "name": "Pumpkin Bread Slice (V)",
+          "displayPrice": "$4.75",
+          "basePrice": 4.75,
+          "startingPrice": false,
+          "kind": "food"
+        },
+        {
+          "category": "Bakery Treats",
+          "name": "Twice Baked Almond Croissant",
+          "displayPrice": "$5.45",
+          "basePrice": 5.45,
+          "startingPrice": false,
+          "kind": "food"
+        },
+        {
+          "category": "Beans 1 LB Bag - Dark Blend",
+          "name": "Aromatic Arabic (1 LB)",
+          "displayPrice": "$22.50",
+          "basePrice": 22.5,
+          "startingPrice": false,
+          "kind": "pantry"
+        },
+        {
+          "category": "Beans 1 LB Bag - Dark Blend",
+          "name": "Ecstatic (1 LB)",
+          "displayPrice": "$22.50",
+          "basePrice": 22.5,
+          "startingPrice": false,
+          "kind": "pantry"
+        },
+        {
+          "category": "Beans 1 LB Bag - Dark Blend",
+          "name": "Ether (1 LB)",
+          "displayPrice": "$22.50",
+          "basePrice": 22.5,
+          "startingPrice": false,
+          "kind": "pantry"
+        },
+        {
+          "category": "Beans 1 LB Bag - Dark Blend",
+          "name": "Jacobs Wonderbar (1 LB)",
+          "displayPrice": "$22.50",
+          "basePrice": 22.5,
+          "startingPrice": false,
+          "kind": "pantry"
+        },
+        {
+          "category": "Beans 1 LB Bag - Decaf",
+          "name": "Luca's Unplugged Decaf (1 LB)",
+          "displayPrice": "$22.50",
+          "basePrice": 22.5,
+          "startingPrice": false,
+          "kind": "pantry"
+        },
+        {
+          "category": "Beans 1 LB Bag - Lighter Blend",
+          "name": "Ambrosia Coffee of God (1 LB)",
+          "displayPrice": "$22.50",
+          "basePrice": 22.5,
+          "startingPrice": false,
+          "kind": "pantry"
+        },
+        {
+          "category": "Beans 1 LB Bag - Lighter Blend",
+          "name": "Dancing Water (1 LB)",
+          "displayPrice": "$22.50",
+          "basePrice": 22.5,
+          "startingPrice": false,
+          "kind": "pantry"
+        },
+        {
+          "category": "Beans 1 LB Bag - Lighter Blend",
+          "name": "New Manhattan (1 LB)",
+          "displayPrice": "$22.50",
+          "basePrice": 22.5,
+          "startingPrice": false,
+          "kind": "pantry"
+        },
+        {
+          "category": "Beans 1 LB Bag - Medium Blend",
+          "name": "Gratitude (1 LB)",
+          "displayPrice": "$22.50",
+          "basePrice": 22.5,
+          "startingPrice": false,
+          "kind": "pantry"
+        },
+        {
+          "category": "Beans 1 LB Bag - Medium Blend",
+          "name": "Julie's Ultimate (1 LB)",
+          "displayPrice": "$22.50",
+          "basePrice": 22.5,
+          "startingPrice": false,
+          "kind": "pantry"
+        },
+        {
+          "category": "Beans 1 LB Bag - Medium Blend",
+          "name": "Philtered Soul (1 LB)",
+          "displayPrice": "$22.50",
+          "basePrice": 22.5,
+          "startingPrice": false,
+          "kind": "pantry"
+        },
+        {
+          "category": "Beans 1 LB Bag - Medium Blend",
+          "name": "Silken Splendor (1 LB)",
+          "displayPrice": "$22.50",
+          "basePrice": 22.5,
+          "startingPrice": false,
+          "kind": "pantry"
+        },
+        {
+          "category": "Beans 1 LB Bag - Medium Blend",
+          "name": "Tesora (1 LB)",
+          "displayPrice": "$22.50",
+          "basePrice": 22.5,
+          "startingPrice": false,
+          "kind": "pantry"
+        },
+        {
+          "category": "Coffee Carriers",
+          "name": "Joe to Go Dispenser - 96oz",
+          "displayPrice": "$34.95+",
+          "basePrice": 34.95,
+          "startingPrice": true,
+          "kind": "pantry"
+        },
+        {
+          "category": "Cold Brew Bottles",
+          "name": "Mission Cold Brew (32 Oz)",
+          "displayPrice": "$14.25",
+          "basePrice": 14.25,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Cold Brew Bottles",
+          "name": "Philtered Soul Cold Brew (32 Oz)",
+          "displayPrice": "$14.25",
+          "basePrice": 14.25,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Featured Creations",
+          "name": "Dulce de Leche",
+          "displayPrice": "$5.99+",
+          "basePrice": 5.99,
+          "startingPrice": true,
+          "kind": "drinks"
+        },
+        {
+          "category": "Featured Creations",
+          "name": "Fresh Chai",
+          "displayPrice": "$4.99+",
+          "basePrice": 4.99,
+          "startingPrice": true,
+          "kind": "drinks"
+        },
+        {
+          "category": "Featured Creations",
+          "name": "Hot Dulce de Leche",
+          "displayPrice": "$5.99+",
+          "basePrice": 5.99,
+          "startingPrice": true,
+          "kind": "drinks"
+        },
+        {
+          "category": "Featured Creations",
+          "name": "Hot Mocha Tesora",
+          "displayPrice": "$5.99+",
+          "basePrice": 5.99,
+          "startingPrice": true,
+          "kind": "drinks"
+        },
+        {
+          "category": "Featured Creations",
+          "name": "Hot Peppermint Bark",
+          "displayPrice": "$5.99+",
+          "basePrice": 5.99,
+          "startingPrice": true,
+          "kind": "drinks"
+        },
+        {
+          "category": "Featured Creations",
+          "name": "Hot Tiramisu",
+          "displayPrice": "$5.99+",
+          "basePrice": 5.99,
+          "startingPrice": true,
+          "kind": "drinks"
+        },
+        {
+          "category": "Featured Creations",
+          "name": "Mint Mojito Iced Coffee",
+          "displayPrice": "$5.99+",
+          "basePrice": 5.99,
+          "startingPrice": true,
+          "kind": "drinks"
+        },
+        {
+          "category": "Featured Creations",
+          "name": "Peppermint Bark",
+          "displayPrice": "$5.99+",
+          "basePrice": 5.99,
+          "startingPrice": true,
+          "kind": "drinks"
+        },
+        {
+          "category": "Featured Creations",
+          "name": "Spiced Gratitude Cold Brew",
+          "displayPrice": "$5.99+",
+          "basePrice": 5.99,
+          "startingPrice": true,
+          "kind": "drinks"
+        },
+        {
+          "category": "Featured Creations",
+          "name": "Tiramisu",
+          "displayPrice": "$5.99+",
+          "basePrice": 5.99,
+          "startingPrice": true,
+          "kind": "drinks"
+        },
+        {
+          "category": "Featured Creations",
+          "name": "Winter Bliss",
+          "displayPrice": "$5.99+",
+          "basePrice": 5.99,
+          "startingPrice": true,
+          "kind": "drinks"
+        },
+        {
+          "category": "Featured Creations",
+          "name": "Winter Bliss Cold Brew",
+          "displayPrice": "$5.99+",
+          "basePrice": 5.99,
+          "startingPrice": true,
+          "kind": "drinks"
+        },
+        {
+          "category": "Hot Breakfast",
+          "name": "Bacon & Cheese Egg Bites",
+          "displayPrice": "$6.75",
+          "basePrice": 6.75,
+          "startingPrice": false,
+          "kind": "food"
+        },
+        {
+          "category": "Hot Breakfast",
+          "name": "Bacon Burrito",
+          "displayPrice": "$7.15",
+          "basePrice": 7.15,
+          "startingPrice": false,
+          "kind": "food"
+        },
+        {
+          "category": "Hot Breakfast",
+          "name": "Focaccia Club",
+          "displayPrice": "$7.95",
+          "basePrice": 7.95,
+          "startingPrice": false,
+          "kind": "food"
+        },
+        {
+          "category": "Hot Breakfast",
+          "name": "Green Chile Burrito",
+          "displayPrice": "$7.15",
+          "basePrice": 7.15,
+          "startingPrice": false,
+          "kind": "food"
+        },
+        {
+          "category": "Hot Breakfast",
+          "name": "Grilled Ham & Cheese",
+          "displayPrice": "$6.95",
+          "basePrice": 6.95,
+          "startingPrice": false,
+          "kind": "food"
+        },
+        {
+          "category": "Hot Breakfast",
+          "name": "Plant Powered Sandwich.",
+          "displayPrice": "$8.45",
+          "basePrice": 8.45,
+          "startingPrice": false,
+          "kind": "food"
+        },
+        {
+          "category": "Hot Breakfast",
+          "name": "Pork Sausage & Egg Burrito",
+          "displayPrice": "$7.15",
+          "basePrice": 7.15,
+          "startingPrice": false,
+          "kind": "food"
+        },
+        {
+          "category": "Hot Breakfast",
+          "name": "Roasted Chicken & Golden Rice Burrito",
+          "displayPrice": "$9.45",
+          "basePrice": 9.45,
+          "startingPrice": false,
+          "kind": "food"
+        },
+        {
+          "category": "Hot Breakfast",
+          "name": "Spinach & Feta Croissant",
+          "displayPrice": "$5.95",
+          "basePrice": 5.95,
+          "startingPrice": false,
+          "kind": "food"
+        },
+        {
+          "category": "Hot Breakfast",
+          "name": "Turkey Sausage Sandwich",
+          "displayPrice": "$6.95",
+          "basePrice": 6.95,
+          "startingPrice": false,
+          "kind": "food"
+        },
+        {
+          "category": "Hot Breakfast",
+          "name": "Veggie Egg White Bites",
+          "displayPrice": "$6.75",
+          "basePrice": 6.75,
+          "startingPrice": false,
+          "kind": "food"
+        },
+        {
+          "category": "Hot Coffee - Darker Blends",
+          "name": "Aromatic Arabic",
+          "displayPrice": "$4.99+",
+          "basePrice": 4.99,
+          "startingPrice": true,
+          "kind": "drinks"
+        },
+        {
+          "category": "Hot Coffee - Darker Blends",
+          "name": "Ether",
+          "displayPrice": "$4.99+",
+          "basePrice": 4.99,
+          "startingPrice": true,
+          "kind": "drinks"
+        },
+        {
+          "category": "Hot Coffee - Darker Blends",
+          "name": "Jacobs Wonderbar",
+          "displayPrice": "$4.99+",
+          "basePrice": 4.99,
+          "startingPrice": true,
+          "kind": "drinks"
+        },
+        {
+          "category": "Hot Coffee - Darker Blends",
+          "name": "Tantalizing Turkish",
+          "displayPrice": "$4.99+",
+          "basePrice": 4.99,
+          "startingPrice": true,
+          "kind": "drinks"
+        },
+        {
+          "category": "Hot Coffee - Decaf",
+          "name": "Luca's Unplugged Decaf",
+          "displayPrice": "$4.99+",
+          "basePrice": 4.99,
+          "startingPrice": true,
+          "kind": "drinks"
+        },
+        {
+          "category": "Hot Coffee - Lighter Blends",
+          "name": "Ambrosia Coffee of God",
+          "displayPrice": "$4.99+",
+          "basePrice": 4.99,
+          "startingPrice": true,
+          "kind": "drinks"
+        },
+        {
+          "category": "Hot Coffee - Lighter Blends",
+          "name": "Dancing Water",
+          "displayPrice": "$4.99+",
+          "basePrice": 4.99,
+          "startingPrice": true,
+          "kind": "drinks"
+        },
+        {
+          "category": "Hot Coffee - Lighter Blends",
+          "name": "New Manhattan",
+          "displayPrice": "$4.99+",
+          "basePrice": 4.99,
+          "startingPrice": true,
+          "kind": "drinks"
+        },
+        {
+          "category": "Hot Coffee - Medium Blends",
+          "name": "Gratitude",
+          "displayPrice": "$4.99+",
+          "basePrice": 4.99,
+          "startingPrice": true,
+          "kind": "drinks"
+        },
+        {
+          "category": "Hot Coffee - Medium Blends",
+          "name": "Julie's Ultimate",
+          "displayPrice": "$4.99+",
+          "basePrice": 4.99,
+          "startingPrice": true,
+          "kind": "drinks"
+        },
+        {
+          "category": "Hot Coffee - Medium Blends",
+          "name": "Philharmonic",
+          "displayPrice": "$4.99+",
+          "basePrice": 4.99,
+          "startingPrice": true,
+          "kind": "drinks"
+        },
+        {
+          "category": "Hot Coffee - Medium Blends",
+          "name": "Philtered Soul",
+          "displayPrice": "$4.99+",
+          "basePrice": 4.99,
+          "startingPrice": true,
+          "kind": "drinks"
+        },
+        {
+          "category": "Hot Coffee - Medium Blends",
+          "name": "Silken Splendor",
+          "displayPrice": "$4.99+",
+          "basePrice": 4.99,
+          "startingPrice": true,
+          "kind": "drinks"
+        },
+        {
+          "category": "Hot Coffee - Medium Blends",
+          "name": "Tesora",
+          "displayPrice": "$4.99+",
+          "basePrice": 4.99,
+          "startingPrice": true,
+          "kind": "drinks"
+        },
+        {
+          "category": "Iced Coffee, Tea, and Others",
+          "name": "Banana Matcha",
+          "displayPrice": "$7.59+",
+          "basePrice": 7.59,
+          "startingPrice": true,
+          "kind": "drinks"
+        },
+        {
+          "category": "Iced Coffee, Tea, and Others",
+          "name": "Black Tea",
+          "displayPrice": "$4.99+",
+          "basePrice": 4.99,
+          "startingPrice": true,
+          "kind": "drinks"
+        },
+        {
+          "category": "Iced Coffee, Tea, and Others",
+          "name": "Chamomile",
+          "displayPrice": "$4.99+",
+          "basePrice": 4.99,
+          "startingPrice": true,
+          "kind": "drinks"
+        },
+        {
+          "category": "Iced Coffee, Tea, and Others",
+          "name": "Cold Brew Black Tea",
+          "displayPrice": "$4.99+",
+          "basePrice": 4.99,
+          "startingPrice": true,
+          "kind": "drinks"
+        },
+        {
+          "category": "Iced Coffee, Tea, and Others",
+          "name": "Ecstatic Iced Coffee",
+          "displayPrice": "$4.99+",
+          "basePrice": 4.99,
+          "startingPrice": true,
+          "kind": "drinks"
+        },
+        {
+          "category": "Iced Coffee, Tea, and Others",
+          "name": "Honey Haze",
+          "displayPrice": "$5.99+",
+          "basePrice": 5.99,
+          "startingPrice": true,
+          "kind": "drinks"
+        },
+        {
+          "category": "Iced Coffee, Tea, and Others",
+          "name": "Hot Chocolate",
+          "displayPrice": "$4.99+",
+          "basePrice": 4.99,
+          "startingPrice": true,
+          "kind": "drinks"
+        },
+        {
+          "category": "Iced Coffee, Tea, and Others",
+          "name": "Iced Coffee Rose",
+          "displayPrice": "$5.99+",
+          "basePrice": 5.99,
+          "startingPrice": true,
+          "kind": "drinks"
+        },
+        {
+          "category": "Iced Coffee, Tea, and Others",
+          "name": "Iced Gingersnap Coffee",
+          "displayPrice": "$5.99+",
+          "basePrice": 5.99,
+          "startingPrice": true,
+          "kind": "drinks"
+        },
+        {
+          "category": "Iced Coffee, Tea, and Others",
+          "name": "Iced Matcha",
+          "displayPrice": "$6.59+",
+          "basePrice": 6.59,
+          "startingPrice": true,
+          "kind": "drinks"
+        },
+        {
+          "category": "Iced Coffee, Tea, and Others",
+          "name": "Iced Mocha Tesora",
+          "displayPrice": "$5.99+",
+          "basePrice": 5.99,
+          "startingPrice": true,
+          "kind": "drinks"
+        },
+        {
+          "category": "Iced Coffee, Tea, and Others",
+          "name": "Mission Cold Brew",
+          "displayPrice": "$5.99+",
+          "basePrice": 5.99,
+          "startingPrice": true,
+          "kind": "drinks"
+        },
+        {
+          "category": "Iced Coffee, Tea, and Others",
+          "name": "Oatmeal Cookie Cold Brew",
+          "displayPrice": "$5.99+",
+          "basePrice": 5.99,
+          "startingPrice": true,
+          "kind": "drinks"
+        },
+        {
+          "category": "Iced Coffee, Tea, and Others",
+          "name": "Philtered Soul Cold Brew",
+          "displayPrice": "$5.99+",
+          "basePrice": 5.99,
+          "startingPrice": true,
+          "kind": "drinks"
+        },
+        {
+          "category": "Iced Coffee, Tea, and Others",
+          "name": "Salted Caramel Matcha",
+          "displayPrice": "$7.59+",
+          "basePrice": 7.59,
+          "startingPrice": true,
+          "kind": "drinks"
+        },
+        {
+          "category": "Iced Coffee, Tea, and Others",
+          "name": "Strawberry Matcha",
+          "displayPrice": "$7.59+",
+          "basePrice": 7.59,
+          "startingPrice": true,
+          "kind": "drinks"
+        },
+        {
+          "category": "Iced Coffee, Tea, and Others",
+          "name": "Strawberry Mint Matcha",
+          "displayPrice": "$7.59+",
+          "basePrice": 7.59,
+          "startingPrice": true,
+          "kind": "drinks"
+        },
+        {
+          "category": "Iced Coffee, Tea, and Others",
+          "name": "Yuzu Twist Lemon Tea",
+          "displayPrice": "$5.99+",
+          "basePrice": 5.99,
+          "startingPrice": true,
+          "kind": "drinks"
+        }
+      ]
+    },
+    {
+      "id": "binge",
+      "name": "Binge Coffee House",
+      "address": "530 Valencia Street",
+      "url": "https://www.doordash.com/store/binge-coffee-house-san-francisco-46435951/",
+      "items": [
+        {
+          "category": "Caffeine Free",
+          "name": "Cloudy Mango",
+          "displayPrice": "$6.80",
+          "basePrice": 6.8,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Caffeine Free",
+          "name": "Cloudy Strawberry",
+          "displayPrice": "$6.80",
+          "basePrice": 6.8,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Caffeine Free",
+          "name": "Pandan Milk",
+          "displayPrice": "$6.80",
+          "basePrice": 6.8,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Ceremonial Matcha",
+          "name": "Banana Matcha Latte",
+          "displayPrice": "$7.99",
+          "basePrice": 7.99,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Ceremonial Matcha",
+          "name": "Black Sesame Matcha",
+          "displayPrice": "$7.83",
+          "basePrice": 7.83,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Ceremonial Matcha",
+          "name": "Coco Matcha",
+          "displayPrice": "$7.58",
+          "basePrice": 7.58,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Ceremonial Matcha",
+          "name": "Cookie Butter Matcha",
+          "displayPrice": "$8.30",
+          "basePrice": 8.3,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Ceremonial Matcha",
+          "name": "Double Matcha",
+          "displayPrice": "$7.83",
+          "basePrice": 7.83,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Ceremonial Matcha",
+          "name": "Earl Grey Matcha Latte",
+          "displayPrice": "$7.58",
+          "basePrice": 7.58,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Ceremonial Matcha",
+          "name": "Kyoto Fog",
+          "displayPrice": "$8.30",
+          "basePrice": 8.3,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Ceremonial Matcha",
+          "name": "Mango Matcha Latte",
+          "displayPrice": "$7.58",
+          "basePrice": 7.58,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Ceremonial Matcha",
+          "name": "Matcha Latte",
+          "displayPrice": "$7.05",
+          "basePrice": 7.05,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Ceremonial Matcha",
+          "name": "Melon Melon Matcha",
+          "displayPrice": "$8.20",
+          "basePrice": 8.2,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Ceremonial Matcha",
+          "name": "Pandan Matcha Latte",
+          "displayPrice": "$7.99",
+          "basePrice": 7.99,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Ceremonial Matcha",
+          "name": "Peachy Peachy Matcha",
+          "displayPrice": "$8.30",
+          "basePrice": 8.3,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Ceremonial Matcha",
+          "name": "Pistachio Matcha Latte",
+          "displayPrice": "$8.30",
+          "basePrice": 8.3,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Ceremonial Matcha",
+          "name": "Strawberry Matcha Latte",
+          "displayPrice": "$7.58",
+          "basePrice": 7.58,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Ceremonial Matcha",
+          "name": "Strawberry Shortcake Matcha",
+          "displayPrice": "$8.09",
+          "basePrice": 8.09,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Ceremonial Matcha",
+          "name": "Ube Matcha Latte",
+          "displayPrice": "$7.83",
+          "basePrice": 7.83,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Ceremonial Matcha",
+          "name": "White Peach Matcha",
+          "displayPrice": "$7.79",
+          "basePrice": 7.79,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Classic Phin Drip",
+          "name": "Binge House Coffee",
+          "displayPrice": "$6.80",
+          "basePrice": 6.8,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Classic Phin Drip",
+          "name": "Black Coffee",
+          "displayPrice": "$5.22",
+          "basePrice": 5.22,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Classic Phin Drip",
+          "name": "Egg Coffee",
+          "displayPrice": "$7.26",
+          "basePrice": 7.26,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Classic Phin Drip",
+          "name": "Saigon Sua Da",
+          "displayPrice": "$6.21",
+          "basePrice": 6.21,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Fall at Binge",
+          "name": "Apple Matcha Cloud",
+          "displayPrice": "$7.83",
+          "basePrice": 7.83,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Fall at Binge",
+          "name": "Apple Pie Matcha",
+          "displayPrice": "$8.09",
+          "basePrice": 8.09,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Fall at Binge",
+          "name": "Pumpkin Pie Coffee",
+          "displayPrice": "$7.99",
+          "basePrice": 7.99,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Fall at Binge",
+          "name": "Pumpkin Pie Matcha",
+          "displayPrice": "$8.09",
+          "basePrice": 8.09,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Fall at Binge",
+          "name": "Tiramisu Coffee",
+          "displayPrice": "$8.20",
+          "basePrice": 8.2,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Fall at Binge",
+          "name": "Tiramisu Matcha",
+          "displayPrice": "$8.20",
+          "basePrice": 8.2,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Freshly Brewed Tea",
+          "name": "Mango Tea",
+          "displayPrice": "$6.53",
+          "basePrice": 6.53,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Freshly Brewed Tea",
+          "name": "Passion Fruit Tea",
+          "displayPrice": "$6.53",
+          "basePrice": 6.53,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Hojicha",
+          "name": "Hojicha Latte",
+          "displayPrice": "$6.80",
+          "basePrice": 6.8,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Hojicha",
+          "name": "Hojicha with Salted Cream Cheese",
+          "displayPrice": "$7.83",
+          "basePrice": 7.83,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Hojicha",
+          "name": "Strawberry Shortcake Hojicha",
+          "displayPrice": "$7.83",
+          "basePrice": 7.83,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Signature Coffee",
+          "name": "Banana Coffee",
+          "displayPrice": "$7.58",
+          "basePrice": 7.58,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Signature Coffee",
+          "name": "Black Sesame Coffee",
+          "displayPrice": "$7.58",
+          "basePrice": 7.58,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Signature Coffee",
+          "name": "Coconut Coffee",
+          "displayPrice": "$7.26",
+          "basePrice": 7.26,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Signature Coffee",
+          "name": "Cookie Butter Coffee",
+          "displayPrice": "$8.09",
+          "basePrice": 8.09,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Signature Coffee",
+          "name": "Matcha Coffee",
+          "displayPrice": "$7.58",
+          "basePrice": 7.58,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Signature Coffee",
+          "name": "Pandan Coffee",
+          "displayPrice": "$7.26",
+          "basePrice": 7.26,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Signature Coffee",
+          "name": "Ube Coffee",
+          "displayPrice": "$7.58",
+          "basePrice": 7.58,
+          "startingPrice": false,
+          "kind": "drinks"
+        },
+        {
+          "category": "Snack",
+          "name": "Pandan Waffle",
+          "displayPrice": "$6.80",
+          "basePrice": 6.8,
+          "startingPrice": false,
+          "kind": "food"
+        },
+        {
+          "category": "Snack",
+          "name": "Popcorn Chicken",
+          "displayPrice": "$11.44",
+          "basePrice": 11.44,
+          "startingPrice": false,
+          "kind": "food"
+        },
+        {
+          "category": "Vietnamese Sandwiches ( Banh Mi)",
+          "name": "B1. Combination Banh Mi(Dac Biet)",
+          "displayPrice": "$11.44",
+          "basePrice": 11.44,
+          "startingPrice": false,
+          "kind": "food"
+        },
+        {
+          "category": "Vietnamese Sandwiches ( Banh Mi)",
+          "name": "B2. Grilled Pork Banh Mi(Heo)",
+          "displayPrice": "$11.44",
+          "basePrice": 11.44,
+          "startingPrice": false,
+          "kind": "food"
+        },
+        {
+          "category": "Vietnamese Sandwiches ( Banh Mi)",
+          "name": "B3. Chicken Banh Mi (BM Gà)",
+          "displayPrice": "$11.44",
+          "basePrice": 11.44,
+          "startingPrice": false,
+          "kind": "food"
+        },
+        {
+          "category": "Vietnamese Sandwiches ( Banh Mi)",
+          "name": "B4. Grilled Beef Banh Mi(BM Bò)",
+          "displayPrice": "$11.44",
+          "basePrice": 11.44,
+          "startingPrice": false,
+          "kind": "food"
+        },
+        {
+          "category": "Vietnamese Sandwiches ( Banh Mi)",
+          "name": "B5. Vegan Ham Banh Mi(Ham Chay)",
+          "displayPrice": "$11.44",
+          "basePrice": 11.44,
+          "startingPrice": false,
+          "kind": "food"
+        },
+        {
+          "category": "Vietnamese Sandwiches ( Banh Mi)",
+          "name": "B6. Lemongrass Tofu Banh Mi(BM Đậu Hũ)",
+          "displayPrice": "$11.44",
+          "basePrice": 11.44,
+          "startingPrice": false,
+          "kind": "food"
+        },
+        {
+          "category": "Vietnamese Sandwiches ( Banh Mi)",
+          "name": "B7. Pork Loaf & Pate Banh Mi(Pate Chả Lụa)",
+          "displayPrice": "$11.44",
+          "basePrice": 11.44,
+          "startingPrice": false,
+          "kind": "food"
+        },
+        {
+          "category": "Vietnamese Sandwiches ( Banh Mi)",
+          "name": "B8. Meatball Banh Mi(Xíu Mại)",
+          "displayPrice": "$11.44",
+          "basePrice": 11.44,
+          "startingPrice": false,
+          "kind": "food"
+        },
+        {
+          "category": "Vietnamese Sandwiches ( Banh Mi)",
+          "name": "B9. Meatball & Egg Banh Mi(Xiu Mại Trứng)",
+          "displayPrice": "$14.10",
+          "basePrice": 14.1,
+          "startingPrice": false,
+          "kind": "food"
+        },
+        {
+          "category": "Vietnamese Sandwiches ( Banh Mi)",
+          "name": "BBQ Pork Banh Mi (Char Siu)",
+          "displayPrice": "$11.44",
+          "basePrice": 11.44,
+          "startingPrice": false,
+          "kind": "food"
+        }
+      ]
+    }
+  ],
+  "unresolved": [
+    {
+      "name": "Nirvana Soul Coffee",
+      "address": "242 Townsend Street",
+      "status": "Exact-branch DoorDash menu not confirmed"
+    },
+    {
+      "name": "Cafe Reveille",
+      "address": "610 Long Bridge Street",
+      "status": "Exact-branch DoorDash menu not confirmed; found listing is 1998 Polk Street"
+    }
+  ],
+  "priceNotes": "Public pickup base menu prices, before tax, fees, tips and customizations. Plus signs indicate starting prices. Availability and personal coupon eligibility require checkout verification. One-time snapshot, no automatic refresh."
+}
