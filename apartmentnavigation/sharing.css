@@ -1,0 +1,11 @@
+#apartment-share, #apartment-share-dialog button { min-height:44px; padding:12px 18px; border:1px solid #d9dee5; border-radius:12px; background:#fff; color:#17202a; font:600 15px system-ui,sans-serif; cursor:pointer; }
+#apartment-share { display:block; margin:18px auto; }
+#apartment-share-dialog { box-sizing:border-box; width: min(480px, calc(100% - 32px)); max-height:calc(100dvh - 32px); overflow:auto; border:1px solid #d9dee5; border-radius:20px; padding:24px; color:#17202a; background:#fbfaf7; font:16px/1.6 system-ui,sans-serif; }
+#apartment-share-dialog::backdrop { background:#0008; }
+#apartment-share-dialog h2 { font-size:23px; margin:0 0 12px; }
+#apartment-share-dialog p { margin:12px 0; }
+#apartment-share-dialog button { width:auto; margin:8px 8px 8px 0; }
+#apartment-share-dialog input { box-sizing:border-box; width:100%; margin:8px 0; padding:12px; font:14px system-ui,sans-serif; border:1px solid #d9dee5; border-radius:10px; }
+#apartment-share-dialog button:disabled { opacity:.6; cursor:wait; }
+.share-unavailable { max-width:480px; margin:60px auto; padding:24px; font:16px/1.6 system-ui,sans-serif; }
+.share-expiry { padding:12px 20px; text-align:center; font:14px/1.5 system-ui,sans-serif; color:#5c6670; }

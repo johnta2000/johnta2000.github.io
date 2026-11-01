@@ -20,6 +20,7 @@ import { rentTables } from "./rentTables";
 import { sleepTables } from "./sleepTables";
 
 export default defineSchema({
+  apartmentShareLinks: defineTable({ tokenHash: v.string(), key: v.string(), expiresAt: v.number() }).index("by_token", ["tokenHash"]),
   ...rentDraftTables,
   ...pdpApprovalTables,
   ...andrewTables,
