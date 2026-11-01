@@ -1,0 +1,5 @@
+import { httpAction } from './_generated/server';
+import { anyApi } from 'convex/server';
+function headers(r:Request){const origin=r.headers.get('Origin')||'';return {'Access-Control-Allow-Origin':['https://www.john-ta.com','https://john-ta.com'].includes(origin)?origin:'https://www.john-ta.com','Access-Control-Allow-Headers':'Authorization, Content-Type','Access-Control-Allow-Methods':'GET, OPTIONS','Vary':'Origin','Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff','X-Robots-Tag':'noindex, nofollow, noarchive','Referrer-Policy':'no-referrer'};}
+export const preflight=httpAction(async(_ctx,r)=>new Response(null,{status:204,headers:headers(r)}));
+export const pdf=httpAction(async(ctx,r)=>{const h=headers(r);try{const f=await ctx.runQuery(anyApi.bankArchive.file,{id:new URL(r.url).searchParams.get('id')});const blob=await ctx.storage.get(f.storageId);if(!blob)throw Error('Missing');return new Response(blob,{headers:{...h,'Content-Type':'application/pdf','Content-Disposition':'inline'}});}catch{return new Response('Sign in with the authorized account to view this statement.',{status:403,headers:h});}});
