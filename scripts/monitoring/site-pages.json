@@ -2,7 +2,9 @@
   {
     "app": "apartmentnavigation",
     "path": "/apartmentnavigation/",
-    "file": "apartmentnavigation/index.html"
+    "file": "apartmentnavigation/index.html",
+    "analytics": false,
+    "title": "Apartment Navigation"
   },
   {
     "app": "burgery",
