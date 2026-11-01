@@ -9,3 +9,5 @@
 #apartment-share-dialog button:disabled { opacity:.6; cursor:wait; }
 .share-unavailable { max-width:480px; margin:60px auto; padding:24px; font:16px/1.6 system-ui,sans-serif; }
 .share-expiry { padding:12px 20px; text-align:center; font:14px/1.5 system-ui,sans-serif; color:#5c6670; }
+#share-feedback { margin:0 16px 12px; text-align:center; color:#5c6670; font:14px/1.5 system-ui,sans-serif; }
+#share-feedback:empty { display:none; }

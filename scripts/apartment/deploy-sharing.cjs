@@ -24,14 +24,16 @@ const apply=process.argv.includes('--apply');
  const backups=fs.mkdtempSync('/private/tmp/apartment-production-backup-');
  fs.chmodSync(backups,0o700);
  fs.writeFileSync(path.join(backups,'modules.json'),JSON.stringify(snapshot),{mode:0o600});
- const table=JSON.parse(defineSchema({apartmentShareLinks:defineTable({tokenHash:v.string(),key:v.string(),expiresAt:v.number()}).index('by_token',['tokenHash'])}).export()).tables[0];
+ const tables=JSON.parse(defineSchema({apartmentShareLinks:defineTable({tokenHash:v.string(),key:v.string(),expiresAt:v.number(),guideStorageId:v.optional(v.id('_storage'))}).index('by_token',['tokenHash']),apartmentShareGuides:defineTable({keyHash:v.string(),version:v.string(),storageId:v.id('_storage'),createdAt:v.number()}).index('by_key_version',['keyHash','version'])}).export()).tables;
  const schema={...snapshot.modules.find(m=>m.path==='schema.js')};
  const router={...snapshot.modules.find(m=>m.path==='http.js')};
  for(const m of [schema,router]){if(!m.source)throw Error('Missing current module');delete m.sourceMap;}
  const defaultName=m=>{const match=m.source.match(/export\s*\{\s*(\w+)\s+as\s+default\s*\}/);if(!match)throw Error('Unrecognized deployed export');return match[1];};
  const schemaName=defaultName(schema),routerName=defaultName(router);
- schema.source+=`\nconst apartmentPreviousSchemaExport=${schemaName}.export.bind(${schemaName});\n${schemaName}.export=()=>{const s=JSON.parse(apartmentPreviousSchemaExport());s.tables=s.tables.filter(t=>t.tableName!=="apartmentShareLinks").concat(${JSON.stringify(table)});return JSON.stringify(s);};\n`;
- router.source=`import {endpoint as apartmentShareEndpoint} from './apartmentShareHttp.js';\n`+router.source+`\nfor(const method of ['GET','POST','OPTIONS']) { ${routerName}.exactRoutes.get('/apartment-share')?.delete(method); ${routerName}.route({path:'/apartment-share',method,handler:apartmentShareEndpoint}); }\n`;
+ schema.source+=`\n(()=>{const previous=${schemaName}.export.bind(${schemaName});${schemaName}.export=()=>{const s=JSON.parse(previous());const tables=${JSON.stringify(tables)};const names=new Set(tables.map(t=>t.tableName));s.tables=s.tables.filter(t=>!names.has(t.tableName)).concat(tables);return JSON.stringify(s);};})();\n`;
+ if(!router.source.includes('endpoint as apartmentShareEndpoint')) {
+  router.source=`import {endpoint as apartmentShareEndpoint} from './apartmentShareHttp.js';\n`+router.source+`\nfor(const method of ['GET','POST','OPTIONS']) { ${routerName}.exactRoutes.get('/apartment-share')?.delete(method); ${routerName}.route({path:'/apartment-share',method,handler:apartmentShareEndpoint}); }\n`;
+ }
  const modules=['apartmentSharing','apartmentShareHttp'].map(name=>({path:name+'.js',environment:'isolate',source:esbuild.buildSync({entryPoints:[path.join(repo,'convex',name+'.ts')],bundle:true,write:false,format:'esm',platform:'browser',target:'esnext'}).outputFiles[0].text}));
  const replaced=new Set(['schema.js','http.js',...modules.map(m=>m.path)]);
  const request={dryRun:!apply,functions:snapshot.config.functions,appDefinition:{definition:null,dependencies:[],schema,changedModules:[router,...modules],unchangedModuleHashes:hashes.moduleHashes.filter(m=>!replaced.has(m.path)).map(m=>({path:m.path,environment:m.environment,sha256:m.hash})),udfServerVersion:snapshot.udfServerVersion},componentDefinitions:[],nodeDependencies:[]};
@@ -47,7 +49,7 @@ const apply=process.argv.includes('--apply');
  const latest=await call('/api/get_config_hashes',{version:'1.41.0'});
  const fingerprint=x=>JSON.stringify(x.moduleHashes.map(m=>[m.path,m.hash]).sort());
  if(fingerprint(latest)!==fingerprint(hashes))throw Error('Production changed during preparation; retry against latest');
- const diff=await call('/api/deploy2/finish_push',{startPush:start,dryRun:!apply,message:'Add 24-hour apartment guide sharing'},true);
+ const diff=await call('/api/deploy2/finish_push',{startPush:start,dryRun:!apply,message:'Speed up apartment sharing with a private prepared guide'},true);
  // Never print startPush, which contains environment variables.
  fs.writeFileSync(path.join(backups,'deployment-diff.json'),JSON.stringify(diff),{mode:0o600});
  const component=diff.componentDiffs?.[''];
