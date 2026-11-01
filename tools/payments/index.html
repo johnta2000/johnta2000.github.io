@@ -16,7 +16,7 @@
   <script defer src="../../assets/js/searchable-select.js"></script>
   <script defer src="screenshots.js"></script>
   <script defer src="app.js"></script>
-<link rel="stylesheet" href="../../assets/css/clerk-auth.css?v=20261011-otp1">
+  <link rel="stylesheet" href="../../assets/css/clerk-auth.css?v=20261011-otp1">
 </head>
 <body>
   <main>
@@ -40,6 +40,10 @@
         <progress id="progress" value="0" max="1" aria-label="Accounts complete"></progress>
       </section>
       </div>
+      <aside id="midmonth" class="midmonth" hidden aria-label="Midmonth check-in">
+        <label class="midmonth-label"><input id="midmonth-check" type="checkbox"><span><strong>Midmonth check-in · <span id="midmonth-date"></span></strong><span class="midmonth-description">I’ve checked in on all bills and payments for this month.</span></span></label>
+        <p id="midmonth-state" role="status" aria-live="polite"></p><button id="midmonth-retry" class="text-button" hidden>Retry check-in save</button>
+      </aside>
       <div class="table-controls">
       <div class="filters"><div class="picker-field"><span id="person-label">Person</span><select id="person" aria-labelledby="person-label"><option value="">Everyone</option></select></div><label class="switch"><input id="remaining" type="checkbox">Only unpaid</label></div>
       <div class="list-heading"><button id="refresh" class="text-button">Refresh</button><button id="add" class="secondary">+ Add account</button></div>

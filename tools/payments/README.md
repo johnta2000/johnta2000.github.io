@@ -59,3 +59,9 @@ Compact matrix update: the nine-bank, five-person view fits 1280×720 without pa
 Context menu update: desktop cells contain a single full-width red/green status pill. A flag adds a visible amber outline and marker without changing payment status. Menus stay within the viewport and close on outside click, Escape, scrolling, month changes, or sign-out. Eleven browser scenarios pass in Chromium and WebKit, including keyboard focus, touch access, delayed saves, and 1280×720 layout.
 
 The former `/tools/card-payments/` URL redirects to `/tools/payments/`, preserving query parameters and sign-in fragments. The backend and stored payment records are unchanged.
+
+## Midmonth check-in
+
+November 2026 through October 2027 each show one automatic note above the existing payment list, dated for the second Saturday. Its checkbox confirms a review of all bills and payments; it does not change paid statuses, totals, or account records. Check-ins save in the private shared `paymentCheckins` table with the existing allowlist and version-conflict protection. Failed check-in selections remain recoverable in session storage and offer an explicit retry. Month and filters restore from the URL; person filters use opaque account IDs.
+
+Deploy only this backend addition with `node scripts/payments/deploy-checkins.cjs` (dry run), then `--apply`. This uses the live deployment as its baseline and preserves unrelated modules, routes, tables, and authentication.

@@ -12,6 +12,12 @@
   // Keep the current deadline visible throughout the 1st; otherwise prepare for the next one.
   const deadline = new Date(today.getFullYear(), today.getMonth() + (today.getDate() > 1 ? 1 : 0), 1);
   $('month').value = `${deadline.getFullYear()}-${String(deadline.getMonth() + 1).padStart(2, '0')}`;
+  const initialView = new URL(location.href).searchParams;
+  if (validMonth(initialView.get('month'))) $('month').value = initialView.get('month');
+  $('remaining').checked = initialView.get('unpaid') === '1';
+  if (!validMonth(initialView.get('month'))) { const url = new URL(location.href); url.searchParams.set('month', $('month').value); history.replaceState(null, '', url); }
+  const checkinDrafts = new Map();
+  let checkin = null, checkinSaving = false;
   const pending = new Map();
   let saveWarning = '';
   let menuAccount = null;
@@ -52,7 +58,7 @@
   function clearPrivate() {
     screenshots.reset();
     personPicker.close(); statusPicker.close(); categoryPicker.close();
-    ++request; pending.clear(); saveWarning = ''; closeMenu(); data = null; ready = false; editingAccount = null; closeDialogs(); setBusy(false);
+    ++request; checkinDrafts.clear(); checkin = null; checkinSaving = false; $('midmonth').hidden = true; pending.clear(); saveWarning = ''; closeMenu(); data = null; ready = false; editingAccount = null; closeDialogs(); setBusy(false);
     $('app').hidden = true; $('accounts').replaceChildren(); $('housing-accounts').replaceChildren(); message('housing-progress', ''); $('manage-list').replaceChildren(); $('import-preview').replaceChildren();
     $('entry-form').reset(); $('add-form').reset(); $('import-form').reset();
     ['entry-person', 'entry-title', 'entry-month', 'entry-error', 'add-error', 'manage-error', 'import-summary', 'import-error', 'save-state'].forEach(id => message(id, ''));
@@ -75,7 +81,7 @@
     const response = await fetch(`${API}/api/${kind}`, {
       method: 'POST', cache: 'no-store', signal: AbortSignal.timeout(15000),
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ path: `cardPayments:${path}`, args, format: 'json' }),
+      body: JSON.stringify({ path: path.includes(':') ? path : `cardPayments:${path}`, args, format: 'json' }),
     });
     const result = await response.json();
     if (!response.ok || result.status !== 'success') throw Error(result.errorMessage || 'Request failed.');
@@ -138,7 +144,7 @@
       }
     }
   }
-  window.addEventListener('beforeunload', event => { if (pending.size) { event.preventDefault(); event.returnValue = ''; } });
+  window.addEventListener('beforeunload', event => { if (pending.size || checkinDrafts.size || checkinSaving || busy) { event.preventDefault(); event.returnValue = ''; } });
 
   function closeMenu(restoreFocus = false) {
     const account = menuAccount; menuAccount = null; $('payment-menu').hidden = true;
@@ -259,7 +265,8 @@
   function render() {
     if (!data) return;
     closeMenu();
-    const chosenPerson = $('person').value;
+    const personId = new URL(location.href).searchParams.get('personId');
+    const chosenPerson = personId ? data.accounts.find(a => a._id === personId)?.person || '' : '';
     // Preserve account/import order, matching the original spreadsheet's columns.
     const people = [...new Set(data.accounts.map(a => a.person))];
     $('person').replaceChildren(new Option('Everyone', ''), ...people.map(p => new Option(p, p)));
@@ -291,6 +298,7 @@
     for (const account of housingShown) $('housing-accounts').append(accountControl(account));
     if (!housingShown.length) $('housing-accounts').append(node('p', housing.length ? 'Housing is all paid for this month.' : 'No housing payments for this person and month.', 'housing-empty'));
     setBusy(busy);
+    renderCheckin();
     if (focusAccount && focusAction) $('app').querySelector(`[data-account="${CSS.escape(focusAccount)}"] [data-action="${focusAction}"]`)?.focus({ preventScroll: true });
   }
   desktop.addEventListener('change', render);
@@ -300,9 +308,9 @@
     const version = ++request, generation = epoch, value = selectedMonth();
     if (!silent) message('load-state', 'Loading…');
     try {
-      const result = await call('query', 'dashboard', { month: value });
+      const [result, savedCheckin] = await Promise.all([call('query', 'dashboard', { month: value }), call('query', 'paymentCheckins:get', { month: value })]);
       if (generation !== epoch || version !== request || value !== selectedMonth()) return;
-      data = result; render(); message('load-state', '');
+      data = result; checkin = savedCheckin; render(); message('load-state', '');
     } catch (error) {
       if (generation !== epoch || version !== request) return;
       if (/not authorized/i.test(error.message)) { clearPrivate(); $('gate').hidden = false; message('gate-message', 'This account doesn’t have access. Sign out and use your approved email.'); }
@@ -424,14 +432,16 @@
   $('manage').addEventListener('click', () => { renderManage(); message('manage-error', ''); $('manage-dialog').showModal(); });
   document.querySelectorAll('.close').forEach(button => button.addEventListener('click', () => { if (!busy) button.closest('dialog').close(); }));
   document.querySelectorAll('dialog').forEach(dialog => dialog.addEventListener('cancel', event => { if (busy) event.preventDefault(); }));
-  ['person', 'remaining'].forEach(id => $(id).addEventListener('change', render));
-  function changeMonth() {
+  ['person', 'remaining'].forEach(id => $(id).addEventListener('change', () => { saveView(); render(); }));
+  function changeMonth(push = true) {
+    if (push) saveView();
+    $('midmonth').hidden = true; checkin = null;
     closeMenu();
     if (!validMonth(selectedMonth())) { message('load-state', 'Choose a valid month between 2000 and 2099.'); $('accounts').replaceChildren(); $('housing-accounts').replaceChildren(); message('housing-progress', ''); return; }
     data = null; $('accounts').replaceChildren(); $('housing-accounts').replaceChildren(); message('housing-progress', ''); message('progress-heading', 'Loading accounts…'); message('progress-number', '—'); message('progress-detail', ''); $('progress').value = 0;
     void refresh();
   }
-  $('month').addEventListener('change', changeMonth);
+  $('month').addEventListener('change', () => changeMonth());
   for (const [id, offset] of [['previous', -1], ['next', 1]]) $(id).addEventListener('click', () => {
     if (!validMonth(selectedMonth())) return;
     const date = new Date(`${selectedMonth()}-15T12:00:00`); date.setMonth(date.getMonth() + offset);
@@ -440,12 +450,74 @@
   });
   $('refresh').addEventListener('click', () => void refresh());
 
+  function saveView() {
+    const url = new URL(location.href);
+    url.searchParams.set('month', selectedMonth());
+    // Person names stay out of URLs; use the opaque ID of one matching account.
+    const personId = data?.accounts.find(a => a.person === $('person').value)?._id;
+    if (personId) url.searchParams.set('personId', personId); else url.searchParams.delete('personId');
+    url.searchParams.delete('person');
+    if ($('remaining').checked) url.searchParams.set('unpaid', '1'); else url.searchParams.delete('unpaid');
+    if (url.href !== location.href) history.pushState(null, '', url);
+  }
+  window.addEventListener('popstate', () => {
+    const params = new URL(location.href).searchParams;
+    $('month').value = validMonth(params.get('month')) ? params.get('month') : `${deadline.getFullYear()}-${String(deadline.getMonth() + 1).padStart(2, '0')}`;
+    $('remaining').checked = params.get('unpaid') === '1';
+    $('person').value = '';
+    changeMonth(false);
+  });
+  function persistCheckinDrafts() {
+    if (!sessionId) return;
+    try { sessionStorage.setItem(`payment-checkin-drafts:${sessionId}`, JSON.stringify([...checkinDrafts])); }
+    catch { message('save-state', 'Keep this tab open until the check-in saves.'); }
+  }
+  function renderCheckin() {
+    const month = selectedMonth();
+    $('midmonth').hidden = !data || month < '2026-11' || month > '2027-10';
+    if ($('midmonth').hidden) return;
+    const [year, number] = month.split('-').map(Number);
+    const first = new Date(year, number - 1, 1);
+    const date = new Date(year, number - 1, 8 + (6 - first.getDay() + 7) % 7);
+    message('midmonth-date', date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }));
+    const draft = checkinDrafts.get(month);
+    $('midmonth-check').checked = draft ? draft.checked : !!checkin?.checked;
+    $('midmonth-check').disabled = busy || checkinSaving;
+    $('midmonth-retry').hidden = !draft || checkinSaving;
+    message('midmonth-state', checkinSaving ? 'Saving check-in…' : draft ? 'Check-in not saved. Your selection is kept here; retry to save it.' : checkin?.checked ? 'Check-in saved.' : 'Second Saturday · One check-in for all bills and payments.');
+  }
+  async function saveCheckin() {
+    if (!data || busy || checkinSaving || !session) return;
+    const month = selectedMonth(), generation = epoch;
+    const draft = checkinDrafts.get(month) || { checked: $('midmonth-check').checked, expectedVersion: checkin?.version || 0 };
+    checkinDrafts.set(month, draft); persistCheckinDrafts(); checkinSaving = true; ++request; setBusy(true); renderCheckin();
+    try {
+      const saved = await call('mutation', 'paymentCheckins:save', { month, ...draft });
+      if (generation !== epoch) return;
+      checkinDrafts.delete(month); persistCheckinDrafts(); if (selectedMonth() === month) checkin = saved;
+    } catch (error) {
+      if (generation !== epoch) return;
+      message('save-state', friendly(error));
+      // Refresh obtains the current version; retry remains an explicit user choice.
+    } finally {
+      if (generation === epoch) {
+        checkinSaving = false; setBusy(false); renderCheckin(); await refresh({ silent: true });
+        const retry = checkinDrafts.get(month);
+        if (retry && selectedMonth() === month) { retry.expectedVersion = checkin?.version || 0; persistCheckinDrafts(); }
+      }
+    }
+  }
+  $('midmonth-check').addEventListener('change', () => { checkinDrafts.delete(selectedMonth()); void saveCheckin(); });
+  $('midmonth-retry').addEventListener('click', () => void saveCheckin());
+
   async function sessionChanged(state) {
     if (state.session === undefined) return;
     const id = state.session?.id || null;
     if (id === sessionId) return;
     sessionId = id; session = state.session; const generation = ++epoch;
-    clearPrivate(); $('gate').hidden = false; $('sign-out').hidden = !session; $('retry-auth').hidden = true;
+    clearPrivate();
+    if (sessionId) { try { for (const [month, draft] of JSON.parse(sessionStorage.getItem(`payment-checkin-drafts:${sessionId}`) || '[]')) if (validMonth(month) && typeof draft.checked === 'boolean') checkinDrafts.set(month, draft); } catch { /* Ignore malformed recovery data. */ } }
+    $('gate').hidden = false; $('sign-out').hidden = !session; $('retry-auth').hidden = true;
     if (!session) {
       message('gate-message', 'Sign in to keep your checklist in sync across your phone and computer.');
       $('sign-in').hidden = false;

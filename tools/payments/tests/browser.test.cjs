@@ -4,14 +4,14 @@ const fs = require('node:fs/promises');
 const path = require('node:path');
 const os = require('node:os');
 const { chromium, webkit } = require('playwright');
-const browserType = process.env.PAYMENTS_BROWSER === 'webkit' ? webkit : chromium;
+const browserType = process.env.PAYMENTS_BROWSER === 'webkit' ? webkit : { name: () => 'chromium', launch: () => chromium.launch(process.env.PAYMENTS_CHROME ? { channel: 'chrome' } : {}) };
 function store() {
   return { accounts: [
     { _id: 'one', person: 'Alex', bank: 'Chase', nickname: '', dueDay: 1, startMonth: '2020-01' },
     { _id: 'two', person: 'Alex', bank: 'American Express', nickname: 'Travel', dueDay: 1, startMonth: '2020-01' },
     { _id: 'three', person: 'Dana', bank: 'Citi', nickname: '', dueDay: 1, startMonth: '2020-01' },
     { _id: 'four', person: 'Dana', bank: 'Bank of America', nickname: '', dueDay: 15, startMonth: '2020-01' },
-  ], logs: [], files: [], requests: [], failSave: false, conflict: false, delayQuery: null };
+  ], logs: [], files: [], checkins: {}, requests: [], failSave: false, conflict: false, delayQuery: null };
 }
 async function open(browser, width = 390, db = store(), mode = 'signed-in') {
   const page = await browser.newPage({ viewport: { width, height: 844 }, hasTouch: width < 900, isMobile: width < 600 });
@@ -52,6 +52,11 @@ async function open(browser, width = 390, db = store(), mode = 'signed-in') {
     const { path: endpoint, args } = route.request().postDataJSON(); db.requests.push({ endpoint, args });
     let value = null;
     if (mode === 'denied') return route.fulfill({ json: { status: 'error', errorMessage: 'This account is not authorized for card payments.' } });
+    if (endpoint === 'paymentCheckins:get') value = db.checkins[args.month] || null;
+    if (endpoint === 'paymentCheckins:save') {
+      if (db.failCheckin) return route.abort('failed');
+      value = db.checkins[args.month] = {...args, version: args.expectedVersion + 1};
+    }
     if (endpoint === 'cardPayments:verify') value = { email: 'owner@example.com' };
     if (endpoint === 'cardPayments:dashboard') {
       const snapshot = JSON.parse(JSON.stringify({ accounts: db.accounts, logs: db.logs.filter(l => l.month === args.month), screenshotCounts: Object.fromEntries(db.accounts.map(a => [a._id, db.files.filter(f => f.accountId === a._id && f.month === args.month).length])) }));
@@ -88,6 +93,8 @@ async function pick(page, id, label) {
 }
 async function actions(page, id = 'one') {
   const row = page.locator(`[data-account="${id}"]`);
+  await row.scrollIntoViewIfNeeded();
+  await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
   if (await row.locator('.touch-actions').isVisible()) await row.locator('.touch-actions').click();
   else await row.locator('.quick-paid').click({ button: 'right' });
   await page.locator('#payment-menu').waitFor();
@@ -486,4 +493,41 @@ test('payment screenshots preview failed uploads, retry once, persist for the mo
       assert.deepEqual(errors,[]); await page.close();
     }
   } finally { await browser.close(); }
+});
+
+test('midmonth check-in dates, persistence, retry and navigation on phone and desktop', async () => {
+ const browser = await browserType.launch();
+ try { for (const width of [390,1280]) {
+  const {page,db,errors} = await open(browser,width);
+  await page.goto('http://localhost/?month=2026-11');
+  await page.locator('#midmonth').waitFor();
+  assert.match(await page.locator('#midmonth-date').textContent(),/Nov 14/);
+  await fits(page);
+  await page.screenshot({path:path.join(os.tmpdir(),`midmonth-${width}.png`),fullPage:true});
+  await page.locator('#midmonth-check').check();
+  await page.waitForFunction(() => document.querySelector('#midmonth-state').textContent === 'Check-in saved.');
+  assert.equal(db.logs.length,0);
+  await page.reload(); await page.locator('#midmonth').waitFor();
+  assert.equal(await page.locator('#midmonth-check').isChecked(),true);
+  await page.locator('#next').click();
+  await page.waitForFunction(() => document.querySelector('#midmonth-date').textContent.includes('Dec 12'));
+  assert.equal(await page.locator('#midmonth-check').isChecked(),false);
+  await page.goBack(); await page.locator('#midmonth').waitFor();
+  assert.equal(await page.locator('#month').inputValue(),'2026-11');
+  assert.equal(await page.locator('#midmonth-check').isChecked(),true);
+  await page.goForward(); await page.waitForFunction(() => document.querySelector('#midmonth-date').textContent.includes('Dec 12'));
+  db.failCheckin=true; await page.locator('#midmonth-check').check(); await page.locator('#midmonth-retry').waitFor();
+  assert.equal(await page.locator('#midmonth-check').isChecked(),true);
+  page.on('dialog', dialog => dialog.accept()); await page.reload(); await page.locator('#midmonth-retry').waitFor();
+  assert.equal(await page.locator('#midmonth-check').isChecked(),true);
+  db.failCheckin=false; await page.locator('#midmonth-retry').click();
+  await page.waitForFunction(() => document.querySelector('#midmonth-state').textContent === 'Check-in saved.');
+  const copied = page.url(); const fresh = await open(browser,width,db); await fresh.page.goto(copied); await fresh.page.locator('#midmonth').waitFor();
+  assert.equal(await fresh.page.locator('#midmonth-check').isChecked(),true); await fresh.page.close();
+  for (const [month,date] of [['2027-01','Jan 9'],['2027-02','Feb 13'],['2027-03','Mar 13'],['2027-04','Apr 10'],['2027-05','May 8'],['2027-06','Jun 12'],['2027-07','Jul 10'],['2027-08','Aug 14'],['2027-09','Sep 11'],['2027-10','Oct 9']]) {
+    await page.goto('http://localhost/?month='+month); await page.locator('#midmonth').waitFor(); assert.ok((await page.locator('#midmonth-date').textContent()).includes(date));
+  }
+  await page.goto('http://localhost/?month=2027-11'); await page.locator('.account').first().waitFor(); assert.equal(await page.locator('#midmonth').isVisible(),false);
+  assert.deepEqual(errors,[]); await page.close();
+ } } finally { await browser.close(); }
 });

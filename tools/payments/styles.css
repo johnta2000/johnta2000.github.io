@@ -315,3 +315,10 @@ textarea { resize:vertical; }
   nav { flex-wrap:wrap; column-gap:16px; row-gap:6px; }
   nav a { min-height:44px; display:inline-flex; align-items:center; }
 }
+
+.midmonth { margin: 24px 0; padding: 16px 20px; border: 1px solid #dce2d6; border-radius: 14px; background: #f0f4eb; }
+.midmonth-label { display: flex; align-items: center; gap: 12px; min-height: 44px; cursor: pointer; }
+.midmonth-label input { width: 20px; height: 20px; flex: 0 0 20px; accent-color: #376346; }
+.midmonth-description { display: block; margin-top: 4px; font-size: .88rem; font-weight: 400; }
+#midmonth-state:empty { display: none; }
+#midmonth-state { margin: 8px 0 0; font-size: .85rem; }

@@ -3,6 +3,9 @@ import { v } from "convex/values";
 
 export const paymentStatus = v.union(v.literal("unchecked"), v.literal("scheduled"), v.literal("paid"), v.literal("nothing_due"));
 export const cardPaymentTables = {
+  paymentCheckins: defineTable({
+    owner: v.string(), month: v.string(), checked: v.boolean(), version: v.number(), updatedAt: v.number(),
+  }).index("by_owner_month", ["owner", "month"]),
   paymentFiles: defineTable({
     owner: v.string(), accountId: v.id("paymentAccounts"), month: v.string(), storageId: v.id("_storage"),
     name: v.string(), type: v.string(), size: v.number(), requestKey: v.string(), createdAt: v.number(),
