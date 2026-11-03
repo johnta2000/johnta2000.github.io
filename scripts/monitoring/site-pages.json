@@ -83,6 +83,12 @@
     "title": "Coffee prices — John Ta"
   },
   {
+    "path": "/tools/contacts/01022cdbf35d3cca6b986eeafc169307/",
+    "file": "tools/contacts/01022cdbf35d3cca6b986eeafc169307/index.html",
+    "analytics": false,
+    "title": "Decadence contacts"
+  },
+  {
     "path": "/tools/costco/",
     "file": "tools/costco/index.html",
     "analytics": false,
@@ -136,6 +142,12 @@
     "file": "tools/payment/questions/shared/index.html",
     "analytics": false,
     "title": "Shared payment question"
+  },
+  {
+    "path": "/tools/payments/banks/",
+    "file": "tools/payments/banks/index.html",
+    "analytics": false,
+    "title": "Bank history — Payments"
   },
   {
     "path": "/tools/payments/",
