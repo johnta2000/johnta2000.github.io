@@ -1,4 +1,5 @@
 import { endpoint as apartmentShare } from "./apartmentShareHttp";
+import { endpoint as contactShare } from "./contactShareHttp";
 import { pdf as bankPdf, preflight as bankPreflight } from './bankArchiveHttp';
 import { file as pdpApprovalFile, preflight as pdpApprovalPreflight } from './pdpApprovalFileHttp';
 import { receipt as costcoReceipt, preflight as costcoPreflight } from './costcoHttp';
@@ -21,6 +22,7 @@ import { attachment as paymentAttachment, preflight as paymentPreflight } from "
 import { view as sharedQuestionView, screenshot as sharedQuestionScreenshot, preflight as sharedQuestionPreflight } from "./paymentQuestionShareHttp";
 
 const http = httpRouter();
+for (const method of ["POST", "OPTIONS"] as const) http.route({path: "/contact-share", method, handler: contactShare});
 http.route({path:'/bank-archive-pdf',method:'GET',handler:bankPdf});
 http.route({path:'/bank-archive-pdf',method:'OPTIONS',handler:bankPreflight});
 for (const method of ["GET", "POST", "OPTIONS"] as const) http.route({path: "/apartment-share", method, handler: apartmentShare});
