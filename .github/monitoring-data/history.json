@@ -3,6 +3,47 @@
   "maxRuns": 336,
   "runs": [
     {
+      "id": "2026-11-05T22:04:09.319Z",
+      "monitorId": "paze-directory",
+      "timestamp": "2026-11-05T22:04:09.319Z",
+      "status": "success",
+      "changed": false,
+      "initialized": false,
+      "confirmed": true,
+      "durationMs": 2263,
+      "count": 35,
+      "previousCount": 35,
+      "pagination": {
+        "complete": true,
+        "pagesFetched": 3,
+        "pageCounts": [
+          12,
+          12,
+          11
+        ],
+        "finalPage": 2
+      },
+      "diff": {
+        "added": [],
+        "removed": [],
+        "renamed": []
+      },
+      "cache": {
+        "runId": "1793916249319",
+        "requestCount": 3,
+        "crawlIds": [
+          "primary"
+        ],
+        "requestIds": [
+          "1793916249324001",
+          "1793916250251002",
+          "1793916250901003"
+        ]
+      },
+      "summary": "No merchant changes across 3 pages.",
+      "error": null
+    },
+    {
       "id": "2026-11-05T15:31:33.093Z",
       "monitorId": "paze-directory",
       "timestamp": "2026-11-05T15:31:33.093Z",
@@ -13784,36 +13825,6 @@
       },
       "summary": "No merchant changes across 3 pages.",
       "error": null
-    },
-    {
-      "id": "2026-08-31T19:33:36.883Z",
-      "monitorId": "paze-directory",
-      "timestamp": "2026-08-31T19:33:36.883Z",
-      "status": "failure",
-      "changed": false,
-      "initialized": false,
-      "confirmed": false,
-      "durationMs": 693,
-      "count": null,
-      "previousCount": 33,
-      "pagination": null,
-      "diff": {
-        "added": [],
-        "removed": [],
-        "renamed": []
-      },
-      "cache": {
-        "runId": "1788204816883",
-        "requestCount": 1,
-        "crawlIds": [
-          "primary"
-        ],
-        "requestIds": [
-          "1788204816891001"
-        ]
-      },
-      "summary": "The crawl was incomplete; the last successful baseline was preserved.",
-      "error": "Page 0 continuation pointed to page unknown."
     }
   ]
 }
