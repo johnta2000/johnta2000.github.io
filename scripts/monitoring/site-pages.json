@@ -12,6 +12,12 @@
     "file": "burgery/index.html"
   },
   {
+    "path": "/games/picnic/",
+    "file": "games/picnic/index.html",
+    "analytics": false,
+    "title": "Pepsi & Pepper’s Picnic"
+  },
+  {
     "app": "happyhours",
     "path": "/happyhours.html",
     "file": "happyhours.html"
