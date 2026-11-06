@@ -3,6 +3,11 @@ export const HEIGHT = 620;
 export const DASH_COOLDOWN = 2.8;
 export const ORDER = ['meadow', 'pond', 'burrows', 'woods', 'hills', 'orchard'];
 export const ROOMS = {
+  tutorial: {
+    name:'Little Loaf Practice',short:'Practice',ground:'#e4ebc7',snack:'biscuit',
+    note:'A safe little clearing. Use WASD to roll to the flower flag. Nothing here can hurt you.',
+    obstacles:[],slots:[],goal:{x:535,y:315,r:27,kind:'crate'},
+  },
   meadow: {
     name: 'Sunbeam Meadow', short: 'The key', ground: '#dce8bd', snack: 'biscuit',
     note: 'The gate key is in the crate. Watch the cat crouch, then dodge its pounce!',
@@ -65,6 +70,7 @@ export function upgradeRun(run) {
   // Extend old saves in place without losing snacks, health, or completed adventures.
   if(run.completed)run.trinkets=TRINKETS.map(item=>item.id);
   else if(!run.trinkets)run.trinkets=[];
+  if(run.tutorialStep===undefined)run.tutorialStep=3;
   run.order=roomOrder();
   return run;
 }
@@ -91,13 +97,14 @@ export function maxHearts(run) { return run.pepperFound ? 4 : 3; }
 export function createRun(id) {
   return {
     version:2, id, seed:Number.parseInt(id, 36) >>> 0, character:'pepsi', order:roomOrder(),
-    room:'meadow', collected:[], trinkets:[], positions:{}, checkpoints:{}, health:3,
+    room:'meadow', tutorialStep:0, collected:[], trinkets:[], positions:{}, checkpoints:{}, health:3,
     keyFound:false, pepperFound:false, basketFound:false, completed:false,
     hits:0, retries:0, revision:0, startedAt:Date.now(),
   };
 }
 export function validRun(value, id) {
   return !!(value && value.version === 2 && value.id === id && /^[a-z0-9]{6,16}$/.test(id) &&
+    (value.tutorialStep===undefined || Number.isInteger(value.tutorialStep)&&value.tutorialStep>=0&&value.tutorialStep<=3) &&
     Number.isInteger(value.seed) && value.seed >= 0 && value.seed <= 0xffffffff &&
     Array.isArray(value.collected) && value.collected.every(item => /^(meadow|pond|burrows|woods|hills|orchard)-[0-3]$/.test(item)) &&
     new Set(value.collected).size === value.collected.length &&
@@ -128,16 +135,18 @@ export function migrateRun(old, id) {
 }
 export function roomCount(run, room) { return run.collected.filter(id => id.startsWith(room + '-')).length; }
 export function goalDone(run, room) {
+  if(room==='tutorial')return run.tutorialStep===3;
   if(room==='meadow')return run.keyFound;
   if(room==='pond')return run.pepperFound && trinketCount(run,room)===2;
   if(['burrows','woods','hills'].includes(room))return run.pepperFound && trinketCount(run,room)===2;
   return run.basketFound && allTrinkets(run);
 }
 export function isUnlocked(run, room) {
-  return room === 'meadow' || room === 'pond' && run.keyFound || ['burrows','woods','hills','orchard'].includes(room) && run.pepperFound;
+  return room === 'tutorial' || room === 'meadow' || room === 'pond' && run.keyFound || ['burrows','woods','hills','orchard'].includes(room) && run.pepperFound;
 }
 export function firstUnfinished(run) { return ORDER.find(room => !goalDone(run, room)) || 'orchard'; }
 export function objective(run, room) {
+  if(room==='tutorial')return ['1 / 3 · WASD: roll to the flower flag →','2 / 3 · Hold D + tap SPACE to break the practice crate','3 / 3 · Watch the dash meter recharge (2.8 seconds)','Ready! Follow the glowing path into the meadow →'][run.tutorialStep??3];
   if (goalDone(run, room)) return room === 'orchard' ? 'Bring Pepper and the basket home →' : 'Follow the open path to the right →';
   if(room==='meadow')return 'Dash into the wooden crate to find the key';
   if(room==='pond'&&!run.pepperFound)return 'Reach Pepper’s gate with the key';
@@ -151,6 +160,7 @@ export function walkable(x, y, room, radius = 18) {
   return !ROOMS[room].obstacles.some(o => ((x-o.x)/(o.r+radius)) ** 2 + ((y-o.y)/((o.ry||o.r)+radius)) ** 2 < 1);
 }
 export function toysFor(seed, room) {
+  if(room==='tutorial')return [];
   const positions = room==='woods'?[[420,260],[620,350],[820,330]]:room==='hills'?[[420,400],[710,290],[590,310]]:room === 'meadow' ? [[360,350],[690,285]] : room === 'pond' ? [[290,220],[710,370],[565,470]] : room === 'burrows' ? [[470,300],[760,350]] : [[315,375],[505,220],[800,340],[515,480]];
   const rng = random(seed + ORDER.indexOf(room)*77);
   return positions.map(([x,y], i) => ({
@@ -159,6 +169,7 @@ export function toysFor(seed, room) {
   }));
 }
 export function gophersFor(seed,room) {
+  if(room==='tutorial')return [];
   const spots={woods:[[260,450],[610,170],[810,350]],hills:[[250,220],[450,440],[710,190],[820,440]],meadow:[],pond:[[340,180],[680,475]],burrows:[[270,210],[470,450],[735,200],[805,430]],orchard:[[450,180],[730,440],[830,270]]}[room];
   const rng=random(seed+ORDER.indexOf(room)*307);
   return spots.map(([x,y],i)=>({x,y,r:22,kind:'gopher',mode:'hidden',timer:1+i*.65+rng(),cycle:0,seed:seed+i*31}));
@@ -250,6 +261,14 @@ export function step(world,run,input,dt) {
   if(Math.abs(p.vx)>.1)p.facing=p.vx<0?-1:1;
   if(run.pepperFound)follow(world);
   const goal=ROOMS[world.room].goal, nearGoal=Math.hypot(goal.x-p.x,goal.y-p.y);
+  if(world.room==='tutorial') {
+    if(run.tutorialStep===0&&Math.hypot(p.x-330,p.y-315)<45){run.tutorialStep=1;events.push({type:'practice'});}
+    if(nearGoal<48&&run.tutorialStep<2){
+      if(dashing&&run.tutorialStep===1){run.tutorialStep=2;particles(world,goal.x,goal.y);events.push({type:'practice'});}
+      else {const dx=p.x-goal.x,dy=p.y-goal.y,d=Math.hypot(dx,dy)||1;move(p,dx/d*(48-d),dy/d*(48-d),world.room);}
+    }
+    if(run.tutorialStep===2&&world.cooldown===0){run.tutorialStep=3;events.push({type:'practice'});}
+  }
   if(world.room==='meadow'&&!run.keyFound&&nearGoal<48) {
     if(dashing){run.keyFound=true;particles(world,goal.x,goal.y);events.push({type:'key'});}
     else {const dx=p.x-goal.x,dy=p.y-goal.y,d=Math.hypot(dx,dy)||1;move(p,dx/d*(48-d),dy/d*(48-d),world.room);}

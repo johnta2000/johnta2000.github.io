@@ -1,4 +1,4 @@
-import { WIDTH, HEIGHT, ROOMS, random, goalDone, roomTrinkets } from './engine.mjs?v=10';
+import { WIDTH, HEIGHT, ROOMS, random, goalDone, roomTrinkets } from './engine.mjs?v=11';
 
 const INK='#75674c';
 function ellipse(c,x,y,rx,ry,fill,stroke=null,line=2){c.beginPath();c.ellipse(x,y,rx,ry,0,0,Math.PI*2);c.fillStyle=fill;c.fill();if(stroke){c.strokeStyle=stroke;c.lineWidth=line;c.stroke();}}
@@ -163,11 +163,12 @@ function keyIcon(c,x,y,scale=1) {
 function goalArt(c,world,run,t) {
   const goal=ROOMS[world.room].goal;
   const label=(text,y=goal.y-62)=>{c.font='600 12px sans-serif';c.textAlign='center';rounded(c,goal.x-61,y-17,122,26,12,'#fffbeced');c.fillStyle='#6d765a';c.fillText(text,goal.x,y);};
-  if(world.room==='meadow') {
-    if(run.keyFound){line(c,[[goal.x-25,goal.y+8],[goal.x+26,goal.y+17]],'#bda475',7);line(c,[[goal.x+19,goal.y+8],[goal.x-15,goal.y+20]],'#d6b784',7);return;}
+  if(world.room==='tutorial'&&run.tutorialStep===0){ellipse(c,330,315,34,25,'#fff4ba95','#b9a46c',2);line(c,[[330,315],[330,252]],'#b49b70',4);shape(c,[[332,253],[369,262],[332,277]],'#e9b9a0');flower(c,347,263,1,'#fff8dc');}
+  if(world.room==='meadow'||world.room==='tutorial') {
+    if(world.room==='tutorial'?run.tutorialStep>=2:run.keyFound){line(c,[[goal.x-25,goal.y+8],[goal.x+26,goal.y+17]],'#bda475',7);line(c,[[goal.x+19,goal.y+8],[goal.x-15,goal.y+20]],'#d6b784',7);return;}
     ellipse(c,goal.x,goal.y+22,35,10,'#63763d20');rounded(c,goal.x-27,goal.y-25,54,49,5,'#d4b180','#a4875e');
     for(const dy of [-12,2,16])line(c,[[goal.x-25,goal.y+dy],[goal.x+25,goal.y+dy]],'#b3966b',1.5);
-    line(c,[[goal.x-18,goal.y-21],[goal.x+18,goal.y+20]],'#edce98',7);keyIcon(c,goal.x,goal.y-39,.65);label('SPACE · break',goal.y-67);
+    line(c,[[goal.x-18,goal.y-21],[goal.x+18,goal.y+20]],'#edce98',7);if(world.room==='meadow')keyIcon(c,goal.x,goal.y-39,.65);label('SPACE · break',goal.y-67);
   } else if(world.room==='pond') {
     ellipse(c,goal.x,goal.y+14,53,24,'#eee5bc');
     if(!run.pepperFound){corgi(c,goal.x-6,goal.y,'pepper',.9,-1,0);label('Pepper!',goal.y-89);}

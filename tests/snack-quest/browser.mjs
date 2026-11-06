@@ -26,6 +26,14 @@ try {
   const page=await pageFor(desktop);await page.screenshot({path:output+'/desktop-home.png',fullPage:true});
   assert.equal(await page.locator('[data-character]').count(),0);
   await page.locator('#begin').click();await waitView(page,'play');
+  await waitRoom(page,'tutorial');await page.screenshot({path:output+'/desktop-practice.png',fullPage:true});
+  await hold(page,'d',950);assert.equal((await saved(page)).tutorialStep,1);
+  await page.keyboard.press('Escape');await page.reload();await page.locator('#resume').click();await waitRoom(page,'tutorial');assert.equal((await saved(page)).tutorialStep,1);
+  await hold(page,'d',750);await page.keyboard.down('d');await page.keyboard.press('Space');await page.waitForTimeout(250);await page.keyboard.up('d');
+  assert.equal((await saved(page)).tutorialStep,2);assert.equal((await saved(page)).keyFound,false,'practice never grants the quest key');
+  await page.waitForFunction(prefix=>JSON.parse(localStorage.getItem(prefix+new URLSearchParams(location.search).get('run'))).tutorialStep===3,prefix);
+  await hold(page,'d',2200);await waitRoom(page,'meadow');
+
   assert.equal(await page.evaluate(()=>document.activeElement.id),'keyboard-capture','Start focuses a native keyboard control');
   await page.locator('#control-prompt').waitFor({state:'visible'});
   await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
@@ -73,7 +81,7 @@ try {
     await browser.close();process.exit(0);
   }
   // Use a fresh run for the existing fixed-spawn assertions.
-  await page.locator('.brand').click();await page.locator('#fresh').click();await waitView(page,'play');
+  await page.locator('.brand').click();await page.locator('#fresh').click();await waitRoom(page,'tutorial');await page.locator('#practice-link').click();await waitRoom(page,'meadow');
   await hold(page,'ArrowRight',160);const box=await page.locator('#world').boundingBox();await page.mouse.click(box.x+box.width*.8,box.y+box.height*.6);
   await page.keyboard.press('Escape');await waitView(page,'pause');assert.equal(Math.round((await saved(page)).positions.meadow.x),135,'arrows and mouse do not move Pepsi');
   await page.locator('.pause-card h3').click();assert.match(page.url(),/view=pause/);await dismissOutside(page);await waitView(page,'play');
@@ -139,7 +147,7 @@ try {
   // Every room supports refresh, copied URLs, and Back/Forward.
   const routes=createRun('routes123');routes.keyFound=true;routes.pepperFound=true;routes.health=4;
   await seed(page,routes,'meadow','pause');
-  for(const room of ORDER){
+  for(const room of ['tutorial',...ORDER]){
     await page.goto(`${base}?view=pause&run=${routes.id}&room=${room}`);await page.locator('.pause-card').waitFor();const url=page.url();await page.reload();await page.locator('.pause-card').waitFor();assert.equal(page.url(),url);
     const copied=await desktop.newPage();await copied.goto(url);await copied.locator('.pause-card').waitFor();assert.equal(await copied.locator('#room-name').textContent(),ROOMS[room].name);await copied.close();
     await page.locator('#home-link').click();await page.locator('#begin').waitFor();await page.goBack();await page.locator('.pause-card').waitFor();assert.equal(page.url(),url);await page.goForward();await page.locator('#begin').waitFor();
@@ -204,7 +212,7 @@ try {
 
   // Render the actual score for a listenable preview and check its level/headroom.
   const preview=await musicPage.evaluate(async()=>{
-    const {Soundscape}=await import('/games/snack-quest/audio.mjs?v=10');
+    const {Soundscape}=await import('/games/snack-quest/audio.mjs?v=11');
     const rate=22050,context=new OfflineAudioContext(1,rate*22,rate);
     const score=new Soundscape(()=>context);score.setEnabled(true);score.unlock();score.setScene('play','meadow');
     for(let i=0;i<64;i++)score.musicBeat(i,.1+i*30/96,30/96);
@@ -220,7 +228,7 @@ try {
   assert.equal(await phone.locator('.touch-controls,[data-direction]').count(),0);assert.equal(await phone.locator('.phone-note').isVisible(),true);
   await phone.screenshot({path:output+'/mobile-home.png',fullPage:true});
   const mobileRun=createRun('mobile123');mobileRun.keyFound=true;mobileRun.pepperFound=true;mobileRun.health=4;
-  for(const room of ORDER){await seed(phone,mobileRun,room,'pause');const url=phone.url();await phone.reload();await phone.locator('.pause-card').waitFor();assert.equal(phone.url(),url);const copy=await mobile.newPage();await copy.goto(url);await copy.locator('.pause-card').waitFor();assert.equal(await copy.locator('#room-name').textContent(),ROOMS[room].name);await copy.close();await phone.locator('#home-link').click();await phone.locator('#begin').waitFor();await phone.goBack();await phone.locator('.pause-card').waitFor();assert.equal(phone.url(),url);await phone.goForward();await phone.locator('#begin').waitFor();await phone.goBack();await phone.locator('.pause-card').waitFor();await dismissOutside(phone);await waitView(phone,'play');await phone.keyboard.press('Escape');await waitView(phone,'pause');}
+  for(const room of ['tutorial',...ORDER]){await seed(phone,mobileRun,room,'pause');const url=phone.url();await phone.reload();await phone.locator('.pause-card').waitFor();assert.equal(phone.url(),url);const copy=await mobile.newPage();await copy.goto(url);await copy.locator('.pause-card').waitFor();assert.equal(await copy.locator('#room-name').textContent(),ROOMS[room].name);await copy.close();await phone.locator('#home-link').click();await phone.locator('#begin').waitFor();await phone.goBack();await phone.locator('.pause-card').waitFor();assert.equal(phone.url(),url);await phone.goForward();await phone.locator('#begin').waitFor();await phone.goBack();await phone.locator('.pause-card').waitFor();await dismissOutside(phone);await waitView(phone,'play');await phone.keyboard.press('Escape');await waitView(phone,'pause');}
   assert.ok(await phone.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
   const reunionMobile=createRun('mobilestory');reunionMobile.keyFound=true;reunionMobile.pepperFound=true;reunionMobile.health=4;await seed(phone,reunionMobile,'pond','reunion');await phone.screenshot({path:output+'/mobile-reunion.png',fullPage:true});
   const winMobile=createRun('mobilewin');winMobile.keyFound=true;winMobile.pepperFound=true;winMobile.basketFound=true;winMobile.completed=true;winMobile.health=4;winMobile.trinkets=TRINKETS.map(item=>item.id);await seed(phone,winMobile,'orchard','picnic');await phone.screenshot({path:output+'/mobile-picnic.png',fullPage:true});await mobile.close();

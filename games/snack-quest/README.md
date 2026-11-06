@@ -52,3 +52,5 @@ Set `PLAYWRIGHT_EXECUTABLE_PATH` to use an installed browser, `SNACK_QUEST_BROWS
 Existing version 2 saves gain an empty trinket collection and the fourth chapter while keeping their hearts, position, snacks, and discoveries. Already completed older adventures retain their ending. Old reunion URLs remain valid but continue at the pond. Snack placements in existing rooms retain their original seeds.
 
 The desktop playfield uses a 1200px page shell. Home, play, pause, completion, and replay share layout sizing to prevent the stage from jumping. Completed older adventures retain their ending; active saves keep their progress and can explore the two new clearings.
+
+New adventures begin in Little Loaf Practice (`?view=play&run=ID&room=tutorial`), a safe clearing with a flower flag, practice crate, and recharge lesson. The practice crate does not grant the real key. Progress through its three exercises is saved. Skip practice enters the meadow; Practice controls reopens the same clearing. Existing adventures continue at their saved chapter.

@@ -1,7 +1,7 @@
-import { ROOMS, ORDER, DASH_COOLDOWN, WIDTH, HEIGHT, createRun, upgradeRun, TRINKETS, validRun, migrateRun, makeWorld, maxHearts, goalDone, isUnlocked, firstUnfinished, objective, retryRoom, step, startDash } from './engine.mjs?v=10';
-import { portrait, drawWorld, drawPicnic } from './art.mjs?v=10';
-import { movementKey, isTextEntry } from './input.mjs?v=10';
-import { Soundscape } from './audio.mjs?v=10';
+import { ROOMS, ORDER, DASH_COOLDOWN, WIDTH, HEIGHT, createRun, upgradeRun, TRINKETS, validRun, migrateRun, makeWorld, maxHearts, goalDone, isUnlocked, firstUnfinished, objective, retryRoom, step, startDash } from './engine.mjs?v=11';
+import { portrait, drawWorld, drawPicnic } from './art.mjs?v=11';
+import { movementKey, isTextEntry } from './input.mjs?v=11';
+import { Soundscape } from './audio.mjs?v=11';
 
 const $ = id => document.getElementById(id);
 const canvas=$('world'), ctx=canvas.getContext('2d');
@@ -81,8 +81,8 @@ function navigate(url,{replace=false}={}) {
 function newRun() {
   save();
   const id=Date.now().toString(36)+crypto.getRandomValues(new Uint32Array(1))[0].toString(36).slice(0,3);
-  run=createRun(id);world=makeWorld(run,'meadow');conflict=false;save();
-  navigate(routeURL('play','meadow'));sound('start');
+  run=createRun(id);world=makeWorld(run,'tutorial');conflict=false;save();
+  navigate(routeURL('play','tutorial'));sound('start');
 }
 function announce(message){$('announcement').textContent=message;}
 function toast(message,duration=3200){$('room-toast').textContent=message;$('room-toast').hidden=false;toastUntil=performance.now()+duration;announce(message);}
@@ -144,12 +144,12 @@ function render() {
   $('pause').hidden=view!=='play';$('pause').href=routeURL('pause');
   $('screen').className='screen';$('objective').hidden=view!=='play';$('dash-meter').hidden=view!=='play';$('room-toast').hidden=true;
   $('control-prompt').hidden=view!=='play'||controlsReady;
-  $('room-kicker').textContent=view==='home'?'PEPSI’S LITTLE ADVENTURE':view==='picnic'?'BOTH HOME. BOTH HAPPY.':`CHAPTER ${ORDER.indexOf(world.room)+1} OF ${ORDER.length}`;
+  $('room-kicker').textContent=view==='home'?'PEPSI’S LITTLE ADVENTURE':view==='picnic'?'BOTH HOME. BOTH HAPPY.':world?.room==='tutorial'?'SAFE PRACTICE':`CHAPTER ${ORDER.indexOf(world.room)+1} OF ${ORDER.length}`;
   $('room-name').textContent=view==='home'?'One friend is missing.':view==='picnic'?'Home is wherever you are':ROOMS[world.room].name;
   $('location-icon').textContent=view==='picnic'?'♡':world?.room==='pond'?'♧':'✿';
   const active=run&&!run.completed;
   if(view==='home') {
-    $('screen').innerHTML=`<div class="welcome-card"><p class="card-eyebrow">SOMEONE’S MISSING FROM THE PICNIC</p><h3>Where’s Pepper?</h3>${plushPair(true)}<p>Find the key, rescue your best friend,<br>then find ten lost trinkets together.</p><div class="mission-strip"><span>3 hearts</span><span>6 little chapters</span><span>1 best friend</span></div><button id="begin" class="primary-button">${active?'Continue the adventure':'Go find Pepper'} <span>→</span></button>${active?'<button id="fresh" class="secondary-button">Start a new adventure</button>':''}<p class="tiny-note">WASD to move. Space to dash. A keyboard is required.</p></div>`;
+    $('screen').innerHTML=`<div class="welcome-card"><p class="card-eyebrow">SOMEONE’S MISSING FROM THE PICNIC</p><h3>Where’s Pepper?</h3>${plushPair(true)}<p>Find the key, rescue your best friend,<br>then find ten lost trinkets together.</p><div class="mission-strip"><span>3 hearts</span><span>6 little chapters</span><span>1 best friend</span></div><button id="begin" class="primary-button">${active?'Continue the adventure':'Start with practice'} <span>→</span></button>${active?'<button id="fresh" class="secondary-button">Start a new adventure</button>':''}<p class="tiny-note">A safe, skippable practice first. WASD to move. Space to dash.</p></div>`;
     $('begin').addEventListener('click',()=>active?navigate(routeURL(run.health<=0?'retry':'play',run.room)):newRun());
     $('fresh')?.addEventListener('click',newRun);
   } else if(view==='pause') {
@@ -177,6 +177,9 @@ function updateProgress() {
   $('snack-count').textContent=run?.collected.length||0;
   $('trinket-count').textContent=`${run?.trinkets.length||0}/${TRINKETS.length}`;
   $('buddy-status').textContent=run?.pepperFound?'♡ Two corgis. Shared hearts.':'Find your adventure buddy.';
+  $('practice-link').hidden=!run;
+  $('practice-link').textContent=world?.room==='tutorial'?'Skip practice →':'Practice controls';
+  $('practice-link').href=routeURL('play',world?.room==='tutorial'?'meadow':'tutorial');
   $('trail').innerHTML=ORDER.map((room,index)=>{
     const done=run&&goalDone(run,room),unlocked=run&&isUnlocked(run,room);
     const content=`<span class="dot">${done?'✓':index+1}</span>${ROOMS[room].short}`;
@@ -291,7 +294,8 @@ const previewRun=createRun('snacktime'),previewWorld=makeWorld(previewRun,'meado
 previewWorld.player.x=270;previewWorld.player.y=420;
 function handleEvents(events) {
   for(const event of events) {
-    if(event.type==='snack'){sound('snack');toast(event.healed?'A snack and a second wind. +1 heart.':'A little something for the picnic.');}
+    if(event.type==='practice'){sound('key');toast(objective(run,'tutorial'),5000);}
+    else if(event.type==='snack'){sound('snack');toast(event.healed?'A snack and a second wind. +1 heart.':'A little something for the picnic.');}
     else if(event.type==='key'){sound('key');toast('The key! Pepper must be over by the pond.',4000);}
     else if(event.type==='trinket'){sound('key');toast(`${event.item.name}! ${run.trinkets.length}/${TRINKETS.length} trinkets tucked away.`,3000);}
     else if(event.type==='basket'){sound('basket');toast('Basket found! Bring all ten trinkets home for the picnic.',3500);}

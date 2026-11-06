@@ -217,3 +217,12 @@ test('harmless hazard phases do not hurt Pepper and he keeps following after a h
 
 test('dash requires the full 2.8-second recharge',()=>{const run=createRun('dashwait');const world=makeWorld(run,'meadow');world.toys=[];assert.ok(startDash(world,{x:1,y:0}));for(let i=0;i<120;i++)step(world,run,idle,1/60);assert.equal(startDash(world),false);for(let i=0;i<49;i++)step(world,run,idle,1/60);assert.equal(startDash(world),true);});
 test('new clearings need their own treasures before advancing',()=>{for(const room of ['woods','hills']){const {run}=pairedWorld();const world=makeWorld(run,room);world.toys=[];world.gophers=[];assert.equal(goalDone(run,room),false);for(const item of roomTrinkets(room)){Object.assign(world.player,item);step(world,run,idle,.016);}assert.ok(goalDone(run,room));Object.assign(world.player,{x:910,y:320});assert.ok(step(world,run,idle,.016).some(event=>event.type==='exit'));}});
+
+test('safe practice teaches movement, crate dash, and recharge without granting a key',()=>{
+ const run=createRun('practice12');const world=makeWorld(run,'tutorial');assert.deepEqual(world.toys,[]);assert.deepEqual(world.gophers,[]);assert.deepEqual(world.items,[]);
+ Object.assign(world.player,{x:330,y:315});step(world,run,idle,.02);assert.equal(run.tutorialStep,1);
+ Object.assign(world.player,{x:490,y:315});step(world,run,idle,.02);assert.equal(run.tutorialStep,1);
+ startDash(world,{x:1,y:0});step(world,run,{x:1,y:0},.02);assert.equal(run.tutorialStep,2);assert.equal(run.keyFound,false);assert.equal(goalDone(run,'tutorial'),false);
+ for(let i=0;i<150;i++)step(world,run,idle,.02);assert.equal(run.tutorialStep,3);assert.equal(run.health,3);assert.ok(goalDone(run,'tutorial'));
+ run.room='tutorial';assert.ok(validRun(JSON.parse(JSON.stringify(run)),run.id));Object.assign(world.player,{x:910,y:320});assert.ok(step(world,run,idle,.02).some(e=>e.type==='exit'));
+});
