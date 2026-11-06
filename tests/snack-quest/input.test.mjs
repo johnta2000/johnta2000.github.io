@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { movementKey, isTextEntry } from '../../games/snack-quest/input.mjs';
+import { movementKey, abilityKey, isTextEntry } from '../../games/snack-quest/input.mjs';
 
 test('all physical WASD keys work even when the reported character differs',()=>{
   for(const [code,expected] of [['KeyW','w'],['KeyA','a'],['KeyS','s'],['KeyD','d']]) {
@@ -24,4 +24,12 @@ test('only actual editable fields block game input',()=>{
   assert.equal(isTextEntry({isContentEditable:true,closest:()=>null}),true);
   assert.equal(isTextEntry({isContentEditable:false,closest:()=>({tagName:'INPUT'})}),true);
   assert.equal(isTextEntry(null),false);
+});
+test('ability keys support physical, text-only, uppercase, and embedded input without changing movement',()=>{
+  for(const [letter,ability,keyCode] of [['Q','bark',81],['E','stink',69],['R','power',82]]) {
+    assert.equal(abilityKey({code:'Key'+letter,key:'Unidentified'}),ability);
+    assert.equal(abilityKey({key:letter}),ability);assert.equal(abilityKey({key:letter.toLowerCase()}),ability);
+    assert.equal(abilityKey({keyCode}),ability);assert.equal(movementKey({key:letter}),null);
+  }
+  assert.equal(abilityKey({key:'w'}),null);assert.equal(abilityKey({key:' '}),null);
 });

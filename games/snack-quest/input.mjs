@@ -13,3 +13,6 @@ export function movementKey(event) {
 export function isTextEntry(target) {
   return !!(target?.isContentEditable || target?.closest?.('input, textarea, select'));
 }
+export function abilityKey(event) {
+  return {KeyQ:'bark',KeyE:'stink',KeyR:'power'}[event.code]||{q:'bark',e:'stink',r:'power'}[event.key?.toLowerCase()]||{81:'bark',69:'stink',82:'power'}[event.keyCode||event.which]||null;
+}

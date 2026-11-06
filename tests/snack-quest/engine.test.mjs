@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { ROOMS, ORDER, TRINKETS, PEE_RESCUE, peeProgress, canRescuePee, terrainAt, windAt, roomTrinkets, upgradeRun, gophersFor, createRun, makeWorld, roomItems, toysFor, walkable, step, startDash, maxHearts, isUnlocked, goalDone, validRun, migrateRun, retryRoom } from '../../games/snack-quest/engine.mjs';
+import { ROOMS, ORDER, TRINKETS, PEE_RESCUE, peeProgress, canRescuePee, terrainAt, windAt, roomTrinkets, upgradeRun, gophersFor, createRun, makeWorld, roomItems, toysFor, walkable, step, startDash, startAbility, maxHearts, isUnlocked, goalDone, validRun, migrateRun, retryRoom } from '../../games/snack-quest/engine.mjs';
 const idle={x:0,y:0};
 function toyAt(x,y){return {x,y,r:18,vx:0,vy:0,kind:'ball',mode:'roam',timer:0,cooldown:9};}
 
@@ -84,7 +84,7 @@ test('a dash stuns a toy, blocks damage, and cannot be spammed',()=>{
 test('dash contact animates once per enemy, including after Pepper has already stunned it',()=>{
   const run=createRun('bonkpose1');run.pepperFound=true;run.keyFound=true;run.health=4;
   const world=makeWorld(run,'meadow');world.items=[];const enemy={...toyAt(158,315),kind:'vacuum'};world.toys=[enemy];
-  startDash(world,{x:1,y:0});step(world,run,idle,.016);
+  startAbility(world,run,'bark');startDash(world,{x:1,y:0});step(world,run,idle,.016);
   assert.equal(enemy.mode,'stunned');assert.ok(enemy.timer<1.4,'the bark stun duration is unchanged');
   assert.equal(world.impacts.length,1,'direct contact still has an impact after the bark');
   assert.equal(world.impacts[0].target,enemy);assert.ok(world.impacts[0].dx>0);
@@ -92,6 +92,8 @@ test('dash contact animates once per enemy, including after Pepper has already s
   assert.equal(world.impacts.length,1,'overlapping frames cannot replay the burst');
   assert.equal(enemy.x,158);assert.equal(enemy.y,315,'drawing recoil never moves a hitbox');assert.equal(run.health,4);
   for(let i=0;i<45;i++)step(world,run,idle,.016);
+  assert.equal(world.impacts.length,1,'the bonk now lingers beyond the old 0.65-second cutoff');
+  for(let i=0;i<20;i++)step(world,run,idle,.016);
   assert.equal(world.impacts.length,0,'short-lived effects are cleaned up');
 });
 test('companion bonks and surfaced gophers get impacts without animating hidden gophers',()=>{
@@ -108,7 +110,7 @@ test('boss recoil is transient, respects armor, and leaves the saved fight valid
   const world=makeWorld(run,'boss');world.items=[];world.player.x=650;world.player.y=315;
   startDash(world,{x:1,y:0});step(world,run,idle,.016);assert.equal(world.impacts.length,0,'armor has no successful-hit animation');
   world.boss.mode='exposed';world.boss.timer=3;step(world,run,idle,.016);
-  assert.equal(world.impacts.length,1);assert.equal(world.impacts[0].boss,true);assert.equal(world.boss.hp,6);
+  assert.equal(world.impacts.length,1);assert.equal(world.impacts[0].boss,true);assert.equal(world.boss.hp,7,'normal dash stays normal after Pepperoni joins');
   const restored=JSON.parse(JSON.stringify(run));assert.ok(validRun(restored,run.id));assert.equal(restored.bossState.x,710);
   assert.equal(makeWorld(restored,'boss').impacts.length,0,'reload does not replay the impact');
 });
@@ -354,10 +356,34 @@ test('nine chapters gate the cottage, Pepperoni, kitchen, and boss in order',()=
  run.peeFound=true;const health=run.health;assert.ok(step(world,run,idle,.016).some(e=>e.type==='pepperoni-rescue'));assert.equal(run.health,health,'rescue does not heal');assert.equal(world.room,'laundry');assert.ok(isUnlocked(run,'kitchen'));assert.equal(isUnlocked(run,'boss'),false);
  run.trinkets.push(...roomTrinkets('kitchen').map(i=>i.id));assert.ok(isUnlocked(run,'boss'));assert.ok(validRun(JSON.parse(JSON.stringify(run)),run.id));retryRoom(run,'laundry');assert.ok(run.pepperoniFound);
 });
-test('rescued friends unlock distinct dash abilities with the same cooldown',()=>{
- const {run,world}=pairedWorld();world.toys=[toyAt(world.buddy.x,world.buddy.y-80)];startDash(world);step(world,run,idle,.016);assert.equal(world.toys[0].mode,'stunned','bark reaches beyond direct collision');assert.equal(world.clouds.length,0);
- const second=makeWorld(run,'meadow');second.toys=[];run.peeFound=true;run.pepperoniFound=true;startDash(second);step(second,run,idle,.016);assert.equal(second.clouds.length,1);assert.ok(second.dash>.24);assert.ok(second.cooldown>2.7);assert.equal(startDash(second),false);
- const cloud=second.clouds[0];second.toys=[toyAt(cloud.x,cloud.y)];step(second,run,idle,.016);assert.equal(second.toys[0].mode,'stunned');
+test('each friend ability must be chosen independently; normal dash never auto-casts them',()=>{
+ const {run,world}=pairedWorld();run.peeFound=run.pepperoniFound=true;world.toys=[toyAt(world.buddy.x,world.buddy.y-80)];
+ startDash(world);step(world,run,idle,.016);assert.equal(world.toys[0].mode,'roam');assert.equal(world.bark,0);assert.equal(world.clouds.length,0);assert.ok(world.dash<.2);assert.equal(world.powerDash,false);
+ assert.ok(startAbility(world,run,'bark'));assert.equal(world.toys[0].mode,'stunned');assert.equal(world.clouds.length,0);assert.equal(world.abilityCooldowns.bark,5);assert.equal(startAbility(world,run,'bark'),false);
+ assert.ok(startAbility(world,run,'stink'));assert.equal(world.clouds.length,1);assert.equal(world.abilityCooldowns.stink,7);assert.equal(startAbility(world,run,'stink'),false);
+ assert.equal(startAbility(world,run,'power'),false,'power cannot bypass the normal dash recovery');
+ const cloud=world.clouds[0];world.toys=[toyAt(cloud.x,cloud.y)];step(world,run,idle,.016);assert.equal(world.toys[0].mode,'stunned');
+ world.toys=[];for(let i=0;i<170;i++)step(world,run,idle,1/60);
+ assert.ok(startAbility(world,run,'power'));assert.equal(world.powerDash,true);assert.equal(world.dash,.28);assert.equal(world.abilityCooldowns.power,8);assert.equal(startDash(world),false);
+ for(let i=0;i<170;i++)step(world,run,idle,1/60);assert.equal(startAbility(world,run,'power'),false,'power retains its own longer cooldown');assert.ok(startDash(world),'normal dash can recharge before power');
+});
+test('ability cooldowns persist through room changes and reload, while retries reset them',()=>{
+ const {run,world}=pairedWorld();run.peeFound=run.pepperoniFound=true;world.toys=[];
+ for(const id of ['bark','stink','power'])assert.ok(startAbility(world,run,id));
+ const snapshot=JSON.parse(JSON.stringify(run));assert.ok(validRun(snapshot,run.id));
+ const restored=makeWorld(snapshot,'pond');assert.deepEqual(restored.abilityCooldowns,{dash:2.8,bark:5,stink:7,power:8});assert.equal(restored.cooldown,2.8);
+ for(const id of ['bark','stink','power'])assert.equal(startAbility(restored,snapshot,id),false);
+ assert.equal(startDash(restored),false);restored.toys=[];restored.gophers=[];restored.items=[];step(restored,snapshot,idle,.02);assert.equal(snapshot.cooldowns.bark,4.98);
+ const retry=retryRoom(snapshot,'pond');assert.deepEqual(retry.abilityCooldowns,{dash:0,bark:0,stink:0,power:0});
+ snapshot.cooldowns.bark=-1;assert.equal(validRun(snapshot,run.id),false);
+ delete snapshot.cooldowns;assert.ok(validRun(snapshot,run.id));upgradeRun(snapshot);assert.equal(snapshot.cooldowns.bark,0,'old saves gain ready abilities');
+});
+test('locked abilities cannot cast, and bark leaves hidden gophers underground',()=>{
+ const run=createRun('locked123'),world=makeWorld(run,'meadow');
+ for(const id of ['bark','stink','power','missing'])assert.equal(startAbility(world,run,id),false);
+ assert.deepEqual(world.abilityCooldowns,{dash:0,bark:0,stink:0,power:0});
+ run.keyFound=run.pepperFound=true;world.gophers=[{x:world.buddy.x,y:world.buddy.y,r:22,kind:'gopher',mode:'hidden',timer:1}];
+ assert.ok(startAbility(world,run,'bark'));assert.equal(world.gophers[0].mode,'hidden');
 });
 test('Pepperoni has a consequential hitbox and follows without jumping',()=>{
  const {run,world}=pairedWorld();run.peeFound=true;run.pepperoniFound=true;run.health=1;world.pee={x:270,y:315,facing:1};world.pepperoni={x:200,y:315,facing:1};world.peeTrail=[{x:336,y:315}];world.pepperoniTrail=[{x:270,y:315}];world.toys=[toyAt(200,315)];
@@ -373,7 +399,7 @@ test('boss telegraphs, charges, overheats, takes one hit per opening, and persis
  for(let hit=0;hit<4;hit++){
    // Wait through each real recovery/suction/charge cycle before positioning for a strike.
    if(hit)for(let i=0;i<500&&boss.mode!=='exposed';i++){world.player.x=450;world.player.y=480;step(world,run,idle,.02);}
-   assert.equal(boss.mode,'exposed');world.cooldown=0;Object.assign(world.player,{x:boss.x,y:boss.y});startDash(world,{x:0,y:0});step(world,run,idle,.016);
+   assert.equal(boss.mode,'exposed');world.cooldown=0;world.abilityCooldowns.power=0;Object.assign(world.player,{x:boss.x,y:boss.y});startAbility(world,run,'power',{x:0,y:0});step(world,run,idle,.016);
    assert.equal(boss.hp,8-(hit+1)*2);const hp=boss.hp;step(world,run,idle,.016);assert.equal(boss.hp,hp,'one dash never deals repeated hits');
    const saved=JSON.parse(JSON.stringify(run));assert.ok(validRun(saved,saved.id));assert.equal(makeWorld(saved,'boss').boss.hp,hp);
  }

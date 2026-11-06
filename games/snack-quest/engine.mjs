@@ -1,6 +1,12 @@
 export const WIDTH = 1000;
 export const HEIGHT = 620;
 export const DASH_COOLDOWN = 2.8;
+export const ABILITIES = {
+  bark:{key:'Q',corgi:'Pepper',name:'Bark',hint:'Stun enemies near Pepper',cooldown:5,unlock:'pepperFound'},
+  stink:{key:'E',corgi:'Pee',name:'Toot',hint:'Leave a cloud for pursuers',cooldown:7,unlock:'peeFound'},
+  power:{key:'R',corgi:'Pepperoni',name:'Power',hint:'Longer dash · double boss damage',cooldown:8,unlock:'pepperoniFound'},
+};
+function freshCooldowns(){return {dash:0,bark:0,stink:0,power:0};}
 export const ORDER = ['meadow', 'pond', 'burrows', 'woods', 'hills', 'orchard', 'laundry', 'kitchen', 'boss'];
 export const ROOMS = {
   tutorial: {
@@ -63,14 +69,14 @@ export const ROOMS = {
   },
   kitchen: {
     name:'Midnight Snack Kitchen',short:'The kitchen',ground:'#e4e8da',snack:'cheese',indoor:true,
-    note:'Pepperoni’s power dash lasts longer. Cross the slippery spills and find the last two treasures.',
+    note:'R uses Pepperoni’s power dash. Space stays a normal dash. Cross the slippery spills and find the last two treasures.',
     obstacles:[{x:360,y:260,r:45,kind:'table'},{x:620,y:400,r:48,kind:'table'},{x:770,y:210,r:32,kind:'hamper'}],
     terrain:[{kind:'ice',x:500,y:200,rx:100,ry:55},{kind:'ice',x:780,y:400,rx:100,ry:65}],
     slots:[[230,170],[500,150],[850,490],[250,450],[490,480],[680,300]],goal:{x:820,y:480,r:23,kind:'sign'},
   },
   boss: {
     name:'Sir Sucks-a-Lot',short:'The vacuum',ground:'#dcd4c9',snack:'biscuit',indoor:true,
-    note:'Dodge the red charge line. When the vacuum overheats, dash into it! Four power hits switch it off.',
+    note:'Dodge the red charge line. When the vacuum overheats, use R for a power hit! Space hits do one damage; R does two.',
     obstacles:[],slots:[[220,170],[220,480],[820,480]],goal:{x:700,y:315,r:44,kind:'boss'},
   },
 };
@@ -111,6 +117,7 @@ export function upgradeRun(run) {
   if(run.bossDefeated===undefined)run.bossDefeated=false;
   if(run.peeFound===undefined)run.peeFound=false;
   if(run.tutorialStep===undefined)run.tutorialStep=3;
+  run.cooldowns??=freshCooldowns();
   run.order=roomOrder();
   return run;
 }
@@ -139,12 +146,13 @@ export function createRun(id) {
     version:2, id, seed:Number.parseInt(id, 36) >>> 0, character:'pepsi', order:roomOrder(),
     room:'meadow', tutorialStep:0, collected:[], trinkets:[], positions:{}, checkpoints:{}, health:3,
     keyFound:false, pepperFound:false, peeFound:false, pepperoniFound:false,bossDefeated:false, basketFound:false, completed:false,
-    hits:0, retries:0, revision:0, startedAt:Date.now(),
+    hits:0, retries:0, revision:0, startedAt:Date.now(),cooldowns:freshCooldowns(),
   };
 }
 export function validRun(value, id) {
   return !!(value && value.version === 2 && value.id === id && /^[a-z0-9]{6,16}$/.test(id) &&
     (value.tutorialStep===undefined || Number.isInteger(value.tutorialStep)&&value.tutorialStep>=0&&value.tutorialStep<=3) &&
+    (value.cooldowns===undefined || value.cooldowns && !Array.isArray(value.cooldowns) && Object.entries({dash:DASH_COOLDOWN,...Object.fromEntries(Object.entries(ABILITIES).map(([key,spec])=>[key,spec.cooldown]))}).every(([key,max])=>Number.isFinite(value.cooldowns[key])&&value.cooldowns[key]>=0&&value.cooldowns[key]<=max)) &&
     (value.peeFound===undefined || typeof value.peeFound==='boolean') && (!value.peeFound || value.pepperFound) &&
     ['pepperoniFound','bossDefeated','legacyEnding'].every(k=>value[k]===undefined||typeof value[k]==='boolean') &&
     (!value.pepperoniFound||value.peeFound&&value.pepperFound) && validBoss(value.bossState) &&
@@ -200,7 +208,7 @@ export function objective(run, room) {
   if(room==='meadow')return 'Dash into the wooden crate to find the key';
   if(room==='pond'&&!run.pepperFound)return 'Reach Pepper’s gate with the key';
   if(room==='hills'&&!run.peeFound&&canRescuePee(run))return 'Pee is ready! Roll to the yellow corgi in the top-right clearing';
-  if(room==='boss')return run.bossState?.mode==='exposed'?'OVERHEATED! Space: power-dash into the vacuum':'Dodge the red charge line; strike only when it overheats';
+  if(room==='boss')return run.bossState?.mode==='exposed'?'OVERHEATED! R: power dash · Space: normal hit':'Dodge the red charge line; strike only when it overheats';
   if(room==='laundry'&&!run.peeFound)return 'Bring Pee from the downs to help find Pepperoni';
   if(room==='laundry'&&!run.pepperoniFound&&trinketCount(run,room)===2)return 'Roll to Pepperoni’s blanket fort in the top-right corner';
   const missing=roomTrinkets(room).filter(item=>!run.trinkets?.includes(item.id));
@@ -236,6 +244,7 @@ function companionSpawn(leader,room) {
   return {x:leader.x,y:leader.y,facing:leader.facing||1};
 }
 export function makeWorld(run, room) {
+  run.cooldowns??=freshCooldowns();
   const saved = run.positions[room];
   const p = saved && walkable(saved.x,saved.y,room) ? {...saved} : {x:135,y:315};
   if (!run.checkpoints[room]) run.checkpoints[room] = run.collected.filter(id => id.startsWith(room+'-'));
@@ -244,8 +253,8 @@ export function makeWorld(run, room) {
   if(room==='boss'&&!run.bossDefeated&&!run.bossState)run.bossState=newBoss();
   return {
     room, runId:run.id, player:{...p,vx:1,vy:0,facing:1,moving:false}, buddy:{...buddy,facing:1}, pee:{...pee,facing:1},pepperoni:{...pepperoni,facing:1},boss:room==='boss'?run.bossState:null,
-    followTrail:[{...p}],peeTrail:[{...buddy}],pepperoniTrail:[{...pee}],clouds:[],bark:0,dashPulse:false, toys:toysFor(run.seed,room), gophers:gophersFor(run.seed,room), items:roomItems(run.seed,room),
-    time:0,dash:0,cooldown:0,invincible:.65,bump:0,hitCorgi:null,particles:[],impacts:[],dashHits:new Set(),
+    followTrail:[{...p}],peeTrail:[{...buddy}],pepperoniTrail:[{...pee}],clouds:[],bark:0,powerDash:false, toys:toysFor(run.seed,room), gophers:gophersFor(run.seed,room), items:roomItems(run.seed,room),
+    time:0,dash:0,cooldown:run.cooldowns.dash,abilityCooldowns:run.cooldowns,invincible:.65,bump:0,hitCorgi:null,particles:[],impacts:[],dashHits:new Set(),
   };
 }
 export function retryRoom(run, room) {
@@ -254,15 +263,30 @@ export function retryRoom(run, room) {
   run.collected = [...new Set([...run.collected.filter(id => !id.startsWith(room+'-')), ...valid])];
   run.health = maxHearts(run);
   run.retries++;
+  run.cooldowns=freshCooldowns();
   run.positions[room] = {x:135,y:315};
   if(room==='boss'&&!run.bossDefeated)run.bossState=newBoss();
   return makeWorld(run,room);
 }
 export function startDash(world, input={x:0,y:0}) {
-  if (world.cooldown > 0) return false;
+  if (world.cooldown > 0 || world.dash > 0) return false;
   const length = Math.hypot(input.x,input.y);
   if (length) { world.player.vx=input.x/length; world.player.vy=input.y/length; }
-  world.dash=.2;world.dashPulse=true;world.dashHits.clear(); world.cooldown=DASH_COOLDOWN; world.invincible=Math.max(world.invincible,.28);
+  world.dash=.2;world.powerDash=false;world.dashHits.clear(); world.cooldown=DASH_COOLDOWN;world.abilityCooldowns.dash=DASH_COOLDOWN; world.invincible=Math.max(world.invincible,.28);
+  return true;
+}
+export function startAbility(world,run,ability,input={x:0,y:0}) {
+  const spec=ABILITIES[ability];
+  if(!spec||!run[spec.unlock]||run.health<=0||world.abilityCooldowns[ability]>0)return false;
+  if(ability==='power') {
+    // Both rolls share their short recovery; alternating Space/R cannot bypass it.
+    if(!startDash(world,input))return false;
+    world.dash=.28;world.powerDash=true;world.invincible=Math.max(world.invincible,.36);
+  } else if(ability==='bark') {
+    world.bark=.5;
+    for(const h of [...world.toys,...world.gophers])if((h.kind!=='gopher'||['up','stunned'].includes(h.mode))&&Math.hypot(h.x-world.buddy.x,h.y-world.buddy.y)<95){h.timer=h.mode==='stunned'?Math.max(h.timer,1.4):1.4;h.mode='stunned';}
+  } else world.clouds.push({x:world.pee.x,y:world.pee.y,life:1.2});
+  world.abilityCooldowns[ability]=spec.cooldown;
   return true;
 }
 function move(body,dx,dy,room,radius=18) {
@@ -277,7 +301,7 @@ function dashImpact(world,target,body=world.player,boss=false) {
   world.dashHits.add(target);
   const dx=target.x-body.x,dy=target.y-body.y,d=Math.hypot(dx,dy);
   // Recoil is a temporary drawing pose: hitboxes, patrols, and saved boss positions stay put.
-  world.impacts.push({target,x:target.x,y:target.y,dx:d>.1?dx/d:world.player.vx,dy:d>.1?dy/d:world.player.vy,started:world.time,duration:boss?.85:.65,boss});
+  world.impacts.push({target,x:target.x,y:target.y,dx:d>.1?dx/d:world.player.vx,dy:d>.1?dy/d:world.player.vy,started:world.time,duration:boss?1.3:1.05,boss});
 }
 function follow(world,p=world.player,b=world.buddy,trail=world.followTrail) {
   const last=trail.at(-1);
@@ -327,16 +351,13 @@ export function step(world,run,input,dt) {
   if(run.health<=0)return [];
   dt=Math.min(Math.max(dt,0),.035);world.dt=dt;world.time+=dt;
   for(const key of ['cooldown','invincible','bump'])world[key]=Math.max(0,world[key]-dt);
+  for(const key of Object.keys(ABILITIES))world.abilityCooldowns[key]=Math.max(0,world.abilityCooldowns[key]-dt);
+  world.abilityCooldowns.dash=world.cooldown;
   const p=world.player, length=Math.hypot(input.x,input.y), events=[];
   world.bark=Math.max(0,world.bark-dt);
   world.clouds=world.clouds.filter(c=>(c.life-=dt)>0);
   world.impacts=world.impacts.filter(hit=>world.time-hit.started<hit.duration);
-  if(world.dashPulse){
-    world.dashPulse=false;
-    if(run.pepperoniFound){world.dash=.28;world.invincible=Math.max(world.invincible,.36);}
-    if(run.pepperFound){world.bark=.3;for(const h of [...world.toys,...world.gophers])if(Math.hypot(h.x-world.buddy.x,h.y-world.buddy.y)<95){h.mode='stunned';h.timer=1.4;events.push({type:'stun'});}}
-    if(run.peeFound)world.clouds.push({x:world.pee.x,y:world.pee.y,life:1.2});
-  }
+  if(world.dash<=0)world.powerDash=false;
   const dashing=world.dash>0,ground=terrainAt(world.room,p.x,p.y),wind=windAt(world.room,world.time),before={x:p.x,y:p.y};
   if(dashing){move(p,p.vx*570*dt,p.vy*570*dt,world.room);world.dash=Math.max(0,world.dash-dt);p.slideX=p.vx*185;p.slideY=p.vy*185;}
   else {
@@ -451,7 +472,7 @@ function stepBoss(world,run,dt,dashing,events){
   const b=world.boss,p=world.player;b.timer=Math.max(0,b.timer-dt);
   if(b.mode==='exposed'){
     if(dashing&&Math.hypot(p.x-b.x,p.y-b.y)<b.r+29){
-      b.hp=Math.max(0,b.hp-(run.pepperoniFound?2:1));dashImpact(world,b,p,true);
+      b.hp=Math.max(0,b.hp-(world.powerDash?2:1));dashImpact(world,b,p,true);
       if(!b.hp){run.bossDefeated=true;b.mode='off';b.timer=0;events.push({type:'boss-win'});return;}
       b.mode='recover';b.timer=1.2;events.push({type:'boss-hit'});
     }else if(b.timer===0){b.mode='recover';b.timer=.6;}

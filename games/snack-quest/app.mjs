@@ -1,11 +1,12 @@
-import { ROOMS, ORDER, DASH_COOLDOWN, WIDTH, HEIGHT, createRun, peeProgress, upgradeRun, TRINKETS, validRun, migrateRun, makeWorld, maxHearts, goalDone, isUnlocked, firstUnfinished, objective, retryRoom, step, startDash } from './engine.mjs?v=15';
-import { portrait, drawWorld, drawPicnic } from './art.mjs?v=15';
-import { movementKey, isTextEntry } from './input.mjs?v=15';
-import { Soundscape } from './audio.mjs?v=15';
+import { ROOMS, ORDER, DASH_COOLDOWN, ABILITIES, WIDTH, HEIGHT, createRun, peeProgress, upgradeRun, TRINKETS, validRun, migrateRun, makeWorld, maxHearts, goalDone, isUnlocked, firstUnfinished, objective, retryRoom, step, startDash, startAbility } from './engine.mjs?v=16';
+import { portrait, drawWorld, drawPicnic } from './art.mjs?v=16';
+import { movementKey, abilityKey, isTextEntry } from './input.mjs?v=16';
+import { Soundscape } from './audio.mjs?v=16';
 
 const $ = id => document.getElementById(id);
 const canvas=$('world'), ctx=canvas.getContext('2d');
 const keyboardCapture=$('keyboard-capture');
+const moves={dash:{key:'Space',corgi:'Pepsi',name:'Dash',hint:'Dodge, bonk & break crates',cooldown:DASH_COOLDOWN},...ABILITIES};
 const PREFIX='pepsi-pepper.snack-quest.v2.', LEGACY='pepsi-pepper.snack-quest.v1.';
 const memory=new Map(), savedSnapshots=new Map(), keys=new Set();
 const soundtrack=new Soundscape();
@@ -149,7 +150,7 @@ function render() {
   $('location-icon').textContent=view==='picnic'?'♡':world?.room==='pond'?'♧':'✿';
   const active=run&&(!run.completed||run.legacyEnding&&!run.bossDefeated);
   if(view==='home') {
-    $('screen').innerHTML=`<div class="welcome-card"><p class="card-eyebrow">SOMEONE’S MISSING FROM THE PICNIC</p><h3>Where’s Pepper?</h3>${plushPair(true)}<p>Find the key, rescue your best friend,<br>rescue three friends and outsmart a giant vacuum.</p><div class="mission-strip"><span>3 hearts</span><span>9 little chapters</span><span>3 friends to find</span></div><button id="begin" class="primary-button">${active?'Continue the adventure':'Start with practice'} <span>→</span></button>${active?'<button id="fresh" class="secondary-button">Start a new adventure</button>':''}<p class="tiny-note">A safe, skippable practice first. WASD to move. Space to dash.</p></div>`;
+    $('screen').innerHTML=`<div class="welcome-card"><p class="card-eyebrow">SOMEONE’S MISSING FROM THE PICNIC</p><h3>Where’s Pepper?</h3>${plushPair(true)}<p>Find the key, rescue your friends,<br>and outsmart a giant vacuum.</p><div class="mission-strip"><span>3 hearts</span><span>9 little chapters</span><span>3 friends to find</span></div><button id="begin" class="primary-button">${active?'Continue the adventure':'Start with practice'} <span>→</span></button>${active?'<button id="fresh" class="secondary-button">Start a new adventure</button>':''}<p class="tiny-note">A safe, skippable practice first. WASD to move. Space to dash.</p></div>`;
     $('begin').addEventListener('click',()=>active?navigate(routeURL(run.health<=0?'retry':'play',run.room)):newRun());
     $('fresh')?.addEventListener('click',newRun);
   } else if(view==='pause') {
@@ -181,7 +182,8 @@ function updateProgress() {
   $('pee-link').hidden=!run?.pepperFound;
   $('pee-link').href=routeURL('play','hills');
   $('pee-link').textContent=run?.peeFound?'Pee joined the adventure ♡':`Find Pee · ${peeProgress(run||{})}/6 earlier trinkets · chapter 5`;
-  $('abilities').innerHTML=[['Pepsi','Roll','Break crates & dodge',true],['Pepper','Bark','Dash stuns nearby trouble',run?.pepperFound],['Pee','Toot','Dash leaves a stink cloud',run?.peeFound],['Pepperoni','Power','Longer dash · double boss damage',run?.pepperoniFound]].map(([name,power,hint,on])=>`<div class="ability ${on?'unlocked':''}"><strong>${name} · ${on?power:'locked'}</strong><span>${on?hint:'Rescue this friend to unlock'}</span></div>`).join('');
+  $('abilities').innerHTML=Object.entries(moves).map(([id,spec])=>`<button type="button" class="ability" data-ability="${id}" aria-keyshortcuts="${spec.key}"><kbd>${spec.key}</kbd><strong>${spec.corgi} · ${spec.name}</strong><span class="ability-hint">${spec.hint}</span><span class="ability-status"></span><span class="ability-meter" aria-hidden="true"><i></i></span></button>`).join('');
+  paintAbilities();
   $('pepperoni-link').hidden=!run?.basketFound;
   $('pepperoni-link').href=routeURL('play','laundry');$('pepperoni-link').textContent=run?.pepperoniFound?'Pepperoni joined ♡':'Find Pepperoni · Sock Mountain';
   $('practice-link').hidden=!run;
@@ -203,7 +205,26 @@ function resize() {
 }
 new ResizeObserver(resize).observe($('stage'));
 function inputDirection(){return {x:Number(keys.has('d'))-Number(keys.has('a')),y:Number(keys.has('s'))-Number(keys.has('w'))};}
-function dash(){if(view==='play'&&controlsReady&&run.health>0&&startDash(world,inputDirection()))sound('dash');}
+function paintAbilities() {
+  for(const button of $('abilities').querySelectorAll('[data-ability]')) {
+    const id=button.dataset.ability,spec=moves[id],unlocked=!spec.unlock||!!run?.[spec.unlock];
+    const cooldown=id==='dash'?world?.cooldown||0:Math.max(world?.abilityCooldowns[id]||0,id==='power'?world?.cooldown||0:0);
+    const active=id==='dash'?world?.dash>0&&!world?.powerDash:id==='power'?world?.dash>0&&world?.powerDash:id==='bark'?world?.bark>0:world?.clouds.length>0;
+    const status=!unlocked?`Rescue ${spec.corgi} first`:cooldown>0?`${cooldown.toFixed(1)}s ${id==='power'&&world.cooldown>(world.abilityCooldowns.power||0)?'roll recovery':'recharge'}`:view!=='play'?'Ready when you play':!controlsReady?'WASD to start':'Ready';
+    button.disabled=!unlocked||view!=='play'||!controlsReady||cooldown>0||run?.health<=0;
+    button.classList.toggle('unlocked',unlocked);button.classList.toggle('active',!!active);button.classList.toggle('cooling',cooldown>0);
+    const label=button.querySelector('.ability-status');if(label.textContent!==status)label.textContent=status;
+    button.querySelector('.ability-meter i').style.width=`${unlocked?Math.max(0,1-cooldown/spec.cooldown)*100:0}%`;
+    button.setAttribute('aria-label',`${spec.key}: ${spec.corgi} ${spec.name}. ${spec.hint}. ${status}`);
+  }
+}
+function useMove(id) {
+  if(view!=='play'||!controlsReady||!run||run.health<=0)return false;
+  const used=id==='dash'?startDash(world,inputDirection()):startAbility(world,run,id,inputDirection());
+  if(used){sound(id==='power'||id==='dash'?'dash':id==='bark'?'bark':'toot');announce(`${moves[id].corgi}: ${moves[id].name}!`);save();paintAbilities();}
+  return used;
+}
+$('abilities').addEventListener('click',event=>{const button=event.target.closest('[data-ability]');if(button){useMove(button.dataset.ability);focusGame();}});
 function pause(){if(view==='play')navigate(routeURL('pause'));}
 function dismissScreen() {
   if(view==='retry')navigate(routeURL('home'));
@@ -225,18 +246,21 @@ window.addEventListener('keydown',event=>{
   }
   if(view!=='play')return;
   if(move){event.preventDefault();event.stopPropagation();readyToMove(move);focusGame();}
-  else if((event.code==='Space'||event.key===' ')&&!event.target.closest?.('button,a')){event.preventDefault();event.stopPropagation();if(!event.repeat)dash();}
+  else if(abilityKey(event)){event.preventDefault();event.stopPropagation();if(!event.repeat)useMove(abilityKey(event));}
+  else if((event.code==='Space'||event.key===' ')&&!event.target.closest?.('button,a')){event.preventDefault();event.stopPropagation();if(!event.repeat)useMove('dash');}
   else if(event.target===keyboardCapture&&event.key!=='Tab')event.preventDefault();
   else if(event.key.startsWith('Arrow')&&event.target===canvas)event.preventDefault();
 },{capture:true});
 window.addEventListener('keyup',event=>{const move=movementKey(event);if(move){keys.delete(move);paintInput();}},{capture:true});
 // Some embedded browsers deliver text insertion without a keydown/up pair.
-// Translate only WASD into a short movement pulse; never store typed text.
+// Translate movement and ability keys without storing typed text.
 keyboardCapture.addEventListener('beforeinput',event=>{
   event.preventDefault();
   if(view!=='play')return;
   const move=movementKey({key:event.data});
   if(move){readyToMove(move);clearTimeout(textRelease);textRelease=setTimeout(()=>{keys.clear();paintInput();},110);}
+  else if(abilityKey({key:event.data}))useMove(abilityKey({key:event.data}));
+  else if(event.data===' ')useMove('dash');
 });
 keyboardCapture.addEventListener('input',()=>{keyboardCapture.value='';});
 $('focus-controls').addEventListener('click',focusGame);
@@ -308,11 +332,11 @@ function handleEvents(events) {
     else if(event.type==='basket'){sound('basket');toast('Basket found! Follow the trail into the cottage. Someone else needs rescuing!',3500);}
     else if(event.type==='hit'){sound('hit');toast(run.pepperFound?`${event.character==='pepperoni'?'Pepperoni':event.character==='pee'?'Pee':event.character==='pepper'?'Pepper':'Pepsi'} got bonked! −1 shared heart. Watch your whole team.`:'Pepsi got bonked! −1 heart. Look for a heart-marked snack.',2800);}
     else if(event.type==='stun'){sound('stun');announce('Mischief bonked. Keep moving.');}
-    else if(event.type==='rescue'){sound('rescue');toast('Pepper found! +1 heart, four-heart capacity—watch both corgis. Space now adds Pepper’s stunning bark!',5500);}
-    else if(event.type==='pee-rescue'){sound('rescue');toast('Pee found! Space now leaves a stink cloud to stop pursuers!',6000);}
-    else if(event.type==='pepperoni-rescue'){sound('rescue');toast('Pepperoni found! Power dash unlocked: longer rolls, double boss damage. Same cooldown!',6500);}
+    else if(event.type==='rescue'){sound('rescue');toast('Pepper found! +1 heart. Press Q to bark and stun enemies near Pepper · 5s recharge. Space is still your normal dash.',6500);}
+    else if(event.type==='pee-rescue'){sound('rescue');toast('Pee found! Press E to leave a stink cloud for pursuers · 7s recharge. Use it whenever you need it!',6500);}
+    else if(event.type==='pepperoni-rescue'){sound('rescue');toast('Pepperoni found! Press R for a longer power dash and double boss damage · 8s recharge. Space stays a normal dash.',7000);}
     else if(event.type==='boss-open'){sound('key');toast('The vacuum overheated! Dash into it now!',2500);}
-    else if(event.type==='boss-hit'){sound('stun');toast('Power bonk! Keep dodging until it overheats again.');}
+    else if(event.type==='boss-hit'){sound('stun');toast(world.powerDash?'Power bonk! Two damage. Wait for another opening.':'Bonk! One damage. Use R for a two-damage power hit.');}
     else if(event.type==='boss-win'){sound('win');toast('Sir Sucks-a-Lot is unplugged! Take the path home →',6000);}
     else if(event.type==='defeat'){save();sound('defeat');navigate(routeURL('retry'));return;}
     else if(event.type==='exit') {
@@ -336,6 +360,7 @@ function frame(now) {
       if(world.room==='boss')$('objective-text').textContent=objective(run,'boss');
       $('dash-fill').style.width=`${Math.max(0,1-world.cooldown/DASH_COOLDOWN)*100}%`;
       $('dash-label').textContent=world.cooldown>0?`${world.cooldown.toFixed(1)}s recharge`:'dash ready';
+      paintAbilities();
     }
     if(view==='picnic'&&run)drawPicnic(ctx,run,viewportWidth,animationTime,reduced);
     else if(view!=='home'&&world)drawWorld(ctx,world,run,viewportWidth,reduced);

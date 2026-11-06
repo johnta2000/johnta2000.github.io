@@ -115,6 +115,8 @@ export class Soundscape {
     const now=this.context.currentTime+.008;
     const chime=(notes,spacing=.095,volume=.12)=>notes.forEach((note,i)=>this.pluck(note,now+i*spacing,volume,.42));
     if(kind==='dash'){this.noise(now,.2,.17,1500);this.tone(53,now,.16,.07,this.effectVoices,'sine',65);}
+    else if(kind==='bark'){for(const delay of [0,.14]){this.noise(now+delay,.09,.08,650);this.tone(54,now+delay,.1,.12,this.effectVoices,'triangle',44);}}
+    else if(kind==='toot'){this.tone(43,now,.25,.11,this.effectVoices,'triangle',35);this.tone(47,now+.12,.22,.06,this.effectVoices,'sine',32);}
     else if(kind==='stun'){this.tone(62,now,.13,.17,this.effectVoices,'sine',43);this.pluck(86,now+.09,.05,.2);}
     else if(kind==='hit'){this.tone(55,now,.21,.18,this.effectVoices,'sine',37);this.noise(now,.1,.08,550);}
     else if(kind==='defeat')chime([64,60,57,48],.15,.09);
