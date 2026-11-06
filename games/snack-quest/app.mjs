@@ -1,7 +1,7 @@
-import { setMapStretch, adaptWorldLayout, ROOMS, ORDER, DASH_COOLDOWN, ABILITIES, WIDTH, HEIGHT, createRun, peeProgress, upgradeRun, TRINKETS, validRun, migrateRun, enterRoom, makeWorld, maxHearts, goalDone, isUnlocked, firstUnfinished, objective, retryRoom, step, startDash, startAbility } from './engine.mjs?v=33';
-import { portrait, drawWorld, drawPicnic } from './art.mjs?v=33';
-import { movementKey, abilityKey, isTextEntry, joystickVector } from './input.mjs?v=33';
-import { Soundscape } from './audio.mjs?v=33';
+import { setMapStretch, adaptWorldLayout, ROOMS, ORDER, DASH_COOLDOWN, ABILITIES, WIDTH, HEIGHT, createRun, peeProgress, upgradeRun, TRINKETS, validRun, migrateRun, enterRoom, makeWorld, maxHearts, goalDone, isUnlocked, firstUnfinished, objective, retryRoom, step, startDash, startAbility } from './engine.mjs?v=34';
+import { portrait, drawWorld, drawPicnic } from './art.mjs?v=34';
+import { movementKey, abilityKey, isTextEntry, joystickVector } from './input.mjs?v=34';
+import { Soundscape } from './audio.mjs?v=34';
 
 const $ = id => document.getElementById(id);
 const canvas=$('world'), ctx=canvas.getContext('2d');
@@ -224,7 +224,7 @@ function updateProgress() {
   const hearts=run?maxHearts(run):3,health=run?.health??3;
   $('health').setAttribute('aria-label',`${health} of ${hearts}${run?.pepperFound?' shared':''} hearts`);
   $('health-label').textContent=run?.pepperFound?'TEAM HEARTS':'HEARTS';
-  $('hearts').innerHTML=Array.from({length:hearts},(_,i)=>`<span class="${i<health?'':'empty-heart'}" aria-hidden="true">♥</span>`).join('');
+  $('hearts').innerHTML=Array.from({length:hearts},(_,i)=>`<span class="${i<health?'':'empty-heart'}" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M12 21S2 15 2 7.5C2 2.5 8 1 12 6c4-5 10-3.5 10 1.5C22 15 12 21 12 21Z"/></svg></span>`).join('');
   $('snack-count').textContent=run?.collected.length||0;
   $('trinket-count').textContent=`${run?.trinkets.length||0}/${TRINKETS.length}`;
   $('buddy-status').textContent=run?.pepperoniFound?'♡ Four corgis. Shared hearts.':run?.peeFound?'♡ Three corgis. Shared hearts.':run?.pepperFound?'♡ Two corgis. Shared hearts.':'Find your adventure buddy.';
