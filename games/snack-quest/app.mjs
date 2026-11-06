@@ -1,6 +1,6 @@
-import { ROOMS, ORDER, WIDTH, HEIGHT, createRun, validRun, migrateRun, makeWorld, maxHearts, goalDone, isUnlocked, firstUnfinished, objective, retryRoom, step, startDash } from './engine.mjs?v=3';
-import { portrait, drawWorld, drawPicnic } from './art.mjs?v=3';
-import { movementKey, isTextEntry } from './input.mjs?v=3';
+import { ROOMS, ORDER, WIDTH, HEIGHT, createRun, validRun, migrateRun, makeWorld, maxHearts, goalDone, isUnlocked, firstUnfinished, objective, retryRoom, step, startDash } from './engine.mjs?v=4';
+import { portrait, drawWorld, drawPicnic } from './art.mjs?v=4';
+import { movementKey, isTextEntry } from './input.mjs?v=4';
 
 const $ = id => document.getElementById(id);
 const canvas=$('world'), ctx=canvas.getContext('2d');

@@ -1,4 +1,4 @@
-import { WIDTH, HEIGHT, ROOMS, random, goalDone } from './engine.mjs?v=3';
+import { WIDTH, HEIGHT, ROOMS, random, goalDone } from './engine.mjs?v=4';
 
 const INK='#75674c';
 function ellipse(c,x,y,rx,ry,fill,stroke=null,line=2){c.beginPath();c.ellipse(x,y,rx,ry,0,0,Math.PI*2);c.fillStyle=fill;c.fill();if(stroke){c.strokeStyle=stroke;c.lineWidth=line;c.stroke();}}
@@ -29,13 +29,37 @@ function ground(room,seed){const key=room+seed;if(groundCache.has(key))return gr
   for(let i=0;i<7;i++){const x=99+i*135;flower(c,x,555+rng()*14,1.2,'#f9f1d5');}groundCache.set(key,canvas);return canvas;
 }
 
-export function corgi(c,x,y,character='pepsi',scale=1,facing=1,walk=0,hurt=0) {
-  c.save(); c.translate(x,y); c.scale(scale*facing,scale);
+// Visual-only poses follow actual travel, so walls, pauses, and saves keep their behavior.
+const rollPoses=new WeakMap();
+function rollingPose(body,time,scale) {
+  let pose=rollPoses.get(body);
+  if(!pose){pose={x:body.x,y:body.y,time,angle:0};rollPoses.set(body,pose);}
+  const dx=body.x-pose.x,dy=body.y-pose.y,distance=Math.hypot(dx,dy);
+  const dt=Math.max(0,Math.min(time-pose.time,.1));
+  if(distance>100)pose.angle=0;
+  else if(distance>.01) {
+    const direction=Math.abs(dx)>.01?Math.sign(dx):Math.sign(dy)*body.facing;
+    pose.angle+=direction*distance/(44*scale);
+    pose.angle=Math.atan2(Math.sin(pose.angle),Math.cos(pose.angle));
+  } else {
+    // A plush gently rights itself instead of freezing upside down after a key release.
+    pose.angle*=Math.exp(-dt*13);
+    if(Math.abs(pose.angle)<.002)pose.angle=0;
+  }
+  pose.x=body.x;pose.y=body.y;pose.time=time;
+  return pose.angle;
+}
+
+export function corgi(c,x,y,character='pepsi',scale=1,facing=1,roll=0,hurt=0) {
+  c.save(); c.translate(x,y); c.scale(scale,scale);
   c.lineCap='round'; c.lineJoin='round';
   const gray=character==='pepper', coat=gray?'#a8adb4':'#dfb479';
   const edge=gray?'#91979f':'#c59e6b', cream='#fff8e9';
-  const hop=Math.abs(Math.sin(walk))*2.1;
-  ellipse(c,-4,5,43,10,'#51633e20'); c.translate(0,-hop);
+  const sine=Math.sin(roll),cosine=Math.cos(roll),squish=Math.abs(sine)*.035;
+  // The shadow stays on the grass while the round body turns around its middle.
+  ellipse(c,-4,5,43-Math.abs(sine)*4,10,'#51633e20');
+  const support=Math.hypot(56*sine,35*cosine)+Math.max(0,-cosine)*16;
+  c.translate(-3*facing,6-support);c.rotate(roll);c.scale(facing*(1+squish),1-squish);c.translate(3,29);
   // One round, low loaf: little paws and bead eyes, like the reference plush.
   ellipse(c,-34,-4,8,7,cream,edge,1);
   ellipse(c,-12,-27,48,35,coat,edge,1.2);
@@ -134,10 +158,10 @@ export function drawWorld(c,world,run,viewportWidth,reduced=false,preview=false)
   goalArt(c,world,run,t);
   const actors=[{y:world.player.y,draw:()=>{
     c.save();if(world.invincible>.3&&world.bump>0)c.globalAlpha=.6+Math.sin(t*40)*.2;
-    corgi(c,world.player.x,world.player.y,'pepsi',.78,world.player.facing,world.player.moving&&!reduced?t*13:0,world.bump);c.restore();
+    corgi(c,world.player.x,world.player.y,'pepsi',.78,world.player.facing,reduced||preview?0:rollingPose(world.player,t,.78),world.bump);c.restore();
     if(world.dash>0)for(let i=0;i<4;i++)ellipse(c,world.player.x-world.player.vx*(36+i*12),world.player.y-world.player.vy*(36+i*12),6-i,4-i*.6,'#fff9dcb0');
   }},...world.toys.map(item=>({y:item.y,draw:()=>toy(c,item,t)}))];
-  if(run.pepperFound)actors.push({y:world.buddy.y,draw:()=>corgi(c,world.buddy.x,world.buddy.y,'pepper',.72,world.buddy.facing,world.buddy.moving&&!reduced?t*12:0)});
+  if(run.pepperFound)actors.push({y:world.buddy.y,draw:()=>corgi(c,world.buddy.x,world.buddy.y,'pepper',.72,world.buddy.facing,reduced||preview?0:rollingPose(world.buddy,t,.72))});
   actors.sort((a,b)=>a.y-b.y).forEach(item=>item.draw());
   for(const p of world.particles){c.globalAlpha=p.life/p.max;if(p.kind==='heart')heart(c,p.x,p.y,.55,'#c98779');else flower(c,p.x,p.y,.7,'#fff6cb');}c.globalAlpha=1;
   if(world.bump>0){c.fillStyle='#c8756220';c.fillRect(offset,0,viewportWidth,HEIGHT);}

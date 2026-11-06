@@ -20,6 +20,8 @@ Pepsi starts alone. Dash into the meadow's crate to find the gate key, rescue gr
 
 The corgis are original canvas drawings informed by Pepsi's plush reference: round tan-and-white Pepsi and a gray-and-white Pepper, with little paws and bead eyes. No user photograph is published. Artwork uses no downloaded sprites or game libraries. Publish the directory as-is through the existing GitHub Pages site; no build or server is required.
 
+Both plushies tumble end over end as they move, with rotation tied to distance traveled and faster rolling during a dash. Their shadows stay grounded, and they gently settle upright when stopped. Reduced-motion preferences disable the tumbling. These poses are visual only and do not change movement, collisions, or saved progress.
+
 ## Saving and routes
 
 The URL keeps the adventure ID, chapter, and home/play/pause/reunion/retry/picnic view. Real chapter links, refresh, copied links, and browser Back/Forward restore the same view. Future chapters stay locked until their discoveries are made.
