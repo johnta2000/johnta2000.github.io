@@ -105,7 +105,7 @@ export function roomItems(seed, room) {
     const j = Math.floor(rng() * (i + 1));
     [slots[i], slots[j]] = [slots[j], slots[i]];
   }
-  return slots.slice(0, 3).map(([x, y], i) => ({id:`${room}-${i}`, x, y, kind:ROOMS[room].snack}));
+  return slots.slice(0, 3).map(([x, y], i) => ({id:`${room}-${i}`, x, y, kind:ROOMS[room].snack,healing:i===0}));
 }
 export function maxHearts(run) { return run.pepperFound ? 4 : 3; }
 export function createRun(id) {
@@ -310,12 +310,12 @@ export function step(world,run,input,dt) {
     else {const dx=p.x-goal.x,dy=p.y-goal.y,d=Math.hypot(dx,dy)||1;move(p,dx/d*(48-d),dy/d*(48-d),world.room);}
   }
   if(world.room==='pond'&&!run.pepperFound&&run.keyFound&&nearGoal<69) {
-    run.pepperFound=true;run.health=4;world.buddy={x:p.x-35,y:p.y+10,facing:p.facing};world.followTrail=[{x:p.x,y:p.y}];
+    run.pepperFound=true;run.health=Math.min(maxHearts(run),run.health+1);world.buddy={x:p.x-35,y:p.y+10,facing:p.facing};world.followTrail=[{x:p.x,y:p.y}];
     world.invincible=3;
     particles(world,goal.x,goal.y,'heart');events.push({type:'rescue'});return events;
   }
   if(world.room==='hills'&&!run.peeFound&&canRescuePee(run)&&Math.hypot(p.x-PEE_RESCUE.x,p.y-PEE_RESCUE.y)<55) {
-    run.peeFound=true;run.health=Math.min(maxHearts(run),run.health+1);
+    run.peeFound=true;
     world.pee=companionSpawn(world.buddy,world.room);world.peeTrail=[{x:world.buddy.x,y:world.buddy.y}];
     world.invincible=3;particles(world,PEE_RESCUE.x,PEE_RESCUE.y,'heart');events.push({type:'pee-rescue'});
   }
@@ -369,7 +369,7 @@ export function step(world,run,input,dt) {
   }
   for(const item of world.items) {
     if(!run.collected.includes(item.id)&&Math.hypot(item.x-p.x,item.y-p.y)<31) {
-      run.collected.push(item.id);const healed=run.health<maxHearts(run);if(healed)run.health++;
+      run.collected.push(item.id);const healed=item.healing&&run.health<maxHearts(run);if(healed)run.health++;
       events.push({type:'snack',item,healed});particles(world,item.x,item.y,healed?'heart':'spark');
     }
   }

@@ -70,7 +70,7 @@ test('hits cost hearts, have a grace period, and three hits stop the run',()=>{
   }
   const before={...world.player};assert.deepEqual(step(world,run,{x:1,y:0},.03),[]);assert.equal(world.player.x,before.x);
 });
-test('snacks heal exactly one heart, once each, up to the heart limit',()=>{
+test('the heart-marked snack heals exactly one heart, once, up to the heart limit',()=>{
   const run=createRun('heal1234'),world=makeWorld(run,'meadow');world.toys=[];run.health=1;
   const item=world.items[0];Object.assign(world.player,{x:item.x,y:item.y});
   assert.ok(step(world,run,idle,.016).some(e=>e.type==='snack'&&e.healed));assert.equal(run.health,2);
@@ -93,7 +93,7 @@ test('rescuing Pepper needs the key and grants a permanent fourth heart',()=>{
   const run=createRun('rescue12'),world=makeWorld(run,'pond');world.toys=[];world.player.x=775;world.player.y=370;
   step(world,run,idle,.016);assert.equal(run.pepperFound,false);
   run.keyFound=true;run.health=1;assert.ok(step(world,run,idle,.016).some(e=>e.type==='rescue'));
-  assert.equal(run.health,4);assert.equal(maxHearts(run),4);assert.ok(isUnlocked(run,'orchard'));
+  assert.equal(run.health,2);assert.equal(maxHearts(run),4);assert.ok(isUnlocked(run,'orchard'));
 });
 test('the final exit needs Pepper, the picnic basket, and all ten trinkets',()=>{
   const run=createRun('finish12');run.keyFound=true;run.pepperFound=true;
@@ -235,7 +235,7 @@ test('Pee needs all six earlier treasures and a visit; rescue keeps the chapter 
   const last=run.trinkets.pop();assert.equal(peeProgress(run),5);assert.equal(canRescuePee(run),false);
   step(world,run,idle,.016);assert.equal(run.peeFound,false);
   run.trinkets.push(last);assert.equal(canRescuePee(run),true);
-  assert.deepEqual(step(world,run,idle,.016),[{type:'pee-rescue'}]);assert.equal(run.health,3);assert.equal(maxHearts(run),4);
+  assert.deepEqual(step(world,run,idle,.016),[{type:'pee-rescue'}]);assert.equal(run.health,2);assert.equal(maxHearts(run),4);
   assert.equal(world.room,'hills');assert.equal(goalDone(run,'hills'),false);
   assert.deepEqual(step(world,run,idle,.016),[],'no repeat rescue or healing');
   const restored=JSON.parse(JSON.stringify(run));assert.ok(validRun(restored,run.id));retryRoom(restored,'hills');assert.equal(restored.peeFound,true);
@@ -294,4 +294,23 @@ test('older saves preserve progress without accidentally unlocking Pee',()=>{
 test('Pee starts visibly beside Pepper when the entrance has no room behind him',()=>{
   const run=createRun('entrance123');run.keyFound=true;run.pepperFound=true;run.peeFound=true;
   for(const room of ORDER){const world=makeWorld(run,room);assert.ok(Math.hypot(world.pee.x-world.buddy.x,world.pee.y-world.buddy.y)>40);assert.ok(walkable(world.pee.x,world.pee.y,room,12));}
+});
+
+test('each clearing supplies only one heal; regular snacks stay collectible and consumed heals stay gone',()=>{
+  for(const room of ORDER){
+    const run=createRun('lessheals');run.keyFound=true;run.pepperFound=true;run.health=1;
+    let world=makeWorld(run,room);world.toys=[];world.gophers=[];
+    assert.equal(world.items.filter(i=>i.healing).length,1);
+    for(const item of world.items){Object.assign(world.player,{x:item.x,y:item.y});const event=step(world,run,idle,.016).find(e=>e.type==='snack');assert.equal(event.healed,item.healing);}
+    assert.equal(run.health,2,room+' gives exactly one heart from all three snacks');assert.equal(run.collected.length,3);
+    const restored=JSON.parse(JSON.stringify(run));world=makeWorld(restored,room);world.toys=[];world.gophers=[];
+    const heal=world.items.find(i=>i.healing);Object.assign(world.player,{x:heal.x,y:heal.y});assert.equal(step(world,restored,idle,.016).some(e=>e.type==='snack'),false);assert.equal(restored.health,2);
+    makeWorld(restored,'meadow');assert.equal(restored.health,2,'chapter navigation does not heal');
+  }
+});
+test('a heart snack at full health never overfills or heals a second time later',()=>{
+  const run=createRun('fullheal'),world=makeWorld(run,'meadow');world.toys=[];world.gophers=[];
+  const item=world.items.find(i=>i.healing);Object.assign(world.player,{x:item.x,y:item.y});
+  assert.equal(step(world,run,idle,.016).find(e=>e.type==='snack').healed,false);assert.equal(run.health,3);
+  run.health=1;step(world,run,idle,.016);assert.equal(run.health,1);
 });

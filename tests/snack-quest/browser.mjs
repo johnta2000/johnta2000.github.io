@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { chromium, webkit } from 'playwright';
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
-import { createRun, ROOMS, ORDER, TRINKETS } from '../../games/snack-quest/engine.mjs';
+import { createRun, ROOMS, ORDER, TRINKETS, roomItems } from '../../games/snack-quest/engine.mjs';
 
 const base=process.env.SNACK_QUEST_URL||'http://127.0.0.1:8766/games/snack-quest/';
 const installed=homedir()+'/Library/Caches/ms-playwright/chromium-1243/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing';
@@ -91,9 +91,18 @@ try {
   await page.waitForFunction(prefix=>JSON.parse(localStorage.getItem(prefix+new URLSearchParams(location.search).get('run'))).keyFound,prefix);assert.equal((await saved(page)).collected.length,0);
   await page.keyboard.press('Escape');await waitView(page,'pause');await page.keyboard.press('Escape');await waitView(page,'play');
   await page.screenshot({path:output+'/desktop-key.png',fullPage:true});
+  // Regular picnic snacks no longer refill hearts; only the marked snack does.
+  for(const index of [1,0]){
+    const snackRun=createRun(index?'plainfood':'heartfood');snackRun.seed=1;snackRun.health=1;
+    const item=roomItems(1,'meadow')[index];snackRun.positions.meadow={x:item.x-38,y:item.y};
+    await seed(page,snackRun);await hold(page,'d',100);await page.evaluate(()=>window.dispatchEvent(new Event('blur')));
+    assert.equal((await saved(page)).health,index?1:2);assert.ok((await saved(page)).collected.includes(item.id));
+    if(index)await page.screenshot({path:output+'/desktop-limited-healing.png',fullPage:true});
+    await page.keyboard.press('Escape');await page.reload();await page.locator('#resume').waitFor();assert.equal((await saved(page)).health,index?1:2);
+  }
   const rescue=createRun('rescuetest');rescue.keyFound=true;rescue.health=1;rescue.room='pond';rescue.positions.pond={x:735,y:370};await seed(page,rescue);await hold(page,'d',250);
   assert.match(page.url(),/view=play/);assert.match(page.url(),/room=pond/);assert.equal(await page.locator('.story-card').count(),0,'rescue never interrupts or skips the pond');
-  assert.equal((await saved(page)).pepperFound,true);assert.equal((await saved(page)).health,4);
+  assert.equal((await saved(page)).pepperFound,true);assert.equal((await saved(page)).health,2);
   assert.match(await page.locator('#objective-text').innerText(),/ribbon.*button/);
   await page.keyboard.press('Escape');await waitView(page,'pause');await page.reload();await page.locator('#resume').click();await waitRoom(page,'pond');
   assert.equal((await saved(page)).pepperFound,true);assert.equal((await saved(page)).trinkets.length,0);
@@ -123,7 +132,7 @@ try {
   const sixth=pee.trinkets.pop();await seed(page,pee);await hold(page,'d',160);await page.keyboard.press('Escape');
   let peeSaved=await saved(page);assert.equal(peeSaved.peeFound,false);assert.match(await page.locator('#pee-link').innerText(),/5\/6/);
   peeSaved.trinkets.push(sixth);peeSaved.positions.hills={x:725,y:155};peeSaved.revision++;
-  await seed(page,peeSaved);await hold(page,'d',160);assert.equal((await saved(page)).peeFound,true);assert.equal((await saved(page)).health,3);
+  await seed(page,peeSaved);await hold(page,'d',160);assert.equal((await saved(page)).peeFound,true);assert.equal((await saved(page)).health,2);
   assert.match(page.url(),/room=hills/);assert.equal(await page.locator('.story-card').count(),0);
   assert.match(await page.locator('#buddy-status').innerText(),/Three corgis/);
   await hold(page,'a',650);await page.evaluate(()=>window.dispatchEvent(new Event('blur')));
@@ -240,7 +249,7 @@ try {
 
   // Render the actual score for a listenable preview and check its level/headroom.
   const preview=await musicPage.evaluate(async()=>{
-    const {Soundscape}=await import('/games/snack-quest/audio.mjs?v=12');
+    const {Soundscape}=await import('/games/snack-quest/audio.mjs?v=13');
     const rate=22050,context=new OfflineAudioContext(1,rate*22,rate);
     const score=new Soundscape(()=>context);score.setEnabled(true);score.unlock();score.setScene('play','meadow');
     for(let i=0;i<64;i++)score.musicBeat(i,.1+i*30/96,30/96);

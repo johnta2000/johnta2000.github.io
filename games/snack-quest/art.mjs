@@ -1,4 +1,4 @@
-import { WIDTH, HEIGHT, ROOMS, random, goalDone, roomTrinkets, PEE_RESCUE, peeProgress, canRescuePee, windAt } from './engine.mjs?v=12';
+import { WIDTH, HEIGHT, ROOMS, random, goalDone, roomTrinkets, PEE_RESCUE, peeProgress, canRescuePee, windAt } from './engine.mjs?v=13';
 
 const INK='#75674c';
 function ellipse(c,x,y,rx,ry,fill,stroke=null,line=2){c.beginPath();c.ellipse(x,y,rx,ry,0,0,Math.PI*2);c.fillStyle=fill;c.fill();if(stroke){c.strokeStyle=stroke;c.lineWidth=line;c.stroke();}}
@@ -228,7 +228,10 @@ export function drawWorld(c,world,run,viewportWidth,reduced=false,preview=false)
   const ready=goalDone(run,world.room);
   if(ready){ellipse(c,915,320,31+Math.sin(t*3)*3,53,'#fff7cc90');for(let i=0;i<5;i++)flower(c,894+Math.sin(i*8)*24,278+i*21,.6,'#fff9db');}
   else {line(c,[[950,283],[950,354]],'#b9a077',7);line(c,[[930,287],[930,350]],'#c6b58a',6);line(c,[[927,305],[959,305]],'#c6b58a',5);}
-  for(const item of world.items)if(!run.collected.includes(item.id))snack(c,item.x,item.y,item.kind,1,t);
+  for(const item of world.items)if(!run.collected.includes(item.id)){
+    snack(c,item.x,item.y,item.kind,1,t);
+    if(item.healing){rounded(c,item.x-23,item.y-48,46,22,10,'#fff6ed','#d3a18b');heart(c,item.x-8,item.y-34,.55,'#bd7066');c.font='bold 10px sans-serif';c.textAlign='left';c.fillStyle='#a36056';c.fillText('+1',item.x+1,item.y-33);}
+  }
   for(const item of roomTrinkets(world.room))if(!run.trinkets?.includes(item.id))trinket(c,item,t,!run.pepperFound);
   goalArt(c,world,run,t);
   for(const item of world.gophers)gopher(c,item,t);
