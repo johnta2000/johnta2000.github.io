@@ -16,4 +16,4 @@ kbd.pressed{background:#58774d;color:#fffdf2;border-color:#58774d;box-shadow:non
 /* Keep the stage anchored across play, completion, and replay. */
 @media(min-width:701px){.page-shell{max-width:1200px}.game-bottom{min-height:76px;align-items:center}.trail{row-gap:8px}.location h2{min-height:24px}.stage{aspect-ratio:1000/620}}
 
-.practice-navigation{height:28px;text-align:center;padding-top:8px}.practice-navigation a{font-size:11px;color:#58734e;text-decoration:underline;text-underline-offset:3px;display:inline-block;min-height:44px}
+.practice-navigation{min-height:52px;display:flex;justify-content:center;align-items:center;gap:24px;flex-wrap:wrap;padding-top:8px}.practice-navigation a{padding:12px 0;font-size:11px;color:#58734e;text-decoration:underline;text-underline-offset:3px;display:inline-block;min-height:44px}

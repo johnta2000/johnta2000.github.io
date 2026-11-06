@@ -117,6 +117,34 @@ try {
   await page.screenshot({path:output+'/desktop-woods.png',fullPage:true});
   for(const room of ['woods','hills']){const route={...gardenExit,id:room+'exit12',positions:{[room]:{x:895,y:320}}};await seed(page,route,room);await hold(page,'d',100);await waitRoom(page,ORDER[ORDER.indexOf(room)+1]);}
   await page.keyboard.down('d');await page.waitForTimeout(500);await page.screenshot({path:output+'/desktop-final-area.png',fullPage:true});await page.keyboard.up('d');await page.keyboard.press('Escape');
+  // Pee is a late, optional rescue; links never grant him without the six discoveries.
+  const pee=createRun('peebrowser');pee.keyFound=true;pee.pepperFound=true;pee.health=2;pee.room='hills';pee.positions.hills={x:725,y:155};
+  pee.trinkets=TRINKETS.filter(i=>['pond','burrows','woods'].includes(i.room)).map(i=>i.id);
+  const sixth=pee.trinkets.pop();await seed(page,pee);await hold(page,'d',160);await page.keyboard.press('Escape');
+  let peeSaved=await saved(page);assert.equal(peeSaved.peeFound,false);assert.match(await page.locator('#pee-link').innerText(),/5\/6/);
+  peeSaved.trinkets.push(sixth);peeSaved.positions.hills={x:725,y:155};peeSaved.revision++;
+  await seed(page,peeSaved);await hold(page,'d',160);assert.equal((await saved(page)).peeFound,true);assert.equal((await saved(page)).health,3);
+  assert.match(page.url(),/room=hills/);assert.equal(await page.locator('.story-card').count(),0);
+  assert.match(await page.locator('#buddy-status').innerText(),/Three corgis/);
+  await hold(page,'a',650);await page.evaluate(()=>window.dispatchEvent(new Event('blur')));
+  await page.screenshot({path:output+'/desktop-pee-rescue.png',fullPage:true});
+  await page.keyboard.press('Escape');const peeURL=page.url();await page.reload();await page.locator('#resume').waitFor();assert.ok((await saved(page)).peeFound);
+  const peeCopy=await desktop.newPage();await peeCopy.goto(peeURL);await peeCopy.locator('#resume').waitFor();assert.match(await peeCopy.locator('#buddy-status').innerText(),/Three/);await peeCopy.close();
+  await page.locator('#home-link').click();await page.locator('#begin').waitFor();await page.goBack();await page.locator('#resume').waitFor();assert.ok((await saved(page)).peeFound);
+  await page.locator('#resume').click();await page.locator('#pee-link').click();await waitRoom(page,'hills');assert.ok((await saved(page)).peeFound);
+  const peeDamage=createRun('peedamage');peeDamage.keyFound=true;peeDamage.pepperFound=true;peeDamage.peeFound=true;peeDamage.health=4;peeDamage.room='burrows';peeDamage.positions.burrows={x:891,y:375};peeDamage.seed=1;
+  await seed(page,peeDamage);await page.keyboard.press('w');await page.waitForFunction(()=>document.getElementById('room-toast').textContent.startsWith('Pee got bonked!'));
+  await page.evaluate(()=>window.dispatchEvent(new Event('blur')));assert.equal((await saved(page)).health,3);
+  await page.screenshot({path:output+'/desktop-pee-hit.png',fullPage:true});
+  const peeLoss={...peeDamage,id:'peeloss123',health:1,revision:0};await seed(page,peeLoss);await page.keyboard.press('w');await waitView(page,'retry');assert.equal((await saved(page)).health,0);
+  await page.reload();await page.locator('#retry').click();await waitView(page,'play');assert.ok((await saved(page)).peeFound);assert.equal((await saved(page)).health,4);
+  const trio={...peeDamage,id:'peepicnic',basketFound:true,completed:true,trinkets:TRINKETS.map(i=>i.id)};
+  await seed(page,trio,'orchard','picnic');await page.locator('.picnic-card').waitFor();assert.match(await page.locator('.picnic-card').innerText(),/Pepsi, Pepper & Pee/);await page.screenshot({path:output+'/desktop-three-friends.png',fullPage:true});
+  for(const room of ['burrows','woods','hills']){
+    const terrain={...peeDamage,id:'terrain'+room,room,positions:{[room]:{x:135,y:315}}};
+    await seed(page,terrain);await page.keyboard.press('w');await page.waitForTimeout(room==='hills'?3500:150);await page.evaluate(()=>window.dispatchEvent(new Event('blur')));
+    await page.screenshot({path:output+'/desktop-terrain-'+room+'.png',fullPage:true});
+  }
   // Old reunion deep links remain usable and resume at the pond.
   const reunionURL=`${base}?view=reunion&run=${rescue.id}&room=pond`;await page.goto(reunionURL);await page.locator('.story-card').waitFor();await page.reload();await page.locator('.story-card').waitFor();
   const reunionCopy=await desktop.newPage();await reunionCopy.goto(reunionURL);await reunionCopy.locator('.story-card').waitFor();await reunionCopy.close();
@@ -212,7 +240,7 @@ try {
 
   // Render the actual score for a listenable preview and check its level/headroom.
   const preview=await musicPage.evaluate(async()=>{
-    const {Soundscape}=await import('/games/snack-quest/audio.mjs?v=11');
+    const {Soundscape}=await import('/games/snack-quest/audio.mjs?v=12');
     const rate=22050,context=new OfflineAudioContext(1,rate*22,rate);
     const score=new Soundscape(()=>context);score.setEnabled(true);score.unlock();score.setScene('play','meadow');
     for(let i=0;i<64;i++)score.musicBeat(i,.1+i*30/96,30/96);
@@ -227,11 +255,11 @@ try {
   const mobile=await browser.newContext({viewport:{width:390,height:844},deviceScaleFactor:2,isMobile:true,hasTouch:true});const phone=await pageFor(mobile);
   assert.equal(await phone.locator('.touch-controls,[data-direction]').count(),0);assert.equal(await phone.locator('.phone-note').isVisible(),true);
   await phone.screenshot({path:output+'/mobile-home.png',fullPage:true});
-  const mobileRun=createRun('mobile123');mobileRun.keyFound=true;mobileRun.pepperFound=true;mobileRun.health=4;
+  const mobileRun=createRun('mobile123');mobileRun.keyFound=true;mobileRun.pepperFound=true;mobileRun.health=4;mobileRun.peeFound=true;
   for(const room of ['tutorial',...ORDER]){await seed(phone,mobileRun,room,'pause');const url=phone.url();await phone.reload();await phone.locator('.pause-card').waitFor();assert.equal(phone.url(),url);const copy=await mobile.newPage();await copy.goto(url);await copy.locator('.pause-card').waitFor();assert.equal(await copy.locator('#room-name').textContent(),ROOMS[room].name);await copy.close();await phone.locator('#home-link').click();await phone.locator('#begin').waitFor();await phone.goBack();await phone.locator('.pause-card').waitFor();assert.equal(phone.url(),url);await phone.goForward();await phone.locator('#begin').waitFor();await phone.goBack();await phone.locator('.pause-card').waitFor();await dismissOutside(phone);await waitView(phone,'play');await phone.keyboard.press('Escape');await waitView(phone,'pause');}
   assert.ok(await phone.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
   const reunionMobile=createRun('mobilestory');reunionMobile.keyFound=true;reunionMobile.pepperFound=true;reunionMobile.health=4;await seed(phone,reunionMobile,'pond','reunion');await phone.screenshot({path:output+'/mobile-reunion.png',fullPage:true});
-  const winMobile=createRun('mobilewin');winMobile.keyFound=true;winMobile.pepperFound=true;winMobile.basketFound=true;winMobile.completed=true;winMobile.health=4;winMobile.trinkets=TRINKETS.map(item=>item.id);await seed(phone,winMobile,'orchard','picnic');await phone.screenshot({path:output+'/mobile-picnic.png',fullPage:true});await mobile.close();
+  const winMobile=createRun('mobilewin');winMobile.keyFound=true;winMobile.pepperFound=true;winMobile.basketFound=true;winMobile.completed=true;winMobile.health=4;winMobile.peeFound=true;winMobile.trinkets=TRINKETS.map(item=>item.id);await seed(phone,winMobile,'orchard','picnic');await phone.screenshot({path:output+'/mobile-picnic.png',fullPage:true});await mobile.close();
 
   const blocked=await browser.newContext();await blocked.addInitScript(()=>{Storage.prototype.setItem=function(){throw new DOMException('Full','QuotaExceededError');};});const failure=await pageFor(blocked);await failure.locator('#begin').click();await failure.locator('#save-error').waitFor({state:'visible'});const downloadPromise=failure.waitForEvent('download');await failure.locator('#download-save').click();assert.equal((await downloadPromise).suggestedFilename(),'pepsi-pepper-adventure.json');await blocked.close();
   assert.deepEqual(errors,[]);console.log('PASS: WASD-only movement, dash/key, Pepsi and Pepper hit/defeat/retry, shared heart persistence, uninterrupted Pepper rescue, all ten trinkets, garden progression, basket and home ending, all room/view URLs, copied links, refresh, Back/Forward, mobile keyboard notice, old-save migration, save failure backup, and real audio playback/mute/pause/resume.');

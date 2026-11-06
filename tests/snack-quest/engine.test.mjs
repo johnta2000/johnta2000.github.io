@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { ROOMS, ORDER, TRINKETS, roomTrinkets, upgradeRun, gophersFor, createRun, makeWorld, roomItems, toysFor, walkable, step, startDash, maxHearts, isUnlocked, goalDone, validRun, migrateRun, retryRoom } from '../../games/snack-quest/engine.mjs';
+import { ROOMS, ORDER, TRINKETS, PEE_RESCUE, peeProgress, canRescuePee, terrainAt, windAt, roomTrinkets, upgradeRun, gophersFor, createRun, makeWorld, roomItems, toysFor, walkable, step, startDash, maxHearts, isUnlocked, goalDone, validRun, migrateRun, retryRoom } from '../../games/snack-quest/engine.mjs';
 const idle={x:0,y:0};
 function toyAt(x,y){return {x,y,r:18,vx:0,vy:0,kind:'ball',mode:'roam',timer:0,cooldown:9};}
 
@@ -225,4 +225,73 @@ test('safe practice teaches movement, crate dash, and recharge without granting 
  startDash(world,{x:1,y:0});step(world,run,{x:1,y:0},.02);assert.equal(run.tutorialStep,2);assert.equal(run.keyFound,false);assert.equal(goalDone(run,'tutorial'),false);
  for(let i=0;i<150;i++)step(world,run,idle,.02);assert.equal(run.tutorialStep,3);assert.equal(run.health,3);assert.ok(goalDone(run,'tutorial'));
  run.room='tutorial';assert.ok(validRun(JSON.parse(JSON.stringify(run)),run.id));Object.assign(world.player,{x:910,y:320});assert.ok(step(world,run,idle,.02).some(e=>e.type==='exit'));
+});
+
+
+test('Pee needs all six earlier treasures and a visit; rescue keeps the chapter running',()=>{
+  const {run}=pairedWorld('peeres123');run.room='hills';run.health=2;run.positions.hills={...PEE_RESCUE};
+  const world=makeWorld(run,'hills');world.toys=[];world.gophers=[];world.items=[];
+  run.trinkets=TRINKETS.filter(i=>['pond','burrows','woods'].includes(i.room)).map(i=>i.id);
+  const last=run.trinkets.pop();assert.equal(peeProgress(run),5);assert.equal(canRescuePee(run),false);
+  step(world,run,idle,.016);assert.equal(run.peeFound,false);
+  run.trinkets.push(last);assert.equal(canRescuePee(run),true);
+  assert.deepEqual(step(world,run,idle,.016),[{type:'pee-rescue'}]);assert.equal(run.health,3);assert.equal(maxHearts(run),4);
+  assert.equal(world.room,'hills');assert.equal(goalDone(run,'hills'),false);
+  assert.deepEqual(step(world,run,idle,.016),[],'no repeat rescue or healing');
+  const restored=JSON.parse(JSON.stringify(run));assert.ok(validRun(restored,run.id));retryRoom(restored,'hills');assert.equal(restored.peeFound,true);
+});
+test('Pee joins the train smoothly; mud and wind do not teleport followers',()=>{
+  for(const room of ['meadow','burrows','woods','hills']){
+    const {run}=pairedWorld();run.peeFound=true;run.positions[room]={x:135,y:315};
+    const world=makeWorld(run,room);world.toys=[];world.gophers=[];world.items=[];
+    for(let i=0;i<240;i++){
+      const before={...world.pee};step(world,run,{x:1,y:0},1/60);
+      assert.ok(Math.hypot(world.pee.x-before.x,world.pee.y-before.y)<=400/60+.001);
+      assert.ok(walkable(world.pee.x,world.pee.y,room,12));
+    }
+    assert.ok(world.pee.x>110,room+' Pee follows toward the leader even when a rock stops the group');
+  }
+});
+test('Pee-only hits cost shared hearts, can cause defeat, and are protected by dash',()=>{
+  for(const kind of ['ball','cat','gopher'])for(const dash of [false,true]){
+    const {run,world}=pairedWorld();run.peeFound=true;run.health=1;world.pee={x:260,y:315,facing:1};world.peeTrail=[{x:world.buddy.x,y:world.buddy.y}];
+    const hazard={...toyAt(260,315),kind};
+    if(kind==='gopher'){hazard.mode='up';hazard.timer=1;world.gophers=[hazard];}else world.toys=[hazard];
+    if(dash)startDash(world,{x:1,y:0});
+    const events=step(world,run,idle,.016);
+    if(dash){assert.equal(run.health,1);assert.ok(events.some(e=>e.type==='stun'));}
+    else{assert.deepEqual(events,[{type:'defeat',character:'pee'}]);assert.equal(run.health,0);assert.ok(validRun(JSON.parse(JSON.stringify(run)),run.id));const retry=retryRoom(run,'meadow');assert.equal(run.peeFound,true);assert.ok(retry.pee);}
+  }
+  const {run,world}=pairedWorld();world.pee={x:260,y:315,facing:1};world.toys=[toyAt(world.pee.x,world.pee.y)];assert.deepEqual(step(world,run,idle,.016),[],'locked Pee has no hitbox');
+});
+test('mud slows rolling but dash crosses at full speed; ice slides and grass brakes',()=>{
+  const simulate=(room,x,y,input,frames,dash=false)=>{
+    const run=createRun('terraintest');run.positions[room]={x,y};const world=makeWorld(run,room);world.toys=[];world.gophers=[];world.items=[];
+    if(dash)startDash(world,input);for(let i=0;i<frames;i++)step(world,run,input,1/60);return {run,world};
+  };
+  assert.equal(terrainAt('burrows',240,400),'mud');
+  const mud=simulate('burrows',240,400,{x:1,y:0},30),grass=simulate('meadow',240,315,{x:1,y:0},30);
+  assert.ok(mud.world.player.x-240<(grass.world.player.x-240)*.65);
+  const dashed=simulate('burrows',240,400,{x:1,y:0},10,true);assert.ok(dashed.world.player.x-240>85);
+  assert.equal(terrainAt('woods',470,205),'ice');
+  const ice=simulate('woods',470,205,{x:1,y:0},20),before=ice.world.player.x;
+  for(let i=0;i<10;i++)step(ice.world,ice.run,idle,1/60);assert.ok(ice.world.player.x>before+10,'slides after release');
+  Object.assign(ice.world.player,{x:220,y:315});step(ice.world,ice.run,idle,1/60);assert.equal(ice.world.player.x,220,'grass stops the slide');
+});
+test('wind warns first, alternates direction, leaves calm windows, and yields to dash',()=>{
+  assert.equal(windAt('hills',1).x,0);assert.equal(windAt('hills',2).warning,true);assert.ok(windAt('hills',5).x>60);
+  assert.equal(windAt('hills',8).x,0);assert.ok(windAt('hills',14).x< -60);assert.equal(windAt('tutorial',5).x,0);
+  const run=createRun('windtest');run.positions.hills={x:420,y:315};const world=makeWorld(run,'hills');world.toys=[];world.gophers=[];world.items=[];world.time=5;
+  step(world,run,idle,.02);assert.ok(world.player.x>421,'gust moves the leader without a key');
+  const x=world.player.x;startDash(world,{x:0,y:1});step(world,run,idle,.02);assert.equal(world.player.x,x,'dash ignores wind');
+});
+test('older saves preserve progress without accidentally unlocking Pee',()=>{
+  const {run}=pairedWorld();delete run.peeFound;run.health=2;run.room='orchard';assert.ok(validRun(run,run.id));upgradeRun(run);
+  assert.equal(run.peeFound,false);assert.equal(run.health,2);assert.equal(run.room,'orchard');
+  run.peeFound='yes';assert.equal(validRun(run,run.id),false);
+});
+
+test('Pee starts visibly beside Pepper when the entrance has no room behind him',()=>{
+  const run=createRun('entrance123');run.keyFound=true;run.pepperFound=true;run.peeFound=true;
+  for(const room of ORDER){const world=makeWorld(run,room);assert.ok(Math.hypot(world.pee.x-world.buddy.x,world.pee.y-world.buddy.y)>40);assert.ok(walkable(world.pee.x,world.pee.y,room,12));}
 });

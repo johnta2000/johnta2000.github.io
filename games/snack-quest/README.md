@@ -54,3 +54,10 @@ Existing version 2 saves gain an empty trinket collection and the fourth chapter
 The desktop playfield uses a 1200px page shell. Home, play, pause, completion, and replay share layout sizing to prevent the stage from jumping. Completed older adventures retain their ending; active saves keep their progress and can explore the two new clearings.
 
 New adventures begin in Little Loaf Practice (`?view=play&run=ID&room=tutorial`), a safe clearing with a flower flag, practice crate, and recharge lesson. The practice crate does not grant the real key. Progress through its three exercises is saved. Skip practice enters the meadow; Practice controls reopens the same clearing. Existing adventures continue at their saved chapter.
+
+
+## Pee and terrain
+
+Pee, a butter-yellow plush, waits in the top-right of Dandelion Downs (chapter five). Collect the six distinct trinkets from Pebble Pond, Gopher Garden, and Whispering Woods, then roll up to him. The Find Pee link shows progress and links to his clearing. His optional rescue continues the level, heals at most one heart, and keeps the four-heart team cap. He follows Pepper and has a full shared-damage hitbox for cats, balls, and surfaced gophers. Dash protects the whole team. Pee remains rescued through retries, navigation, refresh, and backups within that adventure; new adventures start alone. The picnic includes him if rescued. Existing saves keep their location, health, treasures, and completed ending without silently granting Pee.
+
+Gopher Garden introduces labeled brown mud patches (roughly 55% rolling speed). Whispering Woods has pale blue ice: acceleration and braking are gradual, and grass immediately restores normal steering. Dandelion Downs has a windsock, a warning before each gust, alternating horizontal wind, and calm windows. Followers trace the leader’s route; their own muddy patches slow their catch-up. Dashing cuts through mud and wind at full speed. Clover Orchard adds a final muddy shortcut. None of these terrain types directly costs hearts. The hazard-free tutorial and meadow stay on ordinary ground.
