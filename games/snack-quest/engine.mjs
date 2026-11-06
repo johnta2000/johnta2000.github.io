@@ -1,29 +1,53 @@
 export const WIDTH = 1000;
 export const HEIGHT = 620;
-export const ORDER = ['meadow', 'pond', 'orchard'];
+export const ORDER = ['meadow', 'pond', 'burrows', 'orchard'];
 export const ROOMS = {
   meadow: {
     name: 'Sunbeam Meadow', short: 'The key', ground: '#dce8bd', snack: 'biscuit',
-    note: 'Pepper went ahead. The old gate key is in that wooden crate.',
+    note: 'The gate key is in the crate. Watch the cat crouch, then dodge its pounce!',
     obstacles: [{x:365,y:225,r:37,kind:'bush'}, {x:650,y:400,r:32,kind:'rock'}, {x:785,y:180,r:32,kind:'bush'}],
     slots: [[230,190],[480,145],[670,230],[840,405],[490,470],[225,430],[760,495],[475,325]],
     goal: {x:535,y:190,r:27,kind:'crate'},
   },
   pond: {
     name: 'Pebble Pond', short: 'Find Pepper', ground: '#d5e5c1', snack: 'berry',
-    note: 'There he is! Take the key to Pepper’s gate on the far side of the pond.',
+    note: 'Find Pepper, then explore the pond together for two lost trinkets.',
     obstacles: [{x:490,y:310,r:107,ry:75,kind:'pond'}, {x:765,y:180,r:32,kind:'rock'}, {x:245,y:460,r:32,kind:'bush'}],
     slots: [[230,190],[480,145],[680,240],[820,470],[510,480],[220,330],[710,470],[350,430]],
     goal: {x:820,y:370,r:35,kind:'pen'},
   },
+  burrows: {
+    name: 'Gopher Garden', short: 'The garden', ground: '#e5dfb4', snack: 'biscuit',
+    note: 'The garden thieves dropped a bell and a sock. Shaking dirt means a gopher is coming!',
+    obstacles: [{x:355,y:300,r:42,kind:'bush'}, {x:585,y:195,r:35,kind:'rock'}, {x:645,y:420,r:45,kind:'bush'}],
+    slots: [[220,190],[480,145],[730,230],[840,440],[485,475],[220,420],[740,505],[475,325]],
+    goal: {x:820,y:185,r:23,kind:'sign'},
+  },
   orchard: {
     name: 'Clover Orchard', short: 'Home together', ground: '#e0e6b9', snack: 'cheese',
-    note: 'One last dash! Grab the picnic basket by the trees and find the way home.',
+    note: 'Two more trinkets and the picnic basket! These cats take their zoomies seriously.',
     obstacles: [{x:345,y:245,r:36,kind:'tree'}, {x:640,y:235,r:38,kind:'tree'}, {x:640,y:435,r:33,kind:'tree'}],
     slots: [[215,180],[490,150],[775,245],[840,435],[460,470],[230,400],[775,500],[490,325]],
     goal: {x:825,y:160,r:23,kind:'basket'},
   },
 };
+export const TRINKETS = [
+  {id:'pond-ribbon',room:'pond',name:'Pepper’s ribbon',kind:'ribbon',x:225,y:165},
+  {id:'pond-button',room:'pond',name:'A very fancy button',kind:'button',x:695,y:490},
+  {id:'burrows-bell',room:'burrows',name:'The dinner bell',kind:'bell',x:820,y:185},
+  {id:'burrows-sock',room:'burrows',name:'One suspicious sock',kind:'sock',x:230,y:485},
+  {id:'orchard-star',room:'orchard',name:'A pocket-sized star',kind:'star',x:470,y:160},
+  {id:'orchard-flower',room:'orchard',name:'A picnic flower',kind:'flower',x:810,y:490},
+];
+export function roomTrinkets(room) { return TRINKETS.filter(item=>item.room===room); }
+export function trinketCount(run,room) { return roomTrinkets(room).filter(item=>run.trinkets?.includes(item.id)).length; }
+export function allTrinkets(run) { return TRINKETS.every(item=>run.trinkets?.includes(item.id)); }
+export function upgradeRun(run) {
+  // Extend old saves in place without losing snacks, health, or completed adventures.
+  if(!run.trinkets)run.trinkets=run.completed?TRINKETS.map(item=>item.id):[];
+  run.order=roomOrder();
+  return run;
+}
 
 export function random(seed) {
   let n = seed >>> 0;
@@ -36,7 +60,7 @@ export function random(seed) {
 }
 export function roomOrder() { return [...ORDER]; }
 export function roomItems(seed, room) {
-  const slots = [...ROOMS[room].slots], rng = random(seed + ORDER.indexOf(room) * 817);
+  const slots = [...ROOMS[room].slots], rng = random(seed + ['meadow','pond','orchard','burrows'].indexOf(room) * 817);
   for (let i = slots.length - 1; i > 0; i--) {
     const j = Math.floor(rng() * (i + 1));
     [slots[i], slots[j]] = [slots[j], slots[i]];
@@ -47,7 +71,7 @@ export function maxHearts(run) { return run.pepperFound ? 4 : 3; }
 export function createRun(id) {
   return {
     version:2, id, seed:Number.parseInt(id, 36) >>> 0, character:'pepsi', order:roomOrder(),
-    room:'meadow', collected:[], positions:{}, checkpoints:{}, health:3,
+    room:'meadow', collected:[], trinkets:[], positions:{}, checkpoints:{}, health:3,
     keyFound:false, pepperFound:false, basketFound:false, completed:false,
     hits:0, retries:0, revision:0, startedAt:Date.now(),
   };
@@ -55,8 +79,9 @@ export function createRun(id) {
 export function validRun(value, id) {
   return !!(value && value.version === 2 && value.id === id && /^[a-z0-9]{6,16}$/.test(id) &&
     Number.isInteger(value.seed) && value.seed >= 0 && value.seed <= 0xffffffff &&
-    Array.isArray(value.collected) && value.collected.every(item => /^(meadow|pond|orchard)-[0-3]$/.test(item)) &&
+    Array.isArray(value.collected) && value.collected.every(item => /^(meadow|pond|burrows|orchard)-[0-3]$/.test(item)) &&
     new Set(value.collected).size === value.collected.length &&
+    (value.trinkets === undefined || Array.isArray(value.trinkets) && value.trinkets.every(id=>TRINKETS.some(item=>item.id===id)) && new Set(value.trinkets).size===value.trinkets.length) &&
     value.positions && typeof value.positions === 'object' && !Array.isArray(value.positions) &&
     value.checkpoints && typeof value.checkpoints === 'object' && !Array.isArray(value.checkpoints) &&
     Object.hasOwn(ROOMS, value.room) && ['keyFound','pepperFound','basketFound','completed'].every(key => typeof value[key] === 'boolean') &&
@@ -75,6 +100,7 @@ export function migrateRun(old, id) {
   run.pepperFound = run.keyFound && (roomCount(run, 'pond') >= 4 || !!old.completed);
   run.basketFound = run.pepperFound && !!old.completed;
   run.completed = run.basketFound;
+  if(run.completed)run.trinkets=TRINKETS.map(item=>item.id);
   run.health = maxHearts(run);
   run.room = firstUnfinished(run);
   run.migrated = true;
@@ -82,27 +108,40 @@ export function migrateRun(old, id) {
 }
 export function roomCount(run, room) { return run.collected.filter(id => id.startsWith(room + '-')).length; }
 export function goalDone(run, room) {
-  return room === 'meadow' ? run.keyFound : room === 'pond' ? run.pepperFound : run.basketFound;
+  if(room==='meadow')return run.keyFound;
+  if(room==='pond')return run.pepperFound && trinketCount(run,room)===2;
+  if(room==='burrows')return run.pepperFound && trinketCount(run,room)===2;
+  return run.basketFound && allTrinkets(run);
 }
 export function isUnlocked(run, room) {
-  return room === 'meadow' || room === 'pond' && run.keyFound || room === 'orchard' && run.pepperFound;
+  return room === 'meadow' || room === 'pond' && run.keyFound || ['burrows','orchard'].includes(room) && run.pepperFound;
 }
 export function firstUnfinished(run) { return ORDER.find(room => !goalDone(run, room)) || 'orchard'; }
 export function objective(run, room) {
   if (goalDone(run, room)) return room === 'orchard' ? 'Bring Pepper and the basket home →' : 'Follow the open path to the right →';
-  return room === 'meadow' ? 'Dash into the wooden crate to find the key' : room === 'pond' ? 'Reach Pepper’s gate with the key' : 'Bring the picnic basket home with Pepper';
+  if(room==='meadow')return 'Dash into the wooden crate to find the key';
+  if(room==='pond'&&!run.pepperFound)return 'Reach Pepper’s gate with the key';
+  const missing=roomTrinkets(room).filter(item=>!run.trinkets?.includes(item.id));
+  if(missing.length)return `Find ${missing.map(item=>item.kind==='button'?'the button':`the ${item.kind}`).join(' + ')} · ${trinketCount(run,room)}/2 trinkets`;
+  if(room==='orchard'&&!allTrinkets(run))return 'Trinkets still missing! Revisit the pond or garden below';
+  return 'Collect the picnic basket, then take the path home →';
 }
 export function walkable(x, y, room, radius = 18) {
   if (!Number.isFinite(x) || !Number.isFinite(y) || x < 55 + radius || x > 945 - radius || y < 105 + radius || y > 548 - radius) return false;
   return !ROOMS[room].obstacles.some(o => ((x-o.x)/(o.r+radius)) ** 2 + ((y-o.y)/((o.ry||o.r)+radius)) ** 2 < 1);
 }
 export function toysFor(seed, room) {
-  const positions = room === 'meadow' ? [[360,350],[690,285]] : room === 'pond' ? [[290,220],[710,370],[565,470]] : [[315,375],[505,220],[800,340],[515,480]];
+  const positions = room === 'meadow' ? [[360,350],[690,285]] : room === 'pond' ? [[290,220],[710,370],[565,470]] : room === 'burrows' ? [[470,300],[760,350]] : [[315,375],[505,220],[800,340],[515,480]];
   const rng = random(seed + ORDER.indexOf(room)*77);
   return positions.map(([x,y], i) => ({
     x,y,r:18,vx:(rng()>.5?1:-1)*(40+ORDER.indexOf(room)*8),vy:(rng()>.5?1:-1)*30,
-    kind:i%2?'yarn':'ball',mode:'roam',timer:0,cooldown:.8+i*.3,aimX:0,aimY:0,
+    kind:i%2?'cat':'ball',mode:'roam',timer:0,cooldown:.8+i*.3,aimX:0,aimY:0,
   }));
+}
+export function gophersFor(seed,room) {
+  const spots={meadow:[],pond:[[340,180],[680,475]],burrows:[[270,210],[470,450],[735,200],[805,430]],orchard:[[450,180],[730,440],[830,270]]}[room];
+  const rng=random(seed+ORDER.indexOf(room)*307);
+  return spots.map(([x,y],i)=>({x,y,r:22,kind:'gopher',mode:'hidden',timer:1+i*.65+rng(),cycle:0,seed:seed+i*31}));
 }
 export function makeWorld(run, room) {
   const saved = run.positions[room];
@@ -111,7 +150,7 @@ export function makeWorld(run, room) {
   const buddy = walkable(p.x-43,p.y+10,room,12) ? {x:p.x-43,y:p.y+10} : {...p};
   return {
     room, runId:run.id, player:{...p,vx:1,vy:0,facing:1,moving:false}, buddy:{...buddy,facing:1},
-    followTrail:[{...p}], toys:toysFor(run.seed,room), items:roomItems(run.seed,room),
+    followTrail:[{...p}], toys:toysFor(run.seed,room), gophers:gophersFor(run.seed,room), items:roomItems(run.seed,room),
     time:0,dash:0,cooldown:0,invincible:.65,bump:0,particles:[],
   };
 }
@@ -161,6 +200,14 @@ function follow(world) {
   }
   b.moving=travelled>.01;
 }
+function bumpPlayer(world,run,hazard,events) {
+  const p=world.player;
+  if(world.invincible>0||Math.hypot(hazard.x-p.x,hazard.y-p.y)>=hazard.r+20)return;
+  run.health--;run.hits++;world.invincible=1.35;world.bump=.45;
+  const dx=p.x-hazard.x,dy=p.y-hazard.y,d=Math.hypot(dx,dy)||1;
+  move(p,dx/d*34,dy/d*34,world.room);
+  events.push({type:run.health<=0?'defeat':'hit'});
+}
 export function step(world,run,input,dt) {
   if(run.health<=0)return [];
   dt=Math.min(Math.max(dt,0),.035);world.dt=dt;world.time+=dt;
@@ -179,6 +226,7 @@ export function step(world,run,input,dt) {
   }
   if(world.room==='pond'&&!run.pepperFound&&run.keyFound&&nearGoal<69) {
     run.pepperFound=true;run.health=4;world.buddy={x:p.x-35,y:p.y+10,facing:p.facing};world.followTrail=[{x:p.x,y:p.y}];
+    world.invincible=3;
     particles(world,goal.x,goal.y,'heart');events.push({type:'rescue'});return events;
   }
   if(world.room==='orchard'&&!run.basketFound&&run.pepperFound&&nearGoal<43) {
@@ -191,28 +239,42 @@ export function step(world,run,input,dt) {
       toy.mode='stunned';toy.timer=2.3;particles(world,toy.x,toy.y);events.push({type:'stun'});
     }
     if(toy.mode==='stunned') {toy.timer-=dt;if(toy.timer<=0){toy.mode='roam';toy.cooldown=1;}continue;}
-    if(toy.mode==='roam'&&toy.cooldown===0&&distance<240&&distance>45) {
-      toy.mode='windup';toy.timer=.7;toy.aimX=(p.x-toy.x)/distance;toy.aimY=(p.y-toy.y)/distance;
+    if(toy.mode==='rest') {toy.timer-=dt;if(toy.timer<=0){toy.mode='roam';toy.cooldown=.4;}continue;}
+    if(toy.mode==='roam'&&toy.cooldown===0&&distance<(toy.kind==='cat'?330:270)&&distance>45) {
+      toy.mode='windup';toy.timer=toy.kind==='cat'?.85:.7;toy.aimX=(p.x-toy.x)/distance;toy.aimY=(p.y-toy.y)/distance;
     }
     if(toy.mode==='windup') {
       toy.timer-=dt;
       if(toy.timer<=0){toy.mode='charge';toy.timer=.57;}
     }else if(toy.mode==='charge') {
-      const speed=280+ORDER.indexOf(world.room)*38;
+      const speed=toy.kind==='cat'?455:280+ORDER.indexOf(world.room)*38;
       move(toy,toy.aimX*speed*dt,toy.aimY*speed*dt,world.room,toy.r);
       toy.timer-=dt;
-      if(toy.timer<=0){toy.mode='roam';toy.cooldown=1.45;}
+      if(toy.timer<=0){toy.mode=toy.kind==='cat'?'rest':'roam';toy.timer=1.2;toy.cooldown=1.1;}
     }else {
       if(!walkable(toy.x+toy.vx*dt,toy.y,world.room,toy.r))toy.vx*=-1;
       if(!walkable(toy.x,toy.y+toy.vy*dt,world.room,toy.r))toy.vy*=-1;
       move(toy,toy.vx*dt,toy.vy*dt,world.room,toy.r);
     }
-    if(world.invincible<=0&&Math.hypot(toy.x-p.x,toy.y-p.y)<toy.r+20) {
-      run.health--;run.hits++;world.invincible=1.35;world.bump=.45;
-      const dx=p.x-toy.x,dy=p.y-toy.y,d=Math.hypot(dx,dy)||1;
-      move(p,dx/d*34,dy/d*34,world.room);toy.mode='roam';toy.cooldown=1.1;
-      events.push({type:run.health<=0?'defeat':'hit'});
-      if(run.health<=0)return events;
+    bumpPlayer(world,run,toy,events);
+    if(run.health<=0)return events;
+  }
+  for(const gopher of world.gophers) {
+    gopher.timer-=dt;
+    if(gopher.timer<=0) {
+      if(gopher.mode==='hidden'){gopher.mode='warning';gopher.timer=.95;}
+      else if(gopher.mode==='warning'){gopher.mode='up';gopher.timer=1.6;}
+      else {gopher.mode='hidden';gopher.timer=1.3+random(gopher.seed+gopher.cycle++)()*2;}
+    }
+    if(gopher.mode!=='up')continue;
+    if(dashing&&Math.hypot(gopher.x-p.x,gopher.y-p.y)<gopher.r+29) {
+      gopher.mode='stunned';gopher.timer=2.3;particles(world,gopher.x,gopher.y);events.push({type:'stun'});
+    } else bumpPlayer(world,run,gopher,events);
+    if(run.health<=0)return events;
+  }
+  if(run.pepperFound)for(const item of roomTrinkets(world.room)) {
+    if(!run.trinkets.includes(item.id)&&Math.hypot(item.x-p.x,item.y-p.y)<34) {
+      run.trinkets.push(item.id);particles(world,item.x,item.y);events.push({type:'trinket',item});
     }
   }
   for(const item of world.items) {

@@ -2,16 +2,16 @@
 
 A small static keyboard adventure at `/games/snack-quest/`.
 
-Pepsi starts alone. Dash into the meadow's crate to find the gate key, rescue gray Pepper at Pebble Pond, then recover the picnic basket and get home together through the harder orchard. Each chapter has a distinct objective; collecting every snack is optional.
+Pepsi starts alone. Dash into the meadow's crate to find the gate key, rescue gray Pepper at Pebble Pond, then keep exploring Pebble Pond together. Collect two trinkets at the pond, two in the new Gopher Garden, and two in Clover Orchard. All six trinkets plus the picnic basket are required for the ending. Snacks remain optional healing pickups. The four chapter links let the pair revisit unlocked areas for missing treasures.
 
 ## Controls and consequences
 
 - WASD moves Pepsi. Mouse clicks, arrow keys, and touch controls do not move the player.
 - Space dashes, breaks the key crate, and stuns toys for 2.3 seconds. Dash has a visible cooldown and brief invulnerability.
-- Toys briefly telegraph the direction of their lunge before charging. Later chapters have more toys and faster charges.
+- Balls telegraph their charges. Cats crouch and show their pounce direction, lunge quickly, then rest. Gophers pop up on staggered, seeded schedules: shaking dirt and an exclamation mark give nearly a second of warning before they can hurt Pepsi. Dash can bonk every hazard; hidden or warning gophers, resting cats, and stunned hazards are harmless. Later chapters combine more hazards.
 - Start with three hearts. A hit costs one heart, with a short damage grace period. Snacks heal one heart, up to the maximum.
 - At zero hearts, retry the current clearing. Snacks collected in this attempt return to the grass; earlier discoveries remain. Death and health persist across refreshes.
-- Rescuing Pepper restores health and grants a fourth heart. Pepper follows the player's footsteps and does not require separate escort-health management.
+- Rescuing Pepper restores health, grants a fourth heart and three seconds of damage protection, and continues immediately at the pond with a brief toast. It never opens a modal or skips the remaining collectibles. Trinkets are permanent discoveries and survive retries. Pepper follows the player's footsteps and does not require separate escort-health management.
 - Leaving the game quietly freezes hazards and clears held keys. Returning and pressing WASD continues immediately, without an automatic pause popup, extra prompt, or history entry. Escape and the pause button still open the explicit pause screen. Physical WASD keys are supported across keyboard input methods, and the key hints light up while held.
 - Start, Resume, Retry, and direct play links wait for the first WASD input before toys or damage advance. A native keyboard input receives focus, with a visible focus button and a text-input fallback for embedded browsers. Short taps are retained until the next frame. Mouse clicks and Space alone never dismiss the safe-start state.
 - Escape pauses. Dialogs close with Escape, their dismissal control, or a backdrop click. Closing the retry screen returns home without reviving the player.
@@ -47,4 +47,6 @@ node --test tests/snack-quest/engine.test.mjs
 node tests/snack-quest/browser.mjs
 ```
 
-Set `PLAYWRIGHT_EXECUTABLE_PATH` to use an installed browser, `SNACK_QUEST_BROWSER=webkit` for WebKit, `SNACK_QUEST_URL` for another origin, and `SNACK_QUEST_SCREENSHOTS` for the screenshot destination. Browser checks exercise WASD-only input, the protected start, native keyboard focus and text-input fallback, a real dash/crate pickup, actual hazard damage and defeat/retry, Pepper rescue, extra health, the basket/exit ending, navigation restoration, small-screen keyboard notices, legacy saves, failed-save recovery, and actual Web Audio output across mute, pause, focus loss, and reload. The checks also render a short `snack-quest-theme.wav` preview into the screenshot destination.
+Set `PLAYWRIGHT_EXECUTABLE_PATH` to use an installed browser, `SNACK_QUEST_BROWSER=webkit` for WebKit, `SNACK_QUEST_URL` for another origin, and `SNACK_QUEST_SCREENSHOTS` for the screenshot destination. Browser checks exercise WASD-only input, the protected start, native keyboard focus and text-input fallback, a real dash/crate pickup, actual hazard damage and defeat/retry, Pepper rescue, extra health, the six-trinket collection, garden progression, and basket/exit ending, navigation restoration, small-screen keyboard notices, legacy saves, failed-save recovery, and actual Web Audio output across mute, pause, focus loss, and reload. The checks also render a short `snack-quest-theme.wav` preview into the screenshot destination.
+
+Existing version 2 saves gain an empty trinket collection and the fourth chapter while keeping their hearts, position, snacks, and discoveries. Already completed older adventures retain their ending. Old reunion URLs remain valid but continue at the pond. Snack placements in existing rooms retain their original seeds.

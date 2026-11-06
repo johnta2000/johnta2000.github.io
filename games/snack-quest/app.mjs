@@ -1,7 +1,7 @@
-import { ROOMS, ORDER, WIDTH, HEIGHT, createRun, validRun, migrateRun, makeWorld, maxHearts, goalDone, isUnlocked, firstUnfinished, objective, retryRoom, step, startDash } from './engine.mjs?v=7';
-import { portrait, drawWorld, drawPicnic } from './art.mjs?v=7';
-import { movementKey, isTextEntry } from './input.mjs?v=7';
-import { Soundscape } from './audio.mjs?v=7';
+import { ROOMS, ORDER, WIDTH, HEIGHT, createRun, upgradeRun, TRINKETS, validRun, migrateRun, makeWorld, maxHearts, goalDone, isUnlocked, firstUnfinished, objective, retryRoom, step, startDash } from './engine.mjs?v=8';
+import { portrait, drawWorld, drawPicnic } from './art.mjs?v=8';
+import { movementKey, isTextEntry } from './input.mjs?v=8';
+import { Soundscape } from './audio.mjs?v=8';
 
 const $ = id => document.getElementById(id);
 const canvas=$('world'), ctx=canvas.getContext('2d');
@@ -39,7 +39,7 @@ function readRun(id) {
       saved=migrateRun(JSON.parse(legacy),id);
       if(!saved)throw Error('Invalid legacy save');
     }
-    memory.set(id,saved); return saved;
+    upgradeRun(saved);memory.set(id,saved); return saved;
   } catch {readFailed=true;return null;}
 }
 function save() {
@@ -144,26 +144,26 @@ function render() {
   $('pause').hidden=view!=='play';$('pause').href=routeURL('pause');
   $('screen').className='screen';$('objective').hidden=view!=='play';$('dash-meter').hidden=view!=='play';$('room-toast').hidden=true;
   $('control-prompt').hidden=view!=='play'||controlsReady;
-  $('room-kicker').textContent=view==='home'?'PEPSI’S LITTLE ADVENTURE':view==='picnic'?'BOTH HOME. BOTH HAPPY.':`CHAPTER ${ORDER.indexOf(world.room)+1} OF 3`;
+  $('room-kicker').textContent=view==='home'?'PEPSI’S LITTLE ADVENTURE':view==='picnic'?'BOTH HOME. BOTH HAPPY.':`CHAPTER ${ORDER.indexOf(world.room)+1} OF ${ORDER.length}`;
   $('room-name').textContent=view==='home'?'One friend is missing.':view==='picnic'?'Home is wherever you are':ROOMS[world.room].name;
   $('location-icon').textContent=view==='picnic'?'♡':world?.room==='pond'?'♧':'✿';
   const active=run&&!run.completed;
   if(view==='home') {
-    $('screen').innerHTML=`<div class="welcome-card"><p class="card-eyebrow">SOMEONE’S MISSING FROM THE PICNIC</p><h3>Where’s Pepper?</h3>${plushPair(true)}<p>Find the key, rescue your best friend,<br>and brave the trip home together.</p><div class="mission-strip"><span>3 hearts</span><span>3 little chapters</span><span>1 best friend</span></div><button id="begin" class="primary-button">${active?'Continue the adventure':'Go find Pepper'} <span>→</span></button>${active?'<button id="fresh" class="secondary-button">Start a new adventure</button>':''}<p class="tiny-note">WASD to move. Space to dash. A keyboard is required.</p></div>`;
+    $('screen').innerHTML=`<div class="welcome-card"><p class="card-eyebrow">SOMEONE’S MISSING FROM THE PICNIC</p><h3>Where’s Pepper?</h3>${plushPair(true)}<p>Find the key, rescue your best friend,<br>then find six lost trinkets together.</p><div class="mission-strip"><span>3 hearts</span><span>4 little chapters</span><span>1 best friend</span></div><button id="begin" class="primary-button">${active?'Continue the adventure':'Go find Pepper'} <span>→</span></button>${active?'<button id="fresh" class="secondary-button">Start a new adventure</button>':''}<p class="tiny-note">WASD to move. Space to dash. A keyboard is required.</p></div>`;
     $('begin').addEventListener('click',()=>active?navigate(routeURL(run.health<=0?'retry':'play',run.room)):newRun());
     $('fresh')?.addEventListener('click',newRun);
   } else if(view==='pause') {
     $('screen').innerHTML='<div class="pause-card" role="dialog" aria-modal="true" aria-labelledby="pause-title"><span class="pause-flower" aria-hidden="true">✿</span><h3 id="pause-title">Catch your breath.</h3><p>The adventure is paused.<br>Press WASD or click Keep going to resume.<br>Space dashes. Snacks restore a heart.</p><button id="resume" class="primary-button">Keep going <span>→</span></button><a id="home-link" class="secondary-button" href="./">Back to the cottage</a></div>';
     $('resume').addEventListener('click',dismissScreen);$('home-link').href=routeURL('home');$('resume').focus({preventScroll:true});
   } else if(view==='reunion') {
-    $('screen').innerHTML='<div class="story-card" role="dialog" aria-modal="true" aria-labelledby="reunion-title"><p class="card-eyebrow">FOUND: ONE VERY GOOD FRIEND</p><canvas width="240" height="200" data-portrait="pepper" aria-label="Pepper, the gray plush corgi"></canvas><h3 id="reunion-title">Found you, Pepper.</h3><p>Your best friend is coming with you.<br>One last clearing, then a picnic together.</p><div class="new-heart">♥ A little braver together. Four hearts, fully restored.</div><button id="reunion-continue" class="primary-button">Let’s head home <span>→</span></button><button id="reunion-close" class="secondary-button">Stay by the pond a little longer</button></div>';
-    $('reunion-continue').addEventListener('click',()=>navigate(routeURL('play','orchard')));$('reunion-close').addEventListener('click',dismissScreen);$('reunion-continue').focus({preventScroll:true});
+    $('screen').innerHTML='<div class="story-card" role="dialog" aria-modal="true" aria-labelledby="reunion-title"><p class="card-eyebrow">FOUND: ONE VERY GOOD FRIEND</p><canvas width="240" height="200" data-portrait="pepper" aria-label="Pepper, the gray plush corgi"></canvas><h3 id="reunion-title">Found you, Pepper.</h3><p>Your best friend is coming with you.<br>There are still trinkets to find by the pond!</p><div class="new-heart">♥ A little braver together. Four hearts, fully restored.</div><button id="reunion-continue" class="primary-button">Explore together <span>→</span></button><button id="reunion-close" class="secondary-button">Stay by the pond a little longer</button></div>';
+    $('reunion-continue').addEventListener('click',dismissScreen);$('reunion-close').addEventListener('click',dismissScreen);$('reunion-continue').focus({preventScroll:true});
   } else if(view==='retry') {
-    $('screen').innerHTML='<div class="retry-card" role="dialog" aria-modal="true" aria-labelledby="retry-title"><span class="pause-flower" aria-hidden="true">♡</span><p class="card-eyebrow">A SMALL SETBACK</p><h3 id="retry-title">Even brave loaves<br>need another try.</h3><p>Restart this clearing with full hearts.<br>Its new snacks return to the grass.<br>Your key and Pepper stay safe.</p><button id="retry" class="primary-button">Try this clearing again <span>↻</span></button><button id="retry-home" class="secondary-button">Rest at the cottage</button></div>';
+    $('screen').innerHTML='<div class="retry-card" role="dialog" aria-modal="true" aria-labelledby="retry-title"><span class="pause-flower" aria-hidden="true">♡</span><p class="card-eyebrow">A SMALL SETBACK</p><h3 id="retry-title">Even brave loaves<br>need another try.</h3><p>Restart this clearing with full hearts.<br>Its new snacks return to the grass.<br>Your key, Pepper, and trinkets stay safe.</p><button id="retry" class="primary-button">Try this clearing again <span>↻</span></button><button id="retry-home" class="secondary-button">Rest at the cottage</button></div>';
     $('retry').addEventListener('click',()=>{world=retryRoom(run,world.room);save();navigate(routeURL('play'));});$('retry-home').addEventListener('click',dismissScreen);$('retry').focus({preventScroll:true});
   } else if(view==='picnic') {
     $('screen').classList.add('picnic-screen');
-    $('screen').innerHTML=`<div class="picnic-card"><p class="card-eyebrow">THE BEST THING YOU BROUGHT HOME</p><h3>Was each other.</h3><p>A full basket, tired little paws,<br>and your favorite adventure buddy.</p><div class="result-stats"><span><b>${run.collected.length}</b> snacks</span><span><b>${run.hits}</b> bumps</span><span><b>${run.retries}</b> retries</span></div><button id="again" class="primary-button">One more adventure <span>↗</span></button><p class="tiny-note">Pepsi & Pepper. Always better together.</p></div>`;
+    $('screen').innerHTML=`<div class="picnic-card"><p class="card-eyebrow">THE BEST THING YOU BROUGHT HOME</p><h3>Was each other.</h3><p>A full basket, tired little paws,<br>and your favorite adventure buddy.</p><div class="result-stats"><span><b>${run.trinkets.length}/6</b> trinkets</span><span><b>${run.collected.length}</b> snacks</span><span><b>${run.hits}</b> bumps</span><span><b>${run.retries}</b> retries</span></div><button id="again" class="primary-button">One more adventure <span>↗</span></button><p class="tiny-note">Pepsi & Pepper. Always better together.</p></div>`;
     $('again').addEventListener('click',newRun);
   } else {$('screen').classList.add('empty');$('screen').replaceChildren();}
   document.querySelectorAll('[data-portrait]').forEach(element=>portrait(element,element.dataset.portrait));
@@ -174,6 +174,7 @@ function updateProgress() {
   $('health').setAttribute('aria-label',`${health} of ${hearts} hearts`);
   $('hearts').innerHTML=Array.from({length:hearts},(_,i)=>`<span class="${i<health?'':'empty-heart'}" aria-hidden="true">♥</span>`).join('');
   $('snack-count').textContent=run?.collected.length||0;
+  $('trinket-count').textContent=`${run?.trinkets.length||0}/${TRINKETS.length}`;
   $('buddy-status').textContent=run?.pepperFound?'♡ Pepper is with you.':'Find your adventure buddy.';
   $('trail').innerHTML=ORDER.map((room,index)=>{
     const done=run&&goalDone(run,room),unlocked=run&&isUnlocked(run,room);
@@ -279,7 +280,7 @@ restore.addEventListener('change',async()=>{
     save();
     // Restore as a separate adventure so an existing save is never overwritten.
     data.id=Date.now().toString(36)+crypto.getRandomValues(new Uint32Array(1))[0].toString(36).slice(0,3);data.revision=0;
-    run=data;memory.set(run.id,run);world=makeWorld(run,run.room);conflict=false;save();
+    run=upgradeRun(data);memory.set(run.id,run);world=makeWorld(run,run.room);conflict=false;save();
     navigate(routeURL(run.completed?'picnic':run.health<=0?'retry':'play',run.room));toast('Your adventure is restored.');
   }catch{toast('That file isn’t a valid adventure backup. Your current adventure is unchanged.',5000);}
   finally{restore.value='';}
@@ -291,10 +292,11 @@ function handleEvents(events) {
   for(const event of events) {
     if(event.type==='snack'){sound('snack');toast(event.healed?'A snack and a second wind. +1 heart.':'A little something for the picnic.');}
     else if(event.type==='key'){sound('key');toast('The key! Pepper must be over by the pond.',4000);}
-    else if(event.type==='basket'){sound('basket');toast('Basket packed. Get both little loaves home!',3500);}
-    else if(event.type==='hit'){sound('hit');toast('Oof! −1 heart. Dash through toys; snacks can heal.',2300);}
-    else if(event.type==='stun'){sound('stun');announce('Toy stunned. Keep moving.');}
-    else if(event.type==='rescue'){save();sound('rescue');navigate(routeURL('reunion'));return;}
+    else if(event.type==='trinket'){sound('key');toast(`${event.item.name}! ${run.trinkets.length}/6 trinkets tucked away.`,3000);}
+    else if(event.type==='basket'){sound('basket');toast('Basket found! Bring all six trinkets home for the picnic.',3500);}
+    else if(event.type==='hit'){sound('hit');toast('Oof! −1 heart. Dash past mischief; snacks can heal.',2300);}
+    else if(event.type==='stun'){sound('stun');announce('Mischief bonked. Keep moving.');}
+    else if(event.type==='rescue'){sound('rescue');toast('Found you, Pepper! ♥ Four hearts. Now find the ribbon and button together.',5500);}
     else if(event.type==='defeat'){save();sound('defeat');navigate(routeURL('retry'));return;}
     else if(event.type==='exit') {
       const next=ORDER[ORDER.indexOf(world.room)+1];

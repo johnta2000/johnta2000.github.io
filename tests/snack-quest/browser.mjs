@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { chromium, webkit } from 'playwright';
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
-import { createRun, ROOMS, ORDER } from '../../games/snack-quest/engine.mjs';
+import { createRun, ROOMS, ORDER, TRINKETS } from '../../games/snack-quest/engine.mjs';
 
 const base=process.env.SNACK_QUEST_URL||'http://127.0.0.1:8766/games/snack-quest/';
 const installed=homedir()+'/Library/Caches/ms-playwright/chromium-1243/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing';
@@ -83,19 +83,39 @@ try {
   await page.waitForFunction(prefix=>JSON.parse(localStorage.getItem(prefix+new URLSearchParams(location.search).get('run'))).keyFound,prefix);assert.equal((await saved(page)).collected.length,0);
   await page.keyboard.press('Escape');await waitView(page,'pause');await page.keyboard.press('Escape');await waitView(page,'play');
   await page.screenshot({path:output+'/desktop-key.png',fullPage:true});
-  const rescue=createRun('rescuetest');rescue.keyFound=true;rescue.health=1;rescue.room='pond';rescue.positions.pond={x:735,y:370};await seed(page,rescue);await hold(page,'d',250);await waitView(page,'reunion');
-  assert.equal((await saved(page)).pepperFound,true);assert.equal((await saved(page)).health,4);await page.screenshot({path:output+'/desktop-reunion.png',fullPage:true});
-  const reunionURL=page.url();await page.reload();await page.locator('.story-card').waitFor();assert.equal(page.url(),reunionURL);await page.locator('.story-card h3').click();assert.match(page.url(),/view=reunion/);
+  const rescue=createRun('rescuetest');rescue.keyFound=true;rescue.health=1;rescue.room='pond';rescue.positions.pond={x:735,y:370};await seed(page,rescue);await hold(page,'d',250);
+  assert.match(page.url(),/view=play/);assert.match(page.url(),/room=pond/);assert.equal(await page.locator('.story-card').count(),0,'rescue never interrupts or skips the pond');
+  assert.equal((await saved(page)).pepperFound,true);assert.equal((await saved(page)).health,4);
+  assert.match(await page.locator('#objective-text').innerText(),/ribbon.*button/);
+  await page.keyboard.press('Escape');await waitView(page,'pause');await page.reload();await page.locator('#resume').click();await waitRoom(page,'pond');
+  assert.equal((await saved(page)).pepperFound,true);assert.equal((await saved(page)).trinkets.length,0);
+  await page.keyboard.down('a');await page.waitForTimeout(300);await page.screenshot({path:output+'/desktop-reunion.png',fullPage:true});await page.keyboard.up('a');await page.keyboard.press('Escape');
+  // Collect each actual trinket through WASD, preserving the previous discoveries.
+  let treasure=createRun('treasure12');treasure.keyFound=true;treasure.pepperFound=true;treasure.health=4;
+  for(const item of TRINKETS){
+    treasure.room=item.room;treasure.positions[item.room]={x:item.x-38,y:item.y};
+    await seed(page,treasure,item.room);await hold(page,'d',100);await page.keyboard.press('Escape');await waitView(page,'pause');
+    treasure=await saved(page);assert.ok(treasure.trinkets.includes(item.id));
+    await page.reload();await page.locator('.pause-card').waitFor();assert.ok((await saved(page)).trinkets.includes(item.id));
+  }
+  assert.equal(treasure.trinkets.length,6);assert.equal(await page.locator('#trinket-count').innerText(),'6/6');
+  const locked=createRun('lockedpond');locked.keyFound=true;locked.pepperFound=true;locked.health=4;locked.positions.pond={x:895,y:320};
+  await seed(page,locked,'pond');await hold(page,'d',100);assert.match(page.url(),/room=pond/,'rescue alone does not open the pond exit');
+  locked.trinkets=TRINKETS.filter(item=>item.room==='pond').map(item=>item.id);locked.revision=(await saved(page)).revision+1;
+  await seed(page,locked,'pond');await hold(page,'d',100);await waitRoom(page,'burrows');
+  await page.keyboard.press('w');await page.waitForTimeout(3100);await page.screenshot({path:output+'/desktop-gopher-garden.png',fullPage:true});await page.keyboard.press('Escape');
+  const gardenExit=createRun('gardenexit');gardenExit.keyFound=true;gardenExit.pepperFound=true;gardenExit.health=4;gardenExit.trinkets=TRINKETS.filter(item=>item.room!=='orchard').map(item=>item.id);gardenExit.positions.burrows={x:895,y:320};
+  await seed(page,gardenExit,'burrows');await hold(page,'d',100);await waitRoom(page,'orchard');
+  await page.keyboard.down('d');await page.waitForTimeout(500);await page.screenshot({path:output+'/desktop-final-area.png',fullPage:true});await page.keyboard.up('d');await page.keyboard.press('Escape');
+  // Old reunion deep links remain usable and resume at the pond.
+  const reunionURL=`${base}?view=reunion&run=${rescue.id}&room=pond`;await page.goto(reunionURL);await page.locator('.story-card').waitFor();await page.reload();await page.locator('.story-card').waitFor();
   const reunionCopy=await desktop.newPage();await reunionCopy.goto(reunionURL);await reunionCopy.locator('.story-card').waitFor();await reunionCopy.close();
-  await page.locator('#reunion-continue').click();await waitRoom(page,'orchard');assert.equal((await saved(page)).health,4);assert.equal(await page.locator('#save-error').isVisible(),false,'read-only copied link does not create a save conflict');
-  await page.keyboard.down('d');await page.waitForTimeout(500);
-  await page.screenshot({path:output+'/desktop-final-area.png',fullPage:true});
-  await page.keyboard.up('d');await page.keyboard.press('Escape');
+  await page.locator('#reunion-continue').click();await waitRoom(page,'pond');assert.equal(await page.locator('#save-error').isVisible(),false);
   // A real hazard hit and defeat, with no game-state test hooks.
   const damage=createRun('damage123');damage.health=1;damage.positions.meadow={x:300,y:350};await seed(page,damage);await page.keyboard.press('w');await page.waitForURL(/view=retry/,{timeout:10000});assert.equal((await saved(page)).health,0);assert.equal((await saved(page)).hits,1);
   const lostURL=page.url();await page.reload();await page.locator('#retry').waitFor();assert.equal(page.url(),lostURL);await page.screenshot({path:output+'/desktop-retry.png',fullPage:true});
   await page.locator('#retry').click();await waitView(page,'play');assert.equal((await saved(page)).health,3);assert.equal((await saved(page)).retries,1);
-  const final=createRun('finaltest');final.keyFound=true;final.pepperFound=true;final.health=4;final.room='orchard';final.positions.orchard={x:780,y:160};await seed(page,final);
+  const final=createRun('finaltest');final.keyFound=true;final.pepperFound=true;final.health=4;final.trinkets=TRINKETS.map(item=>item.id);final.room='orchard';final.positions.orchard={x:780,y:160};await seed(page,final);
   await hold(page,'d',250);assert.ok((await saved(page)).basketFound);await hold(page,'s',850);await hold(page,'d',620);await page.waitForURL(/view=picnic/,{timeout:5000});assert.ok((await saved(page)).completed);
   await page.screenshot({path:output+'/desktop-picnic.png',fullPage:true});await page.reload();await page.locator('.picnic-card').waitFor();
   await page.locator('#again').click();await waitView(page,'play');assert.equal((await saved(page)).pepperFound,false);assert.equal((await saved(page)).health,3);
@@ -112,6 +132,10 @@ try {
   await page.evaluate(data=>localStorage.setItem('pepsi-pepper.snack-quest.v1.'+data.id,JSON.stringify(data)),legacy);
   await page.goto(`${base}?view=play&run=${legacy.id}&room=pond&corgi=pepper`);await waitRoom(page,'pond');assert.ok((await saved(page)).keyFound);assert.equal((await saved(page)).pepperFound,false);
   assert.deepEqual(await page.evaluate(id=>JSON.parse(localStorage.getItem('pepsi-pepper.snack-quest.v1.'+id)),legacy.id),legacy);assert.doesNotMatch(page.url(),/corgi=/);
+  // Existing v2 saves keep their exact location, hearts, snacks, and completed endings.
+  const oldQuest=createRun('oldv2quest');delete oldQuest.trinkets;oldQuest.keyFound=true;oldQuest.pepperFound=true;oldQuest.health=2;oldQuest.room='orchard';oldQuest.positions.orchard={x:245,y:380};oldQuest.collected=['pond-1'];
+  await seed(page,oldQuest,'orchard');const upgraded=await saved(page);assert.equal(upgraded.health,2);assert.deepEqual(upgraded.positions.orchard,oldQuest.positions.orchard);assert.deepEqual(upgraded.collected,['pond-1']);assert.deepEqual(upgraded.trinkets,[]);
+  const oldFinished={...oldQuest,id:'oldv2win',basketFound:true,completed:true};await seed(page,oldFinished,'orchard','picnic');await page.locator('.picnic-card').waitFor();assert.equal(await page.locator('#trinket-count').innerText(),'6/6');
   const stale=createRun('staletest');await seed(page,stale,'meadow','pause');
   await page.evaluate(({prefix,id})=>{const latest=JSON.parse(localStorage.getItem(prefix+id));latest.health=2;latest.revision+=1;localStorage.setItem(prefix+id,JSON.stringify(latest));},{prefix,id:stale.id});
   await page.locator('#resume').click();await waitView(page,'play');await hold(page,'d',180);await page.keyboard.press('Escape');await waitView(page,'pause');await page.locator('#save-error').waitFor({state:'visible'});assert.equal((await saved(page)).health,2,'stale tab cannot overwrite newer damage');
@@ -163,7 +187,7 @@ try {
 
   // Render the actual score for a listenable preview and check its level/headroom.
   const preview=await musicPage.evaluate(async()=>{
-    const {Soundscape}=await import('/games/snack-quest/audio.mjs?v=5');
+    const {Soundscape}=await import('/games/snack-quest/audio.mjs?v=8');
     const rate=22050,context=new OfflineAudioContext(1,rate*22,rate);
     const score=new Soundscape(()=>context);score.setEnabled(true);score.unlock();score.setScene('play','meadow');
     for(let i=0;i<64;i++)score.musicBeat(i,.1+i*30/96,30/96);
@@ -179,12 +203,12 @@ try {
   assert.equal(await phone.locator('.touch-controls,[data-direction]').count(),0);assert.equal(await phone.locator('.phone-note').isVisible(),true);
   await phone.screenshot({path:output+'/mobile-home.png',fullPage:true});
   const mobileRun=createRun('mobile123');mobileRun.keyFound=true;mobileRun.pepperFound=true;mobileRun.health=4;
-  for(const room of ORDER){await seed(phone,mobileRun,room,'pause');const url=phone.url();await phone.reload();await phone.locator('.pause-card').waitFor();assert.equal(phone.url(),url);const copy=await mobile.newPage();await copy.goto(url);await copy.locator('.pause-card').waitFor();await copy.close();await dismissOutside(phone);await waitView(phone,'play');await phone.keyboard.press('Escape');await waitView(phone,'pause');}
+  for(const room of ORDER){await seed(phone,mobileRun,room,'pause');const url=phone.url();await phone.reload();await phone.locator('.pause-card').waitFor();assert.equal(phone.url(),url);const copy=await mobile.newPage();await copy.goto(url);await copy.locator('.pause-card').waitFor();assert.equal(await copy.locator('#room-name').textContent(),ROOMS[room].name);await copy.close();await phone.locator('#home-link').click();await phone.locator('#begin').waitFor();await phone.goBack();await phone.locator('.pause-card').waitFor();assert.equal(phone.url(),url);await phone.goForward();await phone.locator('#begin').waitFor();await phone.goBack();await phone.locator('.pause-card').waitFor();await dismissOutside(phone);await waitView(phone,'play');await phone.keyboard.press('Escape');await waitView(phone,'pause');}
   assert.ok(await phone.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
   const reunionMobile=createRun('mobilestory');reunionMobile.keyFound=true;reunionMobile.pepperFound=true;reunionMobile.health=4;await seed(phone,reunionMobile,'pond','reunion');await phone.screenshot({path:output+'/mobile-reunion.png',fullPage:true});
-  const winMobile=createRun('mobilewin');winMobile.keyFound=true;winMobile.pepperFound=true;winMobile.basketFound=true;winMobile.completed=true;winMobile.health=4;await seed(phone,winMobile,'orchard','picnic');await phone.screenshot({path:output+'/mobile-picnic.png',fullPage:true});await mobile.close();
+  const winMobile=createRun('mobilewin');winMobile.keyFound=true;winMobile.pepperFound=true;winMobile.basketFound=true;winMobile.completed=true;winMobile.health=4;winMobile.trinkets=TRINKETS.map(item=>item.id);await seed(phone,winMobile,'orchard','picnic');await phone.screenshot({path:output+'/mobile-picnic.png',fullPage:true});await mobile.close();
 
   const blocked=await browser.newContext();await blocked.addInitScript(()=>{Storage.prototype.setItem=function(){throw new DOMException('Full','QuotaExceededError');};});const failure=await pageFor(blocked);await failure.locator('#begin').click();await failure.locator('#save-error').waitFor({state:'visible'});const downloadPromise=failure.waitForEvent('download');await failure.locator('#download-save').click();assert.equal((await downloadPromise).suggestedFilename(),'pepsi-pepper-adventure.json');await blocked.close();
-  assert.deepEqual(errors,[]);console.log('PASS: WASD-only movement, dash/key, real hit/defeat/retry, Pepper rescue and extra heart, basket and home ending, all room/view URLs, copied links, refresh, Back/Forward, mobile keyboard notice, old-save migration, save failure backup, and real audio playback/mute/pause/resume.');
+  assert.deepEqual(errors,[]);console.log('PASS: WASD-only movement, dash/key, real hit/defeat/retry, uninterrupted Pepper rescue, all six trinkets, garden progression, basket and home ending, all room/view URLs, copied links, refresh, Back/Forward, mobile keyboard notice, old-save migration, save failure backup, and real audio playback/mute/pause/resume.');
   console.log('Screenshots: '+output);
 }finally{await browser.close();}
