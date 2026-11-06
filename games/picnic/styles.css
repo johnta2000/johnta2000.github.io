@@ -12,7 +12,51 @@ body:is([data-view="help"],[data-view="levels"],[data-view="result"]) .screen{po
 .name-labels.has-pee a{pointer-events:auto;min-width:44px;min-height:44px;line-height:44px;font:italic 16px/44px Georgia,serif;color:#78658a;text-decoration:underline;text-underline-offset:4px}
 .guest-panel{position:relative;max-width:430px}.guest-portrait{display:block;width:105px;height:120px;margin:0 auto 6px}.guest-close{position:absolute;top:7px;right:7px;width:44px;height:44px;border-radius:50%;font-size:22px;font-weight:400;background:transparent;color:#8a8b74}.guest-close:hover{background:#f0eee1}.guest-panel .small-tag{max-width:calc(100% - 28px);font-size:9px;line-height:1.5}.screen .guest-saved{font-size:10px;margin:16px auto 0;color:#7a826e}.screen .secret-hint{font:italic 11px/1.4 Georgia,serif;color:#8a7841;margin:-6px auto 16px}
 body[data-view="guest"] .stage{height:auto;min-height:460px}body[data-view="guest"] #scene{position:absolute;inset:0}body[data-view="guest"] .screen{position:relative;min-height:460px;padding:25px 15px}
-@media(max-width:375px){.playing .stage:has(.secret-hint){min-height:400px}.guest-panel .small-tag{font-size:8px;letter-spacing:.6px}.name-labels.has-pee a{font-size:14px}}
+@media(max-width:375px){.guest-panel .small-tag{font-size:8px;letter-spacing:.6px}.name-labels.has-pee a{font-size:14px}}
 /* Ten little adventures. */
-.hearts{font-size:18px;line-height:1.1;letter-spacing:4px;color:#c5746c;margin-top:6px}.effect-status{position:absolute;top:113px;left:0;right:0;margin:auto;max-width:440px;border-radius:8px;background:#fffbeaeb;padding:6px 10px;text-align:center;font-size:10px;color:#7d6c4c;line-height:1.5}.effect-status:empty{display:none}.catch-message.bad{font:600 13px/1.5 "Avenir Next",Avenir,sans-serif;color:#94594d;background:#fff4e6ed;border:1px solid #dab49f;border-radius:12px;padding:8px 14px;max-width:380px;margin:auto;transform:none}.earned-stars{color:#b89b4c;font-size:29px;letter-spacing:6px;margin:14px 0}.ready-rules{display:grid;gap:5px;margin:0 auto 18px;padding:12px;border-radius:12px;background:#f0f1e4;font-size:10px;line-height:1.5;color:#7b7c65}.ready-rules>span:first-child{color:#ba7469;font-size:15px;letter-spacing:2px}.ready-rules b{font-size:10px;font-weight:500;letter-spacing:0;color:#727b66}.ready-panel{max-width:480px}.hazard-list{display:grid;gap:8px;margin:18px 0;text-align:left}.hazard-list>div{display:flex;gap:12px;align-items:center;background:#f4f2e6;border:1px solid #e3dec8;border-radius:11px;padding:7px 12px}.hazard-list canvas{width:40px;height:40px;flex:0 0 40px;position:static!important}.hazard-list b{font-size:12px;display:block}.hazard-list small{font-size:10px;color:#7a7564;display:block;margin-top:3px}.screen .help-note{font-size:11px;line-height:1.6;margin-bottom:13px}.help-panel{max-width:500px}.level-panel{max-width:760px}.level-list{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.level-card{min-height:62px}.level-card.is-locked{background:#f4f2e8;border-style:dashed}.level-card.is-locked .level-number,.level-card.is-locked small{color:#8e8e79}.level-nav{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:5px}.level-nav a{flex-direction:column;gap:5px;text-align:center;line-height:1.3;padding:7px 2px;font-size:9px}.level-nav a.completed::before{content:attr(data-number)}.level-nav a.locked::before{border-style:dashed;background:transparent;color:#9a9b8a}.level-nav a[aria-current]::before{border:2px solid #7e946a}.name-labels{height:22px;align-items:center}.name-labels a{pointer-events:auto;min-width:44px;min-height:44px;font:italic 16px/44px Georgia,serif;color:#687255;text-decoration:underline;text-underline-offset:4px}.name-labels a[href*="view=guest"]{color:#78658a}.name-labels.crew-1{gap:0}.name-labels.crew-3{width:var(--picnic-names-width,336px);left:50%;right:auto;transform:translateX(-50%);display:grid;grid-template-columns:repeat(3,1fr);gap:0}.playing .stage:has(.ready-panel){height:auto;min-height:420px}.playing .stage:has(.ready-panel) #scene{position:absolute;inset:0}.playing .stage:has(.ready-panel) .screen{position:relative;min-height:420px;padding:25px 15px}body[data-view="pepper"] .stage{height:auto;min-height:460px}body[data-view="pepper"] #scene{position:absolute;inset:0}body[data-view="pepper"] .screen{position:relative;min-height:460px;padding:25px 15px}
+.hearts{font-size:18px;line-height:1.1;letter-spacing:4px;color:#c5746c;margin-top:6px}.effect-status{position:absolute;top:113px;left:0;right:0;margin:auto;max-width:440px;border-radius:8px;background:#fffbeaeb;padding:6px 10px;text-align:center;font-size:10px;color:#7d6c4c;line-height:1.5}.effect-status:empty{display:none}.catch-message.bad{font:600 13px/1.5 "Avenir Next",Avenir,sans-serif;color:#94594d;background:#fff4e6ed;border:1px solid #dab49f;border-radius:12px;padding:8px 14px;max-width:380px;margin:auto;transform:none}.earned-stars{color:#b89b4c;font-size:29px;letter-spacing:6px;margin:14px 0}.ready-rules{display:grid;gap:5px;margin:0 auto 18px;padding:12px;border-radius:12px;background:#f0f1e4;font-size:10px;line-height:1.5;color:#7b7c65}.ready-rules>span:first-child{color:#ba7469;font-size:15px;letter-spacing:2px}.ready-rules b{font-size:10px;font-weight:500;letter-spacing:0;color:#727b66}.ready-panel{max-width:480px}.hazard-list{display:grid;gap:8px;margin:18px 0;text-align:left}.hazard-list>div{display:flex;gap:12px;align-items:center;background:#f4f2e6;border:1px solid #e3dec8;border-radius:11px;padding:7px 12px}.hazard-list canvas{width:40px;height:40px;flex:0 0 40px;position:static!important}.hazard-list b{font-size:12px;display:block}.hazard-list small{font-size:10px;color:#7a7564;display:block;margin-top:3px}.screen .help-note{font-size:11px;line-height:1.6;margin-bottom:13px}.help-panel{max-width:500px}.level-panel{max-width:760px}.level-list{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.level-card{min-height:62px}.level-card.is-locked{background:#f4f2e8;border-style:dashed}.level-card.is-locked .level-number,.level-card.is-locked small{color:#8e8e79}.level-nav{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:5px}.level-nav a{flex-direction:column;gap:5px;text-align:center;line-height:1.3;padding:7px 2px;font-size:9px}.level-nav a.completed::before{content:attr(data-number)}.level-nav a.locked::before{border-style:dashed;background:transparent;color:#9a9b8a}.level-nav a[aria-current]::before{border:2px solid #7e946a}.name-labels{height:22px;align-items:center}.name-labels a{pointer-events:auto;min-width:44px;min-height:44px;font:italic 16px/44px Georgia,serif;color:#687255;text-decoration:underline;text-underline-offset:4px}.name-labels a[href*="view=guest"]{color:#78658a}.name-labels.crew-1{gap:0}.name-labels.crew-3{width:var(--picnic-names-width,336px);left:50%;right:auto;transform:translateX(-50%);display:grid;grid-template-columns:repeat(3,1fr);gap:0}body[data-view="pepper"] .stage{height:auto;min-height:460px}body[data-view="pepper"] #scene{position:absolute;inset:0}body[data-view="pepper"] .screen{position:relative;min-height:460px;padding:25px 15px}
 @media(max-width:650px){.level-list{grid-template-columns:1fr;gap:8px}.level-panel{max-width:420px}.level-nav{grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;padding:18px 0}.level-nav a{max-width:none;font-size:8px}.playing .level-nav{display:flex;overflow-x:auto;justify-content:flex-start;gap:3px;scrollbar-width:none;padding:9px 0}.playing .level-nav::-webkit-scrollbar{display:none}.playing .level-nav a{flex:1 0 44px;min-width:44px;min-height:44px}.effect-status{top:111px;font-size:9px;padding:5px 7px}.hearts{font-size:17px}.catch-message.bad{font-size:12px;max-width:calc(100% - 24px)}.hazard-list>div{padding:6px 9px;gap:10px}.hazard-list small{font-size:9px}.name-labels a{font-size:15px}.welcome h2{max-width:290px;margin-left:auto;margin-right:auto}.ready-panel h2{font-size:27px}.earned-stars{font-size:27px}}
+
+/* Let the meadow use the window; keep navigation within one small toolbar. */
+.page{max-width:none;padding:16px clamp(12px,2vw,32px) 0}
+.topbar{padding-bottom:12px}
+.introduction{padding:22px 0}
+body:is([data-view="home"],[data-view="picnic"]) .stage{height:max(460px,calc(100svh - 300px));height:max(460px,calc(100dvh - 300px))}
+.name-labels{bottom:calc(15% - 34px)}
+.adventure-link{display:none}
+.playing .page{width:100%;height:100svh;height:100dvh;min-height:320px;display:flex;flex-direction:column;gap:8px;padding:max(8px,env(safe-area-inset-top)) max(8px,env(safe-area-inset-right)) max(8px,env(safe-area-inset-bottom)) max(8px,env(safe-area-inset-left))}
+.playing .topbar{flex:none;min-height:44px;padding:0 4px;border:0}
+.playing .adventure-link{display:inline-flex}
+.playing .introduction,.playing .level-nav,.playing footer{display:none}
+.playing main{display:flex;flex-direction:column;flex:1;min-height:0}
+.playing .game-frame{display:flex;flex-direction:column;flex:1;min-height:0;border-radius:16px;box-shadow:none}
+.playing .frame-top,.playing .frame-bottom{flex:none;padding:8px 16px}
+.playing .stage{flex:1;min-height:0;height:auto}
+.playing .stage:has(.screen.centered){touch-action:pan-y}
+.playing #scene{position:absolute;inset:0}
+.playing .screen{position:absolute;min-height:0;padding:20px 16px;overflow-y:auto;overscroll-behavior:contain}
+.playing .screen.centered{align-items:flex-start}
+.playing .paper-panel{flex-shrink:0;margin:auto}
+.playing .save-warning{flex:none;margin-bottom:8px}
+@media(max-width:650px){
+  .page{padding:12px 12px 0}
+  .playing .topbar{padding:0}
+  .playing .topbar nav{gap:5px}
+  .playing .quiet-button{padding:9px 10px}
+  .playing .frame-top{padding:7px 12px}
+  .playing .frame-bottom{padding:7px 12px}
+  .playing .game-frame{border-radius:12px}
+}
+@media(max-height:500px) and (orientation:landscape){
+  .playing .page{gap:5px;padding:5px max(8px,env(safe-area-inset-right)) max(5px,env(safe-area-inset-bottom)) max(8px,env(safe-area-inset-left))}
+  .playing .frame-top,.playing .frame-bottom{display:none}
+  .playing .screen{padding:12px}
+  .playing .paper-panel{max-width:600px;padding:16px 24px}
+  .playing .paper-panel h2{font-size:24px}
+  .playing .paper-panel .small-tag{margin-bottom:8px}
+  .playing .paper-panel p{max-width:500px;margin-bottom:10px}
+  .playing .ready-rules{display:flex;justify-content:center;align-items:center;gap:14px;padding:7px 12px;margin-bottom:12px}
+  .playing .ready-panel .text-link{padding-top:10px}
+  .playing .hud{top:10px}
+  .playing .effect-status{top:0;max-width:280px;left:190px;right:150px}
+}
