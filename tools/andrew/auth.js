@@ -47,11 +47,14 @@
     }); mounted = true;
   }
   function suspend(reason = 'expired') {
+    // A missing/rejected token does not prove that Clerk ended the login session.
+    if (reason === 'expired' && active(window.Clerk?.session)) reason = 'unverified';
     checkpoint(); ++epoch; checking = null; clearPrivate(); mode = reason; $('sign-out').hidden = true;
-    $('gate').hidden = false; $('retry-auth').hidden = false; $('retry-auth').textContent = reason === 'denied' ? 'Switch account' : 'Sign in again';
-    const text = reason === 'denied' ? 'This account no longer has access. Editing is locked.' : 'Your sign-in expired. Editing is locked and changes are not saving.';
-    banner(text + (hasRecovery() ? ' Unsaved edits are held for recovery after you sign in with the same account.' : ''), 'Sign in again');
-    message('gate-message', hasRecovery() ? 'Sign in with the same approved account to recover the unsaved edits from this tab.' : 'Sign in with your approved team email to continue.');
+    const action = reason === 'denied' ? 'Switch account' : reason === 'unverified' ? 'Retry sign-in check' : 'Sign in again';
+    $('gate').hidden = false; $('retry-auth').hidden = false; $('retry-auth').textContent = action;
+    const text = reason === 'denied' ? 'This account no longer has access. Editing is locked.' : reason === 'unverified' ? 'We could not verify your sign-in. Editing is locked and changes are not saving.' : 'You are signed out. Editing is locked and changes are not saving.';
+    banner(text + (hasRecovery() ? ' Unsaved edits are held for recovery once the same account is verified.' : ''), action);
+    message('gate-message', reason === 'unverified' ? 'Your existing login may still be valid. Retry the check to reconnect and recover your edits.' : hasRecovery() ? 'Sign in with the same approved account to recover the unsaved edits from this tab.' : 'Sign in with your approved team email to continue.');
     if (!active(window.Clerk?.session)) mountSignIn(); else $('sign-in').hidden = true;
   }
   function connectionLost() {
@@ -219,7 +222,7 @@
   }
   async function retryAuth() {
     if (ready && mode === 'disconnected') { await checkSession(true); return; }
-    if (mode === 'expired' || mode === 'denied') {
+    if (mode === 'denied') {
       checkpoint(); // Explicit reauthentication keeps the recovery copy.
       try { await window.Clerk.signOut(); } catch { message('gate-message', 'Sign-in could not restart. Check your connection and try again.'); return; }
     }
