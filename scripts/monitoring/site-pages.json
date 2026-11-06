@@ -259,5 +259,11 @@
     "file": "war-room-10012026/index.html",
     "analytics": false,
     "title": "October 1, 2026 · Launch War Room"
+  },
+  {
+    "path": "/tools/investing/",
+    "file": "tools/investing/index.html",
+    "analytics": false,
+    "title": "The long game · Investing lab"
   }
 ]
