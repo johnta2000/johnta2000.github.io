@@ -1,9 +1,12 @@
 // Use the official Pages API, allowing time for its server-side deployment queue.
 module.exports = async function publish({ github, context, core, sleep = ms => new Promise(resolve => setTimeout(resolve, ms)), now = Date.now, timeout = 30 * 60 * 1000 }) {
   const repo = context.repo;
-  const artifacts = await github.rest.actions.listWorkflowRunArtifacts({ ...repo, run_id: context.runId });
-  const artifact = artifacts.data.artifacts.find(item => item.name === 'github-pages' && !item.expired);
+  const artifacts = await github.rest.actions.listWorkflowRunArtifacts({ ...repo, run_id: context.runId, headers: { 'cache-control': 'no-cache' }, cache_check: now() });
+  const artifact = artifacts.data.artifacts
+    .filter(item => item.name === 'github-pages' && !item.expired)
+    .sort((a, b) => b.id - a.id)[0];
   if (!artifact) throw new Error('The current run has no deployable Pages artifact.');
+  core.info(`Publishing current artifact ${artifact.id}`);
   const oidcToken = await core.getIDToken();
   const response = await github.request('POST /repos/{owner}/{repo}/pages/deployments', {
     ...repo, artifact_id: artifact.id, pages_build_version: context.sha, oidc_token: oidcToken,
