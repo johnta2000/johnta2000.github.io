@@ -1,41 +1,89 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { ROOMS, createRun, makeWorld, roomItems, toysFor, walkable, step, startDash, roomCount, isUnlocked, validRun } from '../../games/snack-quest/engine.mjs';
+import { ROOMS, ORDER, createRun, makeWorld, roomItems, toysFor, walkable, step, startDash, maxHearts, isUnlocked, goalDone, validRun, migrateRun, retryRoom } from '../../games/snack-quest/engine.mjs';
+const idle={x:0,y:0};
+function toyAt(x,y){return {x,y,r:18,vx:0,vy:0,kind:'ball',mode:'roam',timer:0,cooldown:9};}
 
-test('every generated snack and toy starts in walkable ground',()=>{
-  for(let seed=0;seed<1000;seed++)for(const room of Object.keys(ROOMS)){
-    const items=roomItems(seed,room);assert.equal(new Set(items.map(item=>item.id)).size,4);
-    for(const item of items)assert.ok(walkable(item.x,item.y,room),`${seed}/${room}: snack inside an obstacle`);
-    for(const toy of toysFor(seed,room))assert.ok(walkable(toy.x,toy.y,room,toy.r),`${seed}/${room}: toy inside an obstacle`);
+test('snacks, hazards, and quest goals are reachable on solid ground',()=>{
+  for(const room of ORDER){
+    const visited=new Set(['140,320']),queue=[[140,320]];
+    for(let i=0;i<queue.length;i++)for(const [dx,dy] of [[10,0],[-10,0],[0,10],[0,-10]]){
+      const [x,y]=queue[i],nx=x+dx,ny=y+dy,key=`${nx},${ny}`;
+      if(!visited.has(key)&&walkable(nx,ny,room)){visited.add(key);queue.push([nx,ny]);}
+    }
+    for(const [x,y] of [...ROOMS[room].slots,[ROOMS[room].goal.x,ROOMS[room].goal.y],[910,320]])assert.ok(queue.some(([px,py])=>Math.hypot(x-px,y-py)<18),`${room}: ${x},${y}`);
+    for(let seed=0;seed<500;seed++){
+      assert.equal(roomItems(seed,room).length,3);
+      for(const item of roomItems(seed,room))assert.ok(walkable(item.x,item.y,room));
+      for(const toy of toysFor(seed,room))assert.ok(walkable(toy.x,toy.y,room,toy.r));
+    }
   }
 });
-test('a copied run produces exactly the same rooms and snacks',()=>{
-  const run=createRun('snacktest','pepper');const copy=JSON.parse(JSON.stringify(run));assert.ok(validRun(copy,run.id));assert.deepEqual(createRun(run.id).order,copy.order);for(const room of run.order)assert.deepEqual(roomItems(run.seed,room),roomItems(copy.seed,room));
+test('Pepsi starts alone; rooms unlock through discoveries, not snack totals',()=>{
+  const run=createRun('start123');assert.equal(run.pepperFound,false);assert.equal(run.health,3);
+  assert.equal(isUnlocked(run,'pond'),false);assert.equal(isUnlocked(run,'orchard'),false);
+  run.collected=roomItems(run.seed,'meadow').map(x=>x.id);assert.equal(isUnlocked(run,'pond'),false);
+  run.keyFound=true;assert.ok(isUnlocked(run,'pond'));assert.equal(isUnlocked(run,'orchard'),false);
 });
-test('all snack positions and exits can be reached on foot',()=>{
-  const grid=10;
-  for(const room of Object.keys(ROOMS)){
-    const visited=new Set(),queue=[[140,320]];for(let i=0;i<queue.length;i++){const [x,y]=queue[i];for(const [dx,dy]of[[grid,0],[-grid,0],[0,grid],[0,-grid]]){const nx=x+dx,ny=y+dy,key=`${nx},${ny}`;if(!visited.has(key)&&walkable(nx,ny,room)){visited.add(key);queue.push([nx,ny]);}}}
-    for(const [x,y]of[...ROOMS[room].slots,[910,320]])assert.ok(queue.some(([px,py])=>Math.hypot(x-px,y-py)<15),`${room}: unreachable ${x},${y}`);
+test('walking into the key crate does not open it; dashing does',()=>{
+  const run=createRun('crate123'),world=makeWorld(run,'meadow');world.toys=[];
+  world.player.x=490;world.player.y=190;step(world,run,{x:1,y:0},.02);assert.equal(run.keyFound,false);
+  assert.ok(startDash(world,{x:1,y:0}));let events=[];
+  for(let i=0;i<10;i++)events.push(...step(world,run,{x:1,y:0},.02));
+  assert.ok(events.some(e=>e.type==='key'));assert.ok(run.keyFound);assert.equal(run.collected.length,0);
+});
+test('hits cost hearts, have a grace period, and three hits stop the run',()=>{
+  const run=createRun('hits1234'),world=makeWorld(run,'meadow');world.items=[];
+  for(let n=1;n<=3;n++){
+    world.invincible=0;world.toys=[toyAt(world.player.x,world.player.y)];
+    const events=step(world,run,idle,.016);assert.equal(run.health,3-n);
+    assert.ok(events.some(e=>e.type===(n===3?'defeat':'hit')));
+    const before=run.health;step(world,run,idle,.016);assert.equal(run.health,before,'no repeated damage in grace period');
   }
+  const before={...world.player};assert.deepEqual(step(world,run,{x:1,y:0},.03),[]);assert.equal(world.player.x,before.x);
 });
-test('snacks collect once and unlock only the following clearing',()=>{
-  const run=createRun('quest123');const world=makeWorld(run,'meadow');world.toys=[];
-  assert.equal(isUnlocked(run,run.order[1]),false);
-  for(const item of world.items){Object.assign(world.player,{x:item.x,y:item.y});const events=step(world,run,{x:0,y:0},.016);assert.equal(events.filter(e=>e.type==='snack').length,1);assert.equal(step(world,run,{x:0,y:0},.016).filter(e=>e.type==='snack').length,0);}
-  assert.equal(run.collected.length,4);assert.equal(roomCount(run,'meadow'),4);assert.ok(isUnlocked(run,run.order[1]));assert.equal(isUnlocked(run,run.order[2]),false);
+test('snacks heal exactly one heart, once each, up to the heart limit',()=>{
+  const run=createRun('heal1234'),world=makeWorld(run,'meadow');world.toys=[];run.health=1;
+  const item=world.items[0];Object.assign(world.player,{x:item.x,y:item.y});
+  assert.ok(step(world,run,idle,.016).some(e=>e.type==='snack'&&e.healed));assert.equal(run.health,2);
+  step(world,run,idle,.016);assert.equal(run.health,2);assert.equal(run.collected.length,1);
 });
-test('normal and diagonal movement have the same speed; dash respects boundaries',()=>{
-  const run=createRun('quest456'),a=makeWorld(run,'meadow'),b=makeWorld(run,'meadow');a.toys=[];b.toys=[];
-  step(a,run,{x:1,y:0},.02);step(b,run,{x:1,y:1},.02);assert.ok(Math.abs(Math.hypot(a.player.x-135,a.player.y-315)-Math.hypot(b.player.x-135,b.player.y-315))<.001);
-  assert.ok(startDash(a,{x:-1,y:0}));assert.equal(startDash(a),false);for(let i=0;i<100;i++)step(a,run,{x:-1,y:0},.02);assert.ok(walkable(a.player.x,a.player.y,'meadow'));
+test('a dash stuns a toy, blocks damage, and cannot be spammed',()=>{
+  const run=createRun('stun1234'),world=makeWorld(run,'meadow');world.invincible=0;world.items=[];
+  world.toys=[toyAt(150,315)];assert.ok(startDash(world,{x:1,y:0}));assert.equal(startDash(world),false);
+  const events=step(world,run,{x:1,y:0},.016);assert.ok(events.some(e=>e.type==='stun'));assert.equal(run.health,3);assert.equal(world.toys[0].mode,'stunned');
 });
-test('toy bumps keep collected snacks and dash briefly protects the corgi',()=>{
-  const run=createRun('quest789');run.collected=['meadow-0'];const world=makeWorld(run,'meadow');world.toys=[{x:135,y:315,vx:0,vy:0,r:17}];assert.ok(step(world,run,{x:0,y:0},.016).some(e=>e.type==='bump'));assert.deepEqual(run.collected,['meadow-0']);world.invincible=0;Object.assign(world.player,{x:135,y:315});startDash(world);assert.equal(step(world,run,{x:0,y:0},.016).some(e=>e.type==='bump'),false);
+test('hazards telegraph a fixed direction before charging',()=>{
+  const run=createRun('windup12'),world=makeWorld(run,'meadow');world.items=[];
+  world.toys=[{...toyAt(300,315),cooldown:0}];step(world,run,idle,.02);
+  assert.equal(world.toys[0].mode,'windup');assert.equal(world.toys[0].x,300);
+  const direction=world.toys[0].aimX;world.player.y=450;
+  for(let i=0;i<34;i++)step(world,run,idle,.02);
+  assert.equal(world.toys[0].aimX,direction);step(world,run,idle,.02);assert.equal(world.toys[0].mode,'charge');
 });
-test('all twelve snacks are needed before the picnic exit can be reached',()=>{
-  const run=createRun('quest999');for(const room of run.order){assert.ok(isUnlocked(run,room));const world=makeWorld(run,room);world.toys=[];Object.assign(world.player,{x:910,y:320});assert.equal(step(world,run,{x:0,y:0},.016).some(e=>e.type==='exit'),false);for(const item of world.items){Object.assign(world.player,{x:item.x,y:item.y});step(world,run,{x:0,y:0},.016);}Object.assign(world.player,{x:910,y:320});assert.ok(step(world,run,{x:0,y:0},.016).some(e=>e.type==='exit'));}assert.equal(run.collected.length,12);
+test('rescuing Pepper needs the key and grants a permanent fourth heart',()=>{
+  const run=createRun('rescue12'),world=makeWorld(run,'pond');world.toys=[];world.player.x=775;world.player.y=370;
+  step(world,run,idle,.016);assert.equal(run.pepperFound,false);
+  run.keyFound=true;run.health=1;assert.ok(step(world,run,idle,.016).some(e=>e.type==='rescue'));
+  assert.equal(run.health,4);assert.equal(maxHearts(run),4);assert.ok(isUnlocked(run,'orchard'));
 });
-test('invalid saved positions recover at a safe entrance without dropping snacks',()=>{
-  const run=createRun('recover1');run.collected=['meadow-0'];run.positions.meadow={x:Infinity,y:NaN};assert.deepEqual({x:makeWorld(run,'meadow').player.x,y:makeWorld(run,'meadow').player.y},{x:135,y:315});assert.equal(run.collected.length,1);run.collected.push('meadow-0');assert.equal(validRun(run,run.id),false);
+test('the final exit needs Pepper and the picnic basket',()=>{
+  const run=createRun('finish12');run.keyFound=true;run.pepperFound=true;
+  const world=makeWorld(run,'orchard');world.toys=[];world.items=[];
+  Object.assign(world.player,{x:910,y:320});assert.equal(step(world,run,idle,.02).some(e=>e.type==='exit'),false);
+  Object.assign(world.player,{x:825,y:160});assert.ok(step(world,run,idle,.02).some(e=>e.type==='basket'));
+  Object.assign(world.player,{x:910,y:320});assert.ok(step(world,run,idle,.02).some(e=>e.type==='exit'));
+});
+test('retry loses this attempt’s snacks but preserves discoveries and earlier chapters',()=>{
+  const run=createRun('retry123');run.keyFound=true;run.pepperFound=true;run.collected=['meadow-0'];makeWorld(run,'orchard');
+  run.collected.push('orchard-1');run.health=0;const world=retryRoom(run,'orchard');
+  assert.deepEqual(run.collected,['meadow-0']);assert.equal(run.health,4);assert.equal(run.retries,1);assert.equal(world.player.x,135);assert.ok(run.pepperFound&&run.keyFound);
+});
+test('old adventures migrate without changing the original save or losing snacks',()=>{
+  const old={version:1,id:'legacy12',seed:42,collected:['meadow-0','meadow-1','meadow-2','meadow-3'],completed:false};
+  const original=JSON.stringify(old),run=migrateRun(old,old.id);assert.ok(validRun(run,old.id));assert.equal(JSON.stringify(old),original);assert.deepEqual(run.collected,old.collected);assert.ok(run.keyFound);assert.equal(run.pepperFound,false);assert.equal(run.room,'pond');
+});
+test('health, loss state, and milestones survive serialization; bad saves fail validation',()=>{
+  const run=createRun('save1234');run.health=0;run.keyFound=true;assert.ok(validRun(JSON.parse(JSON.stringify(run)),run.id));
+  run.health=-1;assert.equal(validRun(run,run.id),false);run.health=3;run.pepperFound=true;run.keyFound=false;assert.equal(validRun(run,run.id),false);
 });

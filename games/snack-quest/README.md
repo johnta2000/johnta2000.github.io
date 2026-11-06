@@ -1,25 +1,33 @@
-# The Great Snack Quest
+# The Great Snack Quest — Find Pepper
 
-A small, static, single-player browser adventure for Pepsi and Pepper. The selected corgi leads and the other follows their footsteps. Gather four treats in each of three clearings, dodge bouncing toys, and follow the exits to a picnic together. A new adventure changes the snack locations and the order of the last two clearings.
+A small static keyboard adventure at `/games/snack-quest/`.
 
-Public route: `/games/snack-quest/`.
+Pepsi starts alone. Dash into the meadow's crate to find the gate key, rescue gray Pepper at Pebble Pond, then recover the picnic basket and get home together through the harder orchard. Each chapter has a distinct objective; collecting every snack is optional.
 
-## Playing
+## Controls and consequences
 
-- Arrow keys or WASD to move; Space to dash; Escape to pause/resume.
-- Tap/click the meadow to walk toward a spot. Phone players also have a direction pad and a dash button.
-- Toys gently bump the corgis. Collected snacks are never lost.
-- Sound is optional and starts off. Reduced-motion preferences disable decorative movement.
+- WASD moves Pepsi. Mouse clicks, arrow keys, and touch controls do not move the player.
+- Space dashes, breaks the key crate, and stuns toys for 2.3 seconds. Dash has a visible cooldown and brief invulnerability.
+- Toys briefly telegraph the direction of their lunge before charging. Later chapters have more toys and faster charges.
+- Start with three hearts. A hit costs one heart, with a short damage grace period. Snacks heal one heart, up to the maximum.
+- At zero hearts, retry the current clearing. Snacks collected in this attempt return to the grass; earlier discoveries remain. Death and health persist across refreshes.
+- Rescuing Pepper restores health and grants a fourth heart. Pepper follows the player's footsteps and does not require separate escort-health management.
+- Escape pauses. Dialogs close with Escape, their dismissal control, or a backdrop click. Closing the retry screen returns home without reviving the player.
+- A keyboard is required, including on small screens. There are no on-screen movement controls.
 
-## Hosting and saved progress
+## Art and hosting
 
-Publish this directory as-is through the existing GitHub Pages site. It needs no build step, game library, account, or backend. Art is drawn in canvas and the icon is SVG. Fonts have local serif/sans-serif fallbacks if Google Fonts is unavailable.
+The corgis are original canvas drawings informed by Pepsi's plush reference: round tan-and-white Pepsi and a gray-and-white Pepper, with little paws and bead eyes. No user photograph is published. Artwork uses no downloaded sprites or game libraries. Publish the directory as-is through the existing GitHub Pages site; no build or server is required.
 
-URLs preserve the selected corgi, adventure ID, room, and home/play/pause/picnic view. Room navigation uses real links and history; inaccessible rooms return to the first unfinished clearing. Same-device copied links and refreshes restore saved progress.
+## Saving and routes
 
-This is a personal game, not a shared editing tool. Adventures are stored per run in `localStorage`, with visible save failures, retry, downloadable JSON backup, and a Restore backup control. Starting a new adventure preserves previous saves. Links reproduce the same trail on a different device, but progress does not sync between devices. No sensitive information is put in URLs and no analytics is added.
+The URL keeps the adventure ID, chapter, and home/play/pause/reunion/retry/picnic view. Real chapter links, refresh, copied links, and browser Back/Forward restore the same view. Future chapters stay locked until their discoveries are made.
 
-## Local checks
+Personal progress saves per adventure in `localStorage`. Save failures are visible and offer retry and a downloadable JSON backup. Restore creates a separate adventure so existing work is not overwritten. A revision check prevents a stale tab from overwriting newer progress; the player can download their current state or explicitly load the other tab's save.
+
+Version 1 saves remain untouched in their old namespace. The new game imports their snacks and completed milestones into a version 2 save. Current heart count and defeat state are durable. Progress is device-local, not a multiplayer or cross-device service. No analytics is added.
+
+## Verification
 
 From the repository root:
 
@@ -29,4 +37,4 @@ node --test tests/snack-quest/engine.test.mjs
 node tests/snack-quest/browser.mjs
 ```
 
-The browser check uses installed Playwright. Set `PLAYWRIGHT_EXECUTABLE_PATH` if necessary, `SNACK_QUEST_URL` to test a different origin, and `SNACK_QUEST_SCREENSHOTS` to choose an output folder. It checks controls, a real pickup, all room URLs, refresh, copied links, Back/Forward, pause/backdrop behavior, the ending, replay, and storage failure on desktop and mobile.
+Set `PLAYWRIGHT_EXECUTABLE_PATH` to use an installed browser, `SNACK_QUEST_URL` for another origin, and `SNACK_QUEST_SCREENSHOTS` for the screenshot destination. Browser checks exercise WASD-only input, a real dash/crate pickup, actual hazard damage and defeat/retry, Pepper rescue, extra health, the basket/exit ending, navigation restoration, small-screen keyboard notices, legacy saves, and failed-save recovery.

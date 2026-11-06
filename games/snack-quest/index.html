@@ -4,59 +4,45 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#f7f3e9">
-  <meta name="description" content="Small paws. Big adventure. Help Pepsi and Pepper collect snacks for the coziest little picnic in this free corgi adventure.">
+  <meta name="description" content="A little keyboard adventure starring Pepsi and Pepper. Find the key, rescue your gray corgi friend, and make it home together.">
   <meta property="og:title" content="Pepsi & Pepper · The Great Snack Quest">
-  <meta property="og:description" content="A tiny adventure about two corgis and a very important picnic.">
+  <meta property="og:description" content="A lost friend, three hearts, and one very brave little loaf. WASD to move. Space to dash.">
   <title>The Great Snack Quest · Pepsi & Pepper</title>
-  <link rel="icon" type="image/svg+xml" href="./icon.svg">
-  <link rel="stylesheet" href="./styles.css">
-  <script type="module" src="./app.mjs"></script>
+  <link rel="icon" type="image/svg+xml" href="./icon.svg?v=2">
+  <link rel="stylesheet" href="./styles.css?v=2">
+  <script type="module" src="./app.mjs?v=2"></script>
 </head>
 <body>
   <div class="page-shell">
     <header class="masthead">
-      <a class="brand" href="./" aria-label="Pepsi and Pepper, Snack Quest home"><img src="./icon.svg" width="37" height="37" alt=""><span>pepsi <i>&</i> pepper<small>THE LITTLE ADVENTURE CLUB</small></span></a>
-      <div class="header-actions"><span class="made-for">made for a very good day <span>✳</span></span><button id="sound" class="icon-button" aria-label="Turn sound on" aria-pressed="false" title="Turn sound on"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4V5ZM16 9l5 6m0-6-5 6"/></svg></button></div>
+      <a class="brand" href="./" aria-label="Snack Quest home"><img src="./icon.svg?v=2" width="38" height="38" alt=""><span>pepsi <i>&</i> pepper<small>THE LITTLE ADVENTURE CLUB</small></span></a>
+      <div class="header-actions"><span class="keyboard-badge">A KEYBOARD ADVENTURE</span><button id="sound" class="icon-button" aria-label="Turn sound on" aria-pressed="false"></button></div>
     </header>
-
     <main>
-      <section class="intro" aria-labelledby="title">
-        <p class="eyebrow"><span>✧</span> SMALL PAWS. BIG ADVENTURE. <span>✧</span></p>
-        <h1 id="title">The Great <em>Snack Quest</em></h1>
-        <p>Two little corgis. One very important picnic.</p>
-      </section>
-
-      <section class="game" aria-label="The Great Snack Quest game">
+      <section class="intro" aria-labelledby="title"><p class="eyebrow">A LOST FRIEND. A VERY BRAVE LITTLE LOAF.</p><h1 id="title">The Great <em>Snack Quest</em></h1><p>Go find Pepper. Everything’s better together.</p></section>
+      <section class="game" aria-label="The Great Snack Quest">
         <div class="game-toolbar">
-          <div class="location"><span class="location-icon" aria-hidden="true">✿</span><div><small id="room-kicker">PEPSI & PEPPER PRESENT</small><h2 id="room-name">A pocket-sized adventure</h2></div></div>
-          <div class="inventory" aria-label="Picnic snacks"><svg viewBox="0 0 30 28" aria-hidden="true"><path d="m5 12 3 12h14l3-12ZM10 13l5-10 5 10M3 12h24M12 16v5m6-5v5"/></svg><strong id="snack-count">0 <span>/ 12</span></strong><span class="inventory-label">snacks</span></div>
-          <a id="pause" class="icon-button pause-button" href="?view=pause" aria-label="Pause adventure" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14M16 5v14"/></svg></a>
+          <div class="location"><span class="location-icon" id="location-icon" aria-hidden="true">✿</span><div><small id="room-kicker">PEPSI’S LITTLE ADVENTURE</small><h2 id="room-name">One friend is missing.</h2></div></div>
+          <div class="health" id="health" aria-label="3 of 3 hearts"><span class="hud-label">HEARTS</span><div id="hearts">♥ ♥ ♥</div></div>
+          <div class="inventory"><span class="hud-label">SNACKS</span><strong id="snack-count">0</strong></div>
+          <a id="pause" class="icon-button" href="?view=pause" aria-label="Pause adventure" hidden>Ⅱ</a>
         </div>
-
         <div class="stage" id="stage">
-          <canvas id="world" width="1000" height="620" tabindex="0" aria-label="Adventure meadow. Move with arrow keys or W A S D. Space to dash. Collect four snacks in each clearing, then take the glowing exit.">This game needs a browser with canvas support. Use arrow keys or W A S D to move and Space to dash.</canvas>
+          <canvas id="world" width="1000" height="620" tabindex="0" aria-label="Use W A S D to move Pepsi. Space dashes, breaks crates, and stuns toys. Escape pauses. Find a key, rescue Pepper, then bring the picnic basket home.">This game requires JavaScript, canvas, and a keyboard. Use WASD to move and Space to dash.</canvas>
           <div id="room-toast" class="room-toast" aria-live="polite" hidden></div>
-          <a id="exit-link" class="exit-link" href="?view=play&room=pond" hidden>Next clearing <span>→</span></a>
           <div id="screen" class="screen"></div>
-          <div class="in-world-hint" id="in-world-hint" hidden><span>✦</span> Follow your nose. Find all 4 snacks!</div>
+          <div class="objective" id="objective" hidden><span id="objective-icon">◇</span><span id="objective-text"></span></div>
+          <div class="dash-meter" id="dash-meter" hidden><span>SPACE</span><div><i id="dash-fill"></i></div><small id="dash-label">dash ready</small></div>
         </div>
-
-        <div class="game-bottom">
-          <nav class="trail" id="trail" aria-label="Your adventure trail"></nav>
-          <span class="cozy-note"><span>♡</span> little bumps, no lost snacks</span>
-        </div>
+        <div class="game-bottom"><nav class="trail" id="trail" aria-label="Adventure chapters"></nav><span id="buddy-status" class="buddy-status">Find your adventure buddy.</span></div>
       </section>
-
-      <div class="play-controls" id="play-controls" hidden>
-        <div class="keyboard-hints"><span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> or arrows to wander</span><span><kbd>space</kbd> to dash</span><span class="tap-hint">or tap the meadow to move</span></div>
-        <div class="touch-controls" aria-label="Touch game controls"><div class="dpad"><button data-direction="up" aria-label="Move up">↑</button><button data-direction="left" aria-label="Move left">←</button><span aria-hidden="true">✿</span><button data-direction="right" aria-label="Move right">→</button><button data-direction="down" aria-label="Move down">↓</button></div><div class="dash-control"><button id="dash" aria-label="Dash">✧<span>dash!</span></button><small>a little burst of brave</small></div></div>
-      </div>
-      <div class="under-game" id="under-game"><span><b>01</b> Wander together</span><span><b>02</b> Scoop up snacks</span><span><b>03</b> Have a little picnic</span></div>
+      <div class="keyboard-hints"><span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> move</span><span><kbd>space</kbd> dash · break · stun</span><span><kbd>esc</kbd> pause</span></div>
+      <p class="phone-note">Keyboard required. Play on a computer, or connect a keyboard.</p>
       <p id="announcement" class="sr-only" role="status" aria-live="polite"></p>
-      <p id="save-error" class="save-error" role="alert" hidden>Your browser couldn’t save this adventure. Keep this tab open to keep playing. <button id="retry-save">Try saving again</button> <button id="download-save">Download progress</button></p>
+      <div id="save-error" class="save-error" role="alert" hidden><p id="save-message">Your adventure couldn’t be saved. Keep this tab open or download a backup.</p><button id="retry-save">Try saving again</button><button id="download-save">Download this progress</button><button id="load-save" hidden>Load the other tab’s save</button></div>
     </main>
-    <footer><span>A little world for Pepsi & Pepper <span class="footer-heart">♡</span></span><span id="save-status">No rush. Just snacks.</span></footer>
+    <footer><span>A little world for Pepsi & Pepper <b>♡</b></span><span id="save-status">Small paws. Real courage.</span><button id="restore-backup">Restore backup</button></footer>
   </div>
-  <noscript><p class="noscript">Turn on JavaScript to join Pepsi and Pepper on their snack quest.</p></noscript>
+  <noscript><p class="noscript">Turn on JavaScript to play with Pepsi and Pepper.</p></noscript>
 </body>
 </html>

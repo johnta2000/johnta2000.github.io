@@ -1,37 +1,82 @@
 import assert from 'node:assert/strict';
-import {chromium} from 'playwright';
-import {existsSync,mkdirSync} from 'node:fs';
-import {createRun,roomItems,ROOMS} from '../../games/snack-quest/engine.mjs';
+import { chromium } from 'playwright';
+import { existsSync, mkdirSync } from 'node:fs';
+import { homedir } from 'node:os';
+import { createRun, ROOMS, ORDER } from '../../games/snack-quest/engine.mjs';
 
 const base=process.env.SNACK_QUEST_URL||'http://127.0.0.1:8766/games/snack-quest/';
-const installed='/Users/johnta/Library/Caches/ms-playwright/chromium-1243/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing';
+const installed=homedir()+'/Library/Caches/ms-playwright/chromium-1243/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing';
 const browser=await chromium.launch({headless:true,...(process.env.PLAYWRIGHT_EXECUTABLE_PATH?{executablePath:process.env.PLAYWRIGHT_EXECUTABLE_PATH}:existsSync(installed)?{executablePath:installed}:{})});
-const errors=[];
-const prefix='pepsi-pepper.snack-quest.v1.';
-const output=process.env.SNACK_QUEST_SCREENSHOTS||'/tmp/snack-quest-qa';mkdirSync(output,{recursive:true});
-async function startPage(context){const page=await context.newPage();page.on('pageerror',error=>errors.push(error.message));await page.goto(base);await page.locator('#begin').waitFor();await page.evaluate(()=>document.fonts.ready);return page;}
-async function seed(page,run,room=run.room,view='play'){await page.evaluate(({run,prefix})=>{localStorage.setItem(prefix+run.id,JSON.stringify(run));localStorage.setItem(prefix+'latest',run.id);},{run,prefix});await page.goto(`${base}?view=${view}&run=${run.id}&room=${room}&corgi=${run.character}`);await page.locator('#world').waitFor();}
+const errors=[],prefix='pepsi-pepper.snack-quest.v2.';
+const output=process.env.SNACK_QUEST_SCREENSHOTS||'/tmp/snack-quest-v2-qa';mkdirSync(output,{recursive:true});
+async function pageFor(context){const page=await context.newPage();page.on('pageerror',e=>errors.push(e.message));await page.goto(base);await page.locator('#begin').waitFor();await page.evaluate(()=>document.fonts.ready);return page;}
+async function seed(page,run,room=run.room,view='play'){
+  await page.evaluate(({prefix,run})=>{localStorage.setItem(prefix+run.id,JSON.stringify(run));localStorage.setItem(prefix+'latest',run.id);},{prefix,run});
+  await page.goto(`${base}?view=${view}&run=${run.id}&room=${room}`);
+  await page.waitForFunction(()=>document.querySelector('#room-name')?.textContent!=='One friend is missing.');
+}
+async function saved(page){return page.evaluate(prefix=>JSON.parse(localStorage.getItem(prefix+new URLSearchParams(location.search).get('run'))),prefix);}
+async function hold(page,key,milliseconds){await page.keyboard.down(key);await page.waitForTimeout(milliseconds);await page.keyboard.up(key);}
+async function waitView(page,view){await page.waitForFunction(view=>new URLSearchParams(location.search).get('view')===view,view);}
 async function waitRoom(page,room){await page.waitForFunction(({room,name})=>new URLSearchParams(location.search).get('room')===room&&document.getElementById('room-name').textContent===name,{room,name:ROOMS[room].name});}
-async function saved(page){return page.evaluate(prefix=>{const id=new URLSearchParams(location.search).get('run');return JSON.parse(localStorage.getItem(prefix+id));},prefix);}
-async function pauseChecks(page){await page.locator('#pause').click();assert.match(page.url(),/view=pause/);await page.locator('.pause-card h3').click();assert.match(page.url(),/view=pause/);const box=await page.locator('#screen').boundingBox();await page.mouse.click(box.x+8,box.y+8);await page.waitForURL(/view=play/);await page.keyboard.press('Escape');await page.waitForURL(/view=pause/);await page.keyboard.press('Escape');await page.waitForURL(/view=play/);}
-try{
-  const context=await browser.newContext({viewport:{width:1440,height:1100},deviceScaleFactor:1});const page=await startPage(context);
-  await page.screenshot({path:output+'/desktop-home.png',fullPage:true});
-  await page.locator('[data-character=pepper]').click();assert.match(page.url(),/corgi=pepper/);await page.reload();assert.equal(await page.locator('[data-character=pepper]').getAttribute('aria-pressed'),'true');
-  await page.locator('#begin').click();assert.match(page.url(),/view=play/);await page.keyboard.down('d');await page.waitForTimeout(550);await page.keyboard.up('d');await page.waitForTimeout(1050);assert.ok((await saved(page)).positions.meadow.x>190,'keyboard moves the corgi');await pauseChecks(page);
-  // Exercise a real pickup next to a saved spawn, rather than writing the collected result.
-  const pickup=createRun('pickup123','pepper'),item=roomItems(pickup.seed,'meadow').find(i=>i.x===230)||roomItems(pickup.seed,'meadow')[0];pickup.positions.meadow={x:item.x-45,y:item.y};await seed(page,pickup);await page.keyboard.down('d');await page.waitForTimeout(230);await page.keyboard.up('d');await page.waitForTimeout(1200);assert.ok((await saved(page)).collected.includes(item.id),'walking over a snack collects and saves it');const count=await page.locator('#snack-count').innerText();await page.reload();assert.equal(await page.locator('#snack-count').innerText(),count);
-  const fixture=createRun('uitest123','pepper');fixture.collected=roomItems(fixture.seed,'meadow').map(i=>i.id);fixture.room=fixture.order[1];fixture.positions[fixture.room]={x:135,y:315};await seed(page,fixture);
-  await page.screenshot({path:output+'/desktop-play.png',fullPage:true});
-  const copiedURL=page.url();await page.reload();assert.equal(page.url(),copiedURL);const fresh=await context.newPage();await fresh.goto(copiedURL);assert.equal(await fresh.locator('#room-name').innerText(),await page.locator('#room-name').innerText());assert.equal((await saved(fresh)).collected.length,4);await fresh.close();
-  await page.locator('.trail-item').first().click();assert.match(page.url(),/room=meadow/);await page.goBack();await waitRoom(page,fixture.order[1]);assert.equal(page.url(),copiedURL);await page.goForward();await waitRoom(page,'meadow');assert.match(page.url(),/room=meadow/);await page.goBack();await waitRoom(page,fixture.order[1]);
-  fixture.collected=fixture.order.flatMap(room=>roomItems(fixture.seed,room).map(i=>i.id));fixture.completed=true;fixture.room=fixture.order.at(-1);await seed(page,fixture,fixture.room,'picnic');assert.equal(await page.locator('.picnic-card').count(),1);await page.screenshot({path:output+'/desktop-picnic.png',fullPage:true});await page.reload();assert.match(page.url(),/view=picnic/);await page.locator('#again').click();assert.notEqual(new URL(page.url()).searchParams.get('run'),fixture.id);assert.equal((await saved(page)).collected.length,0);assert.equal(await page.evaluate(({prefix,id})=>JSON.parse(localStorage.getItem(prefix+id)).collected.length,{prefix,id:fixture.id}),12,'replay preserves the previous adventure');
-  await context.close();
+async function dismissOutside(page){const box=await page.locator('#screen').boundingBox();await page.mouse.click(box.x+7,box.y+7);}
+try {
+  const desktop=await browser.newContext({viewport:{width:1440,height:1000},deviceScaleFactor:1});
+  const page=await pageFor(desktop);await page.screenshot({path:output+'/desktop-home.png',fullPage:true});
+  assert.equal(await page.locator('[data-character]').count(),0);
+  await page.locator('#begin').click();await waitView(page,'play');
+  await hold(page,'ArrowRight',160);const box=await page.locator('#world').boundingBox();await page.mouse.click(box.x+box.width*.8,box.y+box.height*.6);
+  await page.keyboard.press('Escape');await waitView(page,'pause');assert.equal(Math.round((await saved(page)).positions.meadow.x),135,'arrows and mouse do not move Pepsi');
+  await page.locator('.pause-card h3').click();assert.match(page.url(),/view=pause/);await dismissOutside(page);await waitView(page,'play');
+  await hold(page,'d',350);await page.keyboard.press('Escape');await waitView(page,'pause');assert.ok((await saved(page)).positions.meadow.x>185,'WASD movement works');
+  const pausedURL=page.url();await page.reload();await page.locator('.pause-card').waitFor();assert.equal(page.url(),pausedURL);await page.keyboard.press('Escape');await waitView(page,'play');
+  const key=createRun('keytest12');key.positions.meadow={x:477,y:190};await seed(page,key);await page.keyboard.down('d');await page.keyboard.press('Space');await page.waitForTimeout(220);await page.keyboard.up('d');
+  await page.waitForFunction(prefix=>JSON.parse(localStorage.getItem(prefix+new URLSearchParams(location.search).get('run'))).keyFound,prefix);assert.equal((await saved(page)).collected.length,0);
+  await page.keyboard.press('Escape');await waitView(page,'pause');await page.keyboard.press('Escape');await waitView(page,'play');
+  await page.screenshot({path:output+'/desktop-key.png',fullPage:true});
+  const rescue=createRun('rescuetest');rescue.keyFound=true;rescue.health=1;rescue.room='pond';rescue.positions.pond={x:735,y:370};await seed(page,rescue);await hold(page,'d',250);await waitView(page,'reunion');
+  assert.equal((await saved(page)).pepperFound,true);assert.equal((await saved(page)).health,4);await page.screenshot({path:output+'/desktop-reunion.png',fullPage:true});
+  const reunionURL=page.url();await page.reload();await page.locator('.story-card').waitFor();assert.equal(page.url(),reunionURL);await page.locator('.story-card h3').click();assert.match(page.url(),/view=reunion/);
+  const reunionCopy=await desktop.newPage();await reunionCopy.goto(reunionURL);await reunionCopy.locator('.story-card').waitFor();await reunionCopy.close();
+  await page.locator('#reunion-continue').click();await waitRoom(page,'orchard');assert.equal((await saved(page)).health,4);assert.equal(await page.locator('#save-error').isVisible(),false,'read-only copied link does not create a save conflict');
+  await page.screenshot({path:output+'/desktop-final-area.png',fullPage:true});
+  // A real hazard hit and defeat, with no game-state test hooks.
+  const damage=createRun('damage123');damage.health=1;damage.positions.meadow={x:300,y:350};await seed(page,damage);await page.waitForURL(/view=retry/,{timeout:10000});assert.equal((await saved(page)).health,0);assert.equal((await saved(page)).hits,1);
+  const lostURL=page.url();await page.reload();await page.locator('#retry').waitFor();assert.equal(page.url(),lostURL);await page.screenshot({path:output+'/desktop-retry.png',fullPage:true});
+  await page.locator('#retry').click();await waitView(page,'play');assert.equal((await saved(page)).health,3);assert.equal((await saved(page)).retries,1);
+  const final=createRun('finaltest');final.keyFound=true;final.pepperFound=true;final.health=4;final.room='orchard';final.positions.orchard={x:780,y:160};await seed(page,final);
+  await hold(page,'d',250);assert.ok((await saved(page)).basketFound);await hold(page,'s',850);await hold(page,'d',620);await page.waitForURL(/view=picnic/,{timeout:5000});assert.ok((await saved(page)).completed);
+  await page.screenshot({path:output+'/desktop-picnic.png',fullPage:true});await page.reload();await page.locator('.picnic-card').waitFor();
+  await page.locator('#again').click();await waitView(page,'play');assert.equal((await saved(page)).pepperFound,false);assert.equal((await saved(page)).health,3);
+  // Every room supports refresh, copied URLs, and Back/Forward.
+  const routes=createRun('routes123');routes.keyFound=true;routes.pepperFound=true;routes.health=4;
+  await seed(page,routes,'meadow','pause');
+  for(const room of ORDER){
+    await page.goto(`${base}?view=pause&run=${routes.id}&room=${room}`);await page.locator('.pause-card').waitFor();const url=page.url();await page.reload();await page.locator('.pause-card').waitFor();assert.equal(page.url(),url);
+    const copied=await desktop.newPage();await copied.goto(url);await copied.locator('.pause-card').waitFor();assert.equal(await copied.locator('#room-name').textContent(),ROOMS[room].name);await copied.close();
+    await page.locator('#home-link').click();await page.locator('#begin').waitFor();await page.goBack();await page.locator('.pause-card').waitFor();assert.equal(page.url(),url);await page.goForward();await page.locator('#begin').waitFor();
+  }
+  // Original v1 save is kept intact while the new game imports its milestones.
+  const legacy={version:1,id:'legacytest',seed:42,collected:['meadow-0','meadow-1','meadow-2','meadow-3'],completed:false};
+  await page.evaluate(data=>localStorage.setItem('pepsi-pepper.snack-quest.v1.'+data.id,JSON.stringify(data)),legacy);
+  await page.goto(`${base}?view=play&run=${legacy.id}&room=pond&corgi=pepper`);await waitRoom(page,'pond');assert.ok((await saved(page)).keyFound);assert.equal((await saved(page)).pepperFound,false);
+  assert.deepEqual(await page.evaluate(id=>JSON.parse(localStorage.getItem('pepsi-pepper.snack-quest.v1.'+id)),legacy.id),legacy);assert.doesNotMatch(page.url(),/corgi=/);
+  const stale=createRun('staletest');await seed(page,stale,'meadow','pause');
+  await page.evaluate(({prefix,id})=>{const latest=JSON.parse(localStorage.getItem(prefix+id));latest.health=2;latest.revision+=1;localStorage.setItem(prefix+id,JSON.stringify(latest));},{prefix,id:stale.id});
+  await page.locator('#resume').click();await waitView(page,'play');await hold(page,'d',180);await page.keyboard.press('Escape');await waitView(page,'pause');await page.locator('#save-error').waitFor({state:'visible'});assert.equal((await saved(page)).health,2,'stale tab cannot overwrite newer damage');
+  await page.locator('#load-save').click();await page.locator('#save-error').waitFor({state:'hidden'});assert.equal(await page.locator('#health').getAttribute('aria-label'),'2 of 3 hearts');
+  await desktop.close();
 
-  const mobile=await browser.newContext({viewport:{width:390,height:844},deviceScaleFactor:2,isMobile:true,hasTouch:true});const phone=await startPage(mobile);await phone.screenshot({path:output+'/mobile-home.png',fullPage:true});await phone.locator('#begin').click();await phone.locator('.touch-controls').waitFor({state:'visible'});const right=await phone.locator('[data-direction=right]').boundingBox();await phone.mouse.move(right.x+right.width/2,right.y+right.height/2);await phone.mouse.down();await phone.waitForTimeout(600);await phone.mouse.up();await phone.waitForTimeout(1100);assert.ok((await saved(phone)).positions.meadow.x>200,'touch controls move the corgi');await phone.locator('#dash').tap();await phone.waitForTimeout(1100);await pauseChecks(phone);assert.ok(await phone.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'no horizontal overflow');await phone.screenshot({path:output+'/mobile-play.png',fullPage:true});
-  for(const room of fixture.order){await seed(phone,fixture,room);const url=phone.url();await phone.reload();assert.equal(phone.url(),url);const copy=await mobile.newPage();await copy.goto(url);assert.equal(await copy.locator('#room-name').innerText(),await phone.locator('#room-name').innerText());await copy.close();await phone.locator('.trail-item').first().click();await phone.goBack();await waitRoom(phone,room);assert.equal(phone.url(),url);await phone.goForward();await waitRoom(phone,'meadow');assert.match(phone.url(),/room=meadow/);}
-  await seed(phone,fixture,fixture.room,'picnic');await phone.screenshot({path:output+'/mobile-picnic.png',fullPage:true});await phone.reload();assert.match(phone.url(),/view=picnic/);await mobile.close();
+  const mobile=await browser.newContext({viewport:{width:390,height:844},deviceScaleFactor:2,isMobile:true,hasTouch:true});const phone=await pageFor(mobile);
+  assert.equal(await phone.locator('.touch-controls,[data-direction]').count(),0);assert.equal(await phone.locator('.phone-note').isVisible(),true);
+  await phone.screenshot({path:output+'/mobile-home.png',fullPage:true});
+  const mobileRun=createRun('mobile123');mobileRun.keyFound=true;mobileRun.pepperFound=true;mobileRun.health=4;
+  for(const room of ORDER){await seed(phone,mobileRun,room,'pause');const url=phone.url();await phone.reload();await phone.locator('.pause-card').waitFor();assert.equal(phone.url(),url);const copy=await mobile.newPage();await copy.goto(url);await copy.locator('.pause-card').waitFor();await copy.close();await dismissOutside(phone);await waitView(phone,'play');await phone.keyboard.press('Escape');await waitView(phone,'pause');}
+  assert.ok(await phone.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+  const reunionMobile=createRun('mobilestory');reunionMobile.keyFound=true;reunionMobile.pepperFound=true;reunionMobile.health=4;await seed(phone,reunionMobile,'pond','reunion');await phone.screenshot({path:output+'/mobile-reunion.png',fullPage:true});
+  const winMobile=createRun('mobilewin');winMobile.keyFound=true;winMobile.pepperFound=true;winMobile.basketFound=true;winMobile.completed=true;winMobile.health=4;await seed(phone,winMobile,'orchard','picnic');await phone.screenshot({path:output+'/mobile-picnic.png',fullPage:true});await mobile.close();
 
-  const blocked=await browser.newContext({viewport:{width:1024,height:1000}});await blocked.addInitScript(()=>{Storage.prototype.setItem=function(){throw new DOMException('Storage unavailable','QuotaExceededError');};});const failure=await startPage(blocked);await failure.locator('#begin').click();await failure.locator('#save-error').waitFor({state:'visible'});const downloadPromise=failure.waitForEvent('download');await failure.locator('#download-save').click();const download=await downloadPromise;assert.equal(download.suggestedFilename(),'pepsi-pepper-adventure.json');assert.match(failure.url(),/view=play/);await blocked.close();
-  assert.deepEqual(errors,[],'no browser errors');console.log('PASS: desktop and mobile controls, pickup, pause/backdrop, refresh, copied links, Back/Forward, every room, picnic, replay, save failure and recovery download.');console.log('Screenshots: '+output);
+  const blocked=await browser.newContext();await blocked.addInitScript(()=>{Storage.prototype.setItem=function(){throw new DOMException('Full','QuotaExceededError');};});const failure=await pageFor(blocked);await failure.locator('#begin').click();await failure.locator('#save-error').waitFor({state:'visible'});const downloadPromise=failure.waitForEvent('download');await failure.locator('#download-save').click();assert.equal((await downloadPromise).suggestedFilename(),'pepsi-pepper-adventure.json');await blocked.close();
+  assert.deepEqual(errors,[]);console.log('PASS: WASD-only movement, dash/key, real hit/defeat/retry, Pepper rescue and extra heart, basket and home ending, all room/view URLs, copied links, refresh, Back/Forward, mobile keyboard notice, old-save migration, and save failure backup.');
+  console.log('Screenshots: '+output);
 }finally{await browser.close();}
