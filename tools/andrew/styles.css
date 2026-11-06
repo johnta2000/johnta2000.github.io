@@ -11,3 +11,5 @@ nav a,.filters a{display:inline-flex;align-items:center;justify-content:center;m
 .article-sheet{min-width:1500px}.article-sheet .title-col{width:24%}.article-sheet .status-col{width:12%}.article-sheet .link-col{width:16%}.article-sheet .date-col,.article-sheet .actual-col{width:13%}.article-sheet .notes-col{width:22%}.article-sheet textarea.sheet-notes{min-height:50px;height:50px;line-height:20px;resize:vertical;padding:5px 6px}
 
 .article-sheet textarea.sheet-notes,.article-sheet textarea.sheet-title{display:block;min-width:0;width:100%;max-width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;overflow:hidden;resize:none}
+
+.session-notice{position:sticky;top:0;z-index:5;display:flex;gap:16px;align-items:center;justify-content:space-between;margin:16px 0;padding:16px 20px;background:#fff1d6;border:1px solid #c89c42;border-radius:8px;color:#613e0c;font-size:14px;line-height:1.6}.session-notice button{flex-shrink:0}.session-notice+ .error{margin-top:12px}@media(max-width:600px){.session-notice{align-items:stretch;flex-direction:column}}
