@@ -17,3 +17,5 @@ kbd.pressed{background:#58774d;color:#fffdf2;border-color:#58774d;box-shadow:non
 @media(min-width:701px){.page-shell{max-width:1200px}.game-bottom{min-height:76px;align-items:center}.trail{row-gap:8px}.location h2{min-height:24px}.stage{aspect-ratio:1000/620}}
 
 .practice-navigation{min-height:52px;display:flex;justify-content:center;align-items:center;gap:24px;flex-wrap:wrap;padding-top:8px}.practice-navigation a{padding:12px 0;font-size:11px;color:#58734e;text-decoration:underline;text-underline-offset:3px;display:inline-block;min-height:44px}
+
+.abilities{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:8px 0}.ability{border:1px solid #deded0;background:#eeeee5;border-radius:10px;padding:10px;color:#99998a;font-size:10px}.ability strong,.ability span{display:block}.ability span{margin-top:4px;font-size:9px}.ability.unlocked{background:#fff9e7;color:#6c7956;border-color:#d8d7b8}.game-bottom{min-height:96px}.buddy-status{white-space:normal;min-width:130px}.trail{row-gap:8px}.practice-navigation{min-height:60px}@media(max-width:700px){.abilities{grid-template-columns:repeat(2,1fr)}.game-bottom{min-height:160px}.practice-navigation{gap:8px}}

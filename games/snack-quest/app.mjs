@@ -1,7 +1,7 @@
-import { ROOMS, ORDER, DASH_COOLDOWN, WIDTH, HEIGHT, createRun, peeProgress, upgradeRun, TRINKETS, validRun, migrateRun, makeWorld, maxHearts, goalDone, isUnlocked, firstUnfinished, objective, retryRoom, step, startDash } from './engine.mjs?v=13';
-import { portrait, drawWorld, drawPicnic } from './art.mjs?v=13';
-import { movementKey, isTextEntry } from './input.mjs?v=13';
-import { Soundscape } from './audio.mjs?v=13';
+import { ROOMS, ORDER, DASH_COOLDOWN, WIDTH, HEIGHT, createRun, peeProgress, upgradeRun, TRINKETS, validRun, migrateRun, makeWorld, maxHearts, goalDone, isUnlocked, firstUnfinished, objective, retryRoom, step, startDash } from './engine.mjs?v=14';
+import { portrait, drawWorld, drawPicnic } from './art.mjs?v=14';
+import { movementKey, isTextEntry } from './input.mjs?v=14';
+import { Soundscape } from './audio.mjs?v=14';
 
 const $ = id => document.getElementById(id);
 const canvas=$('world'), ctx=canvas.getContext('2d');
@@ -147,9 +147,9 @@ function render() {
   $('room-kicker').textContent=view==='home'?'PEPSI’S LITTLE ADVENTURE':view==='picnic'?'HOME TOGETHER. HAPPY TOGETHER.':world?.room==='tutorial'?'SAFE PRACTICE':`CHAPTER ${ORDER.indexOf(world.room)+1} OF ${ORDER.length}`;
   $('room-name').textContent=view==='home'?'One friend is missing.':view==='picnic'?'Home is wherever you are':ROOMS[world.room].name;
   $('location-icon').textContent=view==='picnic'?'♡':world?.room==='pond'?'♧':'✿';
-  const active=run&&!run.completed;
+  const active=run&&(!run.completed||run.legacyEnding&&!run.bossDefeated);
   if(view==='home') {
-    $('screen').innerHTML=`<div class="welcome-card"><p class="card-eyebrow">SOMEONE’S MISSING FROM THE PICNIC</p><h3>Where’s Pepper?</h3>${plushPair(true)}<p>Find the key, rescue your best friend,<br>then find ten trinkets—and a secret friend.</p><div class="mission-strip"><span>3 hearts</span><span>6 little chapters</span><span>1 secret friend</span></div><button id="begin" class="primary-button">${active?'Continue the adventure':'Start with practice'} <span>→</span></button>${active?'<button id="fresh" class="secondary-button">Start a new adventure</button>':''}<p class="tiny-note">A safe, skippable practice first. WASD to move. Space to dash.</p></div>`;
+    $('screen').innerHTML=`<div class="welcome-card"><p class="card-eyebrow">SOMEONE’S MISSING FROM THE PICNIC</p><h3>Where’s Pepper?</h3>${plushPair(true)}<p>Find the key, rescue your best friend,<br>rescue three friends and outsmart a giant vacuum.</p><div class="mission-strip"><span>3 hearts</span><span>9 little chapters</span><span>3 friends to find</span></div><button id="begin" class="primary-button">${active?'Continue the adventure':'Start with practice'} <span>→</span></button>${active?'<button id="fresh" class="secondary-button">Start a new adventure</button>':''}<p class="tiny-note">A safe, skippable practice first. WASD to move. Space to dash.</p></div>`;
     $('begin').addEventListener('click',()=>active?navigate(routeURL(run.health<=0?'retry':'play',run.room)):newRun());
     $('fresh')?.addEventListener('click',newRun);
   } else if(view==='pause') {
@@ -163,7 +163,8 @@ function render() {
     $('retry').addEventListener('click',()=>{world=retryRoom(run,world.room);save();navigate(routeURL('play'));});$('retry-home').addEventListener('click',dismissScreen);$('retry').focus({preventScroll:true});
   } else if(view==='picnic') {
     $('screen').classList.add('picnic-screen');
-    $('screen').innerHTML=`<div class="picnic-card"><p class="card-eyebrow">THE BEST THING YOU BROUGHT HOME</p><h3>Was each other.</h3><p>A full basket, tired little paws,<br>and your favorite adventure ${run.peeFound?'buddies':'buddy'}.</p><div class="result-stats"><span><b>${run.trinkets.length}/${TRINKETS.length}</b> trinkets</span><span><b>${run.collected.length}</b> snacks</span><span><b>${run.hits}</b> bumps</span><span><b>${run.retries}</b> retries</span></div><button id="again" class="primary-button">One more adventure <span>↗</span></button><p class="tiny-note">${run.peeFound?'Pepsi, Pepper & Pee':'Pepsi & Pepper'}. Always better together.</p></div>`;
+    $('screen').innerHTML=`<div class="picnic-card"><p class="card-eyebrow">THE BEST THING YOU BROUGHT HOME</p><h3>Was each other.</h3><p>A full basket, tired little paws,<br>and your favorite adventure ${run.peeFound?'buddies':'buddy'}.</p><div class="result-stats"><span><b>${run.trinkets.length}/${TRINKETS.length}</b> trinkets</span><span><b>${run.collected.length}</b> snacks</span><span><b>${run.hits}</b> bumps</span><span><b>${run.retries}</b> retries</span></div><button id="again" class="primary-button">One more adventure <span>↗</span></button><p class="tiny-note">${run.pepperoniFound?'Pepsi, Pepper, Pee & Pepperoni':run.peeFound?'Pepsi, Pepper & Pee':'Pepsi & Pepper'}. Always better together.</p></div>`;
+    if(run.legacyEnding&&!run.bossDefeated){const link=document.createElement('a');link.className='secondary-button';link.href=routeURL('play','laundry');link.textContent='Continue into the three new chapters →';$('again').before(link);}
     $('again').addEventListener('click',newRun);
   } else {$('screen').classList.add('empty');$('screen').replaceChildren();}
   document.querySelectorAll('[data-portrait]').forEach(element=>portrait(element,element.dataset.portrait));
@@ -176,10 +177,13 @@ function updateProgress() {
   $('hearts').innerHTML=Array.from({length:hearts},(_,i)=>`<span class="${i<health?'':'empty-heart'}" aria-hidden="true">♥</span>`).join('');
   $('snack-count').textContent=run?.collected.length||0;
   $('trinket-count').textContent=`${run?.trinkets.length||0}/${TRINKETS.length}`;
-  $('buddy-status').textContent=run?.peeFound?'♡ Three corgis. Shared hearts.':run?.pepperFound?'♡ Two corgis. Shared hearts.':'Find your adventure buddy.';
+  $('buddy-status').textContent=run?.pepperoniFound?'♡ Four corgis. Shared hearts.':run?.peeFound?'♡ Three corgis. Shared hearts.':run?.pepperFound?'♡ Two corgis. Shared hearts.':'Find your adventure buddy.';
   $('pee-link').hidden=!run?.pepperFound;
   $('pee-link').href=routeURL('play','hills');
   $('pee-link').textContent=run?.peeFound?'Pee joined the adventure ♡':`Find Pee · ${peeProgress(run||{})}/6 earlier trinkets · chapter 5`;
+  $('abilities').innerHTML=[['Pepsi','Roll','Break crates & dodge',true],['Pepper','Bark','Dash stuns nearby trouble',run?.pepperFound],['Pee','Toot','Dash leaves a stink cloud',run?.peeFound],['Pepperoni','Power','Longer dash · double boss damage',run?.pepperoniFound]].map(([name,power,hint,on])=>`<div class="ability ${on?'unlocked':''}"><strong>${name} · ${on?power:'locked'}</strong><span>${on?hint:'Rescue this friend to unlock'}</span></div>`).join('');
+  $('pepperoni-link').hidden=!run?.basketFound;
+  $('pepperoni-link').href=routeURL('play','laundry');$('pepperoni-link').textContent=run?.pepperoniFound?'Pepperoni joined ♡':'Find Pepperoni · Sock Mountain';
   $('practice-link').hidden=!run;
   $('practice-link').textContent=world?.room==='tutorial'?'Skip practice →':'Practice controls';
   $('practice-link').href=routeURL('play',world?.room==='tutorial'?'meadow':'tutorial');
@@ -301,11 +305,15 @@ function handleEvents(events) {
     else if(event.type==='snack'){sound('snack');toast(event.healed?'A snack and a second wind. +1 heart.':event.item.healing?'Heart snack collected. Hearts were already full.':'A picnic treat! Regular snacks don’t heal.');}
     else if(event.type==='key'){sound('key');toast('The key! Pepper must be over by the pond.',4000);}
     else if(event.type==='trinket'){sound('key');toast(`${event.item.name}! ${run.trinkets.length}/${TRINKETS.length} trinkets tucked away.`,3000);}
-    else if(event.type==='basket'){sound('basket');toast('Basket found! Bring all ten trinkets home for the picnic.',3500);}
-    else if(event.type==='hit'){sound('hit');toast(run.pepperFound?`${event.character==='pee'?'Pee':event.character==='pepper'?'Pepper':'Pepsi'} got bonked! −1 shared heart. Watch your whole team.`:'Pepsi got bonked! −1 heart. Look for a heart-marked snack.',2800);}
+    else if(event.type==='basket'){sound('basket');toast('Basket found! Follow the trail into the cottage. Someone else needs rescuing!',3500);}
+    else if(event.type==='hit'){sound('hit');toast(run.pepperFound?`${event.character==='pepperoni'?'Pepperoni':event.character==='pee'?'Pee':event.character==='pepper'?'Pepper':'Pepsi'} got bonked! −1 shared heart. Watch your whole team.`:'Pepsi got bonked! −1 heart. Look for a heart-marked snack.',2800);}
     else if(event.type==='stun'){sound('stun');announce('Mischief bonked. Keep moving.');}
-    else if(event.type==='rescue'){sound('rescue');toast('Pepper found! +1 heart, four-heart capacity—watch both corgis. Find the ribbon + button!',5500);}
-    else if(event.type==='pee-rescue'){sound('rescue');toast('Pee found! Three loaves, four shared hearts—keep every corgi safe!',6000);}
+    else if(event.type==='rescue'){sound('rescue');toast('Pepper found! +1 heart, four-heart capacity—watch both corgis. Space now adds Pepper’s stunning bark!',5500);}
+    else if(event.type==='pee-rescue'){sound('rescue');toast('Pee found! Space now leaves a stink cloud to stop pursuers!',6000);}
+    else if(event.type==='pepperoni-rescue'){sound('rescue');toast('Pepperoni found! Power dash unlocked: longer rolls, double boss damage. Same cooldown!',6500);}
+    else if(event.type==='boss-open'){sound('key');toast('The vacuum overheated! Dash into it now!',2500);}
+    else if(event.type==='boss-hit'){sound('stun');toast('Power bonk! Keep dodging until it overheats again.');}
+    else if(event.type==='boss-win'){sound('win');toast('Sir Sucks-a-Lot is unplugged! Take the path home →',6000);}
     else if(event.type==='defeat'){save();sound('defeat');navigate(routeURL('retry'));return;}
     else if(event.type==='exit') {
       const next=ORDER[ORDER.indexOf(world.room)+1];
@@ -325,6 +333,7 @@ function frame(now) {
       const held=inputDirection(),direction=held.x||held.y?held:pendingMove||held;pendingMove=null;
       handleEvents(step(world,run,direction,dt));
       saveElapsed+=dt;if(saveElapsed>1){save();saveElapsed=0;}
+      if(world.room==='boss')$('objective-text').textContent=objective(run,'boss');
       $('dash-fill').style.width=`${Math.max(0,1-world.cooldown/DASH_COOLDOWN)*100}%`;
       $('dash-label').textContent=world.cooldown>0?`${world.cooldown.toFixed(1)}s recharge`:'dash ready';
     }

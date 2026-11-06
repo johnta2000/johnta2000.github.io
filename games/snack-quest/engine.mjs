@@ -1,7 +1,7 @@
 export const WIDTH = 1000;
 export const HEIGHT = 620;
 export const DASH_COOLDOWN = 2.8;
-export const ORDER = ['meadow', 'pond', 'burrows', 'woods', 'hills', 'orchard'];
+export const ORDER = ['meadow', 'pond', 'burrows', 'woods', 'hills', 'orchard', 'laundry', 'kitchen', 'boss'];
 export const ROOMS = {
   tutorial: {
     name:'Little Loaf Practice',short:'Practice',ground:'#e4ebc7',snack:'biscuit',
@@ -47,12 +47,31 @@ export const ROOMS = {
     goal:{x:840,y:480,r:23,kind:'sign'},
   },
   orchard: {
-    name: 'Clover Orchard', short: 'Home together', ground: '#e0e6b9', snack: 'cheese',
-    note: 'One last muddy shortcut! Gather two trinkets and the basket, then bring your friends home.',
+    name: 'Clover Orchard', short: 'The basket', ground: '#e0e6b9', snack: 'cheese',
+    note: 'Gather two trinkets and the basket. A suspicious vacuum trail leads into the cottage!',
     terrain:[{kind:'mud',x:470,y:365,rx:98,ry:60}],
     obstacles: [{x:345,y:245,r:36,kind:'tree'}, {x:640,y:235,r:38,kind:'tree'}, {x:640,y:435,r:33,kind:'tree'}],
     slots: [[215,180],[490,150],[775,245],[840,435],[460,470],[230,400],[775,500],[490,325]],
     goal: {x:825,y:160,r:23,kind:'basket'},
+  },
+  laundry: {
+    name:'Sock Mountain',short:'Pepperoni',ground:'#e6dacc',snack:'biscuit',indoor:true,
+    note:'Find two laundry treasures. Bring Pee to the blanket fort to rescue Pepperoni!',
+    obstacles:[{x:355,y:235,r:44,kind:'hamper'},{x:620,y:405,r:44,kind:'hamper'},{x:770,y:280,r:36,kind:'hamper'}],
+    terrain:[{kind:'ice',x:470,y:330,rx:110,ry:52}],
+    slots:[[220,170],[480,160],[840,450],[240,450],[700,500],[610,220]],goal:{x:820,y:160,r:30,kind:'fort'},
+  },
+  kitchen: {
+    name:'Midnight Snack Kitchen',short:'The kitchen',ground:'#e4e8da',snack:'cheese',indoor:true,
+    note:'Pepperoni’s power dash lasts longer. Cross the slippery spills and find the last two treasures.',
+    obstacles:[{x:360,y:260,r:45,kind:'table'},{x:620,y:400,r:48,kind:'table'},{x:770,y:210,r:32,kind:'hamper'}],
+    terrain:[{kind:'ice',x:500,y:200,rx:100,ry:55},{kind:'ice',x:780,y:400,rx:100,ry:65}],
+    slots:[[230,170],[500,150],[850,490],[250,450],[490,480],[680,300]],goal:{x:820,y:480,r:23,kind:'sign'},
+  },
+  boss: {
+    name:'Sir Sucks-a-Lot',short:'The vacuum',ground:'#dcd4c9',snack:'biscuit',indoor:true,
+    note:'Dodge the red charge line. When the vacuum overheats, dash into it! Four power hits switch it off.',
+    obstacles:[],slots:[[220,170],[220,480],[820,480]],goal:{x:700,y:315,r:44,kind:'boss'},
   },
 };
 export const TRINKETS = [
@@ -66,7 +85,12 @@ export const TRINKETS = [
   {id:'hills-button',room:'hills',name:'A sunshine button',kind:'button',x:840,y:480},
   {id:'orchard-star',room:'orchard',name:'A pocket-sized star',kind:'star',x:470,y:160},
   {id:'orchard-flower',room:'orchard',name:'A picnic flower',kind:'flower',x:810,y:490},
+  {id:'laundry-sock',room:'laundry',name:'Pepperoni’s favorite sock',kind:'sock',x:230,y:480},
+  {id:'laundry-bell',room:'laundry',name:'The laundry bell',kind:'bell',x:650,y:170},
+  {id:'kitchen-star',room:'kitchen',name:'The chef’s gold star',kind:'star',x:240,y:170},
+  {id:'kitchen-button',room:'kitchen',name:'A runaway apron button',kind:'button',x:820,y:490},
 ];
+export const PEPPERONI_RESCUE={x:820,y:160};
 export const PEE_RESCUE = {x:790,y:155};
 export function peeProgress(run) { return TRINKETS.filter(item=>['pond','burrows','woods'].includes(item.room)&&run.trinkets?.includes(item.id)).length; }
 export function canRescuePee(run) { return run.pepperFound && peeProgress(run)===6; }
@@ -81,8 +105,10 @@ export function trinketCount(run,room) { return roomTrinkets(room).filter(item=>
 export function allTrinkets(run) { return TRINKETS.every(item=>run.trinkets?.includes(item.id)); }
 export function upgradeRun(run) {
   // Extend old saves in place without losing snacks, health, or completed adventures.
-  if(run.completed)run.trinkets=TRINKETS.map(item=>item.id);
+  if(run.completed&&!run.bossDefeated){run.legacyEnding=true;run.trinkets=[...new Set([...(run.trinkets||[]),...TRINKETS.slice(0,10).map(item=>item.id)])];}
   else if(!run.trinkets)run.trinkets=[];
+  if(run.pepperoniFound===undefined)run.pepperoniFound=false;
+  if(run.bossDefeated===undefined)run.bossDefeated=false;
   if(run.peeFound===undefined)run.peeFound=false;
   if(run.tutorialStep===undefined)run.tutorialStep=3;
   run.order=roomOrder();
@@ -100,7 +126,7 @@ export function random(seed) {
 }
 export function roomOrder() { return [...ORDER]; }
 export function roomItems(seed, room) {
-  const slots = [...ROOMS[room].slots], rng = random(seed + ['meadow','pond','orchard','burrows','woods','hills'].indexOf(room) * 817);
+  const slots = [...ROOMS[room].slots], rng = random(seed + ['meadow','pond','orchard','burrows','woods','hills','laundry','kitchen','boss'].indexOf(room) * 817);
   for (let i = slots.length - 1; i > 0; i--) {
     const j = Math.floor(rng() * (i + 1));
     [slots[i], slots[j]] = [slots[j], slots[i]];
@@ -112,7 +138,7 @@ export function createRun(id) {
   return {
     version:2, id, seed:Number.parseInt(id, 36) >>> 0, character:'pepsi', order:roomOrder(),
     room:'meadow', tutorialStep:0, collected:[], trinkets:[], positions:{}, checkpoints:{}, health:3,
-    keyFound:false, pepperFound:false, peeFound:false, basketFound:false, completed:false,
+    keyFound:false, pepperFound:false, peeFound:false, pepperoniFound:false,bossDefeated:false, basketFound:false, completed:false,
     hits:0, retries:0, revision:0, startedAt:Date.now(),
   };
 }
@@ -120,8 +146,10 @@ export function validRun(value, id) {
   return !!(value && value.version === 2 && value.id === id && /^[a-z0-9]{6,16}$/.test(id) &&
     (value.tutorialStep===undefined || Number.isInteger(value.tutorialStep)&&value.tutorialStep>=0&&value.tutorialStep<=3) &&
     (value.peeFound===undefined || typeof value.peeFound==='boolean') && (!value.peeFound || value.pepperFound) &&
+    ['pepperoniFound','bossDefeated','legacyEnding'].every(k=>value[k]===undefined||typeof value[k]==='boolean') &&
+    (!value.pepperoniFound||value.peeFound&&value.pepperFound) && validBoss(value.bossState) &&
     Number.isInteger(value.seed) && value.seed >= 0 && value.seed <= 0xffffffff &&
-    Array.isArray(value.collected) && value.collected.every(item => /^(meadow|pond|burrows|woods|hills|orchard)-[0-3]$/.test(item)) &&
+    Array.isArray(value.collected) && value.collected.every(item => /^(meadow|pond|burrows|woods|hills|orchard|laundry|kitchen|boss)-[0-3]$/.test(item)) &&
     new Set(value.collected).size === value.collected.length &&
     (value.trinkets === undefined || Array.isArray(value.trinkets) && value.trinkets.every(id=>TRINKETS.some(item=>item.id===id)) && new Set(value.trinkets).size===value.trinkets.length) &&
     value.positions && typeof value.positions === 'object' && !Array.isArray(value.positions) &&
@@ -142,7 +170,7 @@ export function migrateRun(old, id) {
   run.pepperFound = run.keyFound && (roomCount(run, 'pond') >= 4 || !!old.completed);
   run.basketFound = run.pepperFound && !!old.completed;
   run.completed = run.basketFound;
-  if(run.completed)run.trinkets=TRINKETS.map(item=>item.id);
+  if(run.completed){run.trinkets=TRINKETS.slice(0,10).map(item=>item.id);run.legacyEnding=true;}
   run.health = maxHearts(run);
   run.room = firstUnfinished(run);
   run.migrated = true;
@@ -154,21 +182,30 @@ export function goalDone(run, room) {
   if(room==='meadow')return run.keyFound;
   if(room==='pond')return run.pepperFound && trinketCount(run,room)===2;
   if(['burrows','woods','hills'].includes(room))return run.pepperFound && trinketCount(run,room)===2;
-  return run.basketFound && allTrinkets(run);
+  if(room==='laundry')return run.pepperoniFound&&trinketCount(run,room)===2;
+  if(room==='kitchen')return run.pepperoniFound&&trinketCount(run,room)===2;
+  if(room==='boss')return !!run.bossDefeated;
+  return run.basketFound && TRINKETS.slice(0,10).every(i=>run.trinkets?.includes(i.id));
 }
 export function isUnlocked(run, room) {
+  if(room==='laundry')return goalDone(run,'orchard');
+  if(room==='kitchen')return goalDone(run,'laundry');
+  if(room==='boss')return goalDone(run,'kitchen')&&allTrinkets(run);
   return room === 'tutorial' || room === 'meadow' || room === 'pond' && run.keyFound || ['burrows','woods','hills','orchard'].includes(room) && run.pepperFound;
 }
-export function firstUnfinished(run) { return ORDER.find(room => !goalDone(run, room)) || 'orchard'; }
+export function firstUnfinished(run) { return ORDER.find(room => !goalDone(run, room)) || 'boss'; }
 export function objective(run, room) {
   if(room==='tutorial')return ['1 / 3 · WASD: roll to the flower flag →','2 / 3 · Hold D + tap SPACE to break the practice crate','3 / 3 · Watch the dash meter recharge (2.8 seconds)','Ready! Follow the glowing path into the meadow →'][run.tutorialStep??3];
-  if (goalDone(run, room)) return room === 'orchard' ? 'Bring your friends and the basket home →' : 'Follow the open path to the right →';
+  if (goalDone(run, room)) return room === 'boss' ? 'The vacuum is off! Bring everyone home →' : 'Follow the open path to the right →';
   if(room==='meadow')return 'Dash into the wooden crate to find the key';
   if(room==='pond'&&!run.pepperFound)return 'Reach Pepper’s gate with the key';
   if(room==='hills'&&!run.peeFound&&canRescuePee(run))return 'Pee is ready! Roll to the yellow corgi in the top-right clearing';
+  if(room==='boss')return run.bossState?.mode==='exposed'?'OVERHEATED! Space: power-dash into the vacuum':'Dodge the red charge line; strike only when it overheats';
+  if(room==='laundry'&&!run.peeFound)return 'Bring Pee from the downs to help find Pepperoni';
+  if(room==='laundry'&&!run.pepperoniFound&&trinketCount(run,room)===2)return 'Roll to Pepperoni’s blanket fort in the top-right corner';
   const missing=roomTrinkets(room).filter(item=>!run.trinkets?.includes(item.id));
   if(missing.length)return `Find ${missing.map(item=>item.kind==='button'?'the button':`the ${item.kind}`).join(' + ')} · ${trinketCount(run,room)}/2 trinkets`;
-  if(room==='orchard'&&!allTrinkets(run))return 'Trinkets still missing! Revisit earlier chapters below';
+  if(room==='orchard'&&!TRINKETS.slice(0,10).every(i=>run.trinkets?.includes(i.id)))return 'Trinkets still missing! Revisit earlier chapters below';
   return 'Collect the picnic basket, then take the path home →';
 }
 export function walkable(x, y, room, radius = 18) {
@@ -176,17 +213,17 @@ export function walkable(x, y, room, radius = 18) {
   return !ROOMS[room].obstacles.some(o => ((x-o.x)/(o.r+radius)) ** 2 + ((y-o.y)/((o.ry||o.r)+radius)) ** 2 < 1);
 }
 export function toysFor(seed, room) {
-  if(room==='tutorial')return [];
-  const positions = room==='woods'?[[420,260],[620,350],[820,330]]:room==='hills'?[[420,400],[710,290],[590,310]]:room === 'meadow' ? [[360,350],[690,285]] : room === 'pond' ? [[290,220],[710,370],[565,470]] : room === 'burrows' ? [[470,300],[760,350]] : [[315,375],[505,220],[800,340],[515,480]];
+  if(room==='tutorial'||room==='boss')return [];
+  const positions = ['laundry','kitchen'].includes(room)?[[280,360],[540,260],[800,380]]:room==='woods'?[[420,260],[620,350],[820,330]]:room==='hills'?[[420,400],[710,290],[590,310]]:room === 'meadow' ? [[360,350],[690,285]] : room === 'pond' ? [[290,220],[710,370],[565,470]] : room === 'burrows' ? [[470,300],[760,350]] : [[315,375],[505,220],[800,340],[515,480]];
   const rng = random(seed + ORDER.indexOf(room)*77);
   return positions.map(([x,y], i) => ({
     x,y,r:18,vx:(rng()>.5?1:-1)*(40+ORDER.indexOf(room)*8),vy:(rng()>.5?1:-1)*30,
-    kind:i%2?'cat':'ball',mode:'roam',timer:0,cooldown:.8+i*.3,aimX:0,aimY:0,
+    kind:i%2?'cat':'vacuum',mode:'roam',timer:0,cooldown:.8+i*.3,aimX:0,aimY:0,
   }));
 }
 export function gophersFor(seed,room) {
-  if(room==='tutorial')return [];
-  const spots={woods:[[260,450],[610,170],[810,350]],hills:[[250,220],[450,440],[710,190],[820,440]],meadow:[],pond:[[340,180],[680,475]],burrows:[[270,210],[470,450],[735,200],[805,430]],orchard:[[450,180],[730,440],[830,270]]}[room];
+  if(room==='tutorial'||room==='boss')return [];
+  const spots={laundry:[],kitchen:[],woods:[[260,450],[610,170],[810,350]],hills:[[250,220],[450,440],[710,190],[820,440]],meadow:[],pond:[[340,180],[680,475]],burrows:[[270,210],[470,450],[735,200],[805,430]],orchard:[[450,180],[730,440],[830,270]]}[room];
   const rng=random(seed+ORDER.indexOf(room)*307);
   return spots.map(([x,y],i)=>({x,y,r:22,kind:'gopher',mode:'hidden',timer:1+i*.65+rng(),cycle:0,seed:seed+i*31}));
 }
@@ -203,10 +240,11 @@ export function makeWorld(run, room) {
   const p = saved && walkable(saved.x,saved.y,room) ? {...saved} : {x:135,y:315};
   if (!run.checkpoints[room]) run.checkpoints[room] = run.collected.filter(id => id.startsWith(room+'-'));
   const buddy = walkable(p.x-43,p.y+10,room,12) ? {x:p.x-43,y:p.y+10} : {...p};
-  const pee=companionSpawn(buddy,room);
+  const pee=companionSpawn(buddy,room),pepperoni=companionSpawn(pee,room);
+  if(room==='boss'&&!run.bossDefeated&&!run.bossState)run.bossState=newBoss();
   return {
-    room, runId:run.id, player:{...p,vx:1,vy:0,facing:1,moving:false}, buddy:{...buddy,facing:1}, pee:{...pee,facing:1},
-    followTrail:[{...p}],peeTrail:[{...buddy}], toys:toysFor(run.seed,room), gophers:gophersFor(run.seed,room), items:roomItems(run.seed,room),
+    room, runId:run.id, player:{...p,vx:1,vy:0,facing:1,moving:false}, buddy:{...buddy,facing:1}, pee:{...pee,facing:1},pepperoni:{...pepperoni,facing:1},boss:room==='boss'?run.bossState:null,
+    followTrail:[{...p}],peeTrail:[{...buddy}],pepperoniTrail:[{...pee}],clouds:[],bark:0,dashPulse:false, toys:toysFor(run.seed,room), gophers:gophersFor(run.seed,room), items:roomItems(run.seed,room),
     time:0,dash:0,cooldown:0,invincible:.65,bump:0,hitCorgi:null,particles:[],
   };
 }
@@ -217,13 +255,14 @@ export function retryRoom(run, room) {
   run.health = maxHearts(run);
   run.retries++;
   run.positions[room] = {x:135,y:315};
+  if(room==='boss'&&!run.bossDefeated)run.bossState=newBoss();
   return makeWorld(run,room);
 }
 export function startDash(world, input={x:0,y:0}) {
   if (world.cooldown > 0) return false;
   const length = Math.hypot(input.x,input.y);
   if (length) { world.player.vx=input.x/length; world.player.vy=input.y/length; }
-  world.dash=.2; world.cooldown=DASH_COOLDOWN; world.invincible=Math.max(world.invincible,.28);
+  world.dash=.2;world.dashPulse=true; world.cooldown=DASH_COOLDOWN; world.invincible=Math.max(world.invincible,.28);
   return true;
 }
 function move(body,dx,dy,room,radius=18) {
@@ -261,6 +300,7 @@ function touchingCorgi(world,run,hazard,padding=20) {
   const corgis=[{body:world.player,character:'pepsi'}];
   if(run.pepperFound)corgis.push({body:world.buddy,character:'pepper'});
   if(run.peeFound)corgis.push({body:world.pee,character:'pee'});
+  if(run.pepperoniFound)corgis.push({body:world.pepperoni,character:'pepperoni'});
   return corgis.map(corgi=>({...corgi,distance:Math.hypot(hazard.x-corgi.body.x,hazard.y-corgi.body.y)}))
     .filter(corgi=>corgi.distance<hazard.r+padding).sort((a,b)=>a.distance-b.distance)[0];
 }
@@ -281,6 +321,14 @@ export function step(world,run,input,dt) {
   dt=Math.min(Math.max(dt,0),.035);world.dt=dt;world.time+=dt;
   for(const key of ['cooldown','invincible','bump'])world[key]=Math.max(0,world[key]-dt);
   const p=world.player, length=Math.hypot(input.x,input.y), events=[];
+  world.bark=Math.max(0,world.bark-dt);
+  world.clouds=world.clouds.filter(c=>(c.life-=dt)>0);
+  if(world.dashPulse){
+    world.dashPulse=false;
+    if(run.pepperoniFound){world.dash=.28;world.invincible=Math.max(world.invincible,.36);}
+    if(run.pepperFound){world.bark=.3;for(const h of [...world.toys,...world.gophers])if(Math.hypot(h.x-world.buddy.x,h.y-world.buddy.y)<95){h.mode='stunned';h.timer=1.4;events.push({type:'stun'});}}
+    if(run.peeFound)world.clouds.push({x:world.pee.x,y:world.pee.y,life:1.2});
+  }
   const dashing=world.dash>0,ground=terrainAt(world.room,p.x,p.y),wind=windAt(world.room,world.time),before={x:p.x,y:p.y};
   if(dashing){move(p,p.vx*570*dt,p.vy*570*dt,world.room);world.dash=Math.max(0,world.dash-dt);p.slideX=p.vx*185;p.slideY=p.vy*185;}
   else {
@@ -296,6 +344,7 @@ export function step(world,run,input,dt) {
   if(Math.abs(p.x-before.x)>.01)p.facing=p.x<before.x?-1:1;
   if(run.pepperFound)follow(world);
   if(run.peeFound)follow(world,world.buddy,world.pee,world.peeTrail);
+  if(run.pepperoniFound)follow(world,world.pee,world.pepperoni,world.pepperoniTrail);
   const goal=ROOMS[world.room].goal, nearGoal=Math.hypot(goal.x-p.x,goal.y-p.y);
   if(world.room==='tutorial') {
     if(run.tutorialStep===0&&Math.hypot(p.x-330,p.y-315)<45){run.tutorialStep=1;events.push({type:'practice'});}
@@ -319,9 +368,15 @@ export function step(world,run,input,dt) {
     world.pee=companionSpawn(world.buddy,world.room);world.peeTrail=[{x:world.buddy.x,y:world.buddy.y}];
     world.invincible=3;particles(world,PEE_RESCUE.x,PEE_RESCUE.y,'heart');events.push({type:'pee-rescue'});
   }
+  if(world.room==='laundry'&&!run.pepperoniFound&&run.peeFound&&trinketCount(run,'laundry')===2&&nearGoal<55){
+    run.pepperoniFound=true;world.pepperoni=companionSpawn(world.pee,world.room);world.pepperoniTrail=[{x:world.pee.x,y:world.pee.y}];world.invincible=3;
+    particles(world,goal.x,goal.y,'heart');events.push({type:'pepperoni-rescue'});
+  }
   if(world.room==='orchard'&&!run.basketFound&&run.pepperFound&&nearGoal<43) {
     run.basketFound=true;particles(world,goal.x,goal.y);events.push({type:'basket'});
   }
+  if(world.boss&&!run.bossDefeated){stepBoss(world,run,dt,dashing,events);if(run.health<=0)return events;}
+  for(const h of [...world.toys,...world.gophers])if(world.clouds.some(c=>Math.hypot(c.x-h.x,c.y-h.y)<68)){if(h.mode!=='stunned')events.push({type:'stun'});h.mode='stunned';h.timer=Math.max(h.timer,1);}
   for(const toy of world.toys) {
     toy.cooldown=Math.max(0,toy.cooldown-dt);
     const distance=Math.hypot(toy.x-p.x,toy.y-p.y);
@@ -376,4 +431,28 @@ export function step(world,run,input,dt) {
   world.particles=world.particles.filter(p=>{p.life-=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;return p.life>0;});
   if(p.x>890&&Math.abs(p.y-320)<58&&goalDone(run,world.room))events.push({type:'exit'});
   return events;
+}
+
+function newBoss(){return {x:710,y:315,r:44,hp:8,mode:'windup',timer:1.3,aimX:-1,aimY:0,cycle:0};}
+function validBoss(b){return b===undefined || !!(b&&['x','y','r','hp','timer','aimX','aimY','cycle'].every(k=>Number.isFinite(b[k]))&&b.hp>=0&&b.hp<=8&&b.r===44&&b.x>=99&&b.x<=901&&b.y>=149&&b.y<=504&&['windup','charge','exposed','recover','suction','off'].includes(b.mode)&&b.timer>=0&&b.timer<=5);}
+function stepBoss(world,run,dt,dashing,events){
+  const b=world.boss,p=world.player;b.timer=Math.max(0,b.timer-dt);
+  if(b.mode==='exposed'){
+    if(dashing&&Math.hypot(p.x-b.x,p.y-b.y)<b.r+29){
+      b.hp=Math.max(0,b.hp-(run.pepperoniFound?2:1));particles(world,b.x,b.y);
+      if(!b.hp){run.bossDefeated=true;b.mode='off';b.timer=0;events.push({type:'boss-win'});return;}
+      b.mode='recover';b.timer=1.2;events.push({type:'boss-hit'});
+    }else if(b.timer===0){b.mode='recover';b.timer=.6;}
+  }else if(b.mode==='recover'&&b.timer===0){
+    b.cycle++;b.mode=b.hp<=4?'suction':'windup';b.timer=b.mode==='suction'?1.8:1.1;
+    const d=Math.hypot(p.x-b.x,p.y-b.y)||1;b.aimX=(p.x-b.x)/d;b.aimY=(p.y-b.y)/d;
+  }else if(b.mode==='suction'){
+    if(!dashing){const d=Math.hypot(b.x-p.x,b.y-p.y)||1;move(p,(b.x-p.x)/d*60*dt,(b.y-p.y)/d*60*dt,world.room);}
+    if(b.timer===0){b.mode='windup';b.timer=1.1;const d=Math.hypot(p.x-b.x,p.y-b.y)||1;b.aimX=(p.x-b.x)/d;b.aimY=(p.y-b.y)/d;}
+  }else if(b.mode==='windup'&&b.timer===0){b.mode='charge';b.timer=1.3;}
+  else if(b.mode==='charge'){
+    const x=b.x,y=b.y;move(b,b.aimX*400*dt,b.aimY*400*dt,world.room,b.r);
+    if(b.timer===0||Math.hypot(b.x-x,b.y-y)<400*dt*.6){b.mode='exposed';b.timer=3.4;events.push({type:'boss-open'});}
+  }
+  if(['windup','charge','suction'].includes(b.mode))bumpCorgis(world,run,b,events);
 }

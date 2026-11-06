@@ -20,7 +20,7 @@ async function saved(page){return page.evaluate(prefix=>JSON.parse(localStorage.
 async function hold(page,key,milliseconds){await page.keyboard.down(key);await page.waitForTimeout(milliseconds);await page.keyboard.up(key);}
 async function waitView(page,view){await page.waitForFunction(view=>new URLSearchParams(location.search).get('view')===view,view);}
 async function waitRoom(page,room){try{await page.waitForFunction(({room,name})=>new URLSearchParams(location.search).get('room')===room&&document.getElementById('room-name').textContent===name,{room,name:ROOMS[room].name});}catch(error){console.error({url:page.url(),room:await page.locator('#room-name').textContent(),screen:await page.locator('#screen').innerText()});throw error;}}
-async function dismissOutside(page){const box=await page.locator('#screen').boundingBox();await page.mouse.click(box.x+7,box.y+7);}
+async function dismissOutside(page){await page.locator('#screen').scrollIntoViewIfNeeded();const box=await page.locator('#screen').boundingBox();await page.mouse.click(box.x+7,Math.max(20,box.y+7));}
 try {
   const desktop=await browser.newContext({viewport:{width:1440,height:1000},deviceScaleFactor:1});
   const page=await pageFor(desktop);await page.screenshot({path:output+'/desktop-home.png',fullPage:true});
@@ -110,12 +110,13 @@ try {
   // Collect each actual trinket through WASD, preserving the previous discoveries.
   let treasure=createRun('treasure12');treasure.keyFound=true;treasure.pepperFound=true;treasure.health=4;
   for(const item of TRINKETS){
+    if(['laundry','kitchen'].includes(item.room)){treasure.basketFound=true;treasure.peeFound=true;}if(item.room==='kitchen')treasure.pepperoniFound=true;
     treasure.room=item.room;treasure.positions[item.room]={x:item.x-38,y:item.y};
     await seed(page,treasure,item.room);await hold(page,'d',100);await page.keyboard.press('Escape');await waitView(page,'pause');
     treasure=await saved(page);assert.ok(treasure.trinkets.includes(item.id));
     await page.reload();await page.locator('.pause-card').waitFor();assert.ok((await saved(page)).trinkets.includes(item.id));
   }
-  assert.equal(treasure.trinkets.length,10);assert.equal(await page.locator('#trinket-count').innerText(),'10/10');
+  assert.equal(treasure.trinkets.length,14);assert.equal(await page.locator('#trinket-count').innerText(),'14/14');
   const locked=createRun('lockedpond');locked.keyFound=true;locked.pepperFound=true;locked.health=4;locked.positions.pond={x:895,y:320};
   await seed(page,locked,'pond');await hold(page,'d',100);assert.match(page.url(),/room=pond/,'rescue alone does not open the pond exit');
   locked.trinkets=TRINKETS.filter(item=>item.room==='pond').map(item=>item.id);locked.revision=(await saved(page)).revision+1;
@@ -154,6 +155,19 @@ try {
     await seed(page,terrain);await page.keyboard.press('w');await page.waitForTimeout(room==='hills'?3500:150);await page.evaluate(()=>window.dispatchEvent(new Event('blur')));
     await page.screenshot({path:output+'/desktop-terrain-'+room+'.png',fullPage:true});
   }
+  // Rescue the fourth corgi using the existing movement controls, then persist all abilities.
+  const fourth=createRun('fourthtest');Object.assign(fourth,{keyFound:true,pepperFound:true,peeFound:true,basketFound:true,health:2,room:'laundry',trinkets:TRINKETS.slice(0,12).map(i=>i.id),positions:{laundry:{x:755,y:160}}});
+  await seed(page,fourth);await hold(page,'d',150);await page.keyboard.press('Escape');assert.ok((await saved(page)).pepperoniFound);assert.equal((await saved(page)).health,2);await page.reload();await page.locator('#resume').click();assert.match(await page.locator('#abilities').innerText(),/Pepperoni · Power/);
+  await page.keyboard.press('s');await page.evaluate(()=>window.dispatchEvent(new Event('blur')));await page.screenshot({path:output+'/desktop-pepperoni.png',fullPage:true});
+  const kitchen={...await saved(page),positions:{kitchen:{x:135,y:315}}};await seed(page,kitchen,'kitchen');await page.keyboard.press('d');await page.evaluate(()=>window.dispatchEvent(new Event('blur')));await page.screenshot({path:output+'/desktop-kitchen.png',fullPage:true});
+  let battle={...kitchen,id:'bossbrowser',room:'boss',health:4,trinkets:TRINKETS.map(i=>i.id),positions:{boss:{x:645,y:315}},revision:0};
+  for(let hit=0;hit<4;hit++){
+    battle.positions.boss={x:645,y:315};battle.bossState={x:710,y:315,r:44,hp:8-hit*2,mode:'exposed',timer:3.4,aimX:-1,aimY:0,cycle:hit};
+    await seed(page,battle,'boss');await page.keyboard.down('d');await page.keyboard.press('Space');await page.waitForTimeout(130);await page.keyboard.up('d');await page.keyboard.press('Escape');
+    battle=await saved(page);assert.equal(battle.bossState.hp,6-hit*2);assert.equal(battle.bossDefeated,hit===3);await page.reload();await page.locator('#resume').waitFor();assert.equal((await saved(page)).bossState.hp,6-hit*2);
+    if(hit===0){await page.locator('#resume').click();await page.keyboard.press('a');await page.evaluate(()=>window.dispatchEvent(new Event('blur')));await page.screenshot({path:output+'/desktop-vacuum-boss.png',fullPage:true});}
+  }
+  battle.positions.boss={x:885,y:320};battle.revision++;await seed(page,battle,'boss');await hold(page,'d',120);await waitView(page,'picnic');assert.ok((await saved(page)).completed);await page.screenshot({path:output+'/desktop-four-friends.png',fullPage:true});
   // Old reunion deep links remain usable and resume at the pond.
   const reunionURL=`${base}?view=reunion&run=${rescue.id}&room=pond`;await page.goto(reunionURL);await page.locator('.story-card').waitFor();await page.reload();await page.locator('.story-card').waitFor();
   const reunionCopy=await desktop.newPage();await reunionCopy.goto(reunionURL);await reunionCopy.locator('.story-card').waitFor();await reunionCopy.close();
@@ -177,12 +191,13 @@ try {
   await page.reload();await page.locator('#retry').waitFor();await page.locator('#retry').click();await waitView(page,'play');
   assert.equal((await saved(page)).health,4);assert.equal((await saved(page)).pepperFound,true);assert.deepEqual((await saved(page)).trinkets,['pond-ribbon']);
   const final=createRun('finaltest');final.keyFound=true;final.pepperFound=true;final.health=4;final.trinkets=TRINKETS.map(item=>item.id);final.room='orchard';final.positions.orchard={x:780,y:160};await seed(page,final);
-  await hold(page,'d',250);assert.ok((await saved(page)).basketFound);await hold(page,'s',850);await hold(page,'d',620);await page.waitForURL(/view=picnic/,{timeout:5000});assert.ok((await saved(page)).completed);
+  await hold(page,'d',250);assert.ok((await saved(page)).basketFound);await hold(page,'s',850);await hold(page,'d',620);await waitRoom(page,'laundry');assert.equal((await saved(page)).completed,false,'the orchard now continues into the cottage');
+  const finish={...final,id:'bossfinish',peeFound:true,pepperoniFound:true,basketFound:true,bossDefeated:true,completed:true};await seed(page,finish,'boss','picnic');await page.locator('.picnic-card').waitFor();
   const finalBox=await page.locator('#stage').boundingBox();assert.ok(finalBox.width>1100,'wider desktop playfield');
   await page.screenshot({path:output+'/desktop-picnic.png',fullPage:true});await page.reload();await page.locator('.picnic-card').waitFor();
   await page.locator('#again').click();await waitView(page,'play');assert.equal((await saved(page)).pepperFound,false);assert.equal((await saved(page)).health,3);const replayBox=await page.locator('#stage').boundingBox();assert.equal(replayBox.width,finalBox.width);assert.equal(replayBox.y,finalBox.y,'completion and replay keep the stage anchored');
   // Every room supports refresh, copied URLs, and Back/Forward.
-  const routes=createRun('routes123');routes.keyFound=true;routes.pepperFound=true;routes.health=4;
+  const routes=createRun('routes123');routes.keyFound=true;routes.pepperFound=true;routes.health=4;routes.peeFound=true;routes.pepperoniFound=true;routes.basketFound=true;routes.trinkets=TRINKETS.map(i=>i.id);
   await seed(page,routes,'meadow','pause');
   for(const room of ['tutorial',...ORDER]){
     await page.goto(`${base}?view=pause&run=${routes.id}&room=${room}`);await page.locator('.pause-card').waitFor();const url=page.url();await page.reload();await page.locator('.pause-card').waitFor();assert.equal(page.url(),url);
@@ -197,7 +212,7 @@ try {
   // Existing v2 saves keep their exact location, hearts, snacks, and completed endings.
   const oldQuest=createRun('oldv2quest');delete oldQuest.trinkets;oldQuest.keyFound=true;oldQuest.pepperFound=true;oldQuest.health=2;oldQuest.room='orchard';oldQuest.positions.orchard={x:245,y:380};oldQuest.collected=['pond-1'];
   await seed(page,oldQuest,'orchard');const upgraded=await saved(page);assert.equal(upgraded.health,2);assert.deepEqual(upgraded.positions.orchard,oldQuest.positions.orchard);assert.deepEqual(upgraded.collected,['pond-1']);assert.deepEqual(upgraded.trinkets,[]);
-  const oldFinished={...oldQuest,id:'oldv2win',basketFound:true,completed:true};await seed(page,oldFinished,'orchard','picnic');await page.locator('.picnic-card').waitFor();assert.equal(await page.locator('#trinket-count').innerText(),'10/10');
+  const oldFinished={...oldQuest,id:'oldv2win',basketFound:true,completed:true};await seed(page,oldFinished,'orchard','picnic');await page.locator('.picnic-card').waitFor();assert.equal(await page.locator('#trinket-count').innerText(),'10/14');await page.getByText('Continue into the three new chapters →').click();await waitRoom(page,'laundry');await page.locator('.brand').click();assert.match(await page.locator('#begin').innerText(),/Continue/);await page.locator('#begin').click();await waitRoom(page,'laundry');
   const stale=createRun('staletest');await seed(page,stale,'meadow','pause');
   await page.evaluate(({prefix,id})=>{const latest=JSON.parse(localStorage.getItem(prefix+id));latest.health=2;latest.revision+=1;localStorage.setItem(prefix+id,JSON.stringify(latest));},{prefix,id:stale.id});
   await page.locator('#resume').click();await waitView(page,'play');await hold(page,'d',180);await page.keyboard.press('Escape');await waitView(page,'pause');await page.locator('#save-error').waitFor({state:'visible'});assert.equal((await saved(page)).health,2,'stale tab cannot overwrite newer damage');
@@ -249,7 +264,7 @@ try {
 
   // Render the actual score for a listenable preview and check its level/headroom.
   const preview=await musicPage.evaluate(async()=>{
-    const {Soundscape}=await import('/games/snack-quest/audio.mjs?v=13');
+    const {Soundscape}=await import('/games/snack-quest/audio.mjs?v=14');
     const rate=22050,context=new OfflineAudioContext(1,rate*22,rate);
     const score=new Soundscape(()=>context);score.setEnabled(true);score.unlock();score.setScene('play','meadow');
     for(let i=0;i<64;i++)score.musicBeat(i,.1+i*30/96,30/96);
@@ -264,11 +279,11 @@ try {
   const mobile=await browser.newContext({viewport:{width:390,height:844},deviceScaleFactor:2,isMobile:true,hasTouch:true});const phone=await pageFor(mobile);
   assert.equal(await phone.locator('.touch-controls,[data-direction]').count(),0);assert.equal(await phone.locator('.phone-note').isVisible(),true);
   await phone.screenshot({path:output+'/mobile-home.png',fullPage:true});
-  const mobileRun=createRun('mobile123');mobileRun.keyFound=true;mobileRun.pepperFound=true;mobileRun.health=4;mobileRun.peeFound=true;
+  const mobileRun=createRun('mobile123');mobileRun.keyFound=true;mobileRun.pepperFound=true;mobileRun.health=4;mobileRun.peeFound=true;mobileRun.pepperoniFound=true;mobileRun.basketFound=true;mobileRun.trinkets=TRINKETS.map(i=>i.id);
   for(const room of ['tutorial',...ORDER]){await seed(phone,mobileRun,room,'pause');const url=phone.url();await phone.reload();await phone.locator('.pause-card').waitFor();assert.equal(phone.url(),url);const copy=await mobile.newPage();await copy.goto(url);await copy.locator('.pause-card').waitFor();assert.equal(await copy.locator('#room-name').textContent(),ROOMS[room].name);await copy.close();await phone.locator('#home-link').click();await phone.locator('#begin').waitFor();await phone.goBack();await phone.locator('.pause-card').waitFor();assert.equal(phone.url(),url);await phone.goForward();await phone.locator('#begin').waitFor();await phone.goBack();await phone.locator('.pause-card').waitFor();await dismissOutside(phone);await waitView(phone,'play');await phone.keyboard.press('Escape');await waitView(phone,'pause');}
   assert.ok(await phone.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
   const reunionMobile=createRun('mobilestory');reunionMobile.keyFound=true;reunionMobile.pepperFound=true;reunionMobile.health=4;await seed(phone,reunionMobile,'pond','reunion');await phone.screenshot({path:output+'/mobile-reunion.png',fullPage:true});
-  const winMobile=createRun('mobilewin');winMobile.keyFound=true;winMobile.pepperFound=true;winMobile.basketFound=true;winMobile.completed=true;winMobile.health=4;winMobile.peeFound=true;winMobile.trinkets=TRINKETS.map(item=>item.id);await seed(phone,winMobile,'orchard','picnic');await phone.screenshot({path:output+'/mobile-picnic.png',fullPage:true});await mobile.close();
+  const winMobile=createRun('mobilewin');winMobile.keyFound=true;winMobile.pepperFound=true;winMobile.basketFound=true;winMobile.completed=true;winMobile.health=4;winMobile.peeFound=true;winMobile.pepperoniFound=true;winMobile.trinkets=TRINKETS.map(item=>item.id);await seed(phone,winMobile,'orchard','picnic');await phone.screenshot({path:output+'/mobile-picnic.png',fullPage:true});await mobile.close();
 
   const blocked=await browser.newContext();await blocked.addInitScript(()=>{Storage.prototype.setItem=function(){throw new DOMException('Full','QuotaExceededError');};});const failure=await pageFor(blocked);await failure.locator('#begin').click();await failure.locator('#save-error').waitFor({state:'visible'});const downloadPromise=failure.waitForEvent('download');await failure.locator('#download-save').click();assert.equal((await downloadPromise).suggestedFilename(),'pepsi-pepper-adventure.json');await blocked.close();
   assert.deepEqual(errors,[]);console.log('PASS: WASD-only movement, dash/key, Pepsi and Pepper hit/defeat/retry, shared heart persistence, uninterrupted Pepper rescue, all ten trinkets, garden progression, basket and home ending, all room/view URLs, copied links, refresh, Back/Forward, mobile keyboard notice, old-save migration, save failure backup, and real audio playback/mute/pause/resume.');

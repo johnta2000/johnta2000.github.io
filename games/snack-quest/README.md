@@ -2,7 +2,7 @@
 
 A small static keyboard adventure at `/games/snack-quest/`.
 
-Pepsi starts alone. Dash into the meadow's crate to find the gate key, rescue gray Pepper at Pebble Pond, then keep exploring Pebble Pond together. Collect two trinkets at the pond, two in the new Gopher Garden, and two in Whispering Woods, two in Dandelion Downs, and two in Clover Orchard. All ten trinkets plus the picnic basket are required for the ending. Each clearing has one heart-marked healing snack and two regular picnic snacks. The six chapter links let the pair revisit unlocked areas for missing treasures.
+Pepsi starts alone. Dash into the meadow's crate to find the gate key, rescue gray Pepper at Pebble Pond, then keep exploring Pebble Pond together. Collect two trinkets at the pond, two in the new Gopher Garden, and two in Whispering Woods, two in Dandelion Downs, and two in Clover Orchard. The first ten trinkets and basket open the cottage expansion; its four treasures, Pepperoni rescue, and vacuum boss lead to the ending. Each clearing has one heart-marked healing snack and two regular picnic snacks. The nine chapter links let the team revisit unlocked areas for missing treasures.
 
 ## Controls and consequences
 
@@ -58,8 +58,19 @@ New adventures begin in Little Loaf Practice (`?view=play&run=ID&room=tutorial`)
 
 ## Pee and terrain
 
-Pee, a butter-yellow plush, waits in the top-right of Dandelion Downs (chapter five). Collect the six distinct trinkets from Pebble Pond, Gopher Garden, and Whispering Woods, then roll up to him. The Find Pee link shows progress and links to his clearing. His optional rescue continues the level, does not heal, and keeps the four-heart team cap. He follows Pepper and has a full shared-damage hitbox for cats, balls, and surfaced gophers. Dash protects the whole team. Pee remains rescued through retries, navigation, refresh, and backups within that adventure; new adventures start alone. The picnic includes him if rescued. Existing saves keep their location, health, treasures, and completed ending without silently granting Pee.
+Pee, a butter-yellow plush, waits in the top-right of Dandelion Downs (chapter five). Collect the six distinct trinkets from Pebble Pond, Gopher Garden, and Whispering Woods, then roll up to him. The Find Pee link shows progress and links to his clearing. His optional rescue continues the level, does not heal, and keeps the four-heart team cap. He follows Pepper and has a full shared-damage hitbox for cats, vacuums, and surfaced gophers. Dash protects the whole team. Pee remains rescued through retries, navigation, refresh, and backups within that adventure; new adventures start alone. The picnic includes him if rescued. Existing saves keep their location, health, treasures, and completed ending without silently granting Pee.
 
 Gopher Garden introduces labeled brown mud patches (roughly 55% rolling speed). Whispering Woods has pale blue ice: acceleration and braking are gradual, and grass immediately restores normal steering. Dandelion Downs has a windsock, a warning before each gust, alternating horizontal wind, and calm windows. Followers trace the leader’s route; their own muddy patches slow their catch-up. Dashing cuts through mud and wind at full speed. Clover Orchard adds a final muddy shortcut. None of these terrain types directly costs hearts. The hazard-free tutorial and meadow stay on ordinary ground.
 
 Healing is limited to the single marked snack (stable item ID ending in `-0`) per clearing. Existing snack placements and collected IDs are unchanged. Revisiting or refreshing never respawns a consumed snack or refills hearts. Defeat retries still restore full hearts and reset only the snacks collected during that clearing’s attempt.
+
+
+## Cottage expansion (nine chapters)
+
+The orchard now continues to **Sock Mountain**, **Midnight Snack Kitchen**, and the **Sir Sucks-a-Lot** boss room. Find two treasures per exploration chapter (14 total); the boss room has no trinkets. After the original ten treasures and basket, the laundry opens. Bring Pee and collect its sock and bell, then approach Pepperoni’s blanket fort. Pepperoni is a rust-red spotted plush. He follows Pee, shares the same four-heart health pool, can trigger defeat when hit, and persists through navigation, retries, refresh, and backups. Rescuing him does not heal. The kitchen opens after his rescue and its two treasures unlock the boss.
+
+All abilities use Space and the same 2.8-second cooldown: Pepsi breaks crates with a dash; Pepper adds a short bark that stuns hazards within 95 units of him; Pee leaves a 1.2-second stink cloud that catches pursuers; Pepperoni extends dash duration from 0.2 to 0.28 seconds and doubles boss damage. A permanent team ability strip explains each unlock. Normal round machines are now brush-equipped robot vacuums, alongside the existing cats and gophers.
+
+Sir Sucks-a-Lot has eight HP. A red line warns of each committed charge; after charging, the vacuum overheats for 3.4 seconds. Only a direct player dash during that opening deals damage (two with Pepperoni), once per opening. At half health, a suction phase precedes each charge. Bark and stink do not disable the boss. Boss health and phase are saved with the run; leaving and reopening does not restore it. Defeat and retry reset the boss to full HP and the corgis to full health, retaining discoveries. The ending requires switching the vacuum off, then reaching the exit. One heart-marked snack per room, zero passive healing, and existing dash cooldown remain unchanged.
+
+Already completed older adventures retain their earned picnic and original ten treasures; the ending offers a real link to continue into the new chapters. They do not receive Pepperoni, the four new treasures, or boss victory automatically. Unfinished saves continue from their previous location. All nine chapter URLs retain normal unlock checks.

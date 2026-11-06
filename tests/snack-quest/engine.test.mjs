@@ -314,3 +314,50 @@ test('a heart snack at full health never overfills or heals a second time later'
   assert.equal(step(world,run,idle,.016).find(e=>e.type==='snack').healed,false);assert.equal(run.health,3);
   run.health=1;step(world,run,idle,.016);assert.equal(run.health,1);
 });
+
+test('nine chapters gate the cottage, Pepperoni, kitchen, and boss in order',()=>{
+ const run=createRun('expand123');assert.equal(ORDER.length,9);assert.equal(TRINKETS.length,14);run.keyFound=true;run.pepperFound=true;
+ assert.equal(isUnlocked(run,'laundry'),false);run.basketFound=true;run.trinkets=TRINKETS.slice(0,10).map(i=>i.id);assert.ok(isUnlocked(run,'laundry'));assert.equal(isUnlocked(run,'kitchen'),false);
+ run.room='laundry';run.positions.laundry={x:820,y:160};const world=makeWorld(run,'laundry');world.toys=[];world.items=[];
+ run.trinkets.push(...roomTrinkets('laundry').map(i=>i.id));step(world,run,idle,.016);assert.equal(run.pepperoniFound,false,'Pee must join first');
+ run.peeFound=true;const health=run.health;assert.ok(step(world,run,idle,.016).some(e=>e.type==='pepperoni-rescue'));assert.equal(run.health,health,'rescue does not heal');assert.equal(world.room,'laundry');assert.ok(isUnlocked(run,'kitchen'));assert.equal(isUnlocked(run,'boss'),false);
+ run.trinkets.push(...roomTrinkets('kitchen').map(i=>i.id));assert.ok(isUnlocked(run,'boss'));assert.ok(validRun(JSON.parse(JSON.stringify(run)),run.id));retryRoom(run,'laundry');assert.ok(run.pepperoniFound);
+});
+test('rescued friends unlock distinct dash abilities with the same cooldown',()=>{
+ const {run,world}=pairedWorld();world.toys=[toyAt(world.buddy.x,world.buddy.y-80)];startDash(world);step(world,run,idle,.016);assert.equal(world.toys[0].mode,'stunned','bark reaches beyond direct collision');assert.equal(world.clouds.length,0);
+ const second=makeWorld(run,'meadow');second.toys=[];run.peeFound=true;run.pepperoniFound=true;startDash(second);step(second,run,idle,.016);assert.equal(second.clouds.length,1);assert.ok(second.dash>.24);assert.ok(second.cooldown>2.7);assert.equal(startDash(second),false);
+ const cloud=second.clouds[0];second.toys=[toyAt(cloud.x,cloud.y)];step(second,run,idle,.016);assert.equal(second.toys[0].mode,'stunned');
+});
+test('Pepperoni has a consequential hitbox and follows without jumping',()=>{
+ const {run,world}=pairedWorld();run.peeFound=true;run.pepperoniFound=true;run.health=1;world.pee={x:270,y:315,facing:1};world.pepperoni={x:200,y:315,facing:1};world.peeTrail=[{x:336,y:315}];world.pepperoniTrail=[{x:270,y:315}];world.toys=[toyAt(200,315)];
+ assert.deepEqual(step(world,run,idle,.016),[{type:'defeat',character:'pepperoni'}]);const again=retryRoom(run,'meadow');again.toys=[];again.items=[];
+ for(let i=0;i<150;i++){const p={...again.pepperoni};step(again,run,{x:1,y:0},1/60);assert.ok(Math.hypot(again.pepperoni.x-p.x,again.pepperoni.y-p.y)<=400/60+.001);assert.ok(walkable(again.pepperoni.x,again.pepperoni.y,'meadow',12));}
+ assert.ok(again.pepperoni.x>200);
+});
+function bossPair(){const run=createRun('bossunit');Object.assign(run,{keyFound:true,pepperFound:true,peeFound:true,pepperoniFound:true,basketFound:true,health:4,room:'boss',trinkets:TRINKETS.map(i=>i.id)});const world=makeWorld(run,'boss');world.items=[];return {run,world};}
+test('boss telegraphs, charges, overheats, takes one hit per opening, and persists',()=>{
+ const {run,world}=bossPair();const boss=world.boss;world.invincible=100;world.player.y=480;
+ assert.equal(boss.mode,'windup');step(world,run,idle,.02);assert.equal(boss.x,710);
+ for(let i=0;i<160;i++)step(world,run,idle,.02);assert.equal(boss.mode,'exposed');
+ for(let hit=0;hit<4;hit++){
+   // Wait through each real recovery/suction/charge cycle before positioning for a strike.
+   if(hit)for(let i=0;i<500&&boss.mode!=='exposed';i++){world.player.x=450;world.player.y=480;step(world,run,idle,.02);}
+   assert.equal(boss.mode,'exposed');world.cooldown=0;Object.assign(world.player,{x:boss.x,y:boss.y});startDash(world,{x:0,y:0});step(world,run,idle,.016);
+   assert.equal(boss.hp,8-(hit+1)*2);const hp=boss.hp;step(world,run,idle,.016);assert.equal(boss.hp,hp,'one dash never deals repeated hits');
+   const saved=JSON.parse(JSON.stringify(run));assert.ok(validRun(saved,saved.id));assert.equal(makeWorld(saved,'boss').boss.hp,hp);
+ }
+ assert.ok(run.bossDefeated);assert.ok(goalDone(run,'boss'));Object.assign(world.player,{x:910,y:320});world.dash=0;assert.ok(step(world,run,idle,.02).some(e=>e.type==='exit'));
+});
+test('armored boss ignores dash damage, suction pulls, and defeat retry resets fight',()=>{
+ const {run,world}=bossPair();Object.assign(world.player,{x:world.boss.x-10,y:world.boss.y});startDash(world);step(world,run,idle,.016);assert.equal(world.boss.hp,8);
+ world.dash=0;world.boss.mode='suction';world.boss.timer=1;Object.assign(world.player,{x:400,y:315});step(world,run,idle,.02);assert.ok(world.player.x>400);
+ world.boss.hp=2;run.health=0;const retry=retryRoom(run,'boss');assert.equal(retry.boss.hp,8);assert.ok(run.pepperoniFound);assert.equal(run.health,4);
+ run.bossState.hp=99;assert.equal(validRun(run,run.id),false);
+});
+test('old endings remain earned without granting the new friend or new treasures',()=>{
+ const run=createRun('oldending');run.completed=true;run.keyFound=true;run.pepperFound=true;run.basketFound=true;delete run.trinkets;delete run.pepperoniFound;delete run.bossDefeated;
+ upgradeRun(run);assert.ok(run.completed&&run.legacyEnding);assert.equal(run.trinkets.length,10);assert.equal(run.pepperoniFound,false);assert.equal(run.bossDefeated,false);assert.ok(isUnlocked(run,'laundry'));
+});
+test('roaming machine hazards are vacuums, never arbitrary balls',()=>{
+ for(const room of ORDER)for(const toy of toysFor(42,room))assert.ok(['cat','vacuum'].includes(toy.kind));
+});
