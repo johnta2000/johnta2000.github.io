@@ -215,6 +215,7 @@ export function objective(run, room) {
   if(room==='meadow')return 'Dash into the wooden crate to find the key';
   if(room==='pond'&&!run.pepperFound)return 'Reach Pepper’s gate with the key';
   if(room==='hills'&&!run.peeFound&&canRescuePee(run))return 'Pee is ready! Roll to the yellow corgi in the top-right clearing';
+  if(room==='boss'&&run.bossState?.mode==='recover')return 'STUNNED! Roll the whole team clear and reposition';
   if(room==='boss')return run.bossState?.mode==='exposed'?'OVERHEATED! L: power dash · Space: normal hit':'Dodge the red charge line; strike only when it overheats';
   if(room==='laundry'&&!run.peeFound)return 'Bring Pee from the downs to help find Pepperoni';
   if(room==='laundry'&&!run.pepperoniFound&&trinketCount(run,room)===2)return 'Roll to Pepperoni’s blanket fort in the top-right corner';
@@ -493,7 +494,7 @@ function stepBoss(world,run,dt,dashing,events){
     if(dashing&&Math.hypot(p.x-b.x,p.y-b.y)<b.r+29){
       b.hp=Math.max(0,b.hp-(world.powerDash?2:1));dashImpact(world,b,p,true);
       if(!b.hp){run.bossDefeated=true;b.mode='off';b.timer=0;events.push({type:'boss-win'});return;}
-      b.mode='recover';b.timer=1.2;events.push({type:'boss-hit'});
+      b.mode='recover';b.timer=3.2;events.push({type:'boss-hit'});
     }else if(b.timer===0){b.mode='recover';b.timer=.6;}
   }else if(b.mode==='recover'&&b.timer===0){
     b.cycle++;b.mode=b.hp<=4?'suction':'windup';b.timer=b.mode==='suction'?1.8:1.1;

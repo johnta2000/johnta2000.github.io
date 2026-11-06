@@ -1,4 +1,4 @@
-import { WIDTH, HEIGHT, ROOMS, random, goalDone, roomTrinkets, PEE_RESCUE, peeProgress, canRescuePee, windAt, trinketCount } from './engine.mjs?v=21';
+import { WIDTH, HEIGHT, ROOMS, random, goalDone, roomTrinkets, PEE_RESCUE, peeProgress, canRescuePee, windAt, trinketCount } from './engine.mjs?v=22';
 
 const INK='#75674c';
 function ellipse(c,x,y,rx,ry,fill,stroke=null,line=2){c.beginPath();c.ellipse(x,y,rx,ry,0,0,Math.PI*2);c.fillStyle=fill;c.fill();if(stroke){c.strokeStyle=stroke;c.lineWidth=line;c.stroke();}}
@@ -161,7 +161,7 @@ function toy(c,toy,time,hit=null,hitTime=time,reduced=false) {
     c.setLineDash([5,7]);c.strokeStyle='#ad5849';c.lineWidth=2;c.stroke();c.setLineDash([]);
     ellipse(c,0,0,26,26,'#f5d0ad55','#bd6d5a',1.5);
   }
-  const stunned=toy.mode==='stunned';
+  const stunned=toy.mode==='stunned'||toy.mode==='recover';
   ellipse(c,0,toy.kind==='cat'?13:17,26,7,'#65714e25');
   recoil(c,hit,hitTime,reduced);
   if(toy.kind==='cat') {
@@ -282,7 +282,7 @@ export function drawWorld(c,world,run,viewportWidth,reduced=false,preview=false)
     if(['windup','charge'].includes(b.mode)){c.save();c.setLineDash([10,9]);line(c,[[b.x,b.y],[b.x+b.aimX*520,b.y+b.aimY*520]],'#ba655d80',34);c.restore();}
     if(b.mode==='suction')ellipse(c,b.x,b.y,160,130,'#a6bcc52a','#8ea5ac',2);
     rounded(c,350,81,300,20,10,'#f9f1df');rounded(c,354,85,292*b.hp/8,12,6,'#bf8673');
-    c.font='bold 12px sans-serif';c.textAlign='center';c.fillStyle='#655449';c.fillText(b.mode==='off'?'UNPLUGGED!':b.mode==='exposed'?'OVERHEATED · DASH NOW!':b.mode==='suction'?'SUCTION · KEEP ROLLING!':'SIR SUCKS-A-LOT · '+b.hp+'/8',500,120);
+    c.font='bold 12px sans-serif';c.textAlign='center';c.fillStyle='#655449';c.fillText(b.mode==='off'?'UNPLUGGED!':b.mode==='exposed'?'OVERHEATED · DASH NOW!':b.mode==='recover'?'STUNNED · REPOSITION!':b.mode==='suction'?'SUCTION · KEEP ROLLING!':'SIR SUCKS-A-LOT · '+b.hp+'/8',500,120);
   }
   const ready=goalDone(run,world.room);
   if(ready){ellipse(c,915,320,31+Math.sin(t*3)*3,53,'#fff7cc90');for(let i=0;i<5;i++)flower(c,894+Math.sin(i*8)*24,278+i*21,.6,'#fff9db');}

@@ -464,6 +464,28 @@ test('boss telegraphs, charges, overheats, takes one hit per opening, and persis
  }
  assert.ok(run.bossDefeated);assert.ok(goalDone(run,'boss'));Object.assign(world.player,{x:910,y:320});world.dash=0;assert.ok(step(world,run,idle,.02).some(e=>e.type==='exit'));
 });
+test('successful boss hits give every corgi time to reposition, then restore danger',()=>{
+ for(const ability of ['dash','power'])for(const body of ['player','buddy','pee','pepperoni']) {
+   const {run,world}=bossPair(),boss=world.boss;
+   Object.assign(boss,{mode:'exposed',timer:3,hp:6});
+   Object.assign(world.player,{x:boss.x-30,y:boss.y});
+   assert.ok(ability==='dash'?startDash(world):startAbility(world,run,'power'));
+   assert.ok(step(world,run,idle,.016).some(e=>e.type==='boss-hit'));
+   const hp=boss.hp;
+   // Remain in contact beyond dash immunity and the former 1.2-second stun.
+   for(let i=0;i<145;i++) {
+     Object.assign(world[body],{x:boss.x,y:boss.y});world.invincible=0;
+     step(world,run,idle,.02);
+     assert.equal(run.health,4,body+' is safe throughout recovery');
+     assert.equal(boss.hp,hp,'recovery cannot be farmed for extra hits');
+   }
+   assert.equal(boss.mode,'recover');
+   const saved=JSON.parse(JSON.stringify(run));assert.ok(validRun(saved,saved.id));
+   assert.equal(makeWorld(saved,'boss').boss.timer,boss.timer,'reload retains the remaining stun');
+   boss.timer=.01;world.invincible=0;Object.assign(world[body],{x:boss.x,y:boss.y});
+   step(world,run,idle,.02);assert.equal(run.health,3,'contact becomes dangerous after recovery');
+ }
+});
 test('armored boss ignores dash damage, suction pulls, and defeat retry resets fight',()=>{
  const {run,world}=bossPair();Object.assign(world.player,{x:world.boss.x-10,y:world.boss.y});startDash(world);step(world,run,idle,.016);assert.equal(world.boss.hp,8);
  world.dash=0;world.boss.mode='suction';world.boss.timer=1;Object.assign(world.player,{x:400,y:315});step(world,run,idle,.02);assert.ok(world.player.x>400);
