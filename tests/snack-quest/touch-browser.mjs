@@ -28,7 +28,7 @@ try {
   const gentle=(await saved()).positions.tutorial.x-135;assert.ok(gentle>15&&gentle<65,'a gentle real thumb tilt rolls slowly');
   thumb={...neutral,x:neutral.x+48};await touch('touchStart',[thumb]);await page.waitForTimeout(1100);
   await touch('touchEnd',[]);await page.waitForTimeout(1100);const stopped=(await saved()).positions.tutorial;
-  assert.ok(stopped.x>290,'real touch drag rolls Pepsi');
+  assert.ok(stopped.x>290,`real touch drag rolls Pepsi: x=${stopped.x}, gentle=${gentle}, joystick=${JSON.stringify(await page.locator('#joystick').boundingBox())}`);
   await page.waitForTimeout(1100);assert.deepEqual((await saved()).positions.tutorial,stopped,'lifting the thumb stops rolling');
   assert.equal(await page.evaluate(()=>scrollY),0,'joystick never scrolls the page');
   thumb=await center('#joystick',1);thumb.x+=48;await touch('touchStart',[thumb]);await page.waitForTimeout(650);
@@ -44,7 +44,7 @@ try {
   const dash=await center('[data-ability=dash]',2);await touch('touchStart',[thumb,dash]);await page.waitForTimeout(60);
   assert.ok((await saved()).cooldowns.dash>2);assert.equal((await saved()).cooldowns.bark,0);assert.equal((await saved()).cooldowns.stink,0);
   await touch('touchEnd',[dash]);const bark=await center('[data-ability=bark]',2);await touch('touchStart',[thumb,bark]);await page.waitForTimeout(60);
-  assert.ok((await saved()).cooldowns.bark>4,'a second finger can bark while the first steers');assert.equal((await saved()).cooldowns.stink,0);
+  assert.ok((await saved()).cooldowns.bark>9,'a second finger can shield while the first steers');assert.equal((await saved()).cooldowns.stink,0);
   await touch('touchEnd',[bark]);await touch('touchStart',[thumb,dash]);await page.waitForTimeout(80);
   assert.ok((await saved()).cooldowns.dash<2.8,'repeated taps do not reset or bypass recharge');
   await touch('touchEnd',[dash]);await touch('touchStart',[thumb,await center('[data-ability=stink]',2)]);await page.waitForTimeout(80);

@@ -16,7 +16,7 @@ async function seed(page,run,room=run.room,view='play'){
   await page.goto(`${base}?view=${view}&run=${run.id}&room=${room}`);
   await page.waitForFunction(()=>document.querySelector('#room-name')?.textContent!=='One friend is missing.');
   await page.evaluate(async()=>{
-    const {Soundscape}=await import('./audio.mjs?v=27'),play=Soundscape.prototype.play;
+    const {Soundscape}=await import('./audio.mjs?v=28'),play=Soundscape.prototype.play;
     window.effectRequests=[];Soundscape.prototype.play=function(kind){window.effectRequests.push(kind);return play.call(this,kind);};
   });
 }
@@ -177,7 +177,7 @@ try {
   assert.deepEqual((await saved(page)).cooldowns,{dash:0,bark:0,stink:0,power:0},'Q/E/R cannot accidentally fire abilities');
   await page.keyboard.press('Space');
   let cds=(await saved(page)).cooldowns;assert.ok(cds.dash>2.5);assert.deepEqual([cds.bark,cds.stink,cds.power],[0,0,0]);
-  await page.keyboard.press('j');assert.match(await page.locator('[data-ability="bark"]').innerText(),/recharge/);cds=(await saved(page)).cooldowns;assert.ok(cds.bark>4.5);assert.equal(cds.stink,0);assert.equal(cds.power,0);
+  await page.keyboard.press('j');assert.match(await page.locator('[data-ability="bark"]').innerText(),/Protected/);cds=(await saved(page)).cooldowns;assert.ok(cds.bark>9.5);assert.equal(cds.stink,0);assert.equal(cds.power,0);
   assert.ok(await page.locator('kbd[data-move=w]').evaluate(key=>key.classList.contains('pressed')),'left-hand movement stays held during the right-hand ability');
   await page.locator('#keyboard-capture').evaluate(input=>input.dispatchEvent(new InputEvent('beforeinput',{inputType:'insertText',data:'k',bubbles:true,cancelable:true})));
   cds=(await saved(page)).cooldowns;assert.ok(cds.stink>6.5);assert.equal(cds.power,0);
@@ -187,7 +187,7 @@ try {
   await page.locator('[data-ability="power"]').waitFor({state:'visible'});await page.waitForFunction(()=>!document.querySelector('[data-ability="power"]').disabled);
   await page.keyboard.press('l');cds=(await saved(page)).cooldowns;assert.ok(cds.power>7.5);assert.ok(cds.dash>2.5);assert.ok(await page.locator('[data-ability="dash"]').isDisabled());
   await page.keyboard.press('Escape');await page.locator('#resume').click();await page.keyboard.press('d');
-  await page.waitForFunction(()=>!document.querySelector('[data-ability="bark"]').disabled);await page.locator('[data-ability="bark"]').click();assert.ok((await saved(page)).cooldowns.bark>4.5);assert.equal(await page.evaluate(()=>document.activeElement.id),'keyboard-capture','clicking an ability returns focus to movement');
+  await page.waitForFunction(()=>!document.querySelector('[data-ability="bark"]').disabled);await page.locator('[data-ability="bark"]').click();assert.ok((await saved(page)).cooldowns.bark>9.5);assert.equal(await page.evaluate(()=>document.activeElement.id),'keyboard-capture','clicking an ability returns focus to movement');
   await page.evaluate(()=>window.dispatchEvent(new Event('blur')));await page.screenshot({path:output+'/desktop-independent-abilities.png',fullPage:true});
   await seed(page,rescuedFourth);
   await page.keyboard.press('s');await page.evaluate(()=>window.dispatchEvent(new Event('blur')));await page.screenshot({path:output+'/desktop-pepperoni.png',fullPage:true});
@@ -318,7 +318,7 @@ try {
 
   // Render the actual score for a listenable preview and check its level/headroom.
   const preview=await musicPage.evaluate(async()=>{
-    const {Soundscape}=await import('/games/snack-quest/audio.mjs?v=27');
+    const {Soundscape}=await import('/games/snack-quest/audio.mjs?v=28');
     const rate=22050,context=new OfflineAudioContext(1,rate*22,rate);
     const score=new Soundscape(()=>context);score.setEnabled(true);score.unlock();score.setScene('play','meadow');
     for(let i=0;i<64;i++)score.musicBeat(i,.1+i*30/96,30/96);
@@ -327,9 +327,9 @@ try {
   let peak=0;for(const sample of preview){assert.ok(Number.isFinite(sample));peak=Math.max(peak,Math.abs(sample));}
   assert.ok(peak>.03&&peak<.8,'original music renders audibly with headroom');
   const effects=await musicPage.evaluate(async()=>{
-    const {Soundscape}=await import('/games/snack-quest/audio.mjs?v=27');
+    const {Soundscape}=await import('/games/snack-quest/audio.mjs?v=28');
     const levels={};
-    for(const kind of ['bark','toot','bonk','bonk-crate','bonk-boss','honk','squish']){
+    for(const kind of ['shield','toot','bonk','bonk-crate','bonk-boss','honk','squish']){
       const context=new OfflineAudioContext(1,22050,22050),score=new Soundscape(()=>context);score.setEnabled(true);score.unlock();
       // Offline rendering has no gesture/output-device readiness; exercise the real effect graph.
       Object.defineProperty(score,'ready',{value:true});score.play(kind);

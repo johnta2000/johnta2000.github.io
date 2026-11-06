@@ -1,4 +1,4 @@
-import { roomScale, WIDTH, HEIGHT, ROOMS, random, goalDone, roomTrinkets, PEE_RESCUE, peeProgress, canRescuePee, windAt, trinketCount } from './engine.mjs?v=27';
+import { roomScale, WIDTH, HEIGHT, ROOMS, random, goalDone, roomTrinkets, PEE_RESCUE, peeProgress, canRescuePee, windAt, trinketCount } from './engine.mjs?v=28';
 
 const INK='#75674c';
 function ellipse(c,x,y,rx,ry,fill,stroke=null,line=2){c.beginPath();c.ellipse(x,y,rx,ry,0,0,Math.PI*2);c.fillStyle=fill;c.fill();if(stroke){c.strokeStyle=stroke;c.lineWidth=line;c.stroke();}}
@@ -306,7 +306,6 @@ export function drawWorld(c,world,run,viewportWidth,reduced=false,preview=false)
     }
   }
   for(const cloud of world.clouds){c.save();c.globalAlpha=cloud.life*.32;for(let i=0;i<5;i++)ellipse(c,cloud.x+Math.cos(i*1.3)*27,cloud.y+Math.sin(i*1.3)*21,39,30,'#b3c781');c.restore();}
-  if(world.bark>0){const pulse=reduced?.65:1-world.bark/.5;ellipse(c,world.buddy.x,world.buddy.y-15,95*pulse,60*pulse,'#ffffff00','#f4e6ab',3);c.font='bold 14px sans-serif';c.fillStyle='#8a784c';c.fillText('woof!',world.buddy.x,world.buddy.y-75);}
   if(world.boss){
     const b=world.boss;
     if(['windup','charge'].includes(b.mode)){c.save();c.setLineDash([10,9]);line(c,[[b.x,b.y],[b.x+b.aimX*520,b.y+b.aimY*520]],'#ba655d80',34);c.restore();}
@@ -339,6 +338,11 @@ export function drawWorld(c,world,run,viewportWidth,reduced=false,preview=false)
     const hurt=world.hitCorgi===character?world.bump:0;
     c.save();if(hurt>0)c.globalAlpha=reduced?.75:.7+Math.sin(t*15)*.15;
     corgi(c,body.x,body.y,character,scale,body.facing,reduced||preview?0:rollingPose(body,t,scale),hurt);c.restore();
+    if(world.shield>0){
+      c.save();c.globalAlpha=world.shield<.65&&!reduced?.45+.25*Math.sin(t*18):.8;
+      ellipse(c,body.x,body.y-14,49*scale/.72,45*scale/.72,'#b9ecf32b','#8bc9db',2.5);
+      ellipse(c,body.x-20,body.y-42,7,3,'#ffffffb0');c.restore();
+    }
     if(hurt>0){c.font='bold 14px sans-serif';c.textAlign='center';c.fillStyle='#a45f51';c.fillText('−1 ♥',body.x,body.y-72);}
   };
   const actors=[{y:world.player.y,draw:()=>{

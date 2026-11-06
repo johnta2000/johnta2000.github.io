@@ -4,7 +4,8 @@ export function roomScale(room) { return ['woods','hills','orchard'].includes(ro
 export function roomPoint(room,x,y) { const scale=roomScale(room);return {x:x*scale,y:y*scale}; }
 export const DASH_COOLDOWN = 2.8;
 export const ABILITIES = {
-  bark:{key:'J',corgi:'Pepper',name:'Bark',hint:'Stun enemies near Pepper',cooldown:5,unlock:'pepperFound'},
+  // Keep the legacy bark save/key ID so existing adventures retain their cooldown.
+  bark:{key:'J',corgi:'Pepper',name:'Shield',hint:'Protect every corgi for 3 seconds',cooldown:10,unlock:'pepperFound'},
   stink:{key:'K',corgi:'Pee',name:'Toot',hint:'Leave a cloud for pursuers',cooldown:7,unlock:'peeFound'},
   power:{key:'L',corgi:'Pepperoni',name:'Power',hint:'Longer dash · double boss damage',cooldown:8,unlock:'pepperoniFound'},
 };
@@ -287,7 +288,7 @@ export function makeWorld(run, room) {
   if(room==='boss'&&!run.bossDefeated&&!run.bossState)run.bossState=newBoss();
   return {
     room, runId:run.id, player:{...p,vx:1,vy:0,facing:1,moving:false}, buddy:{...buddy,facing:1}, pee:{...pee,facing:1},pepperoni:{...pepperoni,facing:1},boss:room==='boss'?run.bossState:null,
-    followTrail:[{...p}],peeTrail:[{...buddy}],pepperoniTrail:[{...pee}],clouds:[],bark:0,powerDash:false, toys:toysFor(run.seed,room), gophers:gophersFor(run.seed,room), items:roomItems(run.seed,room),
+    followTrail:[{...p}],peeTrail:[{...buddy}],pepperoniTrail:[{...pee}],clouds:[],shield:0,powerDash:false, toys:toysFor(run.seed,room), gophers:gophersFor(run.seed,room), items:roomItems(run.seed,room),
     needoh:room===NEEDOH.room?{...NEEDOH,squish:0}:null,
     time:0,dash:0,cooldown:run.cooldowns.dash,abilityCooldowns:run.cooldowns,invincible:.65,bump:0,hitCorgi:null,particles:[],impacts:[],dashHits:new Set(),
   };
@@ -323,8 +324,7 @@ export function startAbility(world,run,ability,input={x:0,y:0}) {
     if(!startDash(world,input))return false;
     world.dash=.28;world.powerDash=true;world.invincible=Math.max(world.invincible,.36);
   } else if(ability==='bark') {
-    world.bark=.5;
-    for(const h of [...world.toys,...world.gophers])if((h.kind!=='gopher'||['up','stunned'].includes(h.mode))&&Math.hypot(h.x-world.buddy.x,h.y-world.buddy.y)<95){h.timer=h.mode==='stunned'?Math.max(h.timer,1.4):1.4;h.mode='stunned';}
+    world.shield=3;
   } else world.clouds.push({x:world.pee.x,y:world.pee.y,life:1.2});
   world.abilityCooldowns[ability]=spec.cooldown;
   return true;
@@ -377,7 +377,7 @@ function touchingCorgi(world,run,hazard,padding=20) {
     .filter(corgi=>corgi.distance<hazard.r+padding&&(hazard.innerRadius===undefined||corgi.distance>hazard.innerRadius-padding)).sort((a,b)=>a.distance-b.distance)[0];
 }
 function bumpCorgis(world,run,hazard,events) {
-  if(world.invincible>0)return;
+  if(world.invincible>0||world.shield>0)return;
   const hit=touchingCorgi(world,run,hazard);
   if(!hit)return;
   run.health--;run.hits++;world.invincible=1.35;world.bump=.45;world.hitCorgi=hit.character;
@@ -392,11 +392,10 @@ function bumpCorgis(world,run,hazard,events) {
 export function step(world,run,input,dt) {
   if(run.health<=0)return [];
   dt=Math.min(Math.max(dt,0),.035);world.dt=dt;world.time+=dt;
-  for(const key of ['cooldown','invincible','bump'])world[key]=Math.max(0,world[key]-dt);
+  for(const key of ['cooldown','invincible','bump','shield'])world[key]=Math.max(0,world[key]-dt);
   for(const key of Object.keys(ABILITIES))world.abilityCooldowns[key]=Math.max(0,world.abilityCooldowns[key]-dt);
   world.abilityCooldowns.dash=world.cooldown;
   const p=world.player, length=Math.hypot(input.x,input.y), events=[];
-  world.bark=Math.max(0,world.bark-dt);
   world.clouds=world.clouds.filter(c=>(c.life-=dt)>0);
   world.impacts=world.impacts.filter(hit=>world.time-hit.started<hit.duration);
   if(world.dash<=0)world.powerDash=false;

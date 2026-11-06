@@ -163,7 +163,7 @@ export class Soundscape {
     const now=this.context.currentTime+.008;
     const chime=(notes,spacing=.095,volume=.12)=>notes.forEach((note,i)=>this.pluck(note,now+i*spacing,volume,.42));
     if(kind==='dash'){this.noise(now,.2,.17,1500);this.tone(53,now,.16,.07,this.effectVoices,'sine',65);}
-    else if(kind==='bark'){for(const delay of [0,.14]){this.noise(now+delay,.09,.08,650);this.tone(54,now+delay,.1,.12,this.effectVoices,'triangle',44);}}
+    else if(kind==='shield'){for(const [i,note] of [72,76,79,84].entries())this.tone(note,now+i*.06,.35,.065,this.effectVoices,'sine');}
     else if(kind==='squish'){this.tone(49,now,.16,.19,this.effectVoices,'sine',32);this.tone(35,now+.13,.31,.15,this.effectVoices,'sine',63);this.noise(now,.12,.07,750);this.pluck(81,now+.34,.045,.2);}
     else if(kind==='honk'){for(const delay of [0,.16]){this.tone(58,now+delay,.19,.12,this.effectVoices,'sawtooth',54);this.tone(65,now+delay,.16,.045,this.effectVoices,'triangle',61);}}
     else if(kind==='toot'){this.tone(43,now,.25,.11,this.effectVoices,'triangle',35);this.tone(47,now+.12,.22,.06,this.effectVoices,'sine',32);}

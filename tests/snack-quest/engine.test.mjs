@@ -95,12 +95,12 @@ test('a dash stuns a toy, blocks damage, and cannot be spammed',()=>{
   world.toys=[toyAt(150,315)];assert.ok(startDash(world,{x:1,y:0}));assert.equal(startDash(world),false);
   const events=step(world,run,{x:1,y:0},.016);assert.ok(events.some(e=>e.type==='stun'));assert.equal(run.health,3);assert.equal(world.toys[0].mode,'stunned');
 });
-test('dash contact animates once per enemy, including after Pepper has already stunned it',()=>{
+test('dash contact animates once per enemy, including an already stunned enemy',()=>{
   const run=createRun('bonkpose1');run.pepperFound=true;run.keyFound=true;run.health=4;
   const world=makeWorld(run,'meadow');world.items=[];const enemy={...toyAt(158,315),kind:'vacuum'};world.toys=[enemy];
-  startAbility(world,run,'bark');startDash(world,{x:1,y:0});const first=step(world,run,idle,.016);assert.deepEqual(first.filter(e=>e.type==='bonk'),[{type:'bonk',kind:'vacuum'}]);
-  assert.equal(enemy.mode,'stunned');assert.ok(enemy.timer<1.4,'the bark stun duration is unchanged');
-  assert.equal(world.impacts.length,1,'direct contact still has an impact after the bark');
+  enemy.mode='stunned';enemy.timer=1.4;startDash(world,{x:1,y:0});const first=step(world,run,idle,.016);assert.deepEqual(first.filter(e=>e.type==='bonk'),[{type:'bonk',kind:'vacuum'}]);
+  assert.equal(enemy.mode,'stunned');assert.ok(enemy.timer<1.4,'the existing stun duration is unchanged');
+  assert.equal(world.impacts.length,1,'direct contact still has an impact while stunned');
   assert.equal(world.impacts[0].target,enemy);assert.ok(world.impacts[0].dx>0);
   for(let i=0;i<10;i++)assert.equal(step(world,run,idle,.016).filter(e=>e.type==='bonk').length,0,'no repeating contact sound');
   assert.equal(world.impacts.length,1,'overlapping frames cannot replay the burst');
@@ -417,8 +417,8 @@ test('nine chapters gate the cottage, Pepperoni, kitchen, and boss in order',()=
 });
 test('each friend ability must be chosen independently; normal dash never auto-casts them',()=>{
  const {run,world}=pairedWorld();run.peeFound=run.pepperoniFound=true;world.toys=[toyAt(world.buddy.x,world.buddy.y-80)];
- startDash(world);step(world,run,idle,.016);assert.equal(world.toys[0].mode,'roam');assert.equal(world.bark,0);assert.equal(world.clouds.length,0);assert.ok(world.dash<.2);assert.equal(world.powerDash,false);
- assert.ok(startAbility(world,run,'bark'));assert.equal(world.toys[0].mode,'stunned');assert.equal(world.clouds.length,0);assert.equal(world.abilityCooldowns.bark,5);assert.equal(startAbility(world,run,'bark'),false);
+ startDash(world);step(world,run,idle,.016);assert.equal(world.toys[0].mode,'roam');assert.equal(world.shield,0);assert.equal(world.clouds.length,0);assert.ok(world.dash<.2);assert.equal(world.powerDash,false);
+ assert.ok(startAbility(world,run,'bark'));assert.equal(world.toys[0].mode,'roam');assert.equal(world.shield,3);assert.equal(world.clouds.length,0);assert.equal(world.abilityCooldowns.bark,10);assert.equal(startAbility(world,run,'bark'),false);
  assert.ok(startAbility(world,run,'stink'));assert.equal(world.clouds.length,1);assert.equal(world.abilityCooldowns.stink,7);assert.equal(startAbility(world,run,'stink'),false);
  assert.equal(startAbility(world,run,'power'),false,'power cannot bypass the normal dash recovery');
  const cloud=world.clouds[0];world.toys=[toyAt(cloud.x,cloud.y)];step(world,run,idle,.016);assert.equal(world.toys[0].mode,'stunned');
@@ -430,14 +430,14 @@ test('ability cooldowns persist through room changes and reload, while retries r
  const {run,world}=pairedWorld();run.peeFound=run.pepperoniFound=true;world.toys=[];
  for(const id of ['bark','stink','power'])assert.ok(startAbility(world,run,id));
  const snapshot=JSON.parse(JSON.stringify(run));assert.ok(validRun(snapshot,run.id));
- const restored=makeWorld(snapshot,'pond');assert.deepEqual(restored.abilityCooldowns,{dash:2.8,bark:5,stink:7,power:8});assert.equal(restored.cooldown,2.8);
+ const restored=makeWorld(snapshot,'pond');assert.deepEqual(restored.abilityCooldowns,{dash:2.8,bark:10,stink:7,power:8});assert.equal(restored.cooldown,2.8);
  for(const id of ['bark','stink','power'])assert.equal(startAbility(restored,snapshot,id),false);
- assert.equal(startDash(restored),false);restored.toys=[];restored.gophers=[];restored.items=[];step(restored,snapshot,idle,.02);assert.equal(snapshot.cooldowns.bark,4.98);
+ assert.equal(startDash(restored),false);restored.toys=[];restored.gophers=[];restored.items=[];step(restored,snapshot,idle,.02);assert.equal(snapshot.cooldowns.bark,9.98);
  const retry=retryRoom(snapshot,'pond');assert.deepEqual(retry.abilityCooldowns,{dash:0,bark:0,stink:0,power:0});
  snapshot.cooldowns.bark=-1;assert.equal(validRun(snapshot,run.id),false);
  delete snapshot.cooldowns;assert.ok(validRun(snapshot,run.id));upgradeRun(snapshot);assert.equal(snapshot.cooldowns.bark,0,'old saves gain ready abilities');
 });
-test('locked abilities cannot cast, and bark leaves hidden gophers underground',()=>{
+test('locked abilities cannot cast, and shield leaves hidden gophers underground',()=>{
  const run=createRun('locked123'),world=makeWorld(run,'meadow');
  for(const id of ['bark','stink','power','missing'])assert.equal(startAbility(world,run,id),false);
  assert.deepEqual(world.abilityCooldowns,{dash:0,bark:0,stink:0,power:0});
@@ -541,8 +541,8 @@ test('honk ring damages each corgi, while the quiet center and dashing are safe'
   if(dash)startDash(world,{x:1,y:0});step(world,run,idle,.02);assert.equal(run.health,4);
  }
 });
-test('bonks, barks, and stink clouds interrupt a goose wind-up',()=>{
- for(const ability of ['dash','bark','stink']){
+test('bonks and stink clouds interrupt a goose wind-up',()=>{
+ for(const ability of ['dash','stink']){
   const {run,world,goose}=gooseWorld();Object.assign(goose,{mode:'windup',timer:.1});
   Object.assign(world.player,{x:460,y:315});Object.assign(world.buddy,{x:485,y:315});Object.assign(world.pee,{x:490,y:315});
   ability==='dash'?startDash(world,{x:1,y:0}):startAbility(world,run,ability);
@@ -559,4 +559,30 @@ test('secret NeeDoh needs a dash, squishes once per dash, and keeps its picnic u
  const restored=JSON.parse(JSON.stringify(run));assert.ok(validRun(restored,run.id));upgradeRun(restored);assert.equal(restored.needohFound,true);retryRoom(restored,'orchard');assert.equal(restored.needohFound,true);
  world.dash=0;world.cooldown=0;Object.assign(world.player,{x:NEEDOH.x-45,y:NEEDOH.y});startDash(world,{x:1,y:0});assert.ok(step(world,run,idle,.02).some(e=>e.type==='squish'&&!e.discovered));
  const old=createRun('oldcube1');delete old.needohFound;upgradeRun(old);assert.equal(old.needohFound,false);
+});
+
+
+test('Shield protects every companion, expires without healing, and cannot be spammed',()=>{
+ for(const body of ['player','buddy','pee','pepperoni']){
+  const {run,world}=pairedWorld();run.peeFound=run.pepperoniFound=true;
+  world.items=[];world.gophers=[];world.toys=[];world.invincible=0;
+  assert.ok(startAbility(world,run,'bark'));assert.equal(world.shield,3);
+  const health=run.health;
+  // All four consequential hitboxes must share the protection, including the tail.
+  world.toys=[toyAt(world[body].x,world[body].y)];
+  assert.ok(!step(world,run,idle,.02).some(e=>e.type==='hit'));assert.equal(run.health,health);
+  assert.equal(startAbility(world,run,'bark'),false);
+  world.toys=[];for(let i=0;i<90;i++)step(world,run,idle,.035);
+  assert.equal(world.shield,0);assert.equal(run.health,health,'shield never heals');
+  world.toys=[toyAt(world[body].x,world[body].y)];
+  assert.ok(step(world,run,idle,.02).some(e=>e.type==='hit'));assert.equal(run.health,health-1);
+  assert.equal(startAbility(world,run,'bark'),false,'expiry still leaves seven seconds of recharge');
+ }
+});
+test('Shield also blocks the goose ring and boss contact without stunning enemies',()=>{
+ const {run,world,goose}=gooseWorld();Object.assign(goose,{mode:'honk',timer:.5});
+ for(const key of ['player','buddy','pee','pepperoni'])Object.assign(world[key],{x:615,y:315});
+ world.invincible=0;startAbility(world,run,'bark');const health=run.health;step(world,run,idle,.02);assert.equal(run.health,health);assert.equal(goose.mode,'honk');
+ const bossRun=createRun('shieldboss');bossRun.pepperFound=true;bossRun.health=4;bossRun.positions.boss={x:710,y:315};const bossWorld=makeWorld(bossRun,'boss');bossWorld.toys=[];bossWorld.gophers=[];bossWorld.items=[];bossWorld.invincible=0;
+ Object.assign(bossWorld.boss,{x:710,y:315,mode:'windup',timer:1});startAbility(bossWorld,bossRun,'bark');step(bossWorld,bossRun,idle,.02);assert.equal(bossRun.health,4);
 });

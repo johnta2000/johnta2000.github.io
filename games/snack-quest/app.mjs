@@ -1,7 +1,7 @@
-import { ROOMS, ORDER, DASH_COOLDOWN, ABILITIES, WIDTH, HEIGHT, createRun, peeProgress, upgradeRun, TRINKETS, validRun, migrateRun, makeWorld, maxHearts, goalDone, isUnlocked, firstUnfinished, objective, retryRoom, step, startDash, startAbility } from './engine.mjs?v=27';
-import { portrait, drawWorld, drawPicnic } from './art.mjs?v=27';
-import { movementKey, abilityKey, isTextEntry, joystickVector } from './input.mjs?v=27';
-import { Soundscape } from './audio.mjs?v=27';
+import { ROOMS, ORDER, DASH_COOLDOWN, ABILITIES, WIDTH, HEIGHT, createRun, peeProgress, upgradeRun, TRINKETS, validRun, migrateRun, makeWorld, maxHearts, goalDone, isUnlocked, firstUnfinished, objective, retryRoom, step, startDash, startAbility } from './engine.mjs?v=28';
+import { portrait, drawWorld, drawPicnic } from './art.mjs?v=28';
+import { movementKey, abilityKey, isTextEntry, joystickVector } from './input.mjs?v=28';
+import { Soundscape } from './audio.mjs?v=28';
 
 const $ = id => document.getElementById(id);
 const canvas=$('world'), ctx=canvas.getContext('2d');
@@ -94,7 +94,7 @@ function announce(message){$('announcement').textContent=message;}
 function controlText(message) {
   if(!touchMode)return message;
   return message.replace('Hold D + tap SPACE','Roll right + tap Dash').replace(/WASD/g,'the joystick')
-    .replace(/Press J/g,'Tap Bark').replace(/Press K/g,'Tap Toot').replace(/Press L/g,'Tap Power')
+    .replace(/Press J/g,'Tap Shield').replace(/Press K/g,'Tap Toot').replace(/Press L/g,'Tap Power')
     .replace(/\bL\b/g,'Power').replace(/\bSpace\b|\bSPACE\b/g,'Dash');
 }
 function touchPortrait(){return touchMode&&!landscapeQuery.matches;}
@@ -202,6 +202,8 @@ function updateProgress() {
   $('pee-link').hidden=!run?.pepperFound;
   $('pee-link').href=routeURL('play','hills');
   $('pee-link').textContent=run?.peeFound?'Pee joined the adventure ♡':`Find Pee · ${peeProgress(run||{})}/6 earlier trinkets · chapter 5`;
+  document.querySelectorAll('[data-unlock]').forEach(label=>{label.hidden=!run?.[label.dataset.unlock];});
+  document.querySelector('.ability-bar>p').textContent='Left hand: WASD · Space to dash'+Object.values(ABILITIES).filter(spec=>run?.[spec.unlock]).map(spec=>` · ${spec.key}: ${spec.name}`).join('');
   $('abilities').innerHTML=Object.entries(moves).map(([id,spec])=>`<button type="button" class="ability" data-ability="${id}" aria-keyshortcuts="${spec.key}"><kbd>${spec.key}</kbd><strong><span class="ability-owner">${spec.corgi} · </span>${spec.name}</strong><span class="ability-hint">${spec.hint}</span><span class="ability-status"></span><span class="ability-meter" aria-hidden="true"><i></i></span></button>`).join('');
   paintAbilities();
   $('pepperoni-link').hidden=!run?.basketFound;
@@ -223,6 +225,7 @@ function syncViewport(){
   const height=window.visualViewport?.height||innerHeight;
   document.documentElement.style.setProperty('--game-height',`${height}px`);
   document.body.classList.toggle('compact-controls',height<370);
+  document.body.classList.toggle('standalone-app',standalone());
 }
 window.visualViewport?.addEventListener('resize',syncViewport);
 window.addEventListener('resize',syncViewport);
@@ -284,11 +287,15 @@ function configureTouch() {
 }
 for(const query of [touchQuery,landscapeQuery])query.addEventListener('change',()=>{clearInput();controlsReady=false;configureTouch();render();save();});
 function paintAbilities() {
+  const count=Object.values(moves).filter(spec=>!spec.unlock||run?.[spec.unlock]).length;
+  $('abilities').style.setProperty('--ability-count',count);
+  document.body.dataset.abilityCount=count;
   for(const button of $('abilities').querySelectorAll('[data-ability]')) {
     const id=button.dataset.ability,spec=moves[id],unlocked=!spec.unlock||!!run?.[spec.unlock];
     const cooldown=id==='dash'?world?.cooldown||0:Math.max(world?.abilityCooldowns[id]||0,id==='power'?world?.cooldown||0:0);
-    const active=id==='dash'?world?.dash>0&&!world?.powerDash:id==='power'?world?.dash>0&&world?.powerDash:id==='bark'?world?.bark>0:world?.clouds.length>0;
-    const status=!unlocked?`Rescue ${spec.corgi}${touchMode?'':' first'}`:cooldown>0?`${cooldown.toFixed(1)}s${touchMode?'':` ${id==='power'&&world.cooldown>(world.abilityCooldowns.power||0)?'roll recovery':'recharge'}`}`:view!=='play'?'Ready when you play':!controlsReady?touchMode?'Roll to start':'WASD to start':'Ready';
+    const active=id==='dash'?world?.dash>0&&!world?.powerDash:id==='power'?world?.dash>0&&world?.powerDash:id==='bark'?world?.shield>0:world?.clouds.length>0;
+    const status=id==='bark'&&active?`Protected ${world.shield.toFixed(1)}s`:!unlocked?`Rescue ${spec.corgi}${touchMode?'':' first'}`:cooldown>0?`${cooldown.toFixed(1)}s${touchMode?'':` ${id==='power'&&world.cooldown>(world.abilityCooldowns.power||0)?'roll recovery':'recharge'}`}`:view!=='play'?'Ready when you play':!controlsReady?touchMode?'Roll to start':'WASD to start':'Ready';
+    button.hidden=!unlocked;
     button.disabled=!unlocked||view!=='play'||!controlsReady||touchPortrait()||cooldown>0||run?.health<=0;
     button.classList.toggle('unlocked',unlocked);button.classList.toggle('active',!!active);button.classList.toggle('cooling',cooldown>0);
     const label=button.querySelector('.ability-status');if(label.textContent!==status)label.textContent=status;
@@ -299,7 +306,7 @@ function paintAbilities() {
 function useMove(id) {
   if(view!=='play'||!controlsReady||touchPortrait()||!run||run.health<=0)return false;
   const used=id==='dash'?startDash(world,inputDirection()):startAbility(world,run,id,inputDirection());
-  if(used){sound(id==='power'||id==='dash'?'dash':id==='bark'?'bark':'toot');announce(`${moves[id].corgi}: ${moves[id].name}!`);save();paintAbilities();}
+  if(used){sound(id==='power'||id==='dash'?'dash':id==='bark'?'shield':'toot');announce(`${moves[id].corgi}: ${moves[id].name}!`);save();paintAbilities();}
   return used;
 }
 $('abilities').addEventListener('pointerdown',event=>{const button=event.target.closest('[data-ability]');if(event.pointerType!=='mouse'&&button&&!button.disabled){event.preventDefault();useMove(button.dataset.ability);}});
@@ -418,7 +425,7 @@ function handleEvents(events) {
     else if(event.type==='goose-warning'){announce('Goose puffing up! Dodge the ring or bonk to interrupt.');}
     else if(event.type==='honk'){sound('honk');}
     else if(event.type==='stun'){if(!bonks.length)sound('stun');announce('Mischief bonked. Keep moving.');}
-    else if(event.type==='rescue'){sound('rescue');toast('Pepper found! +1 heart. Press J to bark and stun enemies near Pepper · 5s recharge. Space is still your normal dash.',6500);}
+    else if(event.type==='rescue'){sound('rescue');toast('Pepper found! +1 heart. Press J to shield the whole train for 3 seconds · 10s recharge. Save it for a tight squeeze!',6500);}
     else if(event.type==='pee-rescue'){sound('rescue');toast('Pee found! Press K to leave a stink cloud for pursuers · 7s recharge. Use it whenever you need it!',6500);}
     else if(event.type==='pepperoni-rescue'){sound('rescue');toast('Pepperoni found! Press L for a longer power dash and double boss damage · 8s recharge. Space stays a normal dash.',7000);}
     else if(event.type==='boss-open'){sound('key');toast('The vacuum overheated! Dash into it now!',2500);}
