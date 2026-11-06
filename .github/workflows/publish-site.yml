@@ -18,7 +18,7 @@ concurrency:
 jobs:
   publish:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 40
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -35,6 +35,8 @@ jobs:
           path: ./_site
       - name: Publish website
         id: deployment
-        uses: actions/deploy-pages@v5
+        uses: actions/github-script@v7
         with:
-          timeout: 600000
+          script: |
+            const publish = require("./scripts/publishing/deploy-pages.cjs");
+            await publish({ github, context, core });
