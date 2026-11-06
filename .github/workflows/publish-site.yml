@@ -1,0 +1,40 @@
+name: Publish John Ta website
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# A newer commit may queue, but must not cancel an active Pages rollout.
+concurrency:
+  group: john-ta-pages
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      # Preserve the existing branch-publishing Jekyll behavior and exclusions.
+      - uses: actions/jekyll-build-pages@v1
+        with:
+          source: ./
+          destination: ./_site
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./_site
+      - name: Publish and wait for file synchronization
+        id: deployment
+        uses: actions/deploy-pages@v5
+        with:
+          timeout: 1800000
