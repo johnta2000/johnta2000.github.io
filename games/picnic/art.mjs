@@ -49,7 +49,22 @@ export function drawHeart(c,x,y,size,color){c.save();c.translate(x,y);c.scale(si
 
 export function drawTreat(c,type,x,y,size,rotation=0){
   c.save();c.translate(x,y);c.rotate(rotation);c.scale(size/32,size/32);
-  if(type==='strawberry'){
+  if(['sock','mud','vacuum'].includes(type)){
+    ellipse(c,0,0,25,25,'#fae4daaa');
+    if(type==='sock'){
+      shape(c,p=>{p.moveTo(-7,-20);p.lineTo(9,-20);p.lineTo(9,4);p.quadraticCurveTo(8,11,-1,13);p.lineTo(-12,18);p.quadraticCurveTo(-24,18,-22,8);p.quadraticCurveTo(-20,2,-7,1);p.closePath();},'#9caac0','#71839c',1.5);
+      round(c,-8,-20,18,7,2,'#f7eedc');line(c,[[-7,-11],[9,-11]],'#72849c',2);line(c,[[-13,6],[-8,13]],'#f7eedc',2);
+    }else if(type==='mud'){
+      ellipse(c,0,9,22,8,'#9c775c');ellipse(c,-11,0,11,10,'#ad8969');ellipse(c,8,1,13,11,'#ad8969');ellipse(c,1,-6,12,9,'#b79470');
+      [[-8,-2],[6,-4],[-1,7]].forEach(([px,py])=>ellipse(c,px,py,3,2,'#88694f'));ellipse(c,21,-10,3,2,'#9c775c');ellipse(c,-20,-8,2.5,2.5,'#9c775c');
+    }else{
+      line(c,[[4,-3],[8,-22],[14,-24]],'#7d7f88',4);
+      round(c,-14,-5,28,23,7,'#a390a8');round(c,-20,12,40,8,3,'#827187');
+      ellipse(c,-10,20,4,4,'#5c5661');ellipse(c,10,20,4,4,'#5c5661');round(c,-7,-1,14,8,3,'#d9ccd9');
+      line(c,[[-20,-15],[-25,-19]],'#b77b70',1.7);line(c,[[20,-9],[26,-11]],'#b77b70',1.7);
+    }
+    ellipse(c,19,-19,7,7,'#c87268');c.fillStyle='#fff9eb';c.textAlign='center';c.font='bold 11px sans-serif';c.fillText('!',19,-15);
+  }else if(type==='strawberry'){
     shape(c,p=>{p.moveTo(-14,-7);p.bezierCurveTo(-20,3,-8,21,0,22);p.bezierCurveTo(8,21,20,3,14,-7);p.quadraticCurveTo(0,-17,-14,-7);},'#d77d74','#b75b55',1.4);
     shape(c,p=>{p.moveTo(0,-9);p.lineTo(-13,-14);p.lineTo(-8,-5);p.lineTo(-2,-8);p.lineTo(3,-2);p.lineTo(6,-9);p.lineTo(14,-12);p.lineTo(4,-14);p.lineTo(1,-20);p.closePath();},'#789264');
     [[-8,-1],[5,-1],[-3,6],[8,7],[0,15],[-10,8]].forEach(([sx,sy])=>ellipse(c,sx,sy,1,1.8,'#ffe5b1'));
@@ -78,8 +93,8 @@ function flower(c,x,y,size,rose=false){
   ellipse(c,x,y,size*.34,size*.34,'#d8b95d');
 }
 
-export function drawMeadow(c,w,h,time=0,reduced=false){
-  c.fillStyle='#ecf1dc';c.fillRect(0,0,w,h);
+export function drawMeadow(c,w,h,time=0,reduced=false,level=1,wind=false){
+  c.fillStyle=level>=8?'#efe9df':level>=5?'#f2efd9':'#ecf1dc';c.fillRect(0,0,w,h);
   // A quiet sky, paper-cut clouds, and rolling sage green hills.
   const sunX=w*.86,sunY=h*.16,sunR=Math.min(34,w*.068);
   ellipse(c,sunX,sunY,sunR+9,sunR+9,'#e8dfad45');ellipse(c,sunX,sunY,sunR,sunR,'#e9d99c');
@@ -99,6 +114,7 @@ export function drawMeadow(c,w,h,time=0,reduced=false){
   // Tiny butterfly near the far edge of the meadow.
   const by=h*.53+(reduced?0:Math.sin(time*1.2)*5);
   ellipse(c,w*.08-3,by,4,6,'#e1b691');ellipse(c,w*.08+3,by,4,6,'#e9c8a2');line(c,[[w*.08,by-3],[w*.08,by+4]],'#b2a57b',1);
+  if(wind){c.strokeStyle='#a7b89288';c.lineWidth=2;c.lineCap='round';for(let i=0;i<3;i++){const wx=w*(.12+i*.26),wy=h*(.35+i*.08);c.beginPath();c.moveTo(wx,wy);c.bezierCurveTo(wx+20,wy-9,wx+35,wy+8,wx+62,wy-2);c.stroke();}}
 }
 
 export function drawBlanket(c,x,y,width,height){
@@ -115,36 +131,35 @@ export function drawBlanket(c,x,y,width,height){
   c.restore();
 }
 
-export function drawPicnic(c,w,h,completed,time,reduced,party=false,pee=false){
+export function drawPicnic(c,w,h,completed,time,reduced,party=false,crew={pepper:false,pee:false}){
   const small=w<600;const cx=w/2;const base=h*.85;const bw=Math.min(w*.68,340);const size=small?106:130;
   drawBlanket(c,cx,base-5,bw,small?64:74);
   const apart=small?78:112;
-  drawCorgi(c,cx-apart,base-17,size,false,party,time,reduced);
-  drawCorgi(c,cx+apart,base-17,size,true,party,time+.1,reduced);
-  if(pee)drawCorgi(c,cx,base-17,size*.78,'pee',party,time+.3,reduced);
-  // The basket between the plushies fills up throughout the five levels.
-  const bx=cx-(pee?(small?36:51):0),by=base-(pee?4:12);
+  const friends=['pepsi',...(crew.pee?['pee']:[]),...(crew.pepper?['pepper']:[])];
+  friends.forEach((friend,i)=>{const px=friends.length===1?0:friends.length===2?(i?apart:-apart):(i-1)*apart;drawCorgi(c,cx+px,base-17,size*(friend==='pee'?.78:1),friend,party,time+i*.15,reduced);});
+  // The basket fills up as the adventure progresses.
+  const bx=cx+(friends.length===1?(small?76:104):friends.length===3?-(small?36:51):0),by=base-(friends.length===3?4:12);
   c.strokeStyle='#b39263';c.lineWidth=4;c.beginPath();c.ellipse(bx,by-10,22,24,0,Math.PI,TAU);c.stroke();
   round(c,bx-28,by-10,56,34,6,'#c8a777');
   for(let i=0;i<5;i++)line(c,[[bx-25,by-4+i*6],[bx+25,by-4+i*6]],'#b39466',1);
   for(let i=0;i<6;i++)line(c,[[bx-23+i*9,by-7],[bx-23+i*9,by+21]],'#dec192',1.5);
   shape(c,p=>{p.moveTo(bx-29,by-11);p.lineTo(bx+29,by-11);p.lineTo(bx+24,by+1);p.lineTo(bx+11,by-4);p.lineTo(bx,by+4);p.lineTo(bx-13,by-4);p.lineTo(bx-26,by+1);},'#f7ead3');
-  const count=party?5:completed;
+  const count=party?5:Math.min(5,completed);
   for(let i=0;i<count;i++)drawTreat(c,['strawberry','biscuit','orange'][i%3],bx-17+(i%3)*17,by-16-Math.floor(i/3)*12,13,(i%2?1:-1)*.2);
   if(count>=2){ellipse(c,cx-bw*.32,base+14,22,7,'#fbf3dd');drawTreat(c,'strawberry',cx-bw*.32-7,base+7,13,-.2);drawTreat(c,'biscuit',cx-bw*.32+8,base+8,11,.2);}
   if(count>=4){round(c,cx+bw*.33-10,base-3,20,24,5,'#f1dbc0');ellipse(c,cx+bw*.33,base-3,10,4,'#f8ead1');line(c,[[cx+bw*.33+2,base-3],[cx+bw*.33+7,base-22]],'#8a9c77',2);}
   if(party){for(let i=0;i<6;i++){const x=w*(.15+i*.14);const y=h*(.35+Math.sin(i*2)*.11);drawHeart(c,x,y+(reduced?0:Math.sin(time+i)*3),i%2?5:7,i%2?'#dfb183':'#d8a093');}}
 }
 
-export function drawBasket(c,w,h,run,basketWidth,time,happy,reduced,pee=false){
-  const x=run.basket*w;const y=h*.82;const bw=basketWidth*w;const size=Math.min(77,w*.15);
+export function drawBasket(c,w,h,run,basketWidth,time,happy,reduced,crew={pepper:false,pee:false}){
+  const x=run.basket*w;const y=h*.82;const bw=basketWidth*w;const size=Math.min(77,w*.15)*(run.frightUntil>run.elapsed?.82:1);
   drawBlanket(c,x,y,bw,Math.max(33,bw*.24));
-  drawCorgi(c,x-bw*.38,y+17,size,false,happy,time,reduced);
-  drawCorgi(c,x+bw*.38,y+17,size,true,happy,time+.15,reduced);
-  if(pee)drawCorgi(c,x,y+17,size*.72,'pee',happy,time+.3,reduced);
+  const friends=['pepsi',...(crew.pee?['pee']:[]),...(crew.pepper?['pepper']:[])];
+  const positions=friends.map((_,i)=>friends.length===1?x:friends.length===2?x+(i?1:-1)*bw*.38:x+(i-1)*bw*.38);
+  if(run.mudUntil>run.elapsed){ellipse(c,x-bw*.2,y+13,13,4,'#a68969');ellipse(c,x+bw*.25,y+10,10,4,'#a68969');}
+  friends.forEach((friend,i)=>drawCorgi(c,positions[i],y+17,size*(friend==='pee'?.72:1),friend,happy,time+i*.15,reduced));
   // A stitched rim is the actual catch line; the whole blanket catches treats.
   line(c,[[x-bw*.48,h*.77+4],[x+bw*.48,h*.77+4]],'#b9746880',2);
   c.font='italic 11px Georgia';c.textAlign='center';c.fillStyle='#657950';
-  c.fillText('Pepsi',x-bw*.38,y+34);c.fillText('Pepper',x+bw*.38,y+34);
-  if(pee)c.fillText('Pee',x,y+34);
+  friends.forEach((friend,i)=>c.fillText(friend==='pepsi'?'Pepsi':friend==='pee'?'Pee':'Pepper',positions[i],y+34));
 }

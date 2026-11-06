@@ -1,31 +1,36 @@
 # Pepsi & Pepper’s Picnic
 
-A small, self-contained game at `/games/picnic/`. No build, dependencies, account, analytics, external fonts, or third-party assets. The plushie corgis and meadow are original Canvas artwork. The static files work with the website’s existing GitHub Pages hosting.
+A small, self-contained game at `/games/picnic/`. No build, runtime dependencies, account, analytics, external fonts, or third-party assets. The corgis and meadow are original Canvas artwork. The static files use the website’s existing GitHub Pages hosting.
 
 ## Play
 
-Drag the blanket on a touch screen, move the mouse, or use Left/Right (also A/D). Catch the target number of treats before the 30-second timer ends. Five levels increase falling speed, frequency, and targets; levels 4–5 add occasional pairs. Misses have no life penalty. A failed round can be retried without clearing other progress. All levels can also be selected directly for practice.
+Move the mouse, drag on a touch screen, or use Left/Right (also A/D). Keep the target number of treats before time runs out. Each of ten sequential levels increases speed, frequency, and the treat target. Later levels add drifting drops and separated food/hazard pairs. Targets, timing, and hazard mixes live in `engine.mjs`.
 
-P, Escape, or the pause button pauses a round. Switching tabs or leaving the page pauses automatically. Sound is optional and starts muted. Reduced-motion preferences disable decorative wiggles, floating hearts, and background motion.
+Each round starts with three hearts. Catching a sock costs one heart and spills two treats; mud costs a heart and slows movement for three seconds; a vacuum costs a heart and shrinks the blanket for three seconds. Brief immunity prevents overlapping drops from taking multiple hearts at once. Missing food or avoiding hazards costs no hearts. Zero hearts or an unmet goal at the deadline loses the round; retries are unlimited and preserve completed levels and friends.
 
-Pee is a secret butter-yellow and white corgi. Starting at level 2, one sparkling golden biscuit with a paw stamp appears after the first four ordinary drops in each round. Catching it counts as a regular biscuit and permanently unlocks Pee in this browser, even if the round is later lost. The reveal pauses play and closes with its button, backdrop click/tap, or Escape; all resume the same round (or its result if the catch won). Missing it leaves another chance on a replay or later level. Pee joins both the moving blanket and the picnic scene. His name at the picnic reopens his reveal.
+Winning unlocks the next level. Clean runs earn three stars, one hit earns two, and two hits earn one. Best stars survive replays. Locked level URLs explain how to unlock them and never bypass progression.
+
+Pepsi starts alone. Beating level 3 unlocks gray Pepper, who joins gameplay from level 4. From level 5 onward, one sparkling golden paw-print biscuit appears per attempt. Collecting it on three different levels unlocks butter-yellow Pee. Repeating the same level does not add another paw print; a collected print remains earned even if the round is lost. Pee joins gameplay from level 5 after unlocking. Unlocked friends also appear in the welcome/final picnic; their names reopen their reveal. Reveals pause gameplay, and the close button, backdrop, and Escape return to the same round or result. Clicking inside or dragging outward does not dismiss them.
+
+P, Escape, or the pause button pauses a round, including temporary setbacks. Switching tabs or leaving the page pauses automatically. Sound starts muted. Reduced-motion preferences disable decorative wiggles, hearts, and background movement.
 
 ## Navigation and persistence
 
 - `/games/picnic/`: welcome screen.
-- `?view=levels`: level selection.
+- `?view=levels`: adventure map and best stars.
 - `?view=help`: instructions and progress backup/restore.
-- `?view=play&level=1`: a specific level (1–5).
+- `?view=play&level=1`: a specific level (1–10), or its unlock requirement.
 - `?view=play&level=1&paused=1`: paused round.
-- `?view=result&level=1`: the most recent result for that level in this browser.
-- `?view=picnic`: the picnic scene and personal note.
-- `?view=guest&level=2&from=play`: the secret guest reveal; an undiscovered guest stays hidden on a copied link.
+- `?view=result&level=1`: the latest result for that level in this browser.
+- `?view=picnic`: picnic scene and personal note.
+- `?view=pepper&level=3&from=result`: Pepper’s reveal or unlock requirement.
+- `?view=guest&level=7&from=play`: Pee’s reveal or secret progress; copied URLs do not grant unlocks.
 
-All navigation uses real links and browser history. Opening a saved round waits for an explicit resume tap. A fresh browser with no matching result shows a link to play that round, rather than fabricating a result.
+All navigation uses real links and browser history. Opening a saved round requires an explicit resume tap. A fresh browser without a matching result shows a link to play, rather than fabricating a result.
 
-This is a solo game, with each player's progress saved on their own device/browser under `pepsi-pepper-picnic-v1` in localStorage. There is no shared score or account database. Saves contain in-progress rounds (including falling treats and remaining time), completed levels, latest results, and sound preference. State is saved on catches, every 0.75 seconds while playing, and on pause/navigation. A failed save displays a warning and offers a JSON download; memory state remains playable. An unreadable save is not silently overwritten. Explicit save retry preserves it in a recovery key. Backup import validates the contents and merges them without replacing current rounds.
+This is a solo game with progress saved in the player’s own browser under `pepsi-pepper-picnic-v2` in localStorage. There is no shared score or account database. Saves contain active rounds, falling objects, hearts, temporary effects, completed levels, best stars, latest results, friends, golden-print levels, and sound preference. State is saved on catches/hits, every half second while playing, and on pause/navigation. A failed save shows a warning and offers a JSON download while the in-memory game remains playable. Unreadable data is not silently overwritten; explicit save retry keeps it in a recovery key. Backup imports validate and merge without removing existing achievements or replacing current rounds.
 
-Existing saves migrate without resetting any rounds. The save and JSON backups include Pee’s unlock. A separate `pepsi-pepper-picnic-pee` flag also preserves it when an older open tab writes the previous save format. Restoring a backup can add the unlock but cannot remove an existing one.
+Original `pepsi-pepper-picnic-v1` saves migrate into v2 while leaving the original key untouched. Completed levels and an earned Pee are retained. Any original round already in progress finishes with its original target, timer, and harmless drops; its next replay uses the new adventure rules. Original golden-biscuit catches still honor the former Pee unlock. A separate `pepsi-pepper-picnic-pee` flag protects earned Pee from older tabs. Backups include unlocks and can add but never remove existing friends or stars.
 
 ## Verification
 
@@ -39,4 +44,6 @@ node tests/picnic/browser.cjs
 node tests/picnic/secret.cjs
 ```
 
-The browser checks cover real rendering and input, all five completed rounds, failed rounds, retry, pause/backdrop/Escape behavior, keyboard and touch, navigation history, copied links in fresh tabs, reload, 320px and landscape layouts, saved rounds, and storage failures. The secret checks also cover a golden catch that wins the round, missed biscuits, locked direct links, old-save migration, backup merges, legacy-tab protection, and recoverable unlock save failures. Screenshots and test-only recovery files are written to `outputs/picnic-qa/` and are not part of the release.
+Engine checks simulate all ten levels across 20 random seeds at desktop and phone blanket widths and verify hazards, sequential unlocks, stars, secret progress, round restoration, and original-save migration. Browser checks play the entire adventure with pointer input on desktop and mobile, exercise keyboard/touch, reveals, pause, locks, every meaningful URL, copied tabs, refresh, Back/Forward, and small/landscape layouts. Focused checks cover hazard feedback, third-hit failure and retries, a golden catch that simultaneously wins, missing/repeating golden biscuits, backups, legacy saves, and recoverable storage failures. The automated player is test-only and is not imported by the game.
+
+Screenshots and synthetic test backups go to `outputs/picnic-qa/` and are excluded from the release.
