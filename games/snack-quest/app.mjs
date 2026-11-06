@@ -1,7 +1,7 @@
-import { ROOMS, ORDER, WIDTH, HEIGHT, createRun, validRun, migrateRun, makeWorld, maxHearts, goalDone, isUnlocked, firstUnfinished, objective, retryRoom, step, startDash } from './engine.mjs?v=6';
-import { portrait, drawWorld, drawPicnic } from './art.mjs?v=6';
-import { movementKey, isTextEntry } from './input.mjs?v=6';
-import { Soundscape } from './audio.mjs?v=6';
+import { ROOMS, ORDER, WIDTH, HEIGHT, createRun, validRun, migrateRun, makeWorld, maxHearts, goalDone, isUnlocked, firstUnfinished, objective, retryRoom, step, startDash } from './engine.mjs?v=7';
+import { portrait, drawWorld, drawPicnic } from './art.mjs?v=7';
+import { movementKey, isTextEntry } from './input.mjs?v=7';
+import { Soundscape } from './audio.mjs?v=7';
 
 const $ = id => document.getElementById(id);
 const canvas=$('world'), ctx=canvas.getContext('2d');
@@ -228,11 +228,17 @@ keyboardCapture.addEventListener('beforeinput',event=>{
 });
 keyboardCapture.addEventListener('input',()=>{keyboardCapture.value='';});
 $('focus-controls').addEventListener('click',focusGame);
-window.addEventListener('blur',()=>{soundtrack.setForeground(false);clearInput();pause();});
+function restInBackground() {
+  soundtrack.setForeground(false);clearInput();
+  // Keep the current view and history. The next WASD press resumes without a dialog.
+  if(view==='play')controlsReady=false;
+  save();
+}
+window.addEventListener('blur',restInBackground);
 window.addEventListener('focus',()=>soundtrack.setForeground(!document.hidden));
 window.addEventListener('pointerdown',()=>soundtrack.unlock(),{capture:true});
 $('stage').addEventListener('pointerdown',()=>{if(view==='play')focusGame();});
-document.addEventListener('visibilitychange',()=>{soundtrack.setForeground(!document.hidden&&document.hasFocus());if(document.hidden){save();if(view==='play')pause();clearInput();}lastFrame=performance.now();});
+document.addEventListener('visibilitychange',()=>{if(document.hidden)restInBackground();else soundtrack.setForeground(document.hasFocus());lastFrame=performance.now();});
 window.addEventListener('pagehide',()=>{soundtrack.setForeground(false);save();});
 window.addEventListener('popstate',()=>{save();readRoute();});
 document.addEventListener('click',event=>{

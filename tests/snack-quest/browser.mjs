@@ -46,11 +46,19 @@ try {
     previous=next;
   }
   await page.locator('#resume').click();await waitView(page,'play');
+  await hold(page,'d',80);
   const beforeBlur=await saved(page);
-  await page.evaluate(()=>window.dispatchEvent(new Event('blur')));await waitView(page,'pause');
+  const focusURL=page.url(),focusHistory=await page.evaluate(()=>history.length);
+  await page.evaluate(()=>window.dispatchEvent(new Event('blur')));
   await page.waitForTimeout(300);
   assert.equal((await saved(page)).health,beforeBlur.health,'losing keyboard focus pauses hazards');
-  await page.keyboard.press('Escape');await waitView(page,'play');
+  assert.equal(page.url(),focusURL,'ordinary focus changes do not navigate to a pause screen');
+  assert.equal(await page.evaluate(()=>history.length),focusHistory);
+  assert.equal(await page.locator('.pause-card').count(),0);
+  assert.equal(await page.locator('#control-prompt').isVisible(),false,'no extra prompt when returning');
+  const restingFrame=await page.locator('#world').evaluate(canvas=>canvas.toDataURL());
+  await page.evaluate(()=>window.dispatchEvent(new Event('focus')));await page.waitForTimeout(250);
+  assert.ok(await page.locator('#world').evaluate(canvas=>canvas.toDataURL())===restingFrame,'hazards wait safely for WASD on return');
   const beforeText=(await saved(page)).positions.meadow;
   await page.locator('#keyboard-capture').evaluate(input=>input.dispatchEvent(new InputEvent('beforeinput',{inputType:'insertText',data:'d',bubbles:true,cancelable:true})));
   await page.waitForTimeout(160);await page.keyboard.press('Escape');await waitView(page,'pause');
@@ -80,7 +88,9 @@ try {
   const reunionURL=page.url();await page.reload();await page.locator('.story-card').waitFor();assert.equal(page.url(),reunionURL);await page.locator('.story-card h3').click();assert.match(page.url(),/view=reunion/);
   const reunionCopy=await desktop.newPage();await reunionCopy.goto(reunionURL);await reunionCopy.locator('.story-card').waitFor();await reunionCopy.close();
   await page.locator('#reunion-continue').click();await waitRoom(page,'orchard');assert.equal((await saved(page)).health,4);assert.equal(await page.locator('#save-error').isVisible(),false,'read-only copied link does not create a save conflict');
+  await page.keyboard.down('d');await page.waitForTimeout(500);
   await page.screenshot({path:output+'/desktop-final-area.png',fullPage:true});
+  await page.keyboard.up('d');await page.keyboard.press('Escape');
   // A real hazard hit and defeat, with no game-state test hooks.
   const damage=createRun('damage123');damage.health=1;damage.positions.meadow={x:300,y:350};await seed(page,damage);await page.keyboard.press('w');await page.waitForURL(/view=retry/,{timeout:10000});assert.equal((await saved(page)).health,0);assert.equal((await saved(page)).hits,1);
   const lostURL=page.url();await page.reload();await page.locator('#retry').waitFor();assert.equal(page.url(),lostURL);await page.screenshot({path:output+'/desktop-retry.png',fullPage:true});
@@ -135,7 +145,7 @@ try {
   await musicPage.waitForTimeout(900);assert.ok(await musicPage.evaluate(()=>audioProbe.level()<.00001),'music is silent while paused');
   await musicPage.keyboard.press('d');await waitView(musicPage,'play');
   await musicPage.waitForFunction(()=>audioProbe.level()>.005);
-  await musicPage.evaluate(()=>window.dispatchEvent(new Event('blur')));await waitView(musicPage,'pause');
+  await musicPage.evaluate(()=>window.dispatchEvent(new Event('blur')));await waitView(musicPage,'play');
   await musicPage.waitForTimeout(150);assert.ok(await musicPage.evaluate(()=>audioProbe.level()<.00001),'focus loss stops all audio');
   await musicPage.evaluate(()=>window.dispatchEvent(new Event('focus')));
   await musicPage.keyboard.press('d');await waitView(musicPage,'play');

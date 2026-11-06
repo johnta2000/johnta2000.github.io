@@ -12,7 +12,7 @@ Pepsi starts alone. Dash into the meadow's crate to find the gate key, rescue gr
 - Start with three hearts. A hit costs one heart, with a short damage grace period. Snacks heal one heart, up to the maximum.
 - At zero hearts, retry the current clearing. Snacks collected in this attempt return to the grass; earlier discoveries remain. Death and health persist across refreshes.
 - Rescuing Pepper restores health and grants a fourth heart. Pepper follows the player's footsteps and does not require separate escort-health management.
-- Leaving the game automatically pauses it. WASD resumes a paused adventure and moves immediately. Physical WASD keys are supported across keyboard input methods, and the key hints light up while held.
+- Leaving the game quietly freezes hazards and clears held keys. Returning and pressing WASD continues immediately, without an automatic pause popup, extra prompt, or history entry. Escape and the pause button still open the explicit pause screen. Physical WASD keys are supported across keyboard input methods, and the key hints light up while held.
 - Start, Resume, Retry, and direct play links wait for the first WASD input before toys or damage advance. A native keyboard input receives focus, with a visible focus button and a text-input fallback for embedded browsers. Short taps are retained until the next frame. Mouse clicks and Space alone never dismiss the safe-start state.
 - Escape pauses. Dialogs close with Escape, their dismissal control, or a backdrop click. Closing the retry screen returns home without reviving the player.
 - A keyboard is required, including on small screens. There are no on-screen movement controls.
@@ -21,7 +21,7 @@ Pepsi starts alone. Dash into the meadow's crate to find the gate key, rescue gr
 
 The corgis are original canvas drawings informed by Pepsi's plush reference: round tan-and-white Pepsi and a gray-and-white Pepper, with little paws and bead eyes. No user photograph is published. Artwork uses no downloaded sprites or game libraries. Publish the directory as-is through the existing GitHub Pages site; no build or server is required.
 
-Both plushies tumble end over end as they move, with rotation tied to distance traveled and faster rolling during a dash. Their shadows stay grounded, and they gently settle upright when stopped. Reduced-motion preferences disable the tumbling. These poses are visual only and do not change movement, collisions, or saved progress.
+Both plushies tumble end over end as they move, with rotation tied to distance traveled and faster rolling during a dash. Pepper continuously follows the distance along Pepsi's path, smoothly catching up without stopping or flipping at each waypoint. Roll direction remains stable on vertical travel, and tiny gaps do not restart the upright-settling animation. Their shadows stay grounded, and they gently settle upright when stopped. Reduced-motion preferences disable the tumbling. These poses are visual only and do not change player movement, collisions, or saved progress.
 
 ## Music and sound
 

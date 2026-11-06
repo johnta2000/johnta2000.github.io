@@ -1,4 +1,4 @@
-import { WIDTH, HEIGHT, ROOMS, random, goalDone } from './engine.mjs?v=6';
+import { WIDTH, HEIGHT, ROOMS, random, goalDone } from './engine.mjs?v=7';
 
 const INK='#75674c';
 function ellipse(c,x,y,rx,ry,fill,stroke=null,line=2){c.beginPath();c.ellipse(x,y,rx,ry,0,0,Math.PI*2);c.fillStyle=fill;c.fill();if(stroke){c.strokeStyle=stroke;c.lineWidth=line;c.stroke();}}
@@ -33,15 +33,15 @@ function ground(room,seed){const key=room+seed;if(groundCache.has(key))return gr
 const rollPoses=new WeakMap();
 function rollingPose(body,time,scale) {
   let pose=rollPoses.get(body);
-  if(!pose){pose={x:body.x,y:body.y,time,angle:0};rollPoses.set(body,pose);}
+  if(!pose){pose={x:body.x,y:body.y,time,angle:0,direction:body.facing,lastMoved:time};rollPoses.set(body,pose);}
   const dx=body.x-pose.x,dy=body.y-pose.y,distance=Math.hypot(dx,dy);
   const dt=Math.max(0,Math.min(time-pose.time,.1));
   if(distance>100)pose.angle=0;
   else if(distance>.01) {
-    const direction=Math.abs(dx)>.01?Math.sign(dx):Math.sign(dy)*body.facing;
-    pose.angle+=direction*distance/(44*scale);
+    if(Math.abs(dx)>distance*.35)pose.direction=Math.sign(dx);
+    pose.angle+=pose.direction*distance/(44*scale);pose.lastMoved=time;
     pose.angle=Math.atan2(Math.sin(pose.angle),Math.cos(pose.angle));
-  } else {
+  } else if(time-pose.lastMoved>.09) {
     // A plush gently rights itself instead of freezing upside down after a key release.
     pose.angle*=Math.exp(-dt*13);
     if(Math.abs(pose.angle)<.002)pose.angle=0;

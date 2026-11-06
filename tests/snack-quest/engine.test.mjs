@@ -4,6 +4,34 @@ import { ROOMS, ORDER, createRun, makeWorld, roomItems, toysFor, walkable, step,
 const idle={x:0,y:0};
 function toyAt(x,y){return {x,y,r:18,vx:0,vy:0,kind:'ball',mode:'roam',timer:0,cooldown:9};}
 
+test('Pepper follows continuously without flipping at each trail point',()=>{
+  const run=createRun('follow123');run.keyFound=true;run.pepperFound=true;run.health=4;
+  const world=makeWorld(run,'meadow');world.toys=[];
+  for(let i=0;i<140;i++){
+    const x=world.buddy.x;step(world,run,{x:1,y:0},1/60);
+    if(i>50){assert.ok(world.buddy.x-x>2,'no stationary frame between trail points');assert.equal(world.buddy.facing,1);}
+  }
+  const gap=Math.hypot(world.player.x-world.buddy.x,world.player.y-world.buddy.y);
+  assert.ok(gap>64&&gap<85,'a consistent, comfortable gap');
+  const stoppedAt={...world.player};
+  for(let i=0;i<120;i++)step(world,run,idle,1/60);
+  assert.deepEqual({x:world.player.x,y:world.player.y},{x:stoppedAt.x,y:stoppedAt.y});
+  assert.ok(Math.abs(world.player.x-world.buddy.x-64)<.1,'Pepper settles behind Pepsi');
+  assert.equal(world.buddy.moving,false);
+});
+test('Pepper keeps his facing on vertical trails and catches up without teleporting',()=>{
+  const run=createRun('follow234');run.keyFound=true;run.pepperFound=true;run.health=4;run.positions.meadow={x:135,y:180};
+  const world=makeWorld(run,'meadow');world.toys=[];
+  for(let i=0;i<90;i++){
+    const before={...world.buddy};
+    if(i===35)startDash(world,{x:0,y:1});
+    step(world,run,{x:0,y:1},1/60);
+    assert.equal(world.buddy.facing,1,'vertical motion does not mirror the sprite');
+    assert.ok(Math.hypot(world.buddy.x-before.x,world.buddy.y-before.y)<=400/60+.001);
+    assert.ok(walkable(world.buddy.x,world.buddy.y,'meadow',12));
+  }
+});
+
 test('snacks, hazards, and quest goals are reachable on solid ground',()=>{
   for(const room of ORDER){
     const visited=new Set(['140,320']),queue=[[140,320]];

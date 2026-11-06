@@ -139,14 +139,27 @@ function particles(world,x,y,kind='spark') {
   for(let i=0;i<9;i++)world.particles.push({x,y,vx:Math.cos(i/9*Math.PI*2)*45,vy:Math.sin(i/9*Math.PI*2)*45-25,life:.75,max:.75,kind});
 }
 function follow(world) {
-  const p=world.player, b=world.buddy, last=world.followTrail.at(-1);
-  if(Math.hypot(p.x-last.x,p.y-last.y)>7)world.followTrail.push({x:p.x,y:p.y});
-  b.moving=world.followTrail.length>6;
-  if(b.moving) {
-    const target=world.followTrail[0], distance=Math.hypot(target.x-b.x,target.y-b.y);
-    if(distance<5)world.followTrail.shift();
-    else {const amount=Math.min(distance,(world.followTrail.length>20?310:210)*world.dt);move(b,(target.x-b.x)/distance*amount,(target.y-b.y)/distance*amount,world.room,12);b.facing=target.x>b.x?1:-1;}
+  const p=world.player,b=world.buddy,trail=world.followTrail,last=trail.at(-1);
+  if(Math.hypot(p.x-last.x,p.y-last.y)>.01)trail.push({x:p.x,y:p.y});
+  // Follow distance along Pepsi's path, rather than counting frames/waypoints.
+  let pathLength=0,previous=b;
+  for(const point of trail){pathLength+=Math.hypot(point.x-previous.x,point.y-previous.y);previous=point;}
+  const excess=Math.max(0,pathLength-64);
+  let budget=Math.min(excess,Math.min(400,excess*14)*world.dt),travelled=0;
+  while(budget>.0001&&trail.length) {
+    const target=trail[0],dx=target.x-b.x,dy=target.y-b.y,distance=Math.hypot(dx,dy);
+    if(distance<.0001){if(trail.length>1){trail.shift();continue;}break;}
+    const amount=Math.min(distance,budget),x=b.x,y=b.y;
+    move(b,dx/distance*amount,dy/distance*amount,world.room,12);
+    const moved=Math.hypot(b.x-x,b.y-y);
+    if(moved<.0001)break;
+    travelled+=moved;budget-=moved;
+    // Use actual travel before consuming the point; exact arrival must not flip him.
+    if(Math.abs(b.x-x)>moved*.25)b.facing=b.x<x?-1:1;
+    if(Math.hypot(target.x-b.x,target.y-b.y)<.0001&&trail.length>1)trail.shift();
+    else if(moved<amount-.0001)break;
   }
+  b.moving=travelled>.01;
 }
 export function step(world,run,input,dt) {
   if(run.health<=0)return [];
