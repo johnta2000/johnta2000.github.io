@@ -16,6 +16,8 @@ Once a friend has joined the active level, their button appears below the playfi
 
 P, Escape, or the pause button pauses a round, including temporary setbacks. Switching tabs or leaving the page pauses automatically. Sound starts muted. Reduced-motion preferences disable decorative wiggles, hearts, and background movement.
 
+Desktop uses one viewport-sized frame across welcome, play, results, map, help, and friend reveals. The control strip reserves a constant height so unlocking abilities or pausing never resizes the playfield. Long panels scroll internally. New layout work and verification focus on desktop.
+
 ## Navigation and persistence
 
 - `/games/picnic/`: welcome screen.
@@ -46,6 +48,7 @@ node tests/picnic/browser.cjs
 node tests/picnic/secret.cjs
 node tests/picnic/abilities.cjs
 node tests/picnic/pepper-reward.cjs
+node tests/picnic/desktop-layout.cjs
 ```
 
 Engine checks simulate all ten levels across 20 random seeds at desktop and phone blanket widths and verify hazards, sequential unlocks, stars, secret progress, round restoration, and original-save migration. Browser checks play the entire adventure with pointer input on desktop and mobile, exercise keyboard/touch, reveals, pause, locks, every meaningful URL, copied tabs, refresh, Back/Forward, and small/landscape layouts. Focused checks cover hazard feedback, third-hit failure and retries, a golden catch that simultaneously wins, missing/repeating golden biscuits, backups, legacy saves, and recoverable storage failures. Ability checks cover cough timing, real keyboard/touch activation, range and unlock rules, charge persistence, retry resets, small-screen layout, and immediate keyboard release under mud. The automated player is test-only and is not imported by the game.

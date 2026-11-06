@@ -28,7 +28,7 @@ function backup(){
 $('retry-save').addEventListener('click',()=>{if(persist(true))announce('Your adventure is saved.');});$('backup').addEventListener('click',backup);
 function playURL(level,paused=false){return `?view=play&level=${level}${paused?'&paused=1':''}`;}
 function pauseRun(){keys.clear();pointerId=null;if(run?.status==='playing'){run.status='paused';persist();}}
-function go(url,replace=false){pauseRun();history[replace?'replaceState':'pushState']({},'',url);route=readRoute(location.search);render();scrollTo({top:0,behavior:'instant'});}
+function go(url,replace=false){pauseRun();history[replace?'replaceState':'pushState']({},'',url);route=readRoute(location.search);render();if(!matchMedia('(min-width:651px)').matches)scrollTo({top:0,behavior:'instant'});}
 function button(label,url,secondary=false){return `<a class="button${secondary?' secondary':''}" href="${url}">${label}</a>`;}
 function currentCrew(){const crew=crewFor(save,route.view==='play'?route.level:null);return route.view==='home'?{...crew,pee:false}:crew;}
 function crewNames(crew=currentCrew()){return ['Pepsi',...(crew.pee?['Pee']:[]),...(crew.pepper?['Pepper']:[])];}
