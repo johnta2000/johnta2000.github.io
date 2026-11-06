@@ -14,7 +14,7 @@ Run `node --test tools/pdp-approvals/tests/*.test.cjs login/tests/access.test.cj
 
 Use a current production Git checkout and publish only the tracker, its schema additions, login integration, and tests. Never deploy the broad local Convex checkout. `scripts/pdp-approvals/deploy.mjs dry-run` reads current production configuration, merges only the tracker tables, compiles the tracker and its private file route, and retains other modules by hash. `deploy` publishes after a concurrent-change check and verifies the resulting schema, unchanged modules and existing endpoint signatures. `verify` checks a deployment without changing it. Credentials remain in memory and are never printed. The website uses its existing GitHub Pages publishing process.
 
-The UI uses black, white, and gray. Desktop comparison places the approved mockup on the left and production on the right. The approval evidence, notes, and revision controls form a separate card beneath the mockup inside the left column, including when previews are open. On phones, the approved reference and evidence stack together before production.
+The UI uses black, white, and gray. Desktop comparison places the approved mockup on the left and production on the right. The approval evidence, notes, and revision controls form a separate card beneath the mockup inside the left column, including when previews are open. On phones, the approved reference and production preview appear before the evidence.
 
 ## Desktop/mobile references and private PDFs
 
@@ -53,3 +53,7 @@ Each record can retain device-specific supporting references with independent ap
 Evidence badges name the missing desktop/mobile mockup or approval email explicitly. A complete desktop reference with no mobile PDF is labeled “Mobile mockup missing”; the aggregate evidence count still requires both devices.
 
 Authentication requests retry one HTTP 401 with a fresh Clerk token, including private PDF/capture reads. A missing named token falls back to the active session token. Persistent authentication rejection gives a sign-out/sign-in instruction; other server errors retain their useful message and HTTP status. This does not bypass the pinned issuer or account allowlist.
+
+## Comparison-first layout
+
+An opened record starts with its name, device controls, and the aligned approved/production previews. Library search, filters, add/export/refresh controls, and counts live in the independently scrolling desktop sidebar. The phone library collapses to Change PDP; `library=1` restores its open state. Extra approved files use `files=1` when expanded; choosing a reference closes that panel and returns to the comparison. Approval evidence remains beneath the approved preview on desktop, with source and editable record fields below it. Both previews precede evidence on phones. Direct links, copied links, refresh, Back/Forward, draft recovery, and above-fold preview positions are checked on desktop and phone widths.
