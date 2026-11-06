@@ -1,8 +1,8 @@
 export const LEVELS = Object.freeze([
   { name:'Pepsi’s Big Day', short:'First Steps', goal:8, duration:30, fall:4.2, interval:1.25, hazardEvery:5, hazards:['sock'], pairs:0, wind:0, line:'Just Pepsi, a blanket, and suspiciously snack-shaped socks.' },
   { name:'Laundry Day', short:'Laundry Day', goal:11, duration:30, fall:3.9, interval:1.1, hazardEvery:4, hazards:['sock','mud'], pairs:0, wind:0, line:'The laundry escaped. So did the mud. Catch only the snacks.' },
-  { name:'Operation Pepper', short:'Find Pepper', goal:13, duration:32, fall:3.6, interval:1, hazardEvery:4, hazards:['sock','mud','vacuum'], pairs:0, wind:0, line:'Pepper heard there were snacks. Finish this round to bring her along.' },
-  { name:'Partners in Crime', short:'Double Trouble', goal:15, duration:32, fall:3.4, interval:.92, hazardEvery:4, hazards:['sock','mud','vacuum'], pairs:5, wind:0, line:'Two corgis, twice the mischief. Some snacks arrive in pairs.' },
+  { name:'Operation Pepper', short:'Find Pepper', goal:13, duration:32, fall:3.6, interval:1, hazardEvery:4, hazards:['sock','mud','vacuum'], pairs:0, wind:0, line:'Pepper is waiting for his picnic invitation. Win here and earn 6 stars across levels 1–3 to invite him.' },
+  { name:'Partners in Crime', short:'Double Trouble', goal:15, duration:32, fall:3.4, interval:.92, hazardEvery:4, hazards:['sock','mud','vacuum'], pairs:5, wind:0, line:'Some snacks arrive in pairs. A picnic partner would come in handy.' },
   { name:'Golden Hour', short:'Golden Hour', goal:17, duration:34, fall:3.2, interval:.86, hazardEvery:3, hazards:['sock','mud','vacuum'], pairs:0, wind:0, line:'Something golden is hiding among the snacks. Trouble is, too.' },
   { name:'Muddy Business', short:'Muddy Business', goal:18, duration:34, fall:3, interval:.8, hazardEvery:3, hazards:['mud','sock','vacuum'], pairs:0, wind:.045, line:'A breezy meadow, muddy paws, and absolutely no regrets.' },
   { name:'Snack or Sock?', short:'Snack or Sock?', goal:20, duration:36, fall:2.85, interval:.76, hazardEvery:3, hazards:['sock','mud','vacuum'], pairs:5, wind:.04, line:'A snack on one side. A terrible life choice on the other.' },
@@ -35,6 +35,12 @@ export const gust = run => { const config=configFor(run);return config.wind && M
 export const isLevelOpen = (save,level) => level===1 || save.completed.includes(level) || save.completed.includes(level-1) || (save.runs[level]?.elapsed>0);
 export const nextLevel = save => LEVELS.findIndex((_,i)=>!save.completed.includes(i+1))+1||1;
 export const crewFor = (save,level=null) => ({pepper:save.pepperUnlocked && (level===null||level>=4),pee:save.peeUnlocked && (level===null||level>=5)});
+export function pepperProgress(save){
+  const levels=[1,2,3],stars=levels.reduce((total,level)=>total+(save.stars[level]||0),0);
+  const complete=levels.every(level=>save.completed.includes(level));
+  const next=levels.find(level=>!save.completed.includes(level))||levels.reduce((best,level)=>(save.stars[level]||0)<(save.stars[best]||0)?level:best,1);
+  return {stars:Math.min(6,stars),goal:6,complete,earned:complete&&stars>=6,next};
+}
 const companionDefaults = () => ({coughRemaining:0,pepperUsed:false,peeUsed:false,spilledTreats:0,rescueRemaining:0,tootRemaining:0,tootX:.5});
 export const nearbyHazards = run => run.drops.filter(drop=>HAZARDS.includes(drop.type)&&drop.y>=.25&&drop.y<CATCH_Y&&Math.abs(drop.x-run.basket)<=.32);
 function settleRound(run){
@@ -143,9 +149,9 @@ export function finishRun(save,run) {
   const config=configFor(run),won=run.status==='won';
   const stars=won&&run.rules!=='classic'?Math.max(1,3-run.hits):0;
   save.results[run.level]={caught:run.caught,elapsed:run.elapsed,won,goal:config.goal,duration:config.duration,hearts:run.hearts,hits:run.hits,stars,rules:run.rules,lastHazard:run.lastHazard};
-  const foundPepper=won&&run.level>=3&&!save.pepperUnlocked;
-  if(won){if(!save.completed.includes(run.level))save.completed.push(run.level);save.stars[run.level]=Math.max(save.stars[run.level]||0,stars);if(run.level>=3)save.pepperUnlocked=true;}
-  return foundPepper;
+  const wasUnlocked=save.pepperUnlocked;
+  if(won){if(!save.completed.includes(run.level))save.completed.push(run.level);save.stars[run.level]=Math.max(save.stars[run.level]||0,stars);if(pepperProgress(save).earned||(run.rules==='classic'&&run.level>=3))save.pepperUnlocked=true;}
+  return !wasUnlocked&&save.pepperUnlocked;
 }
 export function validRun(run,level) {
   if(!run||run.level!==level||!['ready','playing','paused','won','lost'].includes(run.status)||!['classic','adventure'].includes(run.rules))return false;
@@ -165,13 +171,13 @@ export function validRun(run,level) {
   if(run.level<(run.rules==='classic'?2:5)&&(run.goldenCaught||run.drops.some(drop=>drop.type==='golden')))return false;
   return run.drops.every(drop=>DROP_TYPES.includes(drop.type)&&[drop.x,drop.baseX].every(x=>Number.isFinite(x)&&x>=0&&x<=1)&&Number.isFinite(drop.y)&&drop.y>=-.2&&drop.y<=1.1&&Number.isFinite(drop.rotation));
 }
-export function blankSave(){return {version:2,runs:{},results:{},completed:[],stars:{},sound:false,lastLevel:1,pepperUnlocked:false,peeUnlocked:false,goldenLevels:[]};}
+export function blankSave(){return {version:2,pepperQuest:1,runs:{},results:{},completed:[],stars:{},sound:false,lastLevel:1,pepperUnlocked:false,peeUnlocked:false,goldenLevels:[]};}
 export function parseSave(raw) {
   const value=JSON.parse(raw);
   if(![1,2].includes(value?.version)||!value.runs||!value.results||!Array.isArray(value.completed))throw new Error('Unrecognized save');
   const save=blankSave();save.sound=value.sound===true;save.lastLevel=levelNumber(value.lastLevel);save.peeUnlocked=value.peeUnlocked===true;
   save.completed=[...new Set(value.completed.filter(n=>Number.isInteger(n)&&n>=1&&n<=LEVELS.length))];
-  save.pepperUnlocked=value.pepperUnlocked===true||save.completed.some(n=>n>=3);
+  save.pepperUnlocked=value.pepperUnlocked===true||(value.pepperQuest!==1&&save.completed.some(n=>n>=3));
   save.goldenLevels=[...new Set((value.goldenLevels||[]).filter(n=>Number.isInteger(n)&&n>=5&&n<=10))];
   if(save.goldenLevels.length>=3)save.peeUnlocked=true;
   for(let level=1;level<=LEVELS.length;level++){
@@ -197,6 +203,7 @@ export function parseSave(raw) {
     }
     const stars=value.stars?.[level];if(Number.isInteger(stars)&&stars>=0&&stars<=3)save.stars[level]=stars;
   }
+  save.pepperUnlocked ||= pepperProgress(save).earned;
   return save;
 }
 export function readRoute(search){

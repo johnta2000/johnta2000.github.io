@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {LEVELS,HAZARDS,advance,createRun,blankSave,parseSave,readRoute,validRun,configFor,effectiveWidth,isLevelOpen,crewFor,collectGolden,finishRun,useAbility,nearbyHazards} from '../../games/picnic/engine.mjs';
+import {LEVELS,HAZARDS,advance,createRun,blankSave,parseSave,readRoute,validRun,configFor,effectiveWidth,isLevelOpen,crewFor,collectGolden,finishRun,useAbility,nearbyHazards,pepperProgress} from '../../games/picnic/engine.mjs';
 import {chooseTarget,seeded} from './bot.mjs';
 const drop=(type,x=.5,id=1)=>({id,type,x,baseX:x,y:.769,rotation:0});
 function playing(level=1){const run=createRun(level);run.status='playing';run.spawnIn=10;return run;}
@@ -111,4 +111,22 @@ test('new effects and spent abilities survive reload; older saves gain unused ab
   const save=blankSave(),run=playing(7);Object.assign(run,{coughRemaining:.42,spilledTreats:2,peeUsed:true,tootRemaining:.3,tootX:.7});save.runs[7]=run;save.completed=[1,2,3,4,5,6];const restored=parseSave(JSON.stringify(save));assert.deepEqual(restored.runs[7],run);
   const old=structuredClone(save);for(const key of ['coughRemaining','pepperUsed','peeUsed','spilledTreats','rescueRemaining','tootRemaining','tootX'])delete old.runs[7][key];const migrated=parseSave(JSON.stringify(old));assert.equal(migrated.runs[7].peeUsed,false);assert.equal(migrated.runs[7].elapsed,run.elapsed);assert.deepEqual(migrated.completed,save.completed);
   save.runs[7].coughRemaining=10;assert.throws(()=>parseSave(JSON.stringify(save)));
+});
+
+test('Pepper needs six best-score stars and all first three wins; replays improve the invitation',()=>{
+  const save=blankSave();
+  const win=(level,hits)=>{const run=playing(level);Object.assign(run,{status:'won',hits,hearts:3-hits,caught:LEVELS[level-1].goal});return finishRun(save,run);};
+  assert.equal(win(1,1),false);assert.equal(win(2,1),false);assert.equal(win(3,2),false);
+  assert.equal(pepperProgress(save).stars,5);assert.equal(pepperProgress(save).next,3);
+  assert.equal(save.pepperUnlocked,false);assert.equal(parseSave(JSON.stringify(save)).pepperUnlocked,false,'Reload cannot bypass the star requirement');
+  assert.equal(win(3,2),false);assert.equal(pepperProgress(save).stars,5,'Repeated stars are not farmed');
+  assert.equal(win(4,0),false);assert.equal(pepperProgress(save).stars,5,'Later stars do not count');
+  assert.equal(win(1,0),true,'An improved replay can unlock Pepper');assert.equal(save.pepperUnlocked,true);
+  assert.equal(win(1,2),false);assert.equal(save.stars[1],3);assert.equal(parseSave(JSON.stringify(save)).pepperUnlocked,true);
+  const early=blankSave();early.completed=[1,2];early.stars={1:3,2:3};assert.equal(pepperProgress(early).earned,false);assert.equal(parseSave(JSON.stringify(early)).pepperUnlocked,false);
+});
+test('previously earned Pepper stays unlocked when migrating older saves',()=>{
+  const old=blankSave();delete old.pepperQuest;old.completed=[1,2,3];old.stars={1:1,2:1,3:1};
+  const migrated=parseSave(JSON.stringify(old));assert.equal(migrated.pepperUnlocked,true);assert.equal(migrated.pepperQuest,1);
+  const existing=blankSave();existing.pepperUnlocked=true;assert.equal(parseSave(JSON.stringify(existing)).pepperUnlocked,true);
 });
