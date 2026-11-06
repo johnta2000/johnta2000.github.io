@@ -12,6 +12,7 @@ Pepsi starts alone. Dash into the meadow's crate to find the gate key, rescue gr
 - Start with three hearts. A hit costs one heart, with a short damage grace period. Snacks heal one heart, up to the maximum.
 - At zero hearts, retry the current clearing. Snacks collected in this attempt return to the grass; earlier discoveries remain. Death and health persist across refreshes.
 - Rescuing Pepper restores health and grants a fourth heart. Pepper follows the player's footsteps and does not require separate escort-health management.
+- Leaving the game automatically pauses it. WASD resumes a paused adventure and moves immediately. Physical WASD keys are supported across keyboard input methods, and the key hints light up while held.
 - Escape pauses. Dialogs close with Escape, their dismissal control, or a backdrop click. Closing the retry screen returns home without reviving the player.
 - A keyboard is required, including on small screens. There are no on-screen movement controls.
 

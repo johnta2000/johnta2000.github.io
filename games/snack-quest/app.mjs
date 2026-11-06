@@ -1,5 +1,6 @@
-import { ROOMS, ORDER, WIDTH, HEIGHT, createRun, validRun, migrateRun, makeWorld, maxHearts, goalDone, isUnlocked, firstUnfinished, objective, retryRoom, step, startDash } from './engine.mjs?v=2';
-import { portrait, drawWorld, drawPicnic } from './art.mjs?v=2';
+import { ROOMS, ORDER, WIDTH, HEIGHT, createRun, validRun, migrateRun, makeWorld, maxHearts, goalDone, isUnlocked, firstUnfinished, objective, retryRoom, step, startDash } from './engine.mjs?v=3';
+import { portrait, drawWorld, drawPicnic } from './art.mjs?v=3';
+import { movementKey, isTextEntry } from './input.mjs?v=3';
 
 const $ = id => document.getElementById(id);
 const canvas=$('world'), ctx=canvas.getContext('2d');
@@ -79,7 +80,19 @@ function newRun() {
 }
 function announce(message){$('announcement').textContent=message;}
 function toast(message,duration=3200){$('room-toast').textContent=message;$('room-toast').hidden=false;toastUntil=performance.now()+duration;announce(message);}
-function clearInput(){keys.clear();}
+function paintInput() {
+  document.querySelectorAll('[data-move]').forEach(key => key.classList.toggle('pressed',keys.has(key.dataset.move)));
+}
+function clearInput(){keys.clear();paintInput();}
+function focusGame() {
+  if(view!=='play')return;
+  canvas.focus({preventScroll:true});
+  // WebKit can finish a native button's focus change after the click handler.
+  // Reclaim the game on the next paint, without taking focus from a text field.
+  requestAnimationFrame(()=>{
+    if(view==='play'&&document.hasFocus()&&!isTextEntry(document.activeElement))canvas.focus({preventScroll:true});
+  });
+}
 function readRoute() {
   clearInput();
   const query=new URLSearchParams(location.search),requested=query.get('view')||'home';
@@ -103,7 +116,7 @@ function readRoute() {
   history.replaceState({},'',routeURL(view,world?.room));
   render();
   if(view==='play') {
-    canvas.focus({preventScroll:true});
+    focusGame();
     toast(goalDone(run,world.room)?objective(run,world.room):ROOMS[world.room].note,4200);
     save();
   }
@@ -128,7 +141,7 @@ function render() {
     $('begin').addEventListener('click',()=>active?navigate(routeURL(run.health<=0?'retry':'play',run.room)):newRun());
     $('fresh')?.addEventListener('click',newRun);
   } else if(view==='pause') {
-    $('screen').innerHTML='<div class="pause-card" role="dialog" aria-modal="true" aria-labelledby="pause-title"><span class="pause-flower" aria-hidden="true">✿</span><h3 id="pause-title">Catch your breath.</h3><p>WASD to move. Space to dash.<br>Dash through toys to stun them.<br>Snacks restore one heart.</p><button id="resume" class="primary-button">Keep going <span>→</span></button><a id="home-link" class="secondary-button" href="./">Back to the cottage</a></div>';
+    $('screen').innerHTML='<div class="pause-card" role="dialog" aria-modal="true" aria-labelledby="pause-title"><span class="pause-flower" aria-hidden="true">✿</span><h3 id="pause-title">Catch your breath.</h3><p>The adventure is paused.<br>Press WASD or click Keep going to resume.<br>Space dashes. Snacks restore a heart.</p><button id="resume" class="primary-button">Keep going <span>→</span></button><a id="home-link" class="secondary-button" href="./">Back to the cottage</a></div>';
     $('resume').addEventListener('click',dismissScreen);$('home-link').href=routeURL('home');$('resume').focus({preventScroll:true});
   } else if(view==='reunion') {
     $('screen').innerHTML='<div class="story-card" role="dialog" aria-modal="true" aria-labelledby="reunion-title"><p class="card-eyebrow">FOUND: ONE VERY GOOD FRIEND</p><canvas width="240" height="200" data-portrait="pepper" aria-label="Pepper, the gray plush corgi"></canvas><h3 id="reunion-title">Found you, Pepper.</h3><p>Your best friend is coming with you.<br>One last clearing, then a picnic together.</p><div class="new-heart">♥ A little braver together. Four hearts, fully restored.</div><button id="reunion-continue" class="primary-button">Let’s head home <span>→</span></button><button id="reunion-close" class="secondary-button">Stay by the pond a little longer</button></div>';
@@ -173,7 +186,11 @@ function dismissScreen() {
   else if(view==='pause'||view==='reunion')navigate(routeURL('play'));
 }
 
-document.addEventListener('keydown',event=>{
+window.addEventListener('keydown',event=>{
+  if(event.metaKey||event.ctrlKey||event.altKey||isTextEntry(event.target))return;
+  const move=movementKey(event);
+  // Resume first, then record the held key: readRoute clears stale input.
+  if(view==='pause'&&move&&!event.repeat)dismissScreen();
   if(event.key==='Escape'){event.preventDefault();if(view==='play')pause();else dismissScreen();return;}
   if(['pause','reunion','retry'].includes(view)&&event.key==='Tab') {
     const controls=[...$('screen').querySelectorAll('button,a')];
@@ -181,15 +198,14 @@ document.addEventListener('keydown',event=>{
     else if(!event.shiftKey&&document.activeElement===controls.at(-1)){event.preventDefault();controls[0].focus();}
     return;
   }
-  if(view!=='play'||event.metaKey||event.ctrlKey||event.altKey||event.target.closest('input,textarea,[contenteditable]'))return;
-  const key=event.key.toLowerCase();
-  if(['w','a','s','d'].includes(key)){event.preventDefault();keys.add(key);canvas.focus({preventScroll:true});}
-  else if(key===' '&&!event.target.closest('button,a')){event.preventDefault();if(!event.repeat)dash();}
+  if(view!=='play')return;
+  if(move){event.preventDefault();event.stopPropagation();keys.add(move);paintInput();focusGame();}
+  else if((event.code==='Space'||event.key===' ')&&!event.target.closest?.('button,a')){event.preventDefault();event.stopPropagation();if(!event.repeat)dash();}
   else if(event.key.startsWith('Arrow')&&event.target===canvas)event.preventDefault();
-});
-document.addEventListener('keyup',event=>keys.delete(event.key.toLowerCase()));
-window.addEventListener('blur',clearInput);
-canvas.addEventListener('pointerdown',()=>canvas.focus({preventScroll:true}));
+},{capture:true});
+window.addEventListener('keyup',event=>{const move=movementKey(event);if(move){keys.delete(move);paintInput();}},{capture:true});
+window.addEventListener('blur',()=>{clearInput();pause();});
+$('stage').addEventListener('pointerdown',()=>{if(view==='play')focusGame();});
 document.addEventListener('visibilitychange',()=>{if(document.hidden){save();if(view==='play')pause();clearInput();}lastFrame=performance.now();});
 window.addEventListener('pagehide',save);
 window.addEventListener('popstate',()=>{save();readRoute();});

@@ -25,6 +25,25 @@ try {
   const page=await pageFor(desktop);await page.screenshot({path:output+'/desktop-home.png',fullPage:true});
   assert.equal(await page.locator('[data-character]').count(),0);
   await page.locator('#begin').click();await waitView(page,'play');
+  // No extra canvas click: every movement key must work immediately after Start.
+  let previous={x:135,y:315};
+  for(const [key,axis,sign] of [['w','y',-1],['a','x',-1],['s','y',1],['d','x',1]]) {
+    await page.keyboard.down(key);
+    await page.locator(`kbd[data-move="${key}"].pressed`).waitFor();
+    await page.waitForTimeout(160);await page.keyboard.up(key);
+    await page.keyboard.press('Escape');await waitView(page,'pause');
+    const next=(await saved(page)).positions.meadow;
+    assert.ok((next[axis]-previous[axis])*sign>20,`${key.toUpperCase()} moves from Start or Pause`);
+    previous=next;
+  }
+  await page.locator('#resume').click();await waitView(page,'play');
+  const beforeBlur=await saved(page);
+  await page.evaluate(()=>window.dispatchEvent(new Event('blur')));await waitView(page,'pause');
+  await page.waitForTimeout(300);
+  assert.equal((await saved(page)).health,beforeBlur.health,'losing keyboard focus pauses hazards');
+  await page.keyboard.press('Escape');await waitView(page,'play');
+  // Use a fresh run for the existing fixed-spawn assertions.
+  await page.locator('.brand').click();await page.locator('#fresh').click();await waitView(page,'play');
   await hold(page,'ArrowRight',160);const box=await page.locator('#world').boundingBox();await page.mouse.click(box.x+box.width*.8,box.y+box.height*.6);
   await page.keyboard.press('Escape');await waitView(page,'pause');assert.equal(Math.round((await saved(page)).positions.meadow.x),135,'arrows and mouse do not move Pepsi');
   await page.locator('.pause-card h3').click();assert.match(page.url(),/view=pause/);await dismissOutside(page);await waitView(page,'play');
