@@ -161,3 +161,56 @@ test('existing saves gain the longer quest without losing health or a completed 
   const finished={...run,basketFound:true,completed:true};delete finished.trinkets;upgradeRun(finished);assert.equal(finished.trinkets.length,6);assert.ok(goalDone(finished,'orchard'));
   run.trinkets=['nonsense'];assert.equal(validRun(run,run.id),false);
 });
+
+function pairedWorld(id='paired123') {
+  const run=createRun(id);run.keyFound=true;run.pepperFound=true;run.health=4;run.positions.meadow={x:400,y:315};
+  const world=makeWorld(run,'meadow');Object.assign(world.buddy,{x:336,y:315});
+  world.toys=[];world.gophers=[];world.items=[];world.invincible=0;
+  return {run,world};
+}
+test('balls, cats, and surfaced gophers can hit Pepper while Pepsi is clear',()=>{
+  for(const kind of ['ball','cat','gopher']) {
+    const {run,world}=pairedWorld();
+    const hazard={...toyAt(336,315),kind};
+    if(kind==='gopher'){hazard.mode='up';hazard.timer=1;world.gophers=[hazard];}else world.toys=[hazard];
+    const before={...world.player},buddy={...world.buddy};const events=step(world,run,idle,.016);
+    assert.deepEqual(events,[{type:'hit',character:'pepper'}],kind);assert.equal(run.health,3);assert.equal(run.hits,1);assert.equal(world.hitCorgi,'pepper');
+    assert.equal(world.player.x,before.x);assert.equal(world.buddy.x,buddy.x,'hit does not knock Pepper off his safe trail');
+  }
+});
+test('Pepper has no damage hitbox before he is rescued',()=>{
+  const {run,world}=pairedWorld();run.pepperFound=false;run.health=3;world.toys=[toyAt(336,315)];
+  assert.deepEqual(step(world,run,idle,.016),[]);assert.equal(run.health,3);assert.equal(run.hits,0);
+});
+test('both corgis share one damage grace period across simultaneous hazards',()=>{
+  const {run,world}=pairedWorld();world.toys=[toyAt(336,315),toyAt(400,315)];
+  assert.deepEqual(step(world,run,idle,.016),[{type:'hit',character:'pepper'}]);assert.equal(run.health,3);
+  for(let i=0;i<60;i++)step(world,run,idle,.016);assert.equal(run.health,3,'standing on both hazards does not bypass shared grace');
+  for(let i=0;i<30;i++)step(world,run,idle,.016);assert.equal(run.health,2);assert.equal(run.hits,2,'remaining in danger costs another heart after grace expires');
+});
+test('a hazard overlapping both corgis still costs only one heart',()=>{
+  const {run,world}=pairedWorld();world.toys=[toyAt(368,315)];
+  const events=step(world,run,idle,.016);assert.equal(events.length,1);assert.equal(run.health,3);assert.equal(run.hits,1);
+});
+test('dash protects Pepper and can bonk the obstacle touching him',()=>{
+  for(const kind of ['cat','gopher']) {
+    const {run,world}=pairedWorld();const hazard={...toyAt(336,315),kind};
+    if(kind==='gopher'){hazard.mode='up';hazard.timer=1;world.gophers=[hazard];}else world.toys=[hazard];
+    startDash(world,{x:1,y:0});const events=step(world,run,{x:1,y:0},.016);
+    assert.ok(events.some(event=>event.type==='stun'));assert.equal(hazard.mode,'stunned');assert.equal(run.health,4);assert.equal(run.hits,0);
+  }
+});
+test('a final Pepper hit persists defeat and retries with both corgis and trinkets',()=>{
+  const {run,world}=pairedWorld();run.health=1;run.trinkets=['pond-ribbon'];world.toys=[toyAt(336,315)];
+  assert.deepEqual(step(world,run,idle,.016),[{type:'defeat',character:'pepper'}]);
+  const saved=JSON.parse(JSON.stringify(run));assert.equal(saved.health,0);assert.ok(validRun(saved,saved.id));
+  assert.deepEqual(step(world,run,{x:1,y:0},.02),[]);
+  retryRoom(saved,'meadow');assert.equal(saved.health,4);assert.ok(saved.pepperFound);assert.deepEqual(saved.trinkets,['pond-ribbon']);
+});
+test('harmless hazard phases do not hurt Pepper and he keeps following after a hit',()=>{
+  const {run,world}=pairedWorld();world.toys=[{...toyAt(336,315),kind:'cat',mode:'rest',timer:1}];
+  world.gophers=[{x:336,y:315,r:22,mode:'warning',timer:1}];step(world,run,idle,.016);assert.equal(run.health,4);
+  world.toys=[toyAt(336,315)];world.gophers=[];step(world,run,idle,.016);assert.equal(run.health,3);world.toys=[];
+  for(let i=0;i<80;i++)step(world,run,{x:1,y:0},1/60);
+  assert.ok(world.buddy.x>500);assert.ok(world.player.x-world.buddy.x<85);assert.equal(world.buddy.facing,1);
+});

@@ -151,7 +151,7 @@ export function makeWorld(run, room) {
   return {
     room, runId:run.id, player:{...p,vx:1,vy:0,facing:1,moving:false}, buddy:{...buddy,facing:1},
     followTrail:[{...p}], toys:toysFor(run.seed,room), gophers:gophersFor(run.seed,room), items:roomItems(run.seed,room),
-    time:0,dash:0,cooldown:0,invincible:.65,bump:0,particles:[],
+    time:0,dash:0,cooldown:0,invincible:.65,bump:0,hitCorgi:null,particles:[],
   };
 }
 export function retryRoom(run, room) {
@@ -200,13 +200,23 @@ function follow(world) {
   }
   b.moving=travelled>.01;
 }
-function bumpPlayer(world,run,hazard,events) {
-  const p=world.player;
-  if(world.invincible>0||Math.hypot(hazard.x-p.x,hazard.y-p.y)>=hazard.r+20)return;
-  run.health--;run.hits++;world.invincible=1.35;world.bump=.45;
-  const dx=p.x-hazard.x,dy=p.y-hazard.y,d=Math.hypot(dx,dy)||1;
-  move(p,dx/d*34,dy/d*34,world.room);
-  events.push({type:run.health<=0?'defeat':'hit'});
+function touchingCorgi(world,run,hazard,padding=20) {
+  const corgis=[{body:world.player,character:'pepsi'}];
+  if(run.pepperFound)corgis.push({body:world.buddy,character:'pepper'});
+  return corgis.map(corgi=>({...corgi,distance:Math.hypot(hazard.x-corgi.body.x,hazard.y-corgi.body.y)}))
+    .filter(corgi=>corgi.distance<hazard.r+padding).sort((a,b)=>a.distance-b.distance)[0];
+}
+function bumpCorgis(world,run,hazard,events) {
+  if(world.invincible>0)return;
+  const hit=touchingCorgi(world,run,hazard);
+  if(!hit)return;
+  run.health--;run.hits++;world.invincible=1.35;world.bump=.45;world.hitCorgi=hit.character;
+  // Pepper keeps following the safe trail; his hit reaction is visual, not a path-breaking shove.
+  if(hit.character==='pepsi') {
+    const dx=hit.body.x-hazard.x,dy=hit.body.y-hazard.y,d=Math.hypot(dx,dy)||1;
+    move(hit.body,dx/d*34,dy/d*34,world.room);
+  }
+  events.push({type:run.health<=0?'defeat':'hit',character:hit.character});
 }
 export function step(world,run,input,dt) {
   if(run.health<=0)return [];
@@ -235,7 +245,7 @@ export function step(world,run,input,dt) {
   for(const toy of world.toys) {
     toy.cooldown=Math.max(0,toy.cooldown-dt);
     const distance=Math.hypot(toy.x-p.x,toy.y-p.y);
-    if(dashing&&distance<toy.r+29&&toy.mode!=='stunned') {
+    if(dashing&&touchingCorgi(world,run,toy,29)&&toy.mode!=='stunned') {
       toy.mode='stunned';toy.timer=2.3;particles(world,toy.x,toy.y);events.push({type:'stun'});
     }
     if(toy.mode==='stunned') {toy.timer-=dt;if(toy.timer<=0){toy.mode='roam';toy.cooldown=1;}continue;}
@@ -256,7 +266,7 @@ export function step(world,run,input,dt) {
       if(!walkable(toy.x,toy.y+toy.vy*dt,world.room,toy.r))toy.vy*=-1;
       move(toy,toy.vx*dt,toy.vy*dt,world.room,toy.r);
     }
-    bumpPlayer(world,run,toy,events);
+    bumpCorgis(world,run,toy,events);
     if(run.health<=0)return events;
   }
   for(const gopher of world.gophers) {
@@ -267,9 +277,9 @@ export function step(world,run,input,dt) {
       else {gopher.mode='hidden';gopher.timer=1.3+random(gopher.seed+gopher.cycle++)()*2;}
     }
     if(gopher.mode!=='up')continue;
-    if(dashing&&Math.hypot(gopher.x-p.x,gopher.y-p.y)<gopher.r+29) {
+    if(dashing&&touchingCorgi(world,run,gopher,29)) {
       gopher.mode='stunned';gopher.timer=2.3;particles(world,gopher.x,gopher.y);events.push({type:'stun'});
-    } else bumpPlayer(world,run,gopher,events);
+    } else bumpCorgis(world,run,gopher,events);
     if(run.health<=0)return events;
   }
   if(run.pepperFound)for(const item of roomTrinkets(world.room)) {

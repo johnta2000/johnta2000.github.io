@@ -1,7 +1,7 @@
-import { ROOMS, ORDER, WIDTH, HEIGHT, createRun, upgradeRun, TRINKETS, validRun, migrateRun, makeWorld, maxHearts, goalDone, isUnlocked, firstUnfinished, objective, retryRoom, step, startDash } from './engine.mjs?v=8';
-import { portrait, drawWorld, drawPicnic } from './art.mjs?v=8';
-import { movementKey, isTextEntry } from './input.mjs?v=8';
-import { Soundscape } from './audio.mjs?v=8';
+import { ROOMS, ORDER, WIDTH, HEIGHT, createRun, upgradeRun, TRINKETS, validRun, migrateRun, makeWorld, maxHearts, goalDone, isUnlocked, firstUnfinished, objective, retryRoom, step, startDash } from './engine.mjs?v=9';
+import { portrait, drawWorld, drawPicnic } from './art.mjs?v=9';
+import { movementKey, isTextEntry } from './input.mjs?v=9';
+import { Soundscape } from './audio.mjs?v=9';
 
 const $ = id => document.getElementById(id);
 const canvas=$('world'), ctx=canvas.getContext('2d');
@@ -153,10 +153,10 @@ function render() {
     $('begin').addEventListener('click',()=>active?navigate(routeURL(run.health<=0?'retry':'play',run.room)):newRun());
     $('fresh')?.addEventListener('click',newRun);
   } else if(view==='pause') {
-    $('screen').innerHTML='<div class="pause-card" role="dialog" aria-modal="true" aria-labelledby="pause-title"><span class="pause-flower" aria-hidden="true">✿</span><h3 id="pause-title">Catch your breath.</h3><p>The adventure is paused.<br>Press WASD or click Keep going to resume.<br>Space dashes. Snacks restore a heart.</p><button id="resume" class="primary-button">Keep going <span>→</span></button><a id="home-link" class="secondary-button" href="./">Back to the cottage</a></div>';
+    $('screen').innerHTML='<div class="pause-card" role="dialog" aria-modal="true" aria-labelledby="pause-title"><span class="pause-flower" aria-hidden="true">✿</span><h3 id="pause-title">Catch your breath.</h3><p>The adventure is paused.<br>Press WASD or click Keep going to resume.<br>Dash protects both corgis. Snacks restore a heart.</p><button id="resume" class="primary-button">Keep going <span>→</span></button><a id="home-link" class="secondary-button" href="./">Back to the cottage</a></div>';
     $('resume').addEventListener('click',dismissScreen);$('home-link').href=routeURL('home');$('resume').focus({preventScroll:true});
   } else if(view==='reunion') {
-    $('screen').innerHTML='<div class="story-card" role="dialog" aria-modal="true" aria-labelledby="reunion-title"><p class="card-eyebrow">FOUND: ONE VERY GOOD FRIEND</p><canvas width="240" height="200" data-portrait="pepper" aria-label="Pepper, the gray plush corgi"></canvas><h3 id="reunion-title">Found you, Pepper.</h3><p>Your best friend is coming with you.<br>There are still trinkets to find by the pond!</p><div class="new-heart">♥ A little braver together. Four hearts, fully restored.</div><button id="reunion-continue" class="primary-button">Explore together <span>→</span></button><button id="reunion-close" class="secondary-button">Stay by the pond a little longer</button></div>';
+    $('screen').innerHTML='<div class="story-card" role="dialog" aria-modal="true" aria-labelledby="reunion-title"><p class="card-eyebrow">FOUND: ONE VERY GOOD FRIEND</p><canvas width="240" height="200" data-portrait="pepper" aria-label="Pepper, the gray plush corgi"></canvas><h3 id="reunion-title">Found you, Pepper.</h3><p>Your best friend is coming with you.<br>There are still trinkets to find by the pond!</p><div class="new-heart">♥ Four shared hearts. A hit to either corgi costs one.</div><button id="reunion-continue" class="primary-button">Explore together <span>→</span></button><button id="reunion-close" class="secondary-button">Stay by the pond a little longer</button></div>';
     $('reunion-continue').addEventListener('click',dismissScreen);$('reunion-close').addEventListener('click',dismissScreen);$('reunion-continue').focus({preventScroll:true});
   } else if(view==='retry') {
     $('screen').innerHTML='<div class="retry-card" role="dialog" aria-modal="true" aria-labelledby="retry-title"><span class="pause-flower" aria-hidden="true">♡</span><p class="card-eyebrow">A SMALL SETBACK</p><h3 id="retry-title">Even brave loaves<br>need another try.</h3><p>Restart this clearing with full hearts.<br>Its new snacks return to the grass.<br>Your key, Pepper, and trinkets stay safe.</p><button id="retry" class="primary-button">Try this clearing again <span>↻</span></button><button id="retry-home" class="secondary-button">Rest at the cottage</button></div>';
@@ -171,11 +171,12 @@ function render() {
 }
 function updateProgress() {
   const hearts=run?maxHearts(run):3,health=run?.health??3;
-  $('health').setAttribute('aria-label',`${health} of ${hearts} hearts`);
+  $('health').setAttribute('aria-label',`${health} of ${hearts}${run?.pepperFound?' shared':''} hearts`);
+  $('health-label').textContent=run?.pepperFound?'TEAM HEARTS':'HEARTS';
   $('hearts').innerHTML=Array.from({length:hearts},(_,i)=>`<span class="${i<health?'':'empty-heart'}" aria-hidden="true">♥</span>`).join('');
   $('snack-count').textContent=run?.collected.length||0;
   $('trinket-count').textContent=`${run?.trinkets.length||0}/${TRINKETS.length}`;
-  $('buddy-status').textContent=run?.pepperFound?'♡ Pepper is with you.':'Find your adventure buddy.';
+  $('buddy-status').textContent=run?.pepperFound?'♡ Two corgis. Shared hearts.':'Find your adventure buddy.';
   $('trail').innerHTML=ORDER.map((room,index)=>{
     const done=run&&goalDone(run,room),unlocked=run&&isUnlocked(run,room);
     const content=`<span class="dot">${done?'✓':index+1}</span>${ROOMS[room].short}`;
@@ -294,9 +295,9 @@ function handleEvents(events) {
     else if(event.type==='key'){sound('key');toast('The key! Pepper must be over by the pond.',4000);}
     else if(event.type==='trinket'){sound('key');toast(`${event.item.name}! ${run.trinkets.length}/6 trinkets tucked away.`,3000);}
     else if(event.type==='basket'){sound('basket');toast('Basket found! Bring all six trinkets home for the picnic.',3500);}
-    else if(event.type==='hit'){sound('hit');toast('Oof! −1 heart. Dash past mischief; snacks can heal.',2300);}
+    else if(event.type==='hit'){sound('hit');toast(run.pepperFound?`${event.character==='pepper'?'Pepper':'Pepsi'} got bonked! −1 shared heart. Watch both corgis.`:'Pepsi got bonked! −1 heart. Snacks can heal.',2800);}
     else if(event.type==='stun'){sound('stun');announce('Mischief bonked. Keep moving.');}
-    else if(event.type==='rescue'){sound('rescue');toast('Found you, Pepper! ♥ Four hearts. Now find the ribbon and button together.',5500);}
+    else if(event.type==='rescue'){sound('rescue');toast('Pepper found! ♥ Four shared hearts—watch both corgis. Find the ribbon + button!',5500);}
     else if(event.type==='defeat'){save();sound('defeat');navigate(routeURL('retry'));return;}
     else if(event.type==='exit') {
       const next=ORDER[ORDER.indexOf(world.room)+1];

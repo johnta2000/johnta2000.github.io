@@ -1,4 +1,4 @@
-import { WIDTH, HEIGHT, ROOMS, random, goalDone, roomTrinkets } from './engine.mjs?v=8';
+import { WIDTH, HEIGHT, ROOMS, random, goalDone, roomTrinkets } from './engine.mjs?v=9';
 
 const INK='#75674c';
 function ellipse(c,x,y,rx,ry,fill,stroke=null,line=2){c.beginPath();c.ellipse(x,y,rx,ry,0,0,Math.PI*2);c.fillStyle=fill;c.fill();if(stroke){c.strokeStyle=stroke;c.lineWidth=line;c.stroke();}}
@@ -199,12 +199,17 @@ export function drawWorld(c,world,run,viewportWidth,reduced=false,preview=false)
   for(const item of roomTrinkets(world.room))if(!run.trinkets?.includes(item.id))trinket(c,item,t,!run.pepperFound);
   goalArt(c,world,run,t);
   for(const item of world.gophers)gopher(c,item,t);
+  const drawCorgi=(body,character,scale)=>{
+    const hurt=world.hitCorgi===character?world.bump:0;
+    c.save();if(hurt>0)c.globalAlpha=reduced?.75:.7+Math.sin(t*15)*.15;
+    corgi(c,body.x,body.y,character,scale,body.facing,reduced||preview?0:rollingPose(body,t,scale),hurt);c.restore();
+    if(hurt>0){c.font='bold 14px sans-serif';c.textAlign='center';c.fillStyle='#a45f51';c.fillText('−1 ♥',body.x,body.y-72);}
+  };
   const actors=[{y:world.player.y,draw:()=>{
-    c.save();if(world.invincible>.3&&world.bump>0)c.globalAlpha=.6+Math.sin(t*40)*.2;
-    corgi(c,world.player.x,world.player.y,'pepsi',.78,world.player.facing,reduced||preview?0:rollingPose(world.player,t,.78),world.bump);c.restore();
+    drawCorgi(world.player,'pepsi',.78);
     if(world.dash>0)for(let i=0;i<4;i++)ellipse(c,world.player.x-world.player.vx*(36+i*12),world.player.y-world.player.vy*(36+i*12),6-i,4-i*.6,'#fff9dcb0');
   }},...world.toys.map(item=>({y:item.y,draw:()=>toy(c,item,t)}))];
-  if(run.pepperFound)actors.push({y:world.buddy.y,draw:()=>corgi(c,world.buddy.x,world.buddy.y,'pepper',.72,world.buddy.facing,reduced||preview?0:rollingPose(world.buddy,t,.72))});
+  if(run.pepperFound)actors.push({y:world.buddy.y,draw:()=>drawCorgi(world.buddy,'pepper',.72)});
   actors.sort((a,b)=>a.y-b.y).forEach(item=>item.draw());
   for(const p of world.particles){c.globalAlpha=p.life/p.max;if(p.kind==='heart')heart(c,p.x,p.y,.55,'#c98779');else flower(c,p.x,p.y,.7,'#fff6cb');}c.globalAlpha=1;
   if(world.bump>0){c.fillStyle='#c8756220';c.fillRect(offset,0,viewportWidth,HEIGHT);}

@@ -115,6 +115,20 @@ try {
   const damage=createRun('damage123');damage.health=1;damage.positions.meadow={x:300,y:350};await seed(page,damage);await page.keyboard.press('w');await page.waitForURL(/view=retry/,{timeout:10000});assert.equal((await saved(page)).health,0);assert.equal((await saved(page)).hits,1);
   const lostURL=page.url();await page.reload();await page.locator('#retry').waitFor();assert.equal(page.url(),lostURL);await page.screenshot({path:output+'/desktop-retry.png',fullPage:true});
   await page.locator('#retry').click();await waitView(page,'play');assert.equal((await saved(page)).health,3);assert.equal((await saved(page)).retries,1);
+  // Pepsi is clear of the gopher; stationary Pepper occupies its hole.
+  const pepperDamage=createRun('pepperbump');pepperDamage.keyFound=true;pepperDamage.pepperFound=true;pepperDamage.health=4;pepperDamage.room='burrows';pepperDamage.positions.burrows={x:313,y:200};pepperDamage.trinkets=['pond-ribbon'];
+  await seed(page,pepperDamage);await page.keyboard.press('w');
+  await page.waitForFunction(()=>document.getElementById('room-toast').textContent.startsWith('Pepper got bonked!'));
+  await page.evaluate(()=>window.dispatchEvent(new Event('blur')));
+  assert.equal((await saved(page)).health,3);assert.equal((await saved(page)).hits,1);
+  assert.equal(await page.locator('#health-label').innerText(),'TEAM HEARTS');
+  assert.equal(await page.locator('#health').getAttribute('aria-label'),'3 of 4 shared hearts');
+  await page.screenshot({path:output+'/desktop-pepper-hit.png',fullPage:true});
+  await page.reload();await waitRoom(page,'burrows');assert.equal((await saved(page)).health,3);assert.equal((await saved(page)).hits,1);
+  const pepperLoss={...pepperDamage,id:'pepperloss',health:1,revision:0};await seed(page,pepperLoss);await page.keyboard.press('w');await waitView(page,'retry');
+  assert.equal((await saved(page)).health,0);assert.equal((await saved(page)).hits,1);
+  await page.reload();await page.locator('#retry').waitFor();await page.locator('#retry').click();await waitView(page,'play');
+  assert.equal((await saved(page)).health,4);assert.equal((await saved(page)).pepperFound,true);assert.deepEqual((await saved(page)).trinkets,['pond-ribbon']);
   const final=createRun('finaltest');final.keyFound=true;final.pepperFound=true;final.health=4;final.trinkets=TRINKETS.map(item=>item.id);final.room='orchard';final.positions.orchard={x:780,y:160};await seed(page,final);
   await hold(page,'d',250);assert.ok((await saved(page)).basketFound);await hold(page,'s',850);await hold(page,'d',620);await page.waitForURL(/view=picnic/,{timeout:5000});assert.ok((await saved(page)).completed);
   await page.screenshot({path:output+'/desktop-picnic.png',fullPage:true});await page.reload();await page.locator('.picnic-card').waitFor();
@@ -187,7 +201,7 @@ try {
 
   // Render the actual score for a listenable preview and check its level/headroom.
   const preview=await musicPage.evaluate(async()=>{
-    const {Soundscape}=await import('/games/snack-quest/audio.mjs?v=8');
+    const {Soundscape}=await import('/games/snack-quest/audio.mjs?v=9');
     const rate=22050,context=new OfflineAudioContext(1,rate*22,rate);
     const score=new Soundscape(()=>context);score.setEnabled(true);score.unlock();score.setScene('play','meadow');
     for(let i=0;i<64;i++)score.musicBeat(i,.1+i*30/96,30/96);
@@ -209,6 +223,6 @@ try {
   const winMobile=createRun('mobilewin');winMobile.keyFound=true;winMobile.pepperFound=true;winMobile.basketFound=true;winMobile.completed=true;winMobile.health=4;winMobile.trinkets=TRINKETS.map(item=>item.id);await seed(phone,winMobile,'orchard','picnic');await phone.screenshot({path:output+'/mobile-picnic.png',fullPage:true});await mobile.close();
 
   const blocked=await browser.newContext();await blocked.addInitScript(()=>{Storage.prototype.setItem=function(){throw new DOMException('Full','QuotaExceededError');};});const failure=await pageFor(blocked);await failure.locator('#begin').click();await failure.locator('#save-error').waitFor({state:'visible'});const downloadPromise=failure.waitForEvent('download');await failure.locator('#download-save').click();assert.equal((await downloadPromise).suggestedFilename(),'pepsi-pepper-adventure.json');await blocked.close();
-  assert.deepEqual(errors,[]);console.log('PASS: WASD-only movement, dash/key, real hit/defeat/retry, uninterrupted Pepper rescue, all six trinkets, garden progression, basket and home ending, all room/view URLs, copied links, refresh, Back/Forward, mobile keyboard notice, old-save migration, save failure backup, and real audio playback/mute/pause/resume.');
+  assert.deepEqual(errors,[]);console.log('PASS: WASD-only movement, dash/key, Pepsi and Pepper hit/defeat/retry, shared heart persistence, uninterrupted Pepper rescue, all six trinkets, garden progression, basket and home ending, all room/view URLs, copied links, refresh, Back/Forward, mobile keyboard notice, old-save migration, save failure backup, and real audio playback/mute/pause/resume.');
   console.log('Screenshots: '+output);
 }finally{await browser.close();}
