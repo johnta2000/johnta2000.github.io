@@ -20,7 +20,7 @@ module.exports = async function publish({ github, context, core, sleep = ms => n
     await sleep(15000);
     let status;
     try {
-      const result = await github.request('GET /repos/{owner}/{repo}/pages/deployments/{pages_deployment_id}', { ...repo, pages_deployment_id: deploymentId });
+      const result = await github.request('GET /repos/{owner}/{repo}/pages/deployments/{pages_deployment_id}', { ...repo, pages_deployment_id: deploymentId, headers: { 'cache-control': 'no-cache' }, cache_check: now() });
       status = result.data.status;
       failures = 0;
     } catch (error) {
