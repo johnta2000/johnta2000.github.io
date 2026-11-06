@@ -1,7 +1,7 @@
-import { ROOMS, ORDER, DASH_COOLDOWN, ABILITIES, WIDTH, HEIGHT, createRun, peeProgress, upgradeRun, TRINKETS, validRun, migrateRun, makeWorld, maxHearts, goalDone, isUnlocked, firstUnfinished, objective, retryRoom, step, startDash, startAbility } from './engine.mjs?v=19';
-import { portrait, drawWorld, drawPicnic } from './art.mjs?v=19';
-import { movementKey, abilityKey, isTextEntry, joystickVector } from './input.mjs?v=19';
-import { Soundscape } from './audio.mjs?v=19';
+import { ROOMS, ORDER, DASH_COOLDOWN, ABILITIES, WIDTH, HEIGHT, createRun, peeProgress, upgradeRun, TRINKETS, validRun, migrateRun, makeWorld, maxHearts, goalDone, isUnlocked, firstUnfinished, objective, retryRoom, step, startDash, startAbility } from './engine.mjs?v=20';
+import { portrait, drawWorld, drawPicnic } from './art.mjs?v=20';
+import { movementKey, abilityKey, isTextEntry, joystickVector } from './input.mjs?v=20';
+import { Soundscape } from './audio.mjs?v=20';
 
 const $ = id => document.getElementById(id);
 const canvas=$('world'), ctx=canvas.getContext('2d');
@@ -136,7 +136,7 @@ function readRoute() {
     if(view==='picnic'&&(!run.completed||!run.basketFound))view='play';
   }
   history.replaceState({},'',routeURL(view,world?.room));
-  soundtrack.setScene(view,world?.room||'meadow');
+  soundtrack.setScene(view,world?.room||'meadow',{bossDefeated:!!run?.bossDefeated});
   render();
   if(view==='play') {
     focusGame();
@@ -383,7 +383,7 @@ function handleEvents(events) {
     else if(event.type==='pepperoni-rescue'){sound('rescue');toast('Pepperoni found! Press R for a longer power dash and double boss damage · 8s recharge. Space stays a normal dash.',7000);}
     else if(event.type==='boss-open'){sound('key');toast('The vacuum overheated! Dash into it now!',2500);}
     else if(event.type==='boss-hit'){sound('stun');toast(world.powerDash?'Power bonk! Two damage. Wait for another opening.':'Bonk! One damage. Use R for a two-damage power hit.');}
-    else if(event.type==='boss-win'){sound('win');toast('Sir Sucks-a-Lot is unplugged! Take the path home →',6000);}
+    else if(event.type==='boss-win'){soundtrack.setScene(view,world.room,{bossDefeated:true});sound('win');toast('Sir Sucks-a-Lot is unplugged! Take the path home →',6000);}
     else if(event.type==='defeat'){save();sound('defeat');navigate(routeURL('retry'));return;}
     else if(event.type==='exit') {
       const next=ORDER[ORDER.indexOf(world.room)+1];

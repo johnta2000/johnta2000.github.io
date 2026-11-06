@@ -1,4 +1,4 @@
-// An original, eight-bar music-box tune. All audio is synthesized locally.
+// Original eight-bar adventure and vacuum-battle themes, synthesized locally.
 const MELODY=[
   [76,null,79,81,79,null,76,74], [72,null,76,79,76,null,74,null],
   [76,null,81,83,81,79,76,null], [74,76,79,null,76,null,72,null],
@@ -7,13 +7,21 @@ const MELODY=[
 ];
 const CHORDS=[[48,60,64,67],[48,60,64,67],[45,57,60,64],[45,57,60,64],
   [41,53,57,60],[41,53,57,60],[43,55,59,62],[43,55,59,62]];
+const BOSS_MELODY=[
+  [74,74,81,77,74,77,81,84], [86,null,84,81,77,81,76,73],
+  [74,77,82,81,77,null,74,72], [70,74,79,77,74,77,79,81],
+  [86,81,86,89,88,86,84,81], [82,81,77,74,77,81,82,84],
+  [85,null,81,76,73,76,81,85], [88,85,81,76,73,null,76,73],
+];
+const BOSS_CHORDS=[[38,50,53,57],[38,50,53,57],[34,46,50,53],[31,43,46,50],
+  [38,50,53,57],[34,46,50,53],[33,45,49,52],[33,45,49,52]];
 const frequency=midi=>440*2**((midi-69)/12);
 
 export class Soundscape {
   constructor(contextFactory=()=>new (window.AudioContext||window.webkitAudioContext)()) {
     this.contextFactory=contextFactory;
     this.context=null;this.enabled=false;this.foreground=true;
-    this.view='home';this.room='meadow';this.nextNote=0;this.beat=0;
+    this.view='home';this.room='meadow';this.bossDefeated=false;this.nextNote=0;this.beat=0;
     this.musicVoices=new Set();this.effectVoices=new Set();
   }
   setEnabled(enabled) {
@@ -36,13 +44,17 @@ export class Soundscape {
     this.foreground=foreground;
     if(!foreground)this.stopAll();
   }
-  setScene(view,room='meadow') {
-    if(this.view!==view||this.room!==room) {
+  setScene(view,room='meadow',{bossDefeated=false}={}) {
+    if(this.view!==view||this.room!==room||this.bossDefeated!==bossDefeated) {
       this.stopVoices(this.musicVoices);this.nextNote=0;
-      if(this.room!==room||view==='home')this.beat=0;
+      if(this.room!==room||view==='home'||this.bossDefeated!==bossDefeated)this.beat=0;
+      // Leave room for the victory jingle before the gentle theme returns.
+      if(room==='boss'&&bossDefeated&&!this.bossDefeated&&this.context)this.nextNote=this.context.currentTime+1.7;
     }
-    this.view=view;this.room=room;
+    this.view=view;this.room=room;this.bossDefeated=bossDefeated;
   }
+  get battleMusic(){return this.view==='play'&&this.room==='boss'&&!this.bossDefeated;}
+  get tempo(){return this.battleMusic?136:this.view==='home'||this.view==='picnic'||this.room==='boss'&&this.bossDefeated?84:this.room==='pond'?88:this.room==='orchard'?104:96;}
   stopVoices(voices) {
     if(!this.context)return;
     const now=this.context.currentTime;
@@ -91,6 +103,7 @@ export class Soundscape {
     this.voice(source,when,duration,volume,voices,filter);
   }
   musicBeat(step,when,eighth) {
+    if(this.battleMusic){this.battleBeat(step,when,eighth);return;}
     const bar=Math.floor(step/8),slot=step%8,note=MELODY[bar][slot],chord=CHORDS[bar];
     if(note!==null)this.pluck(note,when,.065,eighth*1.7,this.musicVoices);
     if(slot===0||slot===4)this.tone(chord[0]+(slot===4?7:0),when,eighth*2.5,.085,this.musicVoices);
@@ -98,11 +111,25 @@ export class Soundscape {
     if(this.view==='play'&&(slot===2||slot===6||this.room==='orchard'&&slot%2===1))
       this.noise(when,.055,.022,3200,this.musicVoices);
   }
+  battleBeat(step,when,eighth) {
+    const bar=Math.floor(step/8),slot=step%8,note=BOSS_MELODY[bar][slot],chord=BOSS_CHORDS[bar];
+    if(note!==null){
+      this.tone(note,when,eighth*1.25,.065,this.musicVoices,'triangle');
+      this.pluck(note+12,when,.018,eighth*.65,this.musicVoices);
+    }
+    // Galloping bass, tiny drum hits, and bright minor-key chord stabs.
+    this.tone(chord[0]+[0,12,7,12,0,12,7,12][slot],when,eighth*.85,.08,this.musicVoices,'triangle');
+    if(slot===0||slot===4){
+      this.tone(43,when,.13,.12,this.musicVoices,'sine',27);
+      for(const pitch of chord.slice(1))this.tone(pitch+12,when+.012,eighth*1.5,.018,this.musicVoices,'triangle');
+    }
+    if(slot===2||slot===6)this.noise(when,.09,.055,1800,this.musicVoices);
+    if(slot%2===1)this.noise(when,.035,.024,5600,this.musicVoices);
+  }
   tick() {
     if(!this.ready||!['home','play','picnic'].includes(this.view))return;
     const now=this.context.currentTime;
-    const tempo=this.view==='home'||this.view==='picnic'?84:this.room==='pond'?88:this.room==='orchard'?104:96;
-    const eighth=30/tempo;
+    const eighth=30/this.tempo;
     // Discard missed beats after a delayed frame; never replay a backlog of notes.
     if(!this.nextNote||this.nextNote<now-.15)this.nextNote=now+.035;
     while(this.nextNote<now+.12) {
