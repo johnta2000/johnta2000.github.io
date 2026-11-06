@@ -2,12 +2,12 @@
 
 A small static keyboard adventure at `/games/snack-quest/`.
 
-Pepsi starts alone. Dash into the meadow's crate to find the gate key, rescue gray Pepper at Pebble Pond, then keep exploring Pebble Pond together. Collect two trinkets at the pond, two in the new Gopher Garden, and two in Clover Orchard. All six trinkets plus the picnic basket are required for the ending. Snacks remain optional healing pickups. The four chapter links let the pair revisit unlocked areas for missing treasures.
+Pepsi starts alone. Dash into the meadow's crate to find the gate key, rescue gray Pepper at Pebble Pond, then keep exploring Pebble Pond together. Collect two trinkets at the pond, two in the new Gopher Garden, and two in Whispering Woods, two in Dandelion Downs, and two in Clover Orchard. All ten trinkets plus the picnic basket are required for the ending. Snacks remain optional healing pickups. The six chapter links let the pair revisit unlocked areas for missing treasures.
 
 ## Controls and consequences
 
 - WASD moves Pepsi. Mouse clicks, arrow keys, and touch controls do not move the player.
-- Space dashes, breaks the key crate, and stuns toys for 2.3 seconds. Dash has a visible cooldown, briefly protects both corgis, and lets either one bonk an obstacle.
+- Space dashes, breaks the key crate, and stuns toys for 2.3 seconds. Dash has a visible 2.8-second cooldown, briefly protects both corgis, and lets either one bonk an obstacle.
 - Balls telegraph their charges. Cats crouch and show their pounce direction, lunge quickly, then rest. Gophers pop up on staggered, seeded schedules: shaking dirt and an exclamation mark give nearly a second of warning before they can hurt either corgi. Dash can bonk every hazard; hidden or warning gophers, resting cats, and stunned hazards are harmless. Later chapters combine more hazards.
 - Start with three hearts. After rescue, both corgis have damage hitboxes and use the same four-heart pool. A hit to either costs one heart and increments the bump count. One shared 1.35-second grace period prevents an overlapping hazard (or multiple hazards) from taking two hearts at once. Snacks heal one heart, up to the maximum.
 - At zero hearts, retry the current clearing. Snacks collected in this attempt return to the grass; earlier discoveries remain. Death and health persist across refreshes.
@@ -47,6 +47,8 @@ node --test tests/snack-quest/engine.test.mjs
 node tests/snack-quest/browser.mjs
 ```
 
-Set `PLAYWRIGHT_EXECUTABLE_PATH` to use an installed browser, `SNACK_QUEST_BROWSER=webkit` for WebKit, `SNACK_QUEST_URL` for another origin, and `SNACK_QUEST_SCREENSHOTS` for the screenshot destination. Browser checks exercise WASD-only input, the protected start, native keyboard focus and text-input fallback, a real dash/crate pickup, actual hazard damage and defeat/retry, Pepper rescue, extra health, the six-trinket collection, garden progression, and basket/exit ending, navigation restoration, small-screen keyboard notices, legacy saves, failed-save recovery, and actual Web Audio output across mute, pause, focus loss, and reload. The checks also render a short `snack-quest-theme.wav` preview into the screenshot destination.
+Set `PLAYWRIGHT_EXECUTABLE_PATH` to use an installed browser, `SNACK_QUEST_BROWSER=webkit` for WebKit, `SNACK_QUEST_URL` for another origin, and `SNACK_QUEST_SCREENSHOTS` for the screenshot destination. Browser checks exercise WASD-only input, the protected start, native keyboard focus and text-input fallback, a real dash/crate pickup, actual hazard damage and defeat/retry, Pepper rescue, extra health, the ten-trinket collection, garden progression, and basket/exit ending, navigation restoration, small-screen keyboard notices, legacy saves, failed-save recovery, and actual Web Audio output across mute, pause, focus loss, and reload. The checks also render a short `snack-quest-theme.wav` preview into the screenshot destination.
 
 Existing version 2 saves gain an empty trinket collection and the fourth chapter while keeping their hearts, position, snacks, and discoveries. Already completed older adventures retain their ending. Old reunion URLs remain valid but continue at the pond. Snack placements in existing rooms retain their original seeds.
+
+The desktop playfield uses a 1200px page shell. Home, play, pause, completion, and replay share layout sizing to prevent the stage from jumping. Completed older adventures retain their ending; active saves keep their progress and can explore the two new clearings.

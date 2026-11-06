@@ -1,7 +1,7 @@
-import { ROOMS, ORDER, WIDTH, HEIGHT, createRun, upgradeRun, TRINKETS, validRun, migrateRun, makeWorld, maxHearts, goalDone, isUnlocked, firstUnfinished, objective, retryRoom, step, startDash } from './engine.mjs?v=9';
-import { portrait, drawWorld, drawPicnic } from './art.mjs?v=9';
-import { movementKey, isTextEntry } from './input.mjs?v=9';
-import { Soundscape } from './audio.mjs?v=9';
+import { ROOMS, ORDER, DASH_COOLDOWN, WIDTH, HEIGHT, createRun, upgradeRun, TRINKETS, validRun, migrateRun, makeWorld, maxHearts, goalDone, isUnlocked, firstUnfinished, objective, retryRoom, step, startDash } from './engine.mjs?v=10';
+import { portrait, drawWorld, drawPicnic } from './art.mjs?v=10';
+import { movementKey, isTextEntry } from './input.mjs?v=10';
+import { Soundscape } from './audio.mjs?v=10';
 
 const $ = id => document.getElementById(id);
 const canvas=$('world'), ctx=canvas.getContext('2d');
@@ -149,7 +149,7 @@ function render() {
   $('location-icon').textContent=view==='picnic'?'♡':world?.room==='pond'?'♧':'✿';
   const active=run&&!run.completed;
   if(view==='home') {
-    $('screen').innerHTML=`<div class="welcome-card"><p class="card-eyebrow">SOMEONE’S MISSING FROM THE PICNIC</p><h3>Where’s Pepper?</h3>${plushPair(true)}<p>Find the key, rescue your best friend,<br>then find six lost trinkets together.</p><div class="mission-strip"><span>3 hearts</span><span>4 little chapters</span><span>1 best friend</span></div><button id="begin" class="primary-button">${active?'Continue the adventure':'Go find Pepper'} <span>→</span></button>${active?'<button id="fresh" class="secondary-button">Start a new adventure</button>':''}<p class="tiny-note">WASD to move. Space to dash. A keyboard is required.</p></div>`;
+    $('screen').innerHTML=`<div class="welcome-card"><p class="card-eyebrow">SOMEONE’S MISSING FROM THE PICNIC</p><h3>Where’s Pepper?</h3>${plushPair(true)}<p>Find the key, rescue your best friend,<br>then find ten lost trinkets together.</p><div class="mission-strip"><span>3 hearts</span><span>6 little chapters</span><span>1 best friend</span></div><button id="begin" class="primary-button">${active?'Continue the adventure':'Go find Pepper'} <span>→</span></button>${active?'<button id="fresh" class="secondary-button">Start a new adventure</button>':''}<p class="tiny-note">WASD to move. Space to dash. A keyboard is required.</p></div>`;
     $('begin').addEventListener('click',()=>active?navigate(routeURL(run.health<=0?'retry':'play',run.room)):newRun());
     $('fresh')?.addEventListener('click',newRun);
   } else if(view==='pause') {
@@ -163,7 +163,7 @@ function render() {
     $('retry').addEventListener('click',()=>{world=retryRoom(run,world.room);save();navigate(routeURL('play'));});$('retry-home').addEventListener('click',dismissScreen);$('retry').focus({preventScroll:true});
   } else if(view==='picnic') {
     $('screen').classList.add('picnic-screen');
-    $('screen').innerHTML=`<div class="picnic-card"><p class="card-eyebrow">THE BEST THING YOU BROUGHT HOME</p><h3>Was each other.</h3><p>A full basket, tired little paws,<br>and your favorite adventure buddy.</p><div class="result-stats"><span><b>${run.trinkets.length}/6</b> trinkets</span><span><b>${run.collected.length}</b> snacks</span><span><b>${run.hits}</b> bumps</span><span><b>${run.retries}</b> retries</span></div><button id="again" class="primary-button">One more adventure <span>↗</span></button><p class="tiny-note">Pepsi & Pepper. Always better together.</p></div>`;
+    $('screen').innerHTML=`<div class="picnic-card"><p class="card-eyebrow">THE BEST THING YOU BROUGHT HOME</p><h3>Was each other.</h3><p>A full basket, tired little paws,<br>and your favorite adventure buddy.</p><div class="result-stats"><span><b>${run.trinkets.length}/${TRINKETS.length}</b> trinkets</span><span><b>${run.collected.length}</b> snacks</span><span><b>${run.hits}</b> bumps</span><span><b>${run.retries}</b> retries</span></div><button id="again" class="primary-button">One more adventure <span>↗</span></button><p class="tiny-note">Pepsi & Pepper. Always better together.</p></div>`;
     $('again').addEventListener('click',newRun);
   } else {$('screen').classList.add('empty');$('screen').replaceChildren();}
   document.querySelectorAll('[data-portrait]').forEach(element=>portrait(element,element.dataset.portrait));
@@ -293,8 +293,8 @@ function handleEvents(events) {
   for(const event of events) {
     if(event.type==='snack'){sound('snack');toast(event.healed?'A snack and a second wind. +1 heart.':'A little something for the picnic.');}
     else if(event.type==='key'){sound('key');toast('The key! Pepper must be over by the pond.',4000);}
-    else if(event.type==='trinket'){sound('key');toast(`${event.item.name}! ${run.trinkets.length}/6 trinkets tucked away.`,3000);}
-    else if(event.type==='basket'){sound('basket');toast('Basket found! Bring all six trinkets home for the picnic.',3500);}
+    else if(event.type==='trinket'){sound('key');toast(`${event.item.name}! ${run.trinkets.length}/${TRINKETS.length} trinkets tucked away.`,3000);}
+    else if(event.type==='basket'){sound('basket');toast('Basket found! Bring all ten trinkets home for the picnic.',3500);}
     else if(event.type==='hit'){sound('hit');toast(run.pepperFound?`${event.character==='pepper'?'Pepper':'Pepsi'} got bonked! −1 shared heart. Watch both corgis.`:'Pepsi got bonked! −1 heart. Snacks can heal.',2800);}
     else if(event.type==='stun'){sound('stun');announce('Mischief bonked. Keep moving.');}
     else if(event.type==='rescue'){sound('rescue');toast('Pepper found! ♥ Four shared hearts—watch both corgis. Find the ribbon + button!',5500);}
@@ -317,8 +317,8 @@ function frame(now) {
       const held=inputDirection(),direction=held.x||held.y?held:pendingMove||held;pendingMove=null;
       handleEvents(step(world,run,direction,dt));
       saveElapsed+=dt;if(saveElapsed>1){save();saveElapsed=0;}
-      $('dash-fill').style.width=`${Math.max(0,1-world.cooldown/.95)*100}%`;
-      $('dash-label').textContent=world.cooldown>0?'catching breath':'dash ready';
+      $('dash-fill').style.width=`${Math.max(0,1-world.cooldown/DASH_COOLDOWN)*100}%`;
+      $('dash-label').textContent=world.cooldown>0?`${world.cooldown.toFixed(1)}s recharge`:'dash ready';
     }
     if(view==='picnic'&&run)drawPicnic(ctx,run,viewportWidth,animationTime,reduced);
     else if(view!=='home'&&world)drawWorld(ctx,world,run,viewportWidth,reduced);

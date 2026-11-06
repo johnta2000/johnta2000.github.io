@@ -95,7 +95,7 @@ test('rescuing Pepper needs the key and grants a permanent fourth heart',()=>{
   run.keyFound=true;run.health=1;assert.ok(step(world,run,idle,.016).some(e=>e.type==='rescue'));
   assert.equal(run.health,4);assert.equal(maxHearts(run),4);assert.ok(isUnlocked(run,'orchard'));
 });
-test('the final exit needs Pepper, the picnic basket, and all six trinkets',()=>{
+test('the final exit needs Pepper, the picnic basket, and all ten trinkets',()=>{
   const run=createRun('finish12');run.keyFound=true;run.pepperFound=true;
   const world=makeWorld(run,'orchard');world.toys=[];world.items=[];
   Object.assign(world.player,{x:910,y:320});assert.equal(step(world,run,idle,.02).some(e=>e.type==='exit'),false);
@@ -128,13 +128,13 @@ test('rescue stays at the pond; both trinkets are needed before its exit',()=>{
   run.health=0;retryRoom(run,'pond');assert.equal(run.trinkets.length,2,'trinkets survive retries');
   assert.equal(validRun(JSON.parse(JSON.stringify(run)),run.id),true);
 });
-test('the garden requires both trinkets and advances to the orchard',()=>{
+test('the garden requires both trinkets and advances to the woods',()=>{
   const run=createRun('garden123');run.keyFound=true;run.pepperFound=true;run.health=4;
   const world=makeWorld(run,'burrows');world.toys=[];world.gophers=[];
   assert.equal(goalDone(run,'burrows'),false);
   for(const item of roomTrinkets('burrows')){Object.assign(world.player,item);step(world,run,idle,.016);}
   assert.equal(goalDone(run,'burrows'),true);Object.assign(world.player,{x:910,y:320});
-  assert.ok(step(world,run,idle,.016).some(event=>event.type==='exit'));assert.equal(ORDER[ORDER.indexOf('burrows')+1],'orchard');
+  assert.ok(step(world,run,idle,.016).some(event=>event.type==='exit'));assert.equal(ORDER[ORDER.indexOf('burrows')+1],'woods');
 });
 test('cats warn, pounce along a fixed line, and rest with a safe dodge window',()=>{
   const run=createRun('catquest');const world=makeWorld(run,'meadow');world.items=[];world.gophers=[];
@@ -158,7 +158,7 @@ test('gophers warn harmlessly before surfacing, cost a heart, and can be dashed'
 test('existing saves gain the longer quest without losing health or a completed ending',()=>{
   const run=createRun('oldquest');delete run.trinkets;run.keyFound=true;run.pepperFound=true;run.health=2;run.room='orchard';run.collected=['pond-1'];
   assert.ok(validRun(run,run.id));upgradeRun(run);assert.equal(run.room,'orchard');assert.equal(run.health,2);assert.deepEqual(run.collected,['pond-1']);assert.deepEqual(run.trinkets,[]);
-  const finished={...run,basketFound:true,completed:true};delete finished.trinkets;upgradeRun(finished);assert.equal(finished.trinkets.length,6);assert.ok(goalDone(finished,'orchard'));
+  const finished={...run,basketFound:true,completed:true};delete finished.trinkets;upgradeRun(finished);assert.equal(finished.trinkets.length,10);assert.ok(goalDone(finished,'orchard'));
   run.trinkets=['nonsense'];assert.equal(validRun(run,run.id),false);
 });
 
@@ -214,3 +214,6 @@ test('harmless hazard phases do not hurt Pepper and he keeps following after a h
   for(let i=0;i<80;i++)step(world,run,{x:1,y:0},1/60);
   assert.ok(world.buddy.x>500);assert.ok(world.player.x-world.buddy.x<85);assert.equal(world.buddy.facing,1);
 });
+
+test('dash requires the full 2.8-second recharge',()=>{const run=createRun('dashwait');const world=makeWorld(run,'meadow');world.toys=[];assert.ok(startDash(world,{x:1,y:0}));for(let i=0;i<120;i++)step(world,run,idle,1/60);assert.equal(startDash(world),false);for(let i=0;i<49;i++)step(world,run,idle,1/60);assert.equal(startDash(world),true);});
+test('new clearings need their own treasures before advancing',()=>{for(const room of ['woods','hills']){const {run}=pairedWorld();const world=makeWorld(run,room);world.toys=[];world.gophers=[];assert.equal(goalDone(run,room),false);for(const item of roomTrinkets(room)){Object.assign(world.player,item);step(world,run,idle,.016);}assert.ok(goalDone(run,room));Object.assign(world.player,{x:910,y:320});assert.ok(step(world,run,idle,.016).some(event=>event.type==='exit'));}});

@@ -1,4 +1,4 @@
-import { WIDTH, HEIGHT, ROOMS, random, goalDone, roomTrinkets } from './engine.mjs?v=9';
+import { WIDTH, HEIGHT, ROOMS, random, goalDone, roomTrinkets } from './engine.mjs?v=10';
 
 const INK='#75674c';
 function ellipse(c,x,y,rx,ry,fill,stroke=null,line=2){c.beginPath();c.ellipse(x,y,rx,ry,0,0,Math.PI*2);c.fillStyle=fill;c.fill();if(stroke){c.strokeStyle=stroke;c.lineWidth=line;c.stroke();}}
@@ -23,6 +23,8 @@ function ground(room,seed){const key=room+seed;if(groundCache.has(key))return gr
   if(room==='meadow'){cottage(c);fence(c,730,73,6);mushroom(c,96,492,1.2);mushroom(c,118,505,.8);}
   if(room==='pond'){fence(c,135,79,5);mushroom(c,865,492,1.4);mushroom(c,890,504,.8);}
   if(room==='orchard'){fence(c,423,75,6);tree(c,164,90,35);tree(c,846,84,38);mushroom(c,105,490,1.2);}
+  if(room==='woods'){tree(c,150,85,40);tree(c,450,80,42);tree(c,850,85,44);mushroom(c,110,480,1.5);mushroom(c,130,502,1);}
+  if(room==='hills'){fence(c,120,80,7);for(let i=0;i<14;i++)flower(c,110+i*60,110+Math.sin(i*2)*13,1.6,'#fff3a5');}
   if(room==='burrows'){fence(c,140,80,6);fence(c,680,535,7);for(const x of [180,420,700,875]){mushroom(c,x,116,.9);mushroom(c,x+19,124,.6);}rounded(c,755,76,160,33,8,'#f3e6bd','#bfa774');c.font='12px sans-serif';c.textAlign='center';c.fillStyle='#8b805f';c.fillText('mind the tiny gardeners',835,97);}
   for(const o of info.obstacles){if(o.kind==='pond')pond(c,o);else if(o.kind==='bush')bush(c,o.x,o.y,o.r);else if(o.kind==='rock')rock(c,o.x,o.y,o.r);else tree(c,o.x,o.y,o.r);}
   // Tiny signposts, so the exit feels part of the landscape.
