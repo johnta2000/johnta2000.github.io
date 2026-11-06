@@ -204,10 +204,21 @@ try {
   assert.equal(await page.locator('#health').getAttribute('aria-label'),'3 of 4 shared hearts');
   await page.screenshot({path:output+'/desktop-pepper-hit.png',fullPage:true});
   await page.reload();await waitRoom(page,'burrows');assert.equal((await saved(page)).health,3);assert.equal((await saved(page)).hits,1);
-  const pepperLoss={...pepperDamage,id:'pepperloss',health:1,revision:0};await seed(page,pepperLoss);await page.keyboard.press('w');await waitView(page,'retry');
+  const pepperLoss={...pepperDamage,id:'pepperloss',health:1,revision:0,trinkets:['pond-ribbon',...TRINKETS.filter(item=>item.room==='burrows').map(item=>item.id)],trinketCheckpoints:{burrows:[]}};
+  await seed(page,pepperLoss);assert.equal(await page.locator('#trinket-count').innerText(),'3/14');
+  await page.reload();assert.equal(await page.locator('#trinket-count').innerText(),'3/14','refresh keeps the attempt in progress');
+  await page.keyboard.press('w');await waitView(page,'retry');
   assert.equal((await saved(page)).health,0);assert.equal((await saved(page)).hits,1);
-  await page.reload();await page.locator('#retry').waitFor();await page.locator('#retry').click();await waitView(page,'play');
+  assert.deepEqual((await saved(page)).trinkets,['pond-ribbon'],'fatal Pepper hit immediately resets current-level trinkets');
+  assert.equal(await page.locator('#trinket-count').innerText(),'1/14');
+  const trinketLossURL=page.url();await page.reload();await page.locator('#retry').waitFor();
+  assert.equal(await page.locator('#trinket-count').innerText(),'1/14');assert.match(await page.locator('.retry-card').innerText(),/snacks and trinkets return/);
+  const lossCopy=await desktop.newPage();await lossCopy.goto(trinketLossURL);await lossCopy.locator('#retry').waitFor();
+  assert.equal(await lossCopy.locator('#trinket-count').innerText(),'1/14');await lossCopy.close();await page.bringToFront();
+  await page.locator('#retry').click();await waitView(page,'play');
   assert.equal((await saved(page)).health,4);assert.equal((await saved(page)).pepperFound,true);assert.deepEqual((await saved(page)).trinkets,['pond-ribbon']);
+  await page.goBack();await waitView(page,'play');assert.equal(await page.locator('#trinket-count').innerText(),'1/14');
+  await page.goForward();await waitView(page,'play');assert.equal(await page.locator('#trinket-count').innerText(),'1/14');
   const final=createRun('finaltest');final.keyFound=true;final.pepperFound=true;final.health=4;final.trinkets=TRINKETS.map(item=>item.id);final.room='orchard';final.positions.orchard={x:780,y:160};await seed(page,final);
   await hold(page,'d',250);assert.ok((await saved(page)).basketFound);await hold(page,'s',850);await hold(page,'d',620);await waitRoom(page,'laundry');assert.equal((await saved(page)).completed,false,'the orchard now continues into the cottage');
   const finish={...final,id:'bossfinish',peeFound:true,pepperoniFound:true,basketFound:true,bossDefeated:true,completed:true};await seed(page,finish,'boss','picnic');await page.locator('.picnic-card').waitFor();
@@ -316,6 +327,13 @@ try {
   for(const room of ['tutorial',...ORDER]){await seed(phone,mobileRun,room,'pause');const url=phone.url();await phone.reload();await phone.locator('.pause-card').waitFor();assert.equal(phone.url(),url);const copy=await mobile.newPage();await copy.goto(url);await copy.locator('.pause-card').waitFor();assert.equal(await copy.locator('#room-name').textContent(),ROOMS[room].name);await copy.close();await phone.locator('#home-link').click();await phone.locator('#begin').waitFor();await phone.goBack();await phone.locator('.pause-card').waitFor();assert.equal(phone.url(),url);await phone.goForward();await phone.locator('#begin').waitFor();await phone.goBack();await phone.locator('.pause-card').waitFor();await dismissOutside(phone);await waitView(phone,'play');await phone.keyboard.press('Escape');await waitView(phone,'pause');}
   assert.ok(await phone.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
   const reunionMobile=createRun('mobilestory');reunionMobile.keyFound=true;reunionMobile.pepperFound=true;reunionMobile.health=4;await seed(phone,reunionMobile,'pond','reunion');await phone.screenshot({path:output+'/mobile-reunion.png',fullPage:true});
+  const mobileLoss=createRun('mobileloss');Object.assign(mobileLoss,{keyFound:true,pepperFound:true,health:1,room:'burrows',positions:{burrows:{x:313,y:200}},trinkets:['pond-ribbon',...TRINKETS.filter(item=>item.room==='burrows').map(item=>item.id)],trinketCheckpoints:{burrows:[]}});
+  await seed(phone,mobileLoss);await phone.keyboard.press('w');await waitView(phone,'retry');
+  assert.deepEqual((await saved(phone)).trinkets,['pond-ribbon']);await phone.reload();await phone.locator('#retry').waitFor();
+  assert.equal(await phone.locator('#trinket-count').innerText(),'1/14');await phone.screenshot({path:output+'/mobile-trinket-retry.png',fullPage:true});
+  const mobileLossCopy=await mobile.newPage();await mobileLossCopy.goto(phone.url());await mobileLossCopy.locator('#retry').waitFor();assert.equal(await mobileLossCopy.locator('#trinket-count').innerText(),'1/14');await mobileLossCopy.close();await phone.bringToFront();
+  await phone.locator('#retry').click();await waitView(phone,'play');assert.deepEqual((await saved(phone)).trinkets,['pond-ribbon']);
+  await phone.goBack();await waitView(phone,'play');await phone.goForward();await waitView(phone,'play');assert.equal(await phone.locator('#trinket-count').innerText(),'1/14');
   const winMobile=createRun('mobilewin');winMobile.keyFound=true;winMobile.pepperFound=true;winMobile.basketFound=true;winMobile.completed=true;winMobile.health=4;winMobile.peeFound=true;winMobile.pepperoniFound=true;winMobile.trinkets=TRINKETS.map(item=>item.id);await seed(phone,winMobile,'orchard','picnic');await phone.screenshot({path:output+'/mobile-picnic.png',fullPage:true});await mobile.close();
 
   const blocked=await browser.newContext();await blocked.addInitScript(()=>{Storage.prototype.setItem=function(){throw new DOMException('Full','QuotaExceededError');};});const failure=await pageFor(blocked);await failure.locator('#begin').click();await failure.locator('#save-error').waitFor({state:'visible'});const downloadPromise=failure.waitForEvent('download');await failure.locator('#download-save').click();assert.equal((await downloadPromise).suggestedFilename(),'pepsi-pepper-adventure.json');await blocked.close();

@@ -118,6 +118,11 @@ export function upgradeRun(run) {
   if(run.peeFound===undefined)run.peeFound=false;
   if(run.tutorialStep===undefined)run.tutorialStep=3;
   run.cooldowns??=freshCooldowns();
+  // Older saves have no attempt boundary. Keep earlier rooms' treasures safe,
+  // but the current unfinished attempt still has to reach its exit.
+  run.trinketCheckpoints??=Object.fromEntries(ORDER.map(room=>[room,
+    room===run.room&&!run.completed?[]:roomTrinkets(room).filter(item=>run.trinkets.includes(item.id)).map(item=>item.id)]));
+  if(run.health<=0)resetRoomTrinkets(run,run.room);
   run.order=roomOrder();
   return run;
 }
@@ -144,7 +149,7 @@ export function maxHearts(run) { return run.pepperFound ? 4 : 3; }
 export function createRun(id) {
   return {
     version:2, id, seed:Number.parseInt(id, 36) >>> 0, character:'pepsi', order:roomOrder(),
-    room:'meadow', tutorialStep:0, collected:[], trinkets:[], positions:{}, checkpoints:{}, health:3,
+    room:'meadow', tutorialStep:0, collected:[], trinkets:[], positions:{}, checkpoints:{}, trinketCheckpoints:{}, health:3,
     keyFound:false, pepperFound:false, peeFound:false, pepperoniFound:false,bossDefeated:false, basketFound:false, completed:false,
     hits:0, retries:0, revision:0, startedAt:Date.now(),cooldowns:freshCooldowns(),
   };
@@ -160,6 +165,8 @@ export function validRun(value, id) {
     Array.isArray(value.collected) && value.collected.every(item => /^(meadow|pond|burrows|woods|hills|orchard|laundry|kitchen|boss)-[0-3]$/.test(item)) &&
     new Set(value.collected).size === value.collected.length &&
     (value.trinkets === undefined || Array.isArray(value.trinkets) && value.trinkets.every(id=>TRINKETS.some(item=>item.id===id)) && new Set(value.trinkets).size===value.trinkets.length) &&
+    (value.trinketCheckpoints===undefined || value.trinketCheckpoints && typeof value.trinketCheckpoints==='object' && !Array.isArray(value.trinketCheckpoints) &&
+      Object.entries(value.trinketCheckpoints).every(([room,ids])=>Object.hasOwn(ROOMS,room)&&Array.isArray(ids)&&new Set(ids).size===ids.length&&ids.every(id=>roomTrinkets(room).some(item=>item.id===id)))) &&
     value.positions && typeof value.positions === 'object' && !Array.isArray(value.positions) &&
     value.checkpoints && typeof value.checkpoints === 'object' && !Array.isArray(value.checkpoints) &&
     Object.hasOwn(ROOMS, value.room) && ['keyFound','pepperFound','basketFound','completed'].every(key => typeof value[key] === 'boolean') &&
@@ -248,6 +255,8 @@ export function makeWorld(run, room) {
   const saved = run.positions[room];
   const p = saved && walkable(saved.x,saved.y,room) ? {...saved} : {x:135,y:315};
   if (!run.checkpoints[room]) run.checkpoints[room] = run.collected.filter(id => id.startsWith(room+'-'));
+  run.trinketCheckpoints??={};
+  run.trinketCheckpoints[room]??=roomTrinkets(room).filter(item=>run.trinkets.includes(item.id)).map(item=>item.id);
   const buddy = walkable(p.x-43,p.y+10,room,12) ? {x:p.x-43,y:p.y+10} : {...p};
   const pee=companionSpawn(buddy,room),pepperoni=companionSpawn(pee,room);
   if(room==='boss'&&!run.bossDefeated&&!run.bossState)run.bossState=newBoss();
@@ -257,7 +266,12 @@ export function makeWorld(run, room) {
     time:0,dash:0,cooldown:run.cooldowns.dash,abilityCooldowns:run.cooldowns,invincible:.65,bump:0,hitCorgi:null,particles:[],impacts:[],dashHits:new Set(),
   };
 }
+function resetRoomTrinkets(run,room) {
+  const checkpoint=run.trinketCheckpoints?.[room]||[];
+  run.trinkets=run.trinkets.filter(id=>!roomTrinkets(room).some(item=>item.id===id)||checkpoint.includes(id));
+}
 export function retryRoom(run, room) {
+  resetRoomTrinkets(run,room);
   const checkpoint = run.checkpoints[room];
   const valid = Array.isArray(checkpoint) ? checkpoint.filter(id => typeof id === 'string' && id.startsWith(room+'-') && /-[0-3]$/.test(id)) : [];
   run.collected = [...new Set([...run.collected.filter(id => !id.startsWith(room+'-')), ...valid])];
@@ -345,6 +359,7 @@ function bumpCorgis(world,run,hazard,events) {
     const dx=hit.body.x-hazard.x,dy=hit.body.y-hazard.y,d=Math.hypot(dx,dy)||1;
     move(hit.body,dx/d*34,dy/d*34,world.room);
   }
+  if(run.health<=0)resetRoomTrinkets(run,world.room);
   events.push({type:run.health<=0?'defeat':'hit',character:hit.character});
 }
 export function step(world,run,input,dt) {
@@ -462,7 +477,10 @@ export function step(world,run,input,dt) {
     }
   }
   world.particles=world.particles.filter(p=>{p.life-=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;return p.life>0;});
-  if(p.x>890&&Math.abs(p.y-320)<58&&goalDone(run,world.room))events.push({type:'exit'});
+  if(p.x>890&&Math.abs(p.y-320)<58&&goalDone(run,world.room)) {
+    run.trinketCheckpoints[world.room]=roomTrinkets(world.room).filter(item=>run.trinkets.includes(item.id)).map(item=>item.id);
+    events.push({type:'exit'});
+  }
   return events;
 }
 

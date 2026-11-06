@@ -158,8 +158,53 @@ test('rescue stays at the pond; both trinkets are needed before its exit',()=>{
   Object.assign(world.player,{x:910,y:320});assert.ok(!step(world,run,idle,.016).some(event=>event.type==='exit'));
   for(const item of roomTrinkets('pond')){Object.assign(world.player,{x:item.x,y:item.y});assert.ok(step(world,run,idle,.016).some(event=>event.type==='trinket'));}
   assert.equal(goalDone(run,'pond'),true);
-  run.health=0;retryRoom(run,'pond');assert.equal(run.trinkets.length,2,'trinkets survive retries');
+  run.health=0;retryRoom(run,'pond');assert.equal(run.trinkets.length,0,'trinkets from a failed attempt return to the pond');
+  assert.equal(goalDone(run,'pond'),false);assert.ok(run.pepperFound,'Pepper stays rescued');
   assert.equal(validRun(JSON.parse(JSON.stringify(run)),run.id),true);
+});
+test('a fatal hit immediately drops only this room’s new trinkets, even after reload',()=>{
+  for(const room of ['pond','burrows','woods','hills','orchard','laundry','kitchen']) {
+    let run=createRun('treasureloss');Object.assign(run,{keyFound:true,pepperFound:true,peeFound:true,pepperoniFound:true,room});
+    const earlier=TRINKETS.filter(item=>item.room!==room).map(item=>item.id);run.trinkets=[...earlier];
+    let world=makeWorld(run,room);world.toys=[];world.gophers=[];world.items=[];
+    for(const item of roomTrinkets(room)){Object.assign(world.player,{x:item.x,y:item.y});step(world,run,idle,.016);}
+    assert.equal(run.trinkets.length,14);
+    run=upgradeRun(JSON.parse(JSON.stringify(run)));world=makeWorld(run,room);world.gophers=[];world.items=[];
+    run.health=1;world.invincible=0;world.toys=[toyAt(world.player.x,world.player.y)];
+    assert.ok(step(world,run,idle,.016).some(event=>event.type==='defeat'));
+    assert.deepEqual(run.trinkets,earlier,`${room} treasures reset before Retry`);
+    run=upgradeRun(JSON.parse(JSON.stringify(run)));assert.ok(validRun(run,run.id));
+    assert.deepEqual(run.trinkets,earlier,'reloading defeat does not bring treasures back');
+    world=retryRoom(run,room);world.toys=[];world.gophers=[];world.items=[];
+    assert.deepEqual(run.trinkets,earlier);assert.ok(run.pepperoniFound);
+    for(const item of roomTrinkets(room)){Object.assign(world.player,{x:item.x,y:item.y});assert.ok(step(world,run,idle,.016).some(event=>event.type==='trinket'));}
+    assert.equal(run.trinkets.length,14,'both treasures can be collected again');
+  }
+});
+test('exiting a cleared level banks its trinkets for later visits',()=>{
+  const run=createRun('bankedloot');run.keyFound=true;run.pepperFound=true;run.room='burrows';
+  let world=makeWorld(run,'burrows');world.toys=[];world.gophers=[];world.items=[];
+  for(const item of roomTrinkets('burrows')){Object.assign(world.player,{x:item.x,y:item.y});step(world,run,idle,.016);}
+  Object.assign(world.player,{x:910,y:320});assert.ok(step(world,run,idle,.016).some(event=>event.type==='exit'));
+  const banked=[...run.trinkets];makeWorld(run,'woods');world=makeWorld(run,'burrows');world.gophers=[];world.items=[];
+  run.health=1;world.invincible=0;world.toys=[toyAt(world.player.x,world.player.y)];
+  assert.ok(step(world,run,idle,.016).some(event=>event.type==='defeat'));assert.deepEqual(run.trinkets,banked);
+  retryRoom(run,'burrows');assert.deepEqual(run.trinkets,banked);
+});
+test('leaving an unfinished room does not bank its trinkets',()=>{
+  const run=createRun('loosecoins');run.keyFound=true;run.pepperFound=true;
+  makeWorld(run,'burrows');run.trinkets.push(roomTrinkets('burrows')[0].id);
+  makeWorld(run,'woods');makeWorld(run,'burrows');run.health=0;retryRoom(run,'burrows');
+  assert.deepEqual(run.trinkets,[]);
+});
+test('older saves keep earlier treasures but reset the failed current level',()=>{
+  const run=createRun('oldtrinkets');delete run.trinketCheckpoints;
+  Object.assign(run,{keyFound:true,pepperFound:true,room:'burrows',health:0,trinkets:['pond-ribbon',...roomTrinkets('burrows').map(item=>item.id)]});
+  assert.ok(validRun(run,run.id));upgradeRun(run);assert.deepEqual(run.trinkets,['pond-ribbon']);
+  retryRoom(run,'burrows');assert.deepEqual(run.trinkets,['pond-ribbon']);assert.ok(validRun(run,run.id));
+  for(const checkpoint of [null,[],{burrows:['pond-ribbon']},{unknown:[]},{burrows:[roomTrinkets('burrows')[0].id,roomTrinkets('burrows')[0].id]}]) {
+    assert.equal(validRun({...run,trinketCheckpoints:checkpoint},run.id),false);
+  }
 });
 test('the garden requires both trinkets and advances to the woods',()=>{
   const run=createRun('garden123');run.keyFound=true;run.pepperFound=true;run.health=4;

@@ -1,7 +1,7 @@
-import { ROOMS, ORDER, DASH_COOLDOWN, ABILITIES, WIDTH, HEIGHT, createRun, peeProgress, upgradeRun, TRINKETS, validRun, migrateRun, makeWorld, maxHearts, goalDone, isUnlocked, firstUnfinished, objective, retryRoom, step, startDash, startAbility } from './engine.mjs?v=16';
-import { portrait, drawWorld, drawPicnic } from './art.mjs?v=16';
-import { movementKey, abilityKey, isTextEntry } from './input.mjs?v=16';
-import { Soundscape } from './audio.mjs?v=16';
+import { ROOMS, ORDER, DASH_COOLDOWN, ABILITIES, WIDTH, HEIGHT, createRun, peeProgress, upgradeRun, TRINKETS, validRun, migrateRun, makeWorld, maxHearts, goalDone, isUnlocked, firstUnfinished, objective, retryRoom, step, startDash, startAbility } from './engine.mjs?v=17';
+import { portrait, drawWorld, drawPicnic } from './art.mjs?v=17';
+import { movementKey, abilityKey, isTextEntry } from './input.mjs?v=17';
+import { Soundscape } from './audio.mjs?v=17';
 
 const $ = id => document.getElementById(id);
 const canvas=$('world'), ctx=canvas.getContext('2d');
@@ -160,7 +160,7 @@ function render() {
     $('screen').innerHTML='<div class="story-card" role="dialog" aria-modal="true" aria-labelledby="reunion-title"><p class="card-eyebrow">FOUND: ONE VERY GOOD FRIEND</p><canvas width="240" height="200" data-portrait="pepper" aria-label="Pepper, the gray plush corgi"></canvas><h3 id="reunion-title">Found you, Pepper.</h3><p>Your best friend is coming with you.<br>There are still trinkets to find by the pond!</p><div class="new-heart">♥ Four shared hearts. A hit to either corgi costs one.</div><button id="reunion-continue" class="primary-button">Explore together <span>→</span></button><button id="reunion-close" class="secondary-button">Stay by the pond a little longer</button></div>';
     $('reunion-continue').addEventListener('click',dismissScreen);$('reunion-close').addEventListener('click',dismissScreen);$('reunion-continue').focus({preventScroll:true});
   } else if(view==='retry') {
-    $('screen').innerHTML='<div class="retry-card" role="dialog" aria-modal="true" aria-labelledby="retry-title"><span class="pause-flower" aria-hidden="true">♡</span><p class="card-eyebrow">A SMALL SETBACK</p><h3 id="retry-title">Even brave loaves<br>need another try.</h3><p>Restart this clearing with full hearts.<br>Its new snacks return to the grass.<br>Your key, rescued friends, and trinkets stay safe.</p><button id="retry" class="primary-button">Try this clearing again <span>↻</span></button><button id="retry-home" class="secondary-button">Rest at the cottage</button></div>';
+    $('screen').innerHTML='<div class="retry-card" role="dialog" aria-modal="true" aria-labelledby="retry-title"><span class="pause-flower" aria-hidden="true">♡</span><p class="card-eyebrow">A SMALL SETBACK</p><h3 id="retry-title">Even brave loaves<br>need another try.</h3><p>Restart this clearing with full hearts.<br>This attempt’s snacks and trinkets return to the clearing.<br>Earlier treasures, your key, and rescued friends stay safe.</p><button id="retry" class="primary-button">Try this clearing again <span>↻</span></button><button id="retry-home" class="secondary-button">Rest at the cottage</button></div>';
     $('retry').addEventListener('click',()=>{world=retryRoom(run,world.room);save();navigate(routeURL('play'));});$('retry-home').addEventListener('click',dismissScreen);$('retry').focus({preventScroll:true});
   } else if(view==='picnic') {
     $('screen').classList.add('picnic-screen');
