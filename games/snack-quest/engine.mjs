@@ -245,7 +245,7 @@ export function makeWorld(run, room) {
   return {
     room, runId:run.id, player:{...p,vx:1,vy:0,facing:1,moving:false}, buddy:{...buddy,facing:1}, pee:{...pee,facing:1},pepperoni:{...pepperoni,facing:1},boss:room==='boss'?run.bossState:null,
     followTrail:[{...p}],peeTrail:[{...buddy}],pepperoniTrail:[{...pee}],clouds:[],bark:0,dashPulse:false, toys:toysFor(run.seed,room), gophers:gophersFor(run.seed,room), items:roomItems(run.seed,room),
-    time:0,dash:0,cooldown:0,invincible:.65,bump:0,hitCorgi:null,particles:[],
+    time:0,dash:0,cooldown:0,invincible:.65,bump:0,hitCorgi:null,particles:[],impacts:[],dashHits:new Set(),
   };
 }
 export function retryRoom(run, room) {
@@ -262,7 +262,7 @@ export function startDash(world, input={x:0,y:0}) {
   if (world.cooldown > 0) return false;
   const length = Math.hypot(input.x,input.y);
   if (length) { world.player.vx=input.x/length; world.player.vy=input.y/length; }
-  world.dash=.2;world.dashPulse=true; world.cooldown=DASH_COOLDOWN; world.invincible=Math.max(world.invincible,.28);
+  world.dash=.2;world.dashPulse=true;world.dashHits.clear(); world.cooldown=DASH_COOLDOWN; world.invincible=Math.max(world.invincible,.28);
   return true;
 }
 function move(body,dx,dy,room,radius=18) {
@@ -271,6 +271,13 @@ function move(body,dx,dy,room,radius=18) {
 }
 function particles(world,x,y,kind='spark') {
   for(let i=0;i<9;i++)world.particles.push({x,y,vx:Math.cos(i/9*Math.PI*2)*45,vy:Math.sin(i/9*Math.PI*2)*45-25,life:.75,max:.75,kind});
+}
+function dashImpact(world,target,body=world.player,boss=false) {
+  if(world.dashHits.has(target))return;
+  world.dashHits.add(target);
+  const dx=target.x-body.x,dy=target.y-body.y,d=Math.hypot(dx,dy);
+  // Recoil is a temporary drawing pose: hitboxes, patrols, and saved boss positions stay put.
+  world.impacts.push({target,x:target.x,y:target.y,dx:d>.1?dx/d:world.player.vx,dy:d>.1?dy/d:world.player.vy,started:world.time,duration:boss?.85:.65,boss});
 }
 function follow(world,p=world.player,b=world.buddy,trail=world.followTrail) {
   const last=trail.at(-1);
@@ -323,6 +330,7 @@ export function step(world,run,input,dt) {
   const p=world.player, length=Math.hypot(input.x,input.y), events=[];
   world.bark=Math.max(0,world.bark-dt);
   world.clouds=world.clouds.filter(c=>(c.life-=dt)>0);
+  world.impacts=world.impacts.filter(hit=>world.time-hit.started<hit.duration);
   if(world.dashPulse){
     world.dashPulse=false;
     if(run.pepperoniFound){world.dash=.28;world.invincible=Math.max(world.invincible,.36);}
@@ -380,8 +388,10 @@ export function step(world,run,input,dt) {
   for(const toy of world.toys) {
     toy.cooldown=Math.max(0,toy.cooldown-dt);
     const distance=Math.hypot(toy.x-p.x,toy.y-p.y);
-    if(dashing&&touchingCorgi(world,run,toy,29)&&toy.mode!=='stunned') {
-      toy.mode='stunned';toy.timer=2.3;particles(world,toy.x,toy.y);events.push({type:'stun'});
+    const dashContact=dashing&&touchingCorgi(world,run,toy,29);
+    if(dashContact&&!world.dashHits.has(toy)) {
+      dashImpact(world,toy,dashContact.body);
+      if(toy.mode!=='stunned'){toy.mode='stunned';toy.timer=2.3;events.push({type:'stun'});}
     }
     if(toy.mode==='stunned') {toy.timer-=dt;if(toy.timer<=0){toy.mode='roam';toy.cooldown=1;}continue;}
     if(toy.mode==='rest') {toy.timer-=dt;if(toy.timer<=0){toy.mode='roam';toy.cooldown=.4;}continue;}
@@ -411,10 +421,12 @@ export function step(world,run,input,dt) {
       else if(gopher.mode==='warning'){gopher.mode='up';gopher.timer=1.6;}
       else {gopher.mode='hidden';gopher.timer=1.3+random(gopher.seed+gopher.cycle++)()*2;}
     }
-    if(gopher.mode!=='up')continue;
-    if(dashing&&touchingCorgi(world,run,gopher,29)) {
-      gopher.mode='stunned';gopher.timer=2.3;particles(world,gopher.x,gopher.y);events.push({type:'stun'});
-    } else bumpCorgis(world,run,gopher,events);
+    if(gopher.mode!=='up'&&gopher.mode!=='stunned')continue;
+    const dashContact=dashing&&touchingCorgi(world,run,gopher,29);
+    if(dashContact&&!world.dashHits.has(gopher)) {
+      dashImpact(world,gopher,dashContact.body);
+      if(gopher.mode!=='stunned'){gopher.mode='stunned';gopher.timer=2.3;events.push({type:'stun'});}
+    } else if(gopher.mode==='up')bumpCorgis(world,run,gopher,events);
     if(run.health<=0)return events;
   }
   if(run.pepperFound)for(const item of roomTrinkets(world.room)) {
@@ -439,7 +451,7 @@ function stepBoss(world,run,dt,dashing,events){
   const b=world.boss,p=world.player;b.timer=Math.max(0,b.timer-dt);
   if(b.mode==='exposed'){
     if(dashing&&Math.hypot(p.x-b.x,p.y-b.y)<b.r+29){
-      b.hp=Math.max(0,b.hp-(run.pepperoniFound?2:1));particles(world,b.x,b.y);
+      b.hp=Math.max(0,b.hp-(run.pepperoniFound?2:1));dashImpact(world,b,p,true);
       if(!b.hp){run.bossDefeated=true;b.mode='off';b.timer=0;events.push({type:'boss-win'});return;}
       b.mode='recover';b.timer=1.2;events.push({type:'boss-hit'});
     }else if(b.timer===0){b.mode='recover';b.timer=.6;}

@@ -81,6 +81,37 @@ test('a dash stuns a toy, blocks damage, and cannot be spammed',()=>{
   world.toys=[toyAt(150,315)];assert.ok(startDash(world,{x:1,y:0}));assert.equal(startDash(world),false);
   const events=step(world,run,{x:1,y:0},.016);assert.ok(events.some(e=>e.type==='stun'));assert.equal(run.health,3);assert.equal(world.toys[0].mode,'stunned');
 });
+test('dash contact animates once per enemy, including after Pepper has already stunned it',()=>{
+  const run=createRun('bonkpose1');run.pepperFound=true;run.keyFound=true;run.health=4;
+  const world=makeWorld(run,'meadow');world.items=[];const enemy={...toyAt(158,315),kind:'vacuum'};world.toys=[enemy];
+  startDash(world,{x:1,y:0});step(world,run,idle,.016);
+  assert.equal(enemy.mode,'stunned');assert.ok(enemy.timer<1.4,'the bark stun duration is unchanged');
+  assert.equal(world.impacts.length,1,'direct contact still has an impact after the bark');
+  assert.equal(world.impacts[0].target,enemy);assert.ok(world.impacts[0].dx>0);
+  for(let i=0;i<10;i++)step(world,run,idle,.016);
+  assert.equal(world.impacts.length,1,'overlapping frames cannot replay the burst');
+  assert.equal(enemy.x,158);assert.equal(enemy.y,315,'drawing recoil never moves a hitbox');assert.equal(run.health,4);
+  for(let i=0;i<45;i++)step(world,run,idle,.016);
+  assert.equal(world.impacts.length,0,'short-lived effects are cleaned up');
+});
+test('companion bonks and surfaced gophers get impacts without animating hidden gophers',()=>{
+  const run=createRun('bonkpose2');run.pepperFound=true;run.health=4;
+  const world=makeWorld(run,'meadow');world.items=[];world.toys=[{...toyAt(85,325),kind:'cat'}];
+  world.gophers=[{x:160,y:315,r:22,kind:'gopher',mode:'up',timer:1,cycle:0,seed:1},{x:200,y:315,r:22,kind:'gopher',mode:'hidden',timer:1,cycle:0,seed:1}];
+  startDash(world,{x:1,y:0});step(world,run,idle,.016);
+  assert.ok(world.impacts.some(hit=>hit.target===world.toys[0]&&hit.dx<0),'Pepper contact recoils away from Pepper');
+  assert.ok(world.impacts.some(hit=>hit.target===world.gophers[0]));
+  assert.ok(!world.impacts.some(hit=>hit.target===world.gophers[1]));assert.equal(run.health,4);
+});
+test('boss recoil is transient, respects armor, and leaves the saved fight valid',()=>{
+  const run=createRun('bonkpose3');run.keyFound=run.pepperFound=run.peeFound=run.pepperoniFound=true;run.health=4;
+  const world=makeWorld(run,'boss');world.items=[];world.player.x=650;world.player.y=315;
+  startDash(world,{x:1,y:0});step(world,run,idle,.016);assert.equal(world.impacts.length,0,'armor has no successful-hit animation');
+  world.boss.mode='exposed';world.boss.timer=3;step(world,run,idle,.016);
+  assert.equal(world.impacts.length,1);assert.equal(world.impacts[0].boss,true);assert.equal(world.boss.hp,6);
+  const restored=JSON.parse(JSON.stringify(run));assert.ok(validRun(restored,run.id));assert.equal(restored.bossState.x,710);
+  assert.equal(makeWorld(restored,'boss').impacts.length,0,'reload does not replay the impact');
+});
 test('hazards telegraph a fixed direction before charging',()=>{
   const run=createRun('windup12'),world=makeWorld(run,'meadow');world.items=[];
   world.toys=[{...toyAt(300,315),cooldown:0}];step(world,run,idle,.02);
