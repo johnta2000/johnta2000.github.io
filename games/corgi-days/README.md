@@ -1,6 +1,6 @@
 # Corgi Days
 
-A mobile-first, single-player daily corgi companion at `/games/corgi-days/`. Buildless HTML, CSS, JavaScript and original SVG artwork. Published on the existing John Ta GitHub Pages site.
+A mobile-first, single-player daily corgi companion at `/games/corgi-days/`. Buildless HTML, CSS, JavaScript and generated transparent plush sprites with editable SVG accessories. Published on the existing John Ta GitHub Pages site.
 
 Name your corgi, select four coats, five accessories with any color, and three garden backgrounds. Feed, play, wash and rest once each calendar day. Needs decay with elapsed time and never fall below 10. Each care action earns five biscuits; all four grant twenty more and extend a consecutive-day streak. Missing a day breaks the streak, not the pet. All customization is free. Biscuits are a collectible lifetime care score.
 

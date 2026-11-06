@@ -1,4 +1,4 @@
-import {corgi} from './corgi.mjs?v=2';
+import {corgi} from './corgi.mjs?v=3';
 import {fresh,day,needs,act,currentStreak,valid,actions} from './model.mjs';
 const $=s=>document.querySelector(s),KEY='corgi-days-v1',DRAFT='corgi-days-style-v1';
 let pet,saveError='',badSave=false,draft=null,toastTimer,playing=false;
