@@ -30,10 +30,10 @@ function playURL(level,paused=false){return `?view=play&level=${level}${paused?'
 function pauseRun(){keys.clear();pointerId=null;if(run?.status==='playing'){run.status='paused';persist();}}
 function go(url,replace=false){pauseRun();history[replace?'replaceState':'pushState']({},'',url);route=readRoute(location.search);render();scrollTo({top:0,behavior:'instant'});}
 function button(label,url,secondary=false){return `<a class="button${secondary?' secondary':''}" href="${url}">${label}</a>`;}
-function currentCrew(){return crewFor(save,route.view==='play'?route.level:null);}
+function currentCrew(){const crew=crewFor(save,route.view==='play'?route.level:null);return route.view==='home'?{...crew,pee:false}:crew;}
 function crewNames(crew=currentCrew()){return ['Pepsi',...(crew.pee?['Pee']:[]),...(crew.pepper?['Pepper']:[])];}
 function names(){
-  const friends=crewNames(crewFor(save));
+  const friends=crewNames();
   return `<div class="name-labels crew-${friends.length}">${friends.map(name=>name==='Pepsi'?'<span>Pepsi</span>':`<a data-friend-link href="?view=${name==='Pee'?'guest':'pepper'}&level=${save.lastLevel}&from=${route.view}" aria-label="Meet ${name}">${name}${name==='Pee'?' ♡':''}</a>`).join('')}</div>`;
 }
 const starsText=number=>'★'.repeat(number)+'☆'.repeat(3-number);
