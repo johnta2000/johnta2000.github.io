@@ -27,7 +27,7 @@ kbd.pressed{background:#58774d;color:#fffdf2;border-color:#58774d;box-shadow:non
 .rotate-prompt>span{font-size:58px;color:#91a76b}.rotate-prompt strong{font:500 25px 'Fraunces',Georgia,serif}.rotate-prompt p{font-size:13px;line-height:1.7;color:#7b8272}
 .phone-note{display:none}.touch-device .keyboard-hints{display:none}.touch-device:not(.touch-landscape) .phone-note{display:block}.touch-device:not(.touch-landscape) .ability-bar{display:none}
 .touch-landscape{overflow:hidden;overscroll-behavior:none;background:#edf0df}
-.touch-landscape .page-shell{width:100%;max-width:none;height:100vh;height:100dvh;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+.touch-landscape .page-shell{width:100%;max-width:none;height:100vh;height:100dvh;height:var(--game-height,100dvh);padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
 .touch-landscape .masthead,.touch-landscape .intro,.touch-landscape footer,.touch-landscape .game-bottom,.touch-landscape .practice-navigation,.touch-landscape .phone-note{display:none}
 .touch-landscape main{height:100%}.touch-landscape .game{height:100%;border:0;border-radius:0;box-shadow:none;display:grid;grid-template-columns:clamp(120px,17vw,164px) minmax(0,1fr) clamp(152px,21vw,196px);grid-template-rows:48px minmax(0,1fr);background:#edf0df;overflow:hidden}
 .touch-landscape .mobile-only{display:flex}.touch-landscape .game-toolbar{grid-column:1/-1;grid-row:1;padding:0 10px;min-height:0;gap:12px;background:#fffdf5;border-bottom:1px solid #d9deca}
@@ -55,3 +55,26 @@ kbd.pressed{background:#58774d;color:#fffdf2;border-color:#58774d;box-shadow:non
 #pause-chapters{display:flex;flex-wrap:wrap;justify-content:center;gap:4px 12px;border-top:1px solid #dce0ce;margin-top:6px;padding-top:6px}#pause-chapters .trail-line{display:none}#pause-chapters .trail-item{min-height:44px;font-size:11px}
 .touch-landscape .save-error{position:fixed;left:10px;right:10px;top:52px;max-height:calc(100dvh - 62px);overflow:auto;z-index:50;margin:0}.touch-landscape .save-error button{min-height:44px}
 @media(max-height:350px){.touch-landscape .game{grid-template-rows:48px minmax(0,1fr)}.touch-landscape .screen:not(.empty){top:calc(48px + env(safe-area-inset-top))}.touch-landscape .screen>div{padding:12px 18px}.touch-landscape .screen h3{font-size:23px}.touch-landscape .screen p{font-size:11px}.touch-landscape .welcome-card .plush-pair{gap:0}.touch-landscape .ability-bar{padding-bottom:12px}.touch-landscape .steering{gap:8px;padding-bottom:12px}.touch-landscape .game-toolbar{gap:8px}}
+
+/* Safari browser bars can leave less than 300px of landscape height. */
+.touch-landscape.compact-controls .game{grid-template-columns:clamp(100px,14vw,132px) minmax(0,1fr) 148px}
+.touch-landscape.compact-controls .game-toolbar{gap:5px;padding:0 5px}
+.touch-landscape.compact-controls .location h2{font-size:14px}
+.touch-landscape.compact-controls .ability-bar{align-self:center;padding:4px 5px}
+.touch-landscape.compact-controls .abilities{display:grid;grid-template-columns:64px 72px;grid-template-rows:64px 76px;gap:8px 2px;min-height:0;height:148px}
+.touch-landscape.compact-controls .ability{position:relative;inset:auto!important;align-self:center;justify-self:center}
+.touch-landscape.compact-controls .ability[data-ability=bark]{grid-column:1;grid-row:1}
+.touch-landscape.compact-controls .ability[data-ability=stink]{grid-column:2;grid-row:1}
+.touch-landscape.compact-controls .ability[data-ability=power]{grid-column:1;grid-row:2}
+.touch-landscape.compact-controls .ability[data-ability=dash]{grid-column:2;grid-row:2;width:72px;height:72px;padding:7px 5px}
+.touch-landscape.compact-controls .ability[data-ability=dash] strong{font-size:14px;line-height:16px}
+.touch-landscape.compact-controls .ability[data-ability=dash] .ability-status{font-size:9px;min-height:18px;margin-top:2px}
+.touch-landscape.compact-controls .steering{justify-content:center;padding:6px;gap:5px}
+.touch-landscape.compact-controls .joystick{width:clamp(80px,calc((var(--game-height,300px) - 70px)*.45),112px);max-width:100%;flex-shrink:0}
+.touch-landscape.compact-controls .steering-tip{display:none}
+.touch-landscape .screen:not(.empty){bottom:auto;height:calc(var(--game-height,100dvh) - 48px - env(safe-area-inset-top) - env(safe-area-inset-bottom))}
+.display-card{background:#fffdf5;border-radius:22px;padding:28px;width:440px;box-shadow:0 15px 50px #304b2520;text-align:center}
+.display-card h3{font:500 28px 'Fraunces',Georgia,serif;margin:0 0 12px}.display-card p{font-size:13px;line-height:1.6}
+.display-card ol{text-align:left;font-size:13px;line-height:1.7;padding-left:22px}.display-card .backup-actions{display:flex;justify-content:center;gap:12px;flex-wrap:wrap}.display-card .backup-actions button{min-height:44px;border:0;background:none;text-decoration:underline;font-size:12px}
+
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}

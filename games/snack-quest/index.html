@@ -3,19 +3,24 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Snack Quest">
+  <link rel="apple-touch-icon" href="./apple-touch-icon.png">
+  <link rel="manifest" href="./manifest.webmanifest">
   <meta name="theme-color" content="#f7f3e9">
   <meta name="description" content="A little corgi adventure for keyboard or mobile. Roll, rescue your friends, and make it home together.">
   <meta property="og:title" content="Pepsi & Pepper · The Great Snack Quest">
   <meta property="og:description" content="A lost friend, three hearts, and one very brave little loaf. Play on keyboard or turn your phone sideways.">
   <title>The Great Snack Quest · Pepsi & Pepper</title>
-  <link rel="icon" type="image/svg+xml" href="./icon.svg?v=26">
-  <link rel="stylesheet" href="./styles.css?v=26">
-  <script type="module" src="./app.mjs?v=26"></script>
+  <link rel="icon" type="image/svg+xml" href="./icon.svg?v=27">
+  <link rel="stylesheet" href="./styles.css?v=27">
+  <script type="module" src="./app.mjs?v=27"></script>
 </head>
 <body>
   <div class="page-shell">
     <header class="masthead">
-      <a class="brand" href="./" aria-label="Snack Quest home"><img src="./icon.svg?v=26" width="38" height="38" alt=""><span>pepsi <i>&</i> pepper<small>THE LITTLE ADVENTURE CLUB</small></span></a>
+      <a class="brand" href="./" aria-label="Snack Quest home"><img src="./icon.svg?v=27" width="38" height="38" alt=""><span>pepsi <i>&</i> pepper<small>THE LITTLE ADVENTURE CLUB</small></span></a>
       <div class="header-actions"><span class="keyboard-badge">A LITTLE CORGI ADVENTURE</span><button id="sound" class="icon-button sound-button" aria-label="Turn music and sound effects on" aria-pressed="false"></button></div>
     </header>
     <main>
@@ -27,10 +32,11 @@
           <div class="health" id="health" aria-label="3 of 3 hearts"><span class="hud-label" id="health-label">HEARTS</span><div id="hearts">♥ ♥ ♥</div></div>
           <div class="inventory trinket-inventory"><span class="hud-label">TRINKETS</span><strong id="trinket-count">0/10</strong></div>
           <div class="inventory snack-inventory"><span class="hud-label">SNACKS</span><strong id="snack-count">0</strong></div>
+          <button id="fullscreen" class="icon-button mobile-only" aria-label="Fullscreen or display options" title="Fullscreen" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"/></svg></button>
           <div id="mobile-sound" class="mobile-only"></div>
           <a id="pause" class="icon-button" href="?view=pause" aria-label="Pause adventure" hidden>Ⅱ</a>
         </div>
-        <div class="steering mobile-only"><span class="steering-label">ROLL</span><div id="joystick" class="joystick" role="group" aria-label="Drag the joystick in any direction. A little to roll slowly, farther to roll faster."><span class="stick-arrows" aria-hidden="true"><i>▲</i><i>▶</i><i>▼</i><i>◀</i></span><span id="joystick-knob" aria-hidden="true"></span></div><span class="steering-tip">Drag farther to go faster</span></div>
+        <div class="steering mobile-only"><span class="steering-label">ROLL</span><div id="joystick" class="joystick" role="group" aria-label="Drag the joystick in any direction. A little to roll slowly, farther to roll faster."><span class="stick-arrows" aria-hidden="true"><i>▲</i><i>▶︎</i><i>▼</i><i>◀︎</i></span><span id="joystick-knob" aria-hidden="true"></span></div><span class="steering-tip">Drag farther to go faster</span></div>
         <div class="ability-bar"><p>Left hand: WASD · Right hand: J K L · Space to dash</p><div id="abilities" class="abilities" aria-label="Choose an ability: Space dash, J bark, K stink cloud, L power dash"></div></div>
         <div class="stage" id="stage">
           <canvas id="world" width="1000" height="620" tabindex="0" aria-keyshortcuts="W A S D Space J K L Escape" aria-label="Use WASD or the touch joystick to roll. Space or Dash dodges, breaks crates, and stuns enemies. J, K, L or the Bark, Toot, Power buttons use your friends’ abilities. Each move has its own recharge. Find fourteen trinkets, rescue your three friends, defeat the giant vacuum, and bring the picnic basket home.">This game requires JavaScript and canvas. Play with WASD and Space, or turn your phone sideways for touch controls.</canvas>

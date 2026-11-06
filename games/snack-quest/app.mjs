@@ -1,7 +1,7 @@
-import { ROOMS, ORDER, DASH_COOLDOWN, ABILITIES, WIDTH, HEIGHT, createRun, peeProgress, upgradeRun, TRINKETS, validRun, migrateRun, makeWorld, maxHearts, goalDone, isUnlocked, firstUnfinished, objective, retryRoom, step, startDash, startAbility } from './engine.mjs?v=26';
-import { portrait, drawWorld, drawPicnic } from './art.mjs?v=26';
-import { movementKey, abilityKey, isTextEntry, joystickVector } from './input.mjs?v=26';
-import { Soundscape } from './audio.mjs?v=26';
+import { ROOMS, ORDER, DASH_COOLDOWN, ABILITIES, WIDTH, HEIGHT, createRun, peeProgress, upgradeRun, TRINKETS, validRun, migrateRun, makeWorld, maxHearts, goalDone, isUnlocked, firstUnfinished, objective, retryRoom, step, startDash, startAbility } from './engine.mjs?v=27';
+import { portrait, drawWorld, drawPicnic } from './art.mjs?v=27';
+import { movementKey, abilityKey, isTextEntry, joystickVector } from './input.mjs?v=27';
+import { Soundscape } from './audio.mjs?v=27';
 
 const $ = id => document.getElementById(id);
 const canvas=$('world'), ctx=canvas.getContext('2d');
@@ -76,6 +76,7 @@ function save() {
 function routeURL(nextView='play',room=world?.room||run?.room||'meadow',id=run?.id) {
   const url=new URL(location.href);url.search='';url.hash='';
   if(nextView!=='home')url.searchParams.set('view',nextView);
+  if(nextView==='fullscreen'){const from=view==='fullscreen'?new URLSearchParams(location.search).get('from'):view;url.searchParams.set('from',['home','play','pause','picnic','retry'].includes(from)?from:'home');}
   if(id)url.searchParams.set('run',id);
   if(nextView!=='home')url.searchParams.set('room',room);
   return url;
@@ -118,7 +119,7 @@ function focusGame() {
 function readRoute() {
   clearInput();controlsReady=false;
   const query=new URLSearchParams(location.search),requested=query.get('view')||'home';
-  view=['home','play','pause','reunion','retry','picnic'].includes(requested)?requested:'home';
+  view=['home','play','pause','reunion','retry','picnic','fullscreen'].includes(requested)?requested:'home';
   const id=query.get('run'),requestedRoom=query.get('room');
   let saved=readRun(id||latestId);
   if(!saved&&!readFailed&&id&&/^[a-z0-9]{6,16}$/.test(id)){saved=createRun(id);memory.set(id,saved);}
@@ -128,9 +129,9 @@ function readRoute() {
     if(!isUnlocked(run,room))room=firstUnfinished(run);
     if(!world||world.room!==room||world.runId!==run.id)world=makeWorld(run,room);
   } else {run=null;world=null;}
-  if(view!=='home'&&!run)view='home';
+  if(!['home','fullscreen'].includes(view)&&!run)view='home';
   if(run&&view!=='home') {
-    if(run.health<=0)view='retry';
+    if(run.health<=0&&view!=='fullscreen')view='retry';
     else if(view==='retry')view='play';
     if(view==='reunion'&&!run.pepperFound)view='play';
     if(view==='picnic'&&(!run.completed||!run.basketFound))view='play';
@@ -152,7 +153,7 @@ function plushPair(missing=true) {
   return `<div class="plush-pair"><div><canvas width="240" height="200" data-portrait="pepsi" aria-label="Round tan-and-white Pepsi"></canvas><strong>Pepsi</strong><small>one brave little loaf</small></div><div class="${missing?'missing':''}"><canvas width="240" height="200" data-portrait="pepper" aria-label="Round gray-and-white Pepper"></canvas>${missing?'<span class="missing-mark" aria-hidden="true">?</span>':''}<strong>Pepper</strong><small>${missing?'somewhere out there':'right where he belongs'}</small></div></div>`;
 }
 function render() {
-  document.body.classList.toggle('playing',['play','pause','reunion','retry'].includes(view));
+  document.body.classList.toggle('playing',['play','pause','reunion','retry','fullscreen'].includes(view));
   document.body.dataset.view=view;
   $('mobile-home').href=routeURL('home');
   $('rotate-prompt').hidden=!touchPortrait()||view!=='play';
@@ -161,11 +162,13 @@ function render() {
   $('pause').hidden=view!=='play';$('pause').href=routeURL('pause');
   $('screen').className='screen';$('objective').hidden=view!=='play';$('dash-meter').hidden=view!=='play';$('room-toast').hidden=true;
   $('control-prompt').hidden=view!=='play'||controlsReady||touchPortrait();
-  $('room-kicker').textContent=view==='home'?'PEPSI’S LITTLE ADVENTURE':view==='picnic'?'HOME TOGETHER. HAPPY TOGETHER.':world?.room==='tutorial'?'SAFE PRACTICE':`CHAPTER ${ORDER.indexOf(world.room)+1} OF ${ORDER.length}`;
-  $('room-name').textContent=view==='home'?'One friend is missing.':view==='picnic'?'Home is wherever you are':ROOMS[world.room].name;
+  $('room-kicker').textContent=view==='fullscreen'?'DISPLAY OPTIONS':view==='home'?'PEPSI’S LITTLE ADVENTURE':view==='picnic'?'HOME TOGETHER. HAPPY TOGETHER.':world?.room==='tutorial'?'SAFE PRACTICE':`CHAPTER ${ORDER.indexOf(world?.room)+1} OF ${ORDER.length}`;
+  $('room-name').textContent=view==='fullscreen'?'More room to roll':view==='home'?'One friend is missing.':view==='picnic'?'Home is wherever you are':ROOMS[world?.room||'meadow'].name;
   $('location-icon').textContent=view==='picnic'?'♡':world?.room==='pond'?'♧':'✿';
   const active=run&&(!run.completed||run.legacyEnding&&!run.bossDefeated);
-  if(view==='home') {
+  if(view==='fullscreen') {
+    renderDisplayHelp();
+  } else if(view==='home') {
     $('screen').innerHTML=`<div class="welcome-card"><p class="card-eyebrow">SOMEONE’S MISSING FROM THE PICNIC</p><h3>Where’s Pepper?</h3>${plushPair(true)}<p>Find the key, rescue your friends,<br>and outsmart a giant vacuum.</p><div class="mission-strip"><span>3 hearts</span><span>9 little chapters</span><span>3 friends to find</span></div><button id="begin" class="primary-button">${active?'Continue the adventure':'Start with practice'} <span>→</span></button>${active?'<button id="fresh" class="secondary-button">Start a new adventure</button>':''}<p class="tiny-note">A safe, skippable practice first. WASD to move. Space to dash.</p></div>`;
     $('begin').addEventListener('click',()=>active?navigate(routeURL(run.health<=0?'retry':'play',run.room)):newRun());
     $('fresh')?.addEventListener('click',newRun);
@@ -215,6 +218,36 @@ function updateProgress() {
   if($('pause-chapters')){$('pause-chapters').innerHTML=$('trail').innerHTML;$('pause-practice').href=$('practice-link').href;$('pause-practice').textContent=$('practice-link').textContent;}
   if(run&&world)$('objective-text').textContent=controlText(objective(run,world.room));
 }
+function standalone(){return matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;}
+function syncViewport(){
+  const height=window.visualViewport?.height||innerHeight;
+  document.documentElement.style.setProperty('--game-height',`${height}px`);
+  document.body.classList.toggle('compact-controls',height<370);
+}
+window.visualViewport?.addEventListener('resize',syncViewport);
+window.addEventListener('resize',syncViewport);
+syncViewport();
+function renderDisplayHelp(){
+  $('screen').innerHTML=`<div class="display-card" role="dialog" aria-modal="true" aria-labelledby="display-title"><h3 id="display-title" tabindex="-1">More room to roll</h3>${standalone()?'<p>You’re already playing without browser bars.</p>':'<p>On iPhone or iPad, open this game from your Home Screen to hide Safari’s bars.</p><ol><li>Tap Safari’s <b>Share</b> button.</li><li>Choose <b>Add to Home Screen</b>.</li><li>Turn on <b>Open as Web App</b> if shown, then tap <b>Add</b>.</li><li>Open Snack Quest from that icon and turn sideways.</li></ol>'}<p class="tiny-note">Taking your adventure with you? Save a backup here, then restore it if your Home Screen app starts fresh.</p><div class="backup-actions">${run?'<button id="display-backup">Save progress backup</button>':''}<button id="display-restore">Restore progress backup</button></div><button id="display-close" class="primary-button">Back to the game</button></div>`;
+  $('display-backup')?.addEventListener('click',()=>$('download-save').click());
+  $('display-restore').addEventListener('click',()=>$('restore-backup').click());
+  $('display-close').addEventListener('click',dismissScreen);$('display-title').focus({preventScroll:true});
+}
+$('fullscreen').addEventListener('click',async()=>{
+  save();clearInput();controlsReady=false;
+  try{
+    if(document.fullscreenElement||document.webkitFullscreenElement){await (document.exitFullscreen?.()||document.webkitExitFullscreen?.());return;}
+    const target=document.documentElement;
+    if(!standalone()&&target.requestFullscreen){await target.requestFullscreen({navigationUI:'hide'});return;}
+    if(!standalone()&&target.webkitRequestFullscreen){await target.webkitRequestFullscreen();return;}
+  }catch{/* Offer Home Screen instructions if fullscreen is unavailable. */}
+  navigate(routeURL('fullscreen'));
+});
+function fullscreenChanged(){
+  clearInput();controlsReady=false;syncViewport();resize();
+  const active=!!(document.fullscreenElement||document.webkitFullscreenElement);$('fullscreen').setAttribute('aria-label',active?'Exit fullscreen':'Fullscreen or display options');
+}
+for(const event of ['fullscreenchange','webkitfullscreenchange'])document.addEventListener(event,fullscreenChanged);
 function resize() {
   const bounds=$('stage').getBoundingClientRect();
   viewportWidth=touchMode&&landscapeQuery.matches?WIDTH:Math.min(WIDTH,Math.round(bounds.width/bounds.height*HEIGHT));
@@ -273,6 +306,7 @@ $('abilities').addEventListener('pointerdown',event=>{const button=event.target.
 $('abilities').addEventListener('click',event=>{if(event.pointerType==='touch'||event.pointerType==='pen')return;const button=event.target.closest('[data-ability]');if(button){useMove(button.dataset.ability);focusGame();}});
 function pause(){if(view==='play')navigate(routeURL('pause'));}
 function dismissScreen() {
+  if(view==='fullscreen'){const from=new URLSearchParams(location.search).get('from');navigate(routeURL(['home','play','pause','picnic','retry'].includes(from)?from:run?'play':'home'));$('fullscreen').focus({preventScroll:true});return;}
   if(view==='retry')navigate(routeURL('home'));
   else if(view==='pause'||view==='reunion')navigate(routeURL('play'));
 }
@@ -284,7 +318,7 @@ window.addEventListener('keydown',event=>{
   // Resume first, then record the held key: readRoute clears stale input.
   if(view==='pause'&&move&&!event.repeat)dismissScreen();
   if(event.key==='Escape'){event.preventDefault();if(view==='play')pause();else dismissScreen();return;}
-  if(['pause','reunion','retry'].includes(view)&&event.key==='Tab') {
+  if(['pause','reunion','retry','fullscreen'].includes(view)&&event.key==='Tab') {
     const controls=[...$('screen').querySelectorAll('button,a')];
     if(event.shiftKey&&document.activeElement===controls[0]){event.preventDefault();controls.at(-1).focus();}
     else if(!event.shiftKey&&document.activeElement===controls.at(-1)){event.preventDefault();controls[0].focus();}
@@ -392,7 +426,7 @@ function handleEvents(events) {
     else if(event.type==='boss-win'){soundtrack.setScene(view,world.room,{bossDefeated:true});sound('win');toast('Sir Sucks-a-Lot is unplugged! Take the path home →',6000);}
     else if(event.type==='defeat'){save();sound('defeat');navigate(routeURL('retry'));return;}
     else if(event.type==='exit') {
-      const next=ORDER[ORDER.indexOf(world.room)+1];
+      const next=ORDER[ORDER.indexOf(world?.room)+1];
       if(next)navigate(routeURL('play',next));
       else{run.completed=true;save();sound('win');navigate(routeURL('picnic'));}
       return;
