@@ -108,3 +108,10 @@ Landscape uses a fixed visual-viewport shell, with the top safe inset inside the
 ### Immersive mobile camera
 
 Mobile canvas dimensions match the visible window. It shows a full-width slice on wide phones and follows Pepsi vertically, clamped to the map edges. Tablet landscape can also follow horizontally. The three large maps retain their zoomed-out scale; desktop keeps its existing fixed overview. The boss health bar stays anchored to the view, and pause/completion never moves the stage. The objective sits between the corner controls. `camera.test.mjs`, the mobile layout checks, multitouch checks, fullscreen checks, and wide-world browser checks cover these behaviors.
+
+
+### Rescue ability introductions
+
+Rescuing Pepper, Pee, or Pepperoni opens a paused, dismissible ability card with its effect, a practical use, the keyboard key or touch button, and cooldown. The current room and collected items stay intact. A pending introduction is saved with the adventure, so refreshing or reopening the play URL cannot skip an unread card. Older adventures need no migration beyond an optional null field. Unlocked guides can be reopened from Pause.
+
+Each guide has a stable `?view=ability&ability=shield|toot|power&from=play|pause&run=…&room=…` URL. Locked abilities cannot be opened through a link. Escape, the continue button, and a backdrop click dismiss the card; clicking inside or dragging out does not. Returning to Pause restores focus to the guide link. `ability-intro-browser.mjs` exercises actual rescue events for all three corgis on desktop and mobile, pause safety, pending-state restoration, copied links, history, dismissal, focus, and short-screen scrolling.

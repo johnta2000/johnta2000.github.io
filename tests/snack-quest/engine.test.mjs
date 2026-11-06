@@ -586,3 +586,12 @@ test('Shield also blocks the goose ring and boss contact without stunning enemie
  const bossRun=createRun('shieldboss');bossRun.pepperFound=true;bossRun.health=4;bossRun.positions.boss={x:710,y:315};const bossWorld=makeWorld(bossRun,'boss');bossWorld.toys=[];bossWorld.gophers=[];bossWorld.items=[];bossWorld.invincible=0;
  Object.assign(bossWorld.boss,{x:710,y:315,mode:'windup',timer:1});startAbility(bossWorld,bossRun,'bark');step(bossWorld,bossRun,idle,.02);assert.equal(bossRun.health,4);
 });
+
+
+test('ability introductions survive saves, accept old adventures, and reject locked or unknown guides',()=>{
+ const run=createRun('guideunit');delete run.pendingAbility;assert.ok(validRun(run,run.id));upgradeRun(run);assert.equal(run.pendingAbility,null);
+ run.pendingAbility='bark';assert.equal(validRun(run,run.id),false);
+ run.keyFound=run.pepperFound=true;assert.ok(validRun(run,run.id));
+ const copy=JSON.parse(JSON.stringify(run));upgradeRun(copy);assert.equal(copy.pendingAbility,'bark');
+ for(const invalid of ['missing','__proto__',['bark'],{}]){copy.pendingAbility=invalid;assert.equal(validRun(copy,copy.id),false);}
+});

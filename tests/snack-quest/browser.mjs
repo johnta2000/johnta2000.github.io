@@ -16,7 +16,7 @@ async function seed(page,run,room=run.room,view='play'){
   await page.goto(`${base}?view=${view}&run=${run.id}&room=${room}`);
   await page.waitForFunction(()=>document.querySelector('#room-name')?.textContent!=='One friend is missing.');
   await page.evaluate(async()=>{
-    const {Soundscape}=await import('./audio.mjs?v=29'),play=Soundscape.prototype.play;
+    const {Soundscape}=await import('./audio.mjs?v=30'),play=Soundscape.prototype.play;
     window.effectRequests=[];Soundscape.prototype.play=function(kind){window.effectRequests.push(kind);return play.call(this,kind);};
   });
 }
@@ -107,7 +107,7 @@ try {
     await page.keyboard.press('Escape');await page.reload();await page.locator('#resume').waitFor();assert.equal((await saved(page)).health,index?1:2);
   }
   const rescue=createRun('rescuetest');rescue.keyFound=true;rescue.health=1;rescue.room='pond';rescue.positions.pond={x:735,y:370};await seed(page,rescue);await hold(page,'d',250);
-  assert.match(page.url(),/view=play/);assert.match(page.url(),/room=pond/);assert.equal(await page.locator('.story-card').count(),0,'rescue never interrupts or skips the pond');
+  assert.match(page.url(),/view=ability/);assert.match(page.url(),/ability=shield/);await page.locator('#ability-continue').click();assert.match(page.url(),/room=pond/,'rescue stays in the pond');
   assert.equal((await saved(page)).pepperFound,true);assert.equal((await saved(page)).health,2);
   assert.match(await page.locator('#objective-text').innerText(),/ribbon.*button/);
   await page.keyboard.press('Escape');await waitView(page,'pause');await page.reload();await page.locator('#resume').click();await waitRoom(page,'pond');
@@ -140,7 +140,7 @@ try {
   let peeSaved=await saved(page);assert.equal(peeSaved.peeFound,false);assert.match(await page.locator('#pee-link').innerText(),/5\/6/);
   peeSaved.trinkets.push(sixth);peeSaved.positions.hills={x:PEE_RESCUE.x-65,y:PEE_RESCUE.y};peeSaved.revision++;
   await seed(page,peeSaved);await hold(page,'d',160);assert.equal((await saved(page)).peeFound,true);assert.equal((await saved(page)).health,2);
-  assert.match(page.url(),/room=hills/);assert.equal(await page.locator('.story-card').count(),0);
+  assert.match(page.url(),/room=hills/);assert.match(page.url(),/ability=toot/);await page.locator('#ability-continue').click();
   assert.match(await page.locator('#buddy-status').innerText(),/Three corgis/);
   await hold(page,'a',650);await page.evaluate(()=>window.dispatchEvent(new Event('blur')));
   await page.screenshot({path:output+'/desktop-pee-rescue.png',fullPage:true});
@@ -163,7 +163,7 @@ try {
   }
   // Rescue the fourth corgi using the existing movement controls, then persist all abilities.
   const fourth=createRun('fourthtest');Object.assign(fourth,{keyFound:true,pepperFound:true,peeFound:true,basketFound:true,health:2,room:'laundry',trinkets:TRINKETS.slice(0,12).map(i=>i.id),positions:{laundry:{x:755,y:160}}});
-  await seed(page,fourth);await hold(page,'d',150);await page.keyboard.press('Escape');assert.ok((await saved(page)).pepperoniFound);assert.equal((await saved(page)).health,2);await page.reload();await page.locator('#resume').click();assert.match(await page.locator('#abilities').innerText(),/Pepperoni · Power/);
+  await seed(page,fourth);await hold(page,'d',150);await page.locator('#ability-continue').click();await page.keyboard.press('Escape');assert.ok((await saved(page)).pepperoniFound);assert.equal((await saved(page)).health,2);await page.reload();await page.locator('#resume').click();assert.match(await page.locator('#abilities').innerText(),/Pepperoni · Power/);
   const rescuedFourth=await saved(page);
   // Each chosen key casts only its own move, with durable and visible cooldowns.
   const skillRun={...createRun('skillsbrowser'),keyFound:true,pepperFound:true,peeFound:true,pepperoniFound:true,health:4,tutorialStep:3,room:'tutorial'};
@@ -318,7 +318,7 @@ try {
 
   // Render the actual score for a listenable preview and check its level/headroom.
   const preview=await musicPage.evaluate(async()=>{
-    const {Soundscape}=await import('/games/snack-quest/audio.mjs?v=29');
+    const {Soundscape}=await import('/games/snack-quest/audio.mjs?v=30');
     const rate=22050,context=new OfflineAudioContext(1,rate*22,rate);
     const score=new Soundscape(()=>context);score.setEnabled(true);score.unlock();score.setScene('play','meadow');
     for(let i=0;i<64;i++)score.musicBeat(i,.1+i*30/96,30/96);
@@ -327,7 +327,7 @@ try {
   let peak=0;for(const sample of preview){assert.ok(Number.isFinite(sample));peak=Math.max(peak,Math.abs(sample));}
   assert.ok(peak>.03&&peak<.8,'original music renders audibly with headroom');
   const effects=await musicPage.evaluate(async()=>{
-    const {Soundscape}=await import('/games/snack-quest/audio.mjs?v=29');
+    const {Soundscape}=await import('/games/snack-quest/audio.mjs?v=30');
     const levels={};
     for(const kind of ['shield','toot','bonk','bonk-crate','bonk-boss','honk','squish']){
       const context=new OfflineAudioContext(1,22050,22050),score=new Soundscape(()=>context);score.setEnabled(true);score.unlock();

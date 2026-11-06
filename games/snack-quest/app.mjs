@@ -1,7 +1,7 @@
-import { ROOMS, ORDER, DASH_COOLDOWN, ABILITIES, WIDTH, HEIGHT, createRun, peeProgress, upgradeRun, TRINKETS, validRun, migrateRun, makeWorld, maxHearts, goalDone, isUnlocked, firstUnfinished, objective, retryRoom, step, startDash, startAbility } from './engine.mjs?v=29';
-import { portrait, drawWorld, drawPicnic } from './art.mjs?v=29';
-import { movementKey, abilityKey, isTextEntry, joystickVector } from './input.mjs?v=29';
-import { Soundscape } from './audio.mjs?v=29';
+import { ROOMS, ORDER, DASH_COOLDOWN, ABILITIES, WIDTH, HEIGHT, createRun, peeProgress, upgradeRun, TRINKETS, validRun, migrateRun, makeWorld, maxHearts, goalDone, isUnlocked, firstUnfinished, objective, retryRoom, step, startDash, startAbility } from './engine.mjs?v=30';
+import { portrait, drawWorld, drawPicnic } from './art.mjs?v=30';
+import { movementKey, abilityKey, isTextEntry, joystickVector } from './input.mjs?v=30';
+import { Soundscape } from './audio.mjs?v=30';
 
 const $ = id => document.getElementById(id);
 const canvas=$('world'), ctx=canvas.getContext('2d');
@@ -16,6 +16,8 @@ const memory=new Map(), savedSnapshots=new Map(), keys=new Set();
 const soundtrack=new Soundscape();
 const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
 let run=null, world=null, view='home', viewportWidth=WIDTH, viewportHeight=HEIGHT, lastFrame=0, saveElapsed=0;
+let shownAbility='bark';
+const abilitySlugs={bark:'shield',stink:'toot',power:'power'};
 let toastUntil=0, animationTime=0, soundOn=false, latestId=null;
 let readFailed=false, saveFailed=false, conflict=false, backdropDown=false;
 let controlsReady=false,pendingMove=null,textRelease=0;
@@ -76,6 +78,7 @@ function save() {
 function routeURL(nextView='play',room=world?.room||run?.room||'meadow',id=run?.id) {
   const url=new URL(location.href);url.search='';url.hash='';
   if(nextView!=='home')url.searchParams.set('view',nextView);
+  if(nextView==='ability'){url.searchParams.set('ability',abilitySlugs[shownAbility]);const from=view==='ability'?new URLSearchParams(location.search).get('from'):view;url.searchParams.set('from',from==='pause'?'pause':'play');}
   if(nextView==='fullscreen'){const from=view==='fullscreen'?new URLSearchParams(location.search).get('from'):view;url.searchParams.set('from',['home','play','pause','picnic','retry'].includes(from)?from:'home');}
   if(id)url.searchParams.set('run',id);
   if(nextView!=='home')url.searchParams.set('room',room);
@@ -119,7 +122,7 @@ function focusGame() {
 function readRoute() {
   clearInput();controlsReady=false;
   const query=new URLSearchParams(location.search),requested=query.get('view')||'home';
-  view=['home','play','pause','reunion','retry','picnic','fullscreen'].includes(requested)?requested:'home';
+  view=['home','play','pause','reunion','retry','picnic','fullscreen','ability'].includes(requested)?requested:'home';
   const id=query.get('run'),requestedRoom=query.get('room');
   let saved=readRun(id||latestId);
   if(!saved&&!readFailed&&id&&/^[a-z0-9]{6,16}$/.test(id)){saved=createRun(id);memory.set(id,saved);}
@@ -133,6 +136,8 @@ function readRoute() {
   if(run&&view!=='home') {
     if(run.health<=0&&view!=='fullscreen')view='retry';
     else if(view==='retry')view='play';
+    if(view==='ability'){shownAbility=Object.keys(abilitySlugs).find(id=>abilitySlugs[id]===query.get('ability'))||run.pendingAbility||'bark';if(!run[ABILITIES[shownAbility].unlock])view='play';}
+    if(view==='play'&&run.pendingAbility){shownAbility=run.pendingAbility;view='ability';}
     if(view==='reunion'&&!run.pepperFound)view='play';
     if(view==='picnic'&&(!run.completed||!run.basketFound))view='play';
   }
@@ -149,11 +154,28 @@ function readRoute() {
     readFailed=false;
   }
 }
+function abilityURL(id,from='pause'){
+  const url=routeURL('ability');url.searchParams.set('ability',abilitySlugs[id]);url.searchParams.set('from',from);return url;
+}
+function abilityGuideLinks(){
+  const unlocked=Object.entries(ABILITIES).filter(([,spec])=>run?.[spec.unlock]);
+  return unlocked.length?`<nav class="ability-guide" aria-label="Ability instructions"><p>Your corgis’ abilities</p>${unlocked.map(([id,spec])=>`<a data-guide="${id}" href="${abilityURL(id)}">${spec.corgi}: ${spec.name}</a>`).join('')}</nav>`:'';
+}
+function renderAbilityIntro(){
+  const spec=ABILITIES[shownAbility],fresh=run.pendingAbility===shownAbility;
+  const details={
+    bark:{effect:'Blue bubbles protect every corgi from damage for 3 seconds. They flicker just before the shield ends.',tip:'Use it when the back of your train is about to get hit. It prevents damage; it doesn’t heal hearts or stun enemies.'},
+    stink:{effect:'Pee leaves a cloud at his own position for 1.2 seconds. Small enemies entering it are stunned. It won’t stop the boss.',tip:'Let pursuers get close to Pee, drop the cloud, then keep rolling away.'},
+    power:{effect:'A longer roll in your current or last movement direction. Bonk enemies, or hit the overheated boss for 2 damage instead of 1.',tip:'Use it during the boss’s “DASH NOW!” opening. Power and normal Dash share a 2.8-second roll recovery, so you can’t alternate them immediately.'}
+  }[shownAbility];
+  $('screen').innerHTML=`<div class="ability-card" role="dialog" aria-modal="true" aria-labelledby="ability-title"><div class="ability-portrait"><canvas width="240" height="200" data-portrait="${spec.corgi.toLowerCase()}" aria-label="${spec.corgi}"></canvas><strong>${spec.corgi}</strong></div><div class="ability-explanation"><p class="card-eyebrow">${fresh?'NEW FRIEND · NEW ABILITY':'ABILITY GUIDE'}</p><h3 id="ability-title" tabindex="-1">${spec.name}${fresh?' unlocked!':''}</h3><p>${details.effect}</p><p class="ability-tip">${details.tip}</p><div class="ability-facts"><span>${touchMode?`Tap <b>${spec.name}</b>`:`Press <kbd>${spec.key}</kbd>`}</span><span><b>${spec.cooldown}s</b> recharge</span></div>${fresh?'<p class="ability-team-note">'+(shownAbility==='bark'?'You now share four hearts. A hit to either corgi costs one.':'Your new friend shares the team’s hearts—watch the whole train!')+'</p>':''}<button id="ability-continue" class="primary-button">${fresh?'Got it — let’s roll!':'Back to '+(new URLSearchParams(location.search).get('from')==='pause'?'pause':'the game')}</button><p class="tiny-note">The adventure is paused. Find this guide again in the pause menu.</p></div></div>`;
+  $('ability-continue').addEventListener('click',dismissScreen);$('ability-title').focus({preventScroll:true});
+}
 function plushPair(missing=true) {
   return `<div class="plush-pair"><div><canvas width="240" height="200" data-portrait="pepsi" aria-label="Round tan-and-white Pepsi"></canvas><strong>Pepsi</strong><small>one brave little loaf</small></div><div class="${missing?'missing':''}"><canvas width="240" height="200" data-portrait="pepper" aria-label="Round gray-and-white Pepper"></canvas>${missing?'<span class="missing-mark" aria-hidden="true">?</span>':''}<strong>Pepper</strong><small>${missing?'somewhere out there':'right where he belongs'}</small></div></div>`;
 }
 function render() {
-  document.body.classList.toggle('playing',['play','pause','reunion','retry','fullscreen'].includes(view));
+  document.body.classList.toggle('playing',['play','pause','reunion','retry','fullscreen','ability'].includes(view));
   document.body.dataset.view=view;
   $('mobile-home').href=routeURL('home');
   $('rotate-prompt').hidden=!touchPortrait()||view!=='play';
@@ -166,14 +188,16 @@ function render() {
   $('room-name').textContent=view==='fullscreen'?'More room to roll':view==='home'?'One friend is missing.':view==='picnic'?'Home is wherever you are':ROOMS[world?.room||'meadow'].name;
   $('location-icon').textContent=view==='picnic'?'♡':world?.room==='pond'?'♧':'✿';
   const active=run&&(!run.completed||run.legacyEnding&&!run.bossDefeated);
-  if(view==='fullscreen') {
+  if(view==='ability'){
+    renderAbilityIntro();
+  } else if(view==='fullscreen') {
     renderDisplayHelp();
   } else if(view==='home') {
     $('screen').innerHTML=`<div class="welcome-card"><p class="card-eyebrow">SOMEONE’S MISSING FROM THE PICNIC</p><h3>Where’s Pepper?</h3>${plushPair(true)}<p>Find the key, rescue your friends,<br>and outsmart a giant vacuum.</p><div class="mission-strip"><span>3 hearts</span><span>9 little chapters</span><span>3 friends to find</span></div><button id="begin" class="primary-button">${active?'Continue the adventure':'Start with practice'} <span>→</span></button>${active?'<button id="fresh" class="secondary-button">Start a new adventure</button>':''}<p class="tiny-note">A safe, skippable practice first. WASD to move. Space to dash.</p></div>`;
     $('begin').addEventListener('click',()=>active?navigate(routeURL(run.health<=0?'retry':'play',run.room)):newRun());
     $('fresh')?.addEventListener('click',newRun);
   } else if(view==='pause') {
-    $('screen').innerHTML=`<div class="pause-card" role="dialog" aria-modal="true" aria-labelledby="pause-title"><span class="pause-flower" aria-hidden="true">✿</span><h3 id="pause-title">Catch your breath.</h3><p>The adventure is paused.<br>${touchMode?'Tap Keep going to resume.':'Press WASD or click Keep going to resume.'}<br>Dash protects your whole team. Only heart-marked snacks restore a heart.</p><button id="resume" class="primary-button">Keep going <span>→</span></button><a id="home-link" class="secondary-button" href="./">Back to the cottage</a>${touchMode?'<nav id="pause-chapters" aria-label="Visit a chapter"></nav><a id="pause-practice" class="secondary-button">Practice controls</a>':''}</div>`;
+    $('screen').innerHTML=`<div class="pause-card" role="dialog" aria-modal="true" aria-labelledby="pause-title"><span class="pause-flower" aria-hidden="true">✿</span><h3 id="pause-title">Catch your breath.</h3><p>The adventure is paused.<br>${touchMode?'Tap Keep going to resume.':'Press WASD or click Keep going to resume.'}<br>Dash protects your whole team. Only heart-marked snacks restore a heart.</p>${abilityGuideLinks()}<button id="resume" class="primary-button">Keep going <span>→</span></button><a id="home-link" class="secondary-button" href="./">Back to the cottage</a>${touchMode?'<nav id="pause-chapters" aria-label="Visit a chapter"></nav><a id="pause-practice" class="secondary-button">Practice controls</a>':''}</div>`;
     $('resume').addEventListener('click',dismissScreen);$('home-link').href=routeURL('home');$('resume').focus({preventScroll:true});
   } else if(view==='reunion') {
     $('screen').innerHTML='<div class="story-card" role="dialog" aria-modal="true" aria-labelledby="reunion-title"><p class="card-eyebrow">FOUND: ONE VERY GOOD FRIEND</p><canvas width="240" height="200" data-portrait="pepper" aria-label="Pepper, the gray plush corgi"></canvas><h3 id="reunion-title">Found you, Pepper.</h3><p>Your best friend is coming with you.<br>There are still trinkets to find by the pond!</p><div class="new-heart">♥ Four shared hearts. A hit to either corgi costs one.</div><button id="reunion-continue" class="primary-button">Explore together <span>→</span></button><button id="reunion-close" class="secondary-button">Stay by the pond a little longer</button></div>';
@@ -314,6 +338,7 @@ $('abilities').addEventListener('pointerdown',event=>{const button=event.target.
 $('abilities').addEventListener('click',event=>{if(event.pointerType==='touch'||event.pointerType==='pen')return;const button=event.target.closest('[data-ability]');if(button){useMove(button.dataset.ability);focusGame();}});
 function pause(){if(view==='play')navigate(routeURL('pause'));}
 function dismissScreen() {
+  if(view==='ability'){const id=shownAbility,from=new URLSearchParams(location.search).get('from')==='pause'?'pause':'play';if(run.pendingAbility===id)run.pendingAbility=null;save();navigate(routeURL(from));if(from==='pause')document.querySelector(`[data-guide="${id}"]`)?.focus({preventScroll:true});return;}
   if(view==='fullscreen'){const from=new URLSearchParams(location.search).get('from');navigate(routeURL(['home','play','pause','picnic','retry'].includes(from)?from:run?'play':'home'));$('fullscreen').focus({preventScroll:true});return;}
   if(view==='retry')navigate(routeURL('home'));
   else if(view==='pause'||view==='reunion')navigate(routeURL('play'));
@@ -326,9 +351,10 @@ window.addEventListener('keydown',event=>{
   // Resume first, then record the held key: readRoute clears stale input.
   if(view==='pause'&&move&&!event.repeat)dismissScreen();
   if(event.key==='Escape'){event.preventDefault();if(view==='play')pause();else dismissScreen();return;}
-  if(['pause','reunion','retry','fullscreen'].includes(view)&&event.key==='Tab') {
+  if(['pause','reunion','retry','fullscreen','ability'].includes(view)&&event.key==='Tab') {
     const controls=[...$('screen').querySelectorAll('button,a')];
-    if(event.shiftKey&&document.activeElement===controls[0]){event.preventDefault();controls.at(-1).focus();}
+    if(!controls.includes(document.activeElement)){event.preventDefault();(event.shiftKey?controls.at(-1):controls[0])?.focus();}
+    else if(event.shiftKey&&document.activeElement===controls[0]){event.preventDefault();controls.at(-1).focus();}
     else if(!event.shiftKey&&document.activeElement===controls.at(-1)){event.preventDefault();controls[0].focus();}
     return;
   }
@@ -426,9 +452,7 @@ function handleEvents(events) {
     else if(event.type==='goose-warning'){announce('Goose puffing up! Dodge the ring or bonk to interrupt.');}
     else if(event.type==='honk'){sound('honk');}
     else if(event.type==='stun'){if(!bonks.length)sound('stun');announce('Mischief bonked. Keep moving.');}
-    else if(event.type==='rescue'){sound('rescue');toast('Pepper found! +1 heart. Press J to shield the whole train for 3 seconds · 10s recharge. Save it for a tight squeeze!',6500);}
-    else if(event.type==='pee-rescue'){sound('rescue');toast('Pee found! Press K to leave a stink cloud for pursuers · 7s recharge. Use it whenever you need it!',6500);}
-    else if(event.type==='pepperoni-rescue'){sound('rescue');toast('Pepperoni found! Press L for a longer power dash and double boss damage · 8s recharge. Space stays a normal dash.',7000);}
+    else if(['rescue','pee-rescue','pepperoni-rescue'].includes(event.type)){sound('rescue');shownAbility=run.pendingAbility;save();navigate(routeURL('ability'));return;}
     else if(event.type==='boss-open'){sound('key');toast('The vacuum overheated! Dash into it now!',2500);}
     else if(event.type==='boss-hit'){toast(world.powerDash?'Power bonk! Two damage. Vacuum stunned — roll the whole team clear!':'Bonk! One damage. Vacuum stunned — roll the whole team clear!');}
     else if(event.type==='boss-win'){soundtrack.setScene(view,world.room,{bossDefeated:true});sound('win');toast('Sir Sucks-a-Lot is unplugged! Take the path home →',6000);}

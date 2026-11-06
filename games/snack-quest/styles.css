@@ -109,3 +109,14 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 .touch-landscape .objective{left:calc(134px + var(--safe-left));right:calc(158px + var(--safe-right));bottom:calc(8px + var(--safe-bottom));background:#fffdf0cd;font-size:10px}
 .touch-landscape .room-toast{top:calc(50px + var(--safe-top));max-width:calc(100% - 32px - var(--safe-left) - var(--safe-right))}
 .touch-landscape .screen:not(.empty){inset:calc(44px + var(--safe-top)) var(--safe-right) auto var(--safe-left);height:calc(var(--game-height,100dvh) - 44px - var(--safe-top) - var(--safe-bottom))}
+
+.ability-card{display:grid;grid-template-columns:110px minmax(0,1fr);gap:20px;width:600px;max-width:100%;padding:26px;background:#fffdf5;border-radius:22px;box-shadow:0 15px 50px #304b2520;text-align:left}
+.ability-portrait{align-self:center;text-align:center}.ability-portrait canvas{width:110px;height:auto}.ability-portrait strong{font:500 19px 'Fraunces',Georgia,serif}
+.ability-explanation h3{font-size:28px;margin:4px 0 12px}.ability-explanation p{font-size:13px;line-height:1.5;margin:0 0 12px}.ability-explanation .card-eyebrow{font-size:9px}
+.ability-explanation .ability-tip{color:#657650}.ability-facts{display:flex;gap:20px;align-items:center;margin:12px 0;font-size:12px}.ability-team-note{padding:8px;background:#f3e9d7;border-radius:8px;font-size:11px!important}
+.ability-guide{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;margin:10px 0 14px}.ability-guide p{flex-basis:100%;margin:0!important;font-size:11px!important}.ability-guide a{display:flex;align-items:center;min-height:44px;padding:8px 10px;border:1px solid #d6deca;border-radius:9px;font-size:11px;background:#f0f3e5}
+.touch-landscape .screen>.ability-card{width:620px;display:grid;grid-template-columns:100px minmax(0,1fr);gap:16px;text-align:left}
+.touch-landscape .ability-portrait canvas{width:100px;height:auto;margin:0}.touch-landscape .ability-explanation h3{font-size:23px}.touch-landscape .ability-explanation p{font-size:12px;margin-bottom:8px}.touch-landscape .ability-facts{margin:8px 0;font-size:11px}
+@media(max-width:500px){.ability-card{grid-template-columns:1fr;gap:8px}.ability-portrait canvas{width:80px}.ability-portrait strong{display:none}}
+
+.ability-explanation h3:focus{outline:none}

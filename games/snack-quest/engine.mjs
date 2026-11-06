@@ -136,6 +136,7 @@ export function upgradeRun(run) {
   if(run.pepperoniFound===undefined)run.pepperoniFound=false;
   if(run.bossDefeated===undefined)run.bossDefeated=false;
   run.needohFound??=false;
+  run.pendingAbility??=null;
   if(run.peeFound===undefined)run.peeFound=false;
   if(run.tutorialStep===undefined)run.tutorialStep=3;
   run.cooldowns??=freshCooldowns();
@@ -171,12 +172,13 @@ export function createRun(id) {
   return {
     version:2, wideWorlds:true, id, seed:Number.parseInt(id, 36) >>> 0, character:'pepsi', order:roomOrder(),
     room:'meadow', tutorialStep:0, collected:[], trinkets:[], positions:{}, checkpoints:{}, trinketCheckpoints:{}, health:3,
-    needohFound:false, keyFound:false, pepperFound:false, peeFound:false, pepperoniFound:false,bossDefeated:false, basketFound:false, completed:false,
+    pendingAbility:null, needohFound:false, keyFound:false, pepperFound:false, peeFound:false, pepperoniFound:false,bossDefeated:false, basketFound:false, completed:false,
     hits:0, retries:0, revision:0, startedAt:Date.now(),cooldowns:freshCooldowns(),
   };
 }
 export function validRun(value, id) {
   return !!(value && value.version === 2 && value.id === id && /^[a-z0-9]{6,16}$/.test(id) &&
+    (value.pendingAbility==null || typeof value.pendingAbility==='string'&&Object.hasOwn(ABILITIES,value.pendingAbility)&&value[ABILITIES[value.pendingAbility].unlock]===true) &&
     (value.tutorialStep===undefined || Number.isInteger(value.tutorialStep)&&value.tutorialStep>=0&&value.tutorialStep<=3) &&
     (value.cooldowns===undefined || value.cooldowns && !Array.isArray(value.cooldowns) && Object.entries({dash:DASH_COOLDOWN,...Object.fromEntries(Object.entries(ABILITIES).map(([key,spec])=>[key,spec.cooldown]))}).every(([key,max])=>Number.isFinite(value.cooldowns[key])&&value.cooldowns[key]>=0&&value.cooldowns[key]<=max)) &&
     (value.peeFound===undefined || typeof value.peeFound==='boolean') && (!value.peeFound || value.pepperFound) &&
@@ -437,17 +439,17 @@ export function step(world,run,input,dt) {
     else {const dx=p.x-goal.x,dy=p.y-goal.y,d=Math.hypot(dx,dy)||1;move(p,dx/d*(48-d),dy/d*(48-d),world.room);}
   }
   if(world.room==='pond'&&!run.pepperFound&&run.keyFound&&nearGoal<69) {
-    run.pepperFound=true;run.health=Math.min(maxHearts(run),run.health+1);world.buddy={x:p.x-35,y:p.y+10,facing:p.facing};world.followTrail=[{x:p.x,y:p.y}];
+    run.pepperFound=true;run.pendingAbility='bark';run.health=Math.min(maxHearts(run),run.health+1);world.buddy={x:p.x-35,y:p.y+10,facing:p.facing};world.followTrail=[{x:p.x,y:p.y}];
     world.invincible=3;
     particles(world,goal.x,goal.y,'heart');events.push({type:'rescue'});return events;
   }
   if(world.room==='hills'&&!run.peeFound&&canRescuePee(run)&&Math.hypot(p.x-PEE_RESCUE.x,p.y-PEE_RESCUE.y)<55) {
-    run.peeFound=true;
+    run.peeFound=true;run.pendingAbility='stink';
     world.pee=companionSpawn(world.buddy,world.room);world.peeTrail=[{x:world.buddy.x,y:world.buddy.y}];
     world.invincible=3;particles(world,PEE_RESCUE.x,PEE_RESCUE.y,'heart');events.push({type:'pee-rescue'});
   }
   if(world.room==='laundry'&&!run.pepperoniFound&&run.peeFound&&trinketCount(run,'laundry')===2&&nearGoal<55){
-    run.pepperoniFound=true;world.pepperoni=companionSpawn(world.pee,world.room);world.pepperoniTrail=[{x:world.pee.x,y:world.pee.y}];world.invincible=3;
+    run.pepperoniFound=true;run.pendingAbility='power';world.pepperoni=companionSpawn(world.pee,world.room);world.pepperoniTrail=[{x:world.pee.x,y:world.pee.y}];world.invincible=3;
     particles(world,goal.x,goal.y,'heart');events.push({type:'pepperoni-rescue'});
   }
   if(world.room==='orchard'&&!run.basketFound&&run.pepperFound&&nearGoal<43) {
