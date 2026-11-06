@@ -18,6 +18,12 @@
     "title": "Pepsi & Pepper’s Picnic"
   },
   {
+    "path": "/games/snack-quest/",
+    "file": "games/snack-quest/index.html",
+    "analytics": false,
+    "title": "The Great Snack Quest · Pepsi & Pepper"
+  },
+  {
     "app": "happyhours",
     "path": "/happyhours.html",
     "file": "happyhours.html"
