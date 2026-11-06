@@ -66,3 +66,17 @@ body:is([data-view="home"],[data-view="picnic"]) .stage{height:max(460px,calc(10
 .score-details .hearts{margin-top:0}
 .golden-progress{display:inline-flex;align-items:center;gap:4px;white-space:nowrap;font-size:10px;font-weight:650;color:#8e7539}
 .golden-progress svg{width:13px;height:13px;fill:currentColor}
+
+/* Friend moves stay below the playfield, with a short cue for the sock reaction. */
+.playing .frame-bottom:has(.abilities:not([hidden])){display:flex;padding:6px 12px;justify-content:center}
+.frame-bottom:has(.abilities:not([hidden])) #control-hint,.frame-bottom:has(.abilities:not([hidden])) .little-heart{display:none}
+.abilities{display:flex;justify-content:center;gap:8px;width:100%;max-width:570px}
+.ability-button{display:flex;align-items:center;gap:8px;flex:1;min-width:0;min-height:48px;max-width:280px;padding:5px 10px;border:1px solid #b5c4a1;border-radius:11px;background:#e7eed9;text-align:left;letter-spacing:0;box-shadow:0 2px 0 #b8c6a6}
+.ability-button canvas{position:static!important;width:32px;height:36px;flex:none}
+.ability-button span{flex:1;min-width:0}.ability-button b{display:block;font-size:11px;font-weight:700}.ability-button small{display:block;margin-top:4px;font-size:9px;color:#667457}
+.ability-button kbd{font-family:inherit;font-size:10px;padding:3px 6px;background:#fffdf2}
+.pee-ability{background:#f4edca;border-color:#cbbd7d;box-shadow:0 2px 0 #d4c893}
+.ability-button:disabled{background:#f1f1e5;border-color:#dedfcf;box-shadow:none;color:#7e8574;transform:none}.ability-button:disabled canvas{opacity:.6}.ability-button:disabled small{color:#7e8574}
+.cough-cue{position:absolute;top:calc(77% - 84px);width:180px;padding:8px 12px;background:#fbfbeaee;border:1px solid #a4b777;border-radius:14px;transform:translateX(-50%);text-align:center;pointer-events:none;color:#657443;box-shadow:0 3px 0 #879a5620}
+.cough-cue>span{font:italic 18px Georgia,serif}.cough-cue b{font:600 10px "Avenir Next",sans-serif;margin-left:6px}.cough-cue small{display:block;font-size:9px;margin-top:3px}.cough-track{height:3px;background:#e0e7cc;margin-top:6px;border-radius:4px;overflow:hidden}.cough-track i{height:100%;display:block;background:#a6b76c}
+@media(max-width:650px){.playing .frame-bottom:has(.abilities:not([hidden])){padding:5px 7px}.abilities{gap:6px}.ability-button{padding:5px 6px;gap:5px}.ability-button canvas{width:26px;height:30px}.ability-button b{font-size:9px;line-height:1.3}.ability-button small{font-size:8px;line-height:1.3}.ability-button kbd{display:none}}

@@ -4,9 +4,9 @@ function line(c,points,color,width=2){c.strokeStyle=color;c.lineWidth=width;c.li
 function shape(c,draw,color,stroke,width=1.5){c.beginPath();draw(c);c.fillStyle=color;c.fill();if(stroke){c.strokeStyle=stroke;c.lineWidth=width;c.lineJoin='round';c.stroke();}}
 function round(c,x,y,w,h,r,color){c.fillStyle=color;c.beginPath();c.roundRect(x,y,w,h,r);c.fill();}
 
-export function drawCorgi(c,x,y,size,character=false,happy=false,time=0,reduced=false){
+export function drawCorgi(c,x,y,size,character=false,happy=false,time=0,reduced=false,cough=0){
   c.save();c.translate(x,y);c.scale(size/140,size/140);
-  const wiggle=happy&&!reduced?Math.sin(time*24)*.06:0;
+  const wiggle=cough&&!reduced?Math.sin((1-cough)*Math.PI*6)*.065:happy&&!reduced?Math.sin(time*24)*.06:0;
   c.rotate(wiggle);
   const pepper=character===true||character==='pepper';const pee=character==='pee';
   // Plushie reference colors; Pee is the little butter-yellow secret guest.
@@ -27,21 +27,24 @@ export function drawCorgi(c,x,y,size,character=false,happy=false,time=0,reduced=
   // White blaze, fluffy cheeks, and embroidered button eyes.
   shape(c,p=>{p.moveTo(-5,-118);p.quadraticCurveTo(-8,-96,-22,-82);p.bezierCurveTo(-52,-83,-58,-61,-36,-51);p.quadraticCurveTo(0,-32,36,-51);p.bezierCurveTo(58,-61,52,-83,22,-82);p.quadraticCurveTo(8,-96,5,-118);p.closePath();},cream);
   const blink=!reduced&&Math.sin(time*.9+(pepper?1.5:0))>.997;
-  if(happy||blink){
+  if(cough){
+    [-29,29].forEach(ex=>line(c,[[ex-5,-88],[ex,-84],[ex+5,-88]],ink,3));
+  }else if(happy||blink){
     [-29,29].forEach(ex=>{c.strokeStyle=ink;c.lineWidth=3.4;c.lineCap='round';c.beginPath();c.arc(ex,-84,5.3,Math.PI+.2,TAU-.2);c.stroke();});
   }else{
     [-29,29].forEach(ex=>{ellipse(c,ex,-85,4.1,5,ink);ellipse(c,ex-1.2,-86.8,1.2,1.5,'#fff9ed');});
   }
   ellipse(c,-44,-71,9,4.8,'#e5a79a');ellipse(c,44,-71,9,4.8,'#e5a79a');
   shape(c,p=>{p.moveTo(-7,-75);p.quadraticCurveTo(0,-79,7,-75);p.quadraticCurveTo(6,-69,0,-67);p.quadraticCurveTo(-6,-69,-7,-75);},ink);
-  c.strokeStyle=ink;c.lineWidth=2;c.lineCap='round';c.beginPath();c.moveTo(0,-68);c.lineTo(0,-63);c.quadraticCurveTo(-6,-56,-11,-62);c.moveTo(0,-63);c.quadraticCurveTo(6,-56,11,-62);c.stroke();
-  if(happy){shape(c,p=>{p.moveTo(-5,-60);p.lineTo(5,-60);p.quadraticCurveTo(6,-48,0,-49);p.quadraticCurveTo(-6,-48,-5,-60);},'#de9385');}
+  if(cough){ellipse(c,-1,-60,5,6,ink);ellipse(c,13,-59,13,10,cream);ellipse(c,15,-58,7,5,pawShade);}
+  else{c.strokeStyle=ink;c.lineWidth=2;c.lineCap='round';c.beginPath();c.moveTo(0,-68);c.lineTo(0,-63);c.quadraticCurveTo(-6,-56,-11,-62);c.moveTo(0,-63);c.quadraticCurveTo(6,-56,11,-62);c.stroke();
+    if(happy){shape(c,p=>{p.moveTo(-5,-60);p.lineTo(5,-60);p.quadraticCurveTo(6,-48,0,-49);p.quadraticCurveTo(-6,-48,-5,-60);},'#de9385');}}
   const scarf=pee?'#b3a3c1':pepper?'#c97c71':'#8fa789';
   shape(c,p=>{p.moveTo(-29,-43);p.quadraticCurveTo(0,-33,29,-43);p.lineTo(15,-23);p.lineTo(0,-15);p.lineTo(-15,-23);p.closePath();},scarf);
   ellipse(c,0,-30,3.2,3.2,'#f9efd5');
   // One sewn cheek seam gives the characters their plushie feel.
   c.save();c.setLineDash([2,4]);c.strokeStyle=shadow;c.lineWidth=1;c.beginPath();c.moveTo(48,-98);c.quadraticCurveTo(58,-77,46,-65);c.stroke();c.restore();
-  if(happy){drawHeart(c,-68,-126,8,'#cd857c');drawHeart(c,67,-138,6,'#d7998a');}
+  if(happy&&!cough){drawHeart(c,-68,-126,8,'#cd857c');drawHeart(c,67,-138,6,'#d7998a');}
   c.restore();
 }
 
@@ -52,6 +55,8 @@ export function drawTreat(c,type,x,y,size,rotation=0){
   if(['sock','mud','vacuum'].includes(type)){
     ellipse(c,0,0,25,25,'#fae4daaa');
     if(type==='sock'){
+      ellipse(c,0,-3,25,22,'#bacb8180');
+      [[-13,-27],[0,-29],[13,-27]].forEach(([sx,sy])=>{c.strokeStyle='#91a95b';c.lineWidth=2;c.beginPath();c.moveTo(sx,sy);c.bezierCurveTo(sx-6,sy-5,sx+6,sy-8,sx,sy-13);c.stroke();});
       shape(c,p=>{p.moveTo(-7,-20);p.lineTo(9,-20);p.lineTo(9,4);p.quadraticCurveTo(8,11,-1,13);p.lineTo(-12,18);p.quadraticCurveTo(-24,18,-22,8);p.quadraticCurveTo(-20,2,-7,1);p.closePath();},'#9caac0','#71839c',1.5);
       round(c,-8,-20,18,7,2,'#f7eedc');line(c,[[-7,-11],[9,-11]],'#72849c',2);line(c,[[-13,6],[-8,13]],'#f7eedc',2);
     }else if(type==='mud'){
@@ -156,8 +161,28 @@ export function drawBasket(c,w,h,run,basketWidth,time,happy,reduced,crew={pepper
   drawBlanket(c,x,y,bw,Math.max(33,bw*.24));
   const friends=['pepsi',...(crew.pee?['pee']:[]),...(crew.pepper?['pepper']:[])];
   const positions=friends.map((_,i)=>friends.length===1?x:friends.length===2?x+(i?1:-1)*bw*.38:x+(i-1)*bw*.38);
+  if(run.coughRemaining>0){
+    const spread=reduced?1:1+(1-run.coughRemaining)*.2;
+    [-.3,0,.3].forEach((offset,i)=>{
+      const px=x+bw*offset,py=y-size*.45-(i%2)*10;
+      ellipse(c,px,py,bw*.26*spread,24*spread,'#9bb65766');
+      c.strokeStyle='#91a65c80';c.lineWidth=1;c.beginPath();c.ellipse(px,py,bw*.26*spread,24*spread,0,Math.PI,TAU);c.stroke();
+      c.beginPath();c.moveTo(px,py-22);c.bezierCurveTo(px-7,py-29,px+7,py-34,px,py-40);c.stroke();
+    });
+  }
+  if(run.tootRemaining>0){
+    const phase=reduced?.5:1-run.tootRemaining/.9,tx=run.tootX*w;
+    c.save();c.globalAlpha=run.tootRemaining/.9;
+    [-1,0,1].forEach(side=>ellipse(c,tx+side*phase*w*.28,h*.76-phase*h*.45,24+phase*30,16+phase*14,'#c1ce9b80'));
+    c.strokeStyle='#a4b77e';c.lineWidth=2;c.beginPath();c.ellipse(tx,h*.77,w*.32*phase,Math.max(4,h*.52*phase),0,Math.PI,TAU);c.stroke();
+    c.fillStyle='#7b8760';c.font='italic 17px Georgia';c.textAlign='center';c.fillText('poot!',tx,y-size-14-phase*20);c.restore();
+  }
   if(run.mudUntil>run.elapsed){ellipse(c,x-bw*.2,y+13,13,4,'#a68969');ellipse(c,x+bw*.25,y+10,10,4,'#a68969');}
-  friends.forEach((friend,i)=>drawCorgi(c,positions[i],y+17,size*(friend==='pee'?.72:1),friend,happy,time+i*.15,reduced));
+  friends.forEach((friend,i)=>drawCorgi(c,positions[i],y+17,size*(friend==='pee'?.72:1),friend,happy,time+i*.15,reduced,run.coughRemaining));
+  if(run.rescueRemaining>0&&crew.pepper){
+    const px=positions[friends.indexOf('pepper')],rise=reduced?12:(1-run.rescueRemaining/.9)*32;
+    c.save();c.globalAlpha=Math.min(1,run.rescueRemaining*2);drawTreat(c,'biscuit',px-10,y-size-3-rise,15,-.2);drawTreat(c,'strawberry',px+10,y-size-8-rise,15,.2);c.restore();
+  }
   // A stitched rim is the actual catch line; the whole blanket catches treats.
   line(c,[[x-bw*.48,h*.77+4],[x+bw*.48,h*.77+4]],'#b9746880',2);
   c.font='italic 11px Georgia';c.textAlign='center';c.fillStyle='#657950';

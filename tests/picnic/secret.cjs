@@ -17,7 +17,7 @@ const stored=page=>page.evaluate(key=>JSON.parse(localStorage.getItem(key)),KEY)
  try{
   for(const type of ['sock','mud','vacuum']){
    const {context,page}=await seededPage(fixture(5,type),'?view=play&level=5');await start(page);await page.clock.runFor(100);
-   let state=await stored(page);assert.equal(state.runs[5].hearts,2);assert.equal(state.runs[5].lastHazard,type);assert.ok(await page.locator('#catch-message.bad').isVisible());assert.equal(await page.locator('#hearts').getAttribute('aria-label'),'2 of 3 hearts remaining');
+   let state=await stored(page);assert.equal(state.runs[5].hearts,2);assert.equal(state.runs[5].lastHazard,type);assert.ok(await page.locator(type==='sock'?'#cough-cue':'#catch-message.bad').isVisible());assert.equal(await page.locator('#hearts').getAttribute('aria-label'),'2 of 3 hearts remaining');
    if(type==='sock')assert.equal(state.runs[5].caught,4);else assert.match(await page.locator('#effect-status').textContent(),type==='mud'?/Muddy paws: 3s/:/Tiny blanket: 3s/);
    await page.screenshot({path:`${OUTPUT}/hazard-${type}.png`,fullPage:true});await page.getByRole('button',{name:'Pause game'}).click();state=await stored(page);await page.reload();assert.deepEqual((await stored(page)).runs[5],state.runs[5]);await page.clock.runFor(5000);assert.deepEqual((await stored(page)).runs[5],state.runs[5]);
    await context.close();

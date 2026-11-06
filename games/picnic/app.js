@@ -1,10 +1,10 @@
-import { LEVELS, HAZARDS, HAZARD_INFO, CATCH_Y, clamp, createRun, advance, blankSave, parseSave, readRoute, configFor, effectiveWidth, gust, isLevelOpen, nextLevel as nextOpen, crewFor, collectGolden, finishRun } from './engine.mjs?v=4';
-import { drawMeadow, drawPicnic, drawBasket, drawTreat, drawHeart, drawCorgi } from './art.mjs?v=4';
+import { LEVELS, HAZARDS, HAZARD_INFO, CATCH_Y, clamp, createRun, advance, blankSave, parseSave, readRoute, configFor, effectiveWidth, gust, isLevelOpen, nextLevel as nextOpen, crewFor, collectGolden, finishRun, nearbyHazards, useAbility } from './engine.mjs?v=7';
+import { drawMeadow, drawPicnic, drawBasket, drawTreat, drawHeart, drawCorgi } from './art.mjs?v=7';
 const $=id=>document.getElementById(id),canvas=$('scene'),ctx=canvas.getContext('2d'),stage=$('stage'),screen=$('screen');
 const KEY='pepsi-pepper-picnic-v2',LEGACY_KEY='pepsi-pepper-picnic-v1',PEE_KEY='pepsi-pepper-picnic-pee';
 const reduced=matchMedia('(prefers-reduced-motion: reduce)'),keys=new Set();
 let save=blankSave(),route=readRoute(location.search),storageProblem=false,corruptSave=null;
-let width=900,height=440,run=null,pointerId=null,lastFrame=0,sinceSave=0,happyUntil=0,messageUntil=0,particles=[],audio=null,returnFocus=null;
+let width=900,height=440,run=null,pointerId=null,lastFrame=0,sinceSave=0,happyUntil=0,messageUntil=0,particles=[],repelled=[],audio=null,returnFocus=null;
 function announce(message){$('announcement').textContent=message;}
 function showSaveProblem(message){storageProblem=true;$('save-warning').hidden=false;$('save-message').textContent=message;$('save-status').textContent='Progress has not been saved. Keep this tab open.';}
 try{
@@ -44,6 +44,11 @@ function soundMarkup(){
 function wakeAudio(){if(!save.sound)return;try{const Audio=window.AudioContext||window.webkitAudioContext;if(Audio){audio ||= new Audio();audio.resume().catch(()=>{});}}catch{}}
 function chime(kind='catch'){
   if(!save.sound||audio?.state!=='running')return;
+  if(kind==='cough'||kind==='toot'){
+    const count=kind==='cough'?2:1;
+    for(let i=0;i<count;i++){const osc=audio.createOscillator(),gain=audio.createGain(),start=audio.currentTime+i*.18,duration=kind==='cough'?.09:.3;osc.type='triangle';osc.frequency.setValueAtTime(kind==='cough'?310:155,start);osc.frequency.exponentialRampToValueAtTime(kind==='cough'?160:52,start+duration);gain.gain.setValueAtTime(.001,start);gain.gain.linearRampToValueAtTime(.045,start+.012);gain.gain.exponentialRampToValueAtTime(.001,start+duration);osc.connect(gain);gain.connect(audio.destination);osc.start(start);osc.stop(start+duration+.02);}
+    return;
+  }
   const notes=kind==='win'?[523.25,659.25,783.99,1046.5]:kind==='oops'?[220,165]:[720];
   notes.forEach((frequency,i)=>{const osc=audio.createOscillator(),gain=audio.createGain(),start=audio.currentTime+i*.1;osc.type='sine';osc.frequency.value=frequency;gain.gain.setValueAtTime(0,start);gain.gain.linearRampToValueAtTime(.055,start+.012);gain.gain.exponentialRampToValueAtTime(.001,start+.2);osc.connect(gain);gain.connect(audio.destination);osc.start(start);osc.stop(start+.22);});
 }
@@ -58,11 +63,12 @@ function renderNav(){
 function paintIcons(){screen.querySelectorAll('canvas[data-drop]').forEach(element=>{const c=element.getContext('2d');c.scale(2,2);drawTreat(c,element.dataset.drop,20,20,20);});}
 function hazardLegend(types){return `<div class="hazard-list">${types.map(type=>`<div><canvas width="80" height="80" data-drop="${type}" aria-hidden="true"></canvas><span><b>${HAZARD_INFO[type].name}</b><small>${HAZARD_INFO[type].rule}</small></span></div>`).join('')}</div>`;}
 function render(){
-  document.body.dataset.view=route.view;run=save.runs[route.level]||null;particles=[];keys.clear();
+  document.body.dataset.view=route.view;run=save.runs[route.level]||null;particles=[];repelled=[];keys.clear();
   const playing=route.view==='play',open=!playing||isLevelOpen(save,route.level);
   document.body.classList.toggle('playing',playing);canvas.style.touchAction=playing&&open?'none':'auto';
   const friends=crewNames().join(', ');
   canvas.setAttribute('aria-label',playing?`${friends} on the blanket. Catch treats and dodge hazards. Use your mouse, drag, or arrow keys. P or Escape pauses.`:`${friends} in a sunny picnic meadow.`);
+  $('abilities').hidden=true;$('cough-cue').hidden=true;
   $('hud').hidden=!playing||!open;$('catch-message').classList.remove('visible','bad');screen.className='screen';
   $('scene-label').textContent=playing?`LEVEL ${route.level} OF ${LEVELS.length} · ${LEVELS[route.level-1].name.toUpperCase()}`:'☀ A LITTLE ADVENTURE, WITH A LOT OF SNACKS';
   $('scene-detail').textContent=playing?'THREE HEARTS. MANY DO-OVERS.':'EST. WITH LOVE';
@@ -78,7 +84,7 @@ function render(){
   }else if(route.view==='help'){
     title='How to play · Pepsi & Pepper';screen.classList.add('centered');
     const back=route.from==='play'?playURL(route.level,true):['levels','picnic','result','guest','pepper'].includes(route.from)?`?view=${route.from}&level=${route.level}`:'./';
-    screen.innerHTML=`<section class="paper-panel help-panel"><span class="small-tag">SNACKS GOOD. LAUNDRY BAD.</span><h2>Choose your catches.</h2><p>Drag, move your mouse, or use <kbd>←</kbd> <kbd>→</kbd>. Keep enough treats before time runs out. You have <b>three hearts per round</b>.</p>${hazardLegend(HAZARDS)}<p class="help-note">Bad catches cost a heart. Missed snacks don’t. Lose all three hearts or run out of time? Retry that level with your progress intact.</p><p class="help-note"><b>Find your crew:</b> finish level 3 for Pepper. From level 5, collect golden biscuits on three different levels for a secret guest.</p><p class="help-note">Pause with P, Escape, or Ⅱ. Clean runs earn three stars; each hit costs a star.</p>${button('Got it, let’s go',back)}<div><button class="text-link" data-action="backup" style="background:none">Back up progress</button><label class="text-link" for="restore">Restore backup</label><input id="restore" type="file" accept="application/json,.json" class="sr-only"></div></section>`;
+    screen.innerHTML=`<section class="paper-panel help-panel"><span class="small-tag">SNACKS GOOD. LAUNDRY BAD.</span><h2>Choose your catches.</h2><p>Drag, move your mouse, or use <kbd>←</kbd> <kbd>→</kbd>. Keep enough treats before time runs out. You have <b>three hearts per round</b>.</p>${hazardLegend(HAZARDS)}<p class="help-note">Bad catches cost a heart. A stinky sock makes everyone cough for one second; the whole round waits with them. Missed snacks don’t. Lose all three hearts or run out of time? Retry that level with your progress intact.</p><p class="help-note"><b>Find your crew:</b> finish level 3 for Pepper. From level 5, collect golden biscuits on three different levels for a secret guest.</p><p class="help-note"><b>Friend abilities:</b> tap Pepper’s button or press <kbd>1</kbd> to rescue up to two spilled snacks. Your secret guest’s button or <kbd>2</kbd> blows nearby hazards away. Each ability works once per round, after that friend joins.</p><p class="help-note">Pause with P, Escape, or Ⅱ. Clean runs earn three stars; each hit costs a star.</p>${button('Got it, let’s go',back)}<div><button class="text-link" data-action="backup" style="background:none">Back up progress</button><label class="text-link" for="restore">Restore backup</label><input id="restore" type="file" accept="application/json,.json" class="sr-only"></div></section>`;
   }else if(playing){
     title=`${LEVELS[route.level-1].name} · Pepsi & Pepper`;
     if(!open){screen.classList.add('centered');screen.innerHTML=`<section class="paper-panel"><span class="symbol">⌑</span><span class="small-tag">LEVEL ${route.level} · STILL ON THE MAP</span><h2>${LEVELS[route.level-1].name}</h2><p>Finish level ${route.level-1} to open this part of the adventure. Your next stop is level ${nextOpen(save)}.</p>${button('Continue the adventure →',playURL(nextOpen(save)))}<br><a class="text-link" href="?view=levels">See the whole map</a></section>`;}
@@ -94,7 +100,7 @@ function render(){
   }else if(['guest','pepper'].includes(route.view)){
     const pepper=route.view==='pepper',unlocked=pepper?save.pepperUnlocked:save.peeUnlocked,name=pepper?'Pepper':'Pee';
     title=`${unlocked?`You found ${name}!`:'A picnic friend is waiting'} · Pepsi & Pepper`;screen.classList.add('centered');
-    screen.innerHTML=unlocked?`<section class="paper-panel guest-panel" aria-labelledby="guest-title"><button class="guest-close" data-action="close-guest" aria-label="Close friend reveal">×</button><span class="small-tag">${pepper?'EVERY ADVENTURE NEEDS A PARTNER IN CRIME.':'THREE GOLDEN PAW PRINTS. ONE LITTLE SURPRISE.'}</span><canvas id="friend-portrait" width="280" height="320" class="guest-portrait" role="img" aria-label="${name}, a ${pepper?'gray':'butter-yellow'} and white plushie corgi"></canvas><h2 id="guest-title">${pepper?'Pepper joins the adventure!':'You found Pee!'}</h2><p>${pepper?'Pepsi’s favorite partner in snack-related crime.<br>Pepper joins the blanket from level 4.':'A little ray of sunshine followed the golden crumbs.<br>He’s joining the crew from level 5. ♡'}</p><button class="button" data-action="close-guest">Back to our adventure →</button><p class="guest-saved">${storageProblem?'Download a backup to keep your new friend safe.':`${name} will be here whenever you come back.`}</p></section>`:`<section class="paper-panel guest-panel"><button class="guest-close" data-action="close-guest" aria-label="Close friend reveal">×</button><span class="symbol">${pepper?'♡':'✧'}</span><span class="small-tag">A FRIEND IS WAITING</span><h2>${pepper?'Let’s find Pepper.':'A secret picnic guest.'}</h2><p>${pepper?'Finish level 3 to bring Pepper on the adventure.':`Collect a golden biscuit on three different levels from level 5 onward.<br><b>${save.goldenLevels.length} / 3 golden paw prints found.</b>`}</p>${button('Continue the adventure →',playURL(nextOpen(save)))}</section>`;
+    screen.innerHTML=unlocked?`<section class="paper-panel guest-panel" aria-labelledby="guest-title"><button class="guest-close" data-action="close-guest" aria-label="Close friend reveal">×</button><span class="small-tag">${pepper?'EVERY ADVENTURE NEEDS A PARTNER IN CRIME.':'THREE GOLDEN PAW PRINTS. ONE LITTLE SURPRISE.'}</span><canvas id="friend-portrait" width="280" height="320" class="guest-portrait" role="img" aria-label="${name}, a ${pepper?'gray':'butter-yellow'} and white plushie corgi"></canvas><h2 id="guest-title">${pepper?'Pepper joins the adventure!':'You found Pee!'}</h2><p>${pepper?'Pepsi’s favorite partner in snack-related crime.<br>From level 4, tap Pepper’s button (or press 1) to rescue spilled snacks once per round.':'A little ray of sunshine followed the golden crumbs.<br>From level 5, tap Pee’s button (or press 2) for one emergency toot that blows nearby hazards away. ♡'}</p><button class="button" data-action="close-guest">Back to our adventure →</button><p class="guest-saved">${storageProblem?'Download a backup to keep your new friend safe.':`${name} will be here whenever you come back.`}</p></section>`:`<section class="paper-panel guest-panel"><button class="guest-close" data-action="close-guest" aria-label="Close friend reveal">×</button><span class="symbol">${pepper?'♡':'✧'}</span><span class="small-tag">A FRIEND IS WAITING</span><h2>${pepper?'Let’s find Pepper.':'A secret picnic guest.'}</h2><p>${pepper?'Finish level 3 to bring Pepper on the adventure.':`Collect a golden biscuit on three different levels from level 5 onward.<br><b>${save.goldenLevels.length} / 3 golden paw prints found.</b>`}</p>${button('Continue the adventure →',playURL(nextOpen(save)))}</section>`;
     if(unlocked){const c=$('friend-portrait').getContext('2d');c.scale(2,2);drawCorgi(c,70,148,120,pepper?'pepper':'pee',true,0,true);}screen.querySelector('.guest-close')?.focus({preventScroll:true});
   }else if(route.view==='picnic'){
     title='Our happy little picnic · Pepsi & Pepper';
@@ -105,6 +111,7 @@ function render(){
 }
 function renderPlayPanel(){
   if(run.status==='playing'){screen.innerHTML='';screen.classList.remove('centered');return;}
+  $('abilities').hidden=true;$('cough-cue').hidden=true;
   screen.classList.add('centered');const resumed=run.status==='paused'&&run.elapsed>0;
   const config=['won','lost'].includes(run.status)?LEVELS[route.level-1]:configFor(run),classic=run.rules==='classic'&&!['won','lost'].includes(run.status);
   const hint=!resumed&&!classic&&route.level>=5&&!save.peeUnlocked?`<p class="secret-hint">Golden mystery: ${save.goldenLevels.length} / 3 paw prints. Look for one on each level.</p>`:'';
@@ -133,6 +140,28 @@ function finishRound(foundPee=false){
   else if(foundPepper)go(`?view=pepper&level=${level}&from=result`);
   else go(`?view=result&level=${level}`);
 }
+function updateAbilities(){
+  const crew=crewFor(save,route.level),active=route.view==='play'&&run?.status==='playing'&&run.rules!=='classic';
+  $('abilities').hidden=!active||(!crew.pepper&&!crew.pee);
+  if(!active)return;
+  const hazards=nearbyHazards(run).length;
+  $('pepper-ability').hidden=!crew.pepper;$('pee-ability').hidden=!crew.pee;
+  $('pepper-ability').disabled=run.hearts===0||run.pepperUsed||!run.spilledTreats;
+  $('pee-ability').disabled=run.hearts===0||run.peeUsed||!hazards;
+  setText('pepper-state',run.pepperUsed?'Used this round':run.spilledTreats?`Rescue ${run.spilledTreats} snack${run.spilledTreats===1?'':'s'} · 1 use`:'No spilled snacks yet');
+  setText('pee-state',run.peeUsed?'Used this round':hazards?'Emergency toot! · 1 use':'No hazards nearby');
+}
+function activateAbility(friend){
+  if(route.view!=='play')return;
+  const result=useAbility(run,friend,crewFor(save,route.level));if(!result)return;
+  const message=friend==='pepper'?`Pepper rescued ${result.rescued} snack${result.rescued===1?'':'s'}!`:`Emergency toot! ${result.cleared.length} hazard${result.cleared.length===1?'':'s'} cleared.`;
+  if(friend==='pee'&&!reduced.matches)repelled=result.cleared.map(drop=>({...drop,fromX:run.basket,start:performance.now()}));
+  happyUntil=performance.now()+900;wakeAudio();chime(friend==='pee'?'toot':'catch');if(!run.coughRemaining)toast(message,performance.now());announce(message);persist();updateHUD();
+  if(result.finished)finishRound();else canvas.focus({preventScroll:true});
+}
+$('pepper-ability').addEventListener('click',()=>activateAbility('pepper'));
+$('pee-ability').addEventListener('click',()=>activateAbility('pee'));
+for(const friend of ['pepper','pee']){const c=$(`${friend}-token`).getContext('2d');drawCorgi(c,32,67,54,friend,false,0,true);}
 function setText(id,value){const el=$(id),text=String(value);if(el.textContent!==text)el.textContent=text;}
 function updateHUD(){
   if(!run)return;const config=configFor(run);setText('caught',run.caught);setText('goal',config.goal);setText('time',`${Math.max(0,Math.ceil(config.duration-run.elapsed))}s`);setText('level-name',config.name);
@@ -146,6 +175,9 @@ function updateHUD(){
   setText('golden-count',`${save.goldenLevels.length}/3`);
   $('golden-progress').setAttribute('aria-label',`${save.goldenLevels.length} of 3 golden paw prints found`);
   setText('effect-status',effects.join(' · '));
+  $('cough-cue').hidden=route.view!=='play'||run.status!=='playing'||!run.coughRemaining;
+  if(run.coughRemaining){setText('cough-countdown',`${run.coughRemaining.toFixed(1)}s`);$('cough-fill').style.width=`${run.coughRemaining*100}%`;$('cough-cue').style.left=`${clamp(run.basket*width,94,width-94)}px`;}
+  updateAbilities();
 }
 function toast(message,now,bad=false){$('catch-message').textContent=message;$('catch-message').classList.toggle('bad',bad);$('catch-message').classList.add('visible');messageUntil=now+(bad?2200:1600);}
 
@@ -169,16 +201,17 @@ document.addEventListener('change',async event=>{
     if(persist()){renderNav();announce('Adventure restored. Your current rounds and friends were kept.');}
   }catch{announce('That backup could not be read. Your current adventure has not changed.');}event.target.value='';
 });
-function point(event){if(route.view!=='play'||run?.status!=='playing')return;const bounds=canvas.getBoundingClientRect();run.target=clamp((event.clientX-bounds.left)/bounds.width,basketWidth()/2,1-basketWidth()/2);}
+function point(event){if(route.view!=='play'||run?.status!=='playing'||run.coughRemaining>0)return;const bounds=canvas.getBoundingClientRect();run.target=clamp((event.clientX-bounds.left)/bounds.width,basketWidth()/2,1-basketWidth()/2);}
 canvas.addEventListener('pointerdown',event=>{if(run?.status!=='playing'||route.view!=='play')return;event.preventDefault();pointerId=event.pointerId;canvas.setPointerCapture(pointerId);point(event);canvas.focus({preventScroll:true});});
 canvas.addEventListener('pointermove',event=>{if(event.pointerType==='mouse'||pointerId===event.pointerId)point(event);});canvas.addEventListener('pointerup',event=>{if(pointerId===event.pointerId)pointerId=null;});canvas.addEventListener('pointercancel',()=>{pointerId=null;});
 document.addEventListener('keydown',event=>{
   if(event.altKey||event.metaKey||event.ctrlKey||/INPUT|TEXTAREA|SELECT/.test(event.target.tagName))return;
   if(route.view!=='play'){if(event.key==='Escape'&&['guest','pepper'].includes(route.view)){event.preventDefault();closeGuest();}else if(event.key==='Escape'&&['help','levels'].includes(route.view))go(route.from==='play'?playURL(route.level,true):'./');return;}
+  if(['1','2'].includes(event.key)){event.preventDefault();if(!event.repeat)activateAbility(event.key==='1'?'pepper':'pee');return;}
   if(['Escape','p','P'].includes(event.key)){event.preventDefault();if(event.repeat)return;if(run?.status==='playing')pauseGame();else if(run?.status==='paused')startRound();}
   if(['ArrowLeft','ArrowRight','a','A','d','D'].includes(event.key)&&run?.status==='playing'){event.preventDefault();keys.add(event.key.toLowerCase());}
 });
-document.addEventListener('keyup',event=>keys.delete(event.key.toLowerCase()));window.addEventListener('blur',()=>{keys.clear();pauseGame();});document.addEventListener('visibilitychange',()=>{if(document.hidden)pauseGame();});
+document.addEventListener('keyup',event=>{const key=event.key.toLowerCase();keys.delete(key);if(['arrowleft','arrowright','a','d'].includes(key)&&run&&!keys.size)run.target=run.basket;});window.addEventListener('blur',()=>{keys.clear();pauseGame();});document.addEventListener('visibilitychange',()=>{if(document.hidden)pauseGame();});
 window.addEventListener('pagehide',()=>{pauseRun();persist();});window.addEventListener('popstate',()=>{pauseRun();route=readRoute(location.search);render();});
 window.addEventListener('storage',event=>{
   if(event.key===PEE_KEY&&event.newValue==='unlocked'){save.peeUnlocked=true;pauseRun();render();return;}
@@ -193,13 +226,14 @@ function draw(now){
   drawMeadow(ctx,width,height,time,reduced.matches,playing?run.level:1,playing&&!!gust(run));
   if(playing){drawBasket(ctx,width,height,run,basketWidth(),time,now<happyUntil,reduced.matches,crew);
     for(const drop of run.drops)drawTreat(ctx,drop.type,drop.x*width,drop.y*height,clamp(width*.035,22,29),drop.rotation);
+    for(const drop of repelled){const age=(now-drop.start)/1000;if(age>.65)continue;ctx.globalAlpha=1-age/.65;drawTreat(ctx,drop.type,(drop.x+(drop.x>=drop.fromX?1:-1)*age*.8)*width,(drop.y-age*.25)*height,clamp(width*.035,22,29),drop.rotation+age*7);ctx.globalAlpha=1;}
     for(const p of particles){const age=(now-p.start)/1000;if(age>.8)continue;ctx.globalAlpha=1-age/.8;drawHeart(ctx,p.x*width+p.dx*age,CATCH_Y*height-age*60,4.5,'#c77d73');ctx.globalAlpha=1;}
   }else drawPicnic(ctx,width,height,save.completed.length,time,reduced.matches,route.view==='picnic'||(route.view==='result'&&save.results[route.level]?.won),crew);
 }
 function frame(now){
   const dt=Math.min((now-(lastFrame||now))/1000,.05);lastFrame=now;
   if(route.view==='play'&&run?.status==='playing'){
-    const direction=(keys.has('arrowright')||keys.has('d')?1:0)-(keys.has('arrowleft')||keys.has('a')?1:0);if(direction)run.target=clamp(run.target+direction*dt*1.35,basketWidth()/2,1-basketWidth()/2);
+    const direction=(keys.has('arrowright')||keys.has('d')?1:0)-(keys.has('arrowleft')||keys.has('a')?1:0);if(keys.size&&!run.coughRemaining)run.target=direction?clamp(run.basket+direction,basketWidth()/2,1-basketWidth()/2):run.basket;
     const events=advance(run,dt,baseWidth());let foundPee=false;
     if(events.caught.length){
       happyUntil=now+650;
@@ -208,11 +242,11 @@ function frame(now){
       else if(run.caught%5===0)toast(['Excellent snack judgment.','Definitely not a sock. ♡','The corgis approve.'][Math.floor(run.caught/5)%3],now);
       chime();persist();
     }
-    if(events.hits.length){happyUntil=0;const message=HAZARD_INFO[events.hits.at(-1).type].message;toast(message,now,true);announce(`${message} ${run.hearts} hearts remaining.`);chime('oops');persist();}
+    if(events.hits.length){happyUntil=0;const message=HAZARD_INFO[events.hits.at(-1).type].message;if(run.coughRemaining){$('catch-message').classList.remove('visible');messageUntil=0;}else toast(message,now,true);announce(`${message} ${run.hearts} hearts remaining.`);chime(events.hits.at(-1).type==='sock'?'cough':'oops');persist();}
     sinceSave+=dt;if(sinceSave>.5){sinceSave=0;persist();}updateHUD();
     if(events.finished)finishRound(foundPee);
     else if(foundPee){returnFocus=canvas;chime('win');persist();go(`?view=guest&level=${run.level}&from=play`);announce('You found Pee! Your round is paused.');}
   }
-  if(now>messageUntil)$('catch-message').classList.remove('visible');particles=particles.filter(p=>now-p.start<800);draw(now);requestAnimationFrame(frame);
+  if(now>messageUntil)$('catch-message').classList.remove('visible');particles=particles.filter(p=>now-p.start<800);repelled=repelled.filter(drop=>now-drop.start<650);draw(now);requestAnimationFrame(frame);
 }
 render();requestAnimationFrame(frame);

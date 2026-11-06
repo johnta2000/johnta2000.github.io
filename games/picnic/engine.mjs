@@ -21,7 +21,7 @@ const CLASSIC = [
 export const TYPES = ['strawberry','biscuit','orange'];
 export const HAZARDS = ['sock','mud','vacuum'];
 export const HAZARD_INFO = {
-  sock:{name:'Stolen sock', rule:'−1 heart · spills 2 treats', message:'Sock tax! −1 heart, −2 treats.'},
+  sock:{name:'Stinky sock', rule:'−1 heart · spills 2 treats · 1s cough', message:'WHO PACKED THAT? −1 heart, up to 2 treats spilled. One-second cough break.'},
   mud:{name:'Mud pie', rule:'−1 heart · slow paws for 3s', message:'Muddy paws! −1 heart, slow for 3s.'},
   vacuum:{name:'The vacuum', rule:'−1 heart · smaller blanket for 3s', message:'THE LOUD BEAST! −1 heart, tiny blanket.'},
 };
@@ -35,9 +35,30 @@ export const gust = run => { const config=configFor(run);return config.wind && M
 export const isLevelOpen = (save,level) => level===1 || save.completed.includes(level) || save.completed.includes(level-1) || (save.runs[level]?.elapsed>0);
 export const nextLevel = save => LEVELS.findIndex((_,i)=>!save.completed.includes(i+1))+1||1;
 export const crewFor = (save,level=null) => ({pepper:save.pepperUnlocked && (level===null||level>=4),pee:save.peeUnlocked && (level===null||level>=5)});
+const companionDefaults = () => ({coughRemaining:0,pepperUsed:false,peeUsed:false,spilledTreats:0,rescueRemaining:0,tootRemaining:0,tootX:.5});
+export const nearbyHazards = run => run.drops.filter(drop=>HAZARDS.includes(drop.type)&&drop.y>=.25&&drop.y<CATCH_Y&&Math.abs(drop.x-run.basket)<=.32);
+function settleRound(run){
+  const config=configFor(run);
+  if(run.coughRemaining>0)return false;
+  if(run.hearts===0||run.caught>=config.goal||run.elapsed>=config.duration){run.status=run.hearts>0&&run.caught>=config.goal?'won':'lost';return true;}
+  return false;
+}
+export function useAbility(run,friend,crew){
+  if(!run||run.status!=='playing'||run.rules==='classic'||run.hearts===0||!crew?.[friend])return null;
+  if(friend==='pepper'&&run.level>=4&&!run.pepperUsed&&run.spilledTreats>0){
+    const rescued=run.spilledTreats;run.caught+=rescued;run.spilledTreats=0;run.pepperUsed=true;run.rescueRemaining=.9;
+    return {friend,rescued,finished:settleRound(run)};
+  }
+  if(friend==='pee'&&run.level>=5&&!run.peeUsed){
+    const cleared=nearbyHazards(run);if(!cleared.length)return null;
+    run.drops=run.drops.filter(drop=>!cleared.includes(drop));run.dodged+=cleared.length;run.peeUsed=true;run.tootRemaining=.9;run.tootX=run.basket;
+    return {friend,cleared,finished:false};
+  }
+  return null;
+}
 
 export function createRun(level) {
-  return {level:levelNumber(level),rules:'adventure',elapsed:0,spawnIn:.45,caught:0,missed:0,drops:[],basket:.5,target:.5,sequence:0,wave:0,goldenSpawned:false,goldenCaught:false,peeFound:false,status:'ready',counts:{strawberry:0,biscuit:0,orange:0},hearts:3,hits:0,dodged:0,mudUntil:0,frightUntil:0,immuneUntil:0,lastHazard:''};
+  return {level:levelNumber(level),rules:'adventure',elapsed:0,spawnIn:.45,caught:0,missed:0,drops:[],basket:.5,target:.5,sequence:0,wave:0,goldenSpawned:false,goldenCaught:false,peeFound:false,status:'ready',counts:{strawberry:0,biscuit:0,orange:0},hearts:3,hits:0,dodged:0,mudUntil:0,frightUntil:0,immuneUntil:0,lastHazard:'',...companionDefaults()};
 }
 function spawn(run,config,random) {
   if (run.rules==='classic') {
@@ -68,6 +89,13 @@ export function advance(run,delta,normalWidth,random=Math.random) {
   const events={caught:[],hits:[],finished:false};
   if(run.status!=='playing')return events;
   const config=configFor(run),dt=clamp(delta,0,.05);
+  run.rescueRemaining=Math.max(0,run.rescueRemaining-dt);run.tootRemaining=Math.max(0,run.tootRemaining-dt);
+  // A one-second comedy beat freezes the timer, drops, and controls together.
+  if(run.coughRemaining>0){
+    run.coughRemaining=Math.max(0,run.coughRemaining-dt);run.target=run.basket;
+    if(run.coughRemaining===0)events.finished=settleRound(run);
+    return events;
+  }
   run.elapsed=Math.min(config.duration,run.elapsed+dt);
   const width=effectiveWidth(run,normalWidth);
   if(run.rules==='classic')run.basket+=(run.target-run.basket)*Math.min(1,dt*22);
@@ -86,7 +114,10 @@ export function advance(run,delta,normalWidth,random=Math.random) {
       // Brief immunity prevents an overlapping pair from costing multiple hearts.
       if(run.elapsed>=run.immuneUntil){
         run.hearts=Math.max(0,run.hearts-1);run.hits++;run.lastHazard=drop.type;run.immuneUntil=run.elapsed+.9;
-        if(drop.type==='sock')run.caught=Math.max(0,run.caught-2);
+        if(drop.type==='sock'){
+          const spilled=Math.min(2,run.caught);run.caught-=spilled;
+          run.spilledTreats=Math.min(2,run.spilledTreats+spilled);run.coughRemaining=1;run.target=run.basket;
+        }
         if(drop.type==='mud')run.mudUntil=run.elapsed+3;
         if(drop.type==='vacuum')run.frightUntil=run.elapsed+3;
         events.hits.push({...drop});
@@ -100,9 +131,7 @@ export function advance(run,delta,normalWidth,random=Math.random) {
     else run.missed++;
   }
   run.drops=remaining;
-  if(run.hearts===0||run.caught>=config.goal||run.elapsed>=config.duration){
-    run.status=run.hearts>0&&run.caught>=config.goal?'won':'lost';events.finished=true;
-  }
+  events.finished=settleRound(run);
   return events;
 }
 export function collectGolden(save,run) {
@@ -131,6 +160,9 @@ export function validRun(run,level) {
   if(!['missed','hits','dodged','hearts'].every(key=>Number.isInteger(run[key])&&run[key]>=0)||run.hearts>3)return false;
   if(!['mudUntil','frightUntil','immuneUntil'].every(key=>Number.isFinite(run[key])&&run[key]>=0&&run[key]<=config.duration+4))return false;
   if(!['goldenSpawned','goldenCaught','peeFound'].every(key=>typeof run[key]==='boolean'))return false;
+  if(!['pepperUsed','peeUsed'].every(key=>typeof run[key]==='boolean'))return false;
+  if(!['coughRemaining','rescueRemaining','tootRemaining'].every(key=>Number.isFinite(run[key])&&run[key]>=0&&run[key]<=1))return false;
+  if(!Number.isInteger(run.spilledTreats)||run.spilledTreats<0||run.spilledTreats>2||!Number.isFinite(run.tootX)||run.tootX<0||run.tootX>1)return false;
   if(!TYPES.every(type=>Number.isInteger(run.counts?.[type])&&run.counts[type]>=0&&run.counts[type]<=150))return false;
   if(!['',...HAZARDS].includes(run.lastHazard)||!Array.isArray(run.drops)||run.drops.length>100)return false;
   if(run.level<(run.rules==='classic'?2:5)&&(run.goldenCaught||run.drops.some(drop=>drop.type==='golden')))return false;
@@ -148,7 +180,7 @@ export function parseSave(raw) {
   for(let level=1;level<=LEVELS.length;level++){
     const source=value.runs[level];
     if(source){
-      let run=source;
+      let run={...companionDefaults(),...source};
       if(value.version===1){
         const active=source.elapsed>0;
         run={...createRun(level),...source,rules:active?'classic':'adventure',goldenSpawned:source.goldenSpawned===true,goldenCaught:source.peeFound===true,peeFound:source.peeFound===true,drops:(source.drops||[]).map(drop=>({...drop,baseX:drop.x}))};

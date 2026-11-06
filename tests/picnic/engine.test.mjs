@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {LEVELS,HAZARDS,advance,createRun,blankSave,parseSave,readRoute,validRun,configFor,effectiveWidth,isLevelOpen,crewFor,collectGolden,finishRun} from '../../games/picnic/engine.mjs';
+import {LEVELS,HAZARDS,advance,createRun,blankSave,parseSave,readRoute,validRun,configFor,effectiveWidth,isLevelOpen,crewFor,collectGolden,finishRun,useAbility,nearbyHazards} from '../../games/picnic/engine.mjs';
 import {chooseTarget,seeded} from './bot.mjs';
 const drop=(type,x=.5,id=1)=>({id,type,x,baseX:x,y:.769,rotation:0});
 function playing(level=1){const run=createRun(level);run.status='playing';run.spawnIn=10;return run;}
@@ -28,7 +28,8 @@ test('every hazard costs a heart and applies its distinct setback',()=>{
 });
 test('overlapping hazards cannot drain several hearts in one moment; three distinct hits end a round',()=>{
   const run=playing();run.drops=[drop('sock',.5,1),drop('sock',.5,2)];advance(run,.05,.3);assert.equal(run.hearts,2);assert.equal(run.caught,0);
-  for(let hit=0;hit<2;hit++){run.elapsed+=1;run.drops=[drop('sock')];advance(run,.05,.3);}
+  for(let hit=0;hit<2;hit++){for(let i=0;i<21;i++)advance(run,.05,.3);run.elapsed+=1;run.drops=[drop('sock')];advance(run,.05,.3);}
+  assert.equal(run.status,'playing','The last sock still gets its cough reaction');for(let i=0;i<21;i++)advance(run,.05,.3);
   assert.equal(run.status,'lost');assert.equal(run.hearts,0);assert.equal(run.hits,3);
 });
 test('avoided hazards and missed food do not cost hearts, but an unmet goal times out',()=>{
@@ -69,4 +70,37 @@ test('all meaningful routes are addressable; malformed saves are rejected withou
   assert.deepEqual(readRoute('?view=play&level=4&paused=1'),{view:'play',level:4,paused:true,from:'home'});assert.equal(readRoute('?level=999').level,10);assert.equal(readRoute('?level=oops').level,1);
   for(const raw of ['{bad json','{"version":2}'])assert.throws(()=>parseSave(raw));
   const save=blankSave();save.runs[1]=playing();save.runs[1].hearts=-1;assert.throws(()=>parseSave(JSON.stringify(save)));save.runs[1]=playing();save.runs[1].drops=[drop('golden')];assert.throws(()=>parseSave(JSON.stringify(save)));
+});
+
+
+test('a stinky sock freezes the whole round for one second, including the final hit',()=>{
+  const run=playing(5);run.caught=5;run.drops=[drop('sock'),{...drop('orange',.8,2),y:.3}];advance(run,.02,.3);
+  assert.equal(run.coughRemaining,1);assert.equal(run.caught,3);assert.equal(run.spilledTreats,2);
+  const frozen={elapsed:run.elapsed,basket:run.basket,spawnIn:run.spawnIn,drops:structuredClone(run.drops)};
+  run.target=.8;for(let i=0;i<19;i++)advance(run,.05,.3);
+  assert.deepEqual({elapsed:run.elapsed,basket:run.basket,spawnIn:run.spawnIn,drops:run.drops},frozen);
+  assert.ok(run.coughRemaining>0);advance(run,.05,.3);assert.equal(run.coughRemaining,0);advance(run,.02,.3);assert.ok(run.elapsed>frozen.elapsed);
+  run.status='paused';run.coughRemaining=.6;const snapshot=structuredClone(run);advance(run,.05,.3);assert.deepEqual(run,snapshot);
+});
+test('Pepper rescues only real spilled snacks, once per round, with unlock and play-state checks',()=>{
+  const run=playing(4);run.caught=1;run.drops=[drop('sock')];advance(run,.02,.3);assert.equal(run.spilledTreats,1);
+  assert.equal(useAbility(run,'pepper',{pepper:false}),null);run.status='paused';assert.equal(useAbility(run,'pepper',{pepper:true}),null);run.status='playing';
+  const result=useAbility(run,'pepper',{pepper:true});assert.equal(result.rescued,1);assert.equal(run.caught,1);assert.equal(run.hearts,2);assert.equal(run.pepperUsed,true);assert.equal(run.spilledTreats,0);assert.equal(run.coughRemaining,1);
+  run.spilledTreats=2;assert.equal(useAbility(run,'pepper',{pepper:true}),null);assert.equal(createRun(4).pepperUsed,false);
+  const early=playing(1);early.spilledTreats=2;assert.equal(useAbility(early,'pepper',{pepper:true}),null);
+});
+test('Pepper can finish a level with rescued snacks, after a pending cough finishes',()=>{
+  const run=playing(4);run.caught=LEVELS[3].goal-1;run.spilledTreats=1;run.coughRemaining=.2;
+  assert.equal(useAbility(run,'pepper',{pepper:true}).finished,false);assert.equal(run.status,'playing');for(let i=0;i<5;i++)advance(run,.05,.3);assert.equal(run.status,'won');
+  const immediate=playing(4);immediate.caught=LEVELS[3].goal-2;immediate.spilledTreats=2;assert.equal(useAbility(immediate,'pepper',{pepper:true}).finished,true);assert.equal(immediate.status,'won');
+});
+test('Pee clears only nearby falling hazards, never food, and empty attempts do not spend the charge',()=>{
+  const run=playing(7);assert.equal(useAbility(run,'pee',{pee:true}),null);assert.equal(run.peeUsed,false);
+  run.drops=[{...drop('sock'),y:.6},{...drop('mud',.7,2),y:.5},{...drop('vacuum',.1,3),y:.5},{...drop('golden',.5,4),y:.5},{...drop('biscuit',.5,5),y:.5},{...drop('sock',.5,6),y:.1},{...drop('sock',.5,7),y:.8}];
+  assert.equal(nearbyHazards(run).length,2);assert.equal(useAbility(run,'pee',{pee:false}),null);const result=useAbility(run,'pee',{pee:true});assert.equal(result.cleared.length,2);assert.equal(run.dodged,2);assert.equal(run.hearts,3);assert.equal(run.caught,0);assert.deepEqual(run.drops.map(d=>d.id),[3,4,5,6,7]);assert.equal(useAbility(run,'pee',{pee:true}),null);
+});
+test('new effects and spent abilities survive reload; older saves gain unused abilities without losing work',()=>{
+  const save=blankSave(),run=playing(7);Object.assign(run,{coughRemaining:.42,spilledTreats:2,peeUsed:true,tootRemaining:.3,tootX:.7});save.runs[7]=run;save.completed=[1,2,3,4,5,6];const restored=parseSave(JSON.stringify(save));assert.deepEqual(restored.runs[7],run);
+  const old=structuredClone(save);for(const key of ['coughRemaining','pepperUsed','peeUsed','spilledTreats','rescueRemaining','tootRemaining','tootX'])delete old.runs[7][key];const migrated=parseSave(JSON.stringify(old));assert.equal(migrated.runs[7].peeUsed,false);assert.equal(migrated.runs[7].elapsed,run.elapsed);assert.deepEqual(migrated.completed,save.completed);
+  save.runs[7].coughRemaining=10;assert.throws(()=>parseSave(JSON.stringify(save)));
 });
