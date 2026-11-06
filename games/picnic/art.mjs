@@ -8,20 +8,22 @@ export function drawCorgi(c,x,y,size,pepper=false,happy=false,time=0,reduced=fal
   c.save();c.translate(x,y);c.scale(size/140,size/140);
   const wiggle=happy&&!reduced?Math.sin(time*24)*.06:0;
   c.rotate(wiggle);
-  const fur=pepper?'#c58b58':'#dfb47a';const shadow=pepper?'#af7848':'#c79962';const cream='#fff6df';const ink='#594232';
+  // Plushie reference colors: golden-tan Pepsi and warm-gray Pepper, both with white markings.
+  const fur=pepper?'#b1abaa':'#d9af77';const shadow=pepper?'#918987':'#bb925e';const cream='#fcfaf6';const ink='#383431';
+  const innerEar=pepper?'#e7e3e3':'#eee9e5';const pawShade=pepper?'#e8e3e0':'#eee6d9';
   ellipse(c,0,4,64,10,'#68744f20');
   // A little loaf body, with stitched plush seams and stubby paws.
   ellipse(c,0,-36,55,43,fur);ellipse(c,0,-28,34,30,cream);
-  ellipse(c,-40,-3,22,12,fur);ellipse(c,40,-3,22,12,fur);
-  ellipse(c,-39,-2,12,6,'#eed3ac');ellipse(c,39,-2,12,6,'#eed3ac');
+  ellipse(c,-40,-3,22,12,cream);ellipse(c,40,-3,22,12,cream);
+  ellipse(c,-39,-2,12,6,pawShade);ellipse(c,39,-2,12,6,pawShade);
   c.save();c.setLineDash([2,4]);c.strokeStyle=shadow;c.lineWidth=1.1;c.beginPath();c.ellipse(0,-35,47,34,0,0,Math.PI);c.stroke();c.restore();
   // Broad, upright ears and a softly squared corgi head.
   shape(c,p=>{p.moveTo(-52,-83);p.quadraticCurveTo(-72,-150,-51,-143);p.quadraticCurveTo(-25,-132,-22,-106);p.closePath();},fur,shadow);
   shape(c,p=>{p.moveTo(52,-83);p.quadraticCurveTo(72,-150,51,-143);p.quadraticCurveTo(25,-132,22,-106);p.closePath();},fur,shadow);
-  shape(c,p=>{p.moveTo(-49,-105);p.lineTo(-54,-133);p.quadraticCurveTo(-37,-126,-32,-109);},'#e6b2a0');
-  shape(c,p=>{p.moveTo(49,-105);p.lineTo(54,-133);p.quadraticCurveTo(37,-126,32,-109);},'#e6b2a0');
+  shape(c,p=>{p.moveTo(-49,-105);p.lineTo(-54,-133);p.quadraticCurveTo(-37,-126,-32,-109);},innerEar);
+  shape(c,p=>{p.moveTo(49,-105);p.lineTo(54,-133);p.quadraticCurveTo(37,-126,32,-109);},innerEar);
   shape(c,p=>{p.moveTo(-59,-84);p.bezierCurveTo(-63,-112,-36,-123,0,-119);p.bezierCurveTo(36,-123,63,-112,59,-84);p.lineTo(55,-61);p.quadraticCurveTo(47,-40,0,-41);p.quadraticCurveTo(-47,-40,-55,-61);p.closePath();},fur,shadow,1.3);
-  // Cream blaze, fluffy cheeks, and embroidered button eyes.
+  // White blaze, fluffy cheeks, and embroidered button eyes.
   shape(c,p=>{p.moveTo(-5,-118);p.quadraticCurveTo(-8,-96,-22,-82);p.bezierCurveTo(-52,-83,-58,-61,-36,-51);p.quadraticCurveTo(0,-32,36,-51);p.bezierCurveTo(58,-61,52,-83,22,-82);p.quadraticCurveTo(8,-96,5,-118);p.closePath();},cream);
   const blink=!reduced&&Math.sin(time*.9+(pepper?1.5:0))>.997;
   if(happy||blink){

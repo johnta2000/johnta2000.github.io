@@ -1,5 +1,5 @@
 import { LEVELS, TYPES, CATCH_Y, clamp, createRun, advance, blankSave, parseSave, readRoute } from './engine.mjs';
-import { drawMeadow, drawPicnic, drawBasket, drawTreat, drawHeart } from './art.mjs';
+import { drawMeadow, drawPicnic, drawBasket, drawTreat, drawHeart } from './art.mjs?v=2';
 
 const $ = id => document.getElementById(id);
 const canvas = $('scene');
