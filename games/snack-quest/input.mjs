@@ -6,7 +6,8 @@ const directions = new Set(Object.values(codes));
 export function movementKey(event) {
   if (codes[event.code]) return codes[event.code];
   const key = event.key?.toLowerCase();
-  return directions.has(key) ? key : null;
+  if(directions.has(key))return key;
+  return {87:'w',65:'a',83:'s',68:'d'}[event.keyCode||event.which]||null;
 }
 
 export function isTextEntry(target) {

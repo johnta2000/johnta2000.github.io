@@ -1,15 +1,16 @@
 import assert from 'node:assert/strict';
-import { chromium } from 'playwright';
+import { chromium, webkit } from 'playwright';
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { createRun, ROOMS, ORDER } from '../../games/snack-quest/engine.mjs';
 
 const base=process.env.SNACK_QUEST_URL||'http://127.0.0.1:8766/games/snack-quest/';
 const installed=homedir()+'/Library/Caches/ms-playwright/chromium-1243/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing';
-const browser=await chromium.launch({headless:true,...(process.env.PLAYWRIGHT_EXECUTABLE_PATH?{executablePath:process.env.PLAYWRIGHT_EXECUTABLE_PATH}:existsSync(installed)?{executablePath:installed}:{})});
+const useWebKit=process.env.SNACK_QUEST_BROWSER==='webkit';
+const browser=await (useWebKit?webkit:chromium).launch({headless:true,...(process.env.PLAYWRIGHT_EXECUTABLE_PATH?{executablePath:process.env.PLAYWRIGHT_EXECUTABLE_PATH}:!useWebKit&&existsSync(installed)?{executablePath:installed}:{})});
 const errors=[],prefix='pepsi-pepper.snack-quest.v2.';
 const output=process.env.SNACK_QUEST_SCREENSHOTS||'/tmp/snack-quest-v2-qa';mkdirSync(output,{recursive:true});
-async function pageFor(context){const page=await context.newPage();page.on('pageerror',e=>errors.push(e.message));await page.goto(base);await page.locator('#begin').waitFor();await page.evaluate(()=>document.fonts.ready);return page;}
+async function pageFor(context){const page=await context.newPage();page.setDefaultTimeout(10000);page.on('pageerror',e=>errors.push(e.message));await page.goto(base);await page.locator('#begin').waitFor();await page.evaluate(()=>document.fonts.ready);return page;}
 async function seed(page,run,room=run.room,view='play'){
   await page.evaluate(({prefix,run})=>{localStorage.setItem(prefix+run.id,JSON.stringify(run));localStorage.setItem(prefix+'latest',run.id);},{prefix,run});
   await page.goto(`${base}?view=${view}&run=${run.id}&room=${room}`);
@@ -18,13 +19,21 @@ async function seed(page,run,room=run.room,view='play'){
 async function saved(page){return page.evaluate(prefix=>JSON.parse(localStorage.getItem(prefix+new URLSearchParams(location.search).get('run'))),prefix);}
 async function hold(page,key,milliseconds){await page.keyboard.down(key);await page.waitForTimeout(milliseconds);await page.keyboard.up(key);}
 async function waitView(page,view){await page.waitForFunction(view=>new URLSearchParams(location.search).get('view')===view,view);}
-async function waitRoom(page,room){await page.waitForFunction(({room,name})=>new URLSearchParams(location.search).get('room')===room&&document.getElementById('room-name').textContent===name,{room,name:ROOMS[room].name});}
+async function waitRoom(page,room){try{await page.waitForFunction(({room,name})=>new URLSearchParams(location.search).get('room')===room&&document.getElementById('room-name').textContent===name,{room,name:ROOMS[room].name});}catch(error){console.error({url:page.url(),room:await page.locator('#room-name').textContent(),screen:await page.locator('#screen').innerText()});throw error;}}
 async function dismissOutside(page){const box=await page.locator('#screen').boundingBox();await page.mouse.click(box.x+7,box.y+7);}
 try {
   const desktop=await browser.newContext({viewport:{width:1440,height:1000},deviceScaleFactor:1});
   const page=await pageFor(desktop);await page.screenshot({path:output+'/desktop-home.png',fullPage:true});
   assert.equal(await page.locator('[data-character]').count(),0);
   await page.locator('#begin').click();await waitView(page,'play');
+  assert.equal(await page.evaluate(()=>document.activeElement.id),'keyboard-capture','Start focuses a native keyboard control');
+  await page.locator('#control-prompt').waitFor({state:'visible'});
+  await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+  const waitingFrame=await page.locator('#world').evaluate(canvas=>canvas.toDataURL());
+  await page.waitForTimeout(3000);
+  assert.ok(await page.locator('#world').evaluate(canvas=>canvas.toDataURL())===waitingFrame,'toys stay completely still before the first movement input');
+  assert.equal((await saved(page)).health,3);
+  await page.screenshot({path:output+'/desktop-controls-ready.png',fullPage:true});
   // No extra canvas click: every movement key must work immediately after Start.
   let previous={x:135,y:315};
   for(const [key,axis,sign] of [['w','y',-1],['a','x',-1],['s','y',1],['d','x',1]]) {
@@ -42,6 +51,19 @@ try {
   await page.waitForTimeout(300);
   assert.equal((await saved(page)).health,beforeBlur.health,'losing keyboard focus pauses hazards');
   await page.keyboard.press('Escape');await waitView(page,'play');
+  const beforeText=(await saved(page)).positions.meadow;
+  await page.locator('#keyboard-capture').evaluate(input=>input.dispatchEvent(new InputEvent('beforeinput',{inputType:'insertText',data:'d',bubbles:true,cancelable:true})));
+  await page.waitForTimeout(160);await page.keyboard.press('Escape');await waitView(page,'pause');
+  assert.ok((await saved(page)).positions.meadow.x>beforeText.x+12,'embedded text-only input can move Pepsi');
+  await page.keyboard.press('Escape');await waitView(page,'play');
+  const beforeTap=(await saved(page)).positions.meadow;
+  await page.keyboard.press('w');await page.waitForTimeout(60);await page.keyboard.press('Escape');await waitView(page,'pause');
+  assert.ok((await saved(page)).positions.meadow.y<beforeTap.y,'short taps survive a keyup before the next frame');
+  if(process.env.SNACK_QUEST_CONTROLS_ONLY==='1') {
+    assert.deepEqual(errors,[]);
+    console.log('PASS: native keyboard focus, protected start, all four WASD keys, text-only input, brief taps, pause/resume, and focus loss.');
+    await browser.close();process.exit(0);
+  }
   // Use a fresh run for the existing fixed-spawn assertions.
   await page.locator('.brand').click();await page.locator('#fresh').click();await waitView(page,'play');
   await hold(page,'ArrowRight',160);const box=await page.locator('#world').boundingBox();await page.mouse.click(box.x+box.width*.8,box.y+box.height*.6);
@@ -60,7 +82,7 @@ try {
   await page.locator('#reunion-continue').click();await waitRoom(page,'orchard');assert.equal((await saved(page)).health,4);assert.equal(await page.locator('#save-error').isVisible(),false,'read-only copied link does not create a save conflict');
   await page.screenshot({path:output+'/desktop-final-area.png',fullPage:true});
   // A real hazard hit and defeat, with no game-state test hooks.
-  const damage=createRun('damage123');damage.health=1;damage.positions.meadow={x:300,y:350};await seed(page,damage);await page.waitForURL(/view=retry/,{timeout:10000});assert.equal((await saved(page)).health,0);assert.equal((await saved(page)).hits,1);
+  const damage=createRun('damage123');damage.health=1;damage.positions.meadow={x:300,y:350};await seed(page,damage);await page.keyboard.press('w');await page.waitForURL(/view=retry/,{timeout:10000});assert.equal((await saved(page)).health,0);assert.equal((await saved(page)).hits,1);
   const lostURL=page.url();await page.reload();await page.locator('#retry').waitFor();assert.equal(page.url(),lostURL);await page.screenshot({path:output+'/desktop-retry.png',fullPage:true});
   await page.locator('#retry').click();await waitView(page,'play');assert.equal((await saved(page)).health,3);assert.equal((await saved(page)).retries,1);
   const final=createRun('finaltest');final.keyFound=true;final.pepperFound=true;final.health=4;final.room='orchard';final.positions.orchard={x:780,y:160};await seed(page,final);

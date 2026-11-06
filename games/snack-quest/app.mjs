@@ -1,10 +1,11 @@
-import { ROOMS, ORDER, WIDTH, HEIGHT, createRun, validRun, migrateRun, makeWorld, maxHearts, goalDone, isUnlocked, firstUnfinished, objective, retryRoom, step, startDash } from './engine.mjs?v=5';
-import { portrait, drawWorld, drawPicnic } from './art.mjs?v=5';
-import { movementKey, isTextEntry } from './input.mjs?v=5';
-import { Soundscape } from './audio.mjs?v=5';
+import { ROOMS, ORDER, WIDTH, HEIGHT, createRun, validRun, migrateRun, makeWorld, maxHearts, goalDone, isUnlocked, firstUnfinished, objective, retryRoom, step, startDash } from './engine.mjs?v=6';
+import { portrait, drawWorld, drawPicnic } from './art.mjs?v=6';
+import { movementKey, isTextEntry } from './input.mjs?v=6';
+import { Soundscape } from './audio.mjs?v=6';
 
 const $ = id => document.getElementById(id);
 const canvas=$('world'), ctx=canvas.getContext('2d');
+const keyboardCapture=$('keyboard-capture');
 const PREFIX='pepsi-pepper.snack-quest.v2.', LEGACY='pepsi-pepper.snack-quest.v1.';
 const memory=new Map(), savedSnapshots=new Map(), keys=new Set();
 const soundtrack=new Soundscape();
@@ -12,6 +13,7 @@ const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
 let run=null, world=null, view='home', viewportWidth=WIDTH, lastFrame=0, saveElapsed=0;
 let toastUntil=0, animationTime=0, soundOn=false, latestId=null;
 let readFailed=false, saveFailed=false, conflict=false, backdropDown=false;
+let controlsReady=false,pendingMove=null,textRelease=0;
 try {
   latestId=localStorage.getItem(PREFIX+'latest')||localStorage.getItem(LEGACY+'latest');
   soundOn=(localStorage.getItem(PREFIX+'sound')||localStorage.getItem(LEGACY+'sound'))==='true';
@@ -87,18 +89,22 @@ function toast(message,duration=3200){$('room-toast').textContent=message;$('roo
 function paintInput() {
   document.querySelectorAll('[data-move]').forEach(key => key.classList.toggle('pressed',keys.has(key.dataset.move)));
 }
-function clearInput(){keys.clear();paintInput();}
+function clearInput(){keys.clear();pendingMove=null;clearTimeout(textRelease);keyboardCapture.value='';paintInput();}
+function readyToMove(key) {
+  controlsReady=true;$('control-prompt').hidden=true;
+  keys.add(key);pendingMove=inputDirection();paintInput();
+}
 function focusGame() {
   if(view!=='play')return;
-  canvas.focus({preventScroll:true});
-  // WebKit can finish a native button's focus change after the click handler.
-  // Reclaim the game on the next paint, without taking focus from a text field.
+  // A real text control gives embedded WebKit a native keyboard responder;
+  // focusing a canvas alone can leave physical typing with the host app.
+  keyboardCapture.focus({preventScroll:true});
   requestAnimationFrame(()=>{
-    if(view==='play'&&document.hasFocus()&&!isTextEntry(document.activeElement))canvas.focus({preventScroll:true});
+    if(view==='play'&&document.hasFocus()&&!isTextEntry(document.activeElement))keyboardCapture.focus({preventScroll:true});
   });
 }
 function readRoute() {
-  clearInput();
+  clearInput();controlsReady=false;
   const query=new URLSearchParams(location.search),requested=query.get('view')||'home';
   view=['home','play','pause','reunion','retry','picnic'].includes(requested)?requested:'home';
   const id=query.get('run'),requestedRoom=query.get('room');
@@ -137,6 +143,7 @@ function render() {
   document.body.classList.toggle('playing',['play','pause','reunion','retry'].includes(view));
   $('pause').hidden=view!=='play';$('pause').href=routeURL('pause');
   $('screen').className='screen';$('objective').hidden=view!=='play';$('dash-meter').hidden=view!=='play';$('room-toast').hidden=true;
+  $('control-prompt').hidden=view!=='play'||controlsReady;
   $('room-kicker').textContent=view==='home'?'PEPSI’S LITTLE ADVENTURE':view==='picnic'?'BOTH HOME. BOTH HAPPY.':`CHAPTER ${ORDER.indexOf(world.room)+1} OF 3`;
   $('room-name').textContent=view==='home'?'One friend is missing.':view==='picnic'?'Home is wherever you are':ROOMS[world.room].name;
   $('location-icon').textContent=view==='picnic'?'♡':world?.room==='pond'?'♧':'✿';
@@ -184,7 +191,7 @@ function resize() {
 }
 new ResizeObserver(resize).observe($('stage'));
 function inputDirection(){return {x:Number(keys.has('d'))-Number(keys.has('a')),y:Number(keys.has('s'))-Number(keys.has('w'))};}
-function dash(){if(view==='play'&&run.health>0&&startDash(world,inputDirection()))sound('dash');}
+function dash(){if(view==='play'&&controlsReady&&run.health>0&&startDash(world,inputDirection()))sound('dash');}
 function pause(){if(view==='play')navigate(routeURL('pause'));}
 function dismissScreen() {
   if(view==='retry')navigate(routeURL('home'));
@@ -192,7 +199,7 @@ function dismissScreen() {
 }
 
 window.addEventListener('keydown',event=>{
-  if(event.metaKey||event.ctrlKey||event.altKey||isTextEntry(event.target))return;
+  if(event.metaKey||event.ctrlKey||event.altKey||(event.target!==keyboardCapture&&isTextEntry(event.target)))return;
   soundtrack.unlock();
   const move=movementKey(event);
   // Resume first, then record the held key: readRoute clears stale input.
@@ -205,11 +212,22 @@ window.addEventListener('keydown',event=>{
     return;
   }
   if(view!=='play')return;
-  if(move){event.preventDefault();event.stopPropagation();keys.add(move);paintInput();focusGame();}
+  if(move){event.preventDefault();event.stopPropagation();readyToMove(move);focusGame();}
   else if((event.code==='Space'||event.key===' ')&&!event.target.closest?.('button,a')){event.preventDefault();event.stopPropagation();if(!event.repeat)dash();}
+  else if(event.target===keyboardCapture&&event.key!=='Tab')event.preventDefault();
   else if(event.key.startsWith('Arrow')&&event.target===canvas)event.preventDefault();
 },{capture:true});
 window.addEventListener('keyup',event=>{const move=movementKey(event);if(move){keys.delete(move);paintInput();}},{capture:true});
+// Some embedded browsers deliver text insertion without a keydown/up pair.
+// Translate only WASD into a short movement pulse; never store typed text.
+keyboardCapture.addEventListener('beforeinput',event=>{
+  event.preventDefault();
+  if(view!=='play')return;
+  const move=movementKey({key:event.data});
+  if(move){readyToMove(move);clearTimeout(textRelease);textRelease=setTimeout(()=>{keys.clear();paintInput();},110);}
+});
+keyboardCapture.addEventListener('input',()=>{keyboardCapture.value='';});
+$('focus-controls').addEventListener('click',focusGame);
 window.addEventListener('blur',()=>{soundtrack.setForeground(false);clearInput();pause();});
 window.addEventListener('focus',()=>soundtrack.setForeground(!document.hidden));
 window.addEventListener('pointerdown',()=>soundtrack.unlock(),{capture:true});
@@ -286,8 +304,9 @@ function frame(now) {
   if(!document.hidden) {
     animationTime+=dt;
     soundtrack.tick();
-    if(view==='play'&&world) {
-      handleEvents(step(world,run,inputDirection(),dt));
+    if(view==='play'&&world&&controlsReady&&document.hasFocus()) {
+      const held=inputDirection(),direction=held.x||held.y?held:pendingMove||held;pendingMove=null;
+      handleEvents(step(world,run,direction,dt));
       saveElapsed+=dt;if(saveElapsed>1){save();saveElapsed=0;}
       $('dash-fill').style.width=`${Math.max(0,1-world.cooldown/.95)*100}%`;
       $('dash-label').textContent=world.cooldown>0?'catching breath':'dash ready';

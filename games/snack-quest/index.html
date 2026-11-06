@@ -8,14 +8,14 @@
   <meta property="og:title" content="Pepsi & Pepper · The Great Snack Quest">
   <meta property="og:description" content="A lost friend, three hearts, and one very brave little loaf. WASD to move. Space to dash.">
   <title>The Great Snack Quest · Pepsi & Pepper</title>
-  <link rel="icon" type="image/svg+xml" href="./icon.svg?v=5">
-  <link rel="stylesheet" href="./styles.css?v=5">
-  <script type="module" src="./app.mjs?v=5"></script>
+  <link rel="icon" type="image/svg+xml" href="./icon.svg?v=6">
+  <link rel="stylesheet" href="./styles.css?v=6">
+  <script type="module" src="./app.mjs?v=6"></script>
 </head>
 <body>
   <div class="page-shell">
     <header class="masthead">
-      <a class="brand" href="./" aria-label="Snack Quest home"><img src="./icon.svg?v=5" width="38" height="38" alt=""><span>pepsi <i>&</i> pepper<small>THE LITTLE ADVENTURE CLUB</small></span></a>
+      <a class="brand" href="./" aria-label="Snack Quest home"><img src="./icon.svg?v=6" width="38" height="38" alt=""><span>pepsi <i>&</i> pepper<small>THE LITTLE ADVENTURE CLUB</small></span></a>
       <div class="header-actions"><span class="keyboard-badge">A KEYBOARD ADVENTURE</span><button id="sound" class="icon-button sound-button" aria-label="Turn music and sound effects on" aria-pressed="false"></button></div>
     </header>
     <main>
@@ -29,8 +29,10 @@
         </div>
         <div class="stage" id="stage">
           <canvas id="world" width="1000" height="620" tabindex="0" aria-keyshortcuts="W A S D Space Escape" aria-label="Use W A S D to move Pepsi. Space dashes, breaks crates, and stuns toys. Escape pauses. Find a key, rescue Pepper, then bring the picnic basket home.">This game requires JavaScript, canvas, and a keyboard. Use WASD to move and Space to dash.</canvas>
+          <input id="keyboard-capture" class="keyboard-capture" type="text" inputmode="none" autocomplete="off" autocapitalize="off" spellcheck="false" tabindex="-1" aria-label="Game controls: W A S D to roll, Space to dash, Escape to pause.">
           <div id="room-toast" class="room-toast" aria-live="polite" hidden></div>
           <div id="screen" class="screen"></div>
+          <div id="control-prompt" class="control-prompt" role="status" hidden><strong>Press W A S D to start rolling</strong><span>The toys will wait until you’re ready.</span><button id="focus-controls" type="button">Click here to focus the controls</button></div>
           <div class="objective" id="objective" hidden><span id="objective-icon">◇</span><span id="objective-text"></span></div>
           <div class="dash-meter" id="dash-meter" hidden><span>SPACE</span><div><i id="dash-fill"></i></div><small id="dash-label">dash ready</small></div>
         </div>
