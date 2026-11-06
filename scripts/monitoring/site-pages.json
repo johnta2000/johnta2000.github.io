@@ -12,6 +12,12 @@
     "file": "burgery/index.html"
   },
   {
+    "path": "/games/corgi-days/",
+    "file": "games/corgi-days/index.html",
+    "analytics": false,
+    "title": "Corgi Days · Your little daily happiness"
+  },
+  {
     "path": "/games/picnic/",
     "file": "games/picnic/index.html",
     "analytics": false,
@@ -105,6 +111,12 @@
     "file": "tools/costco/index.html",
     "analytics": false,
     "title": "Costco archive — John Ta"
+  },
+  {
+    "path": "/tools/investing/",
+    "file": "tools/investing/index.html",
+    "analytics": false,
+    "title": "The long game · Investing lab"
   },
   {
     "app": "jsx",
@@ -259,11 +271,5 @@
     "file": "war-room-10012026/index.html",
     "analytics": false,
     "title": "October 1, 2026 · Launch War Room"
-  },
-  {
-    "path": "/tools/investing/",
-    "file": "tools/investing/index.html",
-    "analytics": false,
-    "title": "The long game · Investing lab"
   }
 ]
