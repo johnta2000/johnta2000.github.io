@@ -9,7 +9,7 @@ export async function requireOwner(ctx: Pick<QueryCtx, 'auth'>) {
   const email = user?.email?.trim().toLowerCase();
   if (!user?.subject || user.issuer !== 'https://clerk.john-ta.com' ||
     (user.emailVerified !== true && user.emailVerified !== undefined) ||
-    !['johnta2018@gmail.com', 'john@affil.ai'].includes(email || '')) {
+    !['johnta2018@gmail.com', 'john@affil.ai', 'vivek@affil.ai'].includes(email || '')) {
     throw Error('This account is not authorized for PDP approvals.');
   }
   return email!;

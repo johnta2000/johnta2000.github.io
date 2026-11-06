@@ -139,8 +139,7 @@
       let blob=kind==='capture'?await storedCapture('read',key,null,s.id,current):null;
       if(current!==epoch)throw Error('Your session changed.');
       if(!blob){
-        const token=await tokenFor(s);if(current!==epoch)throw Error('Your session changed.');
-        const response=await fetch('https://rapid-shark-565.convex.site/pdp-approval-file?key='+encodeURIComponent(key)+'&kind='+kind,{headers:{Authorization:'Bearer '+token},cache:'no-store',signal:AbortSignal.any([entry.controller.signal,AbortSignal.timeout(30000)])});
+        const response=await authenticatedFetch('https://rapid-shark-565.convex.site/pdp-approval-file?key='+encodeURIComponent(key)+'&kind='+kind,{cache:'no-store',signal:AbortSignal.any([entry.controller.signal,AbortSignal.timeout(30000)])},s,current);
         if(!response.ok)throw Error('Could not load the private file. Try again.');
         blob=await response.blob();if(current!==epoch)throw Error('Your session changed.');
         if(kind==='capture')await storedCapture('write',key,blob,s.id,current);
@@ -162,20 +161,28 @@
     $('workspace').hidden=true; $('editor').hidden=true; $('add').hidden=true; $('detail').replaceChildren(); $('list').replaceChildren(); $('form').reset(); initialForm=''; $('search').value=''; $('message').textContent=''; $('save-message').textContent='';$('draft-status').textContent='';$('draft-list').replaceChildren();
     for (const id of ['total','paired','missing','strict']) $(id).textContent='0';
   }
-  async function tokenFor(s) {
-    const token = await s.getToken();
+  async function tokenFor(s,refresh=false) {
+    const options=refresh?{skipCache:true}:{},token=await s.getToken(options);
     try { const p=JSON.parse(atob(token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/'))); if(p.aud==='convex'||Array.isArray(p.aud)&&p.aud.includes('convex'))return token; }catch{}
-    try { return await s.getToken({template:'convex'}); }catch{return token;}
+    try { return await s.getToken({...options,template:'convex'})||token; }catch{return token;}
+  }
+  async function authenticatedFetch(url,options,s=session,current=epoch){
+    for(let attempt=0;attempt<2;attempt++){
+      const token=await tokenFor(s,attempt===1);if(current!==epoch)throw Error('Your session changed.');
+      if(!token)throw Error('Sign out and sign in again to renew your access.');
+      const response=await fetch(url,{...options,headers:{...options.headers,Authorization:'Bearer '+token}});
+      if(current!==epoch)throw Error('Your session changed.');
+      if(response.status!==401||attempt===1)return response;
+    }
   }
   async function api(name,args={}, mutation=false) {
     const current = epoch, s = session;
     if (!s) throw Error('Sign in to continue.');
-    const token = await tokenFor(s);
-    if (current !== epoch || !token) throw Error('Your session changed.');
-    const response = await fetch(API+'/api/'+(mutation==='action'?'action':mutation?'mutation':'query'),{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({path:'pdpApprovals:'+name,args}),signal:AbortSignal.timeout(20000),cache:'no-store'});
-    const result = await response.json();
+    const response = await authenticatedFetch(API+'/api/'+(mutation==='action'?'action':mutation?'mutation':'query'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({path:'pdpApprovals:'+name,args,format:'json'}),signal:AbortSignal.timeout(20000),cache:'no-store'},s,current);
+    let result;try{result=await response.json();}catch{throw Error('The library service returned an unexpected response (HTTP '+response.status+'). Please try again.');}
     if (current !== epoch) throw Error('Your session changed.');
-    if(!response.ok||result.status!=='success')throw Error(result.errorMessage?.replace(/^.*?Uncaught Error: /s,'').split('\n')[0]||'Could not save or load. Please try again.');
+    if(response.status===401)throw Error('Your sign-in could not be renewed. Sign out and sign in again. (HTTP 401'+(result.code?' · '+result.code:'')+')');
+    if(!response.ok||result.status!=='success')throw Error((result.errorMessage||result.message||'Could not save or load. Please try again.').replace(/^.*?Uncaught Error: /s,'').split('\n')[0]+(!response.ok?' (HTTP '+response.status+')':''));
     return result.value;
   }
   function route(changes={},replace=false){
@@ -316,7 +323,7 @@
   function changed({session:next}) {
     if(next===undefined)return;const id=next?.id||null;if(id===sessionId)return;sessionId=id;session=next||null;++epoch;clearPrivate();void storedCapture('prune');$('gate').hidden=false;$('sign-out').hidden=!session;
     if(session){$('gate-message').textContent='Opening your private library…';void load();return;}
-    $('sign-in').hidden=false;$('gate-message').textContent='Sign in with your approved owner account to access PDP records.';
+    $('sign-in').hidden=false;$('gate-message').textContent='Sign in with your approved email address to access PDP records.';
     if(!mounted){const dest=location.href.split('#')[0];window.Clerk.mountSignIn($('sign-in'),{routing:'hash',withSignUp:false,forceRedirectUrl:dest,signUpForceRedirectUrl:dest});mounted=true;}
   }
   $('form').onsubmit=async event=>{

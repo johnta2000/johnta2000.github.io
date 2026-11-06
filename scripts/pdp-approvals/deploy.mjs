@@ -46,19 +46,26 @@ for (const table of ownSchema.tables) {
 const snapshot = await request('/api/get_config', { adminKey: credentials.adminKey, version: '1.41.0' });
 const definition = snapshot.modules?.find(m => m.path === 'convex.config.js');
 if (!definition || hash(definition) !== before.moduleHashes.find(m => m.path === definition.path)?.hash) throw Error('Could not verify current app definition.');
-const baseHttp=snapshot.modules.find(m=>m.path==='pdpApprovalBaseHttp.js') || {...snapshot.modules.find(m=>m.path==='http.js'),path:'pdpApprovalBaseHttp.js'};
-if(!baseHttp.source)throw Error('Live HTTP module is missing.');
-const httpBundle=await build({absWorkingDir:projectRoot,stdin:{contents:"import http from './pdpApprovalBaseHttp.js';import {file,preflight} from './pdpApprovalFileHttp';for(const method of ['GET','OPTIONS'])http.exactRoutes.get('/pdp-approval-file')?.delete(method);http.route({path:'/pdp-approval-file',method:'GET',handler:file});http.route({path:'/pdp-approval-file',method:'OPTIONS',handler:preflight});export default http;",resolveDir:projectRoot+'/convex',sourcefile:'http.ts'},bundle:true,write:false,platform:'browser',format:'esm',target:'esnext',external:['./pdpApprovalBaseHttp.js']});
-const httpModule={path:'http.js',source:httpBundle.outputFiles[0].text,environment:'isolate'};
-const changedModules=[ownModule,httpModule,baseHttp];
+// Extend the current live router so later tools and their routes are retained.
+const liveHttp=snapshot.modules.find(m=>m.path==='http.js');
+if(!liveHttp?.source)throw Error('Live HTTP module is missing.');
+const routerExport=liveHttp.source.match(/export\s*\{\s*(\w+)\s+as\s+default\s*\}/);
+if(!routerExport)throw Error('Unrecognized live router export.');
+const marker='file as pdpApprovalsPrivateFile';
+const httpModule={...liveHttp};delete httpModule.sourceMap;
+if(!httpModule.source.includes(marker))httpModule.source="import {file as pdpApprovalsPrivateFile,preflight as pdpApprovalsPreflight} from './pdpApprovalFileHttp.js';\n"+httpModule.source+`\nfor(const method of ['GET','OPTIONS']) ${routerExport[1]}.exactRoutes.get('/pdp-approval-file')?.delete(method);${routerExport[1]}.route({path:'/pdp-approval-file',method:'GET',handler:pdpApprovalsPrivateFile});${routerExport[1]}.route({path:'/pdp-approval-file',method:'OPTIONS',handler:pdpApprovalsPreflight});\n`;
+const fileBundle=await build({absWorkingDir:projectRoot,entryPoints:['convex/pdpApprovalFileHttp.ts'],bundle:true,write:false,platform:'browser',format:'esm',target:'esnext'});
+const fileModule={path:'pdpApprovalFileHttp.js',source:fileBundle.outputFiles[0].text,environment:'isolate'};
+const changedModules=[ownModule,httpModule,fileModule];
 const changedPaths=new Set(changedModules.map(m=>m.path));
 const beforeSpec = await client.query('_system/cli/modules:apiSpec', {});
-const members = [{email:'john@affil.ai'}, {email:'johnta2018@gmail.com'}];
+const members = [{email:'john@affil.ai'}, {email:'johnta2018@gmail.com'}, {email:'vivek@affil.ai'}];
 if (mode !== 'verify') {
   const dryRun = mode === 'dry-run';
-  const push = { adminKey: credentials.adminKey, dryRun, functions: before.config.functions, appDefinition: { definition, dependencies: [], schema: { path: 'schema.js', source: `const active=${JSON.stringify(JSON.stringify(merged))};\nexport default {export(){return active;}};\n`, environment: 'isolate' }, changedModules, unchangedModuleHashes: before.moduleHashes.filter(m => !changedPaths.has(m.path) && ![definition.path,'schema.js'].includes(m.path)).map(m => ({ path: m.path, environment: m.environment, sha256: m.hash })), udfServerVersion: before.udfServerVersion }, componentDefinitions: [], nodeDependencies: before.nodeDependencies || [], ...(before.nodeVersion ? { nodeVersion: before.nodeVersion } : {}) };
+  const push = { adminKey: credentials.adminKey, dryRun, functions: before.config.functions, appDefinition: { definition:null, dependencies: [], schema: { path: 'schema.js', source: `const active=${JSON.stringify(JSON.stringify(merged))};\nexport default {export(){return active;}};\n`, environment: 'isolate' }, changedModules, unchangedModuleHashes: before.moduleHashes.filter(m => !changedPaths.has(m.path) && m.path!=='schema.js').map(m => ({ path: m.path, environment: m.environment, sha256: m.hash })), udfServerVersion: before.udfServerVersion }, componentDefinitions: [], nodeDependencies: before.nodeDependencies || [], ...(before.nodeVersion ? { nodeVersion: before.nodeVersion } : {}) };
   console.log(JSON.stringify({ mode, changedModules: [...changedPaths], retainedModules: push.appDefinition.unchangedModuleHashes.length, changedTables: ownSchema.tables.map(t=>t.tableName) }));
   const start = await request('/api/deploy2/start_push', push, true);
+  console.log(JSON.stringify({authProviders:start.appAuth}));
   let state; do { state = await request('/api/deploy2/wait_for_schema', { adminKey: credentials.adminKey, schemaChange: start.schemaChange, timeoutMs: 10000, dryRun }); if (!['inProgress','complete'].includes(state.type)) throw Error('Schema validation failed.'); } while (state.type === 'inProgress');
   // New indexes are limited to the two new PDP tables by the exact merged-schema check.
   if (canonical((await metadata()).moduleHashes) !== canonical(before.moduleHashes)) throw Error('Concurrent backend change; do not finish.');
