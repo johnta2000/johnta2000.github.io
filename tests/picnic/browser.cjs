@@ -67,6 +67,28 @@ async function start(page) { await page.getByRole('button', { name: /Let’s cat
       await page.getByRole('link', { name: 'Next picnic' }).click();
       assert.match(page.url(), new RegExp(`view=play&level=${level}`));
       await start(page);await page.clock.runFor(31000);
+      if (level === 2) {
+        assert.match(page.url(), /view=guest&level=2&from=play/);
+        assert.ok(await page.getByRole('heading', { name: 'You found Pee!' }).isVisible());
+        assert.equal((await stored(page)).peeUnlocked, true);
+        await fits(page, 'desktop Pee reveal');
+        const discovery = (await stored(page)).runs[2];
+        await page.clock.runFor(5000);assert.equal((await stored(page)).runs[2].elapsed, discovery.elapsed);
+        await page.getByRole('heading', { name: 'You found Pee!' }).click();assert.match(page.url(), /view=guest/);
+        const panel = await page.locator('.guest-panel').boundingBox();
+        const stage = await page.locator('#stage').boundingBox();
+        await page.mouse.move(panel.x+30,panel.y+30);await page.mouse.down();
+        await page.mouse.move(stage.x+5,stage.y+5);await page.mouse.up();assert.match(page.url(), /view=guest/);
+        await page.reload();assert.ok(await page.getByRole('heading', { name: 'You found Pee!' }).isVisible());
+        assert.equal((await stored(page)).runs[2].elapsed, discovery.elapsed);
+        await page.clock.runFor(50);await page.screenshot({path:`${OUTPUT}/desktop-pee-reveal.png`,fullPage:true});
+        await page.getByRole('button',{name:'Close guest reveal'}).click();assert.match(page.url(), /view=play&level=2/);
+        assert.equal(await page.evaluate(()=>document.activeElement.id),'scene');
+        await page.goBack();assert.match(page.url(),/view=guest/);await page.keyboard.press('Escape');assert.match(page.url(),/view=play/);
+        await page.goBack();await page.locator('#screen').click({position:{x:8,y:8}});assert.match(page.url(),/view=play/);
+        const meadow = await page.locator('#scene').boundingBox();await page.mouse.move(meadow.x+meadow.width/2,meadow.y+meadow.height*.7);
+        await page.clock.runFor(31000);
+      }
       assert.equal((await stored(page)).results[level].won, true, `Browser level ${level}`);
     }
     await page.getByRole('link', { name: 'Enjoy our picnic' }).click();
@@ -76,7 +98,7 @@ async function start(page) { await page.getByRole('button', { name: /Let’s cat
     console.log('PASS desktop: five levels, final picnic, keyboard, pause/backdrop/Escape, reload, history');
 
     // Copied links and reload restore every meaningful section in a fresh tab.
-    for (const query of ['', '?view=levels', '?view=help', '?view=play&level=4', '?view=result&level=4', '?view=picnic']) {
+    for (const query of ['', '?view=levels', '?view=help', '?view=play&level=4', '?view=result&level=4', '?view=picnic', '?view=guest&level=2&from=picnic']) {
       const copied = await context.newPage();copied.on('pageerror', e => errors.push(e.message));
       await copied.goto(BASE + query);await fits(copied, `fresh tab ${query}`);
       await copied.reload();await fits(copied, `refresh ${query}`);
@@ -92,6 +114,7 @@ async function start(page) { await page.getByRole('button', { name: /Let’s cat
     await page.getByRole('button', { name: 'Try this level again' }).click();
     assert.equal((await stored(page)).runs[2].caught, 0);
     assert.equal((await stored(page)).completed.length, 5);
+    assert.equal((await stored(page)).peeUnlocked, true, 'Retry must retain Pee');
     console.log('PASS copied links, fresh tabs, refresh, failed round and retry preservation');
 
     const mobile = await browser.newContext({ ...devices['iPhone 13'], deviceScaleFactor: 1, reducedMotion: 'reduce' });
@@ -120,9 +143,26 @@ async function start(page) { await page.getByRole('button', { name: /Let’s cat
     assert.equal((await stored(phone)).results[1].won, true);
     await phone.goBack();await fits(phone,'mobile back');await phone.goForward();await fits(phone,'mobile forward');
     await phone.screenshot({path:`${OUTPUT}/mobile-win.png`,fullPage:true});
+    assert.equal((await stored(phone)).peeUnlocked, false, 'Level 1 must not unlock Pee');
+    await phone.getByRole('link',{name:'Next picnic'}).click();await start(phone);await phone.clock.runFor(12000);
+    assert.match(phone.url(),/view=guest&level=2&from=play/);
+    await fits(phone,'mobile Pee reveal');await phone.clock.runFor(50);
+    await phone.screenshot({path:`${OUTPUT}/mobile-pee-reveal.png`,fullPage:true});
+    const peeTime=(await stored(phone)).runs[2].elapsed;await phone.reload();
+    assert.equal((await stored(phone)).runs[2].elapsed,peeTime);
+    await phone.getByRole('heading',{name:'You found Pee!'}).tap();assert.match(phone.url(),/view=guest/);
+    await phone.locator('#screen').tap({position:{x:8,y:8}});assert.match(phone.url(),/view=play&level=2/);
+    await phone.getByRole('button',{name:'Pause game'}).tap();
+    await phone.goto(BASE+'?view=picnic');await phone.clock.runFor(50);
+    assert.ok(await phone.getByRole('link',{name:'Meet Pee, your secret picnic guest'}).isVisible());
+    await phone.screenshot({path:`${OUTPUT}/mobile-pee-picnic.png`,fullPage:true});
+    await phone.getByRole('link',{name:'Meet Pee, your secret picnic guest'}).tap();assert.match(phone.url(),/view=guest/);
+    await phone.getByRole('button',{name:'Back to our picnic'}).tap();assert.match(phone.url(),/view=picnic/);
+    const guestTab=await mobile.newPage();await guestTab.goto(BASE+'?view=guest&level=2');
+    assert.ok(await guestTab.getByRole('heading',{name:'You found Pee!'}).isVisible());await guestTab.close();
     for (const viewport of [{width:320,height:568},{width:844,height:390}]) {
       await phone.setViewportSize(viewport);
-      for (const view of ['help','levels','play']) { await phone.goto(BASE+`?view=${view}&level=5`);await fits(phone,`${viewport.width}px ${view}`); }
+      for (const view of ['help','levels','play','guest']) { await phone.goto(BASE+`?view=${view}&level=5`);await fits(phone,`${viewport.width}px ${view}`); }
     }
     console.log('PASS mobile: touch drag, successful round, saved round, direct links, fresh tabs, refresh, Back/Forward, 320px and landscape');
 

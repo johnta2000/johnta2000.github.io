@@ -1,5 +1,5 @@
-import { LEVELS, TYPES, CATCH_Y, clamp, createRun, advance, blankSave, parseSave, readRoute } from './engine.mjs';
-import { drawMeadow, drawPicnic, drawBasket, drawTreat, drawHeart } from './art.mjs?v=2';
+import { LEVELS, CATCH_Y, clamp, createRun, advance, blankSave, parseSave, readRoute } from './engine.mjs?v=3';
+import { drawMeadow, drawPicnic, drawBasket, drawTreat, drawHeart, drawCorgi } from './art.mjs?v=3';
 
 const $ = id => document.getElementById(id);
 const canvas = $('scene');
@@ -7,6 +7,7 @@ const ctx = canvas.getContext('2d');
 const stage = $('stage');
 const screen = $('screen');
 const KEY = 'pepsi-pepper-picnic-v1';
+const PEE_KEY = 'pepsi-pepper-picnic-pee';
 const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
 let save = blankSave();
 let route = readRoute(location.search);
@@ -30,6 +31,8 @@ try {
     try { save = parseSave(raw); }
     catch { corruptSave = raw; showSaveProblem('Your previous save could not be read. It is still intact; download a backup before starting fresh.'); }
   }
+  // Keep the unlock safe even if an older, still-open game tab saves its old format.
+  save.peeUnlocked ||= localStorage.getItem(PEE_KEY) === 'unlocked';
 } catch { showSaveProblem('This browser could not load saved progress. You can still play; download a backup to keep it.'); }
 
 function persist(explicit = false) {
@@ -37,6 +40,8 @@ function persist(explicit = false) {
   try {
     // Never overwrite an unreadable previous save without keeping a recovery copy.
     if (corruptSave) localStorage.setItem(`${KEY}-recovery`, corruptSave);
+    save.peeUnlocked ||= localStorage.getItem(PEE_KEY) === 'unlocked';
+    if (save.peeUnlocked) localStorage.setItem(PEE_KEY, 'unlocked');
     localStorage.setItem(KEY, JSON.stringify(save));
     corruptSave = null;
     storageProblem = false;
@@ -98,7 +103,11 @@ $('sound').addEventListener('click', () => { save.sound = !save.sound; wakeAudio
 
 function basketWidth() { return clamp(180 / width, .23, .46); }
 function nextLevel() { return LEVELS.findIndex((_, i) => !save.completed.includes(i + 1)) + 1 || 1; }
-function names() { return '<div class="name-labels" aria-hidden="true"><span>Pepsi</span><span>Pepper</span></div>'; }
+function names() {
+  return save.peeUnlocked
+    ? `<div class="name-labels has-pee"><span>Pepsi</span><a data-guest-link href="?view=guest&level=${save.lastLevel}&from=${route.view}" aria-label="Meet Pee, your secret picnic guest">Pee ♡</a><span>Pepper</span></div>`
+    : '<div class="name-labels" aria-hidden="true"><span>Pepsi</span><span>Pepper</span></div>';
+}
 function button(label, url, secondary = false) { return `<a class="button${secondary ? ' secondary' : ''}" href="${url}">${label}</a>`; }
 function renderNav() {
   $('level-nav').innerHTML = LEVELS.map((level, i) => `${i ? '<span class="join" aria-hidden="true"></span>' : ''}<a href="${playURL(i + 1)}" data-number="${i + 1}" ${['play', 'result'].includes(route.view) && route.level === i + 1 ? 'aria-current="step"' : ''} class="${save.completed.includes(i + 1) ? 'completed' : ''}" aria-label="Level ${i + 1}: ${level.name}${save.completed.includes(i + 1) ? ', completed' : ''}"><span class="level-short">${level.short}</span></a>`).join('');
@@ -110,7 +119,7 @@ function render() {
   const playing = route.view === 'play';
   document.body.classList.toggle('playing', playing);
   canvas.style.touchAction = playing ? 'none' : 'auto';
-  canvas.setAttribute('aria-label', playing ? 'Catch treats: drag the blanket, move your mouse, or use left and right arrow keys. Press P or Escape to pause.' : 'Pepsi and Pepper, two plushie corgis, sitting beside their picnic basket in a sunny meadow.');
+  canvas.setAttribute('aria-label', playing ? `Catch treats: drag the blanket, move your mouse, or use left and right arrow keys. Press P or Escape to pause.${save.peeUnlocked ? ' Pee is riding along with Pepsi and Pepper.' : ''}` : `${save.peeUnlocked ? 'Pepsi, Pepper, and Pee, three' : 'Pepsi and Pepper, two'} plushie corgis sitting beside their picnic basket in a sunny meadow.`);
   $('hud').hidden = !playing;
   $('catch-message').classList.remove('visible');
   screen.className = 'screen';
@@ -129,7 +138,7 @@ function render() {
   } else if (route.view === 'help') {
     title = 'How to play · Pepsi & Pepper';
     screen.classList.add('centered');
-    const back = route.from === 'play' ? playURL(route.level, true) : route.from === 'levels' ? '?view=levels' : './';
+    const back = route.from === 'play' ? playURL(route.level, true) : ['levels', 'picnic', 'result', 'guest'].includes(route.from) ? `?view=${route.from}&level=${route.level}` : './';
     screen.innerHTML = `<section class="paper-panel" aria-label="How to play"><span class="small-tag">SMALL PAWS. SIMPLE RULES.</span><h2>Let’s make a picnic.</h2><ul class="help-list"><li><span class="help-icon">↔</span><span><b>Move the blanket.</b> Drag anywhere in the meadow on your phone. On a computer, move your mouse or use <kbd>←</kbd> <kbd>→</kbd>.</span></li><li><span class="help-icon">🍓</span><span><b>Catch the goodies.</b> Collect the target number before 30 seconds are up. Every treat counts the same.</span></li><li><span class="help-icon">♡</span><span><b>No stress, no lost lives.</b> Missed the target? Try that level again. There are five increasingly speedy picnics.</span></li><li><span class="help-icon">☀</span><span><b>Take a little break.</b> Press pause, P, or Escape. Your round and completed levels stay saved in this browser.</span></li></ul>${button('Got it, let’s go', back)}<div><button class="text-link" data-action="backup" style="background:none">Back up progress</button><label class="text-link" style="cursor:pointer" for="restore">Restore backup</label><input id="restore" type="file" accept="application/json,.json" class="sr-only"></div></section>`;
   } else if (playing) {
     title = `${LEVELS[route.level - 1].name} · Pepsi & Pepper`;
@@ -149,6 +158,17 @@ function render() {
       const config = LEVELS[route.level - 1];
       screen.innerHTML = `<section class="paper-panel"><span class="symbol">${result.won ? '♡' : '☀'}</span><span class="small-tag">${result.won ? `LEVEL ${route.level} · PICNIC PERFECT` : 'A LITTLE BREATHER'}</span><h2>${result.won ? ['A lovely little start!', 'Two very happy corgis.', 'Looking picnic perfect!', 'So many happy wiggles!', 'You did it, picnic pal!'][route.level - 1] : 'Another little go?'}</h2><p>${result.won ? 'Pepsi and Pepper approve. With their whole little hearts.' : 'Even the best picnics take a little practice. Your other levels are safe.'}</p><div class="result-stats"><span><b>${result.caught} / ${config.goal}</b>treats caught</span><span><b>${Math.ceil(result.elapsed)}s</b>of picnic fun</span></div><div class="button-row">${result.won ? button(route.level === 5 ? 'Enjoy our picnic ♡' : 'Next picnic →', route.level === 5 ? '?view=picnic' : playURL(route.level + 1)) : `<button class="button" data-action="retry">Try this level again ↻</button>`}${result.won ? `<button class="button secondary" data-action="retry">Play again</button>` : ''}</div><a class="text-link" href="?view=levels">Pick a different level</a></section>`;
     }
+  } else if (route.view === 'guest') {
+    title = save.peeUnlocked ? 'You found Pee! · Pepsi & Pepper' : 'A secret picnic guest · Pepsi & Pepper';
+    screen.classList.add('centered');
+    screen.innerHTML = save.peeUnlocked
+      ? `<section class="paper-panel guest-panel" aria-labelledby="guest-title"><button class="guest-close" data-action="close-guest" aria-label="Close guest reveal">×</button><span class="small-tag">A GOLDEN BISCUIT. A LITTLE SURPRISE.</span><canvas id="pee-portrait" width="280" height="320" class="guest-portrait" role="img" aria-label="Pee, a butter-yellow and white plushie corgi with a lilac bandana"></canvas><h2 id="guest-title">You found Pee!</h2><p>A little ray of sunshine followed the snacks.<br>He’s part of your picnic crew now. ♡</p><button class="button" data-action="close-guest">Back to our picnic →</button><p class="guest-saved">${storageProblem ? 'Pee is here! Download a backup to keep him safe.' : 'Pee will be here whenever you come back.'}</p></section>`
+      : `<section class="paper-panel guest-panel" aria-labelledby="guest-title"><button class="guest-close" data-action="close-guest" aria-label="Close guest reveal">×</button><span class="symbol">✧</span><span class="small-tag">SOMEONE IS HIDING IN THE MEADOW</span><h2 id="guest-title">A secret picnic guest.</h2><p>From level 2 onward, keep an eye out for a golden biscuit with a little paw print.</p>${button('Look for the surprise →', playURL(2))}</section>`;
+    if (save.peeUnlocked) {
+      const portrait = $('pee-portrait').getContext('2d');portrait.scale(2, 2);
+      drawCorgi(portrait, 70, 148, 120, 'pee', true, 0, true);
+    }
+    screen.querySelector('.guest-close')?.focus({ preventScroll: true });
   } else if (route.view === 'picnic') {
     title = 'Our happy little picnic · Pepsi & Pepper';
     const done = save.completed.length;
@@ -165,6 +185,10 @@ function renderPlayPanel() {
   const resumed = ['paused', 'playing'].includes(run.status) && run.elapsed > 0;
   const config = LEVELS[route.level - 1];
   screen.innerHTML = `<section class="paper-panel" aria-label="${resumed ? 'Paused game' : 'Ready to play'}"><span class="symbol">${resumed ? '☀' : '♡'}</span><span class="small-tag">LEVEL ${route.level} OF 5 · ${config.name.toUpperCase()}</span><h2>${resumed ? 'A little pause.' : 'Ready, picnic pal?'}</h2><p>${resumed ? 'Your blanket is right where you left it.<br>Pepsi and Pepper will wait for you.' : `${config.line}<br>Catch <b>${config.goal} treats</b> in <b>30 seconds</b>.`}</p><button class="button" data-action="start">${resumed ? 'Back to the picnic →' : 'Let’s catch some treats →'}</button><br><a class="text-link" href="?view=levels">Pick a different level</a></section>`;
+  if (!resumed && route.level >= 2 && !save.peeUnlocked) {
+    const hint = document.createElement('p');hint.className = 'secret-hint';hint.textContent = 'Psst… keep an eye out for something golden.';
+    screen.querySelector('.paper-panel p').after(hint);
+  }
 }
 function startRound() {
   const focusAfterResume = run?.status === 'paused' && returnFocus?.isConnected ? returnFocus : canvas;
@@ -182,6 +206,17 @@ function pauseGame() {
   history.replaceState({}, '', playURL(route.level, true));route = readRoute(location.search);
   renderPlayPanel();$('pause').setAttribute('aria-label', 'Resume game');
   screen.querySelector('button')?.focus({ preventScroll: true });announce('Picnic paused. Your progress is saved.');
+}
+function closeGuest() {
+  if (route.view !== 'guest') return;
+  const level = route.level;
+  if (route.from === 'play' && run) {
+    if (['won', 'lost'].includes(run.status)) go(`?view=result&level=${level}`);
+    else { go(playURL(level, true));startRound(); }
+  } else {
+    go(route.from === 'picnic' ? '?view=picnic' : route.from === 'levels' ? '?view=levels' : './');
+    document.querySelector('[data-guest-link]')?.focus({ preventScroll: true });
+  }
 }
 function finishRound() {
   save.results[route.level] = { caught: run.caught, elapsed: run.elapsed, won: run.status === 'won' };
@@ -205,6 +240,7 @@ document.addEventListener('click', event => {
     if (action.dataset.action === 'start') startRound();
     if (action.dataset.action === 'retry') { run = createRun(route.level);save.runs[route.level] = run;persist();go(playURL(route.level)); }
     if (action.dataset.action === 'backup') backup();
+    if (action.dataset.action === 'close-guest') closeGuest();
     return;
   }
   const link = event.target.closest('a[href]');
@@ -222,6 +258,7 @@ let backdropDown = false;
 screen.addEventListener('pointerdown', event => { backdropDown = event.target === screen; });
 screen.addEventListener('click', event => {
   if (backdropDown && event.target === screen && route.view === 'play' && run?.status === 'paused') startRound();
+  if (backdropDown && event.target === screen && route.view === 'guest') closeGuest();
   backdropDown = false;
 });
 document.addEventListener('change', async event => {
@@ -235,6 +272,7 @@ document.addEventListener('change', async event => {
     save.completed = [...new Set([...save.completed, ...incoming.completed])];
     save.results = { ...incoming.results, ...save.results };
     save.runs = { ...incoming.runs, ...save.runs };
+    save.peeUnlocked ||= incoming.peeUnlocked;
     if (persist()) { renderNav();announce('Picnic backup restored. Your current rounds were kept.'); }
   } catch { announce('That backup could not be read. Your current picnic has not changed.'); }
   event.target.value = '';
@@ -255,6 +293,7 @@ canvas.addEventListener('pointercancel', () => { pointerId = null; });
 document.addEventListener('keydown', event => {
   if (event.altKey || event.metaKey || event.ctrlKey || /INPUT|TEXTAREA|SELECT/.test(event.target.tagName)) return;
   if (route.view !== 'play') {
+    if (event.key === 'Escape' && route.view === 'guest') { event.preventDefault();closeGuest();return; }
     if (event.key === 'Escape' && ['help', 'levels'].includes(route.view)) go(route.from === 'play' ? playURL(route.level, true) : './');
     return;
   }
@@ -270,9 +309,13 @@ document.addEventListener('visibilitychange', () => { if (document.hidden) pause
 window.addEventListener('pagehide', () => { pauseRun();persist(); });
 window.addEventListener('popstate', () => { pauseRun();route = readRoute(location.search);render(); });
 window.addEventListener('storage', event => {
+  if (event.key === PEE_KEY && event.newValue === 'unlocked') {
+    save.peeUnlocked = true;pauseRun();render();return;
+  }
   if (event.key !== KEY || !event.newValue) return;
   try {
     const incoming = parseSave(event.newValue);
+    incoming.peeUnlocked ||= save.peeUnlocked;
     if (run?.status === 'playing') run.status = 'paused';
     save = incoming;render();announce('Picnic progress updated from another tab. Tap to resume.');
   } catch { showSaveProblem('Another tab saved unreadable progress. Your current picnic is still here; download a backup.'); }
@@ -281,6 +324,7 @@ window.addEventListener('storage', event => {
 function resize() {
   const bounds = stage.getBoundingClientRect();
   width = bounds.width;height = bounds.height;ratio = Math.min(window.devicePixelRatio || 1, 2);
+  stage.style.setProperty('--picnic-names-width', width < 600 ? '234px' : '336px');
   canvas.width = Math.round(width * ratio);canvas.height = Math.round(height * ratio);
   ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
 }
@@ -291,7 +335,7 @@ function draw(now) {
   drawMeadow(ctx, width, height, time, reduced.matches);
   if (route.view === 'play' && run) {
     const bw = basketWidth();
-    drawBasket(ctx, width, height, run, bw, time, now < happyUntil, reduced.matches);
+    drawBasket(ctx, width, height, run, bw, time, now < happyUntil, reduced.matches, save.peeUnlocked);
     for (const drop of run.drops) drawTreat(ctx, drop.type, drop.x * width, drop.y * height, clamp(width * .035, 22, 29), drop.rotation);
     for (const particle of particles) {
       const age = (now - particle.start) / 1000;
@@ -301,7 +345,7 @@ function draw(now) {
       ctx.globalAlpha = 1;
     }
   } else {
-    drawPicnic(ctx, width, height, save.completed.length, time, reduced.matches, route.view === 'picnic' || (route.view === 'result' && save.results[route.level]?.won));
+    drawPicnic(ctx, width, height, save.completed.length, time, reduced.matches, route.view === 'picnic' || (route.view === 'result' && save.results[route.level]?.won), save.peeUnlocked);
   }
 }
 function frame(now) {
@@ -310,6 +354,8 @@ function frame(now) {
     const direction = (keys.has('arrowright') || keys.has('d') ? 1 : 0) - (keys.has('arrowleft') || keys.has('a') ? 1 : 0);
     if (direction) run.target = clamp(run.target + direction * dt * 1.1, basketWidth() / 2, 1 - basketWidth() / 2);
     const events = advance(run, dt, basketWidth());
+    const discoveredPee = !save.peeUnlocked && run.peeFound;
+    if (discoveredPee) save.peeUnlocked = true;
     if (events.caught.length) {
       happyUntil = now + 650;
       if (!reduced.matches) for (const drop of events.caught) for (let i = 0; i < 3; i++) particles.push({ x: drop.x, dx: (i - 1) * 24, start: now });
@@ -323,6 +369,11 @@ function frame(now) {
     if (sinceSave > .75) { sinceSave = 0;persist(); }
     updateHUD();
     if (events.finished) finishRound();
+    if (discoveredPee) {
+      returnFocus = canvas;chime(true);persist();
+      go(`?view=guest&level=${run.level}&from=play`);
+      announce('You found Pee! Your round is paused. Pee is now part of your picnic crew.');
+    }
   }
   if (now > messageUntil) $('catch-message').classList.remove('visible');
   particles = particles.filter(p => now - p.start < 800);

@@ -71,3 +71,44 @@ test('unreadable saved work is rejected, not silently discarded', () => {
   save.runs[1] = createRun(1);save.runs[1].drops.push({x: .5, y: .2, type: 'not-a-treat', rotation:0});
   assert.throws(() => parseSave(JSON.stringify(save)));
 });
+
+test('the golden biscuit appears once per round from level 2 onward, never in level 1', () => {
+  for (let level = 1; level <= 5; level++) {
+    const run = createRun(level);run.status = 'playing';run.basket = .15;run.target = .15;
+    const goldenIds = new Set();
+    for (let i = 0; i < 650; i++) {
+      advance(run, .05, .23, () => .5);
+      for (const drop of run.drops) if (drop.type === 'golden') goldenIds.add(drop.id);
+    }
+    assert.equal(goldenIds.size, level === 1 ? 0 : 1);
+    assert.equal(run.peeFound, false, 'Missing the biscuit must not unlock Pee');
+    if (level >= 2) {
+      const retry = createRun(level);retry.status = 'playing';
+      for (let i = 0; i < 650; i++) advance(retry, .05, .3, () => .5);
+      assert.equal(retry.peeFound, true, 'A new attempt must offer another chance');
+    }
+  }
+});
+
+test('catching the golden biscuit unlocks Pee even when it wins the round', () => {
+  const run = createRun(2);run.status = 'playing';run.spawnIn = 10;run.goldenSpawned = true;
+  run.caught = LEVELS[1].goal - 1;run.counts.biscuit = run.caught;
+  run.drops = [{ id: 5, type: 'golden', x: .5, y: .769, rotation: 0 }];
+  const events = advance(run, .05, .3);
+  assert.equal(run.peeFound, true);assert.equal(run.status, 'won');assert.equal(events.finished, true);
+  assert.equal(run.counts.biscuit, LEVELS[1].goal);
+});
+
+test('old saves migrate without losing rounds and unlocks survive backup restoration', () => {
+  const legacy = blankSave();delete legacy.peeUnlocked;
+  legacy.completed = [1];legacy.runs[2] = createRun(2);legacy.runs[2].elapsed = 4;
+  delete legacy.runs[2].goldenSpawned;delete legacy.runs[2].peeFound;
+  const migrated = parseSave(JSON.stringify(legacy));
+  assert.equal(migrated.peeUnlocked, false);assert.equal(migrated.runs[2].elapsed, 4);assert.deepEqual(migrated.completed, [1]);
+  migrated.runs[2].status = 'playing';
+  for (let i = 0; i < 650; i++) advance(migrated.runs[2], .05, .3, () => .5);
+  const restored = parseSave(JSON.stringify(migrated));
+  assert.equal(restored.peeUnlocked, true);assert.equal(restored.runs[2].peeFound, true);
+  assert.equal(readRoute('?view=guest&level=2&from=play').view, 'guest');
+  assert.equal(readRoute('?view=guest&level=2&from=play').from, 'play');
+});

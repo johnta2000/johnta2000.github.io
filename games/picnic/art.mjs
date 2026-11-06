@@ -4,13 +4,14 @@ function line(c,points,color,width=2){c.strokeStyle=color;c.lineWidth=width;c.li
 function shape(c,draw,color,stroke,width=1.5){c.beginPath();draw(c);c.fillStyle=color;c.fill();if(stroke){c.strokeStyle=stroke;c.lineWidth=width;c.lineJoin='round';c.stroke();}}
 function round(c,x,y,w,h,r,color){c.fillStyle=color;c.beginPath();c.roundRect(x,y,w,h,r);c.fill();}
 
-export function drawCorgi(c,x,y,size,pepper=false,happy=false,time=0,reduced=false){
+export function drawCorgi(c,x,y,size,character=false,happy=false,time=0,reduced=false){
   c.save();c.translate(x,y);c.scale(size/140,size/140);
   const wiggle=happy&&!reduced?Math.sin(time*24)*.06:0;
   c.rotate(wiggle);
-  // Plushie reference colors: golden-tan Pepsi and warm-gray Pepper, both with white markings.
-  const fur=pepper?'#b1abaa':'#d9af77';const shadow=pepper?'#918987':'#bb925e';const cream='#fcfaf6';const ink='#383431';
-  const innerEar=pepper?'#e7e3e3':'#eee9e5';const pawShade=pepper?'#e8e3e0':'#eee6d9';
+  const pepper=character===true||character==='pepper';const pee=character==='pee';
+  // Plushie reference colors; Pee is the little butter-yellow secret guest.
+  const fur=pee?'#eee1a0':pepper?'#b1abaa':'#d9af77';const shadow=pee?'#cdbd7a':pepper?'#918987':'#bb925e';const cream='#fcfaf6';const ink='#383431';
+  const innerEar=pee?'#f0e8dc':pepper?'#e7e3e3':'#eee9e5';const pawShade=pee?'#f0ead9':pepper?'#e8e3e0':'#eee6d9';
   ellipse(c,0,4,64,10,'#68744f20');
   // A little loaf body, with stitched plush seams and stubby paws.
   ellipse(c,0,-36,55,43,fur);ellipse(c,0,-28,34,30,cream);
@@ -35,7 +36,7 @@ export function drawCorgi(c,x,y,size,pepper=false,happy=false,time=0,reduced=fal
   shape(c,p=>{p.moveTo(-7,-75);p.quadraticCurveTo(0,-79,7,-75);p.quadraticCurveTo(6,-69,0,-67);p.quadraticCurveTo(-6,-69,-7,-75);},ink);
   c.strokeStyle=ink;c.lineWidth=2;c.lineCap='round';c.beginPath();c.moveTo(0,-68);c.lineTo(0,-63);c.quadraticCurveTo(-6,-56,-11,-62);c.moveTo(0,-63);c.quadraticCurveTo(6,-56,11,-62);c.stroke();
   if(happy){shape(c,p=>{p.moveTo(-5,-60);p.lineTo(5,-60);p.quadraticCurveTo(6,-48,0,-49);p.quadraticCurveTo(-6,-48,-5,-60);},'#de9385');}
-  const scarf=pepper?'#c97c71':'#8fa789';
+  const scarf=pee?'#b3a3c1':pepper?'#c97c71':'#8fa789';
   shape(c,p=>{p.moveTo(-29,-43);p.quadraticCurveTo(0,-33,29,-43);p.lineTo(15,-23);p.lineTo(0,-15);p.lineTo(-15,-23);p.closePath();},scarf);
   ellipse(c,0,-30,3.2,3.2,'#f9efd5');
   // One sewn cheek seam gives the characters their plushie feel.
@@ -52,6 +53,13 @@ export function drawTreat(c,type,x,y,size,rotation=0){
     shape(c,p=>{p.moveTo(-14,-7);p.bezierCurveTo(-20,3,-8,21,0,22);p.bezierCurveTo(8,21,20,3,14,-7);p.quadraticCurveTo(0,-17,-14,-7);},'#d77d74','#b75b55',1.4);
     shape(c,p=>{p.moveTo(0,-9);p.lineTo(-13,-14);p.lineTo(-8,-5);p.lineTo(-2,-8);p.lineTo(3,-2);p.lineTo(6,-9);p.lineTo(14,-12);p.lineTo(4,-14);p.lineTo(1,-20);p.closePath();},'#789264');
     [[-8,-1],[5,-1],[-3,6],[8,7],[0,15],[-10,8]].forEach(([sx,sy])=>ellipse(c,sx,sy,1,1.8,'#ffe5b1'));
+  }else if(type==='golden'){
+    ellipse(c,0,0,27,27,'#fff7c57a');ellipse(c,0,1,18,17,'#b99842');ellipse(c,0,-1,18,17,'#f0d679');
+    c.strokeStyle='#fff4bf';c.lineWidth=1.5;c.beginPath();c.arc(0,-1,14,0,TAU);c.stroke();
+    // A paw stamp and sparkles distinguish the secret biscuit without relying on color alone.
+    ellipse(c,0,4,6,5,'#bb9444');
+    [[-8,-3],[-3,-8],[3,-8],[8,-3]].forEach(([sx,sy])=>ellipse(c,sx,sy,2.4,3,'#bb9444'));
+    [[-24,-17],[23,-10],[20,20]].forEach(([sx,sy])=>{line(c,[[sx-3,sy],[sx+3,sy]],'#b99640',1.5);line(c,[[sx,sy-4],[sx,sy+4]],'#b99640',1.5);});
   }else if(type==='biscuit'){
     ellipse(c,0,1,17,16,'#b68a4f');ellipse(c,0,-1,17,16,'#e0b978');
     c.save();c.setLineDash([1,4]);c.strokeStyle='#bb914f';c.lineWidth=1.3;c.beginPath();c.arc(0,-1,12,0,TAU);c.stroke();c.restore();
@@ -107,14 +115,15 @@ export function drawBlanket(c,x,y,width,height){
   c.restore();
 }
 
-export function drawPicnic(c,w,h,completed,time,reduced,party=false){
+export function drawPicnic(c,w,h,completed,time,reduced,party=false,pee=false){
   const small=w<600;const cx=w/2;const base=h*.85;const bw=Math.min(w*.68,340);const size=small?106:130;
   drawBlanket(c,cx,base-5,bw,small?64:74);
   const apart=small?78:112;
   drawCorgi(c,cx-apart,base-17,size,false,party,time,reduced);
   drawCorgi(c,cx+apart,base-17,size,true,party,time+.1,reduced);
+  if(pee)drawCorgi(c,cx,base-17,size*.78,'pee',party,time+.3,reduced);
   // The basket between the plushies fills up throughout the five levels.
-  const bx=cx,by=base-12;
+  const bx=cx-(pee?(small?36:51):0),by=base-(pee?4:12);
   c.strokeStyle='#b39263';c.lineWidth=4;c.beginPath();c.ellipse(bx,by-10,22,24,0,Math.PI,TAU);c.stroke();
   round(c,bx-28,by-10,56,34,6,'#c8a777');
   for(let i=0;i<5;i++)line(c,[[bx-25,by-4+i*6],[bx+25,by-4+i*6]],'#b39466',1);
@@ -127,13 +136,15 @@ export function drawPicnic(c,w,h,completed,time,reduced,party=false){
   if(party){for(let i=0;i<6;i++){const x=w*(.15+i*.14);const y=h*(.35+Math.sin(i*2)*.11);drawHeart(c,x,y+(reduced?0:Math.sin(time+i)*3),i%2?5:7,i%2?'#dfb183':'#d8a093');}}
 }
 
-export function drawBasket(c,w,h,run,basketWidth,time,happy,reduced){
+export function drawBasket(c,w,h,run,basketWidth,time,happy,reduced,pee=false){
   const x=run.basket*w;const y=h*.82;const bw=basketWidth*w;const size=Math.min(77,w*.15);
   drawBlanket(c,x,y,bw,Math.max(33,bw*.24));
   drawCorgi(c,x-bw*.38,y+17,size,false,happy,time,reduced);
   drawCorgi(c,x+bw*.38,y+17,size,true,happy,time+.15,reduced);
+  if(pee)drawCorgi(c,x,y+17,size*.72,'pee',happy,time+.3,reduced);
   // A stitched rim is the actual catch line; the whole blanket catches treats.
   line(c,[[x-bw*.48,h*.77+4],[x+bw*.48,h*.77+4]],'#b9746880',2);
   c.font='italic 11px Georgia';c.textAlign='center';c.fillStyle='#657950';
   c.fillText('Pepsi',x-bw*.38,y+34);c.fillText('Pepper',x+bw*.38,y+34);
+  if(pee)c.fillText('Pee',x,y+34);
 }

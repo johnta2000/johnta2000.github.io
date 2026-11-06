@@ -6,12 +6,13 @@ export const LEVELS = Object.freeze([
   { name: 'The Big Picnic', short: 'Big Picnic', goal: 20, duration: 30, fall: 2.7, interval: .76, pairs: true, line: 'One last happy flurry. Your picnic is almost ready.' },
 ]);
 export const TYPES = ['strawberry', 'biscuit', 'orange'];
+const DROP_TYPES = [...TYPES, 'golden'];
 export const CATCH_Y = .77;
 export const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 export const levelNumber = value => clamp(Math.trunc(Number(value)) || 1, 1, LEVELS.length);
 
 export function createRun(level) {
-  return { level: levelNumber(level), elapsed: 0, spawnIn: .45, caught: 0, missed: 0, drops: [], basket: .5, target: .5, sequence: 0, status: 'ready', counts: { strawberry: 0, biscuit: 0, orange: 0 } };
+  return { level: levelNumber(level), elapsed: 0, spawnIn: .45, caught: 0, missed: 0, drops: [], basket: .5, target: .5, sequence: 0, goldenSpawned: false, peeFound: false, status: 'ready', counts: { strawberry: 0, biscuit: 0, orange: 0 } };
 }
 
 // Positions are fractions of the board, so the same round survives screen rotation.
@@ -26,7 +27,11 @@ export function advance(run, delta, basketWidth, random = Math.random) {
   run.spawnIn -= dt;
   if (run.spawnIn <= 0 && run.elapsed < config.duration - config.fall * CATCH_Y) {
     const x = run.sequence === 0 ? .5 : .1 + random() * .8;
-    run.drops.push({ id: ++run.sequence, x, y: -.05, type: TYPES[Math.floor(random() * TYPES.length)], rotation: (random() - .5) * .7 });
+    // One discoverable surprise each round, only from level 2 onward.
+    const golden = run.level >= 2 && run.sequence >= 4 && !run.goldenSpawned;
+    const type = TYPES[Math.floor(random() * TYPES.length)];
+    run.drops.push({ id: ++run.sequence, x, y: -.05, type: golden ? 'golden' : type, rotation: (random() - .5) * .7 });
+    if (golden) run.goldenSpawned = true;
     if (config.pairs && run.sequence % 4 === 0) {
       run.drops.push({ id: ++run.sequence, x: clamp(x + (x > .5 ? -.12 : .12), .09, .91), y: -.15, type: 'biscuit', rotation: -.15 });
     }
@@ -38,7 +43,8 @@ export function advance(run, delta, basketWidth, random = Math.random) {
     drop.y += dt / config.fall;
     if (before < CATCH_Y && drop.y >= CATCH_Y && Math.abs(drop.x - run.basket) <= basketWidth * .5) {
       run.caught += 1;
-      run.counts[drop.type] += 1;
+      run.counts[drop.type === 'golden' ? 'biscuit' : drop.type] += 1;
+      if (drop.type === 'golden') run.peeFound = true;
       events.caught.push({ ...drop });
     } else if (drop.y < 1.06) {
       remaining.push(drop);
@@ -61,22 +67,26 @@ export function validRun(run, level) {
   if (!Number.isFinite(run.basket) || !Number.isFinite(run.target) || run.basket < 0 || run.basket > 1 || run.target < 0 || run.target > 1) return false;
   if (!Number.isInteger(run.missed) || run.missed < 0 || !Array.isArray(run.drops) || run.drops.length > 100) return false;
   if (!TYPES.every(type => Number.isInteger(run.counts?.[type]) && run.counts[type] >= 0 && run.counts[type] <= 100)) return false;
-  return run.drops.every(drop => TYPES.includes(drop.type) && Number.isFinite(drop.x) && drop.x >= 0 && drop.x <= 1 && Number.isFinite(drop.y) && drop.y >= -.2 && drop.y <= 1.1 && Number.isFinite(drop.rotation));
+  if (['goldenSpawned', 'peeFound'].some(key => run[key] !== undefined && typeof run[key] !== 'boolean')) return false;
+  if (level === 1 && (run.peeFound || run.drops.some(drop => drop.type === 'golden'))) return false;
+  return run.drops.every(drop => DROP_TYPES.includes(drop.type) && Number.isFinite(drop.x) && drop.x >= 0 && drop.x <= 1 && Number.isFinite(drop.y) && drop.y >= -.2 && drop.y <= 1.1 && Number.isFinite(drop.rotation));
 }
 
-export function blankSave() { return { version: 1, runs: {}, results: {}, completed: [], sound: false, lastLevel: 1 }; }
+export function blankSave() { return { version: 1, runs: {}, results: {}, completed: [], sound: false, lastLevel: 1, peeUnlocked: false }; }
 
 export function parseSave(raw) {
   const value = JSON.parse(raw);
   if (value?.version !== 1 || !value.runs || !value.results || !Array.isArray(value.completed)) throw new Error('Unrecognized save');
   const save = blankSave();
   save.sound = value.sound === true;
+  save.peeUnlocked = value.peeUnlocked === true;
   save.lastLevel = levelNumber(value.lastLevel);
   save.completed = [...new Set(value.completed.filter(n => Number.isInteger(n) && n >= 1 && n <= 5))];
   for (let level = 1; level <= 5; level++) {
     if (value.runs[level]) {
       if (!validRun(value.runs[level], level)) throw new Error('Incomplete round data');
-      save.runs[level] = value.runs[level];
+      save.runs[level] = { ...value.runs[level], goldenSpawned: value.runs[level].goldenSpawned === true, peeFound: value.runs[level].peeFound === true };
+      if (save.runs[level].peeFound) save.peeUnlocked = true;
     }
     const result = value.results[level];
     if (result) {
@@ -89,7 +99,7 @@ export function parseSave(raw) {
 
 export function readRoute(search) {
   const params = new URLSearchParams(search);
-  const views = ['home', 'levels', 'help', 'play', 'result', 'picnic'];
+  const views = ['home', 'levels', 'help', 'play', 'result', 'picnic', 'guest'];
   const view = views.includes(params.get('view')) ? params.get('view') : params.has('level') ? 'play' : 'home';
   return { view, level: levelNumber(params.get('level')), paused: params.get('paused') === '1', from: views.includes(params.get('from')) ? params.get('from') : 'home' };
 }
