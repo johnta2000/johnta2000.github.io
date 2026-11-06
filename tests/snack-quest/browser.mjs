@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { chromium, webkit } from 'playwright';
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
-import { createRun, ROOMS, ORDER, TRINKETS, roomItems } from '../../games/snack-quest/engine.mjs';
+import { roomPoint, PEE_RESCUE, createRun, ROOMS, ORDER, TRINKETS, roomItems } from '../../games/snack-quest/engine.mjs';
 
 const base=process.env.SNACK_QUEST_URL||'http://127.0.0.1:8766/games/snack-quest/';
 const installed=homedir()+'/Library/Caches/ms-playwright/chromium-1243/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing';
@@ -127,14 +127,14 @@ try {
   const gardenExit=createRun('gardenexit');gardenExit.keyFound=true;gardenExit.pepperFound=true;gardenExit.health=4;gardenExit.trinkets=TRINKETS.filter(item=>item.room!=='orchard').map(item=>item.id);gardenExit.positions.burrows={x:895,y:320};
   await seed(page,gardenExit,'burrows');await hold(page,'d',100);await waitRoom(page,'woods');
   await page.screenshot({path:output+'/desktop-woods.png',fullPage:true});
-  for(const room of ['woods','hills']){const route={...gardenExit,id:room+'exit12',positions:{[room]:{x:895,y:320}}};await seed(page,route,room);await hold(page,'d',100);await waitRoom(page,ORDER[ORDER.indexOf(room)+1]);}
+  for(const room of ['woods','hills']){const route={...gardenExit,id:room+'exit12',positions:{[room]:roomPoint(room,895,320)}};await seed(page,route,room);await hold(page,'d',100);await waitRoom(page,ORDER[ORDER.indexOf(room)+1]);}
   await page.keyboard.down('d');await page.waitForTimeout(500);await page.screenshot({path:output+'/desktop-final-area.png',fullPage:true});await page.keyboard.up('d');await page.keyboard.press('Escape');
   // Pee is a late, optional rescue; links never grant him without the six discoveries.
-  const pee=createRun('peebrowser');pee.keyFound=true;pee.pepperFound=true;pee.health=2;pee.room='hills';pee.positions.hills={x:725,y:155};
+  const pee=createRun('peebrowser');pee.keyFound=true;pee.pepperFound=true;pee.health=2;pee.room='hills';pee.positions.hills={x:PEE_RESCUE.x-65,y:PEE_RESCUE.y};
   pee.trinkets=TRINKETS.filter(i=>['pond','burrows','woods'].includes(i.room)).map(i=>i.id);
   const sixth=pee.trinkets.pop();await seed(page,pee);await hold(page,'d',160);await page.keyboard.press('Escape');
   let peeSaved=await saved(page);assert.equal(peeSaved.peeFound,false);assert.match(await page.locator('#pee-link').innerText(),/5\/6/);
-  peeSaved.trinkets.push(sixth);peeSaved.positions.hills={x:725,y:155};peeSaved.revision++;
+  peeSaved.trinkets.push(sixth);peeSaved.positions.hills={x:PEE_RESCUE.x-65,y:PEE_RESCUE.y};peeSaved.revision++;
   await seed(page,peeSaved);await hold(page,'d',160);assert.equal((await saved(page)).peeFound,true);assert.equal((await saved(page)).health,2);
   assert.match(page.url(),/room=hills/);assert.equal(await page.locator('.story-card').count(),0);
   assert.match(await page.locator('#buddy-status').innerText(),/Three corgis/);
@@ -153,7 +153,7 @@ try {
   const trio={...peeDamage,id:'peepicnic',basketFound:true,completed:true,trinkets:TRINKETS.map(i=>i.id)};
   await seed(page,trio,'orchard','picnic');await page.locator('.picnic-card').waitFor();assert.match(await page.locator('.picnic-card').innerText(),/Pepsi, Pepper & Pee/);await page.screenshot({path:output+'/desktop-three-friends.png',fullPage:true});
   for(const room of ['burrows','woods','hills']){
-    const terrain={...peeDamage,id:'terrain'+room,room,positions:{[room]:{x:135,y:315}}};
+    const terrain={...peeDamage,id:'terrain'+room,room,positions:{[room]:roomPoint(room,135,315)}};
     await seed(page,terrain);await page.keyboard.press('w');await page.waitForTimeout(room==='hills'?3500:150);await page.evaluate(()=>window.dispatchEvent(new Event('blur')));
     await page.screenshot({path:output+'/desktop-terrain-'+room+'.png',fullPage:true});
   }
@@ -229,8 +229,8 @@ try {
   assert.equal((await saved(page)).health,4);assert.equal((await saved(page)).pepperFound,true);assert.deepEqual((await saved(page)).trinkets,['pond-ribbon']);
   await page.goBack();await waitView(page,'play');assert.equal(await page.locator('#trinket-count').innerText(),'1/14');
   await page.goForward();await waitView(page,'play');assert.equal(await page.locator('#trinket-count').innerText(),'1/14');
-  const final=createRun('finaltest');final.keyFound=true;final.pepperFound=true;final.health=4;final.trinkets=TRINKETS.map(item=>item.id);final.room='orchard';final.positions.orchard={x:780,y:160};await seed(page,final);
-  await hold(page,'d',250);assert.ok((await saved(page)).basketFound);await hold(page,'s',850);await hold(page,'d',620);await waitRoom(page,'laundry');assert.equal((await saved(page)).completed,false,'the orchard now continues into the cottage');
+  const final=createRun('finaltest');final.keyFound=true;final.pepperFound=true;final.health=4;final.trinkets=TRINKETS.map(item=>item.id);final.room='orchard';final.positions.orchard={x:ROOMS.orchard.goal.x-45,y:ROOMS.orchard.goal.y};await seed(page,final);
+  await hold(page,'d',250);assert.ok((await saved(page)).basketFound);await page.keyboard.press('Escape');const basketExit=await saved(page);basketExit.positions.orchard=roomPoint('orchard',895,320);await seed(page,basketExit);await hold(page,'d',150);await waitRoom(page,'laundry');assert.equal((await saved(page)).completed,false,'the orchard now continues into the cottage');
   const finish={...final,id:'bossfinish',peeFound:true,pepperoniFound:true,basketFound:true,bossDefeated:true,completed:true};await seed(page,finish,'boss','picnic');await page.locator('.picnic-card').waitFor();
   const finalBox=await page.locator('#stage').boundingBox();assert.ok(finalBox.width>1100,'wider desktop playfield');
   await page.screenshot({path:output+'/desktop-picnic.png',fullPage:true});await page.reload();await page.locator('.picnic-card').waitFor();
@@ -306,7 +306,7 @@ try {
 
   // Render the actual score for a listenable preview and check its level/headroom.
   const preview=await musicPage.evaluate(async()=>{
-    const {Soundscape}=await import('/games/snack-quest/audio.mjs?v=22');
+    const {Soundscape}=await import('/games/snack-quest/audio.mjs?v=23');
     const rate=22050,context=new OfflineAudioContext(1,rate*22,rate);
     const score=new Soundscape(()=>context);score.setEnabled(true);score.unlock();score.setScene('play','meadow');
     for(let i=0;i<64;i++)score.musicBeat(i,.1+i*30/96,30/96);
@@ -315,7 +315,7 @@ try {
   let peak=0;for(const sample of preview){assert.ok(Number.isFinite(sample));peak=Math.max(peak,Math.abs(sample));}
   assert.ok(peak>.03&&peak<.8,'original music renders audibly with headroom');
   const effects=await musicPage.evaluate(async()=>{
-    const {Soundscape}=await import('/games/snack-quest/audio.mjs?v=22');
+    const {Soundscape}=await import('/games/snack-quest/audio.mjs?v=23');
     const levels={};
     for(const kind of ['bark','toot']){
       const context=new OfflineAudioContext(1,22050,22050),score=new Soundscape(()=>context);score.setEnabled(true);score.unlock();

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { ROOMS, ORDER, TRINKETS, PEE_RESCUE, peeProgress, canRescuePee, terrainAt, windAt, roomTrinkets, upgradeRun, gophersFor, createRun, makeWorld, roomItems, toysFor, walkable, step, startDash, startAbility, maxHearts, isUnlocked, goalDone, validRun, migrateRun, retryRoom } from '../../games/snack-quest/engine.mjs';
+import { roomPoint, roomScale, ROOMS, ORDER, TRINKETS, PEE_RESCUE, peeProgress, canRescuePee, terrainAt, windAt, roomTrinkets, upgradeRun, gophersFor, createRun, makeWorld, roomItems, toysFor, walkable, step, startDash, startAbility, maxHearts, isUnlocked, goalDone, validRun, migrateRun, retryRoom } from '../../games/snack-quest/engine.mjs';
 const idle={x:0,y:0};
 function toyAt(x,y){return {x,y,r:18,vx:0,vy:0,kind:'ball',mode:'roam',timer:0,cooldown:9};}
 
@@ -48,12 +48,12 @@ test('Pepper keeps his facing on vertical trails and catches up without teleport
 
 test('snacks, hazards, and quest goals are reachable on solid ground',()=>{
   for(const room of ORDER){
-    const visited=new Set(['140,320']),queue=[[140,320]];
+    const spawn=roomPoint(room,140,320),visited=new Set([`${spawn.x},${spawn.y}`]),queue=[[spawn.x,spawn.y]];
     for(let i=0;i<queue.length;i++)for(const [dx,dy] of [[10,0],[-10,0],[0,10],[0,-10]]){
       const [x,y]=queue[i],nx=x+dx,ny=y+dy,key=`${nx},${ny}`;
       if(!visited.has(key)&&walkable(nx,ny,room)){visited.add(key);queue.push([nx,ny]);}
     }
-    for(const [x,y] of [...ROOMS[room].slots,...roomTrinkets(room).map(item=>[item.x,item.y]),[ROOMS[room].goal.x,ROOMS[room].goal.y],[910,320]])assert.ok(queue.some(([px,py])=>Math.hypot(x-px,y-py)<18),`${room}: ${x},${y}`);
+    for(const [x,y] of [...ROOMS[room].slots,...roomTrinkets(room).map(item=>[item.x,item.y]),[ROOMS[room].goal.x,ROOMS[room].goal.y],[910*roomScale(room),320*roomScale(room)]])assert.ok(queue.some(([px,py])=>Math.hypot(x-px,y-py)<18),`${room}: ${x},${y}`);
     for(let seed=0;seed<500;seed++){
       assert.equal(roomItems(seed,room).length,3);
       for(const item of roomItems(seed,room))assert.ok(walkable(item.x,item.y,room));
@@ -145,15 +145,15 @@ test('rescuing Pepper needs the key and grants a permanent fourth heart',()=>{
 test('the final exit needs Pepper, the picnic basket, and all ten trinkets',()=>{
   const run=createRun('finish12');run.keyFound=true;run.pepperFound=true;
   const world=makeWorld(run,'orchard');world.toys=[];world.items=[];
-  Object.assign(world.player,{x:910,y:320});assert.equal(step(world,run,idle,.02).some(e=>e.type==='exit'),false);
-  Object.assign(world.player,{x:825,y:160});assert.ok(step(world,run,idle,.02).some(e=>e.type==='basket'));
-  Object.assign(world.player,{x:910,y:320});assert.equal(step(world,run,idle,.02).some(e=>e.type==='exit'),false);
+  Object.assign(world.player,roomPoint(world.room,910,320));assert.equal(step(world,run,idle,.02).some(e=>e.type==='exit'),false);
+  Object.assign(world.player,ROOMS.orchard.goal);assert.ok(step(world,run,idle,.02).some(e=>e.type==='basket'));
+  Object.assign(world.player,roomPoint(world.room,910,320));assert.equal(step(world,run,idle,.02).some(e=>e.type==='exit'),false);
   run.trinkets=TRINKETS.map(item=>item.id);assert.ok(step(world,run,idle,.02).some(e=>e.type==='exit'));
 });
 test('retry loses this attempt’s snacks but preserves discoveries and earlier chapters',()=>{
   const run=createRun('retry123');run.keyFound=true;run.pepperFound=true;run.collected=['meadow-0'];makeWorld(run,'orchard');
   run.collected.push('orchard-1');run.health=0;const world=retryRoom(run,'orchard');
-  assert.deepEqual(run.collected,['meadow-0']);assert.equal(run.health,4);assert.equal(run.retries,1);assert.equal(world.player.x,135);assert.ok(run.pepperFound&&run.keyFound);
+  assert.deepEqual(run.collected,['meadow-0']);assert.equal(run.health,4);assert.equal(run.retries,1);assert.equal(world.player.x,135*roomScale(world.room));assert.ok(run.pepperFound&&run.keyFound);
 });
 test('old adventures migrate without changing the original save or losing snacks',()=>{
   const old={version:1,id:'legacy12',seed:42,collected:['meadow-0','meadow-1','meadow-2','meadow-3'],completed:false};
@@ -169,7 +169,7 @@ test('rescue stays at the pond; both trinkets are needed before its exit',()=>{
   const world=makeWorld(run,'pond');world.toys=[];world.gophers=[];
   Object.assign(world.player,{x:775,y:370});const events=step(world,run,idle,.016);
   assert.deepEqual(events.map(event=>event.type),['rescue']);assert.equal(world.room,'pond');assert.equal(goalDone(run,'pond'),false);
-  Object.assign(world.player,{x:910,y:320});assert.ok(!step(world,run,idle,.016).some(event=>event.type==='exit'));
+  Object.assign(world.player,roomPoint(world.room,910,320));assert.ok(!step(world,run,idle,.016).some(event=>event.type==='exit'));
   for(const item of roomTrinkets('pond')){Object.assign(world.player,{x:item.x,y:item.y});assert.ok(step(world,run,idle,.016).some(event=>event.type==='trinket'));}
   assert.equal(goalDone(run,'pond'),true);
   run.health=0;retryRoom(run,'pond');assert.equal(run.trinkets.length,0,'trinkets from a failed attempt return to the pond');
@@ -199,7 +199,7 @@ test('exiting a cleared level banks its trinkets for later visits',()=>{
   const run=createRun('bankedloot');run.keyFound=true;run.pepperFound=true;run.room='burrows';
   let world=makeWorld(run,'burrows');world.toys=[];world.gophers=[];world.items=[];
   for(const item of roomTrinkets('burrows')){Object.assign(world.player,{x:item.x,y:item.y});step(world,run,idle,.016);}
-  Object.assign(world.player,{x:910,y:320});assert.ok(step(world,run,idle,.016).some(event=>event.type==='exit'));
+  Object.assign(world.player,roomPoint(world.room,910,320));assert.ok(step(world,run,idle,.016).some(event=>event.type==='exit'));
   const banked=[...run.trinkets];makeWorld(run,'woods');world=makeWorld(run,'burrows');world.gophers=[];world.items=[];
   run.health=1;world.invincible=0;world.toys=[toyAt(world.player.x,world.player.y)];
   assert.ok(step(world,run,idle,.016).some(event=>event.type==='defeat'));assert.deepEqual(run.trinkets,banked);
@@ -225,7 +225,7 @@ test('the garden requires both trinkets and advances to the woods',()=>{
   const world=makeWorld(run,'burrows');world.toys=[];world.gophers=[];
   assert.equal(goalDone(run,'burrows'),false);
   for(const item of roomTrinkets('burrows')){Object.assign(world.player,item);step(world,run,idle,.016);}
-  assert.equal(goalDone(run,'burrows'),true);Object.assign(world.player,{x:910,y:320});
+  assert.equal(goalDone(run,'burrows'),true);Object.assign(world.player,roomPoint(world.room,910,320));
   assert.ok(step(world,run,idle,.016).some(event=>event.type==='exit'));assert.equal(ORDER[ORDER.indexOf('burrows')+1],'woods');
 });
 test('cats warn, pounce along a fixed line, and rest with a safe dodge window',()=>{
@@ -308,7 +308,7 @@ test('harmless hazard phases do not hurt Pepper and he keeps following after a h
 });
 
 test('dash requires the full 2.8-second recharge',()=>{const run=createRun('dashwait');const world=makeWorld(run,'meadow');world.toys=[];assert.ok(startDash(world,{x:1,y:0}));for(let i=0;i<120;i++)step(world,run,idle,1/60);assert.equal(startDash(world),false);for(let i=0;i<49;i++)step(world,run,idle,1/60);assert.equal(startDash(world),true);});
-test('new clearings need their own treasures before advancing',()=>{for(const room of ['woods','hills']){const {run}=pairedWorld();const world=makeWorld(run,room);world.toys=[];world.gophers=[];assert.equal(goalDone(run,room),false);for(const item of roomTrinkets(room)){Object.assign(world.player,item);step(world,run,idle,.016);}assert.ok(goalDone(run,room));Object.assign(world.player,{x:910,y:320});assert.ok(step(world,run,idle,.016).some(event=>event.type==='exit'));}});
+test('new clearings need their own treasures before advancing',()=>{for(const room of ['woods','hills']){const {run}=pairedWorld();const world=makeWorld(run,room);world.toys=[];world.gophers=[];assert.equal(goalDone(run,room),false);for(const item of roomTrinkets(room)){Object.assign(world.player,item);step(world,run,idle,.016);}assert.ok(goalDone(run,room));Object.assign(world.player,roomPoint(world.room,910,320));assert.ok(step(world,run,idle,.016).some(event=>event.type==='exit'));}});
 
 test('safe practice teaches movement, crate dash, and recharge without granting a key',()=>{
  const run=createRun('practice12');const world=makeWorld(run,'tutorial');assert.deepEqual(world.toys,[]);assert.deepEqual(world.gophers,[]);assert.deepEqual(world.items,[]);
@@ -316,7 +316,7 @@ test('safe practice teaches movement, crate dash, and recharge without granting 
  Object.assign(world.player,{x:490,y:315});step(world,run,idle,.02);assert.equal(run.tutorialStep,1);
  startDash(world,{x:1,y:0});step(world,run,{x:1,y:0},.02);assert.equal(run.tutorialStep,2);assert.equal(run.keyFound,false);assert.equal(goalDone(run,'tutorial'),false);
  for(let i=0;i<150;i++)step(world,run,idle,.02);assert.equal(run.tutorialStep,3);assert.equal(run.health,3);assert.ok(goalDone(run,'tutorial'));
- run.room='tutorial';assert.ok(validRun(JSON.parse(JSON.stringify(run)),run.id));Object.assign(world.player,{x:910,y:320});assert.ok(step(world,run,idle,.02).some(e=>e.type==='exit'));
+ run.room='tutorial';assert.ok(validRun(JSON.parse(JSON.stringify(run)),run.id));Object.assign(world.player,roomPoint(world.room,910,320));assert.ok(step(world,run,idle,.02).some(e=>e.type==='exit'));
 });
 
 
@@ -365,8 +365,8 @@ test('mud slows rolling but dash crosses at full speed; ice slides and grass bra
   const mud=simulate('burrows',240,400,{x:1,y:0},30),grass=simulate('meadow',240,315,{x:1,y:0},30);
   assert.ok(mud.world.player.x-240<(grass.world.player.x-240)*.65);
   const dashed=simulate('burrows',240,400,{x:1,y:0},10,true);assert.ok(dashed.world.player.x-240>85);
-  assert.equal(terrainAt('woods',470,205),'ice');
-  const ice=simulate('woods',470,205,{x:1,y:0},20),before=ice.world.player.x;
+  assert.equal(terrainAt('woods',752,328),'ice');
+  const ice=simulate('woods',752,328,{x:1,y:0},20),before=ice.world.player.x;
   for(let i=0;i<10;i++)step(ice.world,ice.run,idle,1/60);assert.ok(ice.world.player.x>before+10,'slides after release');
   Object.assign(ice.world.player,{x:220,y:315});step(ice.world,ice.run,idle,1/60);assert.equal(ice.world.player.x,220,'grass stops the slide');
 });
@@ -462,7 +462,7 @@ test('boss telegraphs, charges, overheats, takes one hit per opening, and persis
    assert.equal(boss.hp,8-(hit+1)*2);const hp=boss.hp;step(world,run,idle,.016);assert.equal(boss.hp,hp,'one dash never deals repeated hits');
    const saved=JSON.parse(JSON.stringify(run));assert.ok(validRun(saved,saved.id));assert.equal(makeWorld(saved,'boss').boss.hp,hp);
  }
- assert.ok(run.bossDefeated);assert.ok(goalDone(run,'boss'));Object.assign(world.player,{x:910,y:320});world.dash=0;assert.ok(step(world,run,idle,.02).some(e=>e.type==='exit'));
+ assert.ok(run.bossDefeated);assert.ok(goalDone(run,'boss'));Object.assign(world.player,roomPoint(world.room,910,320));world.dash=0;assert.ok(step(world,run,idle,.02).some(e=>e.type==='exit'));
 });
 test('successful boss hits give every corgi time to reposition, then restore danger',()=>{
  for(const ability of ['dash','power'])for(const body of ['player','buddy','pee','pepperoni']) {
@@ -498,4 +498,16 @@ test('old endings remain earned without granting the new friend or new treasures
 });
 test('roaming machine hazards are vacuums, never arbitrary balls',()=>{
  for(const room of ORDER)for(const toy of toysFor(42,room))assert.ok(['cat','vacuum'].includes(toy.kind));
+});
+
+test('wide worlds migrate old positions once and preserve discoveries',()=>{
+ const run=createRun('widesave');delete run.wideWorlds;run.positions={woods:{x:225,y:480},meadow:{x:135,y:315}};run.trinkets=['woods-bell'];
+ upgradeRun(run);assert.deepEqual(run.positions.woods,{x:360,y:768});assert.deepEqual(run.positions.meadow,{x:135,y:315});
+ const once=JSON.stringify(run);upgradeRun(run);assert.equal(JSON.stringify(run),once);assert.ok(validRun(run,run.id));
+ assert.deepEqual(run.trinkets,['woods-bell']);
+ for(const room of ['woods','hills','orchard']){
+  assert.ok(walkable(1400,700,room),'expanded area is playable');
+  const world=makeWorld(createRun('wideroom'),room);assert.ok(walkable(world.player.x,world.player.y,room));
+  assert.equal(retryRoom(run,room).player.x,216);
+ }
 });

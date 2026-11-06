@@ -1,7 +1,7 @@
-import { ROOMS, ORDER, DASH_COOLDOWN, ABILITIES, WIDTH, HEIGHT, createRun, peeProgress, upgradeRun, TRINKETS, validRun, migrateRun, makeWorld, maxHearts, goalDone, isUnlocked, firstUnfinished, objective, retryRoom, step, startDash, startAbility } from './engine.mjs?v=22';
-import { portrait, drawWorld, drawPicnic } from './art.mjs?v=22';
-import { movementKey, abilityKey, isTextEntry, joystickVector } from './input.mjs?v=22';
-import { Soundscape } from './audio.mjs?v=22';
+import { ROOMS, ORDER, DASH_COOLDOWN, ABILITIES, WIDTH, HEIGHT, createRun, peeProgress, upgradeRun, TRINKETS, validRun, migrateRun, makeWorld, maxHearts, goalDone, isUnlocked, firstUnfinished, objective, retryRoom, step, startDash, startAbility } from './engine.mjs?v=23';
+import { portrait, drawWorld, drawPicnic } from './art.mjs?v=23';
+import { movementKey, abilityKey, isTextEntry, joystickVector } from './input.mjs?v=23';
+import { Soundscape } from './audio.mjs?v=23';
 
 const $ = id => document.getElementById(id);
 const canvas=$('world'), ctx=canvas.getContext('2d');

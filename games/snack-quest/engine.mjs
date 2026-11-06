@@ -1,5 +1,7 @@
 export const WIDTH = 1000;
 export const HEIGHT = 620;
+export function roomScale(room) { return ['woods','hills','orchard'].includes(room)?1.6:1; }
+export function roomPoint(room,x,y) { const scale=roomScale(room);return {x:x*scale,y:y*scale}; }
 export const DASH_COOLDOWN = 2.8;
 export const ABILITIES = {
   bark:{key:'J',corgi:'Pepper',name:'Bark',hint:'Stun enemies near Pepper',cooldown:5,unlock:'pepperFound'},
@@ -96,8 +98,20 @@ export const TRINKETS = [
   {id:'kitchen-star',room:'kitchen',name:'The chef’s gold star',kind:'star',x:240,y:170},
   {id:'kitchen-button',room:'kitchen',name:'A runaway apron button',kind:'button',x:820,y:490},
 ];
+// Expand authored landmarks into larger worlds; actors and their speeds stay life-sized.
+for(const room of ['woods','hills','orchard']) {
+  const info=ROOMS[room],scale=roomScale(room);
+  for(const item of [...info.obstacles,...(info.terrain||[]),info.goal,...TRINKETS.filter(t=>t.room===room)]) {item.x*=scale;item.y*=scale;}
+  for(const patch of info.terrain||[]){patch.rx*=1.35;patch.ry*=1.35;}
+  info.slots=info.slots.map(([x,y])=>[x*scale,y*scale]);
+  const extras=room==='woods'?[[410,310],[590,440],[750,150],[290,430]]:room==='hills'?[[380,250],[540,390],[720,460],[620,270]]:[[420,300],[550,420],[730,330],[300,470]];
+  info.obstacles.push(...extras.map(([x,y])=>({...roomPoint(room,x,y),r:35,kind:room==='hills'?'rock':'tree'})));
+  info.terrain??=[];
+  info.terrain.push({...roomPoint(room,room==='woods'?440:580,room==='woods'?450:320),rx:120,ry:65,kind:room==='woods'?'ice':'mud'});
+  info.note='A wide-open adventure! Explore the whole clearing. '+info.note;
+}
 export const PEPPERONI_RESCUE={x:820,y:160};
-export const PEE_RESCUE = {x:790,y:155};
+export const PEE_RESCUE = roomPoint('hills',790,155);
 export function peeProgress(run) { return TRINKETS.filter(item=>['pond','burrows','woods'].includes(item.room)&&run.trinkets?.includes(item.id)).length; }
 export function canRescuePee(run) { return run.pepperFound && peeProgress(run)===6; }
 export function terrainAt(room,x,y) { return (ROOMS[room].terrain||[]).find(p=>((x-p.x)/p.rx)**2+((y-p.y)/p.ry)**2<1)?.kind || 'grass'; }
@@ -110,6 +124,10 @@ export function roomTrinkets(room) { return TRINKETS.filter(item=>item.room===ro
 export function trinketCount(run,room) { return roomTrinkets(room).filter(item=>run.trinkets?.includes(item.id)).length; }
 export function allTrinkets(run) { return TRINKETS.every(item=>run.trinkets?.includes(item.id)); }
 export function upgradeRun(run) {
+  if(!run.wideWorlds){
+    for(const [room,point] of Object.entries(run.positions||{}))if(Number.isFinite(point?.x)&&Number.isFinite(point?.y))run.positions[room]=roomPoint(room,point.x,point.y);
+    run.wideWorlds=true;
+  }
   // Extend old saves in place without losing snacks, health, or completed adventures.
   if(run.completed&&!run.bossDefeated){run.legacyEnding=true;run.trinkets=[...new Set([...(run.trinkets||[]),...TRINKETS.slice(0,10).map(item=>item.id)])];}
   else if(!run.trinkets)run.trinkets=[];
@@ -148,7 +166,7 @@ export function roomItems(seed, room) {
 export function maxHearts(run) { return run.pepperFound ? 4 : 3; }
 export function createRun(id) {
   return {
-    version:2, id, seed:Number.parseInt(id, 36) >>> 0, character:'pepsi', order:roomOrder(),
+    version:2, wideWorlds:true, id, seed:Number.parseInt(id, 36) >>> 0, character:'pepsi', order:roomOrder(),
     room:'meadow', tutorialStep:0, collected:[], trinkets:[], positions:{}, checkpoints:{}, trinketCheckpoints:{}, health:3,
     keyFound:false, pepperFound:false, peeFound:false, pepperoniFound:false,bossDefeated:false, basketFound:false, completed:false,
     hits:0, retries:0, revision:0, startedAt:Date.now(),cooldowns:freshCooldowns(),
@@ -225,15 +243,17 @@ export function objective(run, room) {
   return 'Collect the picnic basket, then take the path home →';
 }
 export function walkable(x, y, room, radius = 18) {
-  if (!Number.isFinite(x) || !Number.isFinite(y) || x < 55 + radius || x > 945 - radius || y < 105 + radius || y > 548 - radius) return false;
+  const scale=roomScale(room);
+  if (!Number.isFinite(x) || !Number.isFinite(y) || x < 55*scale + radius || x > 945*scale - radius || y < 105*scale + radius || y > 548*scale - radius) return false;
   return !ROOMS[room].obstacles.some(o => ((x-o.x)/(o.r+radius)) ** 2 + ((y-o.y)/((o.ry||o.r)+radius)) ** 2 < 1);
 }
 export function toysFor(seed, room) {
   if(room==='tutorial'||room==='boss')return [];
   const positions = ['laundry','kitchen'].includes(room)?[[280,360],[540,260],[800,380]]:room==='woods'?[[420,260],[620,350],[820,330]]:room==='hills'?[[420,400],[710,290],[590,310]]:room === 'meadow' ? [[360,350],[690,285]] : room === 'pond' ? [[290,220],[710,370],[565,470]] : room === 'burrows' ? [[470,300],[760,350]] : [[315,375],[505,220],[800,340],[515,480]];
+  if(roomScale(room)>1)positions.push([550,320],[350,470]);
   const rng = random(seed + ORDER.indexOf(room)*77);
   return positions.map(([x,y], i) => ({
-    x,y,r:18,vx:(rng()>.5?1:-1)*(40+ORDER.indexOf(room)*8),vy:(rng()>.5?1:-1)*30,
+    ...roomPoint(room,x,y),r:18,vx:(rng()>.5?1:-1)*(40+ORDER.indexOf(room)*8),vy:(rng()>.5?1:-1)*30,
     kind:i%2?'cat':'vacuum',mode:'roam',timer:0,cooldown:.8+i*.3,aimX:0,aimY:0,
   }));
 }
@@ -241,7 +261,7 @@ export function gophersFor(seed,room) {
   if(room==='tutorial'||room==='boss')return [];
   const spots={laundry:[],kitchen:[],woods:[[260,450],[610,170],[810,350]],hills:[[250,220],[450,440],[710,190],[820,440]],meadow:[],pond:[[340,180],[680,475]],burrows:[[270,210],[470,450],[735,200],[805,430]],orchard:[[450,180],[730,440],[830,270]]}[room];
   const rng=random(seed+ORDER.indexOf(room)*307);
-  return spots.map(([x,y],i)=>({x,y,r:22,kind:'gopher',mode:'hidden',timer:1+i*.65+rng(),cycle:0,seed:seed+i*31}));
+  return spots.map(([x,y],i)=>({...roomPoint(room,x,y),r:22,kind:'gopher',mode:'hidden',timer:1+i*.65+rng(),cycle:0,seed:seed+i*31}));
 }
 function companionSpawn(leader,room) {
   // Keep the third loaf visible at a narrow entrance; never place him through a wall.
@@ -254,7 +274,7 @@ function companionSpawn(leader,room) {
 export function makeWorld(run, room) {
   run.cooldowns??=freshCooldowns();
   const saved = run.positions[room];
-  const p = saved && walkable(saved.x,saved.y,room) ? {...saved} : {x:135,y:315};
+  const p = saved && walkable(saved.x,saved.y,room) ? {...saved} : roomPoint(room,135,315);
   if (!run.checkpoints[room]) run.checkpoints[room] = run.collected.filter(id => id.startsWith(room+'-'));
   run.trinketCheckpoints??={};
   run.trinketCheckpoints[room]??=roomTrinkets(room).filter(item=>run.trinkets.includes(item.id)).map(item=>item.id);
@@ -279,7 +299,7 @@ export function retryRoom(run, room) {
   run.health = maxHearts(run);
   run.retries++;
   run.cooldowns=freshCooldowns();
-  run.positions[room] = {x:135,y:315};
+  run.positions[room] = roomPoint(room,135,315);
   if(room==='boss'&&!run.bossDefeated)run.bossState=newBoss();
   return makeWorld(run,room);
 }
@@ -479,7 +499,7 @@ export function step(world,run,input,dt) {
     }
   }
   world.particles=world.particles.filter(p=>{p.life-=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;return p.life>0;});
-  if(p.x>890&&Math.abs(p.y-320)<58&&goalDone(run,world.room)) {
+  if(p.x>890*roomScale(world.room)&&Math.abs(p.y-320*roomScale(world.room))<58&&goalDone(run,world.room)) {
     run.trinketCheckpoints[world.room]=roomTrinkets(world.room).filter(item=>run.trinkets.includes(item.id)).map(item=>item.id);
     events.push({type:'exit'});
   }
