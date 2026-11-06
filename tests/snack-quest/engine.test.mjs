@@ -4,6 +4,20 @@ import { ROOMS, ORDER, TRINKETS, PEE_RESCUE, peeProgress, canRescuePee, terrainA
 const idle={x:0,y:0};
 function toyAt(x,y){return {x,y,r:18,vx:0,vy:0,kind:'ball',mode:'roam',timer:0,cooldown:9};}
 
+test('analog steering scales rolling speed, caps diagonals, and keeps dash strength',()=>{
+  function distance(input,dash=false) {
+    const run=createRun('analogroll'),world=makeWorld(run,'tutorial');
+    if(dash)startDash(world,input);
+    for(let i=0;i<10;i++)step(world,run,input,1/60);
+    return Math.hypot(world.player.x-135,world.player.y-315);
+  }
+  const full=distance({x:1,y:0,analog:true});
+  assert.ok(Math.abs(distance({x:.25,y:0,analog:true})-full*.25)<.01,'small tilt gives slower rolling');
+  assert.ok(Math.abs(distance({x:1,y:1,analog:true})-full)<.01,'diagonals never exceed full speed');
+  assert.ok(Math.abs(distance({x:1,y:0})-full)<.01,'keyboard speed is unchanged');
+  assert.ok(Math.abs(distance({x:.2,y:0,analog:true},true)-distance({x:1,y:0},true))<.01,'gentle steering still gives a full dash');
+});
+
 test('Pepper follows continuously without flipping at each trail point',()=>{
   const run=createRun('follow123');run.keyFound=true;run.pepperFound=true;run.health=4;
   const world=makeWorld(run,'meadow');world.toys=[];

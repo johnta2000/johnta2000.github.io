@@ -1,7 +1,7 @@
-import { ROOMS, ORDER, DASH_COOLDOWN, ABILITIES, WIDTH, HEIGHT, createRun, peeProgress, upgradeRun, TRINKETS, validRun, migrateRun, makeWorld, maxHearts, goalDone, isUnlocked, firstUnfinished, objective, retryRoom, step, startDash, startAbility } from './engine.mjs?v=18';
-import { portrait, drawWorld, drawPicnic } from './art.mjs?v=18';
-import { movementKey, abilityKey, isTextEntry, joystickVector } from './input.mjs?v=18';
-import { Soundscape } from './audio.mjs?v=18';
+import { ROOMS, ORDER, DASH_COOLDOWN, ABILITIES, WIDTH, HEIGHT, createRun, peeProgress, upgradeRun, TRINKETS, validRun, migrateRun, makeWorld, maxHearts, goalDone, isUnlocked, firstUnfinished, objective, retryRoom, step, startDash, startAbility } from './engine.mjs?v=19';
+import { portrait, drawWorld, drawPicnic } from './art.mjs?v=19';
+import { movementKey, abilityKey, isTextEntry, joystickVector } from './input.mjs?v=19';
+import { Soundscape } from './audio.mjs?v=19';
 
 const $ = id => document.getElementById(id);
 const canvas=$('world'), ctx=canvas.getContext('2d');
@@ -222,7 +222,7 @@ function resize() {
   canvas.width=Math.round(viewportWidth*ratio);canvas.height=Math.round(HEIGHT*ratio);ctx.setTransform(ratio,0,0,ratio,0,0);
 }
 new ResizeObserver(resize).observe($('stage'));
-function inputDirection(){return stick.x||stick.y?{x:stick.x,y:stick.y}:{x:Number(keys.has('d'))-Number(keys.has('a')),y:Number(keys.has('s'))-Number(keys.has('w'))};}
+function inputDirection(){return stick.x||stick.y?{x:stick.x,y:stick.y,analog:true}:{x:Number(keys.has('d'))-Number(keys.has('a')),y:Number(keys.has('s'))-Number(keys.has('w'))};}
 function releaseJoystick() {
   const pointerId=stick.pointerId;stick.pointerId=null;stick.x=0;stick.y=0;
   $('joystick').classList.remove('engaged');$('joystick-knob').style.transform='translate(0px,0px)';
@@ -233,7 +233,8 @@ function moveJoystick(event) {
   const bounds=$('joystick').getBoundingClientRect(),radius=bounds.width*.34;
   const vector=joystickVector(event.clientX-bounds.x-bounds.width/2,event.clientY-bounds.y-bounds.height/2,radius);
   Object.assign(stick,vector);$('joystick-knob').style.transform=`translate(${vector.x*radius}px,${vector.y*radius}px)`;
-  if(vector.x||vector.y){controlsReady=true;pendingMove={...vector};$('control-prompt').hidden=true;paintAbilities();}
+  if(vector.x||vector.y){controlsReady=true;pendingMove={...vector,analog:true};$('control-prompt').hidden=true;paintAbilities();}
+  else pendingMove=null;
 }
 $('joystick').addEventListener('pointerdown',event=>{
   if(!touchMode||touchPortrait()||view!=='play'||stick.pointerId!==null)return;

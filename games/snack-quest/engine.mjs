@@ -377,7 +377,8 @@ export function step(world,run,input,dt) {
   if(dashing){move(p,p.vx*570*dt,p.vy*570*dt,world.room);world.dash=Math.max(0,world.dash-dt);p.slideX=p.vx*185;p.slideY=p.vy*185;}
   else {
     if(length){p.vx=input.x/length;p.vy=input.y/length;}
-    const speed=ground==='mud'?102:185,targetX=length?p.vx*speed:0,targetY=length?p.vy*speed:0;
+    const pace=input.analog?Math.min(length,1):1;
+    const speed=(ground==='mud'?102:185)*pace,targetX=length?p.vx*speed:0,targetY=length?p.vy*speed:0;
     const blend=ground==='ice'?1-Math.exp(-dt*(length?3.5:2)):1;
     p.slideX=(p.slideX||0)+(targetX-(p.slideX||0))*blend;p.slideY=(p.slideY||0)+(targetY-(p.slideY||0))*blend;
     if(Math.abs(p.slideX)<.1)p.slideX=0;if(Math.abs(p.slideY)<.1)p.slideY=0;

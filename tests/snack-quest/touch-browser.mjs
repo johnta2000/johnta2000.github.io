@@ -23,12 +23,15 @@ try {
   const saved=async()=>page.evaluate(prefix=>JSON.parse(localStorage.getItem(prefix+new URLSearchParams(location.search).get('run'))),prefix);
   let thumb=await center('#joystick',1);
   await touch('touchStart',[thumb]);assert.equal(await page.locator('[data-ability=dash]').isDisabled(),true,'resting thumb does not start hazards');
-  thumb={...thumb,x:thumb.x+32};await touch('touchMove',[thumb]);await page.waitForTimeout(1100);
-  assert.ok((await saved()).positions.tutorial.x>290,'real touch drag rolls Pepsi');
+  const neutral={...thumb};
+  await touch('touchMove',[{...thumb,x:thumb.x+20}]);await page.waitForTimeout(500);await touch('touchEnd',[]);await page.waitForTimeout(1100);
+  const gentle=(await saved()).positions.tutorial.x-135;assert.ok(gentle>15&&gentle<65,'a gentle real thumb tilt rolls slowly');
+  thumb={...neutral,x:neutral.x+48};await touch('touchStart',[thumb]);await page.waitForTimeout(1100);
   await touch('touchEnd',[]);await page.waitForTimeout(1100);const stopped=(await saved()).positions.tutorial;
+  assert.ok(stopped.x>290,'real touch drag rolls Pepsi');
   await page.waitForTimeout(1100);assert.deepEqual((await saved()).positions.tutorial,stopped,'lifting the thumb stops rolling');
   assert.equal(await page.evaluate(()=>scrollY),0,'joystick never scrolls the page');
-  thumb=await center('#joystick',1);thumb.x+=32;await touch('touchStart',[thumb]);await page.waitForTimeout(650);
+  thumb=await center('#joystick',1);thumb.x+=48;await touch('touchStart',[thumb]);await page.waitForTimeout(650);
   const practiceDash=await center('[data-ability=dash]',2);await touch('touchStart',[thumb,practiceDash]);await page.waitForTimeout(250);await touch('touchEnd',[]);
   assert.equal((await saved()).tutorialStep,2,'touch dash breaks the practice crate');
   await page.waitForFunction(prefix=>JSON.parse(localStorage.getItem(prefix+new URLSearchParams(location.search).get('run'))).tutorialStep===3,prefix);
@@ -37,7 +40,7 @@ try {
   const run=createRun('touchskills');Object.assign(run,{room:'tutorial',tutorialStep:3,keyFound:true,pepperFound:true,peeFound:true,pepperoniFound:true,basketFound:true,health:4,trinkets:TRINKETS.map(item=>item.id)});
   await page.evaluate(({prefix,run})=>localStorage.setItem(prefix+run.id,JSON.stringify(run)),{prefix,run});
   await page.goto(base+'?view=play&run='+run.id+'&room=tutorial');
-  thumb=await center('#joystick',1);thumb.x+=30;await touch('touchStart',[thumb]);
+  thumb=await center('#joystick',1);thumb.x+=48;await touch('touchStart',[thumb]);
   const dash=await center('[data-ability=dash]',2);await touch('touchStart',[thumb,dash]);await page.waitForTimeout(60);
   assert.ok((await saved()).cooldowns.dash>2);assert.equal((await saved()).cooldowns.bark,0);assert.equal((await saved()).cooldowns.stink,0);
   await touch('touchEnd',[dash]);const bark=await center('[data-ability=bark]',2);await touch('touchStart',[thumb,bark]);await page.waitForTimeout(60);
@@ -50,14 +53,14 @@ try {
   await page.locator('#pause').tap();await page.locator('#resume').waitFor();
   const beforePause=await saved();await page.reload();await page.locator('#resume').waitFor();assert.deepEqual((await saved()).cooldowns,beforePause.cooldowns);
   await page.locator('#resume').tap();await page.waitForTimeout(2900);assert.deepEqual((await saved()).cooldowns,beforePause.cooldowns,'hazards and recharge wait for movement after resume');
-  thumb=await center('#joystick',1);thumb.y-=30;await touch('touchStart',[thumb]);await page.waitForTimeout(2900);await touch('touchEnd',[]);
+  thumb=await center('#joystick',1);thumb.y-=48;await touch('touchStart',[thumb]);await page.waitForTimeout(2900);await touch('touchEnd',[]);
   await page.locator('[data-ability=power]').tap();assert.ok((await saved()).cooldowns.power>7,'Power has its own touch button');
   await page.waitForTimeout(400);
-  thumb=await center('#joystick',1);thumb.y+=30;await touch('touchStart',[thumb]);await page.waitForTimeout(150);await touch('touchCancel',[]);
+  thumb=await center('#joystick',1);thumb.y+=48;await touch('touchStart',[thumb]);await page.waitForTimeout(150);await touch('touchCancel',[]);
   await page.waitForTimeout(1100);const cancelled=(await saved()).positions.tutorial;await page.waitForTimeout(1100);
   assert.deepEqual((await saved()).positions.tutorial,cancelled,'touch cancellation cannot leave movement held');
 
-  thumb=await center('#joystick',1);thumb.y+=30;await touch('touchStart',[thumb]);await page.waitForTimeout(150);
+  thumb=await center('#joystick',1);thumb.y+=48;await touch('touchStart',[thumb]);await page.waitForTimeout(150);
   await page.setViewportSize({width:390,height:844});await page.locator('#rotate-prompt').waitFor();await touch('touchCancel',[]);
   const upright=await saved();await page.waitForTimeout(1500);assert.deepEqual((await saved()).positions,upright.positions);assert.equal((await saved()).health,upright.health);
   await page.screenshot({path:output+'/rotate-prompt.png',fullPage:true});
@@ -76,6 +79,11 @@ try {
     assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth&&document.documentElement.scrollHeight<=innerHeight),'game fits '+JSON.stringify(size));
     for(const selector of ['#joystick','#pause','[data-ability=dash]','[data-ability=bark]','[data-ability=stink]','[data-ability=power]']) {
       const bounds=await page.locator(selector).boundingBox();assert.ok(bounds&&bounds.x>=0&&bounds.y>=0&&bounds.x+bounds.width<=size.width+1&&bounds.y+bounds.height<=size.height+1,selector+' stays onscreen '+JSON.stringify({size,bounds}));assert.ok(bounds.width>=44&&bounds.height>=44,selector+' has a thumb-sized target');
+    }
+    const actionBoxes=await Promise.all(['dash','bark','stink','power'].map(id=>page.locator(`[data-ability=${id}]`).boundingBox()));
+    assert.ok(actionBoxes[0].width>actionBoxes[1].width,'Dash is the larger primary action');
+    for(let i=0;i<actionBoxes.length;i++)for(let j=i+1;j<actionBoxes.length;j++) {
+      const a=actionBoxes[i],b=actionBoxes[j];assert.ok(a.x+a.width<=b.x||b.x+b.width<=a.x||a.y+a.height<=b.y||b.y+b.height<=a.y,'ability targets never overlap');
     }
     const stage=await page.locator('#stage').boundingBox(),joystick=await page.locator('#joystick').boundingBox(),abilities=await page.locator('#abilities').boundingBox();
     assert.ok(joystick.x+joystick.width<=stage.x&&abilities.x>=stage.x+stage.width,'controls never cover the world');
