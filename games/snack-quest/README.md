@@ -100,6 +100,11 @@ Mobile display: the game follows VisualViewport height and uses a compact two-by
 
 ### Mobile sizing and Shield
 
-Landscape uses a fixed visual-viewport shell, with the top safe inset inside the header rather than a separate strip. Side controls and dialogs respect notch and home-indicator insets. The early Dash-only layout returns unused ability space to the field; locked controls and keyboard hints stay hidden. The thumb target remains at least 108px on normal-height phones. Shield replaces Pepper’s Bark on J and touch: three seconds of team protection, a ten-second recharge from activation, blue bubbles, a countdown, and a synthesized chime. It neither heals nor stuns. The legacy `bark` cooldown identifier is retained for old saves.
+Landscape uses a fixed visual-viewport shell, with the top safe inset inside the header rather than a separate strip. Floating controls and dialogs respect notch and home-indicator insets. The world fills the entire landscape window, behind a translucent header and floating corner controls. Locked controls and keyboard hints stay hidden; unlocking them never resizes the world. The joystick stays 108px wide and supports dragging beyond its circle with pointer capture. Shield replaces Pepper’s Bark on J and touch: three seconds of team protection, a ten-second recharge from activation, blue bubbles, a countdown, and a synthesized chime. It neither heals nor stuns. The legacy `bark` cooldown identifier is retained for old saves.
 
 `node tests/snack-quest/mobile-layout-browser.mjs` checks simulated Home Screen safe insets, each unlock count, touch Shield activation, copied links, reload, and Back/Forward. Physical iOS Home Screen rendering still needs device confirmation.
+
+
+### Immersive mobile camera
+
+Mobile canvas dimensions match the visible window. It shows a full-width slice on wide phones and follows Pepsi vertically, clamped to the map edges. Tablet landscape can also follow horizontally. The three large maps retain their zoomed-out scale; desktop keeps its existing fixed overview. The boss health bar stays anchored to the view, and pause/completion never moves the stage. The objective sits between the corner controls. `camera.test.mjs`, the mobile layout checks, multitouch checks, fullscreen checks, and wide-world browser checks cover these behaviors.

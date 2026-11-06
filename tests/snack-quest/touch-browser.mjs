@@ -86,7 +86,9 @@ try {
       const a=actionBoxes[i],b=actionBoxes[j];assert.ok(a.x+a.width<=b.x||b.x+b.width<=a.x||a.y+a.height<=b.y||b.y+b.height<=a.y,'ability targets never overlap');
     }
     const stage=await page.locator('#stage').boundingBox(),joystick=await page.locator('#joystick').boundingBox(),abilities=await page.locator('#abilities').boundingBox();
-    assert.ok(joystick.x+joystick.width<=stage.x&&abilities.x>=stage.x+stage.width,'controls never cover the world');
+    assert.equal(stage.x,0);assert.equal(stage.y,0);assert.equal(stage.width,size.width);assert.equal(stage.height,size.height);
+    assert.ok(joystick.x>=stage.x&&abilities.x+abilities.width<=stage.width,'controls float inside the field');
+    assert.ok(joystick.x+joystick.width<abilities.x,'the center stays clear for gameplay');
     await page.screenshot({path:output+`/landscape-${size.width}.png`});
   }
   assert.deepEqual(errors,[]);

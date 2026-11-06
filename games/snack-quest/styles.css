@@ -79,30 +79,33 @@ kbd.pressed{background:#58774d;color:#fffdf2;border-color:#58774d;box-shadow:non
 
 html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 
-/* Fit the visible phone window, including Home Screen safe areas, as one surface. */
+/* Mobile: the world fills the window; controls float above it. */
 .ability[hidden],.keyboard-hints [hidden]{display:none!important}
 .abilities{grid-template-columns:repeat(var(--ability-count,1),minmax(0,1fr));min-height:91px}
-.touch-landscape{--safe-top:env(safe-area-inset-top,0px);--safe-right:env(safe-area-inset-right,0px);--safe-bottom:env(safe-area-inset-bottom,0px);--safe-left:env(safe-area-inset-left,0px);background:#fffdf5}
-.touch-landscape .page-shell{position:fixed;inset:0 0 auto;margin:0;padding:0;height:var(--game-height,100dvh);background:#fffdf5}
-.touch-landscape .game{grid-template-columns:calc(120px + var(--safe-left)) minmax(0,1fr) calc(148px + var(--safe-right));grid-template-rows:calc(44px + var(--safe-top)) minmax(0,1fr);padding-bottom:var(--safe-bottom)}
-.touch-landscape .game-toolbar{padding:var(--safe-top) calc(6px + var(--safe-right)) 0 calc(6px + var(--safe-left));gap:7px;background:#fffdf5;border-bottom:0;box-shadow:inset 0 -1px #d9deca}
-.touch-landscape .steering{justify-content:center;padding:6px 6px 6px calc(6px + var(--safe-left));gap:5px}
-.touch-landscape .joystick{width:108px;max-width:100%;flex-shrink:0}
-.touch-landscape .steering-tip{display:none}
-.touch-landscape .ability-bar{align-self:center;padding:4px calc(5px + var(--safe-right)) 4px 5px}
-.touch-landscape .abilities{display:grid;grid-template-columns:64px 72px;grid-template-rows:64px 76px;gap:8px 2px;min-height:0;height:148px}
-.touch-landscape .ability{position:relative;inset:auto!important;align-self:center;justify-self:center}
+.touch-landscape{--safe-top:env(safe-area-inset-top,0px);--safe-right:env(safe-area-inset-right,0px);--safe-bottom:env(safe-area-inset-bottom,0px);--safe-left:env(safe-area-inset-left,0px);background:#d8e5bd}
+.touch-landscape .page-shell{position:fixed;inset:0 0 auto;margin:0;padding:0;height:var(--game-height,100dvh);background:#d8e5bd}
+.touch-landscape .game,.touch-landscape.compact-controls .game,.touch-landscape[data-ability-count="1"] .game{position:relative;display:block;padding:0;height:100%}
+.touch-landscape .stage{position:absolute;inset:0;width:100%;height:100%;border:0;z-index:auto}
+.touch-landscape #world{width:100%;height:100%;object-fit:fill}
+.touch-landscape .game-toolbar,.touch-landscape.compact-controls .game-toolbar{position:absolute;inset:0 0 auto;height:calc(44px + var(--safe-top));padding:var(--safe-top) calc(6px + var(--safe-right)) 0 calc(6px + var(--safe-left));gap:7px;background:#fffdf5dc;border-bottom:0;box-shadow:0 1px 6px #42563312;z-index:10}
+.touch-landscape .steering,.touch-landscape.compact-controls .steering{position:absolute;left:calc(14px + var(--safe-left));bottom:calc(16px + var(--safe-bottom));width:108px;padding:0;gap:0;z-index:5;pointer-events:none}
+.touch-landscape .steering-label,.touch-landscape .steering-tip{display:none}
+.touch-landscape .joystick,.touch-landscape.compact-controls .joystick{width:108px;max-width:none;flex-shrink:0;background:#f0f4df65;border-color:#fffde6a8;box-shadow:inset 0 0 0 1px #52674335;pointer-events:auto}
+.touch-landscape #joystick-knob{background:#6c8b53a8;border-color:#fff9d9b8;box-shadow:0 2px 8px #40582b35}
+.touch-landscape .joystick.engaged{background:#eef4d990;border-color:#fffde6;box-shadow:0 0 0 3px #fffde640}
+.touch-landscape .ability-bar,.touch-landscape.compact-controls .ability-bar{position:absolute;right:calc(12px + var(--safe-right));bottom:calc(12px + var(--safe-bottom));padding:0;width:138px;z-index:5;pointer-events:none}
+.touch-landscape .abilities,.touch-landscape.compact-controls .abilities{display:grid;grid-template-columns:64px 72px;grid-template-rows:64px 76px;gap:8px 2px;min-height:0;height:148px}
+.touch-landscape .ability{position:relative;inset:auto!important;align-self:center;justify-self:center;pointer-events:auto;background:#fff9e7ad;border-color:#e3e9cca8;box-shadow:0 2px 0 #536a343d}
 .touch-landscape .ability[data-ability=bark]{grid-column:1;grid-row:1}
 .touch-landscape .ability[data-ability=stink]{grid-column:2;grid-row:1}
 .touch-landscape .ability[data-ability=power]{grid-column:1;grid-row:2}
-.touch-landscape .ability[data-ability=dash]{grid-column:2;grid-row:2;width:72px;height:72px;padding:7px 5px}
+.touch-landscape .ability[data-ability=dash]{grid-column:2;grid-row:2;width:72px;height:72px;padding:7px 5px;background:#597b4cbf;box-shadow:0 3px 0 #3c5e3470}
+.touch-landscape .ability[data-ability=dash]:disabled{background:#9cac89a6;box-shadow:0 3px 0 #3c5e3430}
 .touch-landscape .ability[data-ability=dash] strong{font-size:14px;line-height:16px}
 .touch-landscape .ability[data-ability=dash] .ability-status{font-size:9px;min-height:18px;margin-top:2px}
-.touch-landscape .ability[data-ability=bark].active{background:#dff4f7;border-color:#83bacb}
-.touch-landscape.compact-controls .game{grid-template-columns:calc(120px + var(--safe-left)) minmax(0,1fr) calc(148px + var(--safe-right));grid-template-rows:calc(44px + var(--safe-top)) minmax(0,1fr)}
-.touch-landscape.compact-controls .game-toolbar{padding:var(--safe-top) calc(5px + var(--safe-right)) 0 calc(5px + var(--safe-left))}
-.touch-landscape.compact-controls .steering{padding-left:calc(6px + var(--safe-left))}
-.touch-landscape.compact-controls .ability-bar{padding-right:calc(5px + var(--safe-right))}
-.touch-landscape[data-ability-count="1"] .game{grid-template-columns:calc(120px + var(--safe-left)) minmax(0,1fr) calc(100px + var(--safe-right))}
-.touch-landscape[data-ability-count="1"] .abilities{display:flex;align-items:center;justify-content:center;height:88px}
+.touch-landscape .ability[data-ability=power].unlocked{background:#fae6bead}
+.touch-landscape .ability[data-ability=bark].active{background:#dff4f7df;border-color:#83bacb}
+.touch-landscape[data-ability-count="1"] .abilities{display:flex;justify-content:flex-end;align-items:flex-end;height:76px}
+.touch-landscape .objective{left:calc(134px + var(--safe-left));right:calc(158px + var(--safe-right));bottom:calc(8px + var(--safe-bottom));background:#fffdf0cd;font-size:10px}
+.touch-landscape .room-toast{top:calc(50px + var(--safe-top));max-width:calc(100% - 32px - var(--safe-left) - var(--safe-right))}
 .touch-landscape .screen:not(.empty){inset:calc(44px + var(--safe-top)) var(--safe-right) auto var(--safe-left);height:calc(var(--game-height,100dvh) - 44px - var(--safe-top) - var(--safe-bottom))}

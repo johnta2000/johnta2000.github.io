@@ -1,4 +1,4 @@
-import { roomScale, WIDTH, HEIGHT, ROOMS, random, goalDone, roomTrinkets, PEE_RESCUE, peeProgress, canRescuePee, windAt, trinketCount } from './engine.mjs?v=28';
+import { roomScale, WIDTH, HEIGHT, ROOMS, random, goalDone, roomTrinkets, PEE_RESCUE, peeProgress, canRescuePee, windAt, trinketCount } from './engine.mjs?v=29';
 
 const INK='#75674c';
 function ellipse(c,x,y,rx,ry,fill,stroke=null,line=2){c.beginPath();c.ellipse(x,y,rx,ry,0,0,Math.PI*2);c.fillStyle=fill;c.fill();if(stroke){c.strokeStyle=stroke;c.lineWidth=line;c.stroke();}}
@@ -275,10 +275,15 @@ function needoh(c,x,y,time,squish=0,size=1,reduced=false){
   c.restore();
 }
 export function camera(world,viewportWidth){if(roomScale(world.room)>1)return 0;return Math.max(0,Math.min(WIDTH-viewportWidth,world.player.x-viewportWidth/2));}
-export function drawWorld(c,world,run,viewportWidth,reduced=false,preview=false) {
-  const scale=roomScale(world.room),zoom=scale>1?Math.min(viewportWidth/(WIDTH*scale),1/scale):1;
-  const t=reduced?0:world.time,offset=scale>1?0:preview?(WIDTH-viewportWidth)/2:camera(world,viewportWidth);
-  c.clearRect(0,0,c.canvas.width,c.canvas.height);c.save();if(scale>1){c.translate((viewportWidth-WIDTH*scale*zoom)/2,(HEIGHT-HEIGHT*scale*zoom)/2);c.scale(zoom,zoom);}c.translate(-offset,0);c.drawImage(ground(world.room,run.seed),0,0);
+// A wide phone sees a full-width slice instead of a small letterboxed overview.
+export function cameraY(world,viewportHeight=HEIGHT){
+  return Math.max(0,Math.min(HEIGHT-viewportHeight,world.player.y/roomScale(world.room)-viewportHeight/2));
+}
+export function drawWorld(c,world,run,viewportWidth,reduced=false,preview=false,viewportHeight=HEIGHT,immersive=false) {
+  const scale=roomScale(world.room),zoom=scale>1?(immersive?1/scale:Math.min(viewportWidth/(WIDTH*scale),1/scale)):1;
+  const t=reduced?0:world.time,offset=scale>1?(immersive?Math.max(0,Math.min(WIDTH-viewportWidth,world.player.x/scale-viewportWidth/2)):0):preview?(WIDTH-viewportWidth)/2:camera(world,viewportWidth);
+  const verticalOffset=preview?(HEIGHT-viewportHeight)/2:cameraY(world,viewportHeight);
+  c.clearRect(0,0,c.canvas.width,c.canvas.height);c.save();c.translate(-offset,-verticalOffset);if(scale>1){if(!immersive)c.translate((viewportWidth-WIDTH*scale*zoom)/2,(HEIGHT-HEIGHT*scale*zoom)/2);c.scale(zoom,zoom);}c.drawImage(ground(world.room,run.seed),0,0);
   if(world.room==='pond') {
     const o=ROOMS.pond.obstacles[0];
     for(let i=0;i<3;i++){c.beginPath();c.ellipse(o.x-30+i*38,o.y-20+i*20,18+Math.sin(t+i)*3,4,0,0,Math.PI);c.strokeStyle='#dbebd4';c.lineWidth=2;c.stroke();}
@@ -310,8 +315,9 @@ export function drawWorld(c,world,run,viewportWidth,reduced=false,preview=false)
     const b=world.boss;
     if(['windup','charge'].includes(b.mode)){c.save();c.setLineDash([10,9]);line(c,[[b.x,b.y],[b.x+b.aimX*520,b.y+b.aimY*520]],'#ba655d80',34);c.restore();}
     if(b.mode==='suction')ellipse(c,b.x,b.y,160,130,'#a6bcc52a','#8ea5ac',2);
+    c.save();c.translate(offset+(viewportWidth-WIDTH)/2,verticalOffset);
     rounded(c,350,81,300,20,10,'#f9f1df');rounded(c,354,85,292*b.hp/8,12,6,'#bf8673');
-    c.font='bold 12px sans-serif';c.textAlign='center';c.fillStyle='#655449';c.fillText(b.mode==='off'?'UNPLUGGED!':b.mode==='exposed'?'OVERHEATED · DASH NOW!':b.mode==='recover'?'STUNNED · REPOSITION!':b.mode==='suction'?'SUCTION · KEEP ROLLING!':'SIR SUCKS-A-LOT · '+b.hp+'/8',500,120);
+    c.font='bold 12px sans-serif';c.textAlign='center';c.fillStyle='#655449';c.fillText(b.mode==='off'?'UNPLUGGED!':b.mode==='exposed'?'OVERHEATED · DASH NOW!':b.mode==='recover'?'STUNNED · REPOSITION!':b.mode==='suction'?'SUCTION · KEEP ROLLING!':'SIR SUCKS-A-LOT · '+b.hp+'/8',500,120);c.restore();
   }
   const ready=goalDone(run,world.room);
   c.save();c.scale(scale,scale);
@@ -359,6 +365,6 @@ export function drawWorld(c,world,run,viewportWidth,reduced=false,preview=false)
   if(world.bump>0){c.fillStyle='#c8756220';c.fillRect(offset,0,viewportWidth,HEIGHT);}
   c.restore();return offset;
 }
-export function drawPicnic(c,run,viewportWidth,time,reduced=false){const t=reduced?0:time;const offset=(WIDTH-viewportWidth)/2;c.clearRect(0,0,c.canvas.width,c.canvas.height);c.save();c.translate(-offset,0);c.drawImage(ground('meadow',run.seed),0,0);const y=viewportWidth<700?135:185;
+export function drawPicnic(c,run,viewportWidth,time,reduced=false,viewportHeight=HEIGHT){const t=reduced?0:time;const offset=(WIDTH-viewportWidth)/2;c.clearRect(0,0,c.canvas.width,c.canvas.height);c.save();c.translate(-offset,0);c.drawImage(ground('meadow',run.seed),0,0);const y=viewportHeight<HEIGHT?viewportHeight*.4:viewportWidth<700?135:185;
   ellipse(c,500,y+20,155,55,'#6c7c4a20');rounded(c,365,y-32,270,105,14,'#f1c6a7','#d7ad8e');c.save();c.beginPath();c.roundRect(366,y-31,268,103,13);c.clip();c.globalAlpha=.45;for(let i=0;i<9;i++){c.fillStyle='#fff4d5';c.fillRect(368+i*34,y-32,15,105);}for(let i=0;i<4;i++)c.fillRect(365,y-23+i*29,270,12);c.restore();
   if(run.pepperoniFound){for(const [i,name]of ['pepsi','pepper','pee','pepperoni'].entries())corgi(c,365+i*90,y+6,name,.74,i>1?-1:1,0);}else {corgi(c,run.peeFound?405:440,y+6,'pepsi',run.peeFound?.88:1.1,1,0);corgi(c,run.peeFound?500:565,y+6,'pepper',run.peeFound?.88:1.1,-1,0);if(run.peeFound)corgi(c,600,y+6,'pee',.85,-1,0);}snack(c,470,y+43,'biscuit',.8,t);snack(c,534,y+47,'berry',.8,t);snack(c,504,y+27,'cheese',.7,t);if(run.needohFound)needoh(c,600,y+52,t,0,.5,reduced);for(let i=0;i<3;i++)heart(c,470+i*33,y-98-Math.sin(t*2+i)*6,.7+i%2*.3,i%2?'#c69582':'#cdb17c');c.restore();}

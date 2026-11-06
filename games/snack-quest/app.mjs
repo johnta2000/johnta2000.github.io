@@ -1,7 +1,7 @@
-import { ROOMS, ORDER, DASH_COOLDOWN, ABILITIES, WIDTH, HEIGHT, createRun, peeProgress, upgradeRun, TRINKETS, validRun, migrateRun, makeWorld, maxHearts, goalDone, isUnlocked, firstUnfinished, objective, retryRoom, step, startDash, startAbility } from './engine.mjs?v=28';
-import { portrait, drawWorld, drawPicnic } from './art.mjs?v=28';
-import { movementKey, abilityKey, isTextEntry, joystickVector } from './input.mjs?v=28';
-import { Soundscape } from './audio.mjs?v=28';
+import { ROOMS, ORDER, DASH_COOLDOWN, ABILITIES, WIDTH, HEIGHT, createRun, peeProgress, upgradeRun, TRINKETS, validRun, migrateRun, makeWorld, maxHearts, goalDone, isUnlocked, firstUnfinished, objective, retryRoom, step, startDash, startAbility } from './engine.mjs?v=29';
+import { portrait, drawWorld, drawPicnic } from './art.mjs?v=29';
+import { movementKey, abilityKey, isTextEntry, joystickVector } from './input.mjs?v=29';
+import { Soundscape } from './audio.mjs?v=29';
 
 const $ = id => document.getElementById(id);
 const canvas=$('world'), ctx=canvas.getContext('2d');
@@ -15,7 +15,7 @@ const PREFIX='pepsi-pepper.snack-quest.v2.', LEGACY='pepsi-pepper.snack-quest.v1
 const memory=new Map(), savedSnapshots=new Map(), keys=new Set();
 const soundtrack=new Soundscape();
 const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
-let run=null, world=null, view='home', viewportWidth=WIDTH, lastFrame=0, saveElapsed=0;
+let run=null, world=null, view='home', viewportWidth=WIDTH, viewportHeight=HEIGHT, lastFrame=0, saveElapsed=0;
 let toastUntil=0, animationTime=0, soundOn=false, latestId=null;
 let readFailed=false, saveFailed=false, conflict=false, backdropDown=false;
 let controlsReady=false,pendingMove=null,textRelease=0;
@@ -253,9 +253,10 @@ function fullscreenChanged(){
 for(const event of ['fullscreenchange','webkitfullscreenchange'])document.addEventListener(event,fullscreenChanged);
 function resize() {
   const bounds=$('stage').getBoundingClientRect();
-  viewportWidth=touchMode&&landscapeQuery.matches?WIDTH:Math.min(WIDTH,Math.round(bounds.width/bounds.height*HEIGHT));
+  viewportWidth=Math.min(WIDTH,Math.round(bounds.width/bounds.height*HEIGHT));
+  viewportHeight=touchMode&&landscapeQuery.matches?Math.min(HEIGHT,viewportWidth*bounds.height/Math.max(1,bounds.width)):HEIGHT;
   const ratio=Math.min(devicePixelRatio||1,2);
-  canvas.width=Math.round(viewportWidth*ratio);canvas.height=Math.round(HEIGHT*ratio);ctx.setTransform(ratio,0,0,ratio,0,0);
+  canvas.width=Math.round(viewportWidth*ratio);canvas.height=Math.round(viewportHeight*ratio);ctx.setTransform(ratio,0,0,ratio,0,0);
 }
 new ResizeObserver(resize).observe($('stage'));
 function inputDirection(){return stick.x||stick.y?{x:stick.x,y:stick.y,analog:true}:{x:Number(keys.has('d'))-Number(keys.has('a')),y:Number(keys.has('s'))-Number(keys.has('w'))};}
@@ -455,9 +456,9 @@ function frame(now) {
       $('dash-label').textContent=world.cooldown>0?`${world.cooldown.toFixed(1)}s recharge`:'dash ready';
       paintAbilities();
     }
-    if(view==='picnic'&&run)drawPicnic(ctx,run,viewportWidth,animationTime,reduced);
-    else if(view!=='home'&&world)drawWorld(ctx,world,run,viewportWidth,reduced);
-    else{previewWorld.time=animationTime;drawWorld(ctx,previewWorld,previewRun,viewportWidth,reduced,true);}
+    if(view==='picnic'&&run)drawPicnic(ctx,run,viewportWidth,animationTime,reduced,viewportHeight);
+    else if(view!=='home'&&world)drawWorld(ctx,world,run,viewportWidth,reduced,false,viewportHeight,touchMode&&landscapeQuery.matches);
+    else{previewWorld.time=animationTime;drawWorld(ctx,previewWorld,previewRun,viewportWidth,reduced,true,viewportHeight,touchMode&&landscapeQuery.matches);}
     if(toastUntil&&now>toastUntil){$('room-toast').hidden=true;toastUntil=0;}
   }
   requestAnimationFrame(frame);

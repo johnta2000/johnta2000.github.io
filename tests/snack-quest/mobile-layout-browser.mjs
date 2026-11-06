@@ -20,13 +20,14 @@ try{
   assert.equal(await page.locator('.ability:not([hidden])').count(),count);
   await page.evaluate(()=>{for(const [key,value] of Object.entries({'top':'20px','left':'44px','right':'44px','bottom':'21px'}))document.body.style.setProperty('--safe-'+key,value);});
   const shell=await page.locator('.page-shell').boundingBox(),header=await page.locator('.game-toolbar').boundingBox(),stage=await page.locator('#stage').boundingBox();
-  assert.equal(shell.y,0);assert.equal(header.y,0,'safe inset belongs inside the header, not an empty bar');assert.equal(header.height,64);assert.equal(stage.y,64);
-  assert.equal(shell.height,393);assert.ok(stage.y+stage.height<=372.5);
+  assert.equal(shell.y,0);assert.equal(header.y,0,'safe inset belongs inside the header, not an empty bar');assert.equal(header.height,64);assert.equal(stage.y,0);assert.equal(stage.x,0);assert.equal(stage.width,852);
+  assert.equal(shell.height,393);assert.equal(stage.height,393);
+  const canvas=await page.locator('#world').evaluate(c=>({width:c.width,height:c.height}));assert.ok(Math.abs(canvas.width/canvas.height-852/393)<.01,'canvas matches the phone, without letterboxing or stretching');
   for(const selector of ['#joystick',...await page.locator('.ability:visible').evaluateAll(nodes=>nodes.map(n=>'[data-ability='+n.dataset.ability+']'))]){
    const box=await page.locator(selector).boundingBox();assert.ok(box.x>=44&&box.x+box.width<=808.5,selector+' respects notch');assert.ok(box.y>=64&&box.y+box.height<=372.5,selector+' fits safe height');assert.ok(box.width>=44&&box.height>=44);
   }
   if(count===1)earlyWidth=stage.width;
-  if(count===4)assert.ok(earlyWidth>stage.width+40,'unused controls give width back to the early game');
+  if(count===4)assert.equal(earlyWidth,stage.width,'unlocking abilities never shrinks or shifts the field');
   await page.screenshot({path:out+'/standalone-'+count+'-abilities.png'});
   await page.reload();assert.equal(await page.locator('.ability:visible').count(),count,'reload restores unlock visibility');
  }
@@ -34,5 +35,5 @@ try{
  await page.screenshot({path:out+'/shield.png'});
  await page.locator('#pause').tap();const pauseURL=page.url();await page.reload();assert.match(page.url(),/view=pause/);await page.locator('#resume').tap();await page.waitForURL(/view=play/);await page.goBack();await page.waitForURL(pauseURL);await page.goForward();await page.waitForURL(/view=play/);
  const copy=await context.newPage();await copy.goto(url);assert.equal(await copy.locator('.ability:visible').count(),4);await copy.close();
- assert.deepEqual(errors,[]);console.log('PASS: Home Screen safe-area layout, hidden unlocks, wider early levels, shield touch control, reload/copied links/history.');
+ assert.deepEqual(errors,[]);console.log('PASS: Home Screen safe-area layout, hidden unlocks, edge-to-edge field, shield touch control, reload/copied links/history.');
 }finally{await browser.close();}

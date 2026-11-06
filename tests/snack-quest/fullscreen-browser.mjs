@@ -35,9 +35,9 @@ try{
  const copy=await context.newPage();await copy.goto(helpURL);await copy.locator('.display-card').waitFor();await copy.close();if(!safari)await page.bringToFront();
  if(!safari){const download=page.waitForEvent('download');await page.locator('#display-backup').tap();const file=await download;await file.saveAs(out+'/progress.json');}
  console.log('Layout and display help verified');
- await page.locator('#display-close').tap();assert.match(page.url(),/view=play/);await page.goBack();await page.locator('.display-card').waitFor();await page.goForward();assert.match(page.url(),/view=play/);
+ await page.locator('#display-close').tap();assert.match(page.url(),/view=play/);await page.goBack();await page.locator('.display-card').waitFor();await page.goForward();await page.waitForURL(/view=play/);
  await page.locator('#fullscreen').tap();await page.keyboard.press('Escape');assert.match(page.url(),/view=play/);
- await page.locator('#fullscreen').tap();const backdrop=await page.locator('#screen').boundingBox();await page.touchscreen.tap(backdrop.x+3,backdrop.y+3);assert.match(page.url(),/view=play/);
+ await page.locator('#fullscreen').tap();assert.equal(await page.locator('#joystick').evaluate(stick=>{const r=stick.getBoundingClientRect();return document.elementFromPoint(r.x+r.width/2,r.y+r.height/2).id;}),'screen','display dialog covers floating game controls');const backdrop=await page.locator('#screen').boundingBox();await page.touchscreen.tap(backdrop.x+3,backdrop.y+3);await page.waitForURL(/view=play/);
  assert.deepEqual(errors,[]);
  if(!safari){const fresh=await browser.newContext({viewport:{width:844,height:390},isMobile:true,hasTouch:true});await fresh.addInitScript(()=>Object.defineProperty(navigator,'standalone',{get:()=>true}));
  const app=await fresh.newPage();await app.goto(base);await app.locator('#fullscreen').tap();await app.locator('.display-card').waitFor();assert.match(await app.locator('.display-card').innerText(),/already playing/);
