@@ -4,45 +4,49 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#f7f3e9">
-  <meta name="description" content="A little keyboard adventure starring Pepsi and Pepper. Find the key, rescue your gray corgi friend, and make it home together.">
+  <meta name="description" content="A little corgi adventure for keyboard or mobile. Roll, rescue your friends, and make it home together.">
   <meta property="og:title" content="Pepsi & Pepper · The Great Snack Quest">
-  <meta property="og:description" content="A lost friend, three hearts, and one very brave little loaf. WASD to move. Space to dash.">
+  <meta property="og:description" content="A lost friend, three hearts, and one very brave little loaf. Play on keyboard or turn your phone sideways.">
   <title>The Great Snack Quest · Pepsi & Pepper</title>
-  <link rel="icon" type="image/svg+xml" href="./icon.svg?v=17">
-  <link rel="stylesheet" href="./styles.css?v=17">
-  <script type="module" src="./app.mjs?v=17"></script>
+  <link rel="icon" type="image/svg+xml" href="./icon.svg?v=18">
+  <link rel="stylesheet" href="./styles.css?v=18">
+  <script type="module" src="./app.mjs?v=18"></script>
 </head>
 <body>
   <div class="page-shell">
     <header class="masthead">
-      <a class="brand" href="./" aria-label="Snack Quest home"><img src="./icon.svg?v=17" width="38" height="38" alt=""><span>pepsi <i>&</i> pepper<small>THE LITTLE ADVENTURE CLUB</small></span></a>
-      <div class="header-actions"><span class="keyboard-badge">A KEYBOARD ADVENTURE</span><button id="sound" class="icon-button sound-button" aria-label="Turn music and sound effects on" aria-pressed="false"></button></div>
+      <a class="brand" href="./" aria-label="Snack Quest home"><img src="./icon.svg?v=18" width="38" height="38" alt=""><span>pepsi <i>&</i> pepper<small>THE LITTLE ADVENTURE CLUB</small></span></a>
+      <div class="header-actions"><span class="keyboard-badge">A LITTLE CORGI ADVENTURE</span><button id="sound" class="icon-button sound-button" aria-label="Turn music and sound effects on" aria-pressed="false"></button></div>
     </header>
     <main>
       <section class="intro" aria-labelledby="title"><p class="eyebrow">A LOST FRIEND. A VERY BRAVE LITTLE LOAF.</p><h1 id="title">The Great <em>Snack Quest</em></h1><p>Find Pepper. Discover Pee. Bring your little adventurers home.</p></section>
       <section class="game" aria-label="The Great Snack Quest">
         <div class="game-toolbar">
+          <a id="mobile-home" class="icon-button mobile-only" href="./" aria-label="Back to the cottage">⌂</a>
           <div class="location"><span class="location-icon" id="location-icon" aria-hidden="true">✿</span><div><small id="room-kicker">PEPSI’S LITTLE ADVENTURE</small><h2 id="room-name">One friend is missing.</h2></div></div>
           <div class="health" id="health" aria-label="3 of 3 hearts"><span class="hud-label" id="health-label">HEARTS</span><div id="hearts">♥ ♥ ♥</div></div>
           <div class="inventory trinket-inventory"><span class="hud-label">TRINKETS</span><strong id="trinket-count">0/10</strong></div>
           <div class="inventory snack-inventory"><span class="hud-label">SNACKS</span><strong id="snack-count">0</strong></div>
+          <div id="mobile-sound" class="mobile-only"></div>
           <a id="pause" class="icon-button" href="?view=pause" aria-label="Pause adventure" hidden>Ⅱ</a>
         </div>
+        <div class="steering mobile-only"><span class="steering-label">ROLL</span><div id="joystick" class="joystick" role="group" aria-label="Drag the joystick to roll in any direction"><span class="stick-arrows" aria-hidden="true">✥</span><span id="joystick-knob" aria-hidden="true"></span></div><span class="steering-tip">Drag to roll</span></div>
         <div class="ability-bar"><p>Choose your move · each ability has its own recharge</p><div id="abilities" class="abilities" aria-label="Choose an ability: Space dash, Q bark, E stink cloud, R power dash"></div></div>
         <div class="stage" id="stage">
-          <canvas id="world" width="1000" height="620" tabindex="0" aria-keyshortcuts="W A S D Space Q E R Escape" aria-label="Use W A S D to move Pepsi. Space dashes, breaks crates, and stuns enemies. After each rescue: Q uses Pepper’s bark, E uses Pee’s stink cloud, R uses Pepperoni’s power dash. Each move has its own recharge. Escape pauses. Find fourteen trinkets, rescue your three friends, defeat the giant vacuum, and bring the picnic basket home.">This game requires JavaScript, canvas, and a keyboard. Use WASD to move, Space to dash, and Q E R for rescued friends’ abilities.</canvas>
+          <canvas id="world" width="1000" height="620" tabindex="0" aria-keyshortcuts="W A S D Space Q E R Escape" aria-label="Use WASD or the touch joystick to roll. Space or Dash dodges, breaks crates, and stuns enemies. Q, E, R or the Bark, Toot, Power buttons use your friends’ abilities. Each move has its own recharge. Find fourteen trinkets, rescue your three friends, defeat the giant vacuum, and bring the picnic basket home.">This game requires JavaScript and canvas. Play with WASD and Space, or turn your phone sideways for touch controls.</canvas>
           <input id="keyboard-capture" class="keyboard-capture" type="text" inputmode="none" autocomplete="off" autocapitalize="off" spellcheck="false" tabindex="-1" aria-label="Game controls: W A S D to roll, Space to dash, Q to bark, E for stink cloud, R for power dash, Escape to pause.">
           <div id="room-toast" class="room-toast" aria-live="polite" hidden></div>
           <div id="screen" class="screen"></div>
           <div id="control-prompt" class="control-prompt" role="status" hidden><strong>Press W A S D to start rolling</strong><span>The mischief will wait until you’re ready.</span><button id="focus-controls" type="button">Click here to focus the controls</button></div>
           <div class="objective" id="objective" hidden><span id="objective-icon">◇</span><span id="objective-text"></span></div>
           <div class="dash-meter" id="dash-meter" hidden><span>SPACE</span><div><i id="dash-fill"></i></div><small id="dash-label">dash ready</small></div>
+          <div id="rotate-prompt" class="rotate-prompt" role="status" hidden><span aria-hidden="true">↻</span><strong>Little loaves. Wide adventures.</strong><p>Turn your phone sideways to play.<br>Your adventure will wait right here.</p></div>
         </div>
         <div class="game-bottom"><nav class="trail" id="trail" aria-label="Adventure chapters"></nav><span id="buddy-status" class="buddy-status">Find your adventure buddy.</span></div>
       </section>
       <div class="practice-navigation"><a id="practice-link" href="?room=tutorial&amp;view=play" hidden>Practice controls</a><a id="pepperoni-link" href="?view=play&amp;room=laundry" hidden>Find Pepperoni</a><a id="pee-link" href="?view=play&amp;room=hills" hidden>Find Pee</a></div>
       <div class="keyboard-hints"><span><kbd data-move="w">W</kbd><kbd data-move="a">A</kbd><kbd data-move="s">S</kbd><kbd data-move="d">D</kbd> move</span><span><kbd>space</kbd> dash</span><span><kbd>Q</kbd> bark <kbd>E</kbd> toot <kbd>R</kbd> power</span><span><kbd>esc</kbd> pause</span></div>
-      <p class="phone-note">Keyboard required. Play on a computer, or connect a keyboard.</p>
+      <p class="phone-note">On your phone? Turn it sideways. Left thumb to roll, right thumb for abilities.</p>
       <p id="announcement" class="sr-only" role="status" aria-live="polite"></p>
       <div id="save-error" class="save-error" role="alert" hidden><p id="save-message">Your adventure couldn’t be saved. Keep this tab open or download a backup.</p><button id="retry-save">Try saving again</button><button id="download-save">Download this progress</button><button id="load-save" hidden>Load the other tab’s save</button></div>
     </main>

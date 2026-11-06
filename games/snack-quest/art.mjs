@@ -1,4 +1,4 @@
-import { WIDTH, HEIGHT, ROOMS, random, goalDone, roomTrinkets, PEE_RESCUE, peeProgress, canRescuePee, windAt, trinketCount } from './engine.mjs?v=17';
+import { WIDTH, HEIGHT, ROOMS, random, goalDone, roomTrinkets, PEE_RESCUE, peeProgress, canRescuePee, windAt, trinketCount } from './engine.mjs?v=18';
 
 const INK='#75674c';
 function ellipse(c,x,y,rx,ry,fill,stroke=null,line=2){c.beginPath();c.ellipse(x,y,rx,ry,0,0,Math.PI*2);c.fillStyle=fill;c.fill();if(stroke){c.strokeStyle=stroke;c.lineWidth=line;c.stroke();}}
@@ -227,7 +227,7 @@ function goalArt(c,world,run,t) {
     if(world.room==='tutorial'?run.tutorialStep>=2:run.keyFound){line(c,[[goal.x-25,goal.y+8],[goal.x+26,goal.y+17]],'#bda475',7);line(c,[[goal.x+19,goal.y+8],[goal.x-15,goal.y+20]],'#d6b784',7);return;}
     ellipse(c,goal.x,goal.y+22,35,10,'#63763d20');rounded(c,goal.x-27,goal.y-25,54,49,5,'#d4b180','#a4875e');
     for(const dy of [-12,2,16])line(c,[[goal.x-25,goal.y+dy],[goal.x+25,goal.y+dy]],'#b3966b',1.5);
-    line(c,[[goal.x-18,goal.y-21],[goal.x+18,goal.y+20]],'#edce98',7);if(world.room==='meadow')keyIcon(c,goal.x,goal.y-39,.65);label('SPACE · break',goal.y-67);
+    line(c,[[goal.x-18,goal.y-21],[goal.x+18,goal.y+20]],'#edce98',7);if(world.room==='meadow')keyIcon(c,goal.x,goal.y-39,.65);label('DASH · break',goal.y-67);
   } else if(world.room==='pond') {
     ellipse(c,goal.x,goal.y+14,53,24,'#eee5bc');
     if(!run.pepperFound){corgi(c,goal.x-6,goal.y,'pepper',.9,-1,0);label('Pepper!',goal.y-89);}

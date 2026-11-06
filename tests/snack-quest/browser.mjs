@@ -321,8 +321,10 @@ try {
   await listening.close();
 
   const mobile=await browser.newContext({viewport:{width:390,height:844},deviceScaleFactor:2,isMobile:true,hasTouch:true});const phone=await pageFor(mobile);
-  assert.equal(await phone.locator('.touch-controls,[data-direction]').count(),0);assert.equal(await phone.locator('.phone-note').isVisible(),true);
+  assert.equal(await phone.locator('.phone-note').isVisible(),true);
   await phone.screenshot({path:output+'/mobile-home.png',fullPage:true});
+  await phone.setViewportSize({width:844,height:390});await phone.waitForFunction(()=>document.body.classList.contains('touch-landscape'));
+  assert.equal(await phone.locator('#joystick').isVisible(),true);assert.equal(await phone.locator('.phone-note').isVisible(),false);
   const mobileRun=createRun('mobile123');mobileRun.keyFound=true;mobileRun.pepperFound=true;mobileRun.health=4;mobileRun.peeFound=true;mobileRun.pepperoniFound=true;mobileRun.basketFound=true;mobileRun.trinkets=TRINKETS.map(i=>i.id);
   for(const room of ['tutorial',...ORDER]){await seed(phone,mobileRun,room,'pause');const url=phone.url();await phone.reload();await phone.locator('.pause-card').waitFor();assert.equal(phone.url(),url);const copy=await mobile.newPage();await copy.goto(url);await copy.locator('.pause-card').waitFor();assert.equal(await copy.locator('#room-name').textContent(),ROOMS[room].name);await copy.close();await phone.locator('#home-link').click();await phone.locator('#begin').waitFor();await phone.goBack();await phone.locator('.pause-card').waitFor();assert.equal(phone.url(),url);await phone.goForward();await phone.locator('#begin').waitFor();await phone.goBack();await phone.locator('.pause-card').waitFor();await dismissOutside(phone);await waitView(phone,'play');await phone.keyboard.press('Escape');await waitView(phone,'pause');}
   assert.ok(await phone.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));

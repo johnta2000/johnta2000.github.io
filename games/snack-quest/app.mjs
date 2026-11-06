@@ -1,11 +1,15 @@
-import { ROOMS, ORDER, DASH_COOLDOWN, ABILITIES, WIDTH, HEIGHT, createRun, peeProgress, upgradeRun, TRINKETS, validRun, migrateRun, makeWorld, maxHearts, goalDone, isUnlocked, firstUnfinished, objective, retryRoom, step, startDash, startAbility } from './engine.mjs?v=17';
-import { portrait, drawWorld, drawPicnic } from './art.mjs?v=17';
-import { movementKey, abilityKey, isTextEntry } from './input.mjs?v=17';
-import { Soundscape } from './audio.mjs?v=17';
+import { ROOMS, ORDER, DASH_COOLDOWN, ABILITIES, WIDTH, HEIGHT, createRun, peeProgress, upgradeRun, TRINKETS, validRun, migrateRun, makeWorld, maxHearts, goalDone, isUnlocked, firstUnfinished, objective, retryRoom, step, startDash, startAbility } from './engine.mjs?v=18';
+import { portrait, drawWorld, drawPicnic } from './art.mjs?v=18';
+import { movementKey, abilityKey, isTextEntry, joystickVector } from './input.mjs?v=18';
+import { Soundscape } from './audio.mjs?v=18';
 
 const $ = id => document.getElementById(id);
 const canvas=$('world'), ctx=canvas.getContext('2d');
 const keyboardCapture=$('keyboard-capture');
+const touchQuery=matchMedia('(pointer: coarse)'),landscapeQuery=matchMedia('(orientation: landscape)');
+const touchCapable=navigator.maxTouchPoints>0;
+let touchMode=touchCapable||touchQuery.matches;
+const stick={pointerId:null,x:0,y:0};
 const moves={dash:{key:'Space',corgi:'Pepsi',name:'Dash',hint:'Dodge, bonk & break crates',cooldown:DASH_COOLDOWN},...ABILITIES};
 const PREFIX='pepsi-pepper.snack-quest.v2.', LEGACY='pepsi-pepper.snack-quest.v1.';
 const memory=new Map(), savedSnapshots=new Map(), keys=new Set();
@@ -86,17 +90,24 @@ function newRun() {
   navigate(routeURL('play','tutorial'));sound('start');
 }
 function announce(message){$('announcement').textContent=message;}
-function toast(message,duration=3200){$('room-toast').textContent=message;$('room-toast').hidden=false;toastUntil=performance.now()+duration;announce(message);}
+function controlText(message) {
+  if(!touchMode)return message;
+  return message.replace('Hold D + tap SPACE','Roll right + tap Dash').replace(/WASD/g,'the joystick')
+    .replace(/Press Q/g,'Tap Bark').replace(/Press E/g,'Tap Toot').replace(/Press R/g,'Tap Power')
+    .replace(/\bR\b/g,'Power').replace(/\bSpace\b|\bSPACE\b/g,'Dash');
+}
+function touchPortrait(){return touchMode&&!landscapeQuery.matches;}
+function toast(message,duration=3200){message=controlText(message);$('room-toast').textContent=message;$('room-toast').hidden=false;toastUntil=performance.now()+duration;announce(message);}
 function paintInput() {
   document.querySelectorAll('[data-move]').forEach(key => key.classList.toggle('pressed',keys.has(key.dataset.move)));
 }
-function clearInput(){keys.clear();pendingMove=null;clearTimeout(textRelease);keyboardCapture.value='';paintInput();}
+function clearInput(){keys.clear();pendingMove=null;clearTimeout(textRelease);keyboardCapture.value='';releaseJoystick();paintInput();}
 function readyToMove(key) {
   controlsReady=true;$('control-prompt').hidden=true;
   keys.add(key);pendingMove=inputDirection();paintInput();
 }
 function focusGame() {
-  if(view!=='play')return;
+  if(view!=='play'||touchMode)return;
   // A real text control gives embedded WebKit a native keyboard responder;
   // focusing a canvas alone can leave physical typing with the host app.
   keyboardCapture.focus({preventScroll:true});
@@ -142,9 +153,14 @@ function plushPair(missing=true) {
 }
 function render() {
   document.body.classList.toggle('playing',['play','pause','reunion','retry'].includes(view));
+  document.body.dataset.view=view;
+  $('mobile-home').href=routeURL('home');
+  $('rotate-prompt').hidden=!touchPortrait()||view!=='play';
+  $('control-prompt').querySelector('strong').textContent=touchMode?'Drag the joystick to start rolling':'Press W A S D to start rolling';
+  $('focus-controls').hidden=touchMode;
   $('pause').hidden=view!=='play';$('pause').href=routeURL('pause');
   $('screen').className='screen';$('objective').hidden=view!=='play';$('dash-meter').hidden=view!=='play';$('room-toast').hidden=true;
-  $('control-prompt').hidden=view!=='play'||controlsReady;
+  $('control-prompt').hidden=view!=='play'||controlsReady||touchPortrait();
   $('room-kicker').textContent=view==='home'?'PEPSI’S LITTLE ADVENTURE':view==='picnic'?'HOME TOGETHER. HAPPY TOGETHER.':world?.room==='tutorial'?'SAFE PRACTICE':`CHAPTER ${ORDER.indexOf(world.room)+1} OF ${ORDER.length}`;
   $('room-name').textContent=view==='home'?'One friend is missing.':view==='picnic'?'Home is wherever you are':ROOMS[world.room].name;
   $('location-icon').textContent=view==='picnic'?'♡':world?.room==='pond'?'♧':'✿';
@@ -154,7 +170,7 @@ function render() {
     $('begin').addEventListener('click',()=>active?navigate(routeURL(run.health<=0?'retry':'play',run.room)):newRun());
     $('fresh')?.addEventListener('click',newRun);
   } else if(view==='pause') {
-    $('screen').innerHTML='<div class="pause-card" role="dialog" aria-modal="true" aria-labelledby="pause-title"><span class="pause-flower" aria-hidden="true">✿</span><h3 id="pause-title">Catch your breath.</h3><p>The adventure is paused.<br>Press WASD or click Keep going to resume.<br>Dash protects your whole team. Only heart-marked snacks restore a heart.</p><button id="resume" class="primary-button">Keep going <span>→</span></button><a id="home-link" class="secondary-button" href="./">Back to the cottage</a></div>';
+    $('screen').innerHTML=`<div class="pause-card" role="dialog" aria-modal="true" aria-labelledby="pause-title"><span class="pause-flower" aria-hidden="true">✿</span><h3 id="pause-title">Catch your breath.</h3><p>The adventure is paused.<br>${touchMode?'Tap Keep going to resume.':'Press WASD or click Keep going to resume.'}<br>Dash protects your whole team. Only heart-marked snacks restore a heart.</p><button id="resume" class="primary-button">Keep going <span>→</span></button><a id="home-link" class="secondary-button" href="./">Back to the cottage</a>${touchMode?'<nav id="pause-chapters" aria-label="Visit a chapter"></nav><a id="pause-practice" class="secondary-button">Practice controls</a>':''}</div>`;
     $('resume').addEventListener('click',dismissScreen);$('home-link').href=routeURL('home');$('resume').focus({preventScroll:true});
   } else if(view==='reunion') {
     $('screen').innerHTML='<div class="story-card" role="dialog" aria-modal="true" aria-labelledby="reunion-title"><p class="card-eyebrow">FOUND: ONE VERY GOOD FRIEND</p><canvas width="240" height="200" data-portrait="pepper" aria-label="Pepper, the gray plush corgi"></canvas><h3 id="reunion-title">Found you, Pepper.</h3><p>Your best friend is coming with you.<br>There are still trinkets to find by the pond!</p><div class="new-heart">♥ Four shared hearts. A hit to either corgi costs one.</div><button id="reunion-continue" class="primary-button">Explore together <span>→</span></button><button id="reunion-close" class="secondary-button">Stay by the pond a little longer</button></div>';
@@ -169,6 +185,7 @@ function render() {
     $('again').addEventListener('click',newRun);
   } else {$('screen').classList.add('empty');$('screen').replaceChildren();}
   document.querySelectorAll('[data-portrait]').forEach(element=>portrait(element,element.dataset.portrait));
+  if(touchMode&&view==='home')$('screen').querySelector('.tiny-note').textContent='Play sideways. Joystick to roll. Tap Dash to bonk!';
   updateProgress();resize();
 }
 function updateProgress() {
@@ -182,7 +199,7 @@ function updateProgress() {
   $('pee-link').hidden=!run?.pepperFound;
   $('pee-link').href=routeURL('play','hills');
   $('pee-link').textContent=run?.peeFound?'Pee joined the adventure ♡':`Find Pee · ${peeProgress(run||{})}/6 earlier trinkets · chapter 5`;
-  $('abilities').innerHTML=Object.entries(moves).map(([id,spec])=>`<button type="button" class="ability" data-ability="${id}" aria-keyshortcuts="${spec.key}"><kbd>${spec.key}</kbd><strong>${spec.corgi} · ${spec.name}</strong><span class="ability-hint">${spec.hint}</span><span class="ability-status"></span><span class="ability-meter" aria-hidden="true"><i></i></span></button>`).join('');
+  $('abilities').innerHTML=Object.entries(moves).map(([id,spec])=>`<button type="button" class="ability" data-ability="${id}" aria-keyshortcuts="${spec.key}"><kbd>${spec.key}</kbd><strong><span class="ability-owner">${spec.corgi} · </span>${spec.name}</strong><span class="ability-hint">${spec.hint}</span><span class="ability-status"></span><span class="ability-meter" aria-hidden="true"><i></i></span></button>`).join('');
   paintAbilities();
   $('pepperoni-link').hidden=!run?.basketFound;
   $('pepperoni-link').href=routeURL('play','laundry');$('pepperoni-link').textContent=run?.pepperoniFound?'Pepperoni joined ♡':'Find Pepperoni · Sock Mountain';
@@ -195,36 +212,64 @@ function updateProgress() {
     const current=!['home','picnic'].includes(view)&&world?.room===room?' aria-current="location"':'';
     return `${index?'<span class="trail-line" aria-hidden="true"></span>':''}${unlocked?`<a class="trail-item ${done?'done':''}" href="${routeURL('play',room)}"${current}>${content}</a>`:`<span class="trail-item">${content}</span>`}`;
   }).join('');
-  if(run&&world)$('objective-text').textContent=objective(run,world.room);
+  if($('pause-chapters')){$('pause-chapters').innerHTML=$('trail').innerHTML;$('pause-practice').href=$('practice-link').href;$('pause-practice').textContent=$('practice-link').textContent;}
+  if(run&&world)$('objective-text').textContent=controlText(objective(run,world.room));
 }
 function resize() {
   const bounds=$('stage').getBoundingClientRect();
-  viewportWidth=Math.min(WIDTH,Math.round(bounds.width/bounds.height*HEIGHT));
+  viewportWidth=touchMode&&landscapeQuery.matches?WIDTH:Math.min(WIDTH,Math.round(bounds.width/bounds.height*HEIGHT));
   const ratio=Math.min(devicePixelRatio||1,2);
   canvas.width=Math.round(viewportWidth*ratio);canvas.height=Math.round(HEIGHT*ratio);ctx.setTransform(ratio,0,0,ratio,0,0);
 }
 new ResizeObserver(resize).observe($('stage'));
-function inputDirection(){return {x:Number(keys.has('d'))-Number(keys.has('a')),y:Number(keys.has('s'))-Number(keys.has('w'))};}
+function inputDirection(){return stick.x||stick.y?{x:stick.x,y:stick.y}:{x:Number(keys.has('d'))-Number(keys.has('a')),y:Number(keys.has('s'))-Number(keys.has('w'))};}
+function releaseJoystick() {
+  const pointerId=stick.pointerId;stick.pointerId=null;stick.x=0;stick.y=0;
+  $('joystick').classList.remove('engaged');$('joystick-knob').style.transform='translate(0px,0px)';
+  if(pointerId!==null&&$('joystick').hasPointerCapture(pointerId))$('joystick').releasePointerCapture(pointerId);
+}
+function moveJoystick(event) {
+  if(event.pointerId!==stick.pointerId)return;
+  const bounds=$('joystick').getBoundingClientRect(),radius=bounds.width*.34;
+  const vector=joystickVector(event.clientX-bounds.x-bounds.width/2,event.clientY-bounds.y-bounds.height/2,radius);
+  Object.assign(stick,vector);$('joystick-knob').style.transform=`translate(${vector.x*radius}px,${vector.y*radius}px)`;
+  if(vector.x||vector.y){controlsReady=true;pendingMove={...vector};$('control-prompt').hidden=true;paintAbilities();}
+}
+$('joystick').addEventListener('pointerdown',event=>{
+  if(!touchMode||touchPortrait()||view!=='play'||stick.pointerId!==null)return;
+  event.preventDefault();stick.pointerId=event.pointerId;$('joystick').setPointerCapture(event.pointerId);$('joystick').classList.add('engaged');moveJoystick(event);
+});
+$('joystick').addEventListener('pointermove',moveJoystick);
+for(const type of ['pointerup','pointercancel','lostpointercapture'])$('joystick').addEventListener(type,event=>{if(event.pointerId===stick.pointerId){releaseJoystick();pendingMove=null;}});
+$('joystick').addEventListener('contextmenu',event=>event.preventDefault());
+function configureTouch() {
+  touchMode=touchCapable||touchQuery.matches;
+  document.body.classList.toggle('touch-device',touchMode);
+  document.body.classList.toggle('touch-landscape',touchMode&&landscapeQuery.matches);
+  (touchMode&&landscapeQuery.matches?$('mobile-sound'):document.querySelector('.header-actions')).append($('sound'));
+}
+for(const query of [touchQuery,landscapeQuery])query.addEventListener('change',()=>{clearInput();controlsReady=false;configureTouch();render();save();});
 function paintAbilities() {
   for(const button of $('abilities').querySelectorAll('[data-ability]')) {
     const id=button.dataset.ability,spec=moves[id],unlocked=!spec.unlock||!!run?.[spec.unlock];
     const cooldown=id==='dash'?world?.cooldown||0:Math.max(world?.abilityCooldowns[id]||0,id==='power'?world?.cooldown||0:0);
     const active=id==='dash'?world?.dash>0&&!world?.powerDash:id==='power'?world?.dash>0&&world?.powerDash:id==='bark'?world?.bark>0:world?.clouds.length>0;
-    const status=!unlocked?`Rescue ${spec.corgi} first`:cooldown>0?`${cooldown.toFixed(1)}s ${id==='power'&&world.cooldown>(world.abilityCooldowns.power||0)?'roll recovery':'recharge'}`:view!=='play'?'Ready when you play':!controlsReady?'WASD to start':'Ready';
-    button.disabled=!unlocked||view!=='play'||!controlsReady||cooldown>0||run?.health<=0;
+    const status=!unlocked?`Rescue ${spec.corgi}${touchMode?'':' first'}`:cooldown>0?`${cooldown.toFixed(1)}s${touchMode?'':` ${id==='power'&&world.cooldown>(world.abilityCooldowns.power||0)?'roll recovery':'recharge'}`}`:view!=='play'?'Ready when you play':!controlsReady?touchMode?'Roll to start':'WASD to start':'Ready';
+    button.disabled=!unlocked||view!=='play'||!controlsReady||touchPortrait()||cooldown>0||run?.health<=0;
     button.classList.toggle('unlocked',unlocked);button.classList.toggle('active',!!active);button.classList.toggle('cooling',cooldown>0);
     const label=button.querySelector('.ability-status');if(label.textContent!==status)label.textContent=status;
     button.querySelector('.ability-meter i').style.width=`${unlocked?Math.max(0,1-cooldown/spec.cooldown)*100:0}%`;
-    button.setAttribute('aria-label',`${spec.key}: ${spec.corgi} ${spec.name}. ${spec.hint}. ${status}`);
+    button.setAttribute('aria-label',`${touchMode?'':spec.key+': '}${spec.corgi} ${spec.name}. ${spec.hint}. ${status}`);
   }
 }
 function useMove(id) {
-  if(view!=='play'||!controlsReady||!run||run.health<=0)return false;
+  if(view!=='play'||!controlsReady||touchPortrait()||!run||run.health<=0)return false;
   const used=id==='dash'?startDash(world,inputDirection()):startAbility(world,run,id,inputDirection());
   if(used){sound(id==='power'||id==='dash'?'dash':id==='bark'?'bark':'toot');announce(`${moves[id].corgi}: ${moves[id].name}!`);save();paintAbilities();}
   return used;
 }
-$('abilities').addEventListener('click',event=>{const button=event.target.closest('[data-ability]');if(button){useMove(button.dataset.ability);focusGame();}});
+$('abilities').addEventListener('pointerdown',event=>{const button=event.target.closest('[data-ability]');if(event.pointerType!=='mouse'&&button&&!button.disabled){event.preventDefault();useMove(button.dataset.ability);}});
+$('abilities').addEventListener('click',event=>{if(event.pointerType==='touch'||event.pointerType==='pen')return;const button=event.target.closest('[data-ability]');if(button){useMove(button.dataset.ability);focusGame();}});
 function pause(){if(view==='play')navigate(routeURL('pause'));}
 function dismissScreen() {
   if(view==='retry')navigate(routeURL('home'));
@@ -353,11 +398,11 @@ function frame(now) {
   if(!document.hidden) {
     animationTime+=dt;
     soundtrack.tick();
-    if(view==='play'&&world&&controlsReady&&document.hasFocus()) {
+    if(view==='play'&&world&&controlsReady&&!touchPortrait()&&document.hasFocus()) {
       const held=inputDirection(),direction=held.x||held.y?held:pendingMove||held;pendingMove=null;
       handleEvents(step(world,run,direction,dt));
       saveElapsed+=dt;if(saveElapsed>1){save();saveElapsed=0;}
-      if(world.room==='boss')$('objective-text').textContent=objective(run,'boss');
+      if(world.room==='boss')$('objective-text').textContent=controlText(objective(run,'boss'));
       $('dash-fill').style.width=`${Math.max(0,1-world.cooldown/DASH_COOLDOWN)*100}%`;
       $('dash-label').textContent=world.cooldown>0?`${world.cooldown.toFixed(1)}s recharge`:'dash ready';
       paintAbilities();
@@ -369,4 +414,4 @@ function frame(now) {
   }
   requestAnimationFrame(frame);
 }
-renderSound();readRoute();requestAnimationFrame(frame);
+configureTouch();renderSound();readRoute();requestAnimationFrame(frame);
