@@ -1,19 +1,23 @@
-import { ROOMS, ORDER, WIDTH, HEIGHT, createRun, validRun, migrateRun, makeWorld, maxHearts, goalDone, isUnlocked, firstUnfinished, objective, retryRoom, step, startDash } from './engine.mjs?v=4';
-import { portrait, drawWorld, drawPicnic } from './art.mjs?v=4';
-import { movementKey, isTextEntry } from './input.mjs?v=4';
+import { ROOMS, ORDER, WIDTH, HEIGHT, createRun, validRun, migrateRun, makeWorld, maxHearts, goalDone, isUnlocked, firstUnfinished, objective, retryRoom, step, startDash } from './engine.mjs?v=5';
+import { portrait, drawWorld, drawPicnic } from './art.mjs?v=5';
+import { movementKey, isTextEntry } from './input.mjs?v=5';
+import { Soundscape } from './audio.mjs?v=5';
 
 const $ = id => document.getElementById(id);
 const canvas=$('world'), ctx=canvas.getContext('2d');
 const PREFIX='pepsi-pepper.snack-quest.v2.', LEGACY='pepsi-pepper.snack-quest.v1.';
 const memory=new Map(), savedSnapshots=new Map(), keys=new Set();
+const soundtrack=new Soundscape();
 const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
 let run=null, world=null, view='home', viewportWidth=WIDTH, lastFrame=0, saveElapsed=0;
-let toastUntil=0, animationTime=0, audioContext, soundOn=false, latestId=null;
+let toastUntil=0, animationTime=0, soundOn=false, latestId=null;
 let readFailed=false, saveFailed=false, conflict=false, backdropDown=false;
 try {
   latestId=localStorage.getItem(PREFIX+'latest')||localStorage.getItem(LEGACY+'latest');
   soundOn=(localStorage.getItem(PREFIX+'sound')||localStorage.getItem(LEGACY+'sound'))==='true';
 } catch { readFailed=true; }
+soundtrack.setEnabled(soundOn);
+soundtrack.setForeground(!document.hidden&&document.hasFocus());
 
 function showSaveError(message) {
   $('save-error').hidden=false; $('save-message').textContent=message;
@@ -114,6 +118,7 @@ function readRoute() {
     if(view==='picnic'&&(!run.completed||!run.basketFound))view='play';
   }
   history.replaceState({},'',routeURL(view,world?.room));
+  soundtrack.setScene(view,world?.room||'meadow');
   render();
   if(view==='play') {
     focusGame();
@@ -188,6 +193,7 @@ function dismissScreen() {
 
 window.addEventListener('keydown',event=>{
   if(event.metaKey||event.ctrlKey||event.altKey||isTextEntry(event.target))return;
+  soundtrack.unlock();
   const move=movementKey(event);
   // Resume first, then record the held key: readRoute clears stale input.
   if(view==='pause'&&move&&!event.repeat)dismissScreen();
@@ -204,10 +210,12 @@ window.addEventListener('keydown',event=>{
   else if(event.key.startsWith('Arrow')&&event.target===canvas)event.preventDefault();
 },{capture:true});
 window.addEventListener('keyup',event=>{const move=movementKey(event);if(move){keys.delete(move);paintInput();}},{capture:true});
-window.addEventListener('blur',()=>{clearInput();pause();});
+window.addEventListener('blur',()=>{soundtrack.setForeground(false);clearInput();pause();});
+window.addEventListener('focus',()=>soundtrack.setForeground(!document.hidden));
+window.addEventListener('pointerdown',()=>soundtrack.unlock(),{capture:true});
 $('stage').addEventListener('pointerdown',()=>{if(view==='play')focusGame();});
-document.addEventListener('visibilitychange',()=>{if(document.hidden){save();if(view==='play')pause();clearInput();}lastFrame=performance.now();});
-window.addEventListener('pagehide',save);
+document.addEventListener('visibilitychange',()=>{soundtrack.setForeground(!document.hidden&&document.hasFocus());if(document.hidden){save();if(view==='play')pause();clearInput();}lastFrame=performance.now();});
+window.addEventListener('pagehide',()=>{soundtrack.setForeground(false);save();});
 window.addEventListener('popstate',()=>{save();readRoute();});
 document.addEventListener('click',event=>{
   const link=event.target.closest('a');
@@ -219,24 +227,13 @@ document.addEventListener('click',event=>{
 $('screen').addEventListener('pointerdown',event=>{backdropDown=event.target===$('screen');});
 $('screen').addEventListener('click',event=>{if(backdropDown&&event.target===$('screen'))dismissScreen();backdropDown=false;});
 
-function sound(kind) {
-  if(!soundOn)return;
-  try {
-    audioContext ||= new (window.AudioContext||window.webkitAudioContext)();
-    if(audioContext.state==='suspended')audioContext.resume();
-    const notes=kind==='snack'?[660,880]:['win','rescue','key'].includes(kind)?[523,659,784,1046]:kind==='hit'||kind==='defeat'?[220,165]:kind==='start'?[440,554,660]:[392,587];
-    notes.forEach((frequency,index)=>{
-      const oscillator=audioContext.createOscillator(),gain=audioContext.createGain(),when=audioContext.currentTime+index*.085;
-      oscillator.type='sine';oscillator.frequency.setValueAtTime(frequency,when);gain.gain.setValueAtTime(0,when);gain.gain.linearRampToValueAtTime(.045,when+.014);gain.gain.exponentialRampToValueAtTime(.001,when+.19);
-      oscillator.connect(gain);gain.connect(audioContext.destination);oscillator.start(when);oscillator.stop(when+.2);
-    });
-  }catch{/* Optional sound must never stop the game. */}
-}
+function sound(kind){soundtrack.play(kind);}
 function renderSound() {
-  $('sound').setAttribute('aria-pressed',String(soundOn));$('sound').setAttribute('aria-label',soundOn?'Turn sound off':'Turn sound on');
-  $('sound').innerHTML=`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4V5Z${soundOn?'M16 8q5 4 0 8m3-11q8 7 0 14':'M16 9l5 6m0-6-5 6'}"/></svg>`;
+  $('sound').setAttribute('aria-pressed',String(soundOn));$('sound').setAttribute('aria-label',soundOn?'Turn music and sound effects off':'Turn music and sound effects on');
+  $('sound').title='Original music + little adventure sounds';
+  $('sound').innerHTML=`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4V5Z${soundOn?'M16 8q5 4 0 8m3-11q8 7 0 14':'M16 9l5 6m0-6-5 6'}"/></svg><span>Sound ${soundOn?'on':'off'}</span>`;
 }
-$('sound').addEventListener('click',()=>{soundOn=!soundOn;renderSound();try{localStorage.setItem(PREFIX+'sound',String(soundOn));}catch{}sound('start');});
+$('sound').addEventListener('click',()=>{soundOn=!soundOn;soundtrack.setEnabled(soundOn);soundtrack.unlock();renderSound();try{localStorage.setItem(PREFIX+'sound',String(soundOn));}catch{}sound('start');});
 $('retry-save').addEventListener('click',()=>{if(save())toast('Your adventure is safely saved.');});
 $('download-save').addEventListener('click',()=>{
   if(!run)return;save();const url=URL.createObjectURL(new Blob([JSON.stringify(run,null,2)],{type:'application/json'}));
@@ -270,9 +267,9 @@ function handleEvents(events) {
   for(const event of events) {
     if(event.type==='snack'){sound('snack');toast(event.healed?'A snack and a second wind. +1 heart.':'A little something for the picnic.');}
     else if(event.type==='key'){sound('key');toast('The key! Pepper must be over by the pond.',4000);}
-    else if(event.type==='basket'){sound('key');toast('Basket packed. Get both little loaves home!',3500);}
+    else if(event.type==='basket'){sound('basket');toast('Basket packed. Get both little loaves home!',3500);}
     else if(event.type==='hit'){sound('hit');toast('Oof! −1 heart. Dash through toys; snacks can heal.',2300);}
-    else if(event.type==='stun'){sound('dash');announce('Toy stunned. Keep moving.');}
+    else if(event.type==='stun'){sound('stun');announce('Toy stunned. Keep moving.');}
     else if(event.type==='rescue'){save();sound('rescue');navigate(routeURL('reunion'));return;}
     else if(event.type==='defeat'){save();sound('defeat');navigate(routeURL('retry'));return;}
     else if(event.type==='exit') {
@@ -288,6 +285,7 @@ function frame(now) {
   const dt=Math.min((now-lastFrame)/1000||0,.035);lastFrame=now;
   if(!document.hidden) {
     animationTime+=dt;
+    soundtrack.tick();
     if(view==='play'&&world) {
       handleEvents(step(world,run,inputDirection(),dt));
       saveElapsed+=dt;if(saveElapsed>1){save();saveElapsed=0;}

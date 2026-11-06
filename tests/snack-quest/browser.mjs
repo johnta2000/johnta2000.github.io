@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
-import { existsSync, mkdirSync } from 'node:fs';
+import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { createRun, ROOMS, ORDER } from '../../games/snack-quest/engine.mjs';
 
@@ -86,6 +86,63 @@ try {
   await page.locator('#load-save').click();await page.locator('#save-error').waitFor({state:'hidden'});assert.equal(await page.locator('#health').getAttribute('aria-label'),'2 of 3 hearts');
   await desktop.close();
 
+  // Measure real Web Audio output: opt-in, mute, pause, focus loss, and preference restoration.
+  const listening=await browser.newContext({viewport:{width:1440,height:1000}});
+  await listening.addInitScript(()=>{
+    const NativeAudioContext=window.AudioContext;
+    window.audioProbe={contexts:[],level:()=>0};
+    window.AudioContext=class extends NativeAudioContext {
+      constructor(...args){
+        super(...args);window.audioProbe.contexts.push(this);
+        const meter=this.createAnalyser(),samples=new Float32Array(meter.fftSize);
+        window.audioProbe.level=()=>{meter.getFloatTimeDomainData(samples);return Math.max(...samples.map(Math.abs));};
+        const createGain=this.createGain.bind(this);
+        this.createGain=()=>{const gain=createGain(),connect=gain.connect.bind(gain);gain.connect=(destination,...rest)=>{
+          if(destination===this.destination){connect(meter);meter.connect(destination);return destination;}
+          return connect(destination,...rest);
+        };return gain;};
+      }
+    };
+  });
+  const musicPage=await pageFor(listening);
+  assert.equal(await musicPage.evaluate(()=>audioProbe.contexts.length),0,'silent until opted in');
+  await musicPage.locator('#sound').click();
+  await musicPage.waitForFunction(()=>audioProbe.level()>.005);
+  await musicPage.locator('#begin').click();await waitView(musicPage,'play');
+  await musicPage.keyboard.press('Escape');await waitView(musicPage,'pause');
+  await musicPage.waitForTimeout(900);assert.ok(await musicPage.evaluate(()=>audioProbe.level()<.00001),'music is silent while paused');
+  await musicPage.keyboard.press('d');await waitView(musicPage,'play');
+  await musicPage.waitForFunction(()=>audioProbe.level()>.005);
+  await musicPage.evaluate(()=>window.dispatchEvent(new Event('blur')));await waitView(musicPage,'pause');
+  await musicPage.waitForTimeout(150);assert.ok(await musicPage.evaluate(()=>audioProbe.level()<.00001),'focus loss stops all audio');
+  await musicPage.evaluate(()=>window.dispatchEvent(new Event('focus')));
+  await musicPage.keyboard.press('d');await waitView(musicPage,'play');
+  await musicPage.waitForFunction(()=>audioProbe.level()>.005);
+  await musicPage.locator('#sound').click();await musicPage.waitForTimeout(150);
+  assert.ok(await musicPage.evaluate(()=>audioProbe.level()<.00001),'mute stops active and scheduled voices');
+  await musicPage.locator('#sound').click();await musicPage.waitForFunction(()=>audioProbe.level()>.005);
+  assert.equal(await musicPage.evaluate(()=>audioProbe.contexts.length),1,'resumes one soundtrack without duplicate contexts');
+  await musicPage.keyboard.press('Escape');await musicPage.reload();await musicPage.locator('.pause-card').waitFor();
+  assert.equal(await musicPage.locator('#sound').getAttribute('aria-pressed'),'true');
+  assert.equal(await musicPage.evaluate(()=>audioProbe.contexts.length),0,'saved sound preference still waits for a gesture');
+  await musicPage.keyboard.press('d');await musicPage.waitForFunction(()=>audioProbe.level()>.005);
+  await musicPage.keyboard.press('Escape');
+  await musicPage.screenshot({path:output+'/desktop-sound.png',fullPage:true});
+
+  // Render the actual score for a listenable preview and check its level/headroom.
+  const preview=await musicPage.evaluate(async()=>{
+    const {Soundscape}=await import('/games/snack-quest/audio.mjs?v=5');
+    const rate=22050,context=new OfflineAudioContext(1,rate*22,rate);
+    const score=new Soundscape(()=>context);score.setEnabled(true);score.unlock();score.setScene('play','meadow');
+    for(let i=0;i<64;i++)score.musicBeat(i,.1+i*30/96,30/96);
+    const rendered=await context.startRendering();return [...rendered.getChannelData(0)];
+  });
+  let peak=0;for(const sample of preview){assert.ok(Number.isFinite(sample));peak=Math.max(peak,Math.abs(sample));}
+  assert.ok(peak>.03&&peak<.8,'original music renders audibly with headroom');
+  const wav=Buffer.alloc(44+preview.length*2);wav.write('RIFF');wav.writeUInt32LE(wav.length-8,4);wav.write('WAVEfmt ',8);wav.writeUInt32LE(16,16);wav.writeUInt16LE(1,20);wav.writeUInt16LE(1,22);wav.writeUInt32LE(22050,24);wav.writeUInt32LE(44100,28);wav.writeUInt16LE(2,32);wav.writeUInt16LE(16,34);wav.write('data',36);wav.writeUInt32LE(preview.length*2,40);
+  preview.forEach((sample,i)=>wav.writeInt16LE(Math.round(sample*32767),44+i*2));writeFileSync(output+'/snack-quest-theme.wav',wav);
+  await listening.close();
+
   const mobile=await browser.newContext({viewport:{width:390,height:844},deviceScaleFactor:2,isMobile:true,hasTouch:true});const phone=await pageFor(mobile);
   assert.equal(await phone.locator('.touch-controls,[data-direction]').count(),0);assert.equal(await phone.locator('.phone-note').isVisible(),true);
   await phone.screenshot({path:output+'/mobile-home.png',fullPage:true});
@@ -96,6 +153,6 @@ try {
   const winMobile=createRun('mobilewin');winMobile.keyFound=true;winMobile.pepperFound=true;winMobile.basketFound=true;winMobile.completed=true;winMobile.health=4;await seed(phone,winMobile,'orchard','picnic');await phone.screenshot({path:output+'/mobile-picnic.png',fullPage:true});await mobile.close();
 
   const blocked=await browser.newContext();await blocked.addInitScript(()=>{Storage.prototype.setItem=function(){throw new DOMException('Full','QuotaExceededError');};});const failure=await pageFor(blocked);await failure.locator('#begin').click();await failure.locator('#save-error').waitFor({state:'visible'});const downloadPromise=failure.waitForEvent('download');await failure.locator('#download-save').click();assert.equal((await downloadPromise).suggestedFilename(),'pepsi-pepper-adventure.json');await blocked.close();
-  assert.deepEqual(errors,[]);console.log('PASS: WASD-only movement, dash/key, real hit/defeat/retry, Pepper rescue and extra heart, basket and home ending, all room/view URLs, copied links, refresh, Back/Forward, mobile keyboard notice, old-save migration, and save failure backup.');
+  assert.deepEqual(errors,[]);console.log('PASS: WASD-only movement, dash/key, real hit/defeat/retry, Pepper rescue and extra heart, basket and home ending, all room/view URLs, copied links, refresh, Back/Forward, mobile keyboard notice, old-save migration, save failure backup, and real audio playback/mute/pause/resume.');
   console.log('Screenshots: '+output);
 }finally{await browser.close();}
