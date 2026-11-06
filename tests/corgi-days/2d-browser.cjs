@@ -11,6 +11,7 @@ const assert = require('node:assert/strict');
     page.on('request', r => requests.push(r.url()));
     await page.goto(base + '?view=home&v=4&mode=rotate&az=2.1&el=.5&zoom=7');
     await page.locator('[data-ready=true]').waitFor();
+    if(await page.locator('#adopt-form').count()){await page.locator('#name').fill('Little loaf');await page.locator('#adopt-form .primary').click();}
     for (const key of ['mode','az','el','zoom']) assert.equal(new URL(page.url()).searchParams.has(key),false);
     assert.equal(await page.locator('canvas').count(),0);
     assert.equal(await page.locator('#pet svg').count(),1);
@@ -22,9 +23,12 @@ const assert = require('node:assert/strict');
     }
     const original = await page.evaluate(()=>JSON.parse(localStorage.getItem('corgi-days-v1')));
     await page.locator('.nav a[href="?view=wardrobe"]').click();
-    await page.locator('#name').fill('Little loaf');
+
     for (const coat of ['golden','tricolor','cocoa','cream']) {
+      await page.locator('.settings-link').click();
       await page.locator(`[data-value=${coat}]`).click();
+      await page.locator('#identity-form .primary').click();
+      await page.locator('.nav a[href="?view=wardrobe"]').click();
       for (const accessory of ['none','bandana','bow','crown','flower']) {
         await page.locator(`[data-value=${accessory}]`).click();
         assert.equal(await page.locator('#corgi-stage [data-accessory]:visible').count(),accessory==='none'?0:1);
