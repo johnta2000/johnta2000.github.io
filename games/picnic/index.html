@@ -10,7 +10,7 @@
   <meta property="og:type" content="website">
   <link rel="icon" href="./icon.svg?v=2" type="image/svg+xml">
   <title>Pepsi & Pepper’s Picnic</title>
-  <link rel="stylesheet" href="./styles.css?v=5">
+  <link rel="stylesheet" href="./styles.css?v=6">
 </head>
 <body>
   <div class="page">
@@ -38,7 +38,7 @@
         <div id="stage" class="stage">
           <canvas id="scene" aria-label="Pepsi and Pepper sitting in a sunny meadow" tabindex="0">Use the arrow keys or drag the picnic blanket to catch treats. Your score and time appear above the play area.</canvas>
           <div id="hud" class="hud" hidden>
-            <div class="score-box"><span id="level-name">Pepsi’s Big Day</span><strong><span id="caught">0</span><span class="score-divider"> / </span><span id="goal">8</span> <small>treats</small></strong><div id="hearts" class="hearts" aria-label="3 of 3 hearts remaining">♥♥♥</div><div class="progress-track"><div id="progress-fill"></div></div></div>
+            <div class="score-box"><span id="level-name">Pepsi’s Big Day</span><strong><span id="caught">0</span><span class="score-divider"> / </span><span id="goal">8</span> <small>treats</small></strong><div class="score-details"><div id="hearts" class="hearts" aria-label="3 of 3 hearts remaining">♥♥♥</div><span id="golden-progress" class="golden-progress" aria-label="0 of 3 golden paw prints found" hidden><svg viewBox="0 0 20 20" aria-hidden="true"><ellipse cx="10" cy="13.5" rx="5.5" ry="4.5"/><ellipse cx="3.5" cy="7" rx="2.3" ry="3" transform="rotate(-25 3.5 7)"/><ellipse cx="7.5" cy="3.8" rx="2.2" ry="3"/><ellipse cx="12.5" cy="3.8" rx="2.2" ry="3"/><ellipse cx="16.5" cy="7" rx="2.3" ry="3" transform="rotate(25 16.5 7)"/></svg><span id="golden-count">0/3</span></span></div><div class="progress-track"><div id="progress-fill"></div></div></div>
             <div class="time-box"><span>TIME LEFT</span><strong id="time">30s</strong></div>
             <button id="pause" class="pause-button" type="button" aria-label="Pause game">Ⅱ</button>
             <div id="effect-status" class="effect-status"></div>
@@ -54,6 +54,6 @@
     <footer><span>Made with love, from John <b>♡</b></span><span id="save-status">Your picnic is saved on this device.</span></footer>
   </div>
   <noscript><p class="noscript">Please turn on JavaScript to play with Pepsi and Pepper.</p></noscript>
-  <script type="module" src="./app.js?v=4"></script>
+  <script type="module" src="./app.js?v=6"></script>
 </body>
 </html>

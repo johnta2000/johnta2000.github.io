@@ -60,3 +60,9 @@ body:is([data-view="home"],[data-view="picnic"]) .stage{height:max(460px,calc(10
   .playing .hud{top:10px}
   .playing .effect-status{top:0;max-width:280px;left:190px;right:150px}
 }
+
+/* Keep the secret collection beside the score, away from falling treats. */
+.score-details{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:6px}
+.score-details .hearts{margin-top:0}
+.golden-progress{display:inline-flex;align-items:center;gap:4px;white-space:nowrap;font-size:10px;font-weight:650;color:#8e7539}
+.golden-progress svg{width:13px;height:13px;fill:currentColor}

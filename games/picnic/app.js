@@ -142,7 +142,9 @@ function updateHUD(){
   if(run.mudUntil>run.elapsed)effects.push(`Muddy paws: ${Math.ceil(run.mudUntil-run.elapsed)}s`);
   if(run.frightUntil>run.elapsed)effects.push(`Tiny blanket: ${Math.ceil(run.frightUntil-run.elapsed)}s`);
   if(gust(run))effects.push('Breezy! Watch the drift');
-  if(run.level>=5&&!save.peeUnlocked)effects.push(`Golden paw prints: ${save.goldenLevels.length}/3`);
+  $('golden-progress').hidden=run.level<5||save.peeUnlocked;
+  setText('golden-count',`${save.goldenLevels.length}/3`);
+  $('golden-progress').setAttribute('aria-label',`${save.goldenLevels.length} of 3 golden paw prints found`);
   setText('effect-status',effects.join(' · '));
 }
 function toast(message,now,bad=false){$('catch-message').textContent=message;$('catch-message').classList.toggle('bad',bad);$('catch-message').classList.add('visible');messageUntil=now+(bad?2200:1600);}
