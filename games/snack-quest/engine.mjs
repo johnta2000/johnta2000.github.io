@@ -337,6 +337,7 @@ function dashImpact(world,target,body=world.player,boss=false) {
   const dx=target.x-body.x,dy=target.y-body.y,d=Math.hypot(dx,dy);
   // Recoil is a temporary drawing pose: hitboxes, patrols, and saved boss positions stay put.
   world.impacts.push({target,x:target.x,y:target.y,dx:d>.1?dx/d:world.player.vx,dy:d>.1?dy/d:world.player.vy,started:world.time,duration:boss?1.3:1.05,boss});
+  return true;
 }
 function follow(world,p=world.player,b=world.buddy,trail=world.followTrail) {
   const last=trail.at(-1);
@@ -415,13 +416,13 @@ export function step(world,run,input,dt) {
   if(world.room==='tutorial') {
     if(run.tutorialStep===0&&Math.hypot(p.x-330,p.y-315)<45){run.tutorialStep=1;events.push({type:'practice'});}
     if(nearGoal<48&&run.tutorialStep<2){
-      if(dashing&&run.tutorialStep===1){run.tutorialStep=2;particles(world,goal.x,goal.y);events.push({type:'practice'});}
+      if(dashing&&run.tutorialStep===1){run.tutorialStep=2;particles(world,goal.x,goal.y);events.push({type:'bonk',kind:'crate'},{type:'practice'});}
       else {const dx=p.x-goal.x,dy=p.y-goal.y,d=Math.hypot(dx,dy)||1;move(p,dx/d*(48-d),dy/d*(48-d),world.room);}
     }
     if(run.tutorialStep===2&&world.cooldown===0){run.tutorialStep=3;events.push({type:'practice'});}
   }
   if(world.room==='meadow'&&!run.keyFound&&nearGoal<48) {
-    if(dashing){run.keyFound=true;particles(world,goal.x,goal.y);events.push({type:'key'});}
+    if(dashing){run.keyFound=true;particles(world,goal.x,goal.y);events.push({type:'bonk',kind:'crate'},{type:'key'});}
     else {const dx=p.x-goal.x,dy=p.y-goal.y,d=Math.hypot(dx,dy)||1;move(p,dx/d*(48-d),dy/d*(48-d),world.room);}
   }
   if(world.room==='pond'&&!run.pepperFound&&run.keyFound&&nearGoal<69) {
@@ -448,7 +449,7 @@ export function step(world,run,input,dt) {
     const distance=Math.hypot(toy.x-p.x,toy.y-p.y);
     const dashContact=dashing&&touchingCorgi(world,run,toy,29);
     if(dashContact&&!world.dashHits.has(toy)) {
-      dashImpact(world,toy,dashContact.body);
+      if(dashImpact(world,toy,dashContact.body))events.push({type:'bonk',kind:toy.kind});
       if(toy.mode!=='stunned'){toy.mode='stunned';toy.timer=2.3;events.push({type:'stun'});}
     }
     if(toy.mode==='stunned') {toy.timer-=dt;if(toy.timer<=0){toy.mode='roam';toy.cooldown=1;}continue;}
@@ -482,7 +483,7 @@ export function step(world,run,input,dt) {
     if(gopher.mode!=='up'&&gopher.mode!=='stunned')continue;
     const dashContact=dashing&&touchingCorgi(world,run,gopher,29);
     if(dashContact&&!world.dashHits.has(gopher)) {
-      dashImpact(world,gopher,dashContact.body);
+      if(dashImpact(world,gopher,dashContact.body))events.push({type:'bonk',kind:'gopher'});
       if(gopher.mode!=='stunned'){gopher.mode='stunned';gopher.timer=2.3;events.push({type:'stun'});}
     } else if(gopher.mode==='up')bumpCorgis(world,run,gopher,events);
     if(run.health<=0)return events;
@@ -512,7 +513,7 @@ function stepBoss(world,run,dt,dashing,events){
   const b=world.boss,p=world.player;b.timer=Math.max(0,b.timer-dt);
   if(b.mode==='exposed'){
     if(dashing&&Math.hypot(p.x-b.x,p.y-b.y)<b.r+29){
-      b.hp=Math.max(0,b.hp-(world.powerDash?2:1));dashImpact(world,b,p,true);
+      b.hp=Math.max(0,b.hp-(world.powerDash?2:1));if(dashImpact(world,b,p,true))events.push({type:'bonk',kind:'boss'});
       if(!b.hp){run.bossDefeated=true;b.mode='off';b.timer=0;events.push({type:'boss-win'});return;}
       b.mode='recover';b.timer=3.2;events.push({type:'boss-hit'});
     }else if(b.timer===0){b.mode='recover';b.timer=.6;}

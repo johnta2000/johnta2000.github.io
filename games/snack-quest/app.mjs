@@ -1,7 +1,7 @@
-import { ROOMS, ORDER, DASH_COOLDOWN, ABILITIES, WIDTH, HEIGHT, createRun, peeProgress, upgradeRun, TRINKETS, validRun, migrateRun, makeWorld, maxHearts, goalDone, isUnlocked, firstUnfinished, objective, retryRoom, step, startDash, startAbility } from './engine.mjs?v=23';
-import { portrait, drawWorld, drawPicnic } from './art.mjs?v=23';
-import { movementKey, abilityKey, isTextEntry, joystickVector } from './input.mjs?v=23';
-import { Soundscape } from './audio.mjs?v=23';
+import { ROOMS, ORDER, DASH_COOLDOWN, ABILITIES, WIDTH, HEIGHT, createRun, peeProgress, upgradeRun, TRINKETS, validRun, migrateRun, makeWorld, maxHearts, goalDone, isUnlocked, firstUnfinished, objective, retryRoom, step, startDash, startAbility } from './engine.mjs?v=24';
+import { portrait, drawWorld, drawPicnic } from './art.mjs?v=24';
+import { movementKey, abilityKey, isTextEntry, joystickVector } from './input.mjs?v=24';
+import { Soundscape } from './audio.mjs?v=24';
 
 const $ = id => document.getElementById(id);
 const canvas=$('world'), ctx=canvas.getContext('2d');
@@ -370,6 +370,9 @@ restore.addEventListener('change',async()=>{
 const previewRun=createRun('snacktime'),previewWorld=makeWorld(previewRun,'meadow');
 previewWorld.player.x=270;previewWorld.player.y=420;
 function handleEvents(events) {
+  // The whole train can hit several things in one frame: play one clear impact.
+  const bonks=events.filter(event=>event.type==='bonk');
+  if(bonks.length)sound(bonks.some(e=>e.kind==='boss')?'bonk-boss':bonks.some(e=>e.kind==='crate')?'bonk-crate':'bonk');
   for(const event of events) {
     if(event.type==='practice'){sound('key');toast(objective(run,'tutorial'),5000);}
     else if(event.type==='snack'){sound('snack');toast(event.healed?'A snack and a second wind. +1 heart.':event.item.healing?'Heart snack collected. Hearts were already full.':'A picnic treat! Regular snacks don’t heal.');}
@@ -377,12 +380,12 @@ function handleEvents(events) {
     else if(event.type==='trinket'){sound('key');toast(`${event.item.name}! ${run.trinkets.length}/${TRINKETS.length} trinkets tucked away.`,3000);}
     else if(event.type==='basket'){sound('basket');toast('Basket found! Follow the trail into the cottage. Someone else needs rescuing!',3500);}
     else if(event.type==='hit'){sound('hit');toast(run.pepperFound?`${event.character==='pepperoni'?'Pepperoni':event.character==='pee'?'Pee':event.character==='pepper'?'Pepper':'Pepsi'} got bonked! −1 shared heart. Watch your whole team.`:'Pepsi got bonked! −1 heart. Look for a heart-marked snack.',2800);}
-    else if(event.type==='stun'){sound('stun');announce('Mischief bonked. Keep moving.');}
+    else if(event.type==='stun'){if(!bonks.length)sound('stun');announce('Mischief bonked. Keep moving.');}
     else if(event.type==='rescue'){sound('rescue');toast('Pepper found! +1 heart. Press J to bark and stun enemies near Pepper · 5s recharge. Space is still your normal dash.',6500);}
     else if(event.type==='pee-rescue'){sound('rescue');toast('Pee found! Press K to leave a stink cloud for pursuers · 7s recharge. Use it whenever you need it!',6500);}
     else if(event.type==='pepperoni-rescue'){sound('rescue');toast('Pepperoni found! Press L for a longer power dash and double boss damage · 8s recharge. Space stays a normal dash.',7000);}
     else if(event.type==='boss-open'){sound('key');toast('The vacuum overheated! Dash into it now!',2500);}
-    else if(event.type==='boss-hit'){sound('stun');toast(world.powerDash?'Power bonk! Two damage. Vacuum stunned — roll the whole team clear!':'Bonk! One damage. Vacuum stunned — roll the whole team clear!');}
+    else if(event.type==='boss-hit'){toast(world.powerDash?'Power bonk! Two damage. Vacuum stunned — roll the whole team clear!':'Bonk! One damage. Vacuum stunned — roll the whole team clear!');}
     else if(event.type==='boss-win'){soundtrack.setScene(view,world.room,{bossDefeated:true});sound('win');toast('Sir Sucks-a-Lot is unplugged! Take the path home →',6000);}
     else if(event.type==='defeat'){save();sound('defeat');navigate(routeURL('retry'));return;}
     else if(event.type==='exit') {
@@ -391,7 +394,7 @@ function handleEvents(events) {
       else{run.completed=true;save();sound('win');navigate(routeURL('picnic'));}
       return;
     }
-    if(event.type!=='stun'){save();updateProgress();}
+    if(event.type!=='stun'&&event.type!=='bonk'){save();updateProgress();}
   }
 }
 function frame(now) {

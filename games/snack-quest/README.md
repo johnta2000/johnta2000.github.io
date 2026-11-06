@@ -25,7 +25,7 @@ Both plushies tumble end over end as they move, with rotation tied to distance t
 
 ## Music and sound
 
-The Sound button enables an original, eight-bar music-box melody with soft bass and light percussion. The pond plays more gently and the orchard has a quicker rhythm. Synthesized effects distinguish snacks, dash whooshes, toy bonks, damage, the key, the basket, Pepper's reunion, and the picnic ending. No audio downloads or third-party music are used.
+The Sound button enables an original, eight-bar music-box melody with soft bass and light percussion. The pond plays more gently and the orchard has a quicker rhythm. Synthesized effects distinguish snacks, dash whooshes, toy bonks, damage, the key, the basket, Pepper's reunion, and the picnic ending. Dash impacts use a springy enemy bonk, a wooden crate crack, or a heavier boss clang—even on enemies already stunned and on the final boss hit. Contact plays once per target per dash; simultaneous impacts share one sound. No audio downloads or third-party music are used.
 
 Sound starts off, remembers the player's choice on this device, and requires a click or key press before playback. Music pauses with the game; reunion/retry jingles finish on their cards. Switching away or muting stops all audio, including scheduled notes. Resuming uses one existing audio context and discards missed beats rather than playing a backlog.
 
@@ -47,7 +47,7 @@ node --test tests/snack-quest/engine.test.mjs
 node tests/snack-quest/browser.mjs
 ```
 
-Use `SNACK_QUEST_SKIP_DESKTOP=1` to rerun only the remaining audio/mobile checks. If the host audio-output clock is stalled, `SNACK_QUEST_OFFLINE_AUDIO=1` explicitly skips live playback checks and verifies music, bark, and toot synthesis using OfflineAudioContext; this does not claim speaker playback was verified.
+Use `SNACK_QUEST_SKIP_DESKTOP=1` to rerun only the remaining audio/mobile checks. If the host audio-output clock is stalled, `SNACK_QUEST_OFFLINE_AUDIO=1` explicitly skips live playback checks and verifies music, bark, toot, and bonk synthesis using OfflineAudioContext; this does not claim speaker playback was verified.
 
 Set `PLAYWRIGHT_EXECUTABLE_PATH` to use an installed browser, `SNACK_QUEST_BROWSER=webkit` for WebKit, `SNACK_QUEST_URL` for another origin, and `SNACK_QUEST_SCREENSHOTS` for the screenshot destination. Browser checks exercise WASD-only input, the protected start, native keyboard focus and text-input fallback, a real dash/crate pickup, actual hazard damage and defeat/retry, Pepper rescue, extra health, the ten-trinket collection, garden progression, and basket/exit ending, navigation restoration, landscape mobile navigation and trinket resets, legacy saves, failed-save recovery, and actual Web Audio output across mute, pause, focus loss, and reload. The checks also render a short `snack-quest-theme.wav` preview into the screenshot destination.
 

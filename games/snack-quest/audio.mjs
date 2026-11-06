@@ -144,6 +144,20 @@ export class Soundscape {
     if(kind==='dash'){this.noise(now,.2,.17,1500);this.tone(53,now,.16,.07,this.effectVoices,'sine',65);}
     else if(kind==='bark'){for(const delay of [0,.14]){this.noise(now+delay,.09,.08,650);this.tone(54,now+delay,.1,.12,this.effectVoices,'triangle',44);}}
     else if(kind==='toot'){this.tone(43,now,.25,.11,this.effectVoices,'triangle',35);this.tone(47,now+.12,.22,.06,this.effectVoices,'sine',32);}
+    else if(kind==='bonk'){
+      // A soft impact, a rubbery downward boing, then a tiny springy rebound.
+      this.noise(now,.065,.18,1050);this.tone(65,now,.19,.3,this.effectVoices,'sine',36);
+      this.tone(49,now+.09,.15,.12,this.effectVoices,'triangle',65);
+    }
+    else if(kind==='bonk-boss'){
+      this.tone(48,now,.32,.34,this.effectVoices,'sine',25);this.noise(now,.13,.2,1800);
+      for(const [note,delay] of [[83,.015],[89,.045],[78,.085]])this.tone(note,now+delay,.22,.055,this.effectVoices,'triangle',note-7);
+      this.tone(39,now+.14,.22,.1,this.effectVoices,'sine',53);
+    }
+    else if(kind==='bonk-crate'){
+      this.tone(58,now,.12,.24,this.effectVoices,'triangle',34);
+      for(const [delay,pitch] of [[0,1700],[.035,2400],[.075,1200]])this.noise(now+delay,.075,.15,pitch);
+    }
     else if(kind==='stun'){this.tone(62,now,.13,.17,this.effectVoices,'sine',43);this.pluck(86,now+.09,.05,.2);}
     else if(kind==='hit'){this.tone(55,now,.21,.18,this.effectVoices,'sine',37);this.noise(now,.1,.08,550);}
     else if(kind==='defeat')chime([64,60,57,48],.15,.09);

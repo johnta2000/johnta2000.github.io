@@ -15,6 +15,10 @@ async function seed(page,run,room=run.room,view='play'){
   await page.evaluate(({prefix,run})=>{localStorage.setItem(prefix+run.id,JSON.stringify(run));localStorage.setItem(prefix+'latest',run.id);},{prefix,run});
   await page.goto(`${base}?view=${view}&run=${run.id}&room=${room}`);
   await page.waitForFunction(()=>document.querySelector('#room-name')?.textContent!=='One friend is missing.');
+  await page.evaluate(async()=>{
+    const {Soundscape}=await import('./audio.mjs?v=24'),play=Soundscape.prototype.play;
+    window.effectRequests=[];Soundscape.prototype.play=function(kind){window.effectRequests.push(kind);return play.call(this,kind);};
+  });
 }
 async function saved(page){return page.evaluate(prefix=>JSON.parse(localStorage.getItem(prefix+new URLSearchParams(location.search).get('run'))),prefix);}
 async function hold(page,key,milliseconds){await page.keyboard.down(key);await page.waitForTimeout(milliseconds);await page.keyboard.up(key);}
@@ -90,7 +94,7 @@ try {
   await hold(page,'d',350);await page.keyboard.press('Escape');await waitView(page,'pause');assert.ok((await saved(page)).positions.meadow.x>185,'WASD movement works');
   const pausedURL=page.url();await page.reload();await page.locator('.pause-card').waitFor();assert.equal(page.url(),pausedURL);await page.keyboard.press('Escape');await waitView(page,'play');
   const key=createRun('keytest12');key.positions.meadow={x:477,y:190};await seed(page,key);await page.keyboard.down('d');await page.keyboard.press('Space');await page.waitForTimeout(220);await page.keyboard.up('d');
-  await page.waitForFunction(prefix=>JSON.parse(localStorage.getItem(prefix+new URLSearchParams(location.search).get('run'))).keyFound,prefix);assert.equal((await saved(page)).collected.length,0);
+  await page.waitForFunction(prefix=>JSON.parse(localStorage.getItem(prefix+new URLSearchParams(location.search).get('run'))).keyFound,prefix);assert.equal((await saved(page)).collected.length,0);assert.equal(await page.evaluate(()=>effectRequests.filter(k=>k==='bonk-crate').length),1);
   await page.keyboard.press('Escape');await waitView(page,'pause');await page.keyboard.press('Escape');await waitView(page,'play');
   await page.screenshot({path:output+'/desktop-key.png',fullPage:true});
   // Regular picnic snacks no longer refill hearts; only the marked snack does.
@@ -192,6 +196,7 @@ try {
   for(let hit=0;hit<4;hit++){
     battle.positions.boss={x:645,y:315};battle.cooldowns={dash:0,bark:0,stink:0,power:0};battle.bossState={x:710,y:315,r:44,hp:8-hit*2,mode:'exposed',timer:3.4,aimX:-1,aimY:0,cycle:hit};
     await seed(page,battle,'boss');await page.keyboard.down('d');await page.keyboard.press('l');await page.waitForTimeout(130);await page.keyboard.up('d');await page.keyboard.press('Escape');
+    assert.equal(await page.evaluate(()=>effectRequests.filter(k=>k==='bonk-boss').length),1,'each boss hit, including the final hit, makes one heavy bonk');
     battle=await saved(page);assert.equal(battle.bossState.hp,6-hit*2);assert.equal(battle.bossDefeated,hit===3);await page.reload();await page.locator('#resume').waitFor();assert.equal((await saved(page)).bossState.hp,6-hit*2);
     if(hit===0){await page.locator('#resume').click();await page.keyboard.press('a');await page.evaluate(()=>window.dispatchEvent(new Event('blur')));await page.screenshot({path:output+'/desktop-vacuum-boss.png',fullPage:true});}
   }
@@ -306,7 +311,7 @@ try {
 
   // Render the actual score for a listenable preview and check its level/headroom.
   const preview=await musicPage.evaluate(async()=>{
-    const {Soundscape}=await import('/games/snack-quest/audio.mjs?v=23');
+    const {Soundscape}=await import('/games/snack-quest/audio.mjs?v=24');
     const rate=22050,context=new OfflineAudioContext(1,rate*22,rate);
     const score=new Soundscape(()=>context);score.setEnabled(true);score.unlock();score.setScene('play','meadow');
     for(let i=0;i<64;i++)score.musicBeat(i,.1+i*30/96,30/96);
@@ -315,9 +320,9 @@ try {
   let peak=0;for(const sample of preview){assert.ok(Number.isFinite(sample));peak=Math.max(peak,Math.abs(sample));}
   assert.ok(peak>.03&&peak<.8,'original music renders audibly with headroom');
   const effects=await musicPage.evaluate(async()=>{
-    const {Soundscape}=await import('/games/snack-quest/audio.mjs?v=23');
+    const {Soundscape}=await import('/games/snack-quest/audio.mjs?v=24');
     const levels={};
-    for(const kind of ['bark','toot']){
+    for(const kind of ['bark','toot','bonk','bonk-crate','bonk-boss']){
       const context=new OfflineAudioContext(1,22050,22050),score=new Soundscape(()=>context);score.setEnabled(true);score.unlock();
       // Offline rendering has no gesture/output-device readiness; exercise the real effect graph.
       Object.defineProperty(score,'ready',{value:true});score.play(kind);

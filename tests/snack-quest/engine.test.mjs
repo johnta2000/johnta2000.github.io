@@ -98,11 +98,11 @@ test('a dash stuns a toy, blocks damage, and cannot be spammed',()=>{
 test('dash contact animates once per enemy, including after Pepper has already stunned it',()=>{
   const run=createRun('bonkpose1');run.pepperFound=true;run.keyFound=true;run.health=4;
   const world=makeWorld(run,'meadow');world.items=[];const enemy={...toyAt(158,315),kind:'vacuum'};world.toys=[enemy];
-  startAbility(world,run,'bark');startDash(world,{x:1,y:0});step(world,run,idle,.016);
+  startAbility(world,run,'bark');startDash(world,{x:1,y:0});const first=step(world,run,idle,.016);assert.deepEqual(first.filter(e=>e.type==='bonk'),[{type:'bonk',kind:'vacuum'}]);
   assert.equal(enemy.mode,'stunned');assert.ok(enemy.timer<1.4,'the bark stun duration is unchanged');
   assert.equal(world.impacts.length,1,'direct contact still has an impact after the bark');
   assert.equal(world.impacts[0].target,enemy);assert.ok(world.impacts[0].dx>0);
-  for(let i=0;i<10;i++)step(world,run,idle,.016);
+  for(let i=0;i<10;i++)assert.equal(step(world,run,idle,.016).filter(e=>e.type==='bonk').length,0,'no repeating contact sound');
   assert.equal(world.impacts.length,1,'overlapping frames cannot replay the burst');
   assert.equal(enemy.x,158);assert.equal(enemy.y,315,'drawing recoil never moves a hitbox');assert.equal(run.health,4);
   for(let i=0;i<45;i++)step(world,run,idle,.016);
