@@ -13,7 +13,7 @@ async function activate(page,selector){if(mobile)await page.locator(selector).ta
 async function pause(page){if(mobile)await activate(page,'#pause');else await page.keyboard.press('Escape');}
 async function observe(page){
   await page.evaluate(async()=>{
-    const {Soundscape}=await import('/games/snack-quest/audio.mjs?v=20'),tick=Soundscape.prototype.tick;
+    const {Soundscape}=await import('/games/snack-quest/audio.mjs?v=21'),tick=Soundscape.prototype.tick;
     Soundscape.prototype.tick=function(){window.musicProbe=this;return tick.call(this);};
   });
   await page.waitForFunction(()=>!!window.musicProbe);
@@ -43,7 +43,7 @@ try {
     await session.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[thumb]});
     await session.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[thumb,{id:2,x:power.x+power.width/2,y:power.y+power.height/2}]});
     await page.waitForTimeout(160);await session.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
-  }else{await page.keyboard.down('d');await page.keyboard.press('r');await page.waitForTimeout(160);await page.keyboard.up('d');}
+  }else{await page.keyboard.down('d');await page.keyboard.press('l');await page.waitForTimeout(160);await page.keyboard.up('d');}
   assert.equal((await saved(page)).bossDefeated,true);assert.equal((await state(page)).battle,false,'final hit immediately ends the battle score');assert.equal((await state(page)).tempo,84);
   await pause(page);await page.reload();await observe(page);await activate(page,'#resume');
   assert.equal((await state(page)).battle,false,'refreshing a defeated boss never restarts battle music');
@@ -51,7 +51,7 @@ try {
   await page.goBack();assert.equal((await state(page)).room,'boss');assert.equal((await state(page)).battle,false);
 
   const rendered=await page.evaluate(async()=>{
-    const {Soundscape}=await import('/games/snack-quest/audio.mjs?v=20');
+    const {Soundscape}=await import('/games/snack-quest/audio.mjs?v=21');
     const result={};
     for(const room of ['boss','meadow']){
       const rate=22050,context=new OfflineAudioContext(1,rate*16,rate),score=new Soundscape(()=>context);

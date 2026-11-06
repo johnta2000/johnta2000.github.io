@@ -26,12 +26,17 @@ test('only actual editable fields block game input',()=>{
   assert.equal(isTextEntry(null),false);
 });
 test('ability keys support physical, text-only, uppercase, and embedded input without changing movement',()=>{
-  for(const [letter,ability,keyCode] of [['Q','bark',81],['E','stink',69],['R','power',82]]) {
+  for(const [letter,ability,keyCode] of [['J','bark',74],['K','stink',75],['L','power',76]]) {
     assert.equal(abilityKey({code:'Key'+letter,key:'Unidentified'}),ability);
     assert.equal(abilityKey({key:letter}),ability);assert.equal(abilityKey({key:letter.toLowerCase()}),ability);
     assert.equal(abilityKey({keyCode}),ability);assert.equal(movementKey({key:letter}),null);
   }
   assert.equal(abilityKey({key:'w'}),null);assert.equal(abilityKey({key:' '}),null);
+  for(const [letter,keyCode] of [['Q',81],['E',69],['R',82]]) {
+    assert.equal(abilityKey({code:'Key'+letter}),null,'old left-hand bindings are removed');
+    assert.equal(abilityKey({key:letter}),null);assert.equal(abilityKey({key:letter.toLowerCase()}),null);
+    assert.equal(abilityKey({keyCode}),null);
+  }
 });
 test('the joystick has a quiet center and bounded movement in every direction',()=>{
   assert.deepEqual(joystickVector(3,4),{x:0,y:0});assert.deepEqual(joystickVector(0,0),{x:0,y:0});

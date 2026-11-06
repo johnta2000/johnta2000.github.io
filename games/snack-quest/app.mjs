@@ -1,7 +1,7 @@
-import { ROOMS, ORDER, DASH_COOLDOWN, ABILITIES, WIDTH, HEIGHT, createRun, peeProgress, upgradeRun, TRINKETS, validRun, migrateRun, makeWorld, maxHearts, goalDone, isUnlocked, firstUnfinished, objective, retryRoom, step, startDash, startAbility } from './engine.mjs?v=20';
-import { portrait, drawWorld, drawPicnic } from './art.mjs?v=20';
-import { movementKey, abilityKey, isTextEntry, joystickVector } from './input.mjs?v=20';
-import { Soundscape } from './audio.mjs?v=20';
+import { ROOMS, ORDER, DASH_COOLDOWN, ABILITIES, WIDTH, HEIGHT, createRun, peeProgress, upgradeRun, TRINKETS, validRun, migrateRun, makeWorld, maxHearts, goalDone, isUnlocked, firstUnfinished, objective, retryRoom, step, startDash, startAbility } from './engine.mjs?v=21';
+import { portrait, drawWorld, drawPicnic } from './art.mjs?v=21';
+import { movementKey, abilityKey, isTextEntry, joystickVector } from './input.mjs?v=21';
+import { Soundscape } from './audio.mjs?v=21';
 
 const $ = id => document.getElementById(id);
 const canvas=$('world'), ctx=canvas.getContext('2d');
@@ -93,8 +93,8 @@ function announce(message){$('announcement').textContent=message;}
 function controlText(message) {
   if(!touchMode)return message;
   return message.replace('Hold D + tap SPACE','Roll right + tap Dash').replace(/WASD/g,'the joystick')
-    .replace(/Press Q/g,'Tap Bark').replace(/Press E/g,'Tap Toot').replace(/Press R/g,'Tap Power')
-    .replace(/\bR\b/g,'Power').replace(/\bSpace\b|\bSPACE\b/g,'Dash');
+    .replace(/Press J/g,'Tap Bark').replace(/Press K/g,'Tap Toot').replace(/Press L/g,'Tap Power')
+    .replace(/\bL\b/g,'Power').replace(/\bSpace\b|\bSPACE\b/g,'Dash');
 }
 function touchPortrait(){return touchMode&&!landscapeQuery.matches;}
 function toast(message,duration=3200){message=controlText(message);$('room-toast').textContent=message;$('room-toast').hidden=false;toastUntil=performance.now()+duration;announce(message);}
@@ -378,11 +378,11 @@ function handleEvents(events) {
     else if(event.type==='basket'){sound('basket');toast('Basket found! Follow the trail into the cottage. Someone else needs rescuing!',3500);}
     else if(event.type==='hit'){sound('hit');toast(run.pepperFound?`${event.character==='pepperoni'?'Pepperoni':event.character==='pee'?'Pee':event.character==='pepper'?'Pepper':'Pepsi'} got bonked! −1 shared heart. Watch your whole team.`:'Pepsi got bonked! −1 heart. Look for a heart-marked snack.',2800);}
     else if(event.type==='stun'){sound('stun');announce('Mischief bonked. Keep moving.');}
-    else if(event.type==='rescue'){sound('rescue');toast('Pepper found! +1 heart. Press Q to bark and stun enemies near Pepper · 5s recharge. Space is still your normal dash.',6500);}
-    else if(event.type==='pee-rescue'){sound('rescue');toast('Pee found! Press E to leave a stink cloud for pursuers · 7s recharge. Use it whenever you need it!',6500);}
-    else if(event.type==='pepperoni-rescue'){sound('rescue');toast('Pepperoni found! Press R for a longer power dash and double boss damage · 8s recharge. Space stays a normal dash.',7000);}
+    else if(event.type==='rescue'){sound('rescue');toast('Pepper found! +1 heart. Press J to bark and stun enemies near Pepper · 5s recharge. Space is still your normal dash.',6500);}
+    else if(event.type==='pee-rescue'){sound('rescue');toast('Pee found! Press K to leave a stink cloud for pursuers · 7s recharge. Use it whenever you need it!',6500);}
+    else if(event.type==='pepperoni-rescue'){sound('rescue');toast('Pepperoni found! Press L for a longer power dash and double boss damage · 8s recharge. Space stays a normal dash.',7000);}
     else if(event.type==='boss-open'){sound('key');toast('The vacuum overheated! Dash into it now!',2500);}
-    else if(event.type==='boss-hit'){sound('stun');toast(world.powerDash?'Power bonk! Two damage. Wait for another opening.':'Bonk! One damage. Use R for a two-damage power hit.');}
+    else if(event.type==='boss-hit'){sound('stun');toast(world.powerDash?'Power bonk! Two damage. Wait for another opening.':'Bonk! One damage. Use L for a two-damage power hit.');}
     else if(event.type==='boss-win'){soundtrack.setScene(view,world.room,{bossDefeated:true});sound('win');toast('Sir Sucks-a-Lot is unplugged! Take the path home →',6000);}
     else if(event.type==='defeat'){save();sound('defeat');navigate(routeURL('retry'));return;}
     else if(event.type==='exit') {

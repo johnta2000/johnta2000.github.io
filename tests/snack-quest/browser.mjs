@@ -28,7 +28,7 @@ try {
   assert.equal(await page.locator('[data-character]').count(),0);
   await page.locator('#begin').click();await waitView(page,'play');
   await waitRoom(page,'tutorial');await page.screenshot({path:output+'/desktop-practice.png',fullPage:true});
-  assert.ok(await page.locator('[data-ability="bark"]').isDisabled());await page.keyboard.press('q');assert.equal((await saved(page)).cooldowns.bark,0,'locked abilities cannot fire');
+  assert.ok(await page.locator('[data-ability="bark"]').isDisabled());await page.keyboard.press('j');assert.equal((await saved(page)).cooldowns.bark,0,'locked abilities cannot fire');
   await hold(page,'d',950);assert.equal((await saved(page)).tutorialStep,1);
   await page.keyboard.press('Escape');await page.reload();await page.locator('#resume').click();await waitRoom(page,'tutorial');assert.equal((await saved(page)).tutorialStep,1);
   await hold(page,'d',750);await page.keyboard.down('d');await page.keyboard.press('Space');await page.waitForTimeout(250);await page.keyboard.up('d');
@@ -163,15 +163,25 @@ try {
   const rescuedFourth=await saved(page);
   // Each chosen key casts only its own move, with durable and visible cooldowns.
   const skillRun={...createRun('skillsbrowser'),keyFound:true,pepperFound:true,peeFound:true,pepperoniFound:true,health:4,tutorialStep:3,room:'tutorial'};
-  await seed(page,skillRun);await page.keyboard.press('d');await page.keyboard.press('Space');
+  await seed(page,skillRun);
+  assert.deepEqual(await page.locator('#abilities kbd').allTextContents(),['Space','J','K','L']);
+  assert.equal(await page.locator('[data-ability=bark]').getAttribute('aria-keyshortcuts'),'J');
+  assert.equal(await page.locator('[data-ability=stink]').getAttribute('aria-keyshortcuts'),'K');
+  assert.equal(await page.locator('[data-ability=power]').getAttribute('aria-keyshortcuts'),'L');
+  await page.keyboard.down('w');
+  for(const oldKey of ['q','e','r'])await page.keyboard.press(oldKey);
+  assert.deepEqual((await saved(page)).cooldowns,{dash:0,bark:0,stink:0,power:0},'Q/E/R cannot accidentally fire abilities');
+  await page.keyboard.press('Space');
   let cds=(await saved(page)).cooldowns;assert.ok(cds.dash>2.5);assert.deepEqual([cds.bark,cds.stink,cds.power],[0,0,0]);
-  await page.keyboard.press('q');assert.match(await page.locator('[data-ability="bark"]').innerText(),/recharge/);cds=(await saved(page)).cooldowns;assert.ok(cds.bark>4.5);assert.equal(cds.stink,0);assert.equal(cds.power,0);
-  await page.locator('#keyboard-capture').evaluate(input=>input.dispatchEvent(new InputEvent('beforeinput',{inputType:'insertText',data:'e',bubbles:true,cancelable:true})));
+  await page.keyboard.press('j');assert.match(await page.locator('[data-ability="bark"]').innerText(),/recharge/);cds=(await saved(page)).cooldowns;assert.ok(cds.bark>4.5);assert.equal(cds.stink,0);assert.equal(cds.power,0);
+  assert.ok(await page.locator('kbd[data-move=w]').evaluate(key=>key.classList.contains('pressed')),'left-hand movement stays held during the right-hand ability');
+  await page.locator('#keyboard-capture').evaluate(input=>input.dispatchEvent(new InputEvent('beforeinput',{inputType:'insertText',data:'k',bubbles:true,cancelable:true})));
   cds=(await saved(page)).cooldowns;assert.ok(cds.stink>6.5);assert.equal(cds.power,0);
-  await page.keyboard.press('r');assert.equal((await saved(page)).cooldowns.power,0,'power waits for the shared roll recovery');
+  await page.keyboard.press('l');assert.equal((await saved(page)).cooldowns.power,0,'power waits for the shared roll recovery');
+  await page.keyboard.up('w');
   await page.keyboard.press('Escape');const coolingBefore=(await saved(page)).cooldowns;await page.reload();assert.deepEqual((await saved(page)).cooldowns,coolingBefore,'reload preserves recharge');await page.locator('#resume').click();await page.keyboard.press('d');
   await page.locator('[data-ability="power"]').waitFor({state:'visible'});await page.waitForFunction(()=>!document.querySelector('[data-ability="power"]').disabled);
-  await page.keyboard.press('r');cds=(await saved(page)).cooldowns;assert.ok(cds.power>7.5);assert.ok(cds.dash>2.5);assert.ok(await page.locator('[data-ability="dash"]').isDisabled());
+  await page.keyboard.press('l');cds=(await saved(page)).cooldowns;assert.ok(cds.power>7.5);assert.ok(cds.dash>2.5);assert.ok(await page.locator('[data-ability="dash"]').isDisabled());
   await page.keyboard.press('Escape');await page.locator('#resume').click();await page.keyboard.press('d');
   await page.waitForFunction(()=>!document.querySelector('[data-ability="bark"]').disabled);await page.locator('[data-ability="bark"]').click();assert.ok((await saved(page)).cooldowns.bark>4.5);assert.equal(await page.evaluate(()=>document.activeElement.id),'keyboard-capture','clicking an ability returns focus to movement');
   await page.evaluate(()=>window.dispatchEvent(new Event('blur')));await page.screenshot({path:output+'/desktop-independent-abilities.png',fullPage:true});
@@ -181,7 +191,7 @@ try {
   let battle={...kitchen,id:'bossbrowser',room:'boss',health:4,trinkets:TRINKETS.map(i=>i.id),positions:{boss:{x:645,y:315}},revision:0};
   for(let hit=0;hit<4;hit++){
     battle.positions.boss={x:645,y:315};battle.cooldowns={dash:0,bark:0,stink:0,power:0};battle.bossState={x:710,y:315,r:44,hp:8-hit*2,mode:'exposed',timer:3.4,aimX:-1,aimY:0,cycle:hit};
-    await seed(page,battle,'boss');await page.keyboard.down('d');await page.keyboard.press('r');await page.waitForTimeout(130);await page.keyboard.up('d');await page.keyboard.press('Escape');
+    await seed(page,battle,'boss');await page.keyboard.down('d');await page.keyboard.press('l');await page.waitForTimeout(130);await page.keyboard.up('d');await page.keyboard.press('Escape');
     battle=await saved(page);assert.equal(battle.bossState.hp,6-hit*2);assert.equal(battle.bossDefeated,hit===3);await page.reload();await page.locator('#resume').waitFor();assert.equal((await saved(page)).bossState.hp,6-hit*2);
     if(hit===0){await page.locator('#resume').click();await page.keyboard.press('a');await page.evaluate(()=>window.dispatchEvent(new Event('blur')));await page.screenshot({path:output+'/desktop-vacuum-boss.png',fullPage:true});}
   }
@@ -296,7 +306,7 @@ try {
 
   // Render the actual score for a listenable preview and check its level/headroom.
   const preview=await musicPage.evaluate(async()=>{
-    const {Soundscape}=await import('/games/snack-quest/audio.mjs?v=20');
+    const {Soundscape}=await import('/games/snack-quest/audio.mjs?v=21');
     const rate=22050,context=new OfflineAudioContext(1,rate*22,rate);
     const score=new Soundscape(()=>context);score.setEnabled(true);score.unlock();score.setScene('play','meadow');
     for(let i=0;i<64;i++)score.musicBeat(i,.1+i*30/96,30/96);
@@ -305,7 +315,7 @@ try {
   let peak=0;for(const sample of preview){assert.ok(Number.isFinite(sample));peak=Math.max(peak,Math.abs(sample));}
   assert.ok(peak>.03&&peak<.8,'original music renders audibly with headroom');
   const effects=await musicPage.evaluate(async()=>{
-    const {Soundscape}=await import('/games/snack-quest/audio.mjs?v=20');
+    const {Soundscape}=await import('/games/snack-quest/audio.mjs?v=21');
     const levels={};
     for(const kind of ['bark','toot']){
       const context=new OfflineAudioContext(1,22050,22050),score=new Soundscape(()=>context);score.setEnabled(true);score.unlock();
@@ -339,6 +349,6 @@ try {
   const winMobile=createRun('mobilewin');winMobile.keyFound=true;winMobile.pepperFound=true;winMobile.basketFound=true;winMobile.completed=true;winMobile.health=4;winMobile.peeFound=true;winMobile.pepperoniFound=true;winMobile.trinkets=TRINKETS.map(item=>item.id);await seed(phone,winMobile,'orchard','picnic');await phone.screenshot({path:output+'/mobile-picnic.png',fullPage:true});await mobile.close();
 
   const blocked=await browser.newContext();await blocked.addInitScript(()=>{Storage.prototype.setItem=function(){throw new DOMException('Full','QuotaExceededError');};});const failure=await pageFor(blocked);await failure.locator('#begin').click();await failure.locator('#save-error').waitFor({state:'visible'});const downloadPromise=failure.waitForEvent('download');await failure.locator('#download-save').click();assert.equal((await downloadPromise).suggestedFilename(),'pepsi-pepper-adventure.json');await blocked.close();
-  assert.deepEqual(errors,[]);console.log('PASS: '+(process.env.SNACK_QUEST_SKIP_DESKTOP==='1'?'remaining audio/mobile checks':'WASD, independent Space/Q/E/R controls and cooldowns, four corgis, fourteen trinkets, nine chapters and boss, navigation, save recovery, and mobile checks')+'; '+(process.env.SNACK_QUEST_OFFLINE_AUDIO==='1'?'offline music and ability-effect rendering (live output unverified)':'live audio playback/mute/pause/resume and offline ability effects')+'.');
+  assert.deepEqual(errors,[]);console.log('PASS: '+(process.env.SNACK_QUEST_SKIP_DESKTOP==='1'?'remaining audio/mobile checks':'WASD, independent Space/J/K/L controls and cooldowns, four corgis, fourteen trinkets, nine chapters and boss, navigation, save recovery, and mobile checks')+'; '+(process.env.SNACK_QUEST_OFFLINE_AUDIO==='1'?'offline music and ability-effect rendering (live output unverified)':'live audio playback/mute/pause/resume and offline ability effects')+'.');
   console.log('Screenshots: '+output);
 }finally{await browser.close();}

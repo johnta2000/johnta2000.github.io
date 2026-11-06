@@ -2,9 +2,9 @@ export const WIDTH = 1000;
 export const HEIGHT = 620;
 export const DASH_COOLDOWN = 2.8;
 export const ABILITIES = {
-  bark:{key:'Q',corgi:'Pepper',name:'Bark',hint:'Stun enemies near Pepper',cooldown:5,unlock:'pepperFound'},
-  stink:{key:'E',corgi:'Pee',name:'Toot',hint:'Leave a cloud for pursuers',cooldown:7,unlock:'peeFound'},
-  power:{key:'R',corgi:'Pepperoni',name:'Power',hint:'Longer dash · double boss damage',cooldown:8,unlock:'pepperoniFound'},
+  bark:{key:'J',corgi:'Pepper',name:'Bark',hint:'Stun enemies near Pepper',cooldown:5,unlock:'pepperFound'},
+  stink:{key:'K',corgi:'Pee',name:'Toot',hint:'Leave a cloud for pursuers',cooldown:7,unlock:'peeFound'},
+  power:{key:'L',corgi:'Pepperoni',name:'Power',hint:'Longer dash · double boss damage',cooldown:8,unlock:'pepperoniFound'},
 };
 function freshCooldowns(){return {dash:0,bark:0,stink:0,power:0};}
 export const ORDER = ['meadow', 'pond', 'burrows', 'woods', 'hills', 'orchard', 'laundry', 'kitchen', 'boss'];
@@ -69,14 +69,14 @@ export const ROOMS = {
   },
   kitchen: {
     name:'Midnight Snack Kitchen',short:'The kitchen',ground:'#e4e8da',snack:'cheese',indoor:true,
-    note:'R uses Pepperoni’s power dash. Space stays a normal dash. Cross the slippery spills and find the last two treasures.',
+    note:'L uses Pepperoni’s power dash. Space stays a normal dash. Cross the slippery spills and find the last two treasures.',
     obstacles:[{x:360,y:260,r:45,kind:'table'},{x:620,y:400,r:48,kind:'table'},{x:770,y:210,r:32,kind:'hamper'}],
     terrain:[{kind:'ice',x:500,y:200,rx:100,ry:55},{kind:'ice',x:780,y:400,rx:100,ry:65}],
     slots:[[230,170],[500,150],[850,490],[250,450],[490,480],[680,300]],goal:{x:820,y:480,r:23,kind:'sign'},
   },
   boss: {
     name:'Sir Sucks-a-Lot',short:'The vacuum',ground:'#dcd4c9',snack:'biscuit',indoor:true,
-    note:'Dodge the red charge line. When the vacuum overheats, use R for a power hit! Space hits do one damage; R does two.',
+    note:'Dodge the red charge line. When the vacuum overheats, use L for a power hit! Space hits do one damage; L does two.',
     obstacles:[],slots:[[220,170],[220,480],[820,480]],goal:{x:700,y:315,r:44,kind:'boss'},
   },
 };
@@ -215,7 +215,7 @@ export function objective(run, room) {
   if(room==='meadow')return 'Dash into the wooden crate to find the key';
   if(room==='pond'&&!run.pepperFound)return 'Reach Pepper’s gate with the key';
   if(room==='hills'&&!run.peeFound&&canRescuePee(run))return 'Pee is ready! Roll to the yellow corgi in the top-right clearing';
-  if(room==='boss')return run.bossState?.mode==='exposed'?'OVERHEATED! R: power dash · Space: normal hit':'Dodge the red charge line; strike only when it overheats';
+  if(room==='boss')return run.bossState?.mode==='exposed'?'OVERHEATED! L: power dash · Space: normal hit':'Dodge the red charge line; strike only when it overheats';
   if(room==='laundry'&&!run.peeFound)return 'Bring Pee from the downs to help find Pepperoni';
   if(room==='laundry'&&!run.pepperoniFound&&trinketCount(run,room)===2)return 'Roll to Pepperoni’s blanket fort in the top-right corner';
   const missing=roomTrinkets(room).filter(item=>!run.trinkets?.includes(item.id));
@@ -293,7 +293,7 @@ export function startAbility(world,run,ability,input={x:0,y:0}) {
   const spec=ABILITIES[ability];
   if(!spec||!run[spec.unlock]||run.health<=0||world.abilityCooldowns[ability]>0)return false;
   if(ability==='power') {
-    // Both rolls share their short recovery; alternating Space/R cannot bypass it.
+    // Both rolls share their short recovery; alternating Space/L cannot bypass it.
     if(!startDash(world,input))return false;
     world.dash=.28;world.powerDash=true;world.invincible=Math.max(world.invincible,.36);
   } else if(ability==='bark') {

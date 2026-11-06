@@ -14,7 +14,7 @@ export function isTextEntry(target) {
   return !!(target?.isContentEditable || target?.closest?.('input, textarea, select'));
 }
 export function abilityKey(event) {
-  return {KeyQ:'bark',KeyE:'stink',KeyR:'power'}[event.code]||{q:'bark',e:'stink',r:'power'}[event.key?.toLowerCase()]||{81:'bark',69:'stink',82:'power'}[event.keyCode||event.which]||null;
+  return {KeyJ:'bark',KeyK:'stink',KeyL:'power'}[event.code]||{j:'bark',k:'stink',l:'power'}[event.key?.toLowerCase()]||{74:'bark',75:'stink',76:'power'}[event.keyCode||event.which]||null;
 }
 
 // A small dead zone keeps resting thumbs still; diagonal movement stays bounded.
