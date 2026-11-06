@@ -1,7 +1,7 @@
-import { setMapStretch, adaptWorldLayout, ROOMS, ORDER, DASH_COOLDOWN, ABILITIES, WIDTH, HEIGHT, createRun, peeProgress, upgradeRun, TRINKETS, validRun, migrateRun, makeWorld, maxHearts, goalDone, isUnlocked, firstUnfinished, objective, retryRoom, step, startDash, startAbility } from './engine.mjs?v=32';
-import { portrait, drawWorld, drawPicnic } from './art.mjs?v=32';
-import { movementKey, abilityKey, isTextEntry, joystickVector } from './input.mjs?v=32';
-import { Soundscape } from './audio.mjs?v=32';
+import { setMapStretch, adaptWorldLayout, ROOMS, ORDER, DASH_COOLDOWN, ABILITIES, WIDTH, HEIGHT, createRun, peeProgress, upgradeRun, TRINKETS, validRun, migrateRun, enterRoom, makeWorld, maxHearts, goalDone, isUnlocked, firstUnfinished, objective, retryRoom, step, startDash, startAbility } from './engine.mjs?v=33';
+import { portrait, drawWorld, drawPicnic } from './art.mjs?v=33';
+import { movementKey, abilityKey, isTextEntry, joystickVector } from './input.mjs?v=33';
+import { Soundscape } from './audio.mjs?v=33';
 
 const $ = id => document.getElementById(id);
 const canvas=$('world'), ctx=canvas.getContext('2d');
@@ -84,8 +84,13 @@ function routeURL(nextView='play',room=world?.room||run?.room||'meadow',id=run?.
   if(nextView!=='home')url.searchParams.set('room',room);
   return url;
 }
-function navigate(url,{replace=false}={}) {
-  save();history[replace?'replaceState':'pushState']({},'',url);readRoute();
+function navigate(url,{replace=false,enter=false}={}) {
+  save();
+  const destination=new URL(url,location.href),room=destination.searchParams.get('room');
+  if(enter&&run&&run.health>0&&Object.hasOwn(ROOMS,room)&&isUnlocked(run,room)){
+    world=enterRoom(run,room);clearInput();controlsReady=false;save();
+  }
+  history[replace?'replaceState':'pushState']({},'',destination);readRoute();
 }
 function newRun() {
   save();
@@ -410,7 +415,9 @@ document.addEventListener('click',event=>{
   if(!link||event.defaultPrevented||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey||event.button!==0)return;
   const url=new URL(link.href);
   if(url.origin!==location.origin||url.pathname!==location.pathname)return;
-  event.preventDefault();navigate(url);
+  const room=url.searchParams.get('room');
+  const enter=url.searchParams.get('view')==='play'&&!!room&&(room!==world?.room||link.matches('.trail-item,#practice-link,#pause-practice,#pee-link,#pepperoni-link'));
+  event.preventDefault();navigate(url,{enter});
 });
 $('screen').addEventListener('pointerdown',event=>{backdropDown=event.target===$('screen');});
 $('screen').addEventListener('click',event=>{if(backdropDown&&event.target===$('screen'))dismissScreen();backdropDown=false;});
@@ -473,7 +480,7 @@ function handleEvents(events) {
     else if(event.type==='defeat'){save();sound('defeat');navigate(routeURL('retry'));return;}
     else if(event.type==='exit') {
       const next=ORDER[ORDER.indexOf(world?.room)+1];
-      if(next)navigate(routeURL('play',next));
+      if(next)navigate(routeURL('play',next),{enter:true});
       else{run.completed=true;save();sound('win');navigate(routeURL('picnic'));}
       return;
     }

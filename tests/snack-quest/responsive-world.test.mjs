@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {setMapStretch,mapStretch,mapX,roomWidth,roomScale,ROOMS,TRINKETS,PEE_RESCUE,roomPoint,createRun,makeWorld,adaptWorldLayout,validRun,step,startDash,walkable} from '../../games/snack-quest/engine.mjs';
+import {setMapStretch,mapStretch,mapX,roomWidth,roomScale,ROOMS,TRINKETS,PEE_RESCUE,roomPoint,createRun,makeWorld,enterRoom,adaptWorldLayout,validRun,step,startDash,walkable} from '../../games/snack-quest/engine.mjs';
 const idle={x:0,y:0},close=(a,b)=>assert.ok(Math.abs(a-b)<.001,`${a} ~= ${b}`);
 test('responsive maps spread physical landmarks and boundaries while preserving collision radii',()=>{
  const original={x:ROOMS.pond.obstacles[0].x,r:ROOMS.pond.obstacles[0].r,rx:ROOMS.woods.terrain[0].rx};
@@ -32,4 +32,19 @@ test('wider levels still support key bonks, rescues, treasure collection, and th
   for(const item of TRINKETS.filter(t=>t.room==='pond')){Object.assign(world.player,{x:item.x,y:item.y});step(world,run,idle,.016);assert.ok(run.trinkets.includes(item.id));}
   Object.assign(world.player,roomPoint('pond',910,320));assert.ok(step(world,run,idle,.016).some(e=>e.type==='exit'));
  }finally{setMapStretch(1);}
+});
+
+
+test('chapter entry starts at the left without resetting treasures, hearts, abilities, or boss progress',()=>{
+ try{for(const stretch of [1,1.7,2.4]){
+  setMapStretch(stretch);
+  const run=createRun('entryunit');Object.assign(run,{mapStretch:mapStretch(),keyFound:true,pepperFound:true,peeFound:true,pepperoniFound:true,basketFound:true,health:2,trinkets:TRINKETS.map(t=>t.id),collected:['pond-1'],cooldowns:{dash:1,bark:7,stink:4,power:6}});
+  const boss=makeWorld(run,'boss');boss.boss.hp=3;boss.boss.mode='recover';boss.boss.timer=2;
+  for(const room of Object.keys(ROOMS)){
+   run.positions[room]=roomPoint(room,910,320);
+   const restored=makeWorld(run,room);close(restored.player.x,mapX(910)*roomScale(room));
+   const entered=enterRoom(run,room);close(entered.player.x,mapX(135)*roomScale(room));assert.equal(entered.player.y,315*roomScale(room));assert.ok(walkable(entered.player.x,entered.player.y,room));
+   assert.equal(run.health,2);assert.equal(run.trinkets.length,14);assert.deepEqual(run.collected,['pond-1']);assert.equal(run.cooldowns.bark,7);assert.equal(run.bossState.hp,3);
+  }
+ }}finally{setMapStretch(1);}
 });

@@ -115,3 +115,8 @@ Mobile maps reshape to the usable landscape aspect ratio: the physical world gro
 Rescuing Pepper, Pee, or Pepperoni opens a paused, dismissible ability card with its effect, a practical use, the keyboard key or touch button, and cooldown. The current room and collected items stay intact. A pending introduction is saved with the adventure, so refreshing or reopening the play URL cannot skip an unread card. Older adventures need no migration beyond an optional null field. Unlocked guides can be reopened from Pause.
 
 Each guide has a stable `?view=ability&ability=shield|toot|power&from=play|pause&run=…&room=…` URL. Locked abilities cannot be opened through a link. Escape, the continue button, and a backdrop click dismiss the card; clicking inside or dragging out does not. Returning to Pause restores focus to the guide link. `ability-intro-browser.mjs` exercises actual rescue events for all three corgis on desktop and mobile, pause safety, pending-state restoration, copied links, history, dismissal, focus, and short-screen scrolling.
+
+
+### Stage entry versus resuming
+
+Forward exits and explicit chapter/practice selections enter at the left-hand spawn, even when that chapter has a saved position beside its right-hand exit. This changes only entry position and the temporary world instance; collected items, banked treasures, shared hearts, rescued corgis, cooldowns, and boss progress stay intact. Pause/resume, Continue, refresh, copied current-game URLs, and browser history restore the in-progress position. Defeat retry retains its existing reset rules. `stage-entry-browser.mjs` reproduces the old right-side revisit and verifies stage transitions and save restoration on desktop and mobile.

@@ -323,6 +323,12 @@ function companionSpawn(leader,room) {
   }
   return {x:leader.x,y:leader.y,facing:leader.facing||1};
 }
+// Entering a chapter is distinct from restoring an in-progress visit.
+export function enterRoom(run,room){
+  adaptRunLayout(run);
+  run.positions[room]=roomPoint(room,135,315);
+  return makeWorld(run,room);
+}
 export function makeWorld(run, room) {
   adaptRunLayout(run);
   run.cooldowns??=freshCooldowns();
