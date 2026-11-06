@@ -1,4 +1,4 @@
-import { roomScale, WIDTH, HEIGHT, ROOMS, random, goalDone, roomTrinkets, PEE_RESCUE, peeProgress, canRescuePee, windAt, trinketCount } from './engine.mjs?v=30';
+import { roomScale, WIDTH, HEIGHT, ROOMS, random, goalDone, roomTrinkets, PEE_RESCUE, peeProgress, canRescuePee, windAt, trinketCount } from './engine.mjs?v=31';
 
 const INK='#75674c';
 function ellipse(c,x,y,rx,ry,fill,stroke=null,line=2){c.beginPath();c.ellipse(x,y,rx,ry,0,0,Math.PI*2);c.fillStyle=fill;c.fill();if(stroke){c.strokeStyle=stroke;c.lineWidth=line;c.stroke();}}
@@ -275,15 +275,27 @@ function needoh(c,x,y,time,squish=0,size=1,reduced=false){
   c.restore();
 }
 export function camera(world,viewportWidth){if(roomScale(world.room)>1)return 0;return Math.max(0,Math.min(WIDTH-viewportWidth,world.player.x-viewportWidth/2));}
-// A wide phone sees a full-width slice instead of a small letterboxed overview.
-export function cameraY(world,viewportHeight=HEIGHT){
-  return Math.max(0,Math.min(HEIGHT-viewportHeight,world.player.y/roomScale(world.room)-viewportHeight/2));
+// A fixed, uniformly scaled overview: no position-dependent camera on mobile.
+export function mapFrame(room,width,height,insets={}){
+  const scale=roomScale(room),left=insets.left||0,right=insets.right||0,top=insets.top||0,bottom=insets.bottom||0;
+  const availableWidth=Math.max(1,width-left-right),availableHeight=Math.max(1,height-top-bottom);
+  const zoom=Math.min(availableWidth/(WIDTH*scale),availableHeight/(HEIGHT*scale));
+  return {zoom,x:left+(availableWidth-WIDTH*scale*zoom)/2,y:top+(availableHeight-HEIGHT*scale*zoom)/2,width:WIDTH*scale*zoom,height:HEIGHT*scale*zoom};
 }
-export function drawWorld(c,world,run,viewportWidth,reduced=false,preview=false,viewportHeight=HEIGHT,immersive=false) {
-  const scale=roomScale(world.room),zoom=scale>1?(immersive?1/scale:Math.min(viewportWidth/(WIDTH*scale),1/scale)):1;
-  const t=reduced?0:world.time,offset=scale>1?(immersive?Math.max(0,Math.min(WIDTH-viewportWidth,world.player.x/scale-viewportWidth/2)):0):preview?(WIDTH-viewportWidth)/2:camera(world,viewportWidth);
-  const verticalOffset=preview?(HEIGHT-viewportHeight)/2:cameraY(world,viewportHeight);
-  c.clearRect(0,0,c.canvas.width,c.canvas.height);c.save();c.translate(-offset,-verticalOffset);if(scale>1){if(!immersive)c.translate((viewportWidth-WIDTH*scale*zoom)/2,(HEIGHT-HEIGHT*scale*zoom)/2);c.scale(zoom,zoom);}c.drawImage(ground(world.room,run.seed),0,0);
+export function drawWorld(c,world,run,viewportWidth,reduced=false,preview=false,viewportHeight=HEIGHT,overview=null) {
+  const scale=roomScale(world.room),frame=overview?mapFrame(world.room,viewportWidth,viewportHeight,overview):null;
+  const zoom=frame?.zoom||(scale>1?Math.min(viewportWidth/(WIDTH*scale),1/scale):1);
+  const t=reduced?0:world.time,offset=frame||scale>1?0:preview?(WIDTH-viewportWidth)/2:camera(world,viewportWidth);
+  c.clearRect(0,0,c.canvas.width,c.canvas.height);c.save();
+  if(frame){
+    c.fillStyle=ROOMS[world.room].ground;c.fillRect(0,0,viewportWidth,viewportHeight);
+    c.save();c.globalAlpha=.12;
+    for(let y=24;y<viewportHeight;y+=58)for(let x=24;x<viewportWidth;x+=63){line(c,[[x-3,y],[x,y+5],[x+4,y-2]],'#71855c',1.5);}
+    c.restore();c.translate(frame.x,frame.y);c.scale(zoom,zoom);
+  }else{
+    c.translate(-offset,0);if(scale>1){c.translate((viewportWidth-WIDTH*scale*zoom)/2,(HEIGHT-HEIGHT*scale*zoom)/2);c.scale(zoom,zoom);}
+  }
+  c.drawImage(ground(world.room,run.seed),0,0);
   if(world.room==='pond') {
     const o=ROOMS.pond.obstacles[0];
     for(let i=0;i<3;i++){c.beginPath();c.ellipse(o.x-30+i*38,o.y-20+i*20,18+Math.sin(t+i)*3,4,0,0,Math.PI);c.strokeStyle='#dbebd4';c.lineWidth=2;c.stroke();}
@@ -315,7 +327,9 @@ export function drawWorld(c,world,run,viewportWidth,reduced=false,preview=false,
     const b=world.boss;
     if(['windup','charge'].includes(b.mode)){c.save();c.setLineDash([10,9]);line(c,[[b.x,b.y],[b.x+b.aimX*520,b.y+b.aimY*520]],'#ba655d80',34);c.restore();}
     if(b.mode==='suction')ellipse(c,b.x,b.y,160,130,'#a6bcc52a','#8ea5ac',2);
-    c.save();c.translate(offset+(viewportWidth-WIDTH)/2,verticalOffset);
+    c.save();
+    if(frame){c.translate(-frame.x/zoom,-frame.y/zoom);c.scale(1/zoom,1/zoom);c.translate((viewportWidth-WIDTH)/2,(overview.top||0)-62);}
+    else c.translate(offset+(viewportWidth-WIDTH)/2,0);
     rounded(c,350,81,300,20,10,'#f9f1df');rounded(c,354,85,292*b.hp/8,12,6,'#bf8673');
     c.font='bold 12px sans-serif';c.textAlign='center';c.fillStyle='#655449';c.fillText(b.mode==='off'?'UNPLUGGED!':b.mode==='exposed'?'OVERHEATED · DASH NOW!':b.mode==='recover'?'STUNNED · REPOSITION!':b.mode==='suction'?'SUCTION · KEEP ROLLING!':'SIR SUCKS-A-LOT · '+b.hp+'/8',500,120);c.restore();
   }

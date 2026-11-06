@@ -1,7 +1,7 @@
-import { ROOMS, ORDER, DASH_COOLDOWN, ABILITIES, WIDTH, HEIGHT, createRun, peeProgress, upgradeRun, TRINKETS, validRun, migrateRun, makeWorld, maxHearts, goalDone, isUnlocked, firstUnfinished, objective, retryRoom, step, startDash, startAbility } from './engine.mjs?v=30';
-import { portrait, drawWorld, drawPicnic } from './art.mjs?v=30';
-import { movementKey, abilityKey, isTextEntry, joystickVector } from './input.mjs?v=30';
-import { Soundscape } from './audio.mjs?v=30';
+import { ROOMS, ORDER, DASH_COOLDOWN, ABILITIES, WIDTH, HEIGHT, createRun, peeProgress, upgradeRun, TRINKETS, validRun, migrateRun, makeWorld, maxHearts, goalDone, isUnlocked, firstUnfinished, objective, retryRoom, step, startDash, startAbility } from './engine.mjs?v=31';
+import { portrait, drawWorld, drawPicnic } from './art.mjs?v=31';
+import { movementKey, abilityKey, isTextEntry, joystickVector } from './input.mjs?v=31';
+import { Soundscape } from './audio.mjs?v=31';
 
 const $ = id => document.getElementById(id);
 const canvas=$('world'), ctx=canvas.getContext('2d');
@@ -15,7 +15,7 @@ const PREFIX='pepsi-pepper.snack-quest.v2.', LEGACY='pepsi-pepper.snack-quest.v1
 const memory=new Map(), savedSnapshots=new Map(), keys=new Set();
 const soundtrack=new Soundscape();
 const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
-let run=null, world=null, view='home', viewportWidth=WIDTH, viewportHeight=HEIGHT, lastFrame=0, saveElapsed=0;
+let run=null, world=null, view='home', viewportWidth=WIDTH, viewportHeight=HEIGHT, mobileMapInsets=null, lastFrame=0, saveElapsed=0;
 let shownAbility='bark';
 const abilitySlugs={bark:'shield',stink:'toot',power:'power'};
 let toastUntil=0, animationTime=0, soundOn=false, latestId=null;
@@ -279,10 +279,17 @@ function resize() {
   const bounds=$('stage').getBoundingClientRect();
   viewportWidth=Math.min(WIDTH,Math.round(bounds.width/bounds.height*HEIGHT));
   viewportHeight=touchMode&&landscapeQuery.matches?Math.min(HEIGHT,viewportWidth*bounds.height/Math.max(1,bounds.width)):HEIGHT;
+  mobileMapInsets=null;
+  if(touchMode&&landscapeQuery.matches){
+    const pixelsToWorld=viewportWidth/Math.max(1,bounds.width),toolbar=$('pause').closest('.game-toolbar'),bar=getComputedStyle(toolbar);
+    const safeBottom=Math.max(0,(parseFloat(getComputedStyle(document.querySelector('.ability-bar')).bottom)||12)-12);
+    mobileMapInsets={left:parseFloat(bar.paddingLeft)*pixelsToWorld,right:parseFloat(bar.paddingRight)*pixelsToWorld,top:(toolbar.getBoundingClientRect().bottom-bounds.top+4)*pixelsToWorld,bottom:(safeBottom+28)*pixelsToWorld};
+  }
   const ratio=Math.min(devicePixelRatio||1,2);
   canvas.width=Math.round(viewportWidth*ratio);canvas.height=Math.round(viewportHeight*ratio);ctx.setTransform(ratio,0,0,ratio,0,0);
 }
-new ResizeObserver(resize).observe($('stage'));
+const layoutObserver=new ResizeObserver(resize);
+layoutObserver.observe($('stage'));layoutObserver.observe(document.querySelector('.game-toolbar'));
 function inputDirection(){return stick.x||stick.y?{x:stick.x,y:stick.y,analog:true}:{x:Number(keys.has('d'))-Number(keys.has('a')),y:Number(keys.has('s'))-Number(keys.has('w'))};}
 function releaseJoystick() {
   const pointerId=stick.pointerId;stick.pointerId=null;stick.x=0;stick.y=0;
@@ -481,8 +488,8 @@ function frame(now) {
       paintAbilities();
     }
     if(view==='picnic'&&run)drawPicnic(ctx,run,viewportWidth,animationTime,reduced,viewportHeight);
-    else if(view!=='home'&&world)drawWorld(ctx,world,run,viewportWidth,reduced,false,viewportHeight,touchMode&&landscapeQuery.matches);
-    else{previewWorld.time=animationTime;drawWorld(ctx,previewWorld,previewRun,viewportWidth,reduced,true,viewportHeight,touchMode&&landscapeQuery.matches);}
+    else if(view!=='home'&&world)drawWorld(ctx,world,run,viewportWidth,reduced,false,viewportHeight,mobileMapInsets);
+    else{previewWorld.time=animationTime;drawWorld(ctx,previewWorld,previewRun,viewportWidth,reduced,true,viewportHeight,mobileMapInsets);}
     if(toastUntil&&now>toastUntil){$('room-toast').hidden=true;toastUntil=0;}
   }
   requestAnimationFrame(frame);

@@ -100,14 +100,14 @@ Mobile display: the game follows VisualViewport height and uses a compact two-by
 
 ### Mobile sizing and Shield
 
-Landscape uses a fixed visual-viewport shell, with the top safe inset inside the header rather than a separate strip. Floating controls and dialogs respect notch and home-indicator insets. The world fills the entire landscape window, behind a translucent header and floating corner controls. Locked controls and keyboard hints stay hidden; unlocking them never resizes the world. The joystick stays 108px wide and supports dragging beyond its circle with pointer capture. Shield replaces Pepper’s Bark on J and touch: three seconds of team protection, a ten-second recharge from activation, blue bubbles, a countdown, and a synthesized chime. It neither heals nor stuns. The legacy `bark` cooldown identifier is retained for old saves.
+Landscape uses a fixed visual-viewport shell, with the top safe inset inside the header rather than a separate strip. Floating controls and dialogs respect notch and home-indicator insets. The canvas fills the landscape window, with the entire map fitted inside it and floating corner controls. Locked controls and keyboard hints stay hidden; unlocking them never resizes the world. The joystick stays 108px wide and supports dragging beyond its circle with pointer capture. Shield replaces Pepper’s Bark on J and touch: three seconds of team protection, a ten-second recharge from activation, blue bubbles, a countdown, and a synthesized chime. It neither heals nor stuns. The legacy `bark` cooldown identifier is retained for old saves.
 
 `node tests/snack-quest/mobile-layout-browser.mjs` checks simulated Home Screen safe insets, each unlock count, touch Shield activation, copied links, reload, and Back/Forward. Physical iOS Home Screen rendering still needs device confirmation.
 
 
-### Immersive mobile camera
+### Fixed mobile map overview
 
-Mobile canvas dimensions match the visible window. It shows a full-width slice on wide phones and follows Pepsi vertically, clamped to the map edges. Tablet landscape can also follow horizontally. The three large maps retain their zoomed-out scale; desktop keeps its existing fixed overview. The boss health bar stays anchored to the view, and pause/completion never moves the stage. The objective sits between the corner controls. `camera.test.mjs`, the mobile layout checks, multitouch checks, fullscreen checks, and wide-world browser checks cover these behaviors.
+Mobile canvas dimensions match the visible window, with a fixed full-map overview inside the safe header and objective margins. Every room, including the three expanded maps, fits at a uniform scale without camera tracking, cropping, or distortion. The remaining edges use the room’s ground color and grass, with floating controls in the corners. Movement, pause, rescue dialogs, and refresh do not move the map. Desktop retains its existing framing. `map-overview-browser.mjs` checks every level’s actual canvas transform while moving, pausing, refreshing, and changing device sizes; `camera.test.mjs` verifies fit and proportions.
 
 
 ### Rescue ability introductions
