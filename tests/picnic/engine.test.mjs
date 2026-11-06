@@ -29,7 +29,6 @@ test('every hazard costs a heart and applies its distinct setback',()=>{
 test('overlapping hazards cannot drain several hearts in one moment; three distinct hits end a round',()=>{
   const run=playing();run.drops=[drop('sock',.5,1),drop('sock',.5,2)];advance(run,.05,.3);assert.equal(run.hearts,2);assert.equal(run.caught,0);
   for(let hit=0;hit<2;hit++){for(let i=0;i<21;i++)advance(run,.05,.3);run.elapsed+=1;run.drops=[drop('sock')];advance(run,.05,.3);}
-  assert.equal(run.status,'playing','The last sock still gets its cough reaction');for(let i=0;i<21;i++)advance(run,.05,.3);
   assert.equal(run.status,'lost');assert.equal(run.hearts,0);assert.equal(run.hits,3);
 });
 test('avoided hazards and missed food do not cost hearts, but an unmet goal times out',()=>{
@@ -73,14 +72,23 @@ test('all meaningful routes are addressable; malformed saves are rejected withou
 });
 
 
-test('a stinky sock freezes the whole round for one second, including the final hit',()=>{
+test('a stinky sock locks movement for one second while the rest of the round continues',()=>{
   const run=playing(5);run.caught=5;run.drops=[drop('sock'),{...drop('orange',.8,2),y:.3}];advance(run,.02,.3);
   assert.equal(run.coughRemaining,1);assert.equal(run.caught,3);assert.equal(run.spilledTreats,2);
-  const frozen={elapsed:run.elapsed,basket:run.basket,spawnIn:run.spawnIn,drops:structuredClone(run.drops)};
-  run.target=.8;for(let i=0;i<19;i++)advance(run,.05,.3);
-  assert.deepEqual({elapsed:run.elapsed,basket:run.basket,spawnIn:run.spawnIn,drops:run.drops},frozen);
-  assert.ok(run.coughRemaining>0);advance(run,.05,.3);assert.equal(run.coughRemaining,0);advance(run,.02,.3);assert.ok(run.elapsed>frozen.elapsed);
+  const before=structuredClone(run);
+  for(let i=0;i<19;i++){run.target=.8;advance(run,.05,.3);}
+  assert.equal(run.basket,before.basket);assert.equal(run.target,run.basket);
+  assert.ok(run.elapsed>before.elapsed+.9);assert.ok(run.spawnIn<before.spawnIn-.9);
+  assert.ok(run.drops[0].y>before.drops[0].y);
+  assert.ok(run.coughRemaining>0);advance(run,.05,.3);assert.equal(run.coughRemaining,0);
+  run.target=.8;advance(run,.02,.3);assert.ok(run.basket>before.basket,'Movement returns after coughing');
   run.status='paused';run.coughRemaining=.6;const snapshot=structuredClone(run);advance(run,.05,.3);assert.deepEqual(run,snapshot);
+});
+test('coughing still allows food catches, new drops, and the normal deadline',()=>{
+  const run=playing();run.coughRemaining=1;run.spawnIn=0;run.drops=[drop('biscuit')];
+  advance(run,.05,.3,()=>.5);assert.equal(run.caught,1);assert.equal(run.sequence,1);
+  run.elapsed=configFor(run).duration-.02;const events=advance(run,.05,.3);
+  assert.equal(events.finished,true);assert.equal(run.status,'lost');assert.ok(run.coughRemaining>0);
 });
 test('Pepper rescues only real spilled snacks, once per round, with unlock and play-state checks',()=>{
   const run=playing(4);run.caught=1;run.drops=[drop('sock')];advance(run,.02,.3);assert.equal(run.spilledTreats,1);
@@ -89,9 +97,9 @@ test('Pepper rescues only real spilled snacks, once per round, with unlock and p
   run.spilledTreats=2;assert.equal(useAbility(run,'pepper',{pepper:true}),null);assert.equal(createRun(4).pepperUsed,false);
   const early=playing(1);early.spilledTreats=2;assert.equal(useAbility(early,'pepper',{pepper:true}),null);
 });
-test('Pepper can finish a level with rescued snacks, after a pending cough finishes',()=>{
+test('Pepper can finish a level with rescued snacks even while coughing',()=>{
   const run=playing(4);run.caught=LEVELS[3].goal-1;run.spilledTreats=1;run.coughRemaining=.2;
-  assert.equal(useAbility(run,'pepper',{pepper:true}).finished,false);assert.equal(run.status,'playing');for(let i=0;i<5;i++)advance(run,.05,.3);assert.equal(run.status,'won');
+  assert.equal(useAbility(run,'pepper',{pepper:true}).finished,true);assert.equal(run.status,'won');
   const immediate=playing(4);immediate.caught=LEVELS[3].goal-2;immediate.spilledTreats=2;assert.equal(useAbility(immediate,'pepper',{pepper:true}).finished,true);assert.equal(immediate.status,'won');
 });
 test('Pee clears only nearby falling hazards, never food, and empty attempts do not spend the charge',()=>{

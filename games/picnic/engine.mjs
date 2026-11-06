@@ -21,7 +21,7 @@ const CLASSIC = [
 export const TYPES = ['strawberry','biscuit','orange'];
 export const HAZARDS = ['sock','mud','vacuum'];
 export const HAZARD_INFO = {
-  sock:{name:'Stinky sock', rule:'−1 heart · spills 2 treats · 1s cough', message:'WHO PACKED THAT? −1 heart, up to 2 treats spilled. One-second cough break.'},
+  sock:{name:'Stinky sock', rule:'−1 heart · spills 2 treats · 1s cough', message:'WHO PACKED THAT? −1 heart, up to 2 treats spilled. Paws stuck coughing for one second.'},
   mud:{name:'Mud pie', rule:'−1 heart · slow paws for 3s', message:'Muddy paws! −1 heart, slow for 3s.'},
   vacuum:{name:'The vacuum', rule:'−1 heart · smaller blanket for 3s', message:'THE LOUD BEAST! −1 heart, tiny blanket.'},
 };
@@ -39,7 +39,6 @@ const companionDefaults = () => ({coughRemaining:0,pepperUsed:false,peeUsed:fals
 export const nearbyHazards = run => run.drops.filter(drop=>HAZARDS.includes(drop.type)&&drop.y>=.25&&drop.y<CATCH_Y&&Math.abs(drop.x-run.basket)<=.32);
 function settleRound(run){
   const config=configFor(run);
-  if(run.coughRemaining>0)return false;
   if(run.hearts===0||run.caught>=config.goal||run.elapsed>=config.duration){run.status=run.hearts>0&&run.caught>=config.goal?'won':'lost';return true;}
   return false;
 }
@@ -90,11 +89,9 @@ export function advance(run,delta,normalWidth,random=Math.random) {
   if(run.status!=='playing')return events;
   const config=configFor(run),dt=clamp(delta,0,.05);
   run.rescueRemaining=Math.max(0,run.rescueRemaining-dt);run.tootRemaining=Math.max(0,run.tootRemaining-dt);
-  // A one-second comedy beat freezes the timer, drops, and controls together.
+  // Coughing locks the paws, while the clock, drops, and other setbacks keep running.
   if(run.coughRemaining>0){
     run.coughRemaining=Math.max(0,run.coughRemaining-dt);run.target=run.basket;
-    if(run.coughRemaining===0)events.finished=settleRound(run);
-    return events;
   }
   run.elapsed=Math.min(config.duration,run.elapsed+dt);
   const width=effectiveWidth(run,normalWidth);
