@@ -1,7 +1,11 @@
 export const WIDTH = 1000;
 export const HEIGHT = 620;
+let layoutWidth=1;
+export function mapStretch(){return layoutWidth;}
+export function mapX(x){return x*layoutWidth;}
+export function roomWidth(room){return WIDTH*roomScale(room)*layoutWidth;}
 export function roomScale(room) { return ['woods','hills','orchard'].includes(room)?1.6:1; }
-export function roomPoint(room,x,y) { const scale=roomScale(room);return {x:x*scale,y:y*scale}; }
+export function roomPoint(room,x,y) { const scale=roomScale(room);return {x:mapX(x)*scale,y:y*scale}; }
 export const DASH_COOLDOWN = 2.8;
 export const ABILITIES = {
   // Keep the legacy bark save/key ID so existing adventures retain their cooldown.
@@ -114,6 +118,45 @@ for(const room of ['woods','hills','orchard']) {
 export const NEEDOH={room:'orchard',...roomPoint('orchard',165,480),r:36};
 export const PEPPERONI_RESCUE={x:820,y:160};
 export const PEE_RESCUE = roomPoint('hills',790,155);
+export function setMapStretch(value){
+  const next=Math.max(1,Math.min(4,Math.round(value*10000)/10000));
+  if(!Number.isFinite(next)||next===layoutWidth)return false;
+  const ratio=next/layoutWidth;
+  for(const info of Object.values(ROOMS)){
+    for(const item of [...info.obstacles,...(info.terrain||[]),info.goal])item.x*=ratio;
+    info.slots=info.slots.map(([x,y])=>[x*ratio,y]);
+  }
+  for(const item of [...TRINKETS,NEEDOH,PEE_RESCUE,PEPPERONI_RESCUE])item.x*=ratio;
+  layoutWidth=next;return true;
+}
+function safePosition(point,room,radius=18){
+  const scale=roomScale(room),x=Math.max(55*scale*layoutWidth+radius,Math.min(945*scale*layoutWidth-radius,point.x));
+  const y=Math.max(105*scale+radius,Math.min(548*scale-radius,point.y));
+  if(walkable(x,y,room,radius))return {x,y};
+  for(let distance=8;distance<=160;distance+=8)for(let i=0;i<16;i++){
+    const nx=x+Math.cos(i*Math.PI/8)*distance,ny=y+Math.sin(i*Math.PI/8)*distance;
+    if(walkable(nx,ny,room,radius))return {x:nx,y:ny};
+  }
+  return roomPoint(room,135,315);
+}
+export function adaptRunLayout(run){
+  const previous=run.mapStretch||1;if(previous===layoutWidth)return;
+  const ratio=layoutWidth/previous;
+  for(const [room,point] of Object.entries(run.positions||{})){
+    if(ROOMS[room]&&Number.isFinite(point.x)&&Number.isFinite(point.y))Object.assign(point,safePosition({x:point.x*ratio,y:point.y},room));
+  }
+  if(run.bossState)Object.assign(run.bossState,safePosition({x:run.bossState.x*ratio,y:run.bossState.y},'boss',44));
+  run.mapStretch=layoutWidth;
+}
+export function adaptWorldLayout(world,run){
+  adaptRunLayout(run);if(!world)return;
+  const ratio=layoutWidth/(world.mapStretch||1);if(ratio===1)return;
+  const points=new Set([world.player,world.buddy,world.pee,world.pepperoni,world.needoh,...world.toys,...world.gophers,...world.items,...world.clouds,...world.particles,...world.impacts,...world.followTrail,...world.peeTrail,...world.pepperoniTrail].filter(Boolean));
+  for(const point of points)point.x*=ratio;
+  for(const [body,radius]of [[world.player,18],[world.buddy,12],[world.pee,12],[world.pepperoni,12],...world.toys.map(h=>[h,h.r])])Object.assign(body,safePosition(body,world.room,radius));
+  // Boss shares the run's object and was already adapted above. Preserve phase and health.
+  world.mapStretch=layoutWidth;
+}
 export function peeProgress(run) { return TRINKETS.filter(item=>['pond','burrows','woods'].includes(item.room)&&run.trinkets?.includes(item.id)).length; }
 export function canRescuePee(run) { return run.pepperFound && peeProgress(run)===6; }
 export function terrainAt(room,x,y) { return (ROOMS[room].terrain||[]).find(p=>((x-p.x)/p.rx)**2+((y-p.y)/p.ry)**2<1)?.kind || 'grass'; }
@@ -127,7 +170,7 @@ export function trinketCount(run,room) { return roomTrinkets(room).filter(item=>
 export function allTrinkets(run) { return TRINKETS.every(item=>run.trinkets?.includes(item.id)); }
 export function upgradeRun(run) {
   if(!run.wideWorlds){
-    for(const [room,point] of Object.entries(run.positions||{}))if(Number.isFinite(point?.x)&&Number.isFinite(point?.y))run.positions[room]=roomPoint(room,point.x,point.y);
+    for(const [room,point] of Object.entries(run.positions||{}))if(Number.isFinite(point?.x)&&Number.isFinite(point?.y))run.positions[room]={x:point.x*roomScale(room),y:point.y*roomScale(room)};
     run.wideWorlds=true;
   }
   // Extend old saves in place without losing snacks, health, or completed adventures.
@@ -136,6 +179,7 @@ export function upgradeRun(run) {
   if(run.pepperoniFound===undefined)run.pepperoniFound=false;
   if(run.bossDefeated===undefined)run.bossDefeated=false;
   run.needohFound??=false;
+  run.mapStretch??=1;
   run.pendingAbility??=null;
   if(run.peeFound===undefined)run.peeFound=false;
   if(run.tutorialStep===undefined)run.tutorialStep=3;
@@ -170,7 +214,7 @@ export function roomItems(seed, room) {
 export function maxHearts(run) { return run.pepperFound ? 4 : 3; }
 export function createRun(id) {
   return {
-    version:2, wideWorlds:true, id, seed:Number.parseInt(id, 36) >>> 0, character:'pepsi', order:roomOrder(),
+    version:2, mapStretch:1, wideWorlds:true, id, seed:Number.parseInt(id, 36) >>> 0, character:'pepsi', order:roomOrder(),
     room:'meadow', tutorialStep:0, collected:[], trinkets:[], positions:{}, checkpoints:{}, trinketCheckpoints:{}, health:3,
     pendingAbility:null, needohFound:false, keyFound:false, pepperFound:false, peeFound:false, pepperoniFound:false,bossDefeated:false, basketFound:false, completed:false,
     hits:0, retries:0, revision:0, startedAt:Date.now(),cooldowns:freshCooldowns(),
@@ -178,12 +222,13 @@ export function createRun(id) {
 }
 export function validRun(value, id) {
   return !!(value && value.version === 2 && value.id === id && /^[a-z0-9]{6,16}$/.test(id) &&
+    (value.mapStretch===undefined||Number.isFinite(value.mapStretch)&&value.mapStretch>=1&&value.mapStretch<=4) &&
     (value.pendingAbility==null || typeof value.pendingAbility==='string'&&Object.hasOwn(ABILITIES,value.pendingAbility)&&value[ABILITIES[value.pendingAbility].unlock]===true) &&
     (value.tutorialStep===undefined || Number.isInteger(value.tutorialStep)&&value.tutorialStep>=0&&value.tutorialStep<=3) &&
     (value.cooldowns===undefined || value.cooldowns && !Array.isArray(value.cooldowns) && Object.entries({dash:DASH_COOLDOWN,...Object.fromEntries(Object.entries(ABILITIES).map(([key,spec])=>[key,spec.cooldown]))}).every(([key,max])=>Number.isFinite(value.cooldowns[key])&&value.cooldowns[key]>=0&&value.cooldowns[key]<=max)) &&
     (value.peeFound===undefined || typeof value.peeFound==='boolean') && (!value.peeFound || value.pepperFound) &&
     ['needohFound','pepperoniFound','bossDefeated','legacyEnding'].every(k=>value[k]===undefined||typeof value[k]==='boolean') &&
-    (!value.pepperoniFound||value.peeFound&&value.pepperFound) && validBoss(value.bossState) &&
+    (!value.pepperoniFound||value.peeFound&&value.pepperFound) && validBoss(value.bossState,value.mapStretch||1) &&
     Number.isInteger(value.seed) && value.seed >= 0 && value.seed <= 0xffffffff &&
     Array.isArray(value.collected) && value.collected.every(item => /^(meadow|pond|burrows|woods|hills|orchard|laundry|kitchen|boss)-[0-3]$/.test(item)) &&
     new Set(value.collected).size === value.collected.length &&
@@ -249,7 +294,7 @@ export function objective(run, room) {
 }
 export function walkable(x, y, room, radius = 18) {
   const scale=roomScale(room);
-  if (!Number.isFinite(x) || !Number.isFinite(y) || x < 55*scale + radius || x > 945*scale - radius || y < 105*scale + radius || y > 548*scale - radius) return false;
+  if (!Number.isFinite(x) || !Number.isFinite(y) || x < 55*scale*layoutWidth + radius || x > 945*scale*layoutWidth - radius || y < 105*scale + radius || y > 548*scale - radius) return false;
   return !ROOMS[room].obstacles.some(o => ((x-o.x)/(o.r+radius)) ** 2 + ((y-o.y)/((o.ry||o.r)+radius)) ** 2 < 1);
 }
 export function toysFor(seed, room) {
@@ -279,6 +324,7 @@ function companionSpawn(leader,room) {
   return {x:leader.x,y:leader.y,facing:leader.facing||1};
 }
 export function makeWorld(run, room) {
+  adaptRunLayout(run);
   run.cooldowns??=freshCooldowns();
   const saved = run.positions[room];
   const p = saved && walkable(saved.x,saved.y,room) ? {...saved} : roomPoint(room,135,315);
@@ -289,7 +335,7 @@ export function makeWorld(run, room) {
   const pee=companionSpawn(buddy,room),pepperoni=companionSpawn(pee,room);
   if(room==='boss'&&!run.bossDefeated&&!run.bossState)run.bossState=newBoss();
   return {
-    room, runId:run.id, player:{...p,vx:1,vy:0,facing:1,moving:false}, buddy:{...buddy,facing:1}, pee:{...pee,facing:1},pepperoni:{...pepperoni,facing:1},boss:room==='boss'?run.bossState:null,
+    room, mapStretch:layoutWidth, runId:run.id, player:{...p,vx:1,vy:0,facing:1,moving:false}, buddy:{...buddy,facing:1}, pee:{...pee,facing:1},pepperoni:{...pepperoni,facing:1},boss:room==='boss'?run.bossState:null,
     followTrail:[{...p}],peeTrail:[{...buddy}],pepperoniTrail:[{...pee}],clouds:[],shield:0,powerDash:false, toys:toysFor(run.seed,room), gophers:gophersFor(run.seed,room), items:roomItems(run.seed,room),
     needoh:room===NEEDOH.room?{...NEEDOH,squish:0}:null,
     time:0,dash:0,cooldown:run.cooldowns.dash,abilityCooldowns:run.cooldowns,invincible:.65,bump:0,hitCorgi:null,particles:[],impacts:[],dashHits:new Set(),
@@ -427,7 +473,7 @@ export function step(world,run,input,dt) {
   }
   const goal=ROOMS[world.room].goal, nearGoal=Math.hypot(goal.x-p.x,goal.y-p.y);
   if(world.room==='tutorial') {
-    if(run.tutorialStep===0&&Math.hypot(p.x-330,p.y-315)<45){run.tutorialStep=1;events.push({type:'practice'});}
+    if(run.tutorialStep===0&&Math.hypot(p.x-mapX(330),p.y-315)<45){run.tutorialStep=1;events.push({type:'practice'});}
     if(nearGoal<48&&run.tutorialStep<2){
       if(dashing&&run.tutorialStep===1){run.tutorialStep=2;particles(world,goal.x,goal.y);events.push({type:'bonk',kind:'crate'},{type:'practice'});}
       else {const dx=p.x-goal.x,dy=p.y-goal.y,d=Math.hypot(dx,dy)||1;move(p,dx/d*(48-d),dy/d*(48-d),world.room);}
@@ -529,15 +575,15 @@ export function step(world,run,input,dt) {
     }
   }
   world.particles=world.particles.filter(p=>{p.life-=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;return p.life>0;});
-  if(p.x>890*roomScale(world.room)&&Math.abs(p.y-320*roomScale(world.room))<58&&goalDone(run,world.room)) {
+  if(p.x>mapX(890)*roomScale(world.room)&&Math.abs(p.y-320*roomScale(world.room))<58&&goalDone(run,world.room)) {
     run.trinketCheckpoints[world.room]=roomTrinkets(world.room).filter(item=>run.trinkets.includes(item.id)).map(item=>item.id);
     events.push({type:'exit'});
   }
   return events;
 }
 
-function newBoss(){return {x:710,y:315,r:44,hp:8,mode:'windup',timer:1.3,aimX:-1,aimY:0,cycle:0};}
-function validBoss(b){return b===undefined || !!(b&&['x','y','r','hp','timer','aimX','aimY','cycle'].every(k=>Number.isFinite(b[k]))&&b.hp>=0&&b.hp<=8&&b.r===44&&b.x>=99&&b.x<=901&&b.y>=149&&b.y<=504&&['windup','charge','exposed','recover','suction','off'].includes(b.mode)&&b.timer>=0&&b.timer<=5);}
+function newBoss(){return {x:mapX(710),y:315,r:44,hp:8,mode:'windup',timer:1.3,aimX:-1,aimY:0,cycle:0};}
+function validBoss(b,stretch=1){return b===undefined || !!(b&&['x','y','r','hp','timer','aimX','aimY','cycle'].every(k=>Number.isFinite(b[k]))&&b.hp>=0&&b.hp<=8&&b.r===44&&b.x>=55*stretch+44-.001&&b.x<=945*stretch-44+.001&&b.y>=149&&b.y<=504&&['windup','charge','exposed','recover','suction','off'].includes(b.mode)&&b.timer>=0&&b.timer<=5);}
 function stepBoss(world,run,dt,dashing,events){
   const b=world.boss,p=world.player;b.timer=Math.max(0,b.timer-dt);
   if(b.mode==='exposed'){

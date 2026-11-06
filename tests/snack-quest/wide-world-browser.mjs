@@ -21,7 +21,7 @@ try {
    await page.reload();await page.locator('#resume').waitFor();
    const after=await page.evaluate(({prefix,id})=>JSON.parse(localStorage.getItem(prefix+id)),{prefix,id:run.id});assert.deepEqual(after.positions,before.positions);
    const copy=await context.newPage();await copy.goto(page.url());await copy.locator('#resume').waitFor();await copy.close();
-   const camera=await page.evaluate(async room=>{const {camera}=await import('./art.mjs?v=31');return [camera({room,player:{x:150}},1000),camera({room,player:{x:1450}},1000)];},room);assert.deepEqual(camera,[0,0]);
+   const camera=await page.evaluate(async room=>{const {camera}=await import('./art.mjs?v=32');return [camera({room,player:{x:150}},1000),camera({room,player:{x:1450}},1000)];},room);assert.deepEqual(camera,[0,0]);
    assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
   }
   assert.deepEqual(errors,[]);await context.close();

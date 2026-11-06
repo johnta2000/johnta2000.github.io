@@ -1,7 +1,7 @@
-import { ROOMS, ORDER, DASH_COOLDOWN, ABILITIES, WIDTH, HEIGHT, createRun, peeProgress, upgradeRun, TRINKETS, validRun, migrateRun, makeWorld, maxHearts, goalDone, isUnlocked, firstUnfinished, objective, retryRoom, step, startDash, startAbility } from './engine.mjs?v=31';
-import { portrait, drawWorld, drawPicnic } from './art.mjs?v=31';
-import { movementKey, abilityKey, isTextEntry, joystickVector } from './input.mjs?v=31';
-import { Soundscape } from './audio.mjs?v=31';
+import { setMapStretch, adaptWorldLayout, ROOMS, ORDER, DASH_COOLDOWN, ABILITIES, WIDTH, HEIGHT, createRun, peeProgress, upgradeRun, TRINKETS, validRun, migrateRun, makeWorld, maxHearts, goalDone, isUnlocked, firstUnfinished, objective, retryRoom, step, startDash, startAbility } from './engine.mjs?v=32';
+import { portrait, drawWorld, drawPicnic } from './art.mjs?v=32';
+import { movementKey, abilityKey, isTextEntry, joystickVector } from './input.mjs?v=32';
+import { Soundscape } from './audio.mjs?v=32';
 
 const $ = id => document.getElementById(id);
 const canvas=$('world'), ctx=canvas.getContext('2d');
@@ -285,6 +285,13 @@ function resize() {
     const safeBottom=Math.max(0,(parseFloat(getComputedStyle(document.querySelector('.ability-bar')).bottom)||12)-12);
     mobileMapInsets={left:parseFloat(bar.paddingLeft)*pixelsToWorld,right:parseFloat(bar.paddingRight)*pixelsToWorld,top:(toolbar.getBoundingClientRect().bottom-bounds.top+4)*pixelsToWorld,bottom:(safeBottom+28)*pixelsToWorld};
   }
+  const targetStretch=mobileMapInsets?((viewportWidth-mobileMapInsets.left-mobileMapInsets.right)/(viewportHeight-mobileMapInsets.top-mobileMapInsets.bottom))/(WIDTH/HEIGHT):1;
+  if(setMapStretch(targetStretch)){
+    if(run)adaptWorldLayout(world,run);
+    adaptWorldLayout(previewWorld,previewRun);
+    clearInput();controlsReady=false;
+    if(run)save();
+  }
   const ratio=Math.min(devicePixelRatio||1,2);
   canvas.width=Math.round(viewportWidth*ratio);canvas.height=Math.round(viewportHeight*ratio);ctx.setTransform(ratio,0,0,ratio,0,0);
 }
@@ -487,11 +494,11 @@ function frame(now) {
       $('dash-label').textContent=world.cooldown>0?`${world.cooldown.toFixed(1)}s recharge`:'dash ready';
       paintAbilities();
     }
-    if(view==='picnic'&&run)drawPicnic(ctx,run,viewportWidth,animationTime,reduced,viewportHeight);
+    if(view==='picnic'&&run)drawPicnic(ctx,run,viewportWidth,animationTime,reduced,viewportHeight,mobileMapInsets);
     else if(view!=='home'&&world)drawWorld(ctx,world,run,viewportWidth,reduced,false,viewportHeight,mobileMapInsets);
     else{previewWorld.time=animationTime;drawWorld(ctx,previewWorld,previewRun,viewportWidth,reduced,true,viewportHeight,mobileMapInsets);}
     if(toastUntil&&now>toastUntil){$('room-toast').hidden=true;toastUntil=0;}
   }
   requestAnimationFrame(frame);
 }
-configureTouch();renderSound();readRoute();requestAnimationFrame(frame);
+configureTouch();resize();renderSound();readRoute();requestAnimationFrame(frame);

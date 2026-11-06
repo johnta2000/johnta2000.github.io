@@ -23,15 +23,16 @@ try {
   const saved=async()=>page.evaluate(prefix=>JSON.parse(localStorage.getItem(prefix+new URLSearchParams(location.search).get('run'))),prefix);
   let thumb=await center('#joystick',1);
   await touch('touchStart',[thumb]);assert.equal(await page.locator('[data-ability=dash]').isDisabled(),true,'resting thumb does not start hazards');
-  const neutral={...thumb};
+  const neutral={...thumb},initial=(await saved()).positions.tutorial.x;
   await touch('touchMove',[{...thumb,x:thumb.x+20}]);await page.waitForTimeout(500);await touch('touchEnd',[]);await page.waitForTimeout(1100);
-  const gentle=(await saved()).positions.tutorial.x-135;assert.ok(gentle>15&&gentle<65,'a gentle real thumb tilt rolls slowly');
+  const gentle=(await saved()).positions.tutorial.x-initial;assert.ok(gentle>15&&gentle<65,'a gentle real thumb tilt rolls slowly');
   thumb={...neutral,x:neutral.x+48};await touch('touchStart',[thumb]);await page.waitForTimeout(1100);
   await touch('touchEnd',[]);await page.waitForTimeout(1100);const stopped=(await saved()).positions.tutorial;
-  assert.ok(stopped.x>290,`real touch drag rolls Pepsi: x=${stopped.x}, gentle=${gentle}, joystick=${JSON.stringify(await page.locator('#joystick').boundingBox())}`);
+  assert.ok(stopped.x>initial+155,`real touch drag rolls Pepsi: x=${stopped.x}, gentle=${gentle}, joystick=${JSON.stringify(await page.locator('#joystick').boundingBox())}`);
   await page.waitForTimeout(1100);assert.deepEqual((await saved()).positions.tutorial,stopped,'lifting the thumb stops rolling');
   assert.equal(await page.evaluate(()=>scrollY),0,'joystick never scrolls the page');
   thumb=await center('#joystick',1);thumb.x+=48;await touch('touchStart',[thumb]);await page.waitForTimeout(650);
+  await page.waitForFunction(prefix=>{const run=JSON.parse(localStorage.getItem(prefix+new URLSearchParams(location.search).get('run')));return run.tutorialStep===1&&run.positions.tutorial.x>535*run.mapStretch-85;},prefix);
   const practiceDash=await center('[data-ability=dash]',2);await touch('touchStart',[thumb,practiceDash]);await page.waitForTimeout(250);await touch('touchEnd',[]);
   assert.equal((await saved()).tutorialStep,2,'touch dash breaks the practice crate');
   await page.waitForFunction(prefix=>JSON.parse(localStorage.getItem(prefix+new URLSearchParams(location.search).get('run'))).tutorialStep===3,prefix);
@@ -66,7 +67,7 @@ try {
   await page.screenshot({path:output+'/rotate-prompt.png',fullPage:true});
   await page.setViewportSize({width:844,height:390});await page.waitForFunction(()=>document.body.classList.contains('touch-landscape'),null,{timeout:10000});
   assert.equal(await page.locator('#joystick').getAttribute('class'),'joystick');assert.equal(await page.locator('[data-ability=bark]').isDisabled(),true);
-  assert.deepEqual((await saved()).positions,upright.positions,'rotation preserves position');
+  const rotated=await saved();assert.ok(Math.abs(rotated.positions.tutorial.x/rotated.mapStretch-upright.positions.tutorial.x/upright.mapStretch)<.01,'rotation preserves normalized position');assert.equal(rotated.positions.tutorial.y,upright.positions.tutorial.y);
   await page.locator('#pause').tap();await page.locator('#pause-chapters a[href*=pond]').tap();
   assert.match(page.url(),/room=pond/);const link=page.url();await page.reload();assert.equal(page.url(),link);
   const copy=await context.newPage();await copy.goto(link);assert.equal(await copy.locator('#room-name').innerText(),'Pebble Pond');await copy.close();await page.bringToFront();

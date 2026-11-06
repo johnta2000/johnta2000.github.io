@@ -105,9 +105,9 @@ Landscape uses a fixed visual-viewport shell, with the top safe inset inside the
 `node tests/snack-quest/mobile-layout-browser.mjs` checks simulated Home Screen safe insets, each unlock count, touch Shield activation, copied links, reload, and Back/Forward. Physical iOS Home Screen rendering still needs device confirmation.
 
 
-### Fixed mobile map overview
+### Responsive map geometry and fixed overview
 
-Mobile canvas dimensions match the visible window, with a fixed full-map overview inside the safe header and objective margins. Every room, including the three expanded maps, fits at a uniform scale without camera tracking, cropping, or distortion. The remaining edges use the room’s ground color and grass, with floating controls in the corners. Movement, pause, rescue dialogs, and refresh do not move the map. Desktop retains its existing framing. `map-overview-browser.mjs` checks every level’s actual canvas transform while moving, pausing, refreshing, and changing device sizes; `camera.test.mjs` verifies fit and proportions.
+Mobile maps reshape to the usable landscape aspect ratio: the physical world grows wider, and landmark, obstacle, treasure, enemy, rescue, and exit positions spread across that width. Decoration is redrawn at normal proportions; actor sizes, collision radii, speeds, and terrain-patch sizes are unchanged. The fixed, uniformly scaled camera then fits the whole level without empty side gutters or panning. Desktop retains the original map dimensions. A saved `mapStretch` tags coordinate space so old saves, rotation, desktop/mobile transfers, boss state, and positions can be converted safely. Resized positions are nudged to the nearest safe ground if necessary. `map-overview-browser.mjs` checks every level’s actual drawing transform and full-width occupancy; `responsive-world.test.mjs` covers geometry, collisions, saves, rescues, key bonks, treasures, and exits.
 
 
 ### Rescue ability introductions
