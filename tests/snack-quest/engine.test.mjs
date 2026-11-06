@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { roomPoint, roomScale, ROOMS, ORDER, TRINKETS, PEE_RESCUE, peeProgress, canRescuePee, terrainAt, windAt, roomTrinkets, upgradeRun, gophersFor, createRun, makeWorld, roomItems, toysFor, walkable, step, startDash, startAbility, maxHearts, isUnlocked, goalDone, validRun, migrateRun, retryRoom } from '../../games/snack-quest/engine.mjs';
+import { NEEDOH, roomPoint, roomScale, ROOMS, ORDER, TRINKETS, PEE_RESCUE, peeProgress, canRescuePee, terrainAt, windAt, roomTrinkets, upgradeRun, gophersFor, createRun, makeWorld, roomItems, toysFor, walkable, step, startDash, startAbility, maxHearts, isUnlocked, goalDone, validRun, migrateRun, retryRoom } from '../../games/snack-quest/engine.mjs';
 const idle={x:0,y:0};
 function toyAt(x,y){return {x,y,r:18,vx:0,vy:0,kind:'ball',mode:'roam',timer:0,cooldown:9};}
 
@@ -548,4 +548,15 @@ test('bonks, barks, and stink clouds interrupt a goose wind-up',()=>{
   ability==='dash'?startDash(world,{x:1,y:0}):startAbility(world,run,ability);
   const events=step(world,run,idle,.02);assert.equal(goose.mode,'stunned');assert.ok(!events.some(e=>e.type==='honk'));
  }
+});
+
+test('secret NeeDoh needs a dash, squishes once per dash, and keeps its picnic unlock',()=>{
+ const run=createRun('squishunit');run.keyFound=run.pepperFound=true;run.health=4;run.positions.orchard={x:NEEDOH.x-45,y:NEEDOH.y};
+ const world=makeWorld(run,'orchard');world.toys=[];world.gophers=[];world.items=[];
+ assert.ok(walkable(NEEDOH.x,NEEDOH.y,'orchard'));step(world,run,idle,.02);assert.equal(run.needohFound,false);
+ startDash(world,{x:1,y:0});const events=step(world,run,idle,.02);assert.deepEqual(events.filter(e=>e.type==='squish'),[{type:'squish',discovered:true}]);assert.ok(world.needoh.squish>1);assert.equal(run.health,4);
+ assert.ok(!step(world,run,idle,.02).some(e=>e.type==='squish'));
+ const restored=JSON.parse(JSON.stringify(run));assert.ok(validRun(restored,run.id));upgradeRun(restored);assert.equal(restored.needohFound,true);retryRoom(restored,'orchard');assert.equal(restored.needohFound,true);
+ world.dash=0;world.cooldown=0;Object.assign(world.player,{x:NEEDOH.x-45,y:NEEDOH.y});startDash(world,{x:1,y:0});assert.ok(step(world,run,idle,.02).some(e=>e.type==='squish'&&!e.discovered));
+ const old=createRun('oldcube1');delete old.needohFound;upgradeRun(old);assert.equal(old.needohFound,false);
 });

@@ -110,6 +110,7 @@ for(const room of ['woods','hills','orchard']) {
   info.terrain.push({...roomPoint(room,room==='woods'?440:580,room==='woods'?450:320),rx:120,ry:65,kind:room==='woods'?'ice':'mud'});
   info.note='A wide-open adventure! Explore the whole clearing. '+info.note;
 }
+export const NEEDOH={room:'orchard',...roomPoint('orchard',165,480),r:36};
 export const PEPPERONI_RESCUE={x:820,y:160};
 export const PEE_RESCUE = roomPoint('hills',790,155);
 export function peeProgress(run) { return TRINKETS.filter(item=>['pond','burrows','woods'].includes(item.room)&&run.trinkets?.includes(item.id)).length; }
@@ -133,6 +134,7 @@ export function upgradeRun(run) {
   else if(!run.trinkets)run.trinkets=[];
   if(run.pepperoniFound===undefined)run.pepperoniFound=false;
   if(run.bossDefeated===undefined)run.bossDefeated=false;
+  run.needohFound??=false;
   if(run.peeFound===undefined)run.peeFound=false;
   if(run.tutorialStep===undefined)run.tutorialStep=3;
   run.cooldowns??=freshCooldowns();
@@ -168,7 +170,7 @@ export function createRun(id) {
   return {
     version:2, wideWorlds:true, id, seed:Number.parseInt(id, 36) >>> 0, character:'pepsi', order:roomOrder(),
     room:'meadow', tutorialStep:0, collected:[], trinkets:[], positions:{}, checkpoints:{}, trinketCheckpoints:{}, health:3,
-    keyFound:false, pepperFound:false, peeFound:false, pepperoniFound:false,bossDefeated:false, basketFound:false, completed:false,
+    needohFound:false, keyFound:false, pepperFound:false, peeFound:false, pepperoniFound:false,bossDefeated:false, basketFound:false, completed:false,
     hits:0, retries:0, revision:0, startedAt:Date.now(),cooldowns:freshCooldowns(),
   };
 }
@@ -177,7 +179,7 @@ export function validRun(value, id) {
     (value.tutorialStep===undefined || Number.isInteger(value.tutorialStep)&&value.tutorialStep>=0&&value.tutorialStep<=3) &&
     (value.cooldowns===undefined || value.cooldowns && !Array.isArray(value.cooldowns) && Object.entries({dash:DASH_COOLDOWN,...Object.fromEntries(Object.entries(ABILITIES).map(([key,spec])=>[key,spec.cooldown]))}).every(([key,max])=>Number.isFinite(value.cooldowns[key])&&value.cooldowns[key]>=0&&value.cooldowns[key]<=max)) &&
     (value.peeFound===undefined || typeof value.peeFound==='boolean') && (!value.peeFound || value.pepperFound) &&
-    ['pepperoniFound','bossDefeated','legacyEnding'].every(k=>value[k]===undefined||typeof value[k]==='boolean') &&
+    ['needohFound','pepperoniFound','bossDefeated','legacyEnding'].every(k=>value[k]===undefined||typeof value[k]==='boolean') &&
     (!value.pepperoniFound||value.peeFound&&value.pepperFound) && validBoss(value.bossState) &&
     Number.isInteger(value.seed) && value.seed >= 0 && value.seed <= 0xffffffff &&
     Array.isArray(value.collected) && value.collected.every(item => /^(meadow|pond|burrows|woods|hills|orchard|laundry|kitchen|boss)-[0-3]$/.test(item)) &&
@@ -286,6 +288,7 @@ export function makeWorld(run, room) {
   return {
     room, runId:run.id, player:{...p,vx:1,vy:0,facing:1,moving:false}, buddy:{...buddy,facing:1}, pee:{...pee,facing:1},pepperoni:{...pepperoni,facing:1},boss:room==='boss'?run.bossState:null,
     followTrail:[{...p}],peeTrail:[{...buddy}],pepperoniTrail:[{...pee}],clouds:[],bark:0,powerDash:false, toys:toysFor(run.seed,room), gophers:gophersFor(run.seed,room), items:roomItems(run.seed,room),
+    needoh:room===NEEDOH.room?{...NEEDOH,squish:0}:null,
     time:0,dash:0,cooldown:run.cooldowns.dash,abilityCooldowns:run.cooldowns,invincible:.65,bump:0,hitCorgi:null,particles:[],impacts:[],dashHits:new Set(),
   };
 }
@@ -414,6 +417,13 @@ export function step(world,run,input,dt) {
   if(run.pepperFound)follow(world);
   if(run.peeFound)follow(world,world.buddy,world.pee,world.peeTrail);
   if(run.pepperoniFound)follow(world,world.pee,world.pepperoni,world.pepperoniTrail);
+  if(world.needoh){
+    const cube=world.needoh;cube.squish=Math.max(0,cube.squish-dt);
+    if(dashing&&!world.dashHits.has(cube)&&touchingCorgi(world,run,cube,22)){
+      world.dashHits.add(cube);cube.squish=1.15;const discovered=!run.needohFound;run.needohFound=true;
+      particles(world,cube.x,cube.y);events.push({type:'squish',discovered});
+    }
+  }
   const goal=ROOMS[world.room].goal, nearGoal=Math.hypot(goal.x-p.x,goal.y-p.y);
   if(world.room==='tutorial') {
     if(run.tutorialStep===0&&Math.hypot(p.x-330,p.y-315)<45){run.tutorialStep=1;events.push({type:'practice'});}

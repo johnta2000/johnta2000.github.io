@@ -92,3 +92,5 @@ Whispering Woods, Dandelion Downs, and Clover Orchard have 1600 × 992 worlds (2
 Later chapters introduce a grumpy goose: orchard, laundry, and kitchen each have one. A 1.4-second puff-up warns of an expanding honk ring; bonks, Bark, and Toot interrupt it. The ring can hit any rescued corgi, while dash immunity protects the team. After honking the goose rests for 1.8 seconds.
 
 Area music now changes melody, harmony, and instrumentation: dreamy Woods (88 BPM), breezy Downs (108), bouncy Orchard (112), and a sneaky cottage theme (102) for laundry/kitchen. The boss retains its battle theme and victory transition. `node tests/snack-quest/area-music-browser.mjs` checks each score and generates a short preview medley.
+
+Optional NeeDoh secret: purple flowers mark a hidden lavender cube in the orchard’s lower-left corner. Roll nearby to reveal it, then dash to squish it. The cube jiggles and plays a soft squish once per dash. Discovering it permanently unlocks a miniature on this adventure’s final picnic, including after retries and reloads; it does not change trinket totals, healing, or exit requirements.

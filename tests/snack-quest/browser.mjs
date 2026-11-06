@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { chromium, webkit } from 'playwright';
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
-import { roomPoint, PEE_RESCUE, createRun, ROOMS, ORDER, TRINKETS, roomItems } from '../../games/snack-quest/engine.mjs';
+import { NEEDOH, roomPoint, PEE_RESCUE, createRun, ROOMS, ORDER, TRINKETS, roomItems } from '../../games/snack-quest/engine.mjs';
 
 const base=process.env.SNACK_QUEST_URL||'http://127.0.0.1:8766/games/snack-quest/';
 const installed=homedir()+'/Library/Caches/ms-playwright/chromium-1243/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing';
@@ -16,7 +16,7 @@ async function seed(page,run,room=run.room,view='play'){
   await page.goto(`${base}?view=${view}&run=${run.id}&room=${room}`);
   await page.waitForFunction(()=>document.querySelector('#room-name')?.textContent!=='One friend is missing.');
   await page.evaluate(async()=>{
-    const {Soundscape}=await import('./audio.mjs?v=25'),play=Soundscape.prototype.play;
+    const {Soundscape}=await import('./audio.mjs?v=26'),play=Soundscape.prototype.play;
     window.effectRequests=[];Soundscape.prototype.play=function(kind){window.effectRequests.push(kind);return play.call(this,kind);};
   });
 }
@@ -234,6 +234,13 @@ try {
   assert.equal((await saved(page)).health,4);assert.equal((await saved(page)).pepperFound,true);assert.deepEqual((await saved(page)).trinkets,['pond-ribbon']);
   await page.goBack();await waitView(page,'play');assert.equal(await page.locator('#trinket-count').innerText(),'1/14');
   await page.goForward();await waitView(page,'play');assert.equal(await page.locator('#trinket-count').innerText(),'1/14');
+  const squishy={...createRun('squishweb'),keyFound:true,pepperFound:true,health:4,room:'orchard',positions:{orchard:{x:NEEDOH.x-65,y:NEEDOH.y}}};
+  await seed(page,squishy);await page.keyboard.down('d');await page.keyboard.press('Space');await page.waitForTimeout(130);await page.keyboard.up('d');
+  assert.equal((await saved(page)).needohFound,true);assert.equal(await page.evaluate(()=>effectRequests.filter(k=>k==='squish').length),1);
+  await page.screenshot({path:output+'/desktop-needoh.png',fullPage:true});await page.keyboard.press('Escape');await page.reload();await page.locator('#resume').waitFor();assert.equal((await saved(page)).needohFound,true);
+  const squishCopy=await desktop.newPage();await squishCopy.goto(page.url());await squishCopy.locator('#resume').waitFor();assert.equal((await saved(squishCopy)).needohFound,true);await squishCopy.close();
+  await page.locator('#home-link').click();await page.locator('#begin').waitFor();await page.goBack();await page.locator('#resume').waitFor();assert.equal((await saved(page)).needohFound,true);
+  const squishWin={...await saved(page),basketFound:true,bossDefeated:true,completed:true};await seed(page,squishWin,'orchard','picnic');assert.match(await page.locator('.picnic-card').innerText(),/NeeDoh came home/);await page.screenshot({path:output+'/desktop-needoh-picnic.png',fullPage:true});
   const final=createRun('finaltest');final.keyFound=true;final.pepperFound=true;final.health=4;final.trinkets=TRINKETS.map(item=>item.id);final.room='orchard';final.positions.orchard={x:ROOMS.orchard.goal.x-45,y:ROOMS.orchard.goal.y};await seed(page,final);
   await hold(page,'d',250);assert.ok((await saved(page)).basketFound);await page.keyboard.press('Escape');const basketExit=await saved(page);basketExit.positions.orchard=roomPoint('orchard',895,320);await seed(page,basketExit);await hold(page,'d',150);await waitRoom(page,'laundry');assert.equal((await saved(page)).completed,false,'the orchard now continues into the cottage');
   const finish={...final,id:'bossfinish',peeFound:true,pepperoniFound:true,basketFound:true,bossDefeated:true,completed:true};await seed(page,finish,'boss','picnic');await page.locator('.picnic-card').waitFor();
@@ -311,7 +318,7 @@ try {
 
   // Render the actual score for a listenable preview and check its level/headroom.
   const preview=await musicPage.evaluate(async()=>{
-    const {Soundscape}=await import('/games/snack-quest/audio.mjs?v=25');
+    const {Soundscape}=await import('/games/snack-quest/audio.mjs?v=26');
     const rate=22050,context=new OfflineAudioContext(1,rate*22,rate);
     const score=new Soundscape(()=>context);score.setEnabled(true);score.unlock();score.setScene('play','meadow');
     for(let i=0;i<64;i++)score.musicBeat(i,.1+i*30/96,30/96);
@@ -320,9 +327,9 @@ try {
   let peak=0;for(const sample of preview){assert.ok(Number.isFinite(sample));peak=Math.max(peak,Math.abs(sample));}
   assert.ok(peak>.03&&peak<.8,'original music renders audibly with headroom');
   const effects=await musicPage.evaluate(async()=>{
-    const {Soundscape}=await import('/games/snack-quest/audio.mjs?v=25');
+    const {Soundscape}=await import('/games/snack-quest/audio.mjs?v=26');
     const levels={};
-    for(const kind of ['bark','toot','bonk','bonk-crate','bonk-boss','honk']){
+    for(const kind of ['bark','toot','bonk','bonk-crate','bonk-boss','honk','squish']){
       const context=new OfflineAudioContext(1,22050,22050),score=new Soundscape(()=>context);score.setEnabled(true);score.unlock();
       // Offline rendering has no gesture/output-device readiness; exercise the real effect graph.
       Object.defineProperty(score,'ready',{value:true});score.play(kind);
@@ -351,7 +358,7 @@ try {
   const mobileLossCopy=await mobile.newPage();await mobileLossCopy.goto(phone.url());await mobileLossCopy.locator('#retry').waitFor();assert.equal(await mobileLossCopy.locator('#trinket-count').innerText(),'1/14');await mobileLossCopy.close();await phone.bringToFront();
   await phone.locator('#retry').click();await waitView(phone,'play');assert.deepEqual((await saved(phone)).trinkets,['pond-ribbon']);
   await phone.goBack();await waitView(phone,'play');await phone.goForward();await waitView(phone,'play');assert.equal(await phone.locator('#trinket-count').innerText(),'1/14');
-  const winMobile=createRun('mobilewin');winMobile.keyFound=true;winMobile.pepperFound=true;winMobile.basketFound=true;winMobile.completed=true;winMobile.health=4;winMobile.peeFound=true;winMobile.pepperoniFound=true;winMobile.trinkets=TRINKETS.map(item=>item.id);await seed(phone,winMobile,'orchard','picnic');await phone.screenshot({path:output+'/mobile-picnic.png',fullPage:true});await mobile.close();
+  const winMobile=createRun('mobilewin');winMobile.needohFound=true;winMobile.keyFound=true;winMobile.pepperFound=true;winMobile.basketFound=true;winMobile.completed=true;winMobile.health=4;winMobile.peeFound=true;winMobile.pepperoniFound=true;winMobile.trinkets=TRINKETS.map(item=>item.id);await seed(phone,winMobile,'orchard','picnic');await phone.screenshot({path:output+'/mobile-picnic.png',fullPage:true});await mobile.close();
 
   const blocked=await browser.newContext();await blocked.addInitScript(()=>{Storage.prototype.setItem=function(){throw new DOMException('Full','QuotaExceededError');};});const failure=await pageFor(blocked);await failure.locator('#begin').click();await failure.locator('#save-error').waitFor({state:'visible'});const downloadPromise=failure.waitForEvent('download');await failure.locator('#download-save').click();assert.equal((await downloadPromise).suggestedFilename(),'pepsi-pepper-adventure.json');await blocked.close();
   assert.deepEqual(errors,[]);console.log('PASS: '+(process.env.SNACK_QUEST_SKIP_DESKTOP==='1'?'remaining audio/mobile checks':'WASD, independent Space/J/K/L controls and cooldowns, four corgis, fourteen trinkets, nine chapters and boss, navigation, save recovery, and mobile checks')+'; '+(process.env.SNACK_QUEST_OFFLINE_AUDIO==='1'?'offline music and ability-effect rendering (live output unverified)':'live audio playback/mute/pause/resume and offline ability effects')+'.');

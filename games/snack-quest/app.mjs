@@ -1,7 +1,7 @@
-import { ROOMS, ORDER, DASH_COOLDOWN, ABILITIES, WIDTH, HEIGHT, createRun, peeProgress, upgradeRun, TRINKETS, validRun, migrateRun, makeWorld, maxHearts, goalDone, isUnlocked, firstUnfinished, objective, retryRoom, step, startDash, startAbility } from './engine.mjs?v=25';
-import { portrait, drawWorld, drawPicnic } from './art.mjs?v=25';
-import { movementKey, abilityKey, isTextEntry, joystickVector } from './input.mjs?v=25';
-import { Soundscape } from './audio.mjs?v=25';
+import { ROOMS, ORDER, DASH_COOLDOWN, ABILITIES, WIDTH, HEIGHT, createRun, peeProgress, upgradeRun, TRINKETS, validRun, migrateRun, makeWorld, maxHearts, goalDone, isUnlocked, firstUnfinished, objective, retryRoom, step, startDash, startAbility } from './engine.mjs?v=26';
+import { portrait, drawWorld, drawPicnic } from './art.mjs?v=26';
+import { movementKey, abilityKey, isTextEntry, joystickVector } from './input.mjs?v=26';
+import { Soundscape } from './audio.mjs?v=26';
 
 const $ = id => document.getElementById(id);
 const canvas=$('world'), ctx=canvas.getContext('2d');
@@ -180,7 +180,7 @@ function render() {
     $('retry').addEventListener('click',()=>{world=retryRoom(run,world.room);save();navigate(routeURL('play'));});$('retry-home').addEventListener('click',dismissScreen);$('retry').focus({preventScroll:true});
   } else if(view==='picnic') {
     $('screen').classList.add('picnic-screen');
-    $('screen').innerHTML=`<div class="picnic-card"><p class="card-eyebrow">THE BEST THING YOU BROUGHT HOME</p><h3>Was each other.</h3><p>A full basket, tired little paws,<br>and your favorite adventure ${run.peeFound?'buddies':'buddy'}.</p><div class="result-stats"><span><b>${run.trinkets.length}/${TRINKETS.length}</b> trinkets</span><span><b>${run.collected.length}</b> snacks</span><span><b>${run.hits}</b> bumps</span><span><b>${run.retries}</b> retries</span></div><button id="again" class="primary-button">One more adventure <span>↗</span></button><p class="tiny-note">${run.pepperoniFound?'Pepsi, Pepper, Pee & Pepperoni':run.peeFound?'Pepsi, Pepper & Pee':'Pepsi & Pepper'}. Always better together.</p></div>`;
+    $('screen').innerHTML=`<div class="picnic-card"><p class="card-eyebrow">THE BEST THING YOU BROUGHT HOME</p><h3>Was each other.</h3><p>A full basket, tired little paws,<br>and your favorite adventure ${run.peeFound?'buddies':'buddy'}.</p>${run.needohFound?'<p class="tiny-note">A little NeeDoh came home with you. ♡</p>':''}<div class="result-stats"><span><b>${run.trinkets.length}/${TRINKETS.length}</b> trinkets</span><span><b>${run.collected.length}</b> snacks</span><span><b>${run.hits}</b> bumps</span><span><b>${run.retries}</b> retries</span></div><button id="again" class="primary-button">One more adventure <span>↗</span></button><p class="tiny-note">${run.pepperoniFound?'Pepsi, Pepper, Pee & Pepperoni':run.peeFound?'Pepsi, Pepper & Pee':'Pepsi & Pepper'}. Always better together.</p></div>`;
     if(run.legacyEnding&&!run.bossDefeated){const link=document.createElement('a');link.className='secondary-button';link.href=routeURL('play','laundry');link.textContent='Continue into the three new chapters →';$('again').before(link);}
     $('again').addEventListener('click',newRun);
   } else {$('screen').classList.add('empty');$('screen').replaceChildren();}
@@ -380,6 +380,7 @@ function handleEvents(events) {
     else if(event.type==='trinket'){sound('key');toast(`${event.item.name}! ${run.trinkets.length}/${TRINKETS.length} trinkets tucked away.`,3000);}
     else if(event.type==='basket'){sound('basket');toast('Basket found! Follow the trail into the cottage. Someone else needs rescuing!',3500);}
     else if(event.type==='hit'){sound('hit');toast(run.pepperFound?`${event.character==='pepperoni'?'Pepperoni':event.character==='pee'?'Pee':event.character==='pepper'?'Pepper':'Pepsi'} got bonked! −1 shared heart. Watch your whole team.`:'Pepsi got bonked! −1 heart. Look for a heart-marked snack.',2800);}
+    else if(event.type==='squish'){sound('squish');toast(event.discovered?'A secret NeeDoh! A little squishy keepsake is coming to your picnic.':'Squiiish. The corgis understand the obsession.',4000);}
     else if(event.type==='goose-warning'){announce('Goose puffing up! Dodge the ring or bonk to interrupt.');}
     else if(event.type==='honk'){sound('honk');}
     else if(event.type==='stun'){if(!bonks.length)sound('stun');announce('Mischief bonked. Keep moving.');}
