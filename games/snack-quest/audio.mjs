@@ -15,6 +15,13 @@ const BOSS_MELODY=[
 ];
 const BOSS_CHORDS=[[38,50,53,57],[38,50,53,57],[34,46,50,53],[31,43,46,50],
   [38,50,53,57],[34,46,50,53],[33,45,49,52],[33,45,49,52]];
+// Area melodies use their own phrasing and harmony, not just tempo changes.
+const AREA_SCORES={
+ woods:{tempo:88,type:'sine',volume:.055,notes:[[81,null,84,83,79,null,76,null],[77,81,null,84,83,null,79,null],[76,null,79,83,86,83,null,79],[77,76,null,74,71,null,74,null]],chords:[[45,57,60,64],[41,53,57,60],[40,52,55,59],[43,55,59,62]]},
+ hills:{tempo:108,type:'sine',volume:.065,notes:[[79,81,83,null,86,83,81,79],[76,null,79,81,83,81,79,null],[81,83,84,86,88,null,86,84],[83,81,79,null,76,74,79,null]],chords:[[43,55,59,62],[40,52,55,59],[48,60,64,67],[38,50,54,57]]},
+ orchard:{tempo:112,type:'triangle',volume:.05,notes:[[72,76,79,76,81,null,79,76],[77,81,84,null,83,81,79,null],[76,79,84,83,81,79,76,72],[74,null,77,79,83,79,74,null]],chords:[[48,60,64,67],[41,53,57,60],[45,57,60,64],[43,55,59,62]]},
+ cottage:{tempo:102,type:'triangle',volume:.05,notes:[[69,null,72,76,null,75,76,null],[65,69,null,72,71,null,69,null],[67,null,71,74,null,72,71,67],[68,null,71,76,74,null,71,null]],chords:[[45,57,60,64],[41,53,57,60],[43,55,59,62],[40,52,56,59]]},
+};
 const frequency=midi=>440*2**((midi-69)/12);
 
 export class Soundscape {
@@ -54,7 +61,9 @@ export class Soundscape {
     this.view=view;this.room=room;this.bossDefeated=bossDefeated;
   }
   get battleMusic(){return this.view==='play'&&this.room==='boss'&&!this.bossDefeated;}
-  get tempo(){return this.battleMusic?136:this.view==='home'||this.view==='picnic'||this.room==='boss'&&this.bossDefeated?84:this.room==='pond'?88:this.room==='orchard'?104:96;}
+  get theme(){return this.battleMusic?'boss':this.view==='play'&&['woods','hills','orchard'].includes(this.room)?this.room:this.view==='play'&&['laundry','kitchen'].includes(this.room)?'cottage':'meadow';}
+  get tempo(){return this.battleMusic?136:AREA_SCORES[this.theme]?.tempo||(['home','picnic'].includes(this.view)||this.room==='boss'&&this.bossDefeated?84:this.room==='pond'?88:96);}
+
   stopVoices(voices) {
     if(!this.context)return;
     const now=this.context.currentTime;
@@ -104,12 +113,24 @@ export class Soundscape {
   }
   musicBeat(step,when,eighth) {
     if(this.battleMusic){this.battleBeat(step,when,eighth);return;}
+    if(AREA_SCORES[this.theme]){this.areaBeat(step,when,eighth);return;}
     const bar=Math.floor(step/8),slot=step%8,note=MELODY[bar][slot],chord=CHORDS[bar];
     if(note!==null)this.pluck(note,when,.065,eighth*1.7,this.musicVoices);
     if(slot===0||slot===4)this.tone(chord[0]+(slot===4?7:0),when,eighth*2.5,.085,this.musicVoices);
     if(slot%2===0)this.pluck(chord[1+(slot/2)%3],when+.025,.026,eighth*1.4,this.musicVoices);
     if(this.view==='play'&&(slot===2||slot===6||this.room==='orchard'&&slot%2===1))
       this.noise(when,.055,.022,3200,this.musicVoices);
+  }
+  areaBeat(step,when,eighth) {
+    const score=AREA_SCORES[this.theme],bar=Math.floor(step/8)%4,slot=step%8,note=score.notes[bar][slot],chord=score.chords[bar];
+    if(note!==null){
+      this.tone(note,when,eighth*(this.theme==='cottage'?.6:1.6),score.volume,this.musicVoices,score.type);
+      if(this.theme==='woods')this.pluck(note+12,when+.07,.017,eighth*2,this.musicVoices);
+    }
+    if(slot===0||slot===4)this.tone(chord[0]+(slot===4?7:0),when,eighth*1.8,.07,this.musicVoices,'triangle');
+    if(slot%2===0)this.pluck(chord[1+(slot/2)%3],when+.025,.028,eighth,this.musicVoices);
+    if(this.theme==='orchard'&&slot%2===1)this.noise(when,.045,.03,3600,this.musicVoices);
+    if(this.theme==='cottage'&&(slot===2||slot===6))this.pluck(88,when,.018,.08,this.musicVoices);
   }
   battleBeat(step,when,eighth) {
     const bar=Math.floor(step/8),slot=step%8,note=BOSS_MELODY[bar][slot],chord=BOSS_CHORDS[bar];
@@ -143,6 +164,7 @@ export class Soundscape {
     const chime=(notes,spacing=.095,volume=.12)=>notes.forEach((note,i)=>this.pluck(note,now+i*spacing,volume,.42));
     if(kind==='dash'){this.noise(now,.2,.17,1500);this.tone(53,now,.16,.07,this.effectVoices,'sine',65);}
     else if(kind==='bark'){for(const delay of [0,.14]){this.noise(now+delay,.09,.08,650);this.tone(54,now+delay,.1,.12,this.effectVoices,'triangle',44);}}
+    else if(kind==='honk'){for(const delay of [0,.16]){this.tone(58,now+delay,.19,.12,this.effectVoices,'sawtooth',54);this.tone(65,now+delay,.16,.045,this.effectVoices,'triangle',61);}}
     else if(kind==='toot'){this.tone(43,now,.25,.11,this.effectVoices,'triangle',35);this.tone(47,now+.12,.22,.06,this.effectVoices,'sine',32);}
     else if(kind==='bonk'){
       // A soft impact, a rubbery downward boing, then a tiny springy rebound.

@@ -1,7 +1,7 @@
-import { ROOMS, ORDER, DASH_COOLDOWN, ABILITIES, WIDTH, HEIGHT, createRun, peeProgress, upgradeRun, TRINKETS, validRun, migrateRun, makeWorld, maxHearts, goalDone, isUnlocked, firstUnfinished, objective, retryRoom, step, startDash, startAbility } from './engine.mjs?v=24';
-import { portrait, drawWorld, drawPicnic } from './art.mjs?v=24';
-import { movementKey, abilityKey, isTextEntry, joystickVector } from './input.mjs?v=24';
-import { Soundscape } from './audio.mjs?v=24';
+import { ROOMS, ORDER, DASH_COOLDOWN, ABILITIES, WIDTH, HEIGHT, createRun, peeProgress, upgradeRun, TRINKETS, validRun, migrateRun, makeWorld, maxHearts, goalDone, isUnlocked, firstUnfinished, objective, retryRoom, step, startDash, startAbility } from './engine.mjs?v=25';
+import { portrait, drawWorld, drawPicnic } from './art.mjs?v=25';
+import { movementKey, abilityKey, isTextEntry, joystickVector } from './input.mjs?v=25';
+import { Soundscape } from './audio.mjs?v=25';
 
 const $ = id => document.getElementById(id);
 const canvas=$('world'), ctx=canvas.getContext('2d');
@@ -380,6 +380,8 @@ function handleEvents(events) {
     else if(event.type==='trinket'){sound('key');toast(`${event.item.name}! ${run.trinkets.length}/${TRINKETS.length} trinkets tucked away.`,3000);}
     else if(event.type==='basket'){sound('basket');toast('Basket found! Follow the trail into the cottage. Someone else needs rescuing!',3500);}
     else if(event.type==='hit'){sound('hit');toast(run.pepperFound?`${event.character==='pepperoni'?'Pepperoni':event.character==='pee'?'Pee':event.character==='pepper'?'Pepper':'Pepsi'} got bonked! −1 shared heart. Watch your whole team.`:'Pepsi got bonked! −1 heart. Look for a heart-marked snack.',2800);}
+    else if(event.type==='goose-warning'){announce('Goose puffing up! Dodge the ring or bonk to interrupt.');}
+    else if(event.type==='honk'){sound('honk');}
     else if(event.type==='stun'){if(!bonks.length)sound('stun');announce('Mischief bonked. Keep moving.');}
     else if(event.type==='rescue'){sound('rescue');toast('Pepper found! +1 heart. Press J to bark and stun enemies near Pepper · 5s recharge. Space is still your normal dash.',6500);}
     else if(event.type==='pee-rescue'){sound('rescue');toast('Pee found! Press K to leave a stink cloud for pursuers · 7s recharge. Use it whenever you need it!',6500);}
@@ -394,7 +396,7 @@ function handleEvents(events) {
       else{run.completed=true;save();sound('win');navigate(routeURL('picnic'));}
       return;
     }
-    if(event.type!=='stun'&&event.type!=='bonk'){save();updateProgress();}
+    if(!['stun','bonk','goose-warning','honk'].includes(event.type)){save();updateProgress();}
   }
 }
 function frame(now) {

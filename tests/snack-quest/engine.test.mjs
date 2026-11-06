@@ -497,7 +497,7 @@ test('old endings remain earned without granting the new friend or new treasures
  upgradeRun(run);assert.ok(run.completed&&run.legacyEnding);assert.equal(run.trinkets.length,10);assert.equal(run.pepperoniFound,false);assert.equal(run.bossDefeated,false);assert.ok(isUnlocked(run,'laundry'));
 });
 test('roaming machine hazards are vacuums, never arbitrary balls',()=>{
- for(const room of ORDER)for(const toy of toysFor(42,room))assert.ok(['cat','vacuum'].includes(toy.kind));
+ for(const room of ORDER)for(const toy of toysFor(42,room))assert.ok(['cat','vacuum','goose'].includes(toy.kind));
 });
 
 test('wide worlds migrate old positions once and preserve discoveries',()=>{
@@ -509,5 +509,43 @@ test('wide worlds migrate old positions once and preserve discoveries',()=>{
   assert.ok(walkable(1400,700,room),'expanded area is playable');
   const world=makeWorld(createRun('wideroom'),room);assert.ok(walkable(world.player.x,world.player.y,room));
   assert.equal(retryRoom(run,room).player.x,216);
+ }
+});
+
+test('geese arrive in the orchard and continue into the cottage',()=>{
+ for(const room of ORDER)assert.equal(toysFor(1,room).filter(t=>t.kind==='goose').length,['orchard','laundry','kitchen'].includes(room)?1:0);
+});
+function gooseWorld(){
+ const run=createRun('goosetest');Object.assign(run,{keyFound:true,pepperFound:true,peeFound:true,pepperoniFound:true,health:4});
+ const world=makeWorld(run,'meadow');world.items=[];world.gophers=[];world.invincible=0;
+ world.toys=[{...toyAt(500,315),kind:'goose',mode:'roam',timer:0,cooldown:0}];Object.assign(world.player,{x:620,y:315});
+ return {run,world,goose:world.toys[0]};
+}
+test('goose warns before a single expanding honk, then rests',()=>{
+ const {run,world,goose}=gooseWorld();world.invincible=100;
+ assert.ok(step(world,run,idle,.02).some(e=>e.type==='goose-warning'));assert.equal(goose.mode,'windup');
+ for(let i=0;i<50;i++)assert.ok(!step(world,run,idle,.02).some(e=>e.type==='honk'));
+ let honks=0;for(let i=0;i<80;i++)honks+=step(world,run,idle,.02).filter(e=>e.type==='honk').length;
+ assert.equal(honks,1);assert.equal(goose.mode,'rest');
+});
+test('honk ring damages each corgi, while the quiet center and dashing are safe',()=>{
+ for(const body of ['player','buddy','pee','pepperoni']){
+  const {run,world,goose}=gooseWorld();Object.assign(goose,{mode:'honk',timer:.6});
+  for(const key of ['player','buddy','pee','pepperoni'])Object.assign(world[key],{x:750,y:315});
+  Object.assign(world[body],{x:600,y:315});
+  const events=step(world,run,idle,.02);assert.equal(run.health,3);assert.ok(events.some(e=>e.character===({player:'pepsi',buddy:'pepper'}[body]||body)));
+ }
+ for(const dash of [false,true]){
+  const {run,world,goose}=gooseWorld();Object.assign(goose,{mode:'honk',timer:.25});
+  for(const key of ['player','buddy','pee','pepperoni'])Object.assign(world[key],{x:dash?650:550,y:315});
+  if(dash)startDash(world,{x:1,y:0});step(world,run,idle,.02);assert.equal(run.health,4);
+ }
+});
+test('bonks, barks, and stink clouds interrupt a goose wind-up',()=>{
+ for(const ability of ['dash','bark','stink']){
+  const {run,world,goose}=gooseWorld();Object.assign(goose,{mode:'windup',timer:.1});
+  Object.assign(world.player,{x:460,y:315});Object.assign(world.buddy,{x:485,y:315});Object.assign(world.pee,{x:490,y:315});
+  ability==='dash'?startDash(world,{x:1,y:0}):startAbility(world,run,ability);
+  const events=step(world,run,idle,.02);assert.equal(goose.mode,'stunned');assert.ok(!events.some(e=>e.type==='honk'));
  }
 });

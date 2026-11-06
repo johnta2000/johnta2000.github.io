@@ -56,7 +56,7 @@ export const ROOMS = {
   },
   orchard: {
     name: 'Clover Orchard', short: 'The basket', ground: '#e0e6b9', snack: 'cheese',
-    note: 'Gather two trinkets and the basket. A suspicious vacuum trail leads into the cottage!',
+    note: 'New mischief: grumpy geese! Dodge the expanding honk ring, or bonk them while they puff up. Gather two trinkets and the basket. A suspicious vacuum trail leads into the cottage!',
     terrain:[{kind:'mud',x:470,y:365,rx:98,ry:60}],
     obstacles: [{x:345,y:245,r:36,kind:'tree'}, {x:640,y:235,r:38,kind:'tree'}, {x:640,y:435,r:33,kind:'tree'}],
     slots: [[215,180],[490,150],[775,245],[840,435],[460,470],[230,400],[775,500],[490,325]],
@@ -64,14 +64,14 @@ export const ROOMS = {
   },
   laundry: {
     name:'Sock Mountain',short:'Pepperoni',ground:'#e6dacc',snack:'biscuit',indoor:true,
-    note:'Find two laundry treasures. Bring Pee to the blanket fort to rescue Pepperoni!',
+    note:'The geese followed you inside! Bonk their puff-up to stop a honk. Find two laundry treasures. Bring Pee to the blanket fort to rescue Pepperoni!',
     obstacles:[{x:355,y:235,r:44,kind:'hamper'},{x:620,y:405,r:44,kind:'hamper'},{x:770,y:280,r:36,kind:'hamper'}],
     terrain:[{kind:'ice',x:470,y:330,rx:110,ry:52}],
     slots:[[220,170],[480,160],[840,450],[240,450],[700,500],[610,220]],goal:{x:820,y:160,r:30,kind:'fort'},
   },
   kitchen: {
     name:'Midnight Snack Kitchen',short:'The kitchen',ground:'#e4e8da',snack:'cheese',indoor:true,
-    note:'L uses Pepperoni’s power dash. Space stays a normal dash. Cross the slippery spills and find the last two treasures.',
+    note:'Watch the goose’s honk ring! L uses Pepperoni’s power dash. Space stays a normal dash. Cross the slippery spills and find the last two treasures.',
     obstacles:[{x:360,y:260,r:45,kind:'table'},{x:620,y:400,r:48,kind:'table'},{x:770,y:210,r:32,kind:'hamper'}],
     terrain:[{kind:'ice',x:500,y:200,rx:100,ry:55},{kind:'ice',x:780,y:400,rx:100,ry:65}],
     slots:[[230,170],[500,150],[850,490],[250,450],[490,480],[680,300]],goal:{x:820,y:480,r:23,kind:'sign'},
@@ -251,10 +251,12 @@ export function toysFor(seed, room) {
   if(room==='tutorial'||room==='boss')return [];
   const positions = ['laundry','kitchen'].includes(room)?[[280,360],[540,260],[800,380]]:room==='woods'?[[420,260],[620,350],[820,330]]:room==='hills'?[[420,400],[710,290],[590,310]]:room === 'meadow' ? [[360,350],[690,285]] : room === 'pond' ? [[290,220],[710,370],[565,470]] : room === 'burrows' ? [[470,300],[760,350]] : [[315,375],[505,220],[800,340],[515,480]];
   if(roomScale(room)>1)positions.push([550,320],[350,470]);
+  const gooseIndex=positions.length;
+  if(['orchard','laundry','kitchen'].includes(room))positions.push([room==='orchard'?720:490,room==='orchard'?370:460]);
   const rng = random(seed + ORDER.indexOf(room)*77);
   return positions.map(([x,y], i) => ({
     ...roomPoint(room,x,y),r:18,vx:(rng()>.5?1:-1)*(40+ORDER.indexOf(room)*8),vy:(rng()>.5?1:-1)*30,
-    kind:i%2?'cat':'vacuum',mode:'roam',timer:0,cooldown:.8+i*.3,aimX:0,aimY:0,
+    kind:i===gooseIndex?'goose':i%2?'cat':'vacuum',mode:'roam',timer:0,cooldown:.8+i*.3,aimX:0,aimY:0,
   }));
 }
 export function gophersFor(seed,room) {
@@ -369,7 +371,7 @@ function touchingCorgi(world,run,hazard,padding=20) {
   if(run.peeFound)corgis.push({body:world.pee,character:'pee'});
   if(run.pepperoniFound)corgis.push({body:world.pepperoni,character:'pepperoni'});
   return corgis.map(corgi=>({...corgi,distance:Math.hypot(hazard.x-corgi.body.x,hazard.y-corgi.body.y)}))
-    .filter(corgi=>corgi.distance<hazard.r+padding).sort((a,b)=>a.distance-b.distance)[0];
+    .filter(corgi=>corgi.distance<hazard.r+padding&&(hazard.innerRadius===undefined||corgi.distance>hazard.innerRadius-padding)).sort((a,b)=>a.distance-b.distance)[0];
 }
 function bumpCorgis(world,run,hazard,events) {
   if(world.invincible>0)return;
@@ -454,6 +456,22 @@ export function step(world,run,input,dt) {
     }
     if(toy.mode==='stunned') {toy.timer-=dt;if(toy.timer<=0){toy.mode='roam';toy.cooldown=1;}continue;}
     if(toy.mode==='rest') {toy.timer-=dt;if(toy.timer<=0){toy.mode='roam';toy.cooldown=.4;}continue;}
+    if(toy.kind==='goose') {
+      if(toy.mode==='roam'&&toy.cooldown===0&&distance<300){toy.mode='windup';toy.timer=1.4;events.push({type:'goose-warning'});}
+      if(toy.mode==='windup') {
+        toy.timer-=dt;if(toy.timer<=0){toy.mode='honk';toy.timer=1;events.push({type:'honk'});}
+      }else if(toy.mode==='honk') {
+        toy.timer=Math.max(0,toy.timer-dt);const radius=24+(1-toy.timer)*180;
+        bumpCorgis(world,run,{x:toy.x,y:toy.y,r:radius,innerRadius:radius-12},events);
+        if(toy.timer===0){toy.mode='rest';toy.timer=1.8;}
+      }else {
+        if(!walkable(toy.x+toy.vx*dt*.55,toy.y,world.room,toy.r))toy.vx*=-1;
+        if(!walkable(toy.x,toy.y+toy.vy*dt*.55,world.room,toy.r))toy.vy*=-1;
+        move(toy,toy.vx*dt*.55,toy.vy*dt*.55,world.room,toy.r);
+      }
+      bumpCorgis(world,run,toy,events);if(run.health<=0)return events;
+      continue;
+    }
     if(toy.mode==='roam'&&toy.cooldown===0&&distance<(toy.kind==='cat'?330:270)&&distance>45) {
       toy.mode='windup';toy.timer=toy.kind==='cat'?.85:.7;toy.aimX=(p.x-toy.x)/distance;toy.aimY=(p.y-toy.y)/distance;
     }
