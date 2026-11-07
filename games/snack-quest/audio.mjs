@@ -33,23 +33,29 @@ export class Soundscape {
   }
   setEnabled(enabled) {
     this.enabled=enabled;
-    if(!enabled)this.stopAll();
+    if(!enabled){this.stopAll();this.setSessionType('auto');}
+  }
+  setSessionType(type) {
+    // Safari otherwise treats Web Audio as ambient audio, obeying the silent switch.
+    try {if(globalThis.navigator?.audioSession)navigator.audioSession.type=type;}catch{/* Optional on older browsers. */}
   }
   // Called only from a real click/key gesture, including after a saved preference loads.
   unlock() {
     if(!this.enabled||!this.foreground)return;
     try {
-      if(!this.context) {
+      this.setSessionType('playback');
+      if(!this.context||this.context.state==='closed') {
+        this.noiseBuffer=null;this.musicVoices.clear();this.effectVoices.clear();this.nextNote=0;
         this.context=this.contextFactory();
         this.master=this.context.createGain();this.master.gain.value=.65;
         this.master.connect(this.context.destination);
       }
-      if(this.context.state==='suspended')this.context.resume().catch(()=>{});
+      if(['suspended','interrupted'].includes(this.context.state))return this.context.resume().catch(()=>{});
     }catch{this.context=null;}
   }
   setForeground(foreground) {
     this.foreground=foreground;
-    if(!foreground)this.stopAll();
+    if(!foreground){this.stopAll();this.setSessionType('auto');}
   }
   setScene(view,room='meadow',{bossDefeated=false}={}) {
     if(this.view!==view||this.room!==room||this.bossDefeated!==bossDefeated) {

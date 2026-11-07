@@ -1,7 +1,7 @@
-import { setMapStretch, adaptWorldLayout, ROOMS, ORDER, DASH_COOLDOWN, ABILITIES, WIDTH, HEIGHT, createRun, peeProgress, upgradeRun, TRINKETS, validRun, migrateRun, enterRoom, makeWorld, maxHearts, goalDone, isUnlocked, firstUnfinished, objective, retryRoom, step, startDash, startAbility } from './engine.mjs?v=34';
-import { portrait, drawWorld, drawPicnic } from './art.mjs?v=34';
-import { movementKey, abilityKey, isTextEntry, joystickVector } from './input.mjs?v=34';
-import { Soundscape } from './audio.mjs?v=34';
+import { setMapStretch, adaptWorldLayout, ROOMS, ORDER, DASH_COOLDOWN, ABILITIES, WIDTH, HEIGHT, createRun, peeProgress, upgradeRun, TRINKETS, validRun, migrateRun, enterRoom, makeWorld, maxHearts, goalDone, isUnlocked, firstUnfinished, objective, retryRoom, step, startDash, startAbility } from './engine.mjs?v=35';
+import { portrait, drawWorld, drawPicnic } from './art.mjs?v=35';
+import { movementKey, abilityKey, isTextEntry, joystickVector } from './input.mjs?v=35';
+import { Soundscape } from './audio.mjs?v=35';
 
 const $ = id => document.getElementById(id);
 const canvas=$('world'), ctx=canvas.getContext('2d');
@@ -405,7 +405,8 @@ function restInBackground() {
 }
 window.addEventListener('blur',restInBackground);
 window.addEventListener('focus',()=>soundtrack.setForeground(!document.hidden));
-window.addEventListener('pointerdown',()=>soundtrack.unlock(),{capture:true});
+window.addEventListener('pointerdown',()=>{soundtrack.setForeground(!document.hidden);soundtrack.unlock();},{capture:true});
+window.addEventListener('pageshow',()=>soundtrack.setForeground(!document.hidden&&document.hasFocus()));
 $('stage').addEventListener('pointerdown',()=>{if(view==='play')focusGame();});
 document.addEventListener('visibilitychange',()=>{if(document.hidden)restInBackground();else soundtrack.setForeground(document.hasFocus());lastFrame=performance.now();});
 window.addEventListener('pagehide',()=>{soundtrack.setForeground(false);save();});
@@ -428,7 +429,7 @@ function renderSound() {
   $('sound').title='Original music + little adventure sounds';
   $('sound').innerHTML=`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4V5Z${soundOn?'M16 8q5 4 0 8m3-11q8 7 0 14':'M16 9l5 6m0-6-5 6'}"/></svg><span>Sound ${soundOn?'on':'off'}</span>`;
 }
-$('sound').addEventListener('click',()=>{soundOn=!soundOn;soundtrack.setEnabled(soundOn);soundtrack.unlock();renderSound();try{localStorage.setItem(PREFIX+'sound',String(soundOn));}catch{}sound('start');});
+$('sound').addEventListener('click',()=>{soundOn=!soundOn;soundtrack.setEnabled(soundOn);const unlocked=soundtrack.unlock();renderSound();try{localStorage.setItem(PREFIX+'sound',String(soundOn));}catch{}Promise.resolve(unlocked).then(()=>sound('start'));});
 $('retry-save').addEventListener('click',()=>{if(save())toast('Your adventure is safely saved.');});
 $('download-save').addEventListener('click',()=>{
   if(!run)return;save();const url=URL.createObjectURL(new Blob([JSON.stringify(run,null,2)],{type:'application/json'}));
