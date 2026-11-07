@@ -1,4 +1,4 @@
-import { ZOOMIES_DURATION, mapX, mapStretch, roomWidth, roomScale, WIDTH, HEIGHT, ROOMS, random, goalDone, roomTrinkets, canFindTrinkets, PEE_RESCUE, peeProgress, canRescuePee, windAt, trinketCount } from './engine.mjs?v=39';
+import { ZOOMIES_DURATION, mapX, mapStretch, roomWidth, roomScale, WIDTH, HEIGHT, ROOMS, random, goalDone, roomTrinkets, canFindTrinkets, PEE_RESCUE, peeProgress, canRescuePee, windAt, trinketCount } from './engine.mjs?v=40';
 
 const INK='#75674c';
 function ellipse(c,x,y,rx,ry,fill,stroke=null,line=2){c.beginPath();c.ellipse(x,y,rx,ry,0,0,Math.PI*2);c.fillStyle=fill;c.fill();if(stroke){c.strokeStyle=stroke;c.lineWidth=line;c.stroke();}}
@@ -107,29 +107,37 @@ function zoomiesTrail(c,body,character,scale,roll,time,remaining,reduced){
 export function corgi(c,x,y,character='pepsi',scale=1,facing=1,roll=0,hurt=0) {
   c.save(); c.translate(x,y); c.scale(scale,scale);
   c.lineCap='round'; c.lineJoin='round';
-  const gray=character==='pepper',yellow=character==='pee',red=character==='pepperoni',coat=gray?'#a8adb4':yellow?'#f0d873':red?'#ca8461':'#dfb479';
-  const edge=gray?'#91979f':yellow?'#c4ad58':'#c59e6b', cream='#fff8e9';
+  const gray=character==='pepper',yellow=character==='pee',red=character==='pepperoni',coat=gray?'#a8adb4':yellow?'#f0d873':red?'#e3b784':'#dfb479';
+  const edge=gray?'#91979f':yellow?'#c4ad58':red?'#c6a27f':'#c59e6b', cream='#fff8e9';
   const sine=Math.sin(roll),cosine=Math.cos(roll),squish=Math.abs(sine)*.035;
   // The shadow stays on the grass while the round body turns around its middle.
-  ellipse(c,-4,5,43-Math.abs(sine)*4,10,'#51633e20');
-  const support=Math.hypot(56*sine,35*cosine)+Math.max(0,-cosine)*16;
+  ellipse(c,-4,5,(red?53:43)-Math.abs(sine)*4,10,'#51633e20');
+  const support=Math.hypot((red?65:56)*sine,(red?42:35)*cosine)+Math.max(0,-cosine)*16;
   c.translate(-3*facing,6-support);c.rotate(roll);c.scale(facing*(1+squish),1-squish);c.translate(3,29);
   // One round, low loaf: little paws and bead eyes, like the reference plush.
-  ellipse(c,-34,-4,8,7,cream,edge,1);
-  ellipse(c,-12,-27,48,35,coat,edge,1.2);
-  if(red)for(const [px,py]of[[-40,-32],[-24,-48],[-10,-25]])ellipse(c,px,py,6,5,'#a96047');
+  if(red){
+    // Pepperoni is the big tan plush: a curled tail, broad belly and tiny eyebrows.
+    ellipse(c,-45,-62,13,20,coat,edge,1.1);ellipse(c,-43,-65,7,12,cream);
+    c.beginPath();c.arc(-43,-64,7,-1.6,1.7);c.strokeStyle='#cca77e';c.lineWidth=2;c.stroke();
+  }else ellipse(c,-34,-4,8,7,cream,edge,1);
+  ellipse(c,-12,-27,red?58:48,red?42:35,coat,edge,1.2);
   c.beginPath();c.moveTo(-57,-19);c.bezierCurveTo(-47,-11,-35,-15,-23,-9);c.bezierCurveTo(-9,-2,7,-9,24,-22);c.lineTo(39,-9);c.bezierCurveTo(27,13,-41,18,-57,-5);c.closePath();c.fillStyle=cream;c.fill();
-  ellipse(c,-51,-12,8,9,cream);
-  shape(c,[[-2,-48],[-4,-78],[3,-82],[16,-57]],coat,edge,1.2);
-  shape(c,[[31,-55],[42,-82],[49,-80],[48,-45]],coat,edge,1.2);
-  shape(c,[[1,-57],[2,-74],[5,-75],[12,-56]],'#ebe1d7');
-  shape(c,[[36,-56],[43,-74],[46,-73],[44,-51]],'#ebe1d7');
+  if(red){c.beginPath();c.moveTo(-68,-29);c.bezierCurveTo(-40,-18,-4,-19,25,-26);c.lineTo(42,-8);c.bezierCurveTo(35,18,-51,20,-67,-8);c.closePath();c.fillStyle=cream;c.fill();}else ellipse(c,-51,-12,8,9,cream);
+  shape(c,red?[[-5,-49],[-5,-70],[3,-74],[17,-55]]:[[-2,-48],[-4,-78],[3,-82],[16,-57]],coat,edge,1.2);
+  shape(c,red?[[31,-55],[40,-74],[48,-73],[49,-45]]:[[31,-55],[42,-82],[49,-80],[48,-45]],coat,edge,1.2);
+  shape(c,red?[[0,-56],[1,-68],[5,-69],[12,-54]]:[[1,-57],[2,-74],[5,-75],[12,-56]],'#ebe1d7');
+  shape(c,red?[[36,-55],[41,-68],[45,-68],[45,-50]]:[[36,-56],[43,-74],[46,-73],[44,-51]],'#ebe1d7');
   ellipse(c,20,-32,34,32,coat);
-  // The broad white face joins the white tummy rather than a separate human-like head.
-  c.beginPath();c.moveTo(23,-61);c.bezierCurveTo(11,-55,16,-41,6,-31);
-  c.bezierCurveTo(-14,-23,-12,-7,7,0);c.bezierCurveTo(30,11,56,-5,53,-28);
-  c.bezierCurveTo(38,-24,33,-34,29,-47);c.bezierCurveTo(27,-55,29,-60,23,-61);
-  c.fillStyle=cream;c.fill();
+  if(red){
+    // The photo has a tan forehead with no white blaze, and a wide cream lower face.
+    c.beginPath();c.moveTo(-8,-26);c.bezierCurveTo(8,-21,33,-23,53,-31);c.bezierCurveTo(64,-2,37,11,9,0);c.bezierCurveTo(-8,-3,-14,-13,-8,-26);c.closePath();c.fillStyle=cream;c.fill();
+    ellipse(c,10,-45,5.5,2.5,cream);ellipse(c,43,-49,5,2.3,cream);
+  }else{
+    c.beginPath();c.moveTo(23,-61);c.bezierCurveTo(11,-55,16,-41,6,-31);
+    c.bezierCurveTo(-14,-23,-12,-7,7,0);c.bezierCurveTo(30,11,56,-5,53,-28);
+    c.bezierCurveTo(38,-24,33,-34,29,-47);c.bezierCurveTo(27,-55,29,-60,23,-61);
+    c.fillStyle=cream;c.fill();
+  }
   ellipse(c,-24,0,10,7,cream,edge,.8);ellipse(c,41,0,10,6,cream,edge,.8);
   if(hurt>0) {
     line(c,[[8,-34],[13,-30],[8,-27]],'#302f2d',2);
@@ -142,7 +150,7 @@ export function corgi(c,x,y,character='pepsi',scale=1,facing=1,roll=0,hurt=0) {
   ellipse(c,31,-22,4.4,3.5,'#303033');
   c.beginPath();c.moveTo(31,-19);c.lineTo(31,-15);c.quadraticCurveTo(27,-10,24,-14);
   c.moveTo(31,-15);c.quadraticCurveTo(35,-10,38,-15);c.strokeStyle='#3a3533';c.lineWidth=1.3;c.stroke();
-  ellipse(c,32,-11,2.3,2.4,'#dca0a2');
+  if(!red)ellipse(c,32,-11,2.3,2.4,'#dca0a2');
   // Soft toy shading, without a heavy cartoon outline or accessories.
   ellipse(c,-28,-43,13,5,gray?'#c1c4c955':'#f4d3a655');
   c.restore();
@@ -285,7 +293,7 @@ function goalArt(c,world,run,t) {
     else{heart(c,goal.x,goal.y-38,.9,'#c19a89');}
   } else if(world.room==='laundry'&&!run.pepperoniFound){
     shape(c,[[goal.x-65,goal.y+20],[goal.x,goal.y-68],[goal.x+65,goal.y+20]],'#d4b5b0','#ad8a80',3);
-    corgi(c,goal.x,goal.y+10,'pepperoni',.75,-1);label(run.peeFound?'Pepperoni!':'Bring Pee',goal.y-90);
+    corgi(c,goal.x,goal.y+10,'pepperoni',.94,-1);label(run.peeFound?'Pepperoni!':'Bring Pee',goal.y-90);
   } else if(world.room==='orchard'&&!run.basketFound) {
     ellipse(c,goal.x,goal.y+19,30,9,'#61723d20');
     c.beginPath();c.ellipse(goal.x,goal.y-9,17,22,0,Math.PI,0);c.strokeStyle='#ad8756';c.lineWidth=6;c.stroke();
@@ -405,7 +413,7 @@ export function drawWorld(c,world,run,viewportWidth,reduced=false,preview=false,
   }},...world.toys.map(item=>({y:item.y,draw:()=>toy(c,item,t,impactFor(item),world.time,reduced)}))];
   if(run.pepperFound)actors.push({y:world.buddy.y,draw:()=>drawCorgi(world.buddy,'pepper',.72)});
   if(run.peeFound)actors.push({y:world.pee.y,draw:()=>drawCorgi(world.pee,'pee',.68)});
-  if(run.pepperoniFound)actors.push({y:world.pepperoni.y,draw:()=>drawCorgi(world.pepperoni,'pepperoni',.68)});
+  if(run.pepperoniFound)actors.push({y:world.pepperoni.y,draw:()=>drawCorgi(world.pepperoni,'pepperoni',.94)});
   if(world.boss)actors.push({y:world.boss.y,draw:()=>{const b=world.boss;c.save();c.translate(b.x,b.y);c.scale(2,2);if(b.mode==='off')c.globalAlpha=.45;toy(c,{...b,x:0,y:0,kind:'vacuum',vx:1},t,impactFor(b),world.time,reduced);c.restore();if(b.mode==='exposed'){for(let i=0;i<3;i++)ellipse(c,b.x-25+i*25,b.y-60-Math.sin(t*4+i)*7,9,14,'#fff7dfb0');}}});
   actors.sort((a,b)=>a.y-b.y).forEach(item=>item.draw());
   for(const hit of world.impacts)impactArt(c,hit,world.time,reduced);
@@ -419,4 +427,4 @@ export function drawPicnic(c,run,viewportWidth,time,reduced=false,viewportHeight
   if(frame){c.fillStyle=ROOMS.meadow.ground;c.fillRect(0,0,viewportWidth,viewportHeight);c.translate(frame.x,frame.y);c.scale(frame.zoom,frame.zoom);}else c.translate(-offset,0);
   c.drawImage(ground('meadow',run.seed),0,0);c.translate(mapX(500)-500,0);const y=viewportWidth<700?135:185;
   ellipse(c,500,y+20,155,55,'#6c7c4a20');rounded(c,365,y-32,270,105,14,'#f1c6a7','#d7ad8e');c.save();c.beginPath();c.roundRect(366,y-31,268,103,13);c.clip();c.globalAlpha=.45;for(let i=0;i<9;i++){c.fillStyle='#fff4d5';c.fillRect(368+i*34,y-32,15,105);}for(let i=0;i<4;i++)c.fillRect(365,y-23+i*29,270,12);c.restore();
-  if(run.pepperoniFound){for(const [i,name]of ['pepsi','pepper','pee','pepperoni'].entries())corgi(c,365+i*90,y+6,name,.74,i>1?-1:1,0);}else {corgi(c,run.peeFound?405:440,y+6,'pepsi',run.peeFound?.88:1.1,1,0);corgi(c,run.peeFound?500:565,y+6,'pepper',run.peeFound?.88:1.1,-1,0);if(run.peeFound)corgi(c,600,y+6,'pee',.85,-1,0);}snack(c,470,y+43,'biscuit',.8,t);snack(c,534,y+47,'berry',.8,t);snack(c,504,y+27,'cheese',.7,t);if(run.needohFound)needoh(c,600,y+52,t,0,.5,reduced);for(let i=0;i<3;i++)heart(c,470+i*33,y-98-Math.sin(t*2+i)*6,.7+i%2*.3,i%2?'#c69582':'#cdb17c');c.restore();}
+  if(run.pepperoniFound){for(const [i,name]of ['pepsi','pepper','pee','pepperoni'].entries())corgi(c,365+i*90,y+6,name,name==='pepperoni'?.94:.74,i>1?-1:1,0);}else {corgi(c,run.peeFound?405:440,y+6,'pepsi',run.peeFound?.88:1.1,1,0);corgi(c,run.peeFound?500:565,y+6,'pepper',run.peeFound?.88:1.1,-1,0);if(run.peeFound)corgi(c,600,y+6,'pee',.85,-1,0);}snack(c,470,y+43,'biscuit',.8,t);snack(c,534,y+47,'berry',.8,t);snack(c,504,y+27,'cheese',.7,t);if(run.needohFound)needoh(c,600,y+52,t,0,.5,reduced);for(let i=0;i<3;i++)heart(c,470+i*33,y-98-Math.sin(t*2+i)*6,.7+i%2*.3,i%2?'#c69582':'#cdb17c');c.restore();}
