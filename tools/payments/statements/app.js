@@ -8,7 +8,7 @@ let data=null,filter='unassigned',editing=null,pdfUrl=null,pdfLoading=null,reque
 const money=n=>(n/100).toLocaleString('en-US',{style:'currency',currency:'USD'});
 const title=s=>s[0].toUpperCase()+s.slice(1);
 function el(tag,text,cls){const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(cls)n.className=cls;return n;}
-function errorText(e){const m=(e?.message||'').match(/(?:This statement link is unavailable\.|This charge changed on another device\.[^\n]*|The split must[^\n]*|Keep notes[^\n]*|Charge not found\.)/);return m?.[0]||'Could not confirm the change. Check your connection and try again.';}
+function errorText(e){const m=(e?.message||'').match(/(?:This statement link is unavailable\.|This charge changed on another device\.[^\n]*|The split must[^\n]*|Keep notes[^\n]*|Charge not found\.|This item is ignored\.[^\n]*)/);return m?.[0]||'Could not confirm the change. Check your connection and try again.';}
 async function call(kind,name,args,auth){const response=await fetch(`${API}/api/${kind}`,{method:'POST',cache:'no-store',signal:AbortSignal.timeout(20000),headers:{'Content-Type':'application/json',...(auth?{Authorization:`Bearer ${auth}`}:{})},body:JSON.stringify({path:`statements:${name}`,args,format:'json'}),keepalive:name==='saveView'});const result=await response.json();if(!response.ok||result.status!=='success')throw Error(result.errorMessage||'Request failed');return result.value;}
 function saved(){
  const warning=failures.values().next().value||saveWarning;
@@ -39,7 +39,7 @@ function writeLinkView(replace=false,panel=$('filters-dialog').open){
 readLinkView();
 addEventListener('popstate',()=>{readLinkView();if(data){restoreFilterPanel();renderRows();}});
 function effectiveFilter(){return filter;}
-function normalizeFilter(value){return ['all','unassigned',...people].includes(value)?value:'unassigned';}
+function normalizeFilter(value){return ['all','unassigned','ignored',...people].includes(value)?value:'unassigned';}
 function syncViewControls(){
  const current=effectiveFilter();
  for(const b of document.querySelectorAll('[data-filter]')){const active=b.dataset.filter===current;b.classList.toggle('active',active);b.setAttribute('aria-pressed',String(active));}
@@ -74,7 +74,7 @@ function closeFilterPanel(navigate=true){
  if(navigate)writeLinkView(true,false);
 }
 function restoreFilterPanel(){if(linkParams().get('panel')==='filters'){if(!$('filters-dialog').open)showFilterPanel(false);}else if($('filters-dialog').open)closeFilterPanel(false);}
-function matchesView(r,assignment,kind,from,to,search){return (assignment==='all'||assignment==='unassigned'&&!r.allocation||people.includes(assignment)&&(r.allocation?.[assignment]??0)!==0)&&(kind==='all'||r.kind===kind)&&(!from||r.date>=from)&&(!to||r.date<=to)&&(!search||`${r.description} ${r.date} ${r.note} ${money(r.amountCents)}`.toLowerCase().includes(search));}
+function matchesView(r,assignment,kind,from,to,search){return (assignment==='all'||assignment==='ignored'&&r.ignored||!r.ignored&&(assignment==='unassigned'&&!r.allocation||people.includes(assignment)&&(r.allocation?.[assignment]??0)!==0))&&(kind==='all'||r.kind===kind)&&(!from||r.date>=from)&&(!to||r.date<=to)&&(!search||`${r.description} ${r.date} ${r.note} ${money(r.amountCents)}`.toLowerCase().includes(search));}
 function updateFilterPreview(){
  const from=$('date-from').value,to=$('date-to').value,invalid=!!(from&&to&&from>to);
  $('filter-error').hidden=!invalid;$('filter-error').textContent=invalid?'Choose an end date on or after the start date.':'';$('apply-filters').disabled=invalid;
@@ -82,25 +82,27 @@ function updateFilterPreview(){
  $('apply-filters').textContent=`Show ${count} ${count===1?'transaction':'transactions'}`;
 }
 function updateTotals(){
- const totals={parents:0,john:0,jevin:0,other:0,unassigned:0};let assigned=0;
- for(const r of data.rows){if(r.allocation){assigned++;for(const p of people)totals[p]+=r.allocation[p]??0;}else totals.unassigned+=r.amountCents;}
+ const totals={parents:0,john:0,jevin:0,other:0,unassigned:0};let assigned=0,ignored=0,ignoredAmount=0;
+ for(const r of data.rows){if(r.ignored){ignored++;ignoredAmount+=r.amountCents;continue;}if(r.allocation){assigned++;for(const p of people)totals[p]+=r.allocation[p]??0;}else totals.unassigned+=r.amountCents;}
  for(const [p,n] of Object.entries(totals))$(p+'-total').textContent=money(n);
- $('progress').textContent=assigned===data.rows.length?'All items assigned':`${data.rows.length-assigned} ${data.rows.length-assigned===1?'item':'items'} left to assign`;
- $('progress-bar').max=data.rows.length;$('progress-bar').value=assigned;saved();
+ $('ignored-summary').hidden=!ignored;$('ignored-summary').textContent=`${ignored} ignored ${ignored===1?'item':'items'} · ${money(ignoredAmount)} excluded from allocation totals. Restore them from Ignored.`;
+ $('progress').textContent=assigned+ignored===data.rows.length?(ignored?'All remaining items assigned':'All items assigned'):`${data.rows.length-assigned-ignored} ${data.rows.length-assigned-ignored===1?'item':'items'} left to assign`;
+ $('progress-bar').max=data.rows.length;$('progress-bar').value=assigned+ignored;saved();
 }
 function updateRow(r){
  const item=[...$('transactions').querySelectorAll('.row')].find(n=>n.dataset.id===r._id);if(!item)return;
- const label=allocationLabel(r);item.classList.toggle('saving',pending.has(r._id));
- for(const b of item.querySelectorAll('[data-label]')){b.setAttribute('aria-pressed',String(label===b.dataset.label));b.title=label===b.dataset.label?'Click again to clear this label':'Assign to '+title(b.dataset.label);b.disabled=needsRefresh.has(r._id);}
- item.querySelector('.edit-row').disabled=pending.has(r._id)||needsRefresh.has(r._id);
- const clear=item.querySelector('.clear-row');clear.hidden=!r.allocation;clear.disabled=needsRefresh.has(r._id);
+ const label=allocationLabel(r);item.classList.toggle('saving',pending.has(r._id));item.classList.toggle('ignored',!!r.ignored);
+ const ignore=item.querySelector('.ignore-row');ignore.textContent=r.ignored?'Restore row':'Ignore row';ignore.setAttribute('aria-pressed',String(!!r.ignored));ignore.disabled=needsRefresh.has(r._id);item.querySelector('.ignored-badge').hidden=!r.ignored;
+ for(const b of item.querySelectorAll('[data-label]')){b.setAttribute('aria-pressed',String(label===b.dataset.label));b.title=label===b.dataset.label?'Click again to clear this label':'Assign to '+title(b.dataset.label);b.disabled=!!r.ignored||needsRefresh.has(r._id);}
+ item.querySelector('.edit-row').disabled=!!r.ignored||pending.has(r._id)||needsRefresh.has(r._id);
+ const clear=item.querySelector('.clear-row');clear.hidden=!r.allocation;clear.disabled=!!r.ignored||needsRefresh.has(r._id);
  item.querySelector('.split-text').hidden=label!=='split';item.querySelector('.split-text').textContent=label==='split'?people.filter(p=>r.allocation[p]).map(p=>`${title(p)} ${money(r.allocation[p])}`).join(' · '):'';
  item.querySelector('summary').textContent=r.note?'Details · Note added':'Details';
  const note=item.querySelector('.row-note');note.hidden=!r.note;note.textContent=r.note;
 }
 
 function clearReview(){++request;for(const entry of pending.values())entry.resolve(false);pending.clear();needsRefresh.clear();failures.clear();closePdf();data=null;sharedViewVersion=null;desiredView=null;clearTimeout(viewTimer);$('review').hidden=true;$('balance').hidden=true;$('copy-link').hidden=true;$('transactions').replaceChildren();if(pdfUrl)URL.revokeObjectURL(pdfUrl);pdfUrl=null;StatementPdf.reset();$('pdf-open').removeAttribute('href');$('edit-dialog').close();editing=null;}
-async function refresh(silent=false){if(pending.size||editing||viewSaving||desiredView)return;const seq=++request;try{const value=await call('query','review',{token});if(seq!==request||pending.size||editing||viewSaving||desiredView)return;const oldRows=new Map((data?.rows||[]).map(r=>[r._id,r]));const sameList=data&&data.rows.length===value.rows.length&&value.rows.every(r=>oldRows.has(r._id));value.rows=value.rows.map(r=>{const old=oldRows.get(r._id);if(old){delete old.allocation;Object.assign(old,r);return old;}return r;});const viewChanged=sharedViewVersion!==(value.viewVersion??0);data=value;if(viewChanged){sharedViewVersion=value.viewVersion??0;if(!linkedView||sameList){filter=normalizeFilter(value.view?.filter);if(linkedView)writeLinkView(true);}$('search').value=value.view?.search||'';}needsRefresh.clear();$('status').textContent='';syncViewControls();if(sameList&&!viewChanged&&filter==='all'&&!$('search').value){updateTotals();data.rows.forEach(updateRow);}else render();}catch(e){if(seq!==request)return;if(/unavailable/.test(e.message)){clearReview();$('status').textContent='This statement link is unavailable. Ask John for a current link.';}else if(!silent||!data){$('status').textContent='Could not load the statement. Check your connection, then reload this page.';}else{saveWarning='Could not refresh. Displaying the last loaded version.';saved();}}}
+async function refresh(silent=false){if(pending.size||editing||viewSaving||desiredView)return;const seq=++request;try{const value=await call('query','review',{token});if(seq!==request||pending.size||editing||viewSaving||desiredView)return;const oldRows=new Map((data?.rows||[]).map(r=>[r._id,r]));const sameList=data&&data.rows.length===value.rows.length&&value.rows.every(r=>oldRows.has(r._id));value.rows=value.rows.map(r=>{const old=oldRows.get(r._id);if(old){delete old.allocation;delete old.ignored;Object.assign(old,r);return old;}return r;});const viewChanged=sharedViewVersion!==(value.viewVersion??0);data=value;if(viewChanged){sharedViewVersion=value.viewVersion??0;if(!linkedView||sameList){filter=normalizeFilter(value.view?.filter);if(linkedView)writeLinkView(true);}$('search').value=value.view?.search||'';}needsRefresh.clear();$('status').textContent='';syncViewControls();if(sameList&&!viewChanged&&filter==='all'&&!$('search').value){updateTotals();data.rows.forEach(updateRow);}else render();}catch(e){if(seq!==request)return;if(/unavailable/.test(e.message)){clearReview();$('status').textContent='This statement link is unavailable. Ask John for a current link.';}else if(!silent||!data){$('status').textContent='Could not load the statement. Check your connection, then reload this page.';}else{saveWarning='Could not refresh. Displaying the last loaded version.';saved();}}}
 function allocationLabel(row){if(!row.allocation)return null;return people.find(p=>row.allocation[p]===row.amountCents&&people.filter(x=>x!==p).every(x=>(row.allocation[x]??0)===0))||'split';}
 function render(){
  $('review').hidden=false;$('balance').hidden=false;$('copy-link').hidden=false;$('title').textContent=data.title;$('period').textContent=data.period;$('balance-amount').textContent=money(data.balanceCents);$('due-date').textContent=data.dueDate?'Due '+new Date(data.dueDate+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'Due date not provided';
@@ -122,7 +124,7 @@ function renderRows(){
  const groups=[['purchase','Purchases',''],['credit','Credits & adjustments',data.sourceType==='csv'?'Assign refunds to the person whose purchase they offset.':'Assign the rent adjustment to the same person as the corresponding rent charge if it offsets that charge.'],['fee','Fees',''],['interest','Interest',''],['opening','Opening balance','Allocate the carried balance based on the previous month’s split.'],['payment','Card payments','Assign payments to the share they paid down. They reduce the amount still owed.']];
  if(order!=='type'){for(const r of rows)root.append(row(r));}
  else for(const [kind,label,help] of groups){const group=rows.filter(r=>r.kind===kind);if(!group.length)continue;const heading=el('div',undefined,'group-heading');heading.append(el('h2',label),el('span',`${group.length} ${group.length===1?'item':'items'} · ${money(group.reduce((s,r)=>s+r.amountCents,0))}`));root.append(heading);if(help)root.append(el('p',help,'group-help'));for(const r of group)root.append(row(r));}
- if(!rows.length)root.append(el('p',current==='unassigned'&&!search&&kindFilter==='all'&&!dateFrom&&!dateTo?'All items are assigned. Choose All items to review them.':'No items match this view.','empty'));
+ if(!rows.length)root.append(el('p',current==='unassigned'&&!search&&kindFilter==='all'&&!dateFrom&&!dateTo?(data.rows.some(r=>r.ignored)?'All remaining items are assigned. Choose Ignored to restore excluded rows.':'All items are assigned. Choose All items to review them.'):'No items match this view.','empty'));
 }
 function merchantName(description){
  // Display-only shortening. The exact imported description stays in Details and export.
@@ -131,31 +133,32 @@ function merchantName(description){
  return description.replace(/^TST\*\s*/i,'').split(/\s+\d{1,6}\s+(?=[A-Za-z])|\s+\d{7,}\b/)[0].trim()||description;
 }
 function row(r){
- const item=el('article',undefined,'row');item.dataset.id=r._id;
+ const item=el('article',undefined,'row'+(r.ignored?' ignored':''));item.dataset.id=r._id;
  const top=el('div',undefined,'row-top'),heading=el('div'),amount=el('div',money(r.amountCents),'amount'+(r.amountCents<0?' negative':''));
- heading.append(el('h3',merchantName(r.description),'merchant'),el('div',new Date(r.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}),'date'));top.append(heading,amount);item.append(top);
+ heading.append(el('h3',merchantName(r.description),'merchant'),el('div',new Date(r.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}),'date'));top.append(heading,amount);item.append(top);const badge=el('p','Ignored · excluded from totals','ignored-badge');badge.hidden=!r.ignored;item.append(badge);
  const actions=el('div',undefined,'row-actions'),label=allocationLabel(r);
- for(const p of people){const b=el('button',title(p),'label-button');b.dataset.label=p;b.setAttribute('aria-pressed',String(label===p));b.title=label===p?'Click again to clear this label':'Assign to '+title(p);b.setAttribute('aria-label',`Assign ${r.description} to ${title(p)}`);b.disabled=needsRefresh.has(r._id);b.onclick=()=>saveRow(r,allocationLabel(r)===p?null:Object.fromEntries(people.map(k=>[k,k===p?r.amountCents:0])),r.note);actions.append(b);}
- item.append(actions);
+ for(const p of people){const b=el('button',title(p),'label-button');b.dataset.label=p;b.setAttribute('aria-pressed',String(label===p));b.title=label===p?'Click again to clear this label':'Assign to '+title(p);b.setAttribute('aria-label',`Assign ${r.description} to ${title(p)}`);b.disabled=!!r.ignored||needsRefresh.has(r._id);b.onclick=()=>saveRow(r,allocationLabel(r)===p?null:Object.fromEntries(people.map(k=>[k,k===p?r.amountCents:0])),r.note);actions.append(b);}
+ const ignore=el('button',r.ignored?'Restore row':'Ignore row','quiet ignore-row');ignore.setAttribute('aria-pressed',String(!!r.ignored));ignore.disabled=needsRefresh.has(r._id);ignore.onclick=()=>saveRow(r,r.allocation,r.note,false,!r.ignored);
+ item.append(actions,ignore);
  const split=el('p',label==='split'?people.filter(p=>r.allocation[p]).map(p=>`${title(p)} ${money(r.allocation[p])}`).join(' · '):'','split-text');split.hidden=label!=='split';item.append(split);
  const details=el('details',undefined,'charge-details');details.open=expandedRows.has(r._id);
  details.append(el('summary',r.note?'Details · Note added':'Details'));
  details.append(el('p',r.description,'full-description'));
  const secondary=el('div',undefined,'secondary-actions');
- const edit=el('button','Split / note','quiet edit-row');edit.disabled=pending.has(r._id)||needsRefresh.has(r._id);edit.onclick=()=>openEditor(r);secondary.append(edit);
- {const undo=el('button','Clear label','quiet clear-row');undo.hidden=!r.allocation;undo.disabled=needsRefresh.has(r._id);undo.setAttribute('aria-label','Clear assignment for '+r.description);undo.onclick=()=>saveRow(r,null,r.note);secondary.append(undo);}
+ const edit=el('button','Split / note','quiet edit-row');edit.disabled=!!r.ignored||pending.has(r._id)||needsRefresh.has(r._id);edit.onclick=()=>openEditor(r);secondary.append(edit);
+ {const undo=el('button','Clear label','quiet clear-row');undo.hidden=!r.allocation;undo.disabled=!!r.ignored||needsRefresh.has(r._id);undo.setAttribute('aria-label','Clear assignment for '+r.description);undo.onclick=()=>saveRow(r,null,r.note);secondary.append(undo);}
  const source=el('button',data.sourceType==='csv'?`CSV row ${r.page} ↗`:`PDF p. ${r.page} ↗`,'quiet source');source.onclick=()=>showPdf(r.page);secondary.append(source);details.append(secondary);
  const noteText=el('p',r.note,'row-note');noteText.hidden=!r.note;details.append(noteText);
  details.addEventListener('toggle',()=>{if(!details.isConnected)return;if(details.open)expandedRows.add(r._id);else expandedRows.delete(r._id);});item.append(details);return item;
 }
 // Each charge has its own serial queue. The visible intent changes immediately;
 // later taps replace queued intent, while acknowledged versions advance in order.
-function saveRow(r,allocation,note,fromEditor=false){
+function saveRow(r,allocation,note,fromEditor=false,ignored=!!r.ignored){
  if(needsRefresh.has(r._id))return Promise.resolve(false);
  ++request;failures.delete(r._id);saveWarning='';
  let entry=pending.get(r._id);
- if(!entry){let resolve;const done=new Promise(r=>resolve=r);entry={row:r,confirmed:{allocation:r.allocation,note:r.note,version:r.version},revision:0,done,resolve,fromEditor,running:false};pending.set(r._id,entry);}
- entry.desired={allocation:allocation||undefined,note:note.trim()};entry.revision++;
+ if(!entry){let resolve;const done=new Promise(r=>resolve=r);entry={row:r,confirmed:{allocation:r.allocation,ignored:!!r.ignored,note:r.note,version:r.version},revision:0,done,resolve,fromEditor,running:false};pending.set(r._id,entry);}
+ entry.desired={allocation:allocation||undefined,ignored,note:note.trim()};entry.revision++;
  Object.assign(r,entry.desired);updateRow(r);updateTotals();
  if(!entry.running){entry.running=true;void flushRow(entry);}
  return entry.done;
@@ -165,7 +168,7 @@ async function flushRow(entry){
  while(pending.get(r._id)===entry){
   const revision=entry.revision,desired={...entry.desired};
   try{
-   const result=await call('mutation','save',{token,id:r._id,expectedVersion:entry.confirmed.version,allocation:desired.allocation||null,note:desired.note});
+   const result=await call('mutation','save',{token,id:r._id,expectedVersion:entry.confirmed.version,allocation:desired.allocation||null,ignored:desired.ignored,note:desired.note});
    if(pending.get(r._id)!==entry)return;
    entry.confirmed={...desired,version:result.version};r.version=result.version;
    if(revision!==entry.revision)continue;
@@ -247,7 +250,7 @@ for(const id of ['filter-assignment','filter-kind','date-from','date-to'])$(id).
 $('reset-filter-draft').onclick=()=>{setPicker('filter-assignment','all');setPicker('filter-kind','all');setPicker('filter-period','all');$('date-from').value='';$('date-to').value='';$('custom-dates').hidden=true;updateFilterPreview();};
 $('filters-form').onsubmit=e=>{e.preventDefault();updateFilterPreview();if($('apply-filters').disabled)return;filter=$('filter-assignment').value;kindFilter=$('filter-kind').value;dateFrom=$('date-from').value;dateTo=$('date-to').value;closeFilterPanel(false);writeLinkView(true,false);renderRows();queueView();};
 $('search').oninput=()=>{if(data){renderRows();queueView(200);}};
-$('export').onclick=()=>{const cell=(value,index)=>'"'+String(value??'').replace(index===1||index===people.length+5?/^[=+@\t\r-]/:/^[=+@\t\r]/,"'$&").replaceAll('"','""')+'"';const rows=[['Date','Description','Type','Amount',...people.map(title),'Unassigned','Note',data.sourceType==='csv'?'CSV row':'PDF page'],...data.rows.map(r=>[r.date,r.description,r.kind,(r.amountCents/100).toFixed(2),...people.map(p=>r.allocation?((r.allocation[p]??0)/100).toFixed(2):''),r.allocation?'':(r.amountCents/100).toFixed(2),r.note,r.page])];const url=URL.createObjectURL(new Blob(['\uFEFF'+rows.map(r=>r.map(cell).join(',')).join('\r\n')],{type:'text/csv;charset=utf-8'}));const a=el('a');a.href=url;a.download='statement-split.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};
+$('export').onclick=()=>{const cell=(value,index)=>'"'+String(value??'').replace(index===1||index===people.length+5?/^[=+@\t\r-]/:/^[=+@\t\r]/,"'$&").replaceAll('"','""')+'"';const rows=[['Date','Description','Type','Amount',...people.map(title),'Unassigned','Note',data.sourceType==='csv'?'CSV row':'PDF page','Ignored amount'],...data.rows.map(r=>[r.date,r.description,r.kind,(r.amountCents/100).toFixed(2),...people.map(p=>r.allocation&&!r.ignored?((r.allocation[p]??0)/100).toFixed(2):''),r.allocation||r.ignored?'':(r.amountCents/100).toFixed(2),r.note,r.page,r.ignored?(r.amountCents/100).toFixed(2):''])];const url=URL.createObjectURL(new Blob(['\uFEFF'+rows.map(r=>r.map(cell).join(',')).join('\r\n')],{type:'text/csv;charset=utf-8'}));const a=el('a');a.href=url;a.download='statement-split.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};
 async function manager(){
  $('manager').hidden=false;$('status').textContent='Sign in to see your statement library. Shared review links open without sign-in.';
  async function script(src,attributes={}){await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src=src;s.crossOrigin='anonymous';Object.entries(attributes).forEach(([k,v])=>s.setAttribute(k,v));s.onload=resolve;s.onerror=reject;document.head.append(s);});}

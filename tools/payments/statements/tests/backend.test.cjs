@@ -58,3 +58,16 @@ test('CSV activity imports with unknown due date, private source metadata and un
  await assert.rejects(fixture().run('importStatement',{...input,sourceType:'pdf'}),/Invalid statement details/);
  assert.equal(f.tables.paymentStatements.find(s=>s._id===id).storageId,'csv');
 });
+
+test('ignore and restore persist separately from allocations and reject stale, revoked or cross-statement writes',async()=>{
+ const f=fixture();await f.run('save',assign);
+ await f.run('save',{...assign,expectedVersion:1,ignored:true,note:'Keep original assignment'});
+ let row=(await f.run('review',{token})).rows[0];assert.equal(row.ignored,true);assert.equal(row.allocation.parents,10000);assert.equal(row.note,'Keep original assignment');
+ await assert.rejects(f.run('save',{...assign,expectedVersion:1,ignored:false}),/changed/);
+ await assert.rejects(f.run('save',{...assign,expectedVersion:2}),/ignored/);
+ await assert.rejects(f.run('save',{...assign,id:'r3',ignored:true}),/not found/);
+ await f.run('save',{...assign,expectedVersion:2,ignored:false,note:row.note});row=(await f.run('review',{token})).rows[0];assert.equal(row.ignored,false);assert.equal(row.allocation.parents,10000);assert.equal(row.version,3);
+ await f.run('save',{...assign,id:'r2',allocation:null,ignored:true});assert.equal((await f.run('review',{token})).rows[1].ignored,true);
+ await f.run('saveView',{token,view:{filter:'ignored',search:''}});assert.equal((await f.run('view',{token})).view.filter,'ignored');
+ f.tables.paymentStatements[0].enabled=false;await assert.rejects(f.run('save',{...assign,expectedVersion:3,ignored:true}),/unavailable/);
+});

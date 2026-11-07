@@ -28,16 +28,17 @@ export const saveView = mutation({ args: { token: v.string(), expectedVersion: v
   await ctx.db.patch(s._id, { view, viewVersion: version + 1 });
   return { view, viewVersion: version + 1 };
 } });
-export const save = mutation({ args: { token: v.string(), id: v.id('paymentStatementRows'), expectedVersion: v.number(), allocation: v.union(allocation, v.null()), note: v.string() }, handler: async (ctx, args) => {
+export const save = mutation({ args: { token: v.string(), id: v.id('paymentStatementRows'), expectedVersion: v.number(), allocation: v.union(allocation, v.null()), ignored: v.optional(v.boolean()), note: v.string() }, handler: async (ctx, args) => {
   const s = await access(ctx, args.token), row = await ctx.db.get(args.id);
   if (!row || row.statementId !== s._id) throw Error('Charge not found.');
   if (!Number.isSafeInteger(args.expectedVersion) || row.version !== args.expectedVersion) throw Error('This charge changed on another device. Refresh and review it before saving again.');
+  if (row.ignored && args.ignored === undefined) throw Error('This item is ignored. Restore it before editing.');
   if (args.note.length > 500) throw Error('Keep notes under 500 characters.');
   if (args.allocation) {
     const values = Object.values(args.allocation);
     if (values.some(n => !money(n) || (row.amountCents >= 0 ? n < 0 : n > 0)) || values.reduce((a,b) => a+b,0) !== row.amountCents) throw Error('The split must add up to the charge, with the same sign.');
   }
-  await ctx.db.patch(row._id, { allocation: args.allocation ?? undefined, note: args.note.trim(), version: row.version+1, updatedAt: Date.now() });
+  await ctx.db.patch(row._id, { allocation: args.allocation ?? undefined, ignored: args.ignored ?? row.ignored, note: args.note.trim(), version: row.version+1, updatedAt: Date.now() });
   return { version: row.version+1 };
 } });
 export const file = internalQuery({ args: { token: v.string() }, handler: async (ctx,args) => (await access(ctx,args.token)).storageId });

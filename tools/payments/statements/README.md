@@ -37,3 +37,9 @@ The initial version supports assistant-assisted imports, not unattended in-brows
 `node --test tools/payments/statements/tests/*.test.cjs` tests access boundaries, revocation, import reconciliation, exact cents, stale writes, Chromium/WebKit desktop and phone layouts, PDF access, labels/splits and failure handling with synthetic data.
 
 Do not deploy this full local Convex tree: it contains unrelated modules and may lag the live service. Snapshot the current `rapid-shark-565` deployment, retain all modules/routes/schema, add `statements.ts`, `statementTables.ts`, `statementHttp.ts`, merge only these two tables and append only the GET/OPTIONS `/statement-pdf` routes. Check the snapshot has not changed before deployment. Publish only this feature and the Payments navigation link from a clean latest-origin checkout. Never test saves against real statement rows.
+
+## Ignored rows
+
+Every row has an Ignore row action. Ignored rows remain in All items and the Ignored view, retain their original amount, allocation and note, and are excluded from person totals and Unassigned. The progress bar treats them as reviewed; a separate ignored count and net amount explain the excluded balance. Restore row reinstates the retained assignment. The original source, full statement breakdown and reconciliation always include ignored rows. CSV exports include a separate Ignored amount column and leave ignored person/unassigned amounts blank.
+
+Ignore and restore save in the shared backend using the same version checks and serial save queue as labels. Failed writes restore confirmed values and show a warning; stale clients cannot silently edit an ignored row. The Ignored filter supports the existing fragment URL navigation and shared view persistence. No existing rows are ignored automatically.
