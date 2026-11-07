@@ -1,7 +1,7 @@
 (() => {
   'use strict';
   const ENDPOINT = 'https://rapid-shark-565.convex.cloud';
-  const RECOVERY_KEY = 'andrew-unsaved-v1', CHECK_INTERVAL = 60000;
+  const RECOVERY_KEY = 'andrew-unsaved-v1', CHECK_INTERVAL = 5 * 60 * 1000;
   const $ = id => document.getElementById(id);
   let session = null, sessionId, epoch = 0, mounted = false, ready = false, saving = false, paused = false, conflict = false;
   let pending = new Map(), versions = new Map(), owner = '', checking = null, lastVerified = 0, mode = 'loading', backup = null;
@@ -167,10 +167,10 @@
     if (!force && Date.now() - lastVerified < CHECK_INTERVAL && active(window.Clerk?.session)) return;
     if (!active(window.Clerk?.session)) { suspend(); return; }
     const generation = epoch, activeSession = window.Clerk.session;
-    session = activeSession; mode = 'checking'; editingLocked(true); banner('Checking your sign-in before editing…');
+    session = activeSession; // Routine verification runs quietly while the workspace stays usable.
     checking = (async () => {
       try {
-        const identity = await call('query', 'verify', {}, activeSession, true);
+        const identity = await call('query', 'verify', {}, activeSession);
         if (generation !== epoch) return;
         if (identity.email !== owner) { suspend('denied'); return; }
         lastVerified = Date.now(); mode = 'ready'; editingLocked(false); banner('');
@@ -212,7 +212,7 @@
     if (mounted) { window.Clerk.unmountSignIn($('sign-in')); mounted = false; }
     $('sign-in').hidden = true; message('gate-message', 'Opening your project workspace…');
     try {
-      const workspace = await call('query', 'workspace', {}, session, true);
+      const workspace = await call('query', 'workspace', {}, session, state.forceRefresh === true);
       if (generation === epoch) applyWorkspace(workspace);
     } catch (error) {
       if (generation !== epoch) return;
@@ -226,7 +226,7 @@
       checkpoint(); // Explicit reauthentication keeps the recovery copy.
       try { await window.Clerk.signOut(); } catch { message('gate-message', 'Sign-in could not restart. Check your connection and try again.'); return; }
     }
-    sessionId = undefined; await sessionChanged({session: window.Clerk?.session || null});
+    sessionId = undefined; await sessionChanged({session: window.Clerk?.session || null, forceRefresh: true});
   }
   $('session-retry').addEventListener('click', retryAuth);
   $('retry-auth').addEventListener('click', retryAuth);
@@ -248,17 +248,16 @@
   for (const name of ['input', 'change', 'focusout', 'click', 'keydown']) document.addEventListener(name, () => { checkpoint(); status(); });
   function guardEdit(event) {
     if (!event.target.closest?.('#content,#editor-content,.search-select-panel') || !ready) return;
-    if (mode !== 'ready' || !active(window.Clerk?.session) || Date.now() - lastVerified >= CHECK_INTERVAL) {
+    if (mode !== 'ready' || !active(window.Clerk?.session)) {
       event.preventDefault(); event.stopImmediatePropagation(); void checkSession(mode !== 'ready');
-    }
+    } else if (Date.now() - lastVerified >= CHECK_INTERVAL) void checkSession();
   }
   for (const name of ['pointerdown', 'keydown', 'beforeinput']) document.addEventListener(name, guardEdit, true);
   window.addEventListener('beforeunload', event => { checkpoint(); if (saving || pending.size || window.MissionApp.hasDraft() || hasRecovery()) { event.preventDefault(); event.returnValue = ''; } });
   window.addEventListener('online', () => { if(mode === 'disconnected' && !ready){void retryAuth();return;} void checkSession(true).then(() => { if (mode === 'ready' && paused && !conflict) { paused = false; void flush(); } }); });
-  window.addEventListener('focus', () => { void checkSession(true); });
-  document.addEventListener('visibilitychange', () => { checkpoint(); if (document.visibilityState === 'visible') void checkSession(true); });
+  window.addEventListener('focus', () => { void checkSession(); });
+  document.addEventListener('visibilitychange', () => { checkpoint(); if (document.visibilityState === 'visible') void checkSession(); });
   window.addEventListener('pageshow', event => { if (event.persisted) void checkSession(true); });
-  setInterval(() => { if (document.visibilityState === 'visible') void checkSession(); }, CHECK_INTERVAL);
   function waitForClerk() {
     return new Promise((resolve, reject) => {
       const scripts = [...document.querySelectorAll('[data-clerk-script]')]; const timer = setTimeout(failed, 20000);
