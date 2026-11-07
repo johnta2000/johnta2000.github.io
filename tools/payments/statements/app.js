@@ -139,7 +139,7 @@ function row(r){
  const actions=el('div',undefined,'row-actions'),label=allocationLabel(r);
  for(const p of people){const b=el('button',title(p),'label-button');b.dataset.label=p;b.setAttribute('aria-pressed',String(label===p));b.title=label===p?'Click again to clear this label':'Assign to '+title(p);b.setAttribute('aria-label',`Assign ${r.description} to ${title(p)}`);b.disabled=!!r.ignored||needsRefresh.has(r._id);b.onclick=()=>saveRow(r,allocationLabel(r)===p?null:Object.fromEntries(people.map(k=>[k,k===p?r.amountCents:0])),r.note);actions.append(b);}
  const ignore=el('button',r.ignored?'Restore row':'Ignore row','quiet ignore-row');ignore.setAttribute('aria-pressed',String(!!r.ignored));ignore.disabled=needsRefresh.has(r._id);ignore.onclick=()=>saveRow(r,r.allocation,r.note,false,!r.ignored);
- item.append(actions,ignore);
+ item.append(actions);
  const split=el('p',label==='split'?people.filter(p=>r.allocation[p]).map(p=>`${title(p)} ${money(r.allocation[p])}`).join(' · '):'','split-text');split.hidden=label!=='split';item.append(split);
  const details=el('details',undefined,'charge-details');details.open=expandedRows.has(r._id);
  details.append(el('summary',r.note?'Details · Note added':'Details'));
@@ -147,6 +147,7 @@ function row(r){
  const secondary=el('div',undefined,'secondary-actions');
  const edit=el('button','Split / note','quiet edit-row');edit.disabled=!!r.ignored||pending.has(r._id)||needsRefresh.has(r._id);edit.onclick=()=>openEditor(r);secondary.append(edit);
  {const undo=el('button','Clear label','quiet clear-row');undo.hidden=!r.allocation;undo.disabled=!!r.ignored||needsRefresh.has(r._id);undo.setAttribute('aria-label','Clear assignment for '+r.description);undo.onclick=()=>saveRow(r,null,r.note);secondary.append(undo);}
+ secondary.append(ignore);
  const source=el('button',data.sourceType==='csv'?`CSV row ${r.page} ↗`:`PDF p. ${r.page} ↗`,'quiet source');source.onclick=()=>showPdf(r.page);secondary.append(source);details.append(secondary);
  const noteText=el('p',r.note,'row-note');noteText.hidden=!r.note;details.append(noteText);
  details.addEventListener('toggle',()=>{if(!details.isConnected)return;if(details.open)expandedRows.add(r._id);else expandedRows.delete(r._id);});item.append(details);return item;
