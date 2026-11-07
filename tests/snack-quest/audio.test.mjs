@@ -30,3 +30,11 @@ test('supported audio sessions request playback only while enabled in the foregr
   f.score.setEnabled(false);assert.equal(audioSession.type,'auto');
  }finally{if(previous)Object.defineProperty(globalThis,'navigator',previous);else delete globalThis.navigator;}
 });
+test('a blocked startup retains its error and can recover on a later allowed tap',async()=>{
+ const f=fixture();f.score.setEnabled(true);f.score.unlock();
+ await Promise.resolve();f.score.context.state='suspended';
+ f.score.context.resume=()=>Promise.reject(Object.assign(new Error('gesture required'),{name:'NotAllowedError'}));
+ await f.score.unlock();assert.equal(f.score.lastError,'NotAllowedError');assert.equal(f.score.ready,false);
+ f.score.context.resume=function(){this.state='running';return Promise.resolve();};
+ await f.score.unlock();assert.equal(f.score.lastError,'');assert.equal(f.score.ready,true);
+});

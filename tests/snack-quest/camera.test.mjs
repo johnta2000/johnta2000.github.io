@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {mapFrame} from '../../games/snack-quest/art.mjs';
-import {setMapStretch,roomWidth,roomScale,WIDTH,HEIGHT,ORDER} from '../../games/snack-quest/engine.mjs?v=35';
+import {setMapStretch,roomWidth,roomScale,WIDTH,HEIGHT,ORDER} from '../../games/snack-quest/engine.mjs?v=36';
 test('whole-map framing fits every room inside phone and tablet safe areas without distortion',()=>{
  for(const room of ['tutorial',...ORDER])for(const [width,height] of [[844,390],[667,220],[932,430],[1024,768]]){
   const insets={left:44,right:44,top:64,bottom:49},frame=mapFrame(room,width,height,insets),scale=roomScale(room);

@@ -1,7 +1,7 @@
-import { setMapStretch, adaptWorldLayout, ROOMS, ORDER, DASH_COOLDOWN, ABILITIES, WIDTH, HEIGHT, createRun, peeProgress, upgradeRun, TRINKETS, validRun, migrateRun, enterRoom, makeWorld, maxHearts, goalDone, isUnlocked, firstUnfinished, objective, retryRoom, step, startDash, startAbility } from './engine.mjs?v=35';
-import { portrait, drawWorld, drawPicnic } from './art.mjs?v=35';
-import { movementKey, abilityKey, isTextEntry, joystickVector } from './input.mjs?v=35';
-import { Soundscape } from './audio.mjs?v=35';
+import { setMapStretch, adaptWorldLayout, ROOMS, ORDER, DASH_COOLDOWN, ABILITIES, WIDTH, HEIGHT, createRun, peeProgress, upgradeRun, TRINKETS, validRun, migrateRun, enterRoom, makeWorld, maxHearts, goalDone, isUnlocked, firstUnfinished, objective, retryRoom, step, startDash, startAbility } from './engine.mjs?v=36';
+import { portrait, drawWorld, drawPicnic } from './art.mjs?v=36';
+import { movementKey, abilityKey, isTextEntry, joystickVector } from './input.mjs?v=36';
+import { Soundscape } from './audio.mjs?v=36';
 
 const $ = id => document.getElementById(id);
 const canvas=$('world'), ctx=canvas.getContext('2d');
@@ -79,7 +79,7 @@ function routeURL(nextView='play',room=world?.room||run?.room||'meadow',id=run?.
   const url=new URL(location.href);url.search='';url.hash='';
   if(nextView!=='home')url.searchParams.set('view',nextView);
   if(nextView==='ability'){url.searchParams.set('ability',abilitySlugs[shownAbility]);const from=view==='ability'?new URLSearchParams(location.search).get('from'):view;url.searchParams.set('from',from==='pause'?'pause':'play');}
-  if(nextView==='fullscreen'){const from=view==='fullscreen'?new URLSearchParams(location.search).get('from'):view;url.searchParams.set('from',['home','play','pause','picnic','retry'].includes(from)?from:'home');}
+  if(['fullscreen','sound'].includes(nextView)){const from=['fullscreen','sound'].includes(view)?new URLSearchParams(location.search).get('from'):view;url.searchParams.set('from',['home','play','pause','picnic','retry'].includes(from)?from:'home');}
   if(id)url.searchParams.set('run',id);
   if(nextView!=='home')url.searchParams.set('room',room);
   return url;
@@ -126,8 +126,9 @@ function focusGame() {
 }
 function readRoute() {
   clearInput();controlsReady=false;
+  browserChime.pause();
   const query=new URLSearchParams(location.search),requested=query.get('view')||'home';
-  view=['home','play','pause','reunion','retry','picnic','fullscreen','ability'].includes(requested)?requested:'home';
+  view=['home','play','pause','reunion','retry','picnic','fullscreen','ability','sound'].includes(requested)?requested:'home';
   const id=query.get('run'),requestedRoom=query.get('room');
   let saved=readRun(id||latestId);
   if(!saved&&!readFailed&&id&&/^[a-z0-9]{6,16}$/.test(id)){saved=createRun(id);memory.set(id,saved);}
@@ -137,9 +138,9 @@ function readRoute() {
     if(!isUnlocked(run,room))room=firstUnfinished(run);
     if(!world||world.room!==room||world.runId!==run.id)world=makeWorld(run,room);
   } else {run=null;world=null;}
-  if(!['home','fullscreen'].includes(view)&&!run)view='home';
+  if(!['home','fullscreen','sound'].includes(view)&&!run)view='home';
   if(run&&view!=='home') {
-    if(run.health<=0&&view!=='fullscreen')view='retry';
+    if(run.health<=0&&!['fullscreen','sound'].includes(view))view='retry';
     else if(view==='retry')view='play';
     if(view==='ability'){shownAbility=Object.keys(abilitySlugs).find(id=>abilitySlugs[id]===query.get('ability'))||run.pendingAbility||'bark';if(!run[ABILITIES[shownAbility].unlock])view='play';}
     if(view==='play'&&run.pendingAbility){shownAbility=run.pendingAbility;view='ability';}
@@ -180,7 +181,7 @@ function plushPair(missing=true) {
   return `<div class="plush-pair"><div><canvas width="240" height="200" data-portrait="pepsi" aria-label="Round tan-and-white Pepsi"></canvas><strong>Pepsi</strong><small>one brave little loaf</small></div><div class="${missing?'missing':''}"><canvas width="240" height="200" data-portrait="pepper" aria-label="Round gray-and-white Pepper"></canvas>${missing?'<span class="missing-mark" aria-hidden="true">?</span>':''}<strong>Pepper</strong><small>${missing?'somewhere out there':'right where he belongs'}</small></div></div>`;
 }
 function render() {
-  document.body.classList.toggle('playing',['play','pause','reunion','retry','fullscreen','ability'].includes(view));
+  document.body.classList.toggle('playing',['play','pause','reunion','retry','fullscreen','ability','sound'].includes(view));
   document.body.dataset.view=view;
   $('mobile-home').href=routeURL('home');
   $('rotate-prompt').hidden=!touchPortrait()||view!=='play';
@@ -198,11 +199,13 @@ function render() {
   } else if(view==='fullscreen') {
     renderDisplayHelp();
   } else if(view==='home') {
-    $('screen').innerHTML=`<div class="welcome-card"><p class="card-eyebrow">SOMEONE’S MISSING FROM THE PICNIC</p><h3>Where’s Pepper?</h3>${plushPair(true)}<p>Find the key, rescue your friends,<br>and outsmart a giant vacuum.</p><div class="mission-strip"><span>3 hearts</span><span>9 little chapters</span><span>3 friends to find</span></div><button id="begin" class="primary-button">${active?'Continue the adventure':'Start with practice'} <span>→</span></button>${active?'<button id="fresh" class="secondary-button">Start a new adventure</button>':''}<p class="tiny-note">A safe, skippable practice first. WASD to move. Space to dash.</p></div>`;
+    $('screen').innerHTML=`<div class="welcome-card"><p class="card-eyebrow">SOMEONE’S MISSING FROM THE PICNIC</p><h3>Where’s Pepper?</h3>${plushPair(true)}<p>Find the key, rescue your friends,<br>and outsmart a giant vacuum.</p><div class="mission-strip"><span>3 hearts</span><span>9 little chapters</span><span>3 friends to find</span></div><button id="begin" class="primary-button">${active?'Continue the adventure':'Start with practice'} <span>→</span></button>${active?'<button id="fresh" class="secondary-button">Start a new adventure</button>':''}<a id="sound-help" class="tiny-note" href="${routeURL('sound')}">Sound check</a><p class="tiny-note">A safe, skippable practice first. WASD to move. Space to dash.</p></div>`;
     $('begin').addEventListener('click',()=>active?navigate(routeURL(run.health<=0?'retry':'play',run.room)):newRun());
     $('fresh')?.addEventListener('click',newRun);
+  } else if(view==='sound') {
+    renderSoundCheck();
   } else if(view==='pause') {
-    $('screen').innerHTML=`<div class="pause-card" role="dialog" aria-modal="true" aria-labelledby="pause-title"><span class="pause-flower" aria-hidden="true">✿</span><h3 id="pause-title">Catch your breath.</h3><p>The adventure is paused.<br>${touchMode?'Tap Keep going to resume.':'Press WASD or click Keep going to resume.'}<br>Dash protects your whole team. Only heart-marked snacks restore a heart.</p>${abilityGuideLinks()}<button id="resume" class="primary-button">Keep going <span>→</span></button><a id="home-link" class="secondary-button" href="./">Back to the cottage</a>${touchMode?'<nav id="pause-chapters" aria-label="Visit a chapter"></nav><a id="pause-practice" class="secondary-button">Practice controls</a>':''}</div>`;
+    $('screen').innerHTML=`<div class="pause-card" role="dialog" aria-modal="true" aria-labelledby="pause-title"><span class="pause-flower" aria-hidden="true">✿</span><h3 id="pause-title">Catch your breath.</h3><p>The adventure is paused.<br>${touchMode?'Tap Keep going to resume.':'Press WASD or click Keep going to resume.'}<br>Dash protects your whole team. Only heart-marked snacks restore a heart.</p>${abilityGuideLinks()}<a id="sound-help" class="secondary-button" href="${routeURL('sound')}">Sound check</a><button id="resume" class="primary-button">Keep going <span>→</span></button><a id="home-link" class="secondary-button" href="./">Back to the cottage</a>${touchMode?'<nav id="pause-chapters" aria-label="Visit a chapter"></nav><a id="pause-practice" class="secondary-button">Practice controls</a>':''}</div>`;
     $('resume').addEventListener('click',dismissScreen);$('home-link').href=routeURL('home');$('resume').focus({preventScroll:true});
   } else if(view==='reunion') {
     $('screen').innerHTML='<div class="story-card" role="dialog" aria-modal="true" aria-labelledby="reunion-title"><p class="card-eyebrow">FOUND: ONE VERY GOOD FRIEND</p><canvas width="240" height="200" data-portrait="pepper" aria-label="Pepper, the gray plush corgi"></canvas><h3 id="reunion-title">Found you, Pepper.</h3><p>Your best friend is coming with you.<br>There are still trinkets to find by the pond!</p><div class="new-heart">♥ Four shared hearts. A hit to either corgi costs one.</div><button id="reunion-continue" class="primary-button">Explore together <span>→</span></button><button id="reunion-close" class="secondary-button">Stay by the pond a little longer</button></div>';
@@ -217,7 +220,7 @@ function render() {
     $('again').addEventListener('click',newRun);
   } else {$('screen').classList.add('empty');$('screen').replaceChildren();}
   document.querySelectorAll('[data-portrait]').forEach(element=>portrait(element,element.dataset.portrait));
-  if(touchMode&&view==='home')$('screen').querySelector('.tiny-note').textContent='Play sideways. Joystick to roll. Tap Dash to bonk!';
+  if(touchMode&&view==='home')$('screen').querySelector('p.tiny-note').textContent='Play sideways. Joystick to roll. Tap Dash to bonk!';
   updateProgress();resize();
 }
 function updateProgress() {
@@ -358,6 +361,7 @@ $('abilities').addEventListener('click',event=>{if(event.pointerType==='touch'||
 function pause(){if(view==='play')navigate(routeURL('pause'));}
 function dismissScreen() {
   if(view==='ability'){const id=shownAbility,from=new URLSearchParams(location.search).get('from')==='pause'?'pause':'play';if(run.pendingAbility===id)run.pendingAbility=null;save();navigate(routeURL(from));if(from==='pause')document.querySelector(`[data-guide="${id}"]`)?.focus({preventScroll:true});return;}
+  if(view==='sound'){const from=new URLSearchParams(location.search).get('from');navigate(routeURL(['home','play','pause','picnic','retry'].includes(from)?from:run?'play':'home'));($('sound-help')||$('sound')).focus({preventScroll:true});return;}
   if(view==='fullscreen'){const from=new URLSearchParams(location.search).get('from');navigate(routeURL(['home','play','pause','picnic','retry'].includes(from)?from:run?'play':'home'));$('fullscreen').focus({preventScroll:true});return;}
   if(view==='retry')navigate(routeURL('home'));
   else if(view==='pause'||view==='reunion')navigate(routeURL('play'));
@@ -370,7 +374,7 @@ window.addEventListener('keydown',event=>{
   // Resume first, then record the held key: readRoute clears stale input.
   if(view==='pause'&&move&&!event.repeat)dismissScreen();
   if(event.key==='Escape'){event.preventDefault();if(view==='play')pause();else dismissScreen();return;}
-  if(['pause','reunion','retry','fullscreen','ability'].includes(view)&&event.key==='Tab') {
+  if(['pause','reunion','retry','fullscreen','ability','sound'].includes(view)&&event.key==='Tab') {
     const controls=[...$('screen').querySelectorAll('button,a')];
     if(!controls.includes(document.activeElement)){event.preventDefault();(event.shiftKey?controls.at(-1):controls[0])?.focus();}
     else if(event.shiftKey&&document.activeElement===controls[0]){event.preventDefault();controls.at(-1).focus();}
@@ -398,14 +402,19 @@ keyboardCapture.addEventListener('beforeinput',event=>{
 keyboardCapture.addEventListener('input',()=>{keyboardCapture.value='';});
 $('focus-controls').addEventListener('click',focusGame);
 function restInBackground() {
-  soundtrack.setForeground(false);clearInput();
+  soundtrack.setForeground(false);browserChime.pause();clearInput();
   // Keep the current view and history. The next WASD press resumes without a dialog.
   if(view==='play')controlsReady=false;
   save();
 }
 window.addEventListener('blur',restInBackground);
 window.addEventListener('focus',()=>soundtrack.setForeground(!document.hidden));
-window.addEventListener('pointerdown',()=>{soundtrack.setForeground(!document.hidden);soundtrack.unlock();},{capture:true});
+function unlockFromGesture(){soundtrack.setForeground(!document.hidden);soundtrack.unlock();}
+window.addEventListener('pointerdown',unlockFromGesture,{capture:true});
+// Touch pointerdown is not an activation-triggering event on Safari. Retry at release
+// and click, including when the joystick prevents the synthetic click.
+window.addEventListener('touchend',unlockFromGesture,{capture:true,passive:true});
+window.addEventListener('click',unlockFromGesture,{capture:true});
 window.addEventListener('pageshow',()=>soundtrack.setForeground(!document.hidden&&document.hasFocus()));
 $('stage').addEventListener('pointerdown',()=>{if(view==='play')focusGame();});
 document.addEventListener('visibilitychange',()=>{if(document.hidden)restInBackground();else soundtrack.setForeground(document.hasFocus());lastFrame=performance.now();});
@@ -429,6 +438,32 @@ function renderSound() {
   $('sound').title='Original music + little adventure sounds';
   $('sound').innerHTML=`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4V5Z${soundOn?'M16 8q5 4 0 8m3-11q8 7 0 14':'M16 9l5 6m0-6-5 6'}"/></svg><span>Sound ${soundOn?'on':'off'}</span>`;
 }
+function renderSoundCheck(){
+  $('screen').innerHTML='<div class="story-card" role="dialog" aria-modal="true" aria-labelledby="sound-title"><p class="card-eyebrow">A LITTLE SPEAKER CHECK</p><h3 id="sound-title" tabindex="-1">Can you hear the chime?</h3><p>The adventure is paused. Try each button once.</p><button id="test-game-sound" class="primary-button">Play game chime</button><button id="test-speaker" class="secondary-button">Play browser chime</button><p id="sound-result" class="tiny-note" role="status">Ready to test. This turns sound on.</p><details><summary>Sound details</summary><p id="sound-details" class="tiny-note"></p></details><button id="sound-done" class="secondary-button">Back to the game</button></div>';
+  $('sound-title').focus({preventScroll:true});
+  $('test-game-sound').addEventListener('click',()=>{
+    soundOn=true;soundtrack.setEnabled(true);renderSound();try{localStorage.setItem(PREFIX+'sound','true');}catch{}
+    const started=soundtrack.unlock(),context=soundtrack.context,time=context?.currentTime;
+    // Schedule within the click too: older Safari may not retain activation in a promise.
+    sound('start');Promise.resolve(started).then(()=>{if(context?.currentTime===time)sound('start');});
+    $('sound-result').textContent='Testing the game chime…';
+    setTimeout(()=>{
+      if(!$('sound-result'))return;
+      const advancing=context&&context.currentTime>time+.05;
+      $('sound-result').textContent=advancing?'The game audio clock is running. Did you hear the chime?':'The game audio did not start. Try the browser chime below.';
+      $('sound-details').textContent=`Build 36 · game: ${context?.state||'unavailable'} · clock: ${advancing?'advancing':'stopped'} · ${soundtrack.foreground?'foreground':'background'}${soundtrack.lastError?' · '+soundtrack.lastError:''}`;
+    },900);
+  });
+  $('test-speaker').addEventListener('click',()=>{
+    browserChime.currentTime=0;
+    $('sound-result').textContent='Testing browser chime…';
+    setTimeout(()=>{if($('sound-result')?.textContent==='Testing browser chime…')$('sound-result').textContent='Browser chime has not started. Please tell me this result.';},1500);
+    browserChime.play().then(()=>{if($('sound-result'))$('sound-result').textContent='Browser chime started. If only this chime works, tell me “browser chime only”.';}).catch(error=>{if($('sound-result'))$('sound-result').textContent='Browser chime was blocked: '+error.name;});
+  });
+  $('sound-done').addEventListener('click',dismissScreen);
+}
+// An independent media-element test distinguishes the Web Audio graph from device output.
+const browserChime=new Audio('./sound-check.wav?v=36');browserChime.preload='none';browserChime.volume=.65;
 $('sound').addEventListener('click',()=>{soundOn=!soundOn;soundtrack.setEnabled(soundOn);const unlocked=soundtrack.unlock();renderSound();try{localStorage.setItem(PREFIX+'sound',String(soundOn));}catch{}Promise.resolve(unlocked).then(()=>sound('start'));});
 $('retry-save').addEventListener('click',()=>{if(save())toast('Your adventure is safely saved.');});
 $('download-save').addEventListener('click',()=>{

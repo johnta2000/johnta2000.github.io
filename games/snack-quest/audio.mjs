@@ -27,7 +27,7 @@ const frequency=midi=>440*2**((midi-69)/12);
 export class Soundscape {
   constructor(contextFactory=()=>new (window.AudioContext||window.webkitAudioContext)()) {
     this.contextFactory=contextFactory;
-    this.context=null;this.enabled=false;this.foreground=true;
+    this.context=null;this.lastError='';this.enabled=false;this.foreground=true;
     this.view='home';this.room='meadow';this.bossDefeated=false;this.nextNote=0;this.beat=0;
     this.musicVoices=new Set();this.effectVoices=new Set();
   }
@@ -50,8 +50,8 @@ export class Soundscape {
         this.master=this.context.createGain();this.master.gain.value=.65;
         this.master.connect(this.context.destination);
       }
-      if(['suspended','interrupted'].includes(this.context.state))return this.context.resume().catch(()=>{});
-    }catch{this.context=null;}
+      if(['suspended','interrupted'].includes(this.context.state))return this.context.resume().then(()=>{this.lastError='';}).catch(error=>{this.lastError=error.name||'Audio blocked';});
+    }catch(error){this.lastError=error.name||'Audio unavailable';this.context=null;}
   }
   setForeground(foreground) {
     this.foreground=foreground;
