@@ -1,7 +1,7 @@
-import { setMapStretch, adaptWorldLayout, ROOMS, ORDER, DASH_COOLDOWN, ABILITIES, WIDTH, HEIGHT, createRun, peeProgress, upgradeRun, TRINKETS, validRun, migrateRun, enterRoom, makeWorld, maxHearts, goalDone, isUnlocked, firstUnfinished, objective, retryRoom, step, startDash, startAbility } from './engine.mjs?v=38';
-import { portrait, drawWorld, drawPicnic } from './art.mjs?v=38';
-import { movementKey, abilityKey, isTextEntry, joystickVector } from './input.mjs?v=38';
-import { Soundscape } from './audio.mjs?v=38';
+import { setMapStretch, adaptWorldLayout, ROOMS, ORDER, DASH_COOLDOWN, ABILITIES, WIDTH, HEIGHT, createRun, peeProgress, upgradeRun, TRINKETS, validRun, migrateRun, enterRoom, makeWorld, maxHearts, goalDone, isUnlocked, firstUnfinished, objective, retryRoom, step, startDash, startAbility } from './engine.mjs?v=39';
+import { portrait, drawWorld, drawPicnic } from './art.mjs?v=39';
+import { movementKey, abilityKey, isTextEntry, joystickVector } from './input.mjs?v=39';
+import { Soundscape } from './audio.mjs?v=39';
 
 const $ = id => document.getElementById(id);
 const canvas=$('world'), ctx=canvas.getContext('2d');
@@ -205,7 +205,7 @@ function render() {
   } else if(view==='sound') {
     renderSoundCheck();
   } else if(view==='pause') {
-    $('screen').innerHTML=`<div class="pause-card" role="dialog" aria-modal="true" aria-labelledby="pause-title"><span class="pause-flower" aria-hidden="true">✿</span><h3 id="pause-title">Catch your breath.</h3><p>The adventure is paused.<br>${touchMode?'Tap Keep going to resume.':'Press WASD or click Keep going to resume.'}<br>Trinkets open exits. Snacks are optional picnic treats—you can leave them behind. Only heart-marked snacks restore 1 heart.</p>${abilityGuideLinks()}<a id="sound-help" class="secondary-button" href="${routeURL('sound')}">Sound check</a><button id="resume" class="primary-button">Keep going <span>→</span></button><a id="home-link" class="secondary-button" href="./">Back to the cottage</a>${touchMode?'<nav id="pause-chapters" aria-label="Visit a chapter"></nav><a id="pause-practice" class="secondary-button">Practice controls</a>':''}</div>`;
+    $('screen').innerHTML=`<div class="pause-card" role="dialog" aria-modal="true" aria-labelledby="pause-title"><span class="pause-flower" aria-hidden="true">✿</span><h3 id="pause-title">Catch your breath.</h3><p>The adventure is paused.<br>${touchMode?'Tap Keep going to resume.':'Press WASD or click Keep going to resume.'}<br>Trinkets open exits. Snacks are optional picnic treats—you can leave them behind. Only heart-marked snacks restore 1 heart.</p><p class="bonk-stat"><b>${run.enemyBonks}</b> enemies bonked</p>${abilityGuideLinks()}<a id="sound-help" class="secondary-button" href="${routeURL('sound')}">Sound check</a><button id="resume" class="primary-button">Keep going <span>→</span></button><a id="home-link" class="secondary-button" href="./">Back to the cottage</a>${touchMode?'<nav id="pause-chapters" aria-label="Visit a chapter"></nav><a id="pause-practice" class="secondary-button">Practice controls</a>':''}</div>`;
     $('resume').addEventListener('click',dismissScreen);$('home-link').href=routeURL('home');$('resume').focus({preventScroll:true});
   } else if(view==='reunion') {
     $('screen').innerHTML='<div class="story-card" role="dialog" aria-modal="true" aria-labelledby="reunion-title"><p class="card-eyebrow">FOUND: ONE VERY GOOD FRIEND</p><canvas width="240" height="200" data-portrait="pepper" aria-label="Pepper, the gray plush corgi"></canvas><h3 id="reunion-title">Found you, Pepper.</h3><p>Your best friend is coming with you.<br>There are still trinkets to find by the pond!</p><div class="new-heart">♥ Four shared hearts. A hit to either corgi costs one.</div><button id="reunion-continue" class="primary-button">Explore together <span>→</span></button><button id="reunion-close" class="secondary-button">Stay by the pond a little longer</button></div>';
@@ -215,7 +215,7 @@ function render() {
     $('retry').addEventListener('click',()=>{world=retryRoom(run,world.room);save();navigate(routeURL('play'));});$('retry-home').addEventListener('click',dismissScreen);$('retry').focus({preventScroll:true});
   } else if(view==='picnic') {
     $('screen').classList.add('picnic-screen');
-    $('screen').innerHTML=`<div class="picnic-card"><p class="card-eyebrow">THE BEST THING YOU BROUGHT HOME</p><h3>Was each other.</h3><p>A full basket, tired little paws,<br>and your favorite adventure ${run.peeFound?'buddies':'buddy'}.</p>${run.needohFound?'<p class="tiny-note">A little NeeDoh came home with you. ♡</p>':''}<div class="result-stats"><span><b>${run.trinkets.length}/${TRINKETS.length}</b> trinkets</span><span><b>${run.collected.length}</b> snacks</span><span><b>${run.hits}</b> bumps</span><span><b>${run.retries}</b> retries</span></div><button id="again" class="primary-button">One more adventure <span>↗</span></button><p class="tiny-note">${run.pepperoniFound?'Pepsi, Pepper, Pee & Pepperoni':run.peeFound?'Pepsi, Pepper & Pee':'Pepsi & Pepper'}. Always better together.</p></div>`;
+    $('screen').innerHTML=`<div class="picnic-card"><p class="card-eyebrow">THE BEST THING YOU BROUGHT HOME</p><h3>Was each other.</h3><p>A full basket, tired little paws,<br>and your favorite adventure ${run.peeFound?'buddies':'buddy'}.</p>${run.needohFound?'<p class="tiny-note">A little NeeDoh came home with you. ♡</p>':''}<div class="result-stats"><span><b>${run.trinkets.length}/${TRINKETS.length}</b> trinkets</span><span><b>${run.collected.length}</b> snacks</span><span><b>${run.enemyBonks}</b> enemies bonked</span><span><b>${run.hits}</b> bumps</span><span><b>${run.retries}</b> retries</span></div><button id="again" class="primary-button">One more adventure <span>↗</span></button><p class="tiny-note">${run.pepperoniFound?'Pepsi, Pepper, Pee & Pepperoni':run.peeFound?'Pepsi, Pepper & Pee':'Pepsi & Pepper'}. Always better together.</p></div>`;
     if(run.legacyEnding&&!run.bossDefeated){const link=document.createElement('a');link.className='secondary-button';link.href=routeURL('play','laundry');link.textContent='Continue into the three new chapters →';$('again').before(link);}
     $('again').addEventListener('click',newRun);
   } else {$('screen').classList.add('empty');$('screen').replaceChildren();}
@@ -451,7 +451,7 @@ function renderSoundCheck(){
       if(!$('sound-result'))return;
       const advancing=context&&context.currentTime>time+.05;
       $('sound-result').textContent=advancing?'The game audio clock is running. Did you hear the chime?':'The game audio did not start. Try the browser chime below.';
-      $('sound-details').textContent=`Build 38 · game: ${context?.state||'unavailable'} · clock: ${advancing?'advancing':'stopped'} · ${soundtrack.foreground?'foreground':'background'}${soundtrack.lastError?' · '+soundtrack.lastError:''}`;
+      $('sound-details').textContent=`Build 39 · game: ${context?.state||'unavailable'} · clock: ${advancing?'advancing':'stopped'} · ${soundtrack.foreground?'foreground':'background'}${soundtrack.lastError?' · '+soundtrack.lastError:''}`;
     },900);
   });
   $('test-speaker').addEventListener('click',()=>{
@@ -463,7 +463,7 @@ function renderSoundCheck(){
   $('sound-done').addEventListener('click',dismissScreen);
 }
 // An independent media-element test distinguishes the Web Audio graph from device output.
-const browserChime=new Audio('./sound-check.wav?v=38');browserChime.preload='none';browserChime.volume=.65;
+const browserChime=new Audio('./sound-check.wav?v=39');browserChime.preload='none';browserChime.volume=.65;
 $('sound').addEventListener('click',()=>{soundOn=!soundOn;soundtrack.setEnabled(soundOn);const unlocked=soundtrack.unlock();renderSound();try{localStorage.setItem(PREFIX+'sound',String(soundOn));}catch{}Promise.resolve(unlocked).then(()=>sound('start'));});
 $('retry-save').addEventListener('click',()=>{if(save())toast('Your adventure is safely saved.');});
 $('download-save').addEventListener('click',()=>{
@@ -520,7 +520,7 @@ function handleEvents(events) {
       else{run.completed=true;save();sound('win');navigate(routeURL('picnic'));}
       return;
     }
-    if(!['stun','bonk','goose-warning','honk'].includes(event.type)){save();updateProgress();}
+    if(!['stun','goose-warning','honk'].includes(event.type)){save();updateProgress();}
   }
 }
 function frame(now) {

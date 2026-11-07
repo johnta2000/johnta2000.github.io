@@ -13,7 +13,7 @@ async function activate(page,selector){if(mobile)await page.locator(selector).ta
 async function pause(page){if(mobile)await activate(page,'#pause');else await page.keyboard.press('Escape');}
 async function observe(page){
   await page.evaluate(async()=>{
-    const {Soundscape}=await import('/games/snack-quest/audio.mjs?v=38'),tick=Soundscape.prototype.tick;
+    const {Soundscape}=await import('/games/snack-quest/audio.mjs?v=39'),tick=Soundscape.prototype.tick;
     Soundscape.prototype.tick=function(){window.musicProbe=this;return tick.call(this);};
   });
   await page.waitForFunction(()=>!!window.musicProbe);
@@ -51,7 +51,7 @@ try {
   await page.goBack();assert.equal((await state(page)).room,'boss');assert.equal((await state(page)).battle,false);
 
   const rendered=await page.evaluate(async()=>{
-    const {Soundscape}=await import('/games/snack-quest/audio.mjs?v=38');
+    const {Soundscape}=await import('/games/snack-quest/audio.mjs?v=39');
     const result={};
     for(const room of ['boss','meadow']){
       const rate=22050,context=new OfflineAudioContext(1,rate*16,rate),score=new Soundscape(()=>context);

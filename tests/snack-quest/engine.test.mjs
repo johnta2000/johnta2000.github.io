@@ -595,3 +595,21 @@ test('ability introductions survive saves, accept old adventures, and reject loc
  const copy=JSON.parse(JSON.stringify(run));upgradeRun(copy);assert.equal(copy.pendingAbility,'bark');
  for(const invalid of ['missing','__proto__',['bark'],{}]){copy.pendingAbility=invalid;assert.equal(validRun(copy,copy.id),false);}
 });
+
+test('enemy bonks count once per target per dash, persist on retry, and exclude crates',()=>{
+ const {run,world}=pairedWorld();world.items=[];world.toys=[toyAt(world.player.x,world.player.y),toyAt(world.buddy.x,world.buddy.y)];
+ startDash(world);step(world,run,idle,.016);assert.equal(run.enemyBonks,2);
+ step(world,run,idle,.016);assert.equal(run.enemyBonks,2,'overlapping corgis and repeated frames cannot inflate the count');
+ world.toys.pop();world.dash=0;world.cooldown=0;Object.assign(world.player,{x:world.toys[0].x,y:world.toys[0].y});startDash(world);step(world,run,idle,.016);assert.equal(run.enemyBonks,3,'a new dash can land a new bonk');
+ const saved=JSON.parse(JSON.stringify(run));assert.ok(validRun(saved,saved.id));retryRoom(saved,'meadow');assert.equal(saved.enemyBonks,3);
+ const crate=createRun('bonkcrate');const clearing=makeWorld(crate,'meadow');clearing.toys=[];clearing.items=[];Object.assign(clearing.player,{x:ROOMS.meadow.goal.x-40,y:ROOMS.meadow.goal.y});startDash(clearing);step(clearing,crate,idle,.02);assert.ok(crate.keyFound);assert.equal(crate.enemyBonks,0);
+});
+test('gopher and successful boss hits count; armored contact and power damage do not inflate bonks',()=>{
+ const {run,world}=pairedWorld();world.toys=[];world.items=[];world.gophers=[{x:world.player.x,y:world.player.y,r:22,mode:'up',timer:2}];startDash(world);step(world,run,idle,.016);assert.equal(run.enemyBonks,1);
+ const fight=bossPair();Object.assign(fight.world.player,{x:710,y:315});startAbility(fight.world,fight.run,'power');step(fight.world,fight.run,idle,.016);assert.equal(fight.run.enemyBonks,0);
+ fight.world.dash=0;fight.world.cooldown=0;fight.world.abilityCooldowns.power=0;Object.assign(fight.world.boss,{mode:'exposed',timer:3});Object.assign(fight.world.player,{x:710,y:315});startAbility(fight.world,fight.run,'power');step(fight.world,fight.run,idle,.016);assert.equal(fight.world.boss.hp,6);assert.equal(fight.run.enemyBonks,1);
+});
+test('older saves gain a zero bonk total; invalid totals are rejected',()=>{
+ const r=createRun('bonksave');delete r.enemyBonks;assert.ok(validRun(r,r.id));upgradeRun(r);assert.equal(r.enemyBonks,0);
+ for(const bad of [-1,.5,'4',Infinity]){r.enemyBonks=bad;assert.equal(validRun(r,r.id),false);}
+});

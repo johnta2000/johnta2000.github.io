@@ -185,6 +185,7 @@ export function upgradeRun(run) {
   else if(!run.trinkets)run.trinkets=[];
   if(run.pepperoniFound===undefined)run.pepperoniFound=false;
   if(run.bossDefeated===undefined)run.bossDefeated=false;
+  run.enemyBonks??=0;
   run.needohFound??=false;
   run.mapStretch??=1;
   run.pendingAbility??=null;
@@ -224,7 +225,7 @@ export function createRun(id) {
     version:2, mapStretch:1, wideWorlds:true, indoorWorlds:true, id, seed:Number.parseInt(id, 36) >>> 0, character:'pepsi', order:roomOrder(),
     room:'meadow', tutorialStep:0, collected:[], trinkets:[], positions:{}, checkpoints:{}, trinketCheckpoints:{}, health:3,
     pendingAbility:null, needohFound:false, keyFound:false, pepperFound:false, peeFound:false, pepperoniFound:false,bossDefeated:false, basketFound:false, completed:false,
-    hits:0, retries:0, revision:0, startedAt:Date.now(),cooldowns:freshCooldowns(),
+    hits:0, enemyBonks:0, retries:0, revision:0, startedAt:Date.now(),cooldowns:freshCooldowns(),
   };
 }
 export function validRun(value, id) {
@@ -247,6 +248,7 @@ export function validRun(value, id) {
     Object.hasOwn(ROOMS, value.room) && ['keyFound','pepperFound','basketFound','completed'].every(key => typeof value[key] === 'boolean') &&
     Number.isInteger(value.health) && value.health >= 0 && value.health <= maxHearts(value) &&
     Number.isInteger(value.revision) && value.revision >= 0 &&
+    (value.enemyBonks===undefined||Number.isSafeInteger(value.enemyBonks)&&value.enemyBonks>=0) &&
     Number.isInteger(value.hits) && value.hits >= 0 && Number.isInteger(value.retries) && value.retries >= 0 &&
     (!value.pepperFound || value.keyFound) && (!value.basketFound || value.pepperFound));
 }
@@ -398,9 +400,10 @@ function move(body,dx,dy,room,radius=18) {
 function particles(world,x,y,kind='spark') {
   for(let i=0;i<9;i++)world.particles.push({x,y,vx:Math.cos(i/9*Math.PI*2)*45,vy:Math.sin(i/9*Math.PI*2)*45-25,life:.75,max:.75,kind});
 }
-function dashImpact(world,target,body=world.player,boss=false) {
+function dashImpact(world,run,target,body=world.player,boss=false) {
   if(world.dashHits.has(target))return;
   world.dashHits.add(target);
+  run.enemyBonks=(run.enemyBonks||0)+1;
   const dx=target.x-body.x,dy=target.y-body.y,d=Math.hypot(dx,dy);
   // Recoil is a temporary drawing pose: hitboxes, patrols, and saved boss positions stay put.
   world.impacts.push({target,x:target.x,y:target.y,dx:d>.1?dx/d:world.player.vx,dy:d>.1?dy/d:world.player.vy,started:world.time,duration:boss?1.3:1.05,boss});
@@ -522,7 +525,7 @@ export function step(world,run,input,dt) {
     const distance=Math.hypot(toy.x-p.x,toy.y-p.y);
     const dashContact=dashing&&touchingCorgi(world,run,toy,29);
     if(dashContact&&!world.dashHits.has(toy)) {
-      if(dashImpact(world,toy,dashContact.body))events.push({type:'bonk',kind:toy.kind});
+      if(dashImpact(world,run,toy,dashContact.body))events.push({type:'bonk',kind:toy.kind});
       if(toy.mode!=='stunned'){toy.mode='stunned';toy.timer=2.3;events.push({type:'stun'});}
     }
     if(toy.mode==='stunned') {toy.timer-=dt;if(toy.timer<=0){toy.mode='roam';toy.cooldown=1;}continue;}
@@ -572,7 +575,7 @@ export function step(world,run,input,dt) {
     if(gopher.mode!=='up'&&gopher.mode!=='stunned')continue;
     const dashContact=dashing&&touchingCorgi(world,run,gopher,29);
     if(dashContact&&!world.dashHits.has(gopher)) {
-      if(dashImpact(world,gopher,dashContact.body))events.push({type:'bonk',kind:'gopher'});
+      if(dashImpact(world,run,gopher,dashContact.body))events.push({type:'bonk',kind:'gopher'});
       if(gopher.mode!=='stunned'){gopher.mode='stunned';gopher.timer=2.3;events.push({type:'stun'});}
     } else if(gopher.mode==='up')bumpCorgis(world,run,gopher,events);
     if(run.health<=0)return events;
@@ -602,7 +605,7 @@ function stepBoss(world,run,dt,dashing,events){
   const b=world.boss,p=world.player;b.timer=Math.max(0,b.timer-dt);
   if(b.mode==='exposed'){
     if(dashing&&Math.hypot(p.x-b.x,p.y-b.y)<b.r+29){
-      b.hp=Math.max(0,b.hp-(world.powerDash?2:1));if(dashImpact(world,b,p,true))events.push({type:'bonk',kind:'boss'});
+      b.hp=Math.max(0,b.hp-(world.powerDash?2:1));if(dashImpact(world,run,b,p,true))events.push({type:'bonk',kind:'boss'});
       if(!b.hp){run.bossDefeated=true;b.mode='off';b.timer=0;events.push({type:'boss-win'});return;}
       b.mode='recover';b.timer=3.2;events.push({type:'boss-hit'});
     }else if(b.timer===0){b.mode='recover';b.timer=.6;}
