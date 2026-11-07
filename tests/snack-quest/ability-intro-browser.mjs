@@ -13,7 +13,7 @@ try{
    await page.evaluate(({run,prefix})=>localStorage.setItem(prefix+run.id,JSON.stringify(run)),{run,prefix});await page.goto(base+`?view=play&run=${run.id}&room=${room}`);await page.keyboard.down('d');await page.waitForURL(/view=ability/);await page.keyboard.up('d');
    assert.equal(new URL(page.url()).searchParams.get('ability'),slug);const introURL=page.url(),saved=()=>page.evaluate(({prefix,id})=>JSON.parse(localStorage.getItem(prefix+id)),{prefix,id:run.id});
    assert.equal((await saved()).pendingAbility,id);const before=await saved();await page.keyboard.down('d');await page.waitForTimeout(250);await page.keyboard.up('d');assert.deepEqual(await saved(),before,'reading freezes movement, damage, and cooldowns');
-   const text=await page.locator('.ability-card').innerText();assert.match(text,/unlocked!/);assert.match(text,mobile?/Tap/:/Press/);assert.match(text,/(10|7|8)s recharge/);assert.match(text,/pause menu/);
+   const text=await page.locator('.ability-card').innerText();assert.match(text,/unlocked!/);assert.match(text,mobile?/Tap/:/Press/);assert.match(text,/(10|14|8)s recharge/);assert.match(text,/pause menu/);
    await page.screenshot({path:`${out}/${mobile?'mobile':'desktop'}-${slug}.png`});
    await page.locator('#ability-title').click();assert.equal(page.url(),introURL,'inside click stays open');
    const card=await page.locator('.ability-card').boundingBox(),backdrop=await page.locator('#screen').boundingBox();await page.mouse.move(card.x+20,card.y+20);await page.mouse.down();await page.mouse.move(backdrop.x+3,backdrop.y+3);await page.mouse.up();assert.equal(page.url(),introURL,'dragging out does not dismiss');

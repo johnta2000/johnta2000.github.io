@@ -1,4 +1,4 @@
-import { mapX, mapStretch, roomWidth, roomScale, WIDTH, HEIGHT, ROOMS, random, goalDone, roomTrinkets, canFindTrinkets, PEE_RESCUE, peeProgress, canRescuePee, windAt, trinketCount } from './engine.mjs?v=37';
+import { ZOOMIES_DURATION, mapX, mapStretch, roomWidth, roomScale, WIDTH, HEIGHT, ROOMS, random, goalDone, roomTrinkets, canFindTrinkets, PEE_RESCUE, peeProgress, canRescuePee, windAt, trinketCount } from './engine.mjs?v=38';
 
 const INK='#75674c';
 function ellipse(c,x,y,rx,ry,fill,stroke=null,line=2){c.beginPath();c.ellipse(x,y,rx,ry,0,0,Math.PI*2);c.fillStyle=fill;c.fill();if(stroke){c.strokeStyle=stroke;c.lineWidth=line;c.stroke();}}
@@ -72,6 +72,36 @@ function rollingPose(body,time,scale) {
   }
   pose.x=body.x;pose.y=body.y;pose.time=time;
   return pose.angle;
+}
+
+const zoomTrails=new WeakMap();
+function zoomiesTrail(c,body,character,scale,roll,time,remaining,reduced){
+  let trail=zoomTrails.get(body);
+  if(!trail){trail={x:body.x,y:body.y,last:time,points:[]};zoomTrails.set(body,trail);}
+  const dx=body.x-trail.x,dy=body.y-trail.y,distance=Math.hypot(dx,dy);
+  if(reduced||distance>100){trail.points=[];}
+  else if(remaining>0&&distance>.1&&time-trail.last>=.045){
+    trail.points.push({x:body.x,y:body.y,dx:dx/distance,dy:dy/distance,roll,facing:body.facing,at:time});trail.last=time;
+  }
+  trail.x=body.x;trail.y=body.y;
+  trail.points=trail.points.filter(p=>time-p.at<.25);
+  if(reduced){if(remaining>0)ellipse(c,body.x,body.y+3,33*scale,9*scale,'#edcc7440');return;}
+  c.save();
+  // Draw a brief plush echo in its original rolling pose, plus ground-level puffs.
+  const echo=trail.points.find(p=>time-p.at>=.07);
+  if(echo){c.globalAlpha=.2*(1-(time-echo.at)/.25);corgi(c,echo.x,echo.y,character,scale,echo.facing,echo.roll);}
+  for(const [i,p]of trail.points.entries()){
+    const age=(time-p.at)/.25;
+    c.globalAlpha=(1-age)*.5;
+    const side=i%2?1:-1,x=p.x-p.dx*22+p.dy*side*12,y=p.y-p.dy*22-p.dx*side*12;
+    ellipse(c,x,y+5,3+age*6,2+age*3,'#f4dfad');
+    if(i%2===0)line(c,[[x-p.dx*8,y-p.dy*8],[x-p.dx*18,y-p.dy*18]],'#deb55f',1.8);
+  }
+  if(remaining>0){
+    const burst=Math.min(1,(ZOOMIES_DURATION-remaining)/.1,remaining/.25);
+    c.globalAlpha=.22*Math.max(0,burst);ellipse(c,body.x,body.y+3,34*scale,9*scale,'#edcc74');
+  }
+  c.restore();
 }
 
 export function corgi(c,x,y,character='pepsi',scale=1,facing=1,roll=0,hurt=0) {
@@ -357,10 +387,11 @@ export function drawWorld(c,world,run,viewportWidth,reduced=false,preview=false,
   const impactFor=target=>world.impacts.findLast(hit=>hit.target===target);
   for(const item of world.gophers)gopher(c,item,t,impactFor(item),world.time,reduced);
   const drawCorgi=(body,character,scale)=>{
-    if(world.zoomies>0&&!reduced){c.save();c.globalAlpha=.6;c.strokeStyle='#e6bd60';c.lineWidth=2;for(let i=0;i<3;i++){c.beginPath();c.moveTo(body.x-body.facing*(32+i*7),body.y-6+i*6);c.lineTo(body.x-body.facing*(45+i*7),body.y-6+i*6);c.stroke();}c.restore();}
+    const roll=reduced||preview?0:rollingPose(body,t,scale);
+    zoomiesTrail(c,body,character,scale,roll,t,world.zoomies,reduced||preview);
     const hurt=world.hitCorgi===character?world.bump:0;
     c.save();if(hurt>0)c.globalAlpha=reduced?.75:.7+Math.sin(t*15)*.15;
-    corgi(c,body.x,body.y,character,scale,body.facing,reduced||preview?0:rollingPose(body,t,scale),hurt);c.restore();
+    corgi(c,body.x,body.y,character,scale,body.facing,roll,hurt);c.restore();
     if(world.shield>0){
       c.save();c.globalAlpha=world.shield<.65&&!reduced?.45+.25*Math.sin(t*18):.8;
       ellipse(c,body.x,body.y-14,49*scale/.72,45*scale/.72,'#b9ecf32b','#8bc9db',2.5);

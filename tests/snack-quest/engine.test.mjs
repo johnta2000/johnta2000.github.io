@@ -419,7 +419,7 @@ test('each friend ability must be chosen independently; normal dash never auto-c
  const {run,world}=pairedWorld();run.peeFound=run.pepperoniFound=true;world.toys=[toyAt(world.buddy.x,world.buddy.y-80)];
  startDash(world);step(world,run,idle,.016);assert.equal(world.toys[0].mode,'roam');assert.equal(world.shield,0);assert.equal(world.clouds.length,0);assert.ok(world.dash<.2);assert.equal(world.powerDash,false);
  assert.ok(startAbility(world,run,'bark'));assert.equal(world.toys[0].mode,'roam');assert.equal(world.shield,3);assert.equal(world.clouds.length,0);assert.equal(world.abilityCooldowns.bark,10);assert.equal(startAbility(world,run,'bark'),false);
- assert.ok(startAbility(world,run,'stink'));assert.equal(world.zoomies,4);assert.equal(world.clouds.length,0);assert.equal(world.abilityCooldowns.stink,10);assert.equal(startAbility(world,run,'stink'),false);
+ assert.ok(startAbility(world,run,'stink'));assert.equal(world.zoomies,2);assert.equal(world.clouds.length,0);assert.equal(world.abilityCooldowns.stink,14);assert.equal(startAbility(world,run,'stink'),false);
  assert.equal(startAbility(world,run,'power'),false,'power cannot bypass the normal dash recovery');
  assert.equal(world.shield,3,'Zoomies is independent of shield');
  world.toys=[];for(let i=0;i<170;i++)step(world,run,idle,1/60);
@@ -430,7 +430,7 @@ test('ability cooldowns persist through room changes and reload, while retries r
  const {run,world}=pairedWorld();run.peeFound=run.pepperoniFound=true;world.toys=[];
  for(const id of ['bark','stink','power'])assert.ok(startAbility(world,run,id));
  const snapshot=JSON.parse(JSON.stringify(run));assert.ok(validRun(snapshot,run.id));
- const restored=makeWorld(snapshot,'pond');assert.deepEqual(restored.abilityCooldowns,{dash:2.8,bark:10,stink:10,power:8});assert.equal(restored.cooldown,2.8);
+ const restored=makeWorld(snapshot,'pond');assert.deepEqual(restored.abilityCooldowns,{dash:2.8,bark:10,stink:14,power:8});assert.equal(restored.cooldown,2.8);
  for(const id of ['bark','stink','power'])assert.equal(startAbility(restored,snapshot,id),false);
  assert.equal(startDash(restored),false);restored.toys=[];restored.gophers=[];restored.items=[];step(restored,snapshot,idle,.02);assert.equal(snapshot.cooldowns.bark,9.98);
  const retry=retryRoom(snapshot,'pond');assert.deepEqual(retry.abilityCooldowns,{dash:0,bark:0,stink:0,power:0});

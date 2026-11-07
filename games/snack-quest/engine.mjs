@@ -7,10 +7,11 @@ export function roomWidth(room){return WIDTH*roomScale(room)*layoutWidth;}
 export function roomScale(room) { return ['woods','hills','orchard'].includes(room)?1.6:['laundry','kitchen'].includes(room)?1.4:1; }
 export function roomPoint(room,x,y) { const scale=roomScale(room);return {x:mapX(x)*scale,y:y*scale}; }
 export const DASH_COOLDOWN = 2.8;
+export const ZOOMIES_DURATION=2, ZOOMIES_SPEED=1.3;
 export const ABILITIES = {
   // Keep the legacy bark save/key ID so existing adventures retain their cooldown.
   bark:{key:'J',corgi:'Pepper',name:'Shield',hint:'Protect every corgi for 3 seconds',cooldown:10,unlock:'pepperFound'},
-  stink:{key:'K',corgi:'Pee',name:'Zoomies',hint:'Whole train rolls 50% faster for 4 seconds',cooldown:10,unlock:'peeFound'},
+  stink:{key:'K',corgi:'Pee',name:'Zoomies',hint:'Whole train rolls 30% faster for 2 seconds',cooldown:14,unlock:'peeFound'},
   power:{key:'L',corgi:'Pepperoni',name:'Power',hint:'Longer dash · double boss damage',cooldown:8,unlock:'pepperoniFound'},
 };
 function freshCooldowns(){return {dash:0,bark:0,stink:0,power:0};}
@@ -386,7 +387,7 @@ export function startAbility(world,run,ability,input={x:0,y:0}) {
     world.dash=.28;world.powerDash=true;world.invincible=Math.max(world.invincible,.36);
   } else if(ability==='bark') {
     world.shield=3;
-  } else world.zoomies=4;
+  } else world.zoomies=ZOOMIES_DURATION;
   world.abilityCooldowns[ability]=spec.cooldown;
   return true;
 }
@@ -413,7 +414,7 @@ function follow(world,p=world.player,b=world.buddy,trail=world.followTrail) {
   for(const point of trail){pathLength+=Math.hypot(point.x-previous.x,point.y-previous.y);previous=point;}
   const excess=Math.max(0,pathLength-64);
   const mud=terrainAt(world.room,b.x,b.y)==='mud'&&world.dash<=0?.55:1;
-  let budget=Math.min(excess,Math.min(world.zoomies>0?600:400,excess*14)*world.dt*mud),travelled=0;
+  let budget=Math.min(excess,Math.min(world.zoomies>0?400*ZOOMIES_SPEED:400,excess*14)*world.dt*mud),travelled=0;
   while(budget>.0001&&trail.length) {
     const target=trail[0],dx=target.x-b.x,dy=target.y-b.y,distance=Math.hypot(dx,dy);
     if(distance<.0001){if(trail.length>1){trail.shift();continue;}break;}
@@ -465,7 +466,7 @@ export function step(world,run,input,dt) {
   else {
     if(length){p.vx=input.x/length;p.vy=input.y/length;}
     const pace=input.analog?Math.min(length,1):1;
-    const speed=(ground==='mud'?102:185)*pace*(world.zoomies>0?1.5:1),targetX=length?p.vx*speed:0,targetY=length?p.vy*speed:0;
+    const speed=(ground==='mud'?102:185)*pace*(world.zoomies>0?ZOOMIES_SPEED:1),targetX=length?p.vx*speed:0,targetY=length?p.vy*speed:0;
     const blend=ground==='ice'?1-Math.exp(-dt*(length?3.5:2)):1;
     p.slideX=(p.slideX||0)+(targetX-(p.slideX||0))*blend;p.slideY=(p.slideY||0)+(targetY-(p.slideY||0))*blend;
     if(Math.abs(p.slideX)<.1)p.slideX=0;if(Math.abs(p.slideY)<.1)p.slideY=0;

@@ -1,7 +1,7 @@
-import { setMapStretch, adaptWorldLayout, ROOMS, ORDER, DASH_COOLDOWN, ABILITIES, WIDTH, HEIGHT, createRun, peeProgress, upgradeRun, TRINKETS, validRun, migrateRun, enterRoom, makeWorld, maxHearts, goalDone, isUnlocked, firstUnfinished, objective, retryRoom, step, startDash, startAbility } from './engine.mjs?v=37';
-import { portrait, drawWorld, drawPicnic } from './art.mjs?v=37';
-import { movementKey, abilityKey, isTextEntry, joystickVector } from './input.mjs?v=37';
-import { Soundscape } from './audio.mjs?v=37';
+import { setMapStretch, adaptWorldLayout, ROOMS, ORDER, DASH_COOLDOWN, ABILITIES, WIDTH, HEIGHT, createRun, peeProgress, upgradeRun, TRINKETS, validRun, migrateRun, enterRoom, makeWorld, maxHearts, goalDone, isUnlocked, firstUnfinished, objective, retryRoom, step, startDash, startAbility } from './engine.mjs?v=38';
+import { portrait, drawWorld, drawPicnic } from './art.mjs?v=38';
+import { movementKey, abilityKey, isTextEntry, joystickVector } from './input.mjs?v=38';
+import { Soundscape } from './audio.mjs?v=38';
 
 const $ = id => document.getElementById(id);
 const canvas=$('world'), ctx=canvas.getContext('2d');
@@ -171,7 +171,7 @@ function renderAbilityIntro(){
   const spec=ABILITIES[shownAbility],fresh=run.pendingAbility===shownAbility;
   const details={
     bark:{effect:'Blue bubbles protect every corgi from damage for 3 seconds. They flicker just before the shield ends.',tip:'Use it when the back of your train is about to get hit. It prevents damage; it doesn’t heal hearts or stun enemies.'},
-    stink:{effect:'Every corgi rolls 50% faster for 4 seconds. Steer normally while the whole train gets the zoomies!',tip:'Use it to escape a charge or cross an open gap. It doesn’t protect you from hits or strengthen your dash. Recharges in 10 seconds.'},
+    stink:{effect:'Every corgi rolls 30% faster for 2 seconds. Steer normally while the whole train gets the zoomies!',tip:'Use it to escape a charge or cross an open gap. It doesn’t protect you from hits or strengthen your dash. Recharges in 14 seconds.'},
     power:{effect:'A longer roll in your current or last movement direction. Bonk enemies, or hit the overheated boss for 2 damage instead of 1.',tip:'Use it during the boss’s “DASH NOW!” opening. Power and normal Dash share a 2.8-second roll recovery, so you can’t alternate them immediately.'}
   }[shownAbility];
   $('screen').innerHTML=`<div class="ability-card" role="dialog" aria-modal="true" aria-labelledby="ability-title"><div class="ability-portrait"><canvas width="240" height="200" data-portrait="${spec.corgi.toLowerCase()}" aria-label="${spec.corgi}"></canvas><strong>${spec.corgi}</strong></div><div class="ability-explanation"><p class="card-eyebrow">${fresh?'NEW FRIEND · NEW ABILITY':'ABILITY GUIDE'}</p><h3 id="ability-title" tabindex="-1">${spec.name}${fresh?' unlocked!':''}</h3><p>${details.effect}</p><p class="ability-tip">${details.tip}</p><div class="ability-facts"><span>${touchMode?`Tap <b>${spec.name}</b>`:`Press <kbd>${spec.key}</kbd>`}</span><span><b>${spec.cooldown}s</b> recharge</span></div>${fresh?'<p class="ability-team-note">'+(shownAbility==='bark'?'You now share four hearts. A hit to either corgi costs one. Pepper’s trinkets have appeared—find both to open the exit.':'Your new friend shares the team’s hearts—watch the whole train! Their two trinkets have now appeared. Find both to open the exit.')+'</p>':''}<button id="ability-continue" class="primary-button">${fresh?'Got it — let’s roll!':'Back to '+(new URLSearchParams(location.search).get('from')==='pause'?'pause':'the game')}</button><p class="tiny-note">The adventure is paused. Find this guide again in the pause menu.</p></div></div>`;
@@ -451,7 +451,7 @@ function renderSoundCheck(){
       if(!$('sound-result'))return;
       const advancing=context&&context.currentTime>time+.05;
       $('sound-result').textContent=advancing?'The game audio clock is running. Did you hear the chime?':'The game audio did not start. Try the browser chime below.';
-      $('sound-details').textContent=`Build 37 · game: ${context?.state||'unavailable'} · clock: ${advancing?'advancing':'stopped'} · ${soundtrack.foreground?'foreground':'background'}${soundtrack.lastError?' · '+soundtrack.lastError:''}`;
+      $('sound-details').textContent=`Build 38 · game: ${context?.state||'unavailable'} · clock: ${advancing?'advancing':'stopped'} · ${soundtrack.foreground?'foreground':'background'}${soundtrack.lastError?' · '+soundtrack.lastError:''}`;
     },900);
   });
   $('test-speaker').addEventListener('click',()=>{
@@ -463,7 +463,7 @@ function renderSoundCheck(){
   $('sound-done').addEventListener('click',dismissScreen);
 }
 // An independent media-element test distinguishes the Web Audio graph from device output.
-const browserChime=new Audio('./sound-check.wav?v=37');browserChime.preload='none';browserChime.volume=.65;
+const browserChime=new Audio('./sound-check.wav?v=38');browserChime.preload='none';browserChime.volume=.65;
 $('sound').addEventListener('click',()=>{soundOn=!soundOn;soundtrack.setEnabled(soundOn);const unlocked=soundtrack.unlock();renderSound();try{localStorage.setItem(PREFIX+'sound',String(soundOn));}catch{}Promise.resolve(unlocked).then(()=>sound('start'));});
 $('retry-save').addEventListener('click',()=>{if(save())toast('Your adventure is safely saved.');});
 $('download-save').addEventListener('click',()=>{

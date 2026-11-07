@@ -5,12 +5,14 @@ const idle={x:0,y:0};
 test('Zoomies gives the entire train a steerable boost, expires, and cannot be spammed',()=>{
  function roll(boost){const run=createRun('zoomies123');run.pepperFound=run.peeFound=run.pepperoniFound=true;run.health=4;const w=makeWorld(run,'tutorial');w.invincible=0;if(boost)assert.ok(startAbility(w,run,'stink'));for(let i=0;i<60;i++)step(w,run,{x:1,y:0},.016);return {run,w};}
  const normal=roll(false),fast=roll(true);
- assert.ok(Math.abs((fast.w.player.x-135)/(normal.w.player.x-135)-1.5)<.001);
+ assert.ok(Math.abs((fast.w.player.x-135)/(normal.w.player.x-135)-1.3)<.001);
  for(const body of ['buddy','pee','pepperoni'])assert.ok(fast.w[body].x>normal.w[body].x,body+' keeps pace');
  assert.equal(fast.w.shield,0);assert.equal(fast.w.invincible,0);assert.equal(fast.w.clouds.length,0);
  assert.equal(startAbility(fast.w,fast.run,'stink'),false);
- for(let i=0;i<200;i++)step(fast.w,fast.run,idle,.02);
- assert.equal(fast.w.zoomies,0);assert.ok(fast.run.cooldowns.stink>0);
+ for(let i=0;i<53;i++)step(fast.w,fast.run,idle,.02);
+ assert.equal(fast.w.zoomies,0,'boost ends after two seconds');assert.ok(fast.run.cooldowns.stink>11.9,'cooldown lasts fourteen seconds from activation');
+ assert.equal(startAbility(fast.w,fast.run,'stink'),false);
+ for(let i=0;i<600;i++)step(fast.w,fast.run,idle,.02);assert.equal(startAbility(fast.w,fast.run,'stink'),true);
 });
 test('rescue first reveals and enables that chapter’s treasures; snacks never gate progress',()=>{
  const r=createRun('reveal123');r.keyFound=true;
