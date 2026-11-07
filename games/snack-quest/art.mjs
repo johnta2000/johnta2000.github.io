@@ -1,4 +1,4 @@
-import { ZOOMIES_DURATION, mapX, mapStretch, roomWidth, roomScale, WIDTH, HEIGHT, ROOMS, random, goalDone, roomTrinkets, canFindTrinkets, PEE_RESCUE, peeProgress, canRescuePee, windAt, trinketCount } from './engine.mjs?v=41';
+import { ZOOMIES_DURATION, mapX, mapStretch, roomWidth, roomScale, WIDTH, HEIGHT, ROOMS, random, goalDone, roomTrinkets, canFindTrinkets, PEE_RESCUE, peeProgress, canRescuePee, windAt, trinketCount } from './engine.mjs?v=42';
 
 const INK='#75674c';
 function ellipse(c,x,y,rx,ry,fill,stroke=null,line=2){c.beginPath();c.ellipse(x,y,rx,ry,0,0,Math.PI*2);c.fillStyle=fill;c.fill();if(stroke){c.strokeStyle=stroke;c.lineWidth=line;c.stroke();}}
@@ -100,6 +100,22 @@ function zoomiesTrail(c,body,character,scale,roll,time,remaining,reduced){
   if(remaining>0){
     const burst=Math.min(1,(ZOOMIES_DURATION-remaining)/.1,remaining/.25);
     c.globalAlpha=.22*Math.max(0,burst);ellipse(c,body.x,body.y+3,34*scale,9*scale,'#edcc74');
+  }
+  c.restore();
+}
+
+function zoomiesSweat(c,body,character,scale,time,remaining,reduced){
+  if(remaining<=0||!body.moving)return;
+  const offset={pepsi:0,pepper:.19,pee:.38,pepperoni:.57}[character]||0;
+  c.save();
+  for(let i=0;i<(reduced?1:3);i++){
+    const age=reduced?.35:(time*1.8+i/3+offset)%1,side=i%2?-1:1;
+    const x=body.x+side*(33*scale+age*22),y=body.y-67*scale-age*26;
+    c.save();c.translate(x,y);c.rotate(side*(.25+age*.6));c.scale(Math.max(.85,scale),Math.max(.85,scale));
+    c.globalAlpha=reduced?.9:Math.min(1,age*7)*(1-age)*Math.min(1,remaining/.2);
+    c.beginPath();c.moveTo(0,-10);c.bezierCurveTo(-3,-5,-7,0,-7,4);c.bezierCurveTo(-7,13,7,13,7,4);c.bezierCurveTo(7,0,3,-5,0,-10);c.closePath();
+    c.fillStyle='#67bceb';c.fill();c.strokeStyle='#f5fcff';c.lineWidth=1.5;c.stroke();
+    ellipse(c,-2,3,1.5,3,'#d7f3ff');c.restore();
   }
   c.restore();
 }
@@ -406,6 +422,7 @@ export function drawWorld(c,world,run,viewportWidth,reduced=false,preview=false,
     if(hop>0)ellipse(c,body.x,body.y+4,48*scale,9*scale,'#51633e20');
     c.translate(body.x,body.y);c.scale(1+squash,1-squash);
     corgi(c,0,-hop,character,scale,body.facing,roll,hurt,hop===0);c.restore();
+    zoomiesSweat(c,body,character,scale,t,world.zoomies,reduced||preview);
     if(world.shield>0){
       c.save();c.globalAlpha=world.shield<.65&&!reduced?.45+.25*Math.sin(t*18):.8;
       ellipse(c,body.x,body.y-14,49*scale/.72,45*scale/.72,'#b9ecf32b','#8bc9db',2.5);
