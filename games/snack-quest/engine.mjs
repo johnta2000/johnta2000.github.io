@@ -4,13 +4,13 @@ let layoutWidth=1;
 export function mapStretch(){return layoutWidth;}
 export function mapX(x){return x*layoutWidth;}
 export function roomWidth(room){return WIDTH*roomScale(room)*layoutWidth;}
-export function roomScale(room) { return ['woods','hills','orchard'].includes(room)?1.6:1; }
+export function roomScale(room) { return ['woods','hills','orchard'].includes(room)?1.6:['laundry','kitchen'].includes(room)?1.4:1; }
 export function roomPoint(room,x,y) { const scale=roomScale(room);return {x:mapX(x)*scale,y:y*scale}; }
 export const DASH_COOLDOWN = 2.8;
 export const ABILITIES = {
   // Keep the legacy bark save/key ID so existing adventures retain their cooldown.
   bark:{key:'J',corgi:'Pepper',name:'Shield',hint:'Protect every corgi for 3 seconds',cooldown:10,unlock:'pepperFound'},
-  stink:{key:'K',corgi:'Pee',name:'Toot',hint:'Leave a cloud for pursuers',cooldown:7,unlock:'peeFound'},
+  stink:{key:'K',corgi:'Pee',name:'Zoomies',hint:'Whole train rolls 50% faster for 4 seconds',cooldown:10,unlock:'peeFound'},
   power:{key:'L',corgi:'Pepperoni',name:'Power',hint:'Longer dash · double boss damage',cooldown:8,unlock:'pepperoniFound'},
 };
 function freshCooldowns(){return {dash:0,bark:0,stink:0,power:0};}
@@ -69,7 +69,7 @@ export const ROOMS = {
   },
   laundry: {
     name:'Sock Mountain',short:'Pepperoni',ground:'#e6dacc',snack:'biscuit',indoor:true,
-    note:'The geese followed you inside! Bonk their puff-up to stop a honk. Find two laundry treasures. Bring Pee to the blanket fort to rescue Pepperoni!',
+    note:'The geese followed you inside! Bonk their puff-up to stop a honk. Rescue Pepperoni at the blanket fort, then find two laundry treasures.',
     obstacles:[{x:355,y:235,r:44,kind:'hamper'},{x:620,y:405,r:44,kind:'hamper'},{x:770,y:280,r:36,kind:'hamper'}],
     terrain:[{kind:'ice',x:470,y:330,rx:110,ry:52}],
     slots:[[220,170],[480,160],[840,450],[240,450],[700,500],[610,220]],goal:{x:820,y:160,r:30,kind:'fort'},
@@ -104,11 +104,12 @@ export const TRINKETS = [
   {id:'kitchen-button',room:'kitchen',name:'A runaway apron button',kind:'button',x:820,y:490},
 ];
 // Expand authored landmarks into larger worlds; actors and their speeds stay life-sized.
-for(const room of ['woods','hills','orchard']) {
+for(const room of ['woods','hills','orchard','laundry','kitchen']) {
   const info=ROOMS[room],scale=roomScale(room);
   for(const item of [...info.obstacles,...(info.terrain||[]),info.goal,...TRINKETS.filter(t=>t.room===room)]) {item.x*=scale;item.y*=scale;}
   for(const patch of info.terrain||[]){patch.rx*=1.35;patch.ry*=1.35;}
   info.slots=info.slots.map(([x,y])=>[x*scale,y*scale]);
+  if(info.indoor){info.note='More room for the whole corgi train. '+info.note;continue;}
   const extras=room==='woods'?[[410,310],[590,440],[750,150],[290,430]]:room==='hills'?[[380,250],[540,390],[720,460],[620,270]]:[[420,300],[550,420],[730,330],[300,470]];
   info.obstacles.push(...extras.map(([x,y])=>({...roomPoint(room,x,y),r:35,kind:room==='hills'?'rock':'tree'})));
   info.terrain??=[];
@@ -116,7 +117,7 @@ for(const room of ['woods','hills','orchard']) {
   info.note='A wide-open adventure! Explore the whole clearing. '+info.note;
 }
 export const NEEDOH={room:'orchard',...roomPoint('orchard',165,480),r:36};
-export const PEPPERONI_RESCUE={x:820,y:160};
+export const PEPPERONI_RESCUE=roomPoint('laundry',820,160);
 export const PEE_RESCUE = roomPoint('hills',790,155);
 export function setMapStretch(value){
   const next=Math.max(1,Math.min(4,Math.round(value*10000)/10000));
@@ -167,11 +168,16 @@ export function windAt(room,time) {
 }
 export function roomTrinkets(room) { return TRINKETS.filter(item=>item.room===room); }
 export function trinketCount(run,room) { return roomTrinkets(room).filter(item=>run.trinkets?.includes(item.id)).length; }
+export function canFindTrinkets(run,room){return !!run.pepperFound&&(room!=='hills'||!!run.peeFound)&&(room!=='laundry'||!!run.pepperoniFound);}
 export function allTrinkets(run) { return TRINKETS.every(item=>run.trinkets?.includes(item.id)); }
 export function upgradeRun(run) {
   if(!run.wideWorlds){
     for(const [room,point] of Object.entries(run.positions||{}))if(Number.isFinite(point?.x)&&Number.isFinite(point?.y))run.positions[room]={x:point.x*roomScale(room),y:point.y*roomScale(room)};
-    run.wideWorlds=true;
+    run.wideWorlds=true;run.indoorWorlds=true;
+  }
+  if(!run.indoorWorlds){
+    for(const room of ['laundry','kitchen']){const p=run.positions?.[room];if(p)run.positions[room]={x:p.x*1.4,y:p.y*1.4};}
+    run.indoorWorlds=true;
   }
   // Extend old saves in place without losing snacks, health, or completed adventures.
   if(run.completed&&!run.bossDefeated){run.legacyEnding=true;run.trinkets=[...new Set([...(run.trinkets||[]),...TRINKETS.slice(0,10).map(item=>item.id)])];}
@@ -214,7 +220,7 @@ export function roomItems(seed, room) {
 export function maxHearts(run) { return run.pepperFound ? 4 : 3; }
 export function createRun(id) {
   return {
-    version:2, mapStretch:1, wideWorlds:true, id, seed:Number.parseInt(id, 36) >>> 0, character:'pepsi', order:roomOrder(),
+    version:2, mapStretch:1, wideWorlds:true, indoorWorlds:true, id, seed:Number.parseInt(id, 36) >>> 0, character:'pepsi', order:roomOrder(),
     room:'meadow', tutorialStep:0, collected:[], trinkets:[], positions:{}, checkpoints:{}, trinketCheckpoints:{}, health:3,
     pendingAbility:null, needohFound:false, keyFound:false, pepperFound:false, peeFound:false, pepperoniFound:false,bossDefeated:false, basketFound:false, completed:false,
     hits:0, retries:0, revision:0, startedAt:Date.now(),cooldowns:freshCooldowns(),
@@ -283,10 +289,11 @@ export function objective(run, room) {
   if(room==='meadow')return 'Dash into the wooden crate to find the key';
   if(room==='pond'&&!run.pepperFound)return 'Reach Pepper’s gate with the key';
   if(room==='hills'&&!run.peeFound&&canRescuePee(run))return 'Pee is ready! Roll to the yellow corgi in the top-right clearing';
+  if(room==='hills'&&!run.peeFound)return 'Rescue Pee first · find all 6 earlier trinkets, then return';
   if(room==='boss'&&run.bossState?.mode==='recover')return 'STUNNED! Roll the whole team clear and reposition';
   if(room==='boss')return run.bossState?.mode==='exposed'?'OVERHEATED! L: power dash · Space: normal hit':'Dodge the red charge line; strike only when it overheats';
   if(room==='laundry'&&!run.peeFound)return 'Bring Pee from the downs to help find Pepperoni';
-  if(room==='laundry'&&!run.pepperoniFound&&trinketCount(run,room)===2)return 'Roll to Pepperoni’s blanket fort in the top-right corner';
+  if(room==='laundry'&&!run.pepperoniFound)return 'Roll to Pepperoni’s blanket fort in the top-right corner';
   const missing=roomTrinkets(room).filter(item=>!run.trinkets?.includes(item.id));
   if(missing.length)return `Find ${missing.map(item=>item.kind==='button'?'the button':`the ${item.kind}`).join(' + ')} · ${trinketCount(run,room)}/2 trinkets`;
   if(room==='orchard'&&!TRINKETS.slice(0,10).every(i=>run.trinkets?.includes(i.id)))return 'Trinkets still missing! Revisit earlier chapters below';
@@ -300,7 +307,7 @@ export function walkable(x, y, room, radius = 18) {
 export function toysFor(seed, room) {
   if(room==='tutorial'||room==='boss')return [];
   const positions = ['laundry','kitchen'].includes(room)?[[280,360],[540,260],[800,380]]:room==='woods'?[[420,260],[620,350],[820,330]]:room==='hills'?[[420,400],[710,290],[590,310]]:room === 'meadow' ? [[360,350],[690,285]] : room === 'pond' ? [[290,220],[710,370],[565,470]] : room === 'burrows' ? [[470,300],[760,350]] : [[315,375],[505,220],[800,340],[515,480]];
-  if(roomScale(room)>1)positions.push([550,320],[350,470]);
+  if(['woods','hills','orchard'].includes(room))positions.push([550,320],[350,470]);
   const gooseIndex=positions.length;
   if(['orchard','laundry','kitchen'].includes(room))positions.push([room==='orchard'?720:490,room==='orchard'?370:460]);
   const rng = random(seed + ORDER.indexOf(room)*77);
@@ -342,7 +349,7 @@ export function makeWorld(run, room) {
   if(room==='boss'&&!run.bossDefeated&&!run.bossState)run.bossState=newBoss();
   return {
     room, mapStretch:layoutWidth, runId:run.id, player:{...p,vx:1,vy:0,facing:1,moving:false}, buddy:{...buddy,facing:1}, pee:{...pee,facing:1},pepperoni:{...pepperoni,facing:1},boss:room==='boss'?run.bossState:null,
-    followTrail:[{...p}],peeTrail:[{...buddy}],pepperoniTrail:[{...pee}],clouds:[],shield:0,powerDash:false, toys:toysFor(run.seed,room), gophers:gophersFor(run.seed,room), items:roomItems(run.seed,room),
+    followTrail:[{...p}],peeTrail:[{...buddy}],pepperoniTrail:[{...pee}],clouds:[],zoomies:0,shield:0,powerDash:false, toys:toysFor(run.seed,room), gophers:gophersFor(run.seed,room), items:roomItems(run.seed,room),
     needoh:room===NEEDOH.room?{...NEEDOH,squish:0}:null,
     time:0,dash:0,cooldown:run.cooldowns.dash,abilityCooldowns:run.cooldowns,invincible:.65,bump:0,hitCorgi:null,particles:[],impacts:[],dashHits:new Set(),
   };
@@ -379,7 +386,7 @@ export function startAbility(world,run,ability,input={x:0,y:0}) {
     world.dash=.28;world.powerDash=true;world.invincible=Math.max(world.invincible,.36);
   } else if(ability==='bark') {
     world.shield=3;
-  } else world.clouds.push({x:world.pee.x,y:world.pee.y,life:1.2});
+  } else world.zoomies=4;
   world.abilityCooldowns[ability]=spec.cooldown;
   return true;
 }
@@ -406,7 +413,7 @@ function follow(world,p=world.player,b=world.buddy,trail=world.followTrail) {
   for(const point of trail){pathLength+=Math.hypot(point.x-previous.x,point.y-previous.y);previous=point;}
   const excess=Math.max(0,pathLength-64);
   const mud=terrainAt(world.room,b.x,b.y)==='mud'&&world.dash<=0?.55:1;
-  let budget=Math.min(excess,Math.min(400,excess*14)*world.dt*mud),travelled=0;
+  let budget=Math.min(excess,Math.min(world.zoomies>0?600:400,excess*14)*world.dt*mud),travelled=0;
   while(budget>.0001&&trail.length) {
     const target=trail[0],dx=target.x-b.x,dy=target.y-b.y,distance=Math.hypot(dx,dy);
     if(distance<.0001){if(trail.length>1){trail.shift();continue;}break;}
@@ -446,7 +453,7 @@ function bumpCorgis(world,run,hazard,events) {
 export function step(world,run,input,dt) {
   if(run.health<=0)return [];
   dt=Math.min(Math.max(dt,0),.035);world.dt=dt;world.time+=dt;
-  for(const key of ['cooldown','invincible','bump','shield'])world[key]=Math.max(0,world[key]-dt);
+  for(const key of ['cooldown','invincible','bump','shield','zoomies'])world[key]=Math.max(0,world[key]-dt);
   for(const key of Object.keys(ABILITIES))world.abilityCooldowns[key]=Math.max(0,world.abilityCooldowns[key]-dt);
   world.abilityCooldowns.dash=world.cooldown;
   const p=world.player, length=Math.hypot(input.x,input.y), events=[];
@@ -458,7 +465,7 @@ export function step(world,run,input,dt) {
   else {
     if(length){p.vx=input.x/length;p.vy=input.y/length;}
     const pace=input.analog?Math.min(length,1):1;
-    const speed=(ground==='mud'?102:185)*pace,targetX=length?p.vx*speed:0,targetY=length?p.vy*speed:0;
+    const speed=(ground==='mud'?102:185)*pace*(world.zoomies>0?1.5:1),targetX=length?p.vx*speed:0,targetY=length?p.vy*speed:0;
     const blend=ground==='ice'?1-Math.exp(-dt*(length?3.5:2)):1;
     p.slideX=(p.slideX||0)+(targetX-(p.slideX||0))*blend;p.slideY=(p.slideY||0)+(targetY-(p.slideY||0))*blend;
     if(Math.abs(p.slideX)<.1)p.slideX=0;if(Math.abs(p.slideY)<.1)p.slideY=0;
@@ -500,7 +507,7 @@ export function step(world,run,input,dt) {
     world.pee=companionSpawn(world.buddy,world.room);world.peeTrail=[{x:world.buddy.x,y:world.buddy.y}];
     world.invincible=3;particles(world,PEE_RESCUE.x,PEE_RESCUE.y,'heart');events.push({type:'pee-rescue'});
   }
-  if(world.room==='laundry'&&!run.pepperoniFound&&run.peeFound&&trinketCount(run,'laundry')===2&&nearGoal<55){
+  if(world.room==='laundry'&&!run.pepperoniFound&&run.peeFound&&nearGoal<55){
     run.pepperoniFound=true;run.pendingAbility='power';world.pepperoni=companionSpawn(world.pee,world.room);world.pepperoniTrail=[{x:world.pee.x,y:world.pee.y}];world.invincible=3;
     particles(world,goal.x,goal.y,'heart');events.push({type:'pepperoni-rescue'});
   }
@@ -569,7 +576,7 @@ export function step(world,run,input,dt) {
     } else if(gopher.mode==='up')bumpCorgis(world,run,gopher,events);
     if(run.health<=0)return events;
   }
-  if(run.pepperFound)for(const item of roomTrinkets(world.room)) {
+  if(canFindTrinkets(run,world.room))for(const item of roomTrinkets(world.room)) {
     if(!run.trinkets.includes(item.id)&&Math.hypot(item.x-p.x,item.y-p.y)<34) {
       run.trinkets.push(item.id);particles(world,item.x,item.y);events.push({type:'trinket',item});
     }

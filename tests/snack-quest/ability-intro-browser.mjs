@@ -8,7 +8,7 @@ const browser=await chromium.launch({headless:true,executablePath:homedir()+'/Li
 try{
  for(const mobile of [false,true]){
   const context=await browser.newContext({viewport:mobile?{width:844,height:390}:{width:1440,height:1000},isMobile:mobile,hasTouch:mobile}),page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));page.setDefaultTimeout(12000);await page.goto(base);
-  for(const [id,slug,room,pos] of [['bark','shield','pond',{x:735,y:370}],['stink','toot','hills',{x:PEE_RESCUE.x-65,y:PEE_RESCUE.y}],['power','power','laundry',{x:755,y:160}]]){
+  for(const [id,slug,room,pos] of [['bark','shield','pond',{x:735,y:370}],['stink','zoomies','hills',{x:PEE_RESCUE.x-65,y:PEE_RESCUE.y}],['power','power','laundry',{x:1057,y:224}]]){
    const run={...createRun('intro'+id+(mobile?'m':'d')),keyFound:true,pepperFound:id!=='bark',peeFound:id==='power',basketFound:id==='power',health:2,room,positions:{[room]:pos},trinkets:id==='stink'?TRINKETS.filter(t=>['pond','burrows','woods'].includes(t.room)).map(t=>t.id):id==='power'?TRINKETS.slice(0,12).map(t=>t.id):[]};
    await page.evaluate(({run,prefix})=>localStorage.setItem(prefix+run.id,JSON.stringify(run)),{run,prefix});await page.goto(base+`?view=play&run=${run.id}&room=${room}`);await page.keyboard.down('d');await page.waitForURL(/view=ability/);await page.keyboard.up('d');
    assert.equal(new URL(page.url()).searchParams.get('ability'),slug);const introURL=page.url(),saved=()=>page.evaluate(({prefix,id})=>JSON.parse(localStorage.getItem(prefix+id)),{prefix,id:run.id});

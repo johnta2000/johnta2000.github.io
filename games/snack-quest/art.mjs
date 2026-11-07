@@ -1,4 +1,4 @@
-import { mapX, mapStretch, roomWidth, roomScale, WIDTH, HEIGHT, ROOMS, random, goalDone, roomTrinkets, PEE_RESCUE, peeProgress, canRescuePee, windAt, trinketCount } from './engine.mjs?v=36';
+import { mapX, mapStretch, roomWidth, roomScale, WIDTH, HEIGHT, ROOMS, random, goalDone, roomTrinkets, canFindTrinkets, PEE_RESCUE, peeProgress, canRescuePee, windAt, trinketCount } from './engine.mjs?v=37';
 
 const INK='#75674c';
 function ellipse(c,x,y,rx,ry,fill,stroke=null,line=2){c.beginPath();c.ellipse(x,y,rx,ry,0,0,Math.PI*2);c.fillStyle=fill;c.fill();if(stroke){c.strokeStyle=stroke;c.lineWidth=line;c.stroke();}}
@@ -255,7 +255,7 @@ function goalArt(c,world,run,t) {
     else{heart(c,goal.x,goal.y-38,.9,'#c19a89');}
   } else if(world.room==='laundry'&&!run.pepperoniFound){
     shape(c,[[goal.x-65,goal.y+20],[goal.x,goal.y-68],[goal.x+65,goal.y+20]],'#d4b5b0','#ad8a80',3);
-    corgi(c,goal.x,goal.y+10,'pepperoni',.75,-1);label(run.peeFound&&trinketCount(run,'laundry')===2?'Pepperoni!':'Pee + 2 treasures',goal.y-90);
+    corgi(c,goal.x,goal.y+10,'pepperoni',.75,-1);label(run.peeFound?'Pepperoni!':'Bring Pee',goal.y-90);
   } else if(world.room==='orchard'&&!run.basketFound) {
     ellipse(c,goal.x,goal.y+19,30,9,'#61723d20');
     c.beginPath();c.ellipse(goal.x,goal.y-9,17,22,0,Math.PI,0);c.strokeStyle='#ad8756';c.lineWidth=6;c.stroke();
@@ -344,7 +344,7 @@ export function drawWorld(c,world,run,viewportWidth,reduced=false,preview=false,
     snack(c,item.x,item.y,item.kind,1,t);
     if(item.healing){rounded(c,item.x-23,item.y-48,46,22,10,'#fff6ed','#d3a18b');heart(c,item.x-8,item.y-34,.55,'#bd7066');c.font='bold 10px sans-serif';c.textAlign='left';c.fillStyle='#a36056';c.fillText('+1',item.x+1,item.y-33);}
   }
-  for(const item of roomTrinkets(world.room))if(!run.trinkets?.includes(item.id))trinket(c,item,t,!run.pepperFound);
+  if(canFindTrinkets(run,world.room))for(const item of roomTrinkets(world.room))if(!run.trinkets?.includes(item.id))trinket(c,item,t);
   goalArt(c,world,run,t);
   if(world.needoh){
     const cube=world.needoh,near=Math.hypot(world.player.x-cube.x,world.player.y-cube.y)<190;
@@ -357,6 +357,7 @@ export function drawWorld(c,world,run,viewportWidth,reduced=false,preview=false,
   const impactFor=target=>world.impacts.findLast(hit=>hit.target===target);
   for(const item of world.gophers)gopher(c,item,t,impactFor(item),world.time,reduced);
   const drawCorgi=(body,character,scale)=>{
+    if(world.zoomies>0&&!reduced){c.save();c.globalAlpha=.6;c.strokeStyle='#e6bd60';c.lineWidth=2;for(let i=0;i<3;i++){c.beginPath();c.moveTo(body.x-body.facing*(32+i*7),body.y-6+i*6);c.lineTo(body.x-body.facing*(45+i*7),body.y-6+i*6);c.stroke();}c.restore();}
     const hurt=world.hitCorgi===character?world.bump:0;
     c.save();if(hurt>0)c.globalAlpha=reduced?.75:.7+Math.sin(t*15)*.15;
     corgi(c,body.x,body.y,character,scale,body.facing,reduced||preview?0:rollingPose(body,t,scale),hurt);c.restore();
