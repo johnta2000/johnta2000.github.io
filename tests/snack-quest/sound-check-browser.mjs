@@ -15,7 +15,7 @@ try{
   window.AudioContext=class extends Native{resume(){window.audioGestures.push(window.audioGesture);return super.resume();}};
  });
  await p.goto(base);await p.locator('#sound-help').click();assert.match(p.url(),/view=sound/);
- await p.locator('#test-game-sound').click();await p.waitForTimeout(1000);assert.match(await p.locator('#sound-details').textContent(),/Build 40/);
+ await p.locator('#test-game-sound').click();await p.waitForTimeout(1000);assert.match(await p.locator('#sound-details').textContent(),/Build 41/);
  await p.locator('#test-speaker').click();await p.waitForFunction(()=>document.getElementById('sound-result').textContent.includes('Browser chime'));
  assert.match(await p.locator('#sound-result').innerText(),safari?/started|blocked/:/started/);
  await p.screenshot({path:`/tmp/snack-sound-check/${safari?'webkit':'chromium'}-${mobile?'mobile':'desktop'}.png`,fullPage:true});
@@ -26,7 +26,7 @@ try{
  await p.keyboard.press('Escape');await p.locator('#begin').waitFor();assert.equal(await p.evaluate(()=>document.activeElement.id),'sound-help');
  await p.locator('#sound-help').click();const backdrop=await p.locator('#screen').boundingBox();await p.mouse.click(backdrop.x+5,backdrop.y+5);await p.locator('#begin').waitFor();
  // Remembered Sound on must retry when a touch completes, not only on pointerdown.
- await p.reload();await p.evaluate(async()=>{const {Soundscape}=await import('./audio.mjs?v=40'),unlock=Soundscape.prototype.unlock;window.unlockGestures=[];Soundscape.prototype.unlock=function(){window.unlockGestures.push(window.audioGesture);return unlock.call(this);};});if(mobile)await p.locator('#begin').tap();else await p.locator('#begin').click();
+ await p.reload();await p.evaluate(async()=>{const {Soundscape}=await import('./audio.mjs?v=41'),unlock=Soundscape.prototype.unlock;window.unlockGestures=[];Soundscape.prototype.unlock=function(){window.unlockGestures.push(window.audioGesture);return unlock.call(this);};});if(mobile)await p.locator('#begin').tap();else await p.locator('#begin').click();
  const gestures=await p.evaluate(()=>window.unlockGestures);
  if(mobile)assert.ok(gestures.includes('touchend')||gestures.includes('click'),'completed touch retries audio startup');
  assert.deepEqual(errors,[]);await c.close();

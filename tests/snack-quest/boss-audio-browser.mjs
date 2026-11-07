@@ -13,7 +13,7 @@ async function activate(page,selector){if(mobile)await page.locator(selector).ta
 async function pause(page){if(mobile)await activate(page,'#pause');else await page.keyboard.press('Escape');}
 async function observe(page){
   await page.evaluate(async()=>{
-    const {Soundscape}=await import('/games/snack-quest/audio.mjs?v=40'),tick=Soundscape.prototype.tick;
+    const {Soundscape}=await import('/games/snack-quest/audio.mjs?v=41'),tick=Soundscape.prototype.tick;
     Soundscape.prototype.tick=function(){window.musicProbe=this;return tick.call(this);};
   });
   await page.waitForFunction(()=>!!window.musicProbe);
@@ -23,7 +23,7 @@ async function saved(page){return page.evaluate(prefix=>JSON.parse(localStorage.
 try {
   const context=await browser.newContext(mobile?{viewport:{width:844,height:390},isMobile:true,hasTouch:true}:{viewport:{width:1280,height:900}}),page=await context.newPage();page.on('pageerror',e=>errors.push(e.message));
   await page.goto(base);
-  const run=createRun('bossmusic');Object.assign(run,{room:'boss',keyFound:true,pepperFound:true,peeFound:true,pepperoniFound:true,basketFound:true,health:4,trinkets:TRINKETS.map(i=>i.id),positions:{boss:{x:645,y:315}},bossState:{x:710,y:315,r:44,hp:2,mode:'exposed',timer:3.4,aimX:-1,aimY:0,cycle:3}});
+  const run=createRun('bossmusic');Object.assign(run,{room:'boss',keyFound:true,pepperFound:true,peeFound:true,pepperoniFound:true,basketFound:true,health:4,trinkets:TRINKETS.map(i=>i.id),positions:{boss:{x:700,y:315}},bossState:{x:710,y:315,r:44,hp:2,mode:'exposed',timer:3.4,aimX:-1,aimY:0,cycle:3}});
   await page.evaluate(({prefix,run})=>localStorage.setItem(prefix+run.id,JSON.stringify(run)),{prefix,run});
   const bossURL=base+'?view=play&run='+run.id+'&room=boss';await page.goto(bossURL);await observe(page);
   assert.equal((await state(page)).battle,true);assert.equal((await state(page)).tempo,136);assert.equal((await state(page)).enabled,false);
@@ -42,8 +42,8 @@ try {
     const thumb={id:1,x:pad.x+pad.width/2+48,y:pad.y+pad.height/2};
     await session.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[thumb]});
     await session.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[thumb,{id:2,x:power.x+power.width/2,y:power.y+power.height/2}]});
-    await page.waitForTimeout(160);await session.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
-  }else{await page.keyboard.down('d');await page.keyboard.press('l');await page.waitForTimeout(160);await page.keyboard.up('d');}
+    await page.waitForTimeout(420);await session.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+  }else{await page.keyboard.down('d');await page.keyboard.press('l');await page.waitForTimeout(420);await page.keyboard.up('d');}
   assert.equal((await saved(page)).bossDefeated,true);assert.equal((await state(page)).battle,false,'final hit immediately ends the battle score');assert.equal((await state(page)).tempo,84);
   await pause(page);await page.reload();await observe(page);await activate(page,'#resume');
   assert.equal((await state(page)).battle,false,'refreshing a defeated boss never restarts battle music');
@@ -51,7 +51,7 @@ try {
   await page.goBack();assert.equal((await state(page)).room,'boss');assert.equal((await state(page)).battle,false);
 
   const rendered=await page.evaluate(async()=>{
-    const {Soundscape}=await import('/games/snack-quest/audio.mjs?v=40');
+    const {Soundscape}=await import('/games/snack-quest/audio.mjs?v=41');
     const result={};
     for(const room of ['boss','meadow']){
       const rate=22050,context=new OfflineAudioContext(1,rate*16,rate),score=new Soundscape(()=>context);

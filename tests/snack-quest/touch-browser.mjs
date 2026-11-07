@@ -55,7 +55,7 @@ try {
   const beforePause=await saved();await page.reload();await page.locator('#resume').waitFor();assert.deepEqual((await saved()).cooldowns,beforePause.cooldowns);
   await page.locator('#resume').tap();await page.waitForTimeout(2900);assert.deepEqual((await saved()).cooldowns,beforePause.cooldowns,'hazards and recharge wait for movement after resume');
   thumb=await center('#joystick',1);thumb.y-=48;await touch('touchStart',[thumb]);await page.waitForTimeout(2900);await touch('touchEnd',[]);
-  await page.locator('[data-ability=power]').tap();assert.ok((await saved()).cooldowns.power>7,'Power has its own touch button');
+  await page.locator('[data-ability=power]').tap();assert.ok((await saved()).cooldowns.power>11,'Belly Flop has its own touch button');
   await page.waitForTimeout(400);
   thumb=await center('#joystick',1);thumb.y+=48;await touch('touchStart',[thumb]);await page.waitForTimeout(150);await touch('touchCancel',[]);
   await page.waitForTimeout(1100);const cancelled=(await saved()).positions.tutorial;await page.waitForTimeout(1100);

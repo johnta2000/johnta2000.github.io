@@ -420,19 +420,19 @@ test('each friend ability must be chosen independently; normal dash never auto-c
  startDash(world);step(world,run,idle,.016);assert.equal(world.toys[0].mode,'roam');assert.equal(world.shield,0);assert.equal(world.clouds.length,0);assert.ok(world.dash<.2);assert.equal(world.powerDash,false);
  assert.ok(startAbility(world,run,'bark'));assert.equal(world.toys[0].mode,'roam');assert.equal(world.shield,3);assert.equal(world.clouds.length,0);assert.equal(world.abilityCooldowns.bark,10);assert.equal(startAbility(world,run,'bark'),false);
  assert.ok(startAbility(world,run,'stink'));assert.equal(world.zoomies,2);assert.equal(world.clouds.length,0);assert.equal(world.abilityCooldowns.stink,14);assert.equal(startAbility(world,run,'stink'),false);
- assert.equal(startAbility(world,run,'power'),false,'power cannot bypass the normal dash recovery');
+ assert.ok(startAbility(world,run,'power'),'belly flop is independent of dash recovery');assert.equal(world.flop,.32);assert.equal(world.powerDash,false);
  assert.equal(world.shield,3,'Zoomies is independent of shield');
  world.toys=[];for(let i=0;i<170;i++)step(world,run,idle,1/60);
- assert.ok(startAbility(world,run,'power'));assert.equal(world.powerDash,true);assert.equal(world.dash,.28);assert.equal(world.abilityCooldowns.power,8);assert.equal(startDash(world),false);
- for(let i=0;i<170;i++)step(world,run,idle,1/60);assert.equal(startAbility(world,run,'power'),false,'power retains its own longer cooldown');assert.ok(startDash(world),'normal dash can recharge before power');
+ assert.equal(startAbility(world,run,'power'),false);assert.equal(world.flop,0);assert.ok(world.abilityCooldowns.power>9);assert.equal(world.dash,0);
+ for(let i=0;i<170;i++)step(world,run,idle,1/60);assert.equal(startAbility(world,run,'power'),false,'belly flop retains its own cooldown');assert.ok(startDash(world),'normal dash can recharge before power');
 });
 test('ability cooldowns persist through room changes and reload, while retries reset them',()=>{
  const {run,world}=pairedWorld();run.peeFound=run.pepperoniFound=true;world.toys=[];
  for(const id of ['bark','stink','power'])assert.ok(startAbility(world,run,id));
  const snapshot=JSON.parse(JSON.stringify(run));assert.ok(validRun(snapshot,run.id));
- const restored=makeWorld(snapshot,'pond');assert.deepEqual(restored.abilityCooldowns,{dash:2.8,bark:10,stink:14,power:8});assert.equal(restored.cooldown,2.8);
+ const restored=makeWorld(snapshot,'pond');assert.deepEqual(restored.abilityCooldowns,{dash:0,bark:10,stink:14,power:12});assert.equal(restored.cooldown,0);
  for(const id of ['bark','stink','power'])assert.equal(startAbility(restored,snapshot,id),false);
- assert.equal(startDash(restored),false);restored.toys=[];restored.gophers=[];restored.items=[];step(restored,snapshot,idle,.02);assert.equal(snapshot.cooldowns.bark,9.98);
+ assert.equal(startDash(restored),true);restored.toys=[];restored.gophers=[];restored.items=[];step(restored,snapshot,idle,.02);assert.equal(snapshot.cooldowns.bark,9.98);
  const retry=retryRoom(snapshot,'pond');assert.deepEqual(retry.abilityCooldowns,{dash:0,bark:0,stink:0,power:0});
  snapshot.cooldowns.bark=-1;assert.equal(validRun(snapshot,run.id),false);
  delete snapshot.cooldowns;assert.ok(validRun(snapshot,run.id));upgradeRun(snapshot);assert.equal(snapshot.cooldowns.bark,0,'old saves gain ready abilities');
@@ -451,6 +451,8 @@ test('Pepperoni has a consequential hitbox and follows without jumping',()=>{
  assert.ok(again.pepperoni.x>200);
 });
 function bossPair(){const run=createRun('bossunit');Object.assign(run,{keyFound:true,pepperFound:true,peeFound:true,pepperoniFound:true,basketFound:true,health:4,room:'boss',trinkets:TRINKETS.map(i=>i.id)});const world=makeWorld(run,'boss');world.items=[];return {run,world};}
+function placeTrain(w,x,y){for(const key of ['player','buddy','pee','pepperoni'])Object.assign(w[key],{x,y});for(const key of ['followTrail','peeTrail','pepperoniTrail'])w[key]=[{x,y}];}
+function finishFlop(w,r){const events=[];for(let i=0;i<17;i++)events.push(...step(w,r,idle,.02));return events;}
 test('boss telegraphs, charges, overheats, takes one hit per opening, and persists',()=>{
  const {run,world}=bossPair();const boss=world.boss;world.invincible=100;world.player.y=480;
  assert.equal(boss.mode,'windup');step(world,run,idle,.02);assert.equal(boss.x,710);
@@ -458,7 +460,7 @@ test('boss telegraphs, charges, overheats, takes one hit per opening, and persis
  for(let hit=0;hit<4;hit++){
    // Wait through each real recovery/suction/charge cycle before positioning for a strike.
    if(hit)for(let i=0;i<500&&boss.mode!=='exposed';i++){world.player.x=450;world.player.y=480;step(world,run,idle,.02);}
-   assert.equal(boss.mode,'exposed');world.cooldown=0;world.abilityCooldowns.power=0;Object.assign(world.player,{x:boss.x,y:boss.y});startAbility(world,run,'power',{x:0,y:0});step(world,run,idle,.016);
+   assert.equal(boss.mode,'exposed');world.cooldown=0;world.abilityCooldowns.power=0;placeTrain(world,boss.x,boss.y);startAbility(world,run,'power');finishFlop(world,run);
    assert.equal(boss.hp,8-(hit+1)*2);const hp=boss.hp;step(world,run,idle,.016);assert.equal(boss.hp,hp,'one dash never deals repeated hits');
    const saved=JSON.parse(JSON.stringify(run));assert.ok(validRun(saved,saved.id));assert.equal(makeWorld(saved,'boss').boss.hp,hp);
  }
@@ -468,9 +470,9 @@ test('successful boss hits give every corgi time to reposition, then restore dan
  for(const ability of ['dash','power'])for(const body of ['player','buddy','pee','pepperoni']) {
    const {run,world}=bossPair(),boss=world.boss;
    Object.assign(boss,{mode:'exposed',timer:3,hp:6});
-   Object.assign(world.player,{x:boss.x-30,y:boss.y});
+   placeTrain(world,boss.x-30,boss.y);
    assert.ok(ability==='dash'?startDash(world):startAbility(world,run,'power'));
-   assert.ok(step(world,run,idle,.016).some(e=>e.type==='boss-hit'));
+   assert.ok((ability==='power'?finishFlop(world,run):step(world,run,idle,.016)).some(e=>e.type==='boss-hit'));
    const hp=boss.hp;
    // Remain in contact beyond dash immunity and the former 1.2-second stun.
    for(let i=0;i<145;i++) {
@@ -606,8 +608,8 @@ test('enemy bonks count once per target per dash, persist on retry, and exclude 
 });
 test('gopher and successful boss hits count; armored contact and power damage do not inflate bonks',()=>{
  const {run,world}=pairedWorld();world.toys=[];world.items=[];world.gophers=[{x:world.player.x,y:world.player.y,r:22,mode:'up',timer:2}];startDash(world);step(world,run,idle,.016);assert.equal(run.enemyBonks,1);
- const fight=bossPair();Object.assign(fight.world.player,{x:710,y:315});startAbility(fight.world,fight.run,'power');step(fight.world,fight.run,idle,.016);assert.equal(fight.run.enemyBonks,0);
- fight.world.dash=0;fight.world.cooldown=0;fight.world.abilityCooldowns.power=0;Object.assign(fight.world.boss,{mode:'exposed',timer:3});Object.assign(fight.world.player,{x:710,y:315});startAbility(fight.world,fight.run,'power');step(fight.world,fight.run,idle,.016);assert.equal(fight.world.boss.hp,6);assert.equal(fight.run.enemyBonks,1);
+ const fight=bossPair();placeTrain(fight.world,710,315);fight.world.invincible=100;startAbility(fight.world,fight.run,'power');finishFlop(fight.world,fight.run);assert.equal(fight.run.enemyBonks,0);
+ fight.world.dash=0;fight.world.cooldown=0;fight.world.abilityCooldowns.power=0;Object.assign(fight.world.boss,{mode:'exposed',timer:3});placeTrain(fight.world,710,315);startAbility(fight.world,fight.run,'power');finishFlop(fight.world,fight.run);assert.equal(fight.world.boss.hp,6);assert.equal(fight.run.enemyBonks,1);
 });
 test('older saves gain a zero bonk total; invalid totals are rejected',()=>{
  const r=createRun('bonksave');delete r.enemyBonks;assert.ok(validRun(r,r.id));upgradeRun(r);assert.equal(r.enemyBonks,0);

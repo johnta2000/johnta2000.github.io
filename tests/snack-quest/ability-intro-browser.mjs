@@ -8,12 +8,12 @@ const browser=await chromium.launch({headless:true,executablePath:homedir()+'/Li
 try{
  for(const mobile of [false,true]){
   const context=await browser.newContext({viewport:mobile?{width:844,height:390}:{width:1440,height:1000},isMobile:mobile,hasTouch:mobile}),page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));page.setDefaultTimeout(12000);await page.goto(base);
-  for(const [id,slug,room,pos] of [['bark','shield','pond',{x:735,y:370}],['stink','zoomies','hills',{x:PEE_RESCUE.x-65,y:PEE_RESCUE.y}],['power','power','laundry',{x:1057,y:224}]]){
+  for(const [id,slug,room,pos] of [['bark','shield','pond',{x:735,y:370}],['stink','zoomies','hills',{x:PEE_RESCUE.x-65,y:PEE_RESCUE.y}],['power','belly-flop','laundry',{x:1057,y:224}]]){
    const run={...createRun('intro'+id+(mobile?'m':'d')),keyFound:true,pepperFound:id!=='bark',peeFound:id==='power',basketFound:id==='power',health:2,room,positions:{[room]:pos},trinkets:id==='stink'?TRINKETS.filter(t=>['pond','burrows','woods'].includes(t.room)).map(t=>t.id):id==='power'?TRINKETS.slice(0,12).map(t=>t.id):[]};
    await page.evaluate(({run,prefix})=>localStorage.setItem(prefix+run.id,JSON.stringify(run)),{run,prefix});await page.goto(base+`?view=play&run=${run.id}&room=${room}`);await page.keyboard.down('d');await page.waitForURL(/view=ability/);await page.keyboard.up('d');
    assert.equal(new URL(page.url()).searchParams.get('ability'),slug);const introURL=page.url(),saved=()=>page.evaluate(({prefix,id})=>JSON.parse(localStorage.getItem(prefix+id)),{prefix,id:run.id});
    assert.equal((await saved()).pendingAbility,id);const before=await saved();await page.keyboard.down('d');await page.waitForTimeout(250);await page.keyboard.up('d');assert.deepEqual(await saved(),before,'reading freezes movement, damage, and cooldowns');
-   const text=await page.locator('.ability-card').innerText();assert.match(text,/unlocked!/);assert.match(text,mobile?/Tap/:/Press/);assert.match(text,/(10|14|8)s recharge/);assert.match(text,/pause menu/);
+   const text=await page.locator('.ability-card').innerText();assert.match(text,/unlocked!/);assert.match(text,mobile?/Tap/:/Press/);assert.match(text,/(10|14|12)s recharge/);assert.match(text,/pause menu/);
    await page.screenshot({path:`${out}/${mobile?'mobile':'desktop'}-${slug}.png`});
    await page.locator('#ability-title').click();assert.equal(page.url(),introURL,'inside click stays open');
    const card=await page.locator('.ability-card').boundingBox(),backdrop=await page.locator('#screen').boundingBox();await page.mouse.move(card.x+20,card.y+20);await page.mouse.down();await page.mouse.move(backdrop.x+3,backdrop.y+3);await page.mouse.up();assert.equal(page.url(),introURL,'dragging out does not dismiss');

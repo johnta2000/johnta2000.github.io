@@ -1,7 +1,7 @@
-import { setMapStretch, adaptWorldLayout, ROOMS, ORDER, DASH_COOLDOWN, ABILITIES, WIDTH, HEIGHT, createRun, peeProgress, upgradeRun, TRINKETS, validRun, migrateRun, enterRoom, makeWorld, maxHearts, goalDone, isUnlocked, firstUnfinished, objective, retryRoom, step, startDash, startAbility } from './engine.mjs?v=40';
-import { portrait, drawWorld, drawPicnic } from './art.mjs?v=40';
-import { movementKey, abilityKey, isTextEntry, joystickVector } from './input.mjs?v=40';
-import { Soundscape } from './audio.mjs?v=40';
+import { setMapStretch, adaptWorldLayout, ROOMS, ORDER, DASH_COOLDOWN, ABILITIES, WIDTH, HEIGHT, createRun, peeProgress, upgradeRun, TRINKETS, validRun, migrateRun, enterRoom, makeWorld, maxHearts, goalDone, isUnlocked, firstUnfinished, objective, retryRoom, step, startDash, startAbility } from './engine.mjs?v=41';
+import { portrait, drawWorld, drawPicnic } from './art.mjs?v=41';
+import { movementKey, abilityKey, isTextEntry, joystickVector } from './input.mjs?v=41';
+import { Soundscape } from './audio.mjs?v=41';
 
 const $ = id => document.getElementById(id);
 const canvas=$('world'), ctx=canvas.getContext('2d');
@@ -17,7 +17,7 @@ const soundtrack=new Soundscape();
 const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
 let run=null, world=null, view='home', viewportWidth=WIDTH, viewportHeight=HEIGHT, mobileMapInsets=null, lastFrame=0, saveElapsed=0;
 let shownAbility='bark';
-const abilitySlugs={bark:'shield',stink:'zoomies',power:'power'};
+const abilitySlugs={bark:'shield',stink:'zoomies',power:'belly-flop'};
 let toastUntil=0, animationTime=0, soundOn=false, latestId=null;
 let readFailed=false, saveFailed=false, conflict=false, backdropDown=false;
 let controlsReady=false,pendingMove=null,textRelease=0;
@@ -102,8 +102,8 @@ function announce(message){$('announcement').textContent=message;}
 function controlText(message) {
   if(!touchMode)return message;
   return message.replace('Hold D + tap SPACE','Roll right + tap Dash').replace(/WASD/g,'the joystick')
-    .replace(/Press J/g,'Tap Shield').replace(/Press K/g,'Tap Zoomies').replace(/Press L/g,'Tap Power')
-    .replace(/\bL\b/g,'Power').replace(/\bSpace\b|\bSPACE\b/g,'Dash');
+    .replace(/Press J/g,'Tap Shield').replace(/Press K/g,'Tap Zoomies').replace(/Press L/g,'Tap Belly Flop')
+    .replace(/\bL\b/g,'Belly Flop').replace(/\bSpace\b|\bSPACE\b/g,'Dash');
 }
 function touchPortrait(){return touchMode&&!landscapeQuery.matches;}
 function toast(message,duration=3200){message=controlText(message);$('room-toast').textContent=message;$('room-toast').hidden=false;toastUntil=performance.now()+duration;announce(message);}
@@ -142,7 +142,7 @@ function readRoute() {
   if(run&&view!=='home') {
     if(run.health<=0&&!['fullscreen','sound'].includes(view))view='retry';
     else if(view==='retry')view='play';
-    if(view==='ability'){shownAbility=Object.keys(abilitySlugs).find(id=>abilitySlugs[id]===query.get('ability')||(id==='stink'&&query.get('ability')==='toot'))||run.pendingAbility||'bark';if(!run[ABILITIES[shownAbility].unlock])view='play';}
+    if(view==='ability'){shownAbility=Object.keys(abilitySlugs).find(id=>abilitySlugs[id]===query.get('ability')||(id==='stink'&&query.get('ability')==='toot')||(id==='power'&&query.get('ability')==='power'))||run.pendingAbility||'bark';if(!run[ABILITIES[shownAbility].unlock])view='play';}
     if(view==='play'&&run.pendingAbility){shownAbility=run.pendingAbility;view='ability';}
     if(view==='reunion'&&!run.pepperFound)view='play';
     if(view==='picnic'&&(!run.completed||!run.basketFound))view='play';
@@ -172,7 +172,7 @@ function renderAbilityIntro(){
   const details={
     bark:{effect:'Blue bubbles protect every corgi from damage for 3 seconds. They flicker just before the shield ends.',tip:'Use it when the back of your train is about to get hit. It prevents damage; it doesn’t heal hearts or stun enemies.'},
     stink:{effect:'Every corgi rolls 30% faster for 2 seconds. Steer normally while the whole train gets the zoomies!',tip:'Use it to escape a charge or cross an open gap. It doesn’t protect you from hits or strengthen your dash. Recharges in 14 seconds.'},
-    power:{effect:'A longer roll in your current or last movement direction. Bonk enemies, or hit the overheated boss for 2 damage instead of 1.',tip:'Use it during the boss’s “DASH NOW!” opening. Power and normal Dash share a 2.8-second roll recovery, so you can’t alternate them immediately.'}
+    power:{effect:'Pepperoni hops, then lands with a whump! Enemies within the golden circle are pushed away and stunned for 2 seconds.',tip:'The landing happens around Pepperoni at the back of your train. Use it to make space when enemies crowd your friends. It interrupts a nearby charging boss, or deals 2 damage while it’s overheated. Recharges in 12 seconds, independently of Dash.'}
   }[shownAbility];
   $('screen').innerHTML=`<div class="ability-card" role="dialog" aria-modal="true" aria-labelledby="ability-title"><div class="ability-portrait"><canvas width="240" height="200" data-portrait="${spec.corgi.toLowerCase()}" aria-label="${spec.corgi}"></canvas><strong>${spec.corgi}</strong></div><div class="ability-explanation"><p class="card-eyebrow">${fresh?'NEW FRIEND · NEW ABILITY':'ABILITY GUIDE'}</p><h3 id="ability-title" tabindex="-1">${spec.name}${fresh?' unlocked!':''}</h3><p>${details.effect}</p><p class="ability-tip">${details.tip}</p><div class="ability-facts"><span>${touchMode?`Tap <b>${spec.name}</b>`:`Press <kbd>${spec.key}</kbd>`}</span><span><b>${spec.cooldown}s</b> recharge</span></div>${fresh?'<p class="ability-team-note">'+(shownAbility==='bark'?'You now share four hearts. A hit to either corgi costs one. Pepper’s trinkets have appeared—find both to open the exit.':'Your new friend shares the team’s hearts—watch the whole train! Their two trinkets have now appeared. Find both to open the exit.')+'</p>':''}<button id="ability-continue" class="primary-button">${fresh?'Got it — let’s roll!':'Back to '+(new URLSearchParams(location.search).get('from')==='pause'?'pause':'the game')}</button><p class="tiny-note">The adventure is paused. Find this guide again in the pause menu.</p></div></div>`;
   $('ability-continue').addEventListener('click',dismissScreen);$('ability-title').focus({preventScroll:true});
@@ -339,9 +339,9 @@ function paintAbilities() {
   document.body.dataset.abilityCount=count;
   for(const button of $('abilities').querySelectorAll('[data-ability]')) {
     const id=button.dataset.ability,spec=moves[id],unlocked=!spec.unlock||!!run?.[spec.unlock];
-    const cooldown=id==='dash'?world?.cooldown||0:Math.max(world?.abilityCooldowns[id]||0,id==='power'?world?.cooldown||0:0);
-    const active=id==='dash'?world?.dash>0&&!world?.powerDash:id==='power'?world?.dash>0&&world?.powerDash:id==='bark'?world?.shield>0:world?.zoomies>0;
-    const status=id==='stink'&&active?`Zoomies ${world.zoomies.toFixed(1)}s`:id==='bark'&&active?`Protected ${world.shield.toFixed(1)}s`:!unlocked?`Rescue ${spec.corgi}${touchMode?'':' first'}`:cooldown>0?`${cooldown.toFixed(1)}s${touchMode?'':` ${id==='power'&&world.cooldown>(world.abilityCooldowns.power||0)?'roll recovery':'recharge'}`}`:view!=='play'?'Ready when you play':!controlsReady?touchMode?'Roll to start':'WASD to start':'Ready';
+    const cooldown=id==='dash'?world?.cooldown||0:world?.abilityCooldowns[id]||0;
+    const active=id==='dash'?world?.dash>0&&!world?.powerDash:id==='power'?world?.flop>0:id==='bark'?world?.shield>0:world?.zoomies>0;
+    const status=id==='power'&&active?'Incoming whump!':id==='stink'&&active?`Zoomies ${world.zoomies.toFixed(1)}s`:id==='bark'&&active?`Protected ${world.shield.toFixed(1)}s`:!unlocked?`Rescue ${spec.corgi}${touchMode?'':' first'}`:cooldown>0?`${cooldown.toFixed(1)}s${touchMode?'':' recharge'}`:view!=='play'?'Ready when you play':!controlsReady?touchMode?'Roll to start':'WASD to start':'Ready';
     button.hidden=!unlocked;
     button.disabled=!unlocked||view!=='play'||!controlsReady||touchPortrait()||cooldown>0||run?.health<=0;
     button.classList.toggle('unlocked',unlocked);button.classList.toggle('active',!!active);button.classList.toggle('cooling',cooldown>0);
@@ -353,7 +353,7 @@ function paintAbilities() {
 function useMove(id) {
   if(view!=='play'||!controlsReady||touchPortrait()||!run||run.health<=0)return false;
   const used=id==='dash'?startDash(world,inputDirection()):startAbility(world,run,id,inputDirection());
-  if(used){sound(id==='power'||id==='dash'?'dash':id==='bark'?'shield':'zoomies');announce(`${moves[id].corgi}: ${moves[id].name}!`);save();paintAbilities();}
+  if(used){sound(id==='power'?'hop':id==='dash'?'dash':id==='bark'?'shield':'zoomies');announce(`${moves[id].corgi}: ${moves[id].name}!`);save();paintAbilities();}
   return used;
 }
 $('abilities').addEventListener('pointerdown',event=>{const button=event.target.closest('[data-ability]');if(event.pointerType!=='mouse'&&button&&!button.disabled){event.preventDefault();useMove(button.dataset.ability);}});
@@ -451,7 +451,7 @@ function renderSoundCheck(){
       if(!$('sound-result'))return;
       const advancing=context&&context.currentTime>time+.05;
       $('sound-result').textContent=advancing?'The game audio clock is running. Did you hear the chime?':'The game audio did not start. Try the browser chime below.';
-      $('sound-details').textContent=`Build 40 · game: ${context?.state||'unavailable'} · clock: ${advancing?'advancing':'stopped'} · ${soundtrack.foreground?'foreground':'background'}${soundtrack.lastError?' · '+soundtrack.lastError:''}`;
+      $('sound-details').textContent=`Build 41 · game: ${context?.state||'unavailable'} · clock: ${advancing?'advancing':'stopped'} · ${soundtrack.foreground?'foreground':'background'}${soundtrack.lastError?' · '+soundtrack.lastError:''}`;
     },900);
   });
   $('test-speaker').addEventListener('click',()=>{
@@ -463,7 +463,7 @@ function renderSoundCheck(){
   $('sound-done').addEventListener('click',dismissScreen);
 }
 // An independent media-element test distinguishes the Web Audio graph from device output.
-const browserChime=new Audio('./sound-check.wav?v=40');browserChime.preload='none';browserChime.volume=.65;
+const browserChime=new Audio('./sound-check.wav?v=41');browserChime.preload='none';browserChime.volume=.65;
 $('sound').addEventListener('click',()=>{soundOn=!soundOn;soundtrack.setEnabled(soundOn);const unlocked=soundtrack.unlock();renderSound();try{localStorage.setItem(PREFIX+'sound',String(soundOn));}catch{}Promise.resolve(unlocked).then(()=>sound('start'));});
 $('retry-save').addEventListener('click',()=>{if(save())toast('Your adventure is safely saved.');});
 $('download-save').addEventListener('click',()=>{
@@ -511,7 +511,9 @@ function handleEvents(events) {
     else if(event.type==='stun'){if(!bonks.length)sound('stun');announce('Mischief bonked. Keep moving.');}
     else if(['rescue','pee-rescue','pepperoni-rescue'].includes(event.type)){sound('rescue');shownAbility=run.pendingAbility;save();navigate(routeURL('ability'));return;}
     else if(event.type==='boss-open'){sound('key');toast('The vacuum overheated! Dash into it now!',2500);}
-    else if(event.type==='boss-hit'){toast(world.powerDash?'Power bonk! Two damage. Vacuum stunned — roll the whole team clear!':'Bonk! One damage. Vacuum stunned — roll the whole team clear!');}
+    else if(event.type==='flop'){sound('flop');}
+    else if(event.type==='boss-interrupt'){toast('Whump! Vacuum interrupted—roll the train clear!');}
+    else if(event.type==='boss-hit'){toast(event.flop?'Belly flop! Two damage. Vacuum stunned — roll the whole team clear!':'Bonk! One damage. Vacuum stunned — roll the whole team clear!');}
     else if(event.type==='boss-win'){soundtrack.setScene(view,world.room,{bossDefeated:true});sound('win');toast('Sir Sucks-a-Lot is unplugged! Take the path home →',6000);}
     else if(event.type==='defeat'){save();sound('defeat');navigate(routeURL('retry'));return;}
     else if(event.type==='exit') {

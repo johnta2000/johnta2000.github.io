@@ -1,4 +1,4 @@
-import { ZOOMIES_DURATION, mapX, mapStretch, roomWidth, roomScale, WIDTH, HEIGHT, ROOMS, random, goalDone, roomTrinkets, canFindTrinkets, PEE_RESCUE, peeProgress, canRescuePee, windAt, trinketCount } from './engine.mjs?v=40';
+import { ZOOMIES_DURATION, mapX, mapStretch, roomWidth, roomScale, WIDTH, HEIGHT, ROOMS, random, goalDone, roomTrinkets, canFindTrinkets, PEE_RESCUE, peeProgress, canRescuePee, windAt, trinketCount } from './engine.mjs?v=41';
 
 const INK='#75674c';
 function ellipse(c,x,y,rx,ry,fill,stroke=null,line=2){c.beginPath();c.ellipse(x,y,rx,ry,0,0,Math.PI*2);c.fillStyle=fill;c.fill();if(stroke){c.strokeStyle=stroke;c.lineWidth=line;c.stroke();}}
@@ -104,14 +104,14 @@ function zoomiesTrail(c,body,character,scale,roll,time,remaining,reduced){
   c.restore();
 }
 
-export function corgi(c,x,y,character='pepsi',scale=1,facing=1,roll=0,hurt=0) {
+export function corgi(c,x,y,character='pepsi',scale=1,facing=1,roll=0,hurt=0,shadow=true) {
   c.save(); c.translate(x,y); c.scale(scale,scale);
   c.lineCap='round'; c.lineJoin='round';
   const gray=character==='pepper',yellow=character==='pee',red=character==='pepperoni',coat=gray?'#a8adb4':yellow?'#f0d873':red?'#e3b784':'#dfb479';
   const edge=gray?'#91979f':yellow?'#c4ad58':red?'#c6a27f':'#c59e6b', cream='#fff8e9';
   const sine=Math.sin(roll),cosine=Math.cos(roll),squish=Math.abs(sine)*.035;
   // The shadow stays on the grass while the round body turns around its middle.
-  ellipse(c,-4,5,(red?53:43)-Math.abs(sine)*4,10,'#51633e20');
+  if(shadow)ellipse(c,-4,5,(red?53:43)-Math.abs(sine)*4,10,'#51633e20');
   const support=Math.hypot((red?65:56)*sine,(red?42:35)*cosine)+Math.max(0,-cosine)*16;
   c.translate(-3*facing,6-support);c.rotate(roll);c.scale(facing*(1+squish),1-squish);c.translate(3,29);
   // One round, low loaf: little paws and bead eyes, like the reference plush.
@@ -397,9 +397,15 @@ export function drawWorld(c,world,run,viewportWidth,reduced=false,preview=false,
   const drawCorgi=(body,character,scale)=>{
     const roll=reduced||preview?0:rollingPose(body,t,scale);
     zoomiesTrail(c,body,character,scale,roll,t,world.zoomies,reduced||preview);
+    const hop=character==='pepperoni'&&world.flop>0&&!reduced?Math.sin((1-world.flop/.32)*Math.PI)*42:0;
+    if(character==='pepperoni'&&world.flop>0){c.save();c.globalAlpha=.4;ellipse(c,body.x,body.y,140,140,'#f3cc6533','#d4ae61',2);c.restore();}
     const hurt=world.hitCorgi===character?world.bump:0;
     c.save();if(hurt>0)c.globalAlpha=reduced?.75:.7+Math.sin(t*15)*.15;
-    corgi(c,body.x,body.y,character,scale,body.facing,roll,hurt);c.restore();
+    const landing=character==='pepperoni'?world.flopRipples.at(-1):null,age=landing?t-landing.started:1;
+    const squash=!reduced&&age>=0&&age<.18?Math.sin(age/.18*Math.PI)*.12:0;
+    if(hop>0)ellipse(c,body.x,body.y+4,48*scale,9*scale,'#51633e20');
+    c.translate(body.x,body.y);c.scale(1+squash,1-squash);
+    corgi(c,0,-hop,character,scale,body.facing,roll,hurt,hop===0);c.restore();
     if(world.shield>0){
       c.save();c.globalAlpha=world.shield<.65&&!reduced?.45+.25*Math.sin(t*18):.8;
       ellipse(c,body.x,body.y-14,49*scale/.72,45*scale/.72,'#b9ecf32b','#8bc9db',2.5);
@@ -416,6 +422,7 @@ export function drawWorld(c,world,run,viewportWidth,reduced=false,preview=false,
   if(run.pepperoniFound)actors.push({y:world.pepperoni.y,draw:()=>drawCorgi(world.pepperoni,'pepperoni',.94)});
   if(world.boss)actors.push({y:world.boss.y,draw:()=>{const b=world.boss;c.save();c.translate(b.x,b.y);c.scale(2,2);if(b.mode==='off')c.globalAlpha=.45;toy(c,{...b,x:0,y:0,kind:'vacuum',vx:1},t,impactFor(b),world.time,reduced);c.restore();if(b.mode==='exposed'){for(let i=0;i<3;i++)ellipse(c,b.x-25+i*25,b.y-60-Math.sin(t*4+i)*7,9,14,'#fff7dfb0');}}});
   actors.sort((a,b)=>a.y-b.y).forEach(item=>item.draw());
+  for(const ring of world.flopRipples){const age=(world.time-ring.started)/.55;c.save();c.globalAlpha=(1-age)*.65;ellipse(c,ring.x,ring.y,140*age,140*age,'#f7d98b22','#dab268',3);c.font='bold 16px sans-serif';c.textAlign='center';c.fillStyle='#9c7950';c.fillText('WHUMP!',ring.x,ring.y-65-age*15);c.restore();}
   for(const hit of world.impacts)impactArt(c,hit,world.time,reduced);
   for(const p of world.particles){c.globalAlpha=p.life/p.max;if(p.kind==='heart')heart(c,p.x,p.y,.55,'#c98779');else flower(c,p.x,p.y,.7,'#fff6cb');}c.globalAlpha=1;
   if(world.bump>0){c.fillStyle='#c8756220';c.fillRect(offset,0,viewportWidth,HEIGHT);}
