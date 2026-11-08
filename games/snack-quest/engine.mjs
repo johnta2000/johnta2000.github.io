@@ -8,11 +8,13 @@ export function roomScale(room) { return ['woods','hills','orchard'].includes(ro
 export function roomPoint(room,x,y) { const scale=roomScale(room);return {x:mapX(x)*scale,y:y*scale}; }
 export const DASH_COOLDOWN = 2.8;
 export const ZOOMIES_DURATION=2, ZOOMIES_SPEED=1.3;
+export const CHAD_ATTACKS={gooseRadius:135,gooseWarning:1.1,gooseGone:3.2,spinRadius:72,spinWarning:.85,spinDuration:1.05,catWarning:.55,catCharge:.42};
+export const HARD_MOVE_KINDS=['vacuum','cat','goose'];
 export const ENEMY_KINDS=['vacuum','cat','gopher','goose','boss'];
 export const DIFFICULTIES={
   cozy:{label:'Jessi mode',description:'Fewer enemies, cats arrive later, longer warnings and more generous abilities.',speed:.8,notice:.85,warning:1.35,honkReach:145,gopherUp:1.25,shield:3.5,zoomies:2.4,flopRadius:160,flopStun:2.5,dashStun:2.8,grace:1.6,bossOpen:4.2,bossRest:3.8,bossWarn:1.5},
   normal:{label:'Normal',description:'The current adventure: a balanced mix of enemies and room to react.',speed:1,notice:1,warning:1,honkReach:180,gopherUp:1.6,shield:3,zoomies:2,flopRadius:140,flopStun:2,dashStun:2.3,grace:1.35,bossOpen:3.4,bossRest:3.2,bossWarn:1.1},
-  spicy:{label:'Chad Corgi',description:'More cats and earlier geese, quicker attacks, wider honks and shorter ability windows.',speed:1.15,notice:1.15,warning:.8,honkReach:215,gopherUp:1.9,shield:2.5,zoomies:1.6,flopRadius:120,flopStun:1.5,dashStun:1.8,grace:1.15,bossOpen:2.8,bossRest:2.8,bossWarn:.9}
+  spicy:{label:'Chad Corgi',description:'Feather-bomb geese, spinning vacuums and double-pounce cats. Quicker attacks and tighter ability windows.',speed:1.15,notice:1.15,warning:.8,honkReach:215,gopherUp:1.9,shield:2.5,zoomies:1.6,flopRadius:120,flopStun:1.5,dashStun:1.8,grace:1.15,bossOpen:2.8,bossRest:2.8,bossWarn:.9}
 };
 export function rulesFor(run){return Object.hasOwn(DIFFICULTIES,run?.difficulty)?DIFFICULTIES[run.difficulty]:DIFFICULTIES.normal;}
 export function enemyKinds(world){return [...new Set([...world.toys.map(t=>t.kind),...(world.gophers.length?['gopher']:[]),...(world.boss&&world.boss.mode!=='off'?['boss']:[])])].filter(k=>ENEMY_KINDS.includes(k));}
@@ -193,7 +195,7 @@ export function upgradeRun(run) {
   else if(!run.trinkets)run.trinkets=[];
   if(run.pepperoniFound===undefined)run.pepperoniFound=false;
   if(run.bossDefeated===undefined)run.bossDefeated=false;
-  run.difficulty??='normal';run.seenEnemies??=[];
+  run.difficulty??='normal';run.seenEnemies??=[];run.seenHardMoves??=[];
   run.enemyBonks??=0;
   run.needohFound??=false;
   run.mapStretch??=1;
@@ -231,7 +233,7 @@ export function roomItems(seed, room) {
 export function maxHearts(run) { return run.pepperFound ? 4 : 3; }
 export function createRun(id,difficulty='normal') {
   return {
-    version:2, difficulty:Object.hasOwn(DIFFICULTIES,difficulty)?difficulty:'normal',seenEnemies:[], mapStretch:1, wideWorlds:true, indoorWorlds:true, id, seed:Number.parseInt(id, 36) >>> 0, character:'pepsi', order:roomOrder(),
+    version:2, difficulty:Object.hasOwn(DIFFICULTIES,difficulty)?difficulty:'normal',seenEnemies:[], seenHardMoves:[], mapStretch:1, wideWorlds:true, indoorWorlds:true, id, seed:Number.parseInt(id, 36) >>> 0, character:'pepsi', order:roomOrder(),
     room:'meadow', tutorialStep:0, collected:[], trinkets:[], positions:{}, checkpoints:{}, trinketCheckpoints:{}, health:3,
     pendingAbility:null, needohFound:false, keyFound:false, pepperFound:false, peeFound:false, pepperoniFound:false,bossDefeated:false, basketFound:false, completed:false,
     hits:0, enemyBonks:0, retries:0, revision:0, startedAt:Date.now(),cooldowns:freshCooldowns(),
@@ -240,6 +242,7 @@ export function createRun(id,difficulty='normal') {
 export function validRun(value, id) {
   return !!(value && value.version === 2 && value.id === id && /^[a-z0-9]{6,16}$/.test(id) &&
     (value.difficulty===undefined||typeof value.difficulty==='string'&&Object.hasOwn(DIFFICULTIES,value.difficulty)) &&
+    (value.seenHardMoves===undefined||Array.isArray(value.seenHardMoves)&&value.seenHardMoves.every(k=>HARD_MOVE_KINDS.includes(k))&&new Set(value.seenHardMoves).size===value.seenHardMoves.length) &&
     (value.seenEnemies===undefined||Array.isArray(value.seenEnemies)&&value.seenEnemies.every(k=>ENEMY_KINDS.includes(k))&&new Set(value.seenEnemies).size===value.seenEnemies.length) &&
     (value.mapStretch===undefined||Number.isFinite(value.mapStretch)&&value.mapStretch>=1&&value.mapStretch<=4) &&
     (value.pendingAbility==null || typeof value.pendingAbility==='string'&&Object.hasOwn(ABILITIES,value.pendingAbility)&&value[ABILITIES[value.pendingAbility].unlock]===true) &&
@@ -329,7 +332,7 @@ export function toysFor(seed, room,difficulty='normal') {
   if(difficulty==='spicy')positions.splice(gooseIndex,0,[610,430]);
   return positions.map(([x,y], i) => ({
     ...roomPoint(room,x,y),r:18,vx:(rng()>.5?1:-1)*(40+ORDER.indexOf(room)*8),vy:(rng()>.5?1:-1)*30,
-    honkReach:rules.honkReach,lineRange:(i%2&&(difficulty!=='cozy'||ORDER.indexOf(room)>=3)?455:280+Math.min(3,ORDER.indexOf(room))*38)*.57*rules.speed,kind:i===positions.length-1&&positions.length>gooseIndex+(difficulty==='spicy'?1:0)?'goose':i%2&&(difficulty!=='cozy'||ORDER.indexOf(room)>=3)?'cat':'vacuum',mode:'roam',timer:0,cooldown:.8+i*.3,aimX:0,aimY:0,
+    chad:difficulty==='spicy',honkReach:rules.honkReach,lineRange:(i%2&&(difficulty!=='cozy'||ORDER.indexOf(room)>=3)?455:280+Math.min(3,ORDER.indexOf(room))*38)*.57*rules.speed,kind:i===positions.length-1&&positions.length>gooseIndex+(difficulty==='spicy'?1:0)?'goose':i%2&&(difficulty!=='cozy'||ORDER.indexOf(room)>=3)?'cat':'vacuum',mode:'roam',timer:0,cooldown:.8+i*.3,aimX:0,aimY:0,
   })).filter((t,i)=>difficulty!=='cozy'||i%2===0||t.kind==='goose'||t.kind==='cat'&&i===1).map(t=>({...t,...(difficulty==='spicy'?safePosition(t,room,t.r):{}),vx:t.vx*rules.speed,vy:t.vy*rules.speed}));
 }
 export function gophersFor(seed,room,difficulty='normal') {
@@ -426,7 +429,7 @@ function enemyImpact(world,run,target,body,boss=false){
 function landFlop(world,run,events){
   const center={x:world.pepperoni.x,y:world.pepperoni.y};
   world.flopPending=false;world.flopRipples.push({...center,started:world.time});events.push({type:'flop'});
-  for(const target of [...world.toys,...world.gophers.filter(g=>['up','stunned'].includes(g.mode))]){
+  for(const target of [...world.toys.filter(t=>!['gone','blast'].includes(t.mode)),...world.gophers.filter(g=>['up','stunned'].includes(g.mode))]){
     const dx=target.x-center.x,dy=target.y-center.y,d=Math.hypot(dx,dy);
     if(d>rulesFor(run).flopRadius+target.r)continue;
     const ux=d?dx/d:1,uy=d?dy/d:0;
@@ -496,7 +499,7 @@ export function step(world,run,input,dt) {
   for(const key of ['cooldown','invincible','bump','shield','zoomies','flop'])world[key]=Math.max(0,world[key]-dt);
   for(const key of Object.keys(ABILITIES))world.abilityCooldowns[key]=Math.max(0,world.abilityCooldowns[key]-dt);
   world.abilityCooldowns.dash=world.cooldown;
-  const rules=rulesFor(run);
+  const rules=rulesFor(run),chad=run.difficulty==='spicy';
   const p=world.player, length=Math.hypot(input.x,input.y), events=[];
   world.flopRipples=world.flopRipples.filter(r=>world.time-r.started<.55);
   world.clouds=world.clouds.filter(c=>(c.life-=dt)>0);
@@ -560,6 +563,11 @@ export function step(world,run,input,dt) {
   if(world.boss&&!run.bossDefeated){stepBoss(world,run,dt,dashing,events);if(run.health<=0)return events;}
   for(const h of [...world.toys,...world.gophers])if(world.clouds.some(c=>Math.hypot(c.x-h.x,c.y-h.y)<68)){if(h.mode!=='stunned')events.push({type:'stun'});h.mode='stunned';h.timer=Math.max(h.timer,1);}
   for(const toy of world.toys) {
+    if(toy.kind==='goose'&&['gone','blast'].includes(toy.mode)){
+      toy.timer=Math.max(0,toy.timer-dt);
+      if(toy.timer===0){toy.mode=toy.mode==='blast'?'gone':'rest';toy.timer=toy.mode==='gone'?CHAD_ATTACKS.gooseGone:1.1;}
+      continue;
+    }
     toy.cooldown=Math.max(0,toy.cooldown-dt);
     const distance=Math.hypot(toy.x-p.x,toy.y-p.y);
     const dashContact=dashing&&touchingCorgi(world,run,toy,29);
@@ -576,26 +584,56 @@ export function step(world,run,input,dt) {
       }else if(toy.mode==='honk') {
         toy.timer=Math.max(0,toy.timer-dt);const radius=24+(1-toy.timer)*rules.honkReach;
         bumpCorgis(world,run,{x:toy.x,y:toy.y,r:radius,innerRadius:radius-12},events);
-        if(toy.timer===0){toy.mode='rest';toy.timer=1.8;}
+        if(toy.timer===0){
+          toy.mode=chad?'blast-windup':'rest';toy.timer=chad?CHAD_ATTACKS.gooseWarning:1.8;
+          if(chad)events.push({type:'feather-warning'});
+        }
+      }else if(toy.mode==='blast-windup'){
+        toy.timer=Math.max(0,toy.timer-dt);
+        if(toy.timer===0){
+          toy.mode='blast';toy.timer=.3;particles(world,toy.x,toy.y);
+          bumpCorgis(world,run,{x:toy.x,y:toy.y,r:CHAD_ATTACKS.gooseRadius},events);events.push({type:'feather-burst'});
+        }
       }else {
         if(!walkable(toy.x+toy.vx*dt*.55,toy.y,world.room,toy.r))toy.vx*=-1;
         if(!walkable(toy.x,toy.y+toy.vy*dt*.55,world.room,toy.r))toy.vy*=-1;
         move(toy,toy.vx*dt*.55,toy.vy*dt*.55,world.room,toy.r);
       }
-      bumpCorgis(world,run,toy,events);if(run.health<=0)return events;
+      if(toy.mode!=='blast')bumpCorgis(world,run,toy,events);if(run.health<=0)return events;
       continue;
     }
+    if(chad&&toy.kind==='vacuum'&&['spin-windup','spin'].includes(toy.mode)){
+      toy.timer=Math.max(0,toy.timer-dt);
+      if(toy.mode==='spin-windup'){
+        if(toy.timer===0){toy.mode='spin';toy.timer=CHAD_ATTACKS.spinDuration;}
+      }else{
+        const dx=p.x-toy.x,dy=p.y-toy.y,d=Math.hypot(dx,dy)||1;
+        move(toy,dx/d*140*dt,dy/d*140*dt,world.room,toy.r);
+        bumpCorgis(world,run,{x:toy.x,y:toy.y,r:CHAD_ATTACKS.spinRadius},events);
+        if(toy.timer===0){toy.mode='rest';toy.timer=1.4;}
+      }
+      if(toy.mode==='spin-windup')bumpCorgis(world,run,toy,events);
+      if(run.health<=0)return events;continue;
+    }
     if(toy.mode==='roam'&&toy.cooldown===0&&distance<(toy.kind==='cat'?330:270)*rules.notice&&distance>45) {
-      toy.mode='windup';toy.timer=(toy.kind==='cat'?.85:.7)*rules.warning;toy.aimX=(p.x-toy.x)/distance;toy.aimY=(p.y-toy.y)/distance;
+      toy.attackChain=0;toy.lineRange=(toy.kind==='cat'?455:280+Math.min(3,ORDER.indexOf(world.room))*38)*rules.speed*.57;toy.mode='windup';toy.timer=(toy.kind==='cat'?.85:.7)*rules.warning;toy.aimX=(p.x-toy.x)/distance;toy.aimY=(p.y-toy.y)/distance;
     }
     if(toy.mode==='windup') {
       toy.timer-=dt;
-      if(toy.timer<=0){toy.mode='charge';toy.timer=.57;}
+      if(toy.timer<=0){toy.mode='charge';toy.timer=chad&&toy.kind==='cat'&&toy.attackChain===1?CHAD_ATTACKS.catCharge:.57;}
     }else if(toy.mode==='charge') {
       const speed=(toy.kind==='cat'?455:280+Math.min(3,ORDER.indexOf(world.room))*38)*rules.speed;
       move(toy,toy.aimX*speed*dt,toy.aimY*speed*dt,world.room,toy.r);
       toy.timer-=dt;
-      if(toy.timer<=0){toy.mode=toy.kind==='cat'?'rest':'roam';toy.timer=1.2;toy.cooldown=1.1;}
+      if(toy.timer<=0){
+        if(chad&&toy.kind==='cat'&&!toy.attackChain){
+          toy.attackChain=1;toy.mode='windup';toy.timer=CHAD_ATTACKS.catWarning;
+          const dx=p.x-toy.x,dy=p.y-toy.y,d=Math.hypot(dx,dy)||1;toy.aimX=dx/d;toy.aimY=dy/d;
+          toy.lineRange=455*rules.speed*CHAD_ATTACKS.catCharge;events.push({type:'cat-warning'});
+        }else if(chad&&toy.kind==='vacuum'){
+          toy.mode='spin-windup';toy.timer=CHAD_ATTACKS.spinWarning;events.push({type:'vacuum-warning'});
+        }else{toy.mode=toy.kind==='cat'?'rest':'roam';toy.timer=chad?1.6:1.2;toy.cooldown=1.1;}
+      }
     }else {
       if(!walkable(toy.x+toy.vx*dt,toy.y,world.room,toy.r))toy.vx*=-1;
       if(!walkable(toy.x,toy.y+toy.vy*dt,world.room,toy.r))toy.vy*=-1;

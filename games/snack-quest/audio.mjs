@@ -168,7 +168,10 @@ export class Soundscape {
     if(!this.ready)return;
     const now=this.context.currentTime+.008;
     const chime=(notes,spacing=.095,volume=.12)=>notes.forEach((note,i)=>this.pluck(note,now+i*spacing,volume,.42));
-    if(kind==='hop'){this.tone(64,now,.16,.08,this.effectVoices,'sine',76);}
+    if(kind==='feather-burst'){this.noise(now,.2,.16,1800);this.tone(72,now,.2,.14,this.effectVoices,'sine',40);}
+    else if(kind==='vacuum-spin'){this.tone(42,now,.4,.06,this.effectVoices,'triangle',66);}
+    else if(kind==='cat-pounce'){chime([76,81],.065,.055);}
+    else if(kind==='hop'){this.tone(64,now,.16,.08,this.effectVoices,'sine',76);}
     else if(kind==='flop'){this.tone(48,now,.25,.2,this.effectVoices,'sine',28);this.noise(now,.12,.15,700);}
     else if(kind==='dash'){this.noise(now,.2,.17,1500);this.tone(53,now,.16,.07,this.effectVoices,'sine',65);}
     else if(kind==='shield'){for(const [i,note] of [72,76,79,84].entries())this.tone(note,now+i*.06,.35,.065,this.effectVoices,'sine');}

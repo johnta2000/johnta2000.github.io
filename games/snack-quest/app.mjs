@@ -1,7 +1,7 @@
-import { DIFFICULTIES, ENEMY_KINDS, rulesFor, enemyKinds, setMapStretch, adaptWorldLayout, ROOMS, ORDER, DASH_COOLDOWN, ABILITIES, WIDTH, HEIGHT, createRun, peeProgress, upgradeRun, TRINKETS, validRun, migrateRun, enterRoom, makeWorld, maxHearts, goalDone, isUnlocked, firstUnfinished, objective, retryRoom, step, startDash, startAbility } from './engine.mjs?v=44';
-import { enemyPortrait, portrait, drawWorld, drawPicnic } from './art.mjs?v=44';
-import { movementKey, abilityKey, isTextEntry, joystickVector } from './input.mjs?v=44';
-import { Soundscape } from './audio.mjs?v=44';
+import { DIFFICULTIES, HARD_MOVE_KINDS, ENEMY_KINDS, rulesFor, enemyKinds, setMapStretch, adaptWorldLayout, ROOMS, ORDER, DASH_COOLDOWN, ABILITIES, WIDTH, HEIGHT, createRun, peeProgress, upgradeRun, TRINKETS, validRun, migrateRun, enterRoom, makeWorld, maxHearts, goalDone, isUnlocked, firstUnfinished, objective, retryRoom, step, startDash, startAbility } from './engine.mjs?v=45';
+import { enemyPortrait, portrait, drawWorld, drawPicnic } from './art.mjs?v=45';
+import { movementKey, abilityKey, isTextEntry, joystickVector } from './input.mjs?v=45';
+import { Soundscape } from './audio.mjs?v=45';
 
 const $ = id => document.getElementById(id);
 const canvas=$('world'), ctx=canvas.getContext('2d');
@@ -149,7 +149,7 @@ function readRoute() {
     else if(view==='retry')view='play';
     if(view==='ability'){shownAbility=Object.keys(abilitySlugs).find(id=>abilitySlugs[id]===query.get('ability')||(id==='stink'&&query.get('ability')==='toot')||(id==='power'&&query.get('ability')==='power'))||run.pendingAbility||'bark';if(!run[ABILITIES[shownAbility].unlock])view='play';}
     if(view==='play'&&run.pendingAbility){shownAbility=run.pendingAbility;view='ability';}
-    if(view==='play'){shownEnemies=enemyKinds(world).filter(k=>!run.seenEnemies.includes(k));if(shownEnemies.length){view='enemies';autoEnemies=true;}}
+    if(view==='play'){shownEnemies=enemyKinds(world).filter(k=>!run.seenEnemies.includes(k)||run.difficulty==='spicy'&&HARD_MOVE_KINDS.includes(k)&&!run.seenHardMoves.includes(k));if(shownEnemies.length){view='enemies';autoEnemies=true;}}
     if(view==='enemies'&&!autoEnemies){const available=enemyKinds(world),requested=(query.get('enemy')||'').split(',').filter(k=>available.includes(k));shownEnemies=[...new Set(requested.length?requested:available)];if(!shownEnemies.length)view='play';}
     if(view==='reunion'&&!run.pepperFound)view='play';
     if(view==='picnic'&&(!run.completed||!run.basketFound))view='play';
@@ -195,6 +195,11 @@ function renderSetup(){
 function enemyGuideURL(){const kinds=world?enemyKinds(world):[];const url=routeURL('enemies');url.searchParams.set('enemy',kinds.join(','));url.searchParams.set('from','pause');return url;}
 function renderEnemyIntro(){
   const info={vacuum:['Roaming vacuum','It lines up a straight charge. Wait for the red warning, move sideways, or dash into it to bonk it.'],cat:['Sneaky cat','Watch for the crouch! It pounces quickly, then stops to rest. Dodge sideways or bonk it with Dash.'],gopher:['Pop-up gopher','Shaking dirt means a gopher is about to pop up. Go around its hole, or dash through once it appears.'],goose:['Grumpy goose','A deep breath comes before its expanding HONK ring. Bonk it during the warning to stop the honk, or use Shield to protect the train.'],boss:['Sir Sucks-a-Lot','Dodge the red charge line. Dash into it when it overheats. Pepperoni’s Belly Flop interrupts nearby charges and hits overheated armor for two damage.']};
+  if(run.difficulty==='spicy'){
+    info.vacuum=['Turbo vacuum','Dodge the straight charge, then watch for SPIN INCOMING! It follows with a short spinning rush inside the orange circle. Run clear, or bonk it to cancel.'];
+    info.cat=['Double-trouble cat','Two pounces! After the first, AGAIN! means it is aiming a second one. Wait for the new red line, then dodge sideways. Bonking cancels the combo.'];
+    info.goose=['Feather-bomb goose','After its HONK ring, it puffs up: FEATHER BOMB! Leave the marked circle or bonk it before the feather explosion. Shield also protects the train. It vanishes briefly, then returns.'];
+  }
   $('screen').innerHTML=`<div class="enemy-card" role="dialog" aria-modal="true" aria-labelledby="enemy-title"><p class="card-eyebrow">${new URLSearchParams(location.search).get('from')==='pause'?'ENEMY GUIDE':'NEW MISCHIEF AHEAD'}</p><h3 id="enemy-title" tabindex="-1">Meet the mischief.</h3><div class="enemy-list">${shownEnemies.map(kind=>`<article><canvas width="160" height="120" data-enemy="${kind}" aria-label="${info[kind][0]}"></canvas><div><h4>${info[kind][0]}</h4><p>${info[kind][1]}</p></div></article>`).join('')}</div><p class="tiny-note">${rulesFor(run).label} difficulty · The adventure is paused.</p><button id="enemy-continue" class="primary-button">Got it — let’s roll!</button><p class="tiny-note">Press Enter or Space, or tap to continue.</p></div>`;
   $('enemy-continue').addEventListener('click',dismissScreen);$('enemy-title').focus({preventScroll:true});
 }
@@ -387,7 +392,7 @@ $('abilities').addEventListener('click',event=>{if(event.pointerType==='touch'||
 function pause(){if(view==='play')navigate(routeURL('pause'));}
 function dismissScreen() {
   if(view==='setup'){const from=new URLSearchParams(location.search).get('from');navigate(routeURL(from==='picnic'?'picnic':'home'));($(setupFocus)||$('begin')||$('sound')).focus({preventScroll:true});return;}
-  if(view==='enemies'){run.seenEnemies=[...new Set([...run.seenEnemies,...shownEnemies])];save();const from=new URLSearchParams(location.search).get('from');navigate(routeURL(from==='pause'?'pause':'play'));if(from==='pause')$('enemy-help')?.focus({preventScroll:true});return;}
+  if(view==='enemies'){if(run.difficulty==='spicy')run.seenHardMoves=[...new Set([...run.seenHardMoves,...shownEnemies.filter(k=>HARD_MOVE_KINDS.includes(k))])];run.seenEnemies=[...new Set([...run.seenEnemies,...shownEnemies])];save();const from=new URLSearchParams(location.search).get('from');navigate(routeURL(from==='pause'?'pause':'play'));if(from==='pause')$('enemy-help')?.focus({preventScroll:true});return;}
   if(view==='ability'){const id=shownAbility,from=new URLSearchParams(location.search).get('from')==='pause'?'pause':'play';if(run.pendingAbility===id)run.pendingAbility=null;save();navigate(routeURL(from));if(from==='pause')document.querySelector(`[data-guide="${id}"]`)?.focus({preventScroll:true});return;}
   if(view==='sound'){const from=new URLSearchParams(location.search).get('from');navigate(routeURL(['home','play','pause','picnic','retry'].includes(from)?from:run?'play':'home'));($('sound-help')||$('sound')).focus({preventScroll:true});return;}
   if(view==='fullscreen'){const from=new URLSearchParams(location.search).get('from');navigate(routeURL(['home','play','pause','picnic','retry'].includes(from)?from:run?'play':'home'));$('fullscreen').focus({preventScroll:true});return;}
@@ -481,7 +486,7 @@ function renderSoundCheck(){
       if(!$('sound-result'))return;
       const advancing=context&&context.currentTime>time+.05;
       $('sound-result').textContent=advancing?'The game audio clock is running. Did you hear the chime?':'The game audio did not start. Try the browser chime below.';
-      $('sound-details').textContent=`Build 44 · game: ${context?.state||'unavailable'} · clock: ${advancing?'advancing':'stopped'} · ${soundtrack.foreground?'foreground':'background'}${soundtrack.lastError?' · '+soundtrack.lastError:''}`;
+      $('sound-details').textContent=`Build 45 · game: ${context?.state||'unavailable'} · clock: ${advancing?'advancing':'stopped'} · ${soundtrack.foreground?'foreground':'background'}${soundtrack.lastError?' · '+soundtrack.lastError:''}`;
     },900);
   });
   $('test-speaker').addEventListener('click',()=>{
@@ -493,7 +498,7 @@ function renderSoundCheck(){
   $('sound-done').addEventListener('click',dismissScreen);
 }
 // An independent media-element test distinguishes the Web Audio graph from device output.
-const browserChime=new Audio('./sound-check.wav?v=44');browserChime.preload='none';browserChime.volume=.65;
+const browserChime=new Audio('./sound-check.wav?v=45');browserChime.preload='none';browserChime.volume=.65;
 $('sound').addEventListener('click',()=>{soundOn=!soundOn;soundtrack.setEnabled(soundOn);const unlocked=soundtrack.unlock();renderSound();try{localStorage.setItem(PREFIX+'sound',String(soundOn));}catch{}Promise.resolve(unlocked).then(()=>sound('start'));});
 $('retry-save').addEventListener('click',()=>{if(save())toast('Your adventure is safely saved.');});
 $('download-save').addEventListener('click',()=>{
@@ -538,6 +543,10 @@ function handleEvents(events) {
     else if(event.type==='squish'){sound('squish');toast(event.discovered?'A secret NeeDoh! A little squishy keepsake is coming to your picnic.':'Squiiish. The corgis understand the obsession.',4000);}
     else if(event.type==='goose-warning'){announce('Goose puffing up! Dodge the ring or bonk to interrupt.');}
     else if(event.type==='honk'){sound('honk');}
+    else if(event.type==='feather-warning'){announce('Feather bomb! Leave the marked circle or bonk the goose.');}
+    else if(event.type==='feather-burst'){sound('feather-burst');}
+    else if(event.type==='vacuum-warning'){sound('vacuum-spin');announce('Vacuum spin incoming! Leave its circle or bonk to cancel.');}
+    else if(event.type==='cat-warning'){sound('cat-pounce');announce('Cat is aiming a second pounce! Dodge the new red line.');}
     else if(event.type==='stun'){if(!bonks.length)sound('stun');announce('Mischief bonked. Keep moving.');}
     else if(['rescue','pee-rescue','pepperoni-rescue'].includes(event.type)){sound('rescue');shownAbility=run.pendingAbility;save();navigate(routeURL('ability'));return;}
     else if(event.type==='boss-open'){sound('key');toast('The vacuum overheated! Dash into it now!',2500);}
@@ -552,7 +561,7 @@ function handleEvents(events) {
       else{run.completed=true;save();sound('win');navigate(routeURL('picnic'));}
       return;
     }
-    if(!['stun','goose-warning','honk'].includes(event.type)){save();updateProgress();}
+    if(!['stun','goose-warning','honk','feather-warning','vacuum-warning','cat-warning'].includes(event.type)){save();updateProgress();}
   }
 }
 function frame(now) {
