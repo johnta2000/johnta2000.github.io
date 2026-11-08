@@ -10,9 +10,9 @@ export const DASH_COOLDOWN = 2.8;
 export const ZOOMIES_DURATION=2, ZOOMIES_SPEED=1.3;
 export const ENEMY_KINDS=['vacuum','cat','gopher','goose','boss'];
 export const DIFFICULTIES={
-  cozy:{label:'Cozy',description:'Fewer enemies, cats arrive later, longer warnings and more generous abilities.',speed:.8,notice:.85,warning:1.35,honkReach:145,gopherUp:1.25,shield:3.5,zoomies:2.4,flopRadius:160,flopStun:2.5,dashStun:2.8,grace:1.6,bossOpen:4.2,bossRest:3.8,bossWarn:1.5},
+  cozy:{label:'Jessi mode',description:'Fewer enemies, cats arrive later, longer warnings and more generous abilities.',speed:.8,notice:.85,warning:1.35,honkReach:145,gopherUp:1.25,shield:3.5,zoomies:2.4,flopRadius:160,flopStun:2.5,dashStun:2.8,grace:1.6,bossOpen:4.2,bossRest:3.8,bossWarn:1.5},
   normal:{label:'Normal',description:'The current adventure: a balanced mix of enemies and room to react.',speed:1,notice:1,warning:1,honkReach:180,gopherUp:1.6,shield:3,zoomies:2,flopRadius:140,flopStun:2,dashStun:2.3,grace:1.35,bossOpen:3.4,bossRest:3.2,bossWarn:1.1},
-  spicy:{label:'Spicy',description:'More cats and earlier geese, quicker attacks, wider honks and shorter ability windows.',speed:1.15,notice:1.15,warning:.8,honkReach:215,gopherUp:1.9,shield:2.5,zoomies:1.6,flopRadius:120,flopStun:1.5,dashStun:1.8,grace:1.15,bossOpen:2.8,bossRest:2.8,bossWarn:.9}
+  spicy:{label:'Chad Corgi',description:'More cats and earlier geese, quicker attacks, wider honks and shorter ability windows.',speed:1.15,notice:1.15,warning:.8,honkReach:215,gopherUp:1.9,shield:2.5,zoomies:1.6,flopRadius:120,flopStun:1.5,dashStun:1.8,grace:1.15,bossOpen:2.8,bossRest:2.8,bossWarn:.9}
 };
 export function rulesFor(run){return Object.hasOwn(DIFFICULTIES,run?.difficulty)?DIFFICULTIES[run.difficulty]:DIFFICULTIES.normal;}
 export function enemyKinds(world){return [...new Set([...world.toys.map(t=>t.kind),...(world.gophers.length?['gopher']:[]),...(world.boss&&world.boss.mode!=='off'?['boss']:[])])].filter(k=>ENEMY_KINDS.includes(k));}
