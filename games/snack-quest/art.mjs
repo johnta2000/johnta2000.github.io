@@ -1,4 +1,4 @@
-import { ZOOMIES_DURATION, mapX, mapStretch, roomWidth, roomScale, WIDTH, HEIGHT, ROOMS, random, goalDone, roomTrinkets, canFindTrinkets, PEE_RESCUE, peeProgress, canRescuePee, windAt, trinketCount } from './engine.mjs?v=42';
+import { ZOOMIES_DURATION, mapX, mapStretch, roomWidth, roomScale, WIDTH, HEIGHT, ROOMS, random, goalDone, roomTrinkets, canFindTrinkets, PEE_RESCUE, peeProgress, canRescuePee, windAt, trinketCount } from './engine.mjs?v=43';
 
 const INK='#75674c';
 function ellipse(c,x,y,rx,ry,fill,stroke=null,line=2){c.beginPath();c.ellipse(x,y,rx,ry,0,0,Math.PI*2);c.fillStyle=fill;c.fill();if(stroke){c.strokeStyle=stroke;c.lineWidth=line;c.stroke();}}
@@ -75,7 +75,7 @@ function rollingPose(body,time,scale) {
 }
 
 const zoomTrails=new WeakMap();
-function zoomiesTrail(c,body,character,scale,roll,time,remaining,reduced){
+function zoomiesTrail(c,body,character,scale,roll,time,remaining,reduced,duration=ZOOMIES_DURATION){
   let trail=zoomTrails.get(body);
   if(!trail){trail={x:body.x,y:body.y,last:time,points:[]};zoomTrails.set(body,trail);}
   const dx=body.x-trail.x,dy=body.y-trail.y,distance=Math.hypot(dx,dy);
@@ -98,7 +98,7 @@ function zoomiesTrail(c,body,character,scale,roll,time,remaining,reduced){
     if(i%2===0)line(c,[[x-p.dx*8,y-p.dy*8],[x-p.dx*18,y-p.dy*18]],'#deb55f',1.8);
   }
   if(remaining>0){
-    const burst=Math.min(1,(ZOOMIES_DURATION-remaining)/.1,remaining/.25);
+    const burst=Math.min(1,(duration-remaining)/.1,remaining/.25);
     c.globalAlpha=.22*Math.max(0,burst);ellipse(c,body.x,body.y+3,34*scale,9*scale,'#edcc74');
   }
   c.restore();
@@ -210,10 +210,14 @@ function impactArt(c,hit,time,reduced) {
   c.font='800 14px sans-serif';c.textAlign='center';c.fillStyle='#8b6547';c.fillText(hit.boss?'KA-BONK!':'BONK!',0,3);
   c.restore();
 }
+export function enemyPortrait(canvas,kind){
+  const c=canvas.getContext('2d');c.clearRect(0,0,canvas.width,canvas.height);c.save();c.translate(canvas.width/2,canvas.height*.68);c.scale(kind==='boss'?1.6:1.1,kind==='boss'?1.6:1.1);
+  if(kind==='gopher')gopher(c,{x:0,y:0,mode:'up'},0);else toy(c,{x:0,y:0,r:18,kind:kind==='boss'?'vacuum':kind,mode:'roam',vx:1,vy:0},0);c.restore();
+}
 function toy(c,toy,time,hit=null,hitTime=time,reduced=false) {
   c.save(); c.translate(toy.x,toy.y); c.lineCap='round';
   if(toy.mode==='windup'&&toy.kind!=='goose') {
-    c.beginPath();c.moveTo(0,0);c.lineTo(toy.aimX*145,toy.aimY*145);
+    c.beginPath();c.moveTo(0,0);c.lineTo(toy.aimX*(toy.lineRange||145),toy.aimY*(toy.lineRange||145));
     c.strokeStyle='#c16e5d65';c.lineWidth=25;c.stroke();
     c.setLineDash([5,7]);c.strokeStyle='#ad5849';c.lineWidth=2;c.stroke();c.setLineDash([]);
     ellipse(c,0,0,26,26,'#f5d0ad55','#bd6d5a',1.5);
@@ -223,8 +227,8 @@ function toy(c,toy,time,hit=null,hitTime=time,reduced=false) {
   recoil(c,hit,hitTime,reduced);
   if(toy.kind==='goose') {
     const warning=toy.mode==='windup',honking=toy.mode==='honk';
-    if(warning){c.save();c.setLineDash([7,7]);ellipse(c,0,0,204,204,'#e8b97410','#bf885d88',2);c.restore();}
-    if(honking){const radius=24+(1-toy.timer)*180;ellipse(c,0,0,radius,radius,'#fff5cf08','#c88d59',12);ellipse(c,0,0,radius,radius,'#ffffff00','#fff4bc',3);}
+    if(warning){c.save();c.setLineDash([7,7]);ellipse(c,0,0,24+(toy.honkReach||180),24+(toy.honkReach||180),'#e8b97410','#bf885d88',2);c.restore();}
+    if(honking){const radius=24+(1-toy.timer)*(toy.honkReach||180);ellipse(c,0,0,radius,radius,'#fff5cf08','#c88d59',12);ellipse(c,0,0,radius,radius,'#ffffff00','#fff4bc',3);}
     const facing=Math.sign(toy.vx)||1;c.save();c.scale(facing,1);
     ellipse(c,-3,1,warning?29:25,warning?22:18,'#fff9e8','#c7c6af',1.5);
     ellipse(c,-9,2,16,10,'#edead9','#d0cdb7',1);
@@ -412,9 +416,9 @@ export function drawWorld(c,world,run,viewportWidth,reduced=false,preview=false,
   for(const item of world.gophers)gopher(c,item,t,impactFor(item),world.time,reduced);
   const drawCorgi=(body,character,scale)=>{
     const roll=reduced||preview?0:rollingPose(body,t,scale);
-    zoomiesTrail(c,body,character,scale,roll,t,world.zoomies,reduced||preview);
+    zoomiesTrail(c,body,character,scale,roll,t,world.zoomies,reduced||preview,world.rules.zoomies);
     const hop=character==='pepperoni'&&world.flop>0&&!reduced?Math.sin((1-world.flop/.32)*Math.PI)*42:0;
-    if(character==='pepperoni'&&world.flop>0){c.save();c.globalAlpha=.4;ellipse(c,body.x,body.y,140,140,'#f3cc6533','#d4ae61',2);c.restore();}
+    if(character==='pepperoni'&&world.flop>0){c.save();c.globalAlpha=.4;ellipse(c,body.x,body.y,world.rules.flopRadius,world.rules.flopRadius,'#f3cc6533','#d4ae61',2);c.restore();}
     const hurt=world.hitCorgi===character?world.bump:0;
     c.save();if(hurt>0)c.globalAlpha=reduced?.75:.7+Math.sin(t*15)*.15;
     const landing=character==='pepperoni'?world.flopRipples.at(-1):null,age=landing?t-landing.started:1;
@@ -439,7 +443,7 @@ export function drawWorld(c,world,run,viewportWidth,reduced=false,preview=false,
   if(run.pepperoniFound)actors.push({y:world.pepperoni.y,draw:()=>drawCorgi(world.pepperoni,'pepperoni',.94)});
   if(world.boss)actors.push({y:world.boss.y,draw:()=>{const b=world.boss;c.save();c.translate(b.x,b.y);c.scale(2,2);if(b.mode==='off')c.globalAlpha=.45;toy(c,{...b,x:0,y:0,kind:'vacuum',vx:1},t,impactFor(b),world.time,reduced);c.restore();if(b.mode==='exposed'){for(let i=0;i<3;i++)ellipse(c,b.x-25+i*25,b.y-60-Math.sin(t*4+i)*7,9,14,'#fff7dfb0');}}});
   actors.sort((a,b)=>a.y-b.y).forEach(item=>item.draw());
-  for(const ring of world.flopRipples){const age=(world.time-ring.started)/.55;c.save();c.globalAlpha=(1-age)*.65;ellipse(c,ring.x,ring.y,140*age,140*age,'#f7d98b22','#dab268',3);c.font='bold 16px sans-serif';c.textAlign='center';c.fillStyle='#9c7950';c.fillText('WHUMP!',ring.x,ring.y-65-age*15);c.restore();}
+  for(const ring of world.flopRipples){const age=(world.time-ring.started)/.55;c.save();c.globalAlpha=(1-age)*.65;ellipse(c,ring.x,ring.y,world.rules.flopRadius*age,world.rules.flopRadius*age,'#f7d98b22','#dab268',3);c.font='bold 16px sans-serif';c.textAlign='center';c.fillStyle='#9c7950';c.fillText('WHUMP!',ring.x,ring.y-65-age*15);c.restore();}
   for(const hit of world.impacts)impactArt(c,hit,world.time,reduced);
   for(const p of world.particles){c.globalAlpha=p.life/p.max;if(p.kind==='heart')heart(c,p.x,p.y,.55,'#c98779');else flower(c,p.x,p.y,.7,'#fff6cb');}c.globalAlpha=1;
   if(world.bump>0){c.fillStyle='#c8756220';c.fillRect(offset,0,viewportWidth,HEIGHT);}

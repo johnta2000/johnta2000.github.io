@@ -1,7 +1,7 @@
-import { setMapStretch, adaptWorldLayout, ROOMS, ORDER, DASH_COOLDOWN, ABILITIES, WIDTH, HEIGHT, createRun, peeProgress, upgradeRun, TRINKETS, validRun, migrateRun, enterRoom, makeWorld, maxHearts, goalDone, isUnlocked, firstUnfinished, objective, retryRoom, step, startDash, startAbility } from './engine.mjs?v=42';
-import { portrait, drawWorld, drawPicnic } from './art.mjs?v=42';
-import { movementKey, abilityKey, isTextEntry, joystickVector } from './input.mjs?v=42';
-import { Soundscape } from './audio.mjs?v=42';
+import { DIFFICULTIES, ENEMY_KINDS, rulesFor, enemyKinds, setMapStretch, adaptWorldLayout, ROOMS, ORDER, DASH_COOLDOWN, ABILITIES, WIDTH, HEIGHT, createRun, peeProgress, upgradeRun, TRINKETS, validRun, migrateRun, enterRoom, makeWorld, maxHearts, goalDone, isUnlocked, firstUnfinished, objective, retryRoom, step, startDash, startAbility } from './engine.mjs?v=43';
+import { enemyPortrait, portrait, drawWorld, drawPicnic } from './art.mjs?v=43';
+import { movementKey, abilityKey, isTextEntry, joystickVector } from './input.mjs?v=43';
+import { Soundscape } from './audio.mjs?v=43';
 
 const $ = id => document.getElementById(id);
 const canvas=$('world'), ctx=canvas.getContext('2d');
@@ -16,12 +16,13 @@ const memory=new Map(), savedSnapshots=new Map(), keys=new Set();
 const soundtrack=new Soundscape();
 const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
 let run=null, world=null, view='home', viewportWidth=WIDTH, viewportHeight=HEIGHT, mobileMapInsets=null, lastFrame=0, saveElapsed=0;
-let shownAbility='bark';
+let shownAbility='bark',shownEnemies=[],setupFocus='begin',preferredDifficulty='normal';
 const abilitySlugs={bark:'shield',stink:'zoomies',power:'belly-flop'};
 let toastUntil=0, animationTime=0, soundOn=false, latestId=null;
 let readFailed=false, saveFailed=false, conflict=false, backdropDown=false;
 let controlsReady=false,pendingMove=null,textRelease=0;
 try {
+  const preference=localStorage.getItem(PREFIX+'difficulty');if(Object.hasOwn(DIFFICULTIES,preference))preferredDifficulty=preference;
   latestId=localStorage.getItem(PREFIX+'latest')||localStorage.getItem(LEGACY+'latest');
   soundOn=(localStorage.getItem(PREFIX+'sound')||localStorage.getItem(LEGACY+'sound'))==='true';
 } catch { readFailed=true; }
@@ -78,6 +79,8 @@ function save() {
 function routeURL(nextView='play',room=world?.room||run?.room||'meadow',id=run?.id) {
   const url=new URL(location.href);url.search='';url.hash='';
   if(nextView!=='home')url.searchParams.set('view',nextView);
+  if(nextView==='setup'){url.searchParams.set('difficulty',new URLSearchParams(location.search).get('difficulty')||preferredDifficulty);url.searchParams.set('from',view==='setup'?(new URLSearchParams(location.search).get('from')||'home'):view);}
+  if(nextView==='enemies'){url.searchParams.set('enemy',shownEnemies.join(','));url.searchParams.set('from',view==='enemies'?(new URLSearchParams(location.search).get('from')||'play'):view==='pause'?'pause':'play');}
   if(nextView==='ability'){url.searchParams.set('ability',abilitySlugs[shownAbility]);const from=view==='ability'?new URLSearchParams(location.search).get('from'):view;url.searchParams.set('from',from==='pause'?'pause':'play');}
   if(['fullscreen','sound'].includes(nextView)){const from=['fullscreen','sound'].includes(view)?new URLSearchParams(location.search).get('from'):view;url.searchParams.set('from',['home','play','pause','picnic','retry'].includes(from)?from:'home');}
   if(id)url.searchParams.set('run',id);
@@ -86,6 +89,7 @@ function routeURL(nextView='play',room=world?.room||run?.room||'meadow',id=run?.
 }
 function navigate(url,{replace=false,enter=false}={}) {
   save();
+  if(new URL(url,location.href).searchParams.get('view')==='setup'&&view!=='setup')setupFocus=document.activeElement?.id||'begin';
   const destination=new URL(url,location.href),room=destination.searchParams.get('room');
   if(enter&&run&&run.health>0&&Object.hasOwn(ROOMS,room)&&isUnlocked(run,room)){
     world=enterRoom(run,room);clearInput();controlsReady=false;save();
@@ -95,7 +99,8 @@ function navigate(url,{replace=false,enter=false}={}) {
 function newRun() {
   save();
   const id=Date.now().toString(36)+crypto.getRandomValues(new Uint32Array(1))[0].toString(36).slice(0,3);
-  run=createRun(id);world=makeWorld(run,'tutorial');conflict=false;save();
+  rememberDifficulty(new URLSearchParams(location.search).get('difficulty')||preferredDifficulty);
+  run=createRun(id,preferredDifficulty);world=makeWorld(run,'tutorial');conflict=false;save();
   navigate(routeURL('play','tutorial'));sound('start');
 }
 function announce(message){$('announcement').textContent=message;}
@@ -127,8 +132,8 @@ function focusGame() {
 function readRoute() {
   clearInput();controlsReady=false;
   browserChime.pause();
-  const query=new URLSearchParams(location.search),requested=query.get('view')||'home';
-  view=['home','play','pause','reunion','retry','picnic','fullscreen','ability','sound'].includes(requested)?requested:'home';
+  const query=new URLSearchParams(location.search),requested=query.get('view')||'home';let autoEnemies=false;
+  view=['home','play','pause','reunion','retry','picnic','fullscreen','ability','sound','setup','enemies'].includes(requested)?requested:'home';
   const id=query.get('run'),requestedRoom=query.get('room');
   let saved=readRun(id||latestId);
   if(!saved&&!readFailed&&id&&/^[a-z0-9]{6,16}$/.test(id)){saved=createRun(id);memory.set(id,saved);}
@@ -138,21 +143,23 @@ function readRoute() {
     if(!isUnlocked(run,room))room=firstUnfinished(run);
     if(!world||world.room!==room||world.runId!==run.id)world=makeWorld(run,room);
   } else {run=null;world=null;}
-  if(!['home','fullscreen','sound'].includes(view)&&!run)view='home';
+  if(!['home','fullscreen','sound','setup'].includes(view)&&!run)view='home';
   if(run&&view!=='home') {
-    if(run.health<=0&&!['fullscreen','sound'].includes(view))view='retry';
+    if(run.health<=0&&!['fullscreen','sound','setup'].includes(view))view='retry';
     else if(view==='retry')view='play';
     if(view==='ability'){shownAbility=Object.keys(abilitySlugs).find(id=>abilitySlugs[id]===query.get('ability')||(id==='stink'&&query.get('ability')==='toot')||(id==='power'&&query.get('ability')==='power'))||run.pendingAbility||'bark';if(!run[ABILITIES[shownAbility].unlock])view='play';}
     if(view==='play'&&run.pendingAbility){shownAbility=run.pendingAbility;view='ability';}
+    if(view==='play'){shownEnemies=enemyKinds(world).filter(k=>!run.seenEnemies.includes(k));if(shownEnemies.length){view='enemies';autoEnemies=true;}}
+    if(view==='enemies'&&!autoEnemies){const available=enemyKinds(world),requested=(query.get('enemy')||'').split(',').filter(k=>available.includes(k));shownEnemies=[...new Set(requested.length?requested:available)];if(!shownEnemies.length)view='play';}
     if(view==='reunion'&&!run.pepperFound)view='play';
     if(view==='picnic'&&(!run.completed||!run.basketFound))view='play';
   }
-  history.replaceState({},'',routeURL(view,world?.room));
+  const canonical=routeURL(view,world?.room);if(view==='setup'&&!Object.hasOwn(DIFFICULTIES,canonical.searchParams.get('difficulty')))canonical.searchParams.set('difficulty','normal');history.replaceState({},'',canonical);
   soundtrack.setScene(view,world?.room||'meadow',{bossDefeated:!!run?.bossDefeated});
   render();
   if(view==='play') {
     focusGame();
-    toast(goalDone(run,world.room)?objective(run,world.room):ROOMS[world.room].note,4200);
+    toast(goalDone(run,world.room)||run.difficulty!=='normal'?objective(run,world.room):ROOMS[world.room].note,4200);
     save();
   }
   if(readFailed) {
@@ -169,19 +176,33 @@ function abilityGuideLinks(){
 }
 function renderAbilityIntro(){
   const spec=ABILITIES[shownAbility],fresh=run.pendingAbility===shownAbility;
+  const rules=rulesFor(run);
   const details={
-    bark:{effect:'Blue bubbles protect every corgi from damage for 3 seconds. They flicker just before the shield ends.',tip:'Use it when the back of your train is about to get hit. It prevents damage; it doesn’t heal hearts or stun enemies.'},
-    stink:{effect:'Every corgi rolls 30% faster for 2 seconds. Steer normally while the whole train gets the zoomies!',tip:'Use it to escape a charge or cross an open gap. It doesn’t protect you from hits or strengthen your dash. Recharges in 14 seconds.'},
-    power:{effect:'Pepperoni hops, then lands with a whump! Enemies within the golden circle are pushed away and stunned for 2 seconds.',tip:'The landing happens around Pepperoni at the back of your train. Use it to make space when enemies crowd your friends. It interrupts a nearby charging boss, or deals 2 damage while it’s overheated. Recharges in 12 seconds, independently of Dash.'}
+    bark:{effect:`Blue bubbles protect every corgi from damage for ${rules.shield} seconds. They flicker just before the shield ends.`,tip:'Use it when the back of your train is about to get hit. It prevents damage; it doesn’t heal hearts or stun enemies.'},
+    stink:{effect:`Every corgi rolls 30% faster for ${rules.zoomies} seconds. Steer normally while the whole train gets the zoomies!`,tip:'Use it to escape a charge or cross an open gap. It doesn’t protect you from hits or strengthen your dash. Recharges in 14 seconds.'},
+    power:{effect:`Pepperoni hops, then lands with a whump! Enemies within the golden circle are pushed away and stunned for ${rules.flopStun} seconds.`,tip:'The landing happens around Pepperoni at the back of your train. Use it to make space when enemies crowd your friends. It interrupts a nearby charging boss, or deals 2 damage while it’s overheated. Recharges in 12 seconds, independently of Dash.'}
   }[shownAbility];
   $('screen').innerHTML=`<div class="ability-card" role="dialog" aria-modal="true" aria-labelledby="ability-title"><div class="ability-portrait"><canvas width="240" height="200" data-portrait="${spec.corgi.toLowerCase()}" aria-label="${spec.corgi}"></canvas><strong>${spec.corgi}</strong></div><div class="ability-explanation"><p class="card-eyebrow">${fresh?'NEW FRIEND · NEW ABILITY':'ABILITY GUIDE'}</p><h3 id="ability-title" tabindex="-1">${spec.name}${fresh?' unlocked!':''}</h3><p>${details.effect}</p><p class="ability-tip">${details.tip}</p><div class="ability-facts"><span>${touchMode?`Tap <b>${spec.name}</b>`:`Press <kbd>${spec.key}</kbd>`}</span><span><b>${spec.cooldown}s</b> recharge</span></div>${fresh?'<p class="ability-team-note">'+(shownAbility==='bark'?'You now share four hearts. A hit to either corgi costs one. Pepper’s trinkets have appeared—find both to open the exit.':'Your new friend shares the team’s hearts—watch the whole train! Their two trinkets have now appeared. Find both to open the exit.')+'</p>':''}<button id="ability-continue" class="primary-button">${fresh?'Got it — let’s roll!':'Back to '+(new URLSearchParams(location.search).get('from')==='pause'?'pause':'the game')}</button><p class="tiny-note">The adventure is paused. Find this guide again in the pause menu.</p></div></div>`;
   $('ability-continue').addEventListener('click',dismissScreen);$('ability-title').focus({preventScroll:true});
+}
+function rememberDifficulty(value){preferredDifficulty=Object.hasOwn(DIFFICULTIES,value)?value:'normal';try{localStorage.setItem(PREFIX+'difficulty',preferredDifficulty);}catch{showSaveError('Your difficulty preference could not be saved. The selection is kept in this link.');}}
+function renderSetup(){
+  const query=new URLSearchParams(location.search),selected=Object.hasOwn(DIFFICULTIES,query.get('difficulty'))?query.get('difficulty'):'normal';
+  $('screen').innerHTML=`<div class="setup-card" role="dialog" aria-modal="true" aria-labelledby="setup-title"><p class="card-eyebrow">A NEW LITTLE ADVENTURE</p><h3 id="setup-title" tabindex="-1">How much mischief?</h3><p>Choose the pace for this adventure.</p><fieldset class="difficulty-options"><legend>Difficulty</legend>${Object.entries(DIFFICULTIES).map(([id,d])=>`<label><input type="radio" name="difficulty" value="${id}" ${selected===id?'checked':''}><span><b>${d.label}</b><small>${d.description}</small></span></label>`).join('')}</fieldset><p class="tiny-note">Changes enemy types, attack ranges and timing. Your choice stays with this adventure.</p><div class="setup-actions"><button id="start-adventure" class="primary-button">Start with practice →</button><button id="setup-cancel" class="secondary-button">Back</button></div></div>`;
+  $('screen').querySelectorAll('[name=difficulty]').forEach(input=>input.addEventListener('change',()=>{rememberDifficulty(input.value);const url=routeURL('setup');url.searchParams.set('difficulty',input.value);navigate(url);document.querySelector(`[name=difficulty][value=${input.value}]`).focus({preventScroll:true});}));
+  $('start-adventure').addEventListener('click',newRun);$('setup-cancel').addEventListener('click',dismissScreen);$('setup-title').focus({preventScroll:true});
+}
+function enemyGuideURL(){const kinds=world?enemyKinds(world):[];const url=routeURL('enemies');url.searchParams.set('enemy',kinds.join(','));url.searchParams.set('from','pause');return url;}
+function renderEnemyIntro(){
+  const info={vacuum:['Roaming vacuum','It lines up a straight charge. Wait for the red warning, move sideways, or dash into it to bonk it.'],cat:['Sneaky cat','Watch for the crouch! It pounces quickly, then stops to rest. Dodge sideways or bonk it with Dash.'],gopher:['Pop-up gopher','Shaking dirt means a gopher is about to pop up. Go around its hole, or dash through once it appears.'],goose:['Grumpy goose','A deep breath comes before its expanding HONK ring. Bonk it during the warning to stop the honk, or use Shield to protect the train.'],boss:['Sir Sucks-a-Lot','Dodge the red charge line. Dash into it when it overheats. Pepperoni’s Belly Flop interrupts nearby charges and hits overheated armor for two damage.']};
+  $('screen').innerHTML=`<div class="enemy-card" role="dialog" aria-modal="true" aria-labelledby="enemy-title"><p class="card-eyebrow">${new URLSearchParams(location.search).get('from')==='pause'?'ENEMY GUIDE':'NEW MISCHIEF AHEAD'}</p><h3 id="enemy-title" tabindex="-1">Meet the mischief.</h3><div class="enemy-list">${shownEnemies.map(kind=>`<article><canvas width="160" height="120" data-enemy="${kind}" aria-label="${info[kind][0]}"></canvas><div><h4>${info[kind][0]}</h4><p>${info[kind][1]}</p></div></article>`).join('')}</div><p class="tiny-note">${rulesFor(run).label} difficulty · The adventure is paused.</p><button id="enemy-continue" class="primary-button">Got it — let’s roll!</button><p class="tiny-note">Press Enter or Space, or tap to continue.</p></div>`;
+  $('enemy-continue').addEventListener('click',dismissScreen);$('enemy-title').focus({preventScroll:true});
 }
 function plushPair(missing=true) {
   return `<div class="plush-pair"><div><canvas width="240" height="200" data-portrait="pepsi" aria-label="Round tan-and-white Pepsi"></canvas><strong>Pepsi</strong><small>one brave little loaf</small></div><div class="${missing?'missing':''}"><canvas width="240" height="200" data-portrait="pepper" aria-label="Round gray-and-white Pepper"></canvas>${missing?'<span class="missing-mark" aria-hidden="true">?</span>':''}<strong>Pepper</strong><small>${missing?'somewhere out there':'right where he belongs'}</small></div></div>`;
 }
 function render() {
-  document.body.classList.toggle('playing',['play','pause','reunion','retry','fullscreen','ability','sound'].includes(view));
+  document.body.classList.toggle('playing',['play','pause','reunion','retry','fullscreen','ability','sound','enemies'].includes(view));
   document.body.dataset.view=view;
   $('mobile-home').href=routeURL('home');
   $('rotate-prompt').hidden=!touchPortrait()||view!=='play';
@@ -190,22 +211,24 @@ function render() {
   $('pause').hidden=view!=='play';$('pause').href=routeURL('pause');
   $('screen').className='screen';$('objective').hidden=view!=='play';$('dash-meter').hidden=view!=='play';$('room-toast').hidden=true;
   $('control-prompt').hidden=view!=='play'||controlsReady||touchPortrait();
-  $('room-kicker').textContent=view==='fullscreen'?'DISPLAY OPTIONS':view==='home'?'PEPSI’S LITTLE ADVENTURE':view==='picnic'?'HOME TOGETHER. HAPPY TOGETHER.':world?.room==='tutorial'?'SAFE PRACTICE':`CHAPTER ${ORDER.indexOf(world?.room)+1} OF ${ORDER.length}`;
-  $('room-name').textContent=view==='fullscreen'?'More room to roll':view==='home'?'One friend is missing.':view==='picnic'?'Home is wherever you are':ROOMS[world?.room||'meadow'].name;
+  $('room-kicker').textContent=view==='setup'?'NEW ADVENTURE':view==='fullscreen'?'DISPLAY OPTIONS':view==='home'?'PEPSI’S LITTLE ADVENTURE':view==='picnic'?'HOME TOGETHER. HAPPY TOGETHER.':world?.room==='tutorial'?'SAFE PRACTICE':`CHAPTER ${ORDER.indexOf(world?.room)+1} OF ${ORDER.length}`;
+  $('room-name').textContent=view==='setup'?'Adventure settings':view==='fullscreen'?'More room to roll':view==='home'?'One friend is missing.':view==='picnic'?'Home is wherever you are':ROOMS[world?.room||'meadow'].name;
   $('location-icon').textContent=view==='picnic'?'♡':world?.room==='pond'?'♧':'✿';
   const active=run&&(!run.completed||run.legacyEnding&&!run.bossDefeated);
-  if(view==='ability'){
+  if(view==='setup'){renderSetup();
+  } else if(view==='enemies'){renderEnemyIntro();
+  } else if(view==='ability'){
     renderAbilityIntro();
   } else if(view==='fullscreen') {
     renderDisplayHelp();
   } else if(view==='home') {
     $('screen').innerHTML=`<div class="welcome-card"><p class="card-eyebrow">SOMEONE’S MISSING FROM THE PICNIC</p><h3>Where’s Pepper?</h3>${plushPair(true)}<p>Rescue friends, then find their trinkets to open exits.<br>Snacks are optional; heart snacks heal 1 heart.</p><div class="mission-strip"><span>3 hearts</span><span>Trinkets open exits</span><span>3 friends to find</span></div><button id="begin" class="primary-button">${active?'Continue the adventure':'Start with practice'} <span>→</span></button>${active?'<button id="fresh" class="secondary-button">Start a new adventure</button>':''}<a id="sound-help" class="tiny-note" href="${routeURL('sound')}">Sound check</a><p class="tiny-note">A safe, skippable practice first. WASD to move. Space to dash.</p></div>`;
-    $('begin').addEventListener('click',()=>active?navigate(routeURL(run.health<=0?'retry':'play',run.room)):newRun());
-    $('fresh')?.addEventListener('click',newRun);
+    $('begin').addEventListener('click',()=>active?navigate(routeURL(run.health<=0?'retry':'play',run.room)):navigate(routeURL('setup')));
+    $('fresh')?.addEventListener('click',()=>navigate(routeURL('setup')));
   } else if(view==='sound') {
     renderSoundCheck();
   } else if(view==='pause') {
-    $('screen').innerHTML=`<div class="pause-card" role="dialog" aria-modal="true" aria-labelledby="pause-title"><span class="pause-flower" aria-hidden="true">✿</span><h3 id="pause-title">Catch your breath.</h3><p>The adventure is paused.<br>${touchMode?'Tap Keep going to resume.':'Press WASD or click Keep going to resume.'}<br>Trinkets open exits. Snacks are optional picnic treats—you can leave them behind. Only heart-marked snacks restore 1 heart.</p><p class="bonk-stat"><b>${run.enemyBonks}</b> enemies bonked</p>${abilityGuideLinks()}<a id="sound-help" class="secondary-button" href="${routeURL('sound')}">Sound check</a><button id="resume" class="primary-button">Keep going <span>→</span></button><a id="home-link" class="secondary-button" href="./">Back to the cottage</a>${touchMode?'<nav id="pause-chapters" aria-label="Visit a chapter"></nav><a id="pause-practice" class="secondary-button">Practice controls</a>':''}</div>`;
+    $('screen').innerHTML=`<div class="pause-card" role="dialog" aria-modal="true" aria-labelledby="pause-title"><span class="pause-flower" aria-hidden="true">✿</span><h3 id="pause-title">Catch your breath.</h3><p>The adventure is paused.<br>${touchMode?'Tap Keep going to resume.':'Press WASD or click Keep going to resume.'}<br>Trinkets open exits. Snacks are optional picnic treats—you can leave them behind. Only heart-marked snacks restore 1 heart.</p><p class="tiny-note">${rulesFor(run).label} difficulty</p>${enemyKinds(world).length?`<a id="enemy-help" class="secondary-button" href="${enemyGuideURL()}">Meet the enemies</a>`:''}<p class="bonk-stat"><b>${run.enemyBonks}</b> enemies bonked</p>${abilityGuideLinks()}<a id="sound-help" class="secondary-button" href="${routeURL('sound')}">Sound check</a><button id="resume" class="primary-button">Keep going <span>→</span></button><a id="home-link" class="secondary-button" href="./">Back to the cottage</a>${touchMode?'<nav id="pause-chapters" aria-label="Visit a chapter"></nav><a id="pause-practice" class="secondary-button">Practice controls</a>':''}</div>`;
     $('resume').addEventListener('click',dismissScreen);$('home-link').href=routeURL('home');$('resume').focus({preventScroll:true});
   } else if(view==='reunion') {
     $('screen').innerHTML='<div class="story-card" role="dialog" aria-modal="true" aria-labelledby="reunion-title"><p class="card-eyebrow">FOUND: ONE VERY GOOD FRIEND</p><canvas width="240" height="200" data-portrait="pepper" aria-label="Pepper, the gray plush corgi"></canvas><h3 id="reunion-title">Found you, Pepper.</h3><p>Your best friend is coming with you.<br>There are still trinkets to find by the pond!</p><div class="new-heart">♥ Four shared hearts. A hit to either corgi costs one.</div><button id="reunion-continue" class="primary-button">Explore together <span>→</span></button><button id="reunion-close" class="secondary-button">Stay by the pond a little longer</button></div>';
@@ -215,10 +238,11 @@ function render() {
     $('retry').addEventListener('click',()=>{world=retryRoom(run,world.room);save();navigate(routeURL('play'));});$('retry-home').addEventListener('click',dismissScreen);$('retry').focus({preventScroll:true});
   } else if(view==='picnic') {
     $('screen').classList.add('picnic-screen');
-    $('screen').innerHTML=`<div class="picnic-card"><p class="card-eyebrow">THE BEST THING YOU BROUGHT HOME</p><h3>Was each other.</h3><p>A full basket, tired little paws,<br>and your favorite adventure ${run.peeFound?'buddies':'buddy'}.</p>${run.needohFound?'<p class="tiny-note">A little NeeDoh came home with you. ♡</p>':''}<div class="result-stats"><span><b>${run.trinkets.length}/${TRINKETS.length}</b> trinkets</span><span><b>${run.collected.length}</b> snacks</span><span><b>${run.enemyBonks}</b> enemies bonked</span><span><b>${run.hits}</b> bumps</span><span><b>${run.retries}</b> retries</span></div><button id="again" class="primary-button">One more adventure <span>↗</span></button><p class="tiny-note">${run.pepperoniFound?'Pepsi, Pepper, Pee & Pepperoni':run.peeFound?'Pepsi, Pepper & Pee':'Pepsi & Pepper'}. Always better together.</p></div>`;
+    $('screen').innerHTML=`<div class="picnic-card"><p class="card-eyebrow">THE BEST THING YOU BROUGHT HOME</p><h3>Was each other.</h3><p>A full basket, tired little paws,<br>and your favorite adventure ${run.peeFound?'buddies':'buddy'}.</p>${run.needohFound?'<p class="tiny-note">A little NeeDoh came home with you. ♡</p>':''}<p class="tiny-note">${rulesFor(run).label} difficulty</p><div class="result-stats"><span><b>${run.trinkets.length}/${TRINKETS.length}</b> trinkets</span><span><b>${run.collected.length}</b> snacks</span><span><b>${run.enemyBonks}</b> enemies bonked</span><span><b>${run.hits}</b> bumps</span><span><b>${run.retries}</b> retries</span></div><button id="again" class="primary-button">One more adventure <span>↗</span></button><p class="tiny-note">${run.pepperoniFound?'Pepsi, Pepper, Pee & Pepperoni':run.peeFound?'Pepsi, Pepper & Pee':'Pepsi & Pepper'}. Always better together.</p></div>`;
     if(run.legacyEnding&&!run.bossDefeated){const link=document.createElement('a');link.className='secondary-button';link.href=routeURL('play','laundry');link.textContent='Continue into the three new chapters →';$('again').before(link);}
-    $('again').addEventListener('click',newRun);
+    $('again').addEventListener('click',()=>navigate(routeURL('setup')));
   } else {$('screen').classList.add('empty');$('screen').replaceChildren();}
+  document.querySelectorAll('[data-enemy]').forEach(e=>enemyPortrait(e,e.dataset.enemy));
   document.querySelectorAll('[data-portrait]').forEach(element=>portrait(element,element.dataset.portrait));
   if(touchMode&&view==='home')$('screen').querySelector('p.tiny-note').textContent='Play sideways. Joystick to roll. Tap Dash to bonk!';
   updateProgress();resize();
@@ -338,7 +362,9 @@ function paintAbilities() {
   $('abilities').style.setProperty('--ability-count',count);
   document.body.dataset.abilityCount=count;
   for(const button of $('abilities').querySelectorAll('[data-ability]')) {
-    const id=button.dataset.ability,spec=moves[id],unlocked=!spec.unlock||!!run?.[spec.unlock];
+    const id=button.dataset.ability,spec={...moves[id]},unlocked=!spec.unlock||!!run?.[spec.unlock];
+    if(id==='bark')spec.hint=`Protect every corgi for ${rulesFor(run).shield} seconds`;if(id==='stink')spec.hint=`Whole train rolls 30% faster for ${rulesFor(run).zoomies} seconds`;
+    const hint=button.querySelector('.ability-hint');if(hint.textContent!==spec.hint)hint.textContent=spec.hint;
     const cooldown=id==='dash'?world?.cooldown||0:world?.abilityCooldowns[id]||0;
     const active=id==='dash'?world?.dash>0&&!world?.powerDash:id==='power'?world?.flop>0:id==='bark'?world?.shield>0:world?.zoomies>0;
     const status=id==='power'&&active?'Incoming whump!':id==='stink'&&active?`Zoomies ${world.zoomies.toFixed(1)}s`:id==='bark'&&active?`Protected ${world.shield.toFixed(1)}s`:!unlocked?`Rescue ${spec.corgi}${touchMode?'':' first'}`:cooldown>0?`${cooldown.toFixed(1)}s${touchMode?'':' recharge'}`:view!=='play'?'Ready when you play':!controlsReady?touchMode?'Roll to start':'WASD to start':'Ready';
@@ -360,6 +386,8 @@ $('abilities').addEventListener('pointerdown',event=>{const button=event.target.
 $('abilities').addEventListener('click',event=>{if(event.pointerType==='touch'||event.pointerType==='pen')return;const button=event.target.closest('[data-ability]');if(button){useMove(button.dataset.ability);focusGame();}});
 function pause(){if(view==='play')navigate(routeURL('pause'));}
 function dismissScreen() {
+  if(view==='setup'){const from=new URLSearchParams(location.search).get('from');navigate(routeURL(from==='picnic'?'picnic':'home'));($(setupFocus)||$('begin')||$('sound')).focus({preventScroll:true});return;}
+  if(view==='enemies'){run.seenEnemies=[...new Set([...run.seenEnemies,...shownEnemies])];save();const from=new URLSearchParams(location.search).get('from');navigate(routeURL(from==='pause'?'pause':'play'));if(from==='pause')$('enemy-help')?.focus({preventScroll:true});return;}
   if(view==='ability'){const id=shownAbility,from=new URLSearchParams(location.search).get('from')==='pause'?'pause':'play';if(run.pendingAbility===id)run.pendingAbility=null;save();navigate(routeURL(from));if(from==='pause')document.querySelector(`[data-guide="${id}"]`)?.focus({preventScroll:true});return;}
   if(view==='sound'){const from=new URLSearchParams(location.search).get('from');navigate(routeURL(['home','play','pause','picnic','retry'].includes(from)?from:run?'play':'home'));($('sound-help')||$('sound')).focus({preventScroll:true});return;}
   if(view==='fullscreen'){const from=new URLSearchParams(location.search).get('from');navigate(routeURL(['home','play','pause','picnic','retry'].includes(from)?from:run?'play':'home'));$('fullscreen').focus({preventScroll:true});return;}
@@ -368,14 +396,16 @@ function dismissScreen() {
 }
 
 window.addEventListener('keydown',event=>{
-  if(event.metaKey||event.ctrlKey||event.altKey||(event.target!==keyboardCapture&&isTextEntry(event.target)))return;
+  if(view==='setup'&&event.key==='Escape'){event.preventDefault();dismissScreen();return;}
+  if(event.metaKey||event.ctrlKey||event.altKey||(event.target!==keyboardCapture&&isTextEntry(event.target)&&!(view==='setup'&&event.target.matches('input[type=radio]'))))return;
   soundtrack.unlock();
+  if(['enemies','ability','reunion'].includes(view)&&(event.key==='Enter'||event.code==='Space'||event.key===' ')){event.preventDefault();event.stopPropagation();if(!event.repeat)dismissScreen();return;}
   const move=movementKey(event);
   // Resume first, then record the held key: readRoute clears stale input.
   if(view==='pause'&&move&&!event.repeat)dismissScreen();
   if(event.key==='Escape'){event.preventDefault();if(view==='play')pause();else dismissScreen();return;}
-  if(['pause','reunion','retry','fullscreen','ability','sound'].includes(view)&&event.key==='Tab') {
-    const controls=[...$('screen').querySelectorAll('button,a')];
+  if(['pause','reunion','retry','fullscreen','ability','sound','enemies','setup'].includes(view)&&event.key==='Tab') {
+    const controls=[...$('screen').querySelectorAll('button,a,input:checked')];
     if(!controls.includes(document.activeElement)){event.preventDefault();(event.shiftKey?controls.at(-1):controls[0])?.focus();}
     else if(event.shiftKey&&document.activeElement===controls[0]){event.preventDefault();controls.at(-1).focus();}
     else if(!event.shiftKey&&document.activeElement===controls.at(-1)){event.preventDefault();controls[0].focus();}
@@ -451,7 +481,7 @@ function renderSoundCheck(){
       if(!$('sound-result'))return;
       const advancing=context&&context.currentTime>time+.05;
       $('sound-result').textContent=advancing?'The game audio clock is running. Did you hear the chime?':'The game audio did not start. Try the browser chime below.';
-      $('sound-details').textContent=`Build 42 · game: ${context?.state||'unavailable'} · clock: ${advancing?'advancing':'stopped'} · ${soundtrack.foreground?'foreground':'background'}${soundtrack.lastError?' · '+soundtrack.lastError:''}`;
+      $('sound-details').textContent=`Build 43 · game: ${context?.state||'unavailable'} · clock: ${advancing?'advancing':'stopped'} · ${soundtrack.foreground?'foreground':'background'}${soundtrack.lastError?' · '+soundtrack.lastError:''}`;
     },900);
   });
   $('test-speaker').addEventListener('click',()=>{
@@ -463,7 +493,7 @@ function renderSoundCheck(){
   $('sound-done').addEventListener('click',dismissScreen);
 }
 // An independent media-element test distinguishes the Web Audio graph from device output.
-const browserChime=new Audio('./sound-check.wav?v=42');browserChime.preload='none';browserChime.volume=.65;
+const browserChime=new Audio('./sound-check.wav?v=43');browserChime.preload='none';browserChime.volume=.65;
 $('sound').addEventListener('click',()=>{soundOn=!soundOn;soundtrack.setEnabled(soundOn);const unlocked=soundtrack.unlock();renderSound();try{localStorage.setItem(PREFIX+'sound',String(soundOn));}catch{}Promise.resolve(unlocked).then(()=>sound('start'));});
 $('retry-save').addEventListener('click',()=>{if(save())toast('Your adventure is safely saved.');});
 $('download-save').addEventListener('click',()=>{

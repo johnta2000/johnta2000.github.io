@@ -2,7 +2,9 @@ import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
 import { homedir } from 'node:os';
 import { mkdirSync } from 'node:fs';
-import { createRun, TRINKETS, roomPoint } from '../../games/snack-quest/engine.mjs';
+import { createRun as engineCreateRun, TRINKETS, roomPoint } from '../../games/snack-quest/engine.mjs';
+// These fixtures exercise mechanics after the enemy introductions.
+const createRun=(...args)=>({...engineCreateRun(...args),seenEnemies:['vacuum','cat','gopher','goose','boss']});
 const browser=await chromium.launch({headless:true,executablePath:homedir()+'/Library/Caches/ms-playwright/chromium-1243/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing'});
 const base='http://127.0.0.1:8766/games/snack-quest/',prefix='pepsi-pepper.snack-quest.v2.',out='/tmp/snack-quest-wide-qa';mkdirSync(out,{recursive:true});
 try {
@@ -21,7 +23,7 @@ try {
    await page.reload();await page.locator('#resume').waitFor();
    const after=await page.evaluate(({prefix,id})=>JSON.parse(localStorage.getItem(prefix+id)),{prefix,id:run.id});assert.deepEqual(after.positions,before.positions);
    const copy=await context.newPage();await copy.goto(page.url());await copy.locator('#resume').waitFor();await copy.close();
-   const camera=await page.evaluate(async room=>{const {camera}=await import('./art.mjs?v=42');return [camera({room,player:{x:150}},1000),camera({room,player:{x:1450}},1000)];},room);assert.deepEqual(camera,[0,0]);
+   const camera=await page.evaluate(async room=>{const {camera}=await import('./art.mjs?v=43');return [camera({room,player:{x:150}},1000),camera({room,player:{x:1450}},1000)];},room);assert.deepEqual(camera,[0,0]);
    assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
   }
   assert.deepEqual(errors,[]);await context.close();

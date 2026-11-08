@@ -2,7 +2,9 @@ import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
 import { mkdirSync, existsSync } from 'node:fs';
 import { homedir } from 'node:os';
-import { createRun, TRINKETS } from '../../games/snack-quest/engine.mjs';
+import { createRun as engineCreateRun, TRINKETS } from '../../games/snack-quest/engine.mjs';
+// These fixtures exercise mechanics after the enemy introductions.
+const createRun=(...args)=>({...engineCreateRun(...args),seenEnemies:['vacuum','cat','gopher','goose','boss']});
 
 const base=process.env.SNACK_QUEST_URL||'http://127.0.0.1:8766/games/snack-quest/';
 const installed=homedir()+'/Library/Caches/ms-playwright/chromium-1243/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing';
@@ -14,7 +16,7 @@ try {
   const page=await context.newPage();page.on('pageerror',error=>{errors.push(error.message);console.error(error.message);});
   await page.goto(base);await page.locator('#begin').waitFor();
   await page.screenshot({path:output+'/landscape-home.png'});
-  await page.locator('#begin').tap();await page.locator('#joystick').waitFor();
+  await page.locator('#begin').tap();await page.locator('#start-adventure').tap();await page.locator('#joystick').waitFor();
   assert.match(await page.locator('#objective-text').innerText(),/joystick/);
   assert.notEqual(await page.evaluate(()=>document.activeElement.id),'keyboard-capture','touch never summons the native keyboard');
   const session=await context.newCDPSession(page);

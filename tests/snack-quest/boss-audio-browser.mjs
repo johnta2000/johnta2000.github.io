@@ -2,7 +2,9 @@ import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
-import { createRun, TRINKETS } from '../../games/snack-quest/engine.mjs';
+import { createRun as engineCreateRun, TRINKETS } from '../../games/snack-quest/engine.mjs';
+// These fixtures exercise mechanics after the enemy introductions.
+const createRun=(...args)=>({...engineCreateRun(...args),seenEnemies:['vacuum','cat','gopher','goose','boss']});
 
 const base=process.env.SNACK_QUEST_URL||'http://127.0.0.1:8766/games/snack-quest/';
 const installed=homedir()+'/Library/Caches/ms-playwright/chromium-1243/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing';
@@ -13,7 +15,7 @@ async function activate(page,selector){if(mobile)await page.locator(selector).ta
 async function pause(page){if(mobile)await activate(page,'#pause');else await page.keyboard.press('Escape');}
 async function observe(page){
   await page.evaluate(async()=>{
-    const {Soundscape}=await import('/games/snack-quest/audio.mjs?v=42'),tick=Soundscape.prototype.tick;
+    const {Soundscape}=await import('/games/snack-quest/audio.mjs?v=43'),tick=Soundscape.prototype.tick;
     Soundscape.prototype.tick=function(){window.musicProbe=this;return tick.call(this);};
   });
   await page.waitForFunction(()=>!!window.musicProbe);
@@ -51,7 +53,7 @@ try {
   await page.goBack();assert.equal((await state(page)).room,'boss');assert.equal((await state(page)).battle,false);
 
   const rendered=await page.evaluate(async()=>{
-    const {Soundscape}=await import('/games/snack-quest/audio.mjs?v=42');
+    const {Soundscape}=await import('/games/snack-quest/audio.mjs?v=43');
     const result={};
     for(const room of ['boss','meadow']){
       const rate=22050,context=new OfflineAudioContext(1,rate*16,rate),score=new Soundscape(()=>context);
