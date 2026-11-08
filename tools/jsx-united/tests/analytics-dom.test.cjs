@@ -9,7 +9,7 @@ test('booking intent, actual outbound actions, referrals, and committed filters 
   const w=dom.window,d=w.document,captures=[];
   w.HTMLElement.prototype.scrollIntoView=function(){};
   w.HTMLDialogElement.prototype.showModal=function(){this.open=true;};w.HTMLDialogElement.prototype.close=function(){this.open=false;};
-  const fixed=Date.parse('2026-10-19T12:00:00-07:00'),D=w.Date;w.Date=class extends D{constructor(...a){super(...(a.length?a:[fixed]));}static now(){return fixed;}};
+  const fixed=Date.parse('2026-11-08T12:00:00-08:00'),D=w.Date;w.Date=class extends D{constructor(...a){super(...(a.length?a:[fixed]));}static now(){return fixed;}};
   const fakeScript=d.createElement('script');fakeScript.dataset.app='jsx-united';Object.defineProperty(d,'currentScript',{value:fakeScript,configurable:true});
   w.eval(fs.readFileSync(path.resolve(root,'../../assets/js/analytics.js'),'utf8'));
   for(const file of ['searchable-select.js','fares.js','map-data.js','route-map.js','app.js']) w.eval(fs.readFileSync(path.join(root,file),'utf8'));

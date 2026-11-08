@@ -14,7 +14,7 @@ test('closing the guide preserves the offer; dynamic route referrals track once 
   w.HTMLDialogElement.prototype.showModal = function() { this.open = true; };
   w.HTMLDialogElement.prototype.close = function() { this.open = false; };
   const D = w.Date;
-  w.Date = class extends D { constructor(...args) { super(...(args.length ? args : ['2026-10-20T12:00:00-07:00'])); } };
+  w.Date = class extends D { constructor(...args) { super(...(args.length ? args : ['2026-11-08T12:00:00-08:00'])); } };
   let observe;
   w.IntersectionObserver = class { constructor(callback) { observe = callback; } observe() {} unobserve() {} };
   w.SiteAnalytics = { capture: (event, properties) => events.push({ event, properties }) };
@@ -58,7 +58,7 @@ test('credit dismissal persists, survives route changes, and stops the account u
     w.HTMLDialogElement.prototype.showModal = function() { this.open = true; };
     w.HTMLDialogElement.prototype.close = function() { this.open = false; };
     const D = w.Date;
-    w.Date = class extends D { constructor(...args) { super(...(args.length ? args : ['2026-10-20T12:00:00-07:00'])); } };
+    w.Date = class extends D { constructor(...args) { super(...(args.length ? args : ['2026-11-08T12:00:00-08:00'])); } };
     const events = []; w.SiteAnalytics = { capture: (name, properties) => events.push({name, properties}) };
     d.addEventListener('click', event => { if (event.target.closest('a')) event.preventDefault(); });
     for (const f of ['searchable-select.js', 'fares.js', 'map-data.js', 'route-map.js', 'app.js']) w.eval(fs.readFileSync(path.join(root, f), 'utf8'));

@@ -7,7 +7,7 @@ function setup(query=''){
  const w=dom.window,d=w.document;
  w.HTMLElement.prototype.scrollIntoView=function(){};
  w.HTMLDialogElement.prototype.showModal=function(){this.open=true;};w.HTMLDialogElement.prototype.close=function(){this.open=false;};
- const fixed=Date.parse('2026-10-19T12:00:00-07:00'),D=w.Date;w.Date=class extends D{constructor(...a){super(...(a.length?a:[fixed]));}static now(){return fixed;}};
+ const fixed=Date.parse('2026-11-08T12:00:00-08:00'),D=w.Date;w.Date=class extends D{constructor(...a){super(...(a.length?a:[fixed]));}static now(){return fixed;}};
  for(const f of ['searchable-select.js','fares.js','map-data.js','route-map.js','app.js'])w.eval(fs.readFileSync(root+f,'utf8'));
  const get=id=>d.getElementById(id),change=(id,value)=>{get(id).value=value;get(id).dispatchEvent(new w.Event('change',{bubbles:true}));};
  const airport=code=>d.querySelector(`.map-airport[data-code="${code}"]`).dispatchEvent(new w.MouseEvent('click',{bubbles:true}));
@@ -16,7 +16,7 @@ function setup(query=''){
 test('one set of filters controls the table, map, and booking details across pages',()=>{
  const {w,d,get,change,airport,close}=setup('?origin=BUR#route-map');
  assert.equal(get('map-airport'),null);
- assert.equal(d.querySelectorAll('.map-airport').length,29);
+ assert.equal(d.querySelectorAll('.map-airport').length,31);
  assert.ok([...d.querySelectorAll('#map-routes button')].every(b=>b.dataset.route.startsWith('BUR-')));
  const corridorCount=d.querySelectorAll('.map-connection').length;
  const initial=get('map-summary').textContent;
@@ -25,7 +25,7 @@ test('one set of filters controls the table, map, and booking details across pag
  assert.ok([...d.querySelectorAll('#map-routes button')].every(b=>b.dataset.route.startsWith('OAK-')));
  d.querySelector('#map-routes button[data-route="OAK-LAS"]').click();
  assert.equal(get('destination').value,'LAS');assert.equal(new URL(w.location.href).searchParams.get('destination'),'LAS');
- assert.match(get('map-detail').textContent,/Oakland → Las Vegas/);assert.match(get('map-detail').textContent,/\$169/);
+ assert.match(get('map-detail').textContent,/Oakland → Las Vegas/);assert.match(get('map-detail').textContent,/\$289/);
  assert.ok([...d.querySelectorAll('#fares tr')].every(row=>row.textContent.includes('Oakland (OAK) → Las Vegas (LAS)')));
  assert.equal(d.querySelectorAll('.map-connection').length,corridorCount);
  assert.equal(d.querySelectorAll('.map-connection.is-matching').length,1);
@@ -59,13 +59,13 @@ test('map selections preserve restrictive filters and never offer a nonmatching 
 });
 test('small result sets omit pagination and keep the map directly in the fare results',()=>{
  const {w,d,get,change,close}=setup('?origin=BUR&destination=CCR');
- assert.equal(get('total').textContent,'3 fares');
+ assert.equal(get('total').textContent,'9 fares');
  assert.equal(get('page-controls').hidden,true);
  assert.equal(get('route-map').closest('.fare-section'),get('fares').closest('.fare-section'));
  assert.ok(get('route-map').previousElementSibling.matches('.pagination'));
  const notes=d.querySelector('.fare-notes');
  assert.equal(notes.open,false);assert.equal(get('route-map').nextElementSibling,notes);
- assert.match(get('map-summary').textContent,/^3 fares · 1 route matches · BUR → CCR$/);
+ assert.match(get('map-summary').textContent,/^9 fares · 1 route matches · BUR → CCR$/);
  assert.equal(get('map-routes').hidden,true);
  // Multiple pages still work, including resetting to page one after filtering.
  get('reset').click();assert.equal(get('page-controls').hidden,false);

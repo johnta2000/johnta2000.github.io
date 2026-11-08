@@ -43,8 +43,8 @@ test('empty filters produce no routes and price-band edges are consistent', () =
 
 test('full catalog preserves pairings without a sampled fare', () => {
   const routes = groupRoutes(data.fares.filter(f => f.tripType === 'one_way'), geography.routes);
-  assert.equal(routes.length,133);
+  assert.equal(routes.length,131);
   assert.equal(routes.find(r=>r.key==='DAL-SAF').cheapest,null);
   assert.ok(routes.find(r=>r.key==='OAK-LAS').cheapest);
-  assert.equal(new Set(routes.flatMap(r=>[r.origin,r.destination])).size,29);
+  assert.equal(new Set(routes.flatMap(r=>[r.origin,r.destination])).size,31);
 });
