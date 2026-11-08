@@ -1,7 +1,7 @@
-import { DIFFICULTIES, HARD_MOVE_KINDS, ENEMY_KINDS, rulesFor, enemyKinds, setMapStretch, adaptWorldLayout, ROOMS, ORDER, DASH_COOLDOWN, ABILITIES, WIDTH, HEIGHT, createRun, peeProgress, upgradeRun, TRINKETS, validRun, migrateRun, enterRoom, makeWorld, maxHearts, goalDone, isUnlocked, firstUnfinished, objective, retryRoom, step, startDash, startAbility } from './engine.mjs?v=45';
-import { enemyPortrait, portrait, drawWorld, drawPicnic } from './art.mjs?v=45';
-import { movementKey, abilityKey, isTextEntry, joystickVector } from './input.mjs?v=45';
-import { Soundscape } from './audio.mjs?v=45';
+import { DIFFICULTIES, HARD_MOVE_KINDS, ENEMY_KINDS, rulesFor, enemyKinds, setMapStretch, adaptWorldLayout, ROOMS, ORDER, DASH_COOLDOWN, ABILITIES, WIDTH, HEIGHT, createRun, peeProgress, upgradeRun, TRINKETS, validRun, migrateRun, enterRoom, makeWorld, maxHearts, goalDone, isUnlocked, firstUnfinished, objective, retryRoom, step, startDash, startAbility } from './engine.mjs?v=46';
+import { enemyPortrait, portrait, drawWorld, drawPicnic } from './art.mjs?v=46';
+import { movementKey, abilityKey, isTextEntry, joystickVector } from './input.mjs?v=46';
+import { Soundscape } from './audio.mjs?v=46';
 
 const $ = id => document.getElementById(id);
 const canvas=$('world'), ctx=canvas.getContext('2d');
@@ -178,7 +178,7 @@ function renderAbilityIntro(){
   const spec=ABILITIES[shownAbility],fresh=run.pendingAbility===shownAbility;
   const rules=rulesFor(run);
   const details={
-    bark:{effect:`Blue bubbles protect every corgi from damage for ${rules.shield} seconds. They flicker just before the shield ends.`,tip:'Use it when the back of your train is about to get hit. It prevents damage; it doesn’t heal hearts or stun enemies.'},
+    bark:{effect:`Protective cones of shame pop onto every corgi for ${rules.shield} seconds, blocking damage. The cones flicker just before protection ends.`,tip:'Use it when the back of your train is about to get hit. It prevents damage; it doesn’t heal hearts or stun enemies.'},
     stink:{effect:`Every corgi rolls 30% faster for ${rules.zoomies} seconds. Steer normally while the whole train gets the zoomies!`,tip:'Use it to escape a charge or cross an open gap. It doesn’t protect you from hits or strengthen your dash. Recharges in 14 seconds.'},
     power:{effect:`Pepperoni hops, then lands with a whump! Enemies within the golden circle are pushed away and stunned for ${rules.flopStun} seconds.`,tip:'The landing happens around Pepperoni at the back of your train. Use it to make space when enemies crowd your friends. It interrupts a nearby charging boss, or deals 2 damage while it’s overheated. Recharges in 12 seconds, independently of Dash.'}
   }[shownAbility];
@@ -486,7 +486,7 @@ function renderSoundCheck(){
       if(!$('sound-result'))return;
       const advancing=context&&context.currentTime>time+.05;
       $('sound-result').textContent=advancing?'The game audio clock is running. Did you hear the chime?':'The game audio did not start. Try the browser chime below.';
-      $('sound-details').textContent=`Build 45 · game: ${context?.state||'unavailable'} · clock: ${advancing?'advancing':'stopped'} · ${soundtrack.foreground?'foreground':'background'}${soundtrack.lastError?' · '+soundtrack.lastError:''}`;
+      $('sound-details').textContent=`Build 46 · game: ${context?.state||'unavailable'} · clock: ${advancing?'advancing':'stopped'} · ${soundtrack.foreground?'foreground':'background'}${soundtrack.lastError?' · '+soundtrack.lastError:''}`;
     },900);
   });
   $('test-speaker').addEventListener('click',()=>{
@@ -498,7 +498,7 @@ function renderSoundCheck(){
   $('sound-done').addEventListener('click',dismissScreen);
 }
 // An independent media-element test distinguishes the Web Audio graph from device output.
-const browserChime=new Audio('./sound-check.wav?v=45');browserChime.preload='none';browserChime.volume=.65;
+const browserChime=new Audio('./sound-check.wav?v=46');browserChime.preload='none';browserChime.volume=.65;
 $('sound').addEventListener('click',()=>{soundOn=!soundOn;soundtrack.setEnabled(soundOn);const unlocked=soundtrack.unlock();renderSound();try{localStorage.setItem(PREFIX+'sound',String(soundOn));}catch{}Promise.resolve(unlocked).then(()=>sound('start'));});
 $('retry-save').addEventListener('click',()=>{if(save())toast('Your adventure is safely saved.');});
 $('download-save').addEventListener('click',()=>{

@@ -1,4 +1,4 @@
-import { CHAD_ATTACKS, ZOOMIES_DURATION, mapX, mapStretch, roomWidth, roomScale, WIDTH, HEIGHT, ROOMS, random, goalDone, roomTrinkets, canFindTrinkets, PEE_RESCUE, peeProgress, canRescuePee, windAt, trinketCount } from './engine.mjs?v=45';
+import { CHAD_ATTACKS, ZOOMIES_DURATION, mapX, mapStretch, roomWidth, roomScale, WIDTH, HEIGHT, ROOMS, random, goalDone, roomTrinkets, canFindTrinkets, PEE_RESCUE, peeProgress, canRescuePee, windAt, trinketCount } from './engine.mjs?v=46';
 
 const INK='#75674c';
 function ellipse(c,x,y,rx,ry,fill,stroke=null,line=2){c.beginPath();c.ellipse(x,y,rx,ry,0,0,Math.PI*2);c.fillStyle=fill;c.fill();if(stroke){c.strokeStyle=stroke;c.lineWidth=line;c.stroke();}}
@@ -120,7 +120,22 @@ function zoomiesSweat(c,body,character,scale,time,remaining,reduced){
   c.restore();
 }
 
-export function corgi(c,x,y,character='pepsi',scale=1,facing=1,roll=0,hurt=0,shadow=true) {
+function shieldCone(c,strength,pop){
+  c.save();c.globalAlpha*=strength;
+  c.translate(-5,-29);c.scale(pop,pop);c.translate(5,29);
+  // A transparent cone of shame: the face stays visible through the plastic.
+  c.beginPath();c.moveTo(-7,-44);c.lineTo(61,-73);c.bezierCurveTo(79,-72,79,12,61,13);c.lineTo(-7,-13);c.closePath();
+  c.fillStyle='#bde9f069';c.fill();c.strokeStyle='#81b7c5';c.lineWidth=1.8;c.stroke();
+  ellipse(c,-7,-28.5,5,16,'#a8dbe657','#75a8b7',1.5);
+  ellipse(c,61,-30,13,43,'#eaffff0d','#91c2cd',2.5);
+  c.beginPath();c.ellipse(61,-30,10,39,0,-1.5,-.35);c.strokeStyle='#f5ffffdd';c.lineWidth=2;c.stroke();
+  line(c,[[2,-40],[53,-61]],'#f7ffffbb',2);
+  line(c,[[2,-18],[55,3]],'#e2fbff99',1.5);
+  for(const y of [-34,-25])ellipse(c,-6,y,1.7,1.7,'#fffdf5','#83afba',.7);
+  c.restore();
+}
+
+export function corgi(c,x,y,character='pepsi',scale=1,facing=1,roll=0,hurt=0,shadow=true,cone=0,conePop=1) {
   c.save(); c.translate(x,y); c.scale(scale,scale);
   c.lineCap='round'; c.lineJoin='round';
   const gray=character==='pepper',yellow=character==='pee',red=character==='pepperoni',coat=gray?'#a8adb4':yellow?'#f0d873':red?'#e3b784':'#dfb479';
@@ -169,6 +184,7 @@ export function corgi(c,x,y,character='pepsi',scale=1,facing=1,roll=0,hurt=0,sha
   if(!red)ellipse(c,32,-11,2.3,2.4,'#dca0a2');
   // Soft toy shading, without a heavy cartoon outline or accessories.
   ellipse(c,-28,-43,13,5,gray?'#c1c4c955':'#f4d3a655');
+  if(cone>0)shieldCone(c,cone,conePop);
   c.restore();
 }
 export function portrait(canvas,character){const c=canvas.getContext('2d');c.clearRect(0,0,canvas.width,canvas.height);c.save();c.scale(canvas.width/120,canvas.height/100);corgi(c,63,88,character,.9);c.restore();}
@@ -441,18 +457,17 @@ export function drawWorld(c,world,run,viewportWidth,reduced=false,preview=false,
     const hop=character==='pepperoni'&&world.flop>0&&!reduced?Math.sin((1-world.flop/.32)*Math.PI)*42:0;
     if(character==='pepperoni'&&world.flop>0){c.save();c.globalAlpha=.4;ellipse(c,body.x,body.y,world.rules.flopRadius,world.rules.flopRadius,'#f3cc6533','#d4ae61',2);c.restore();}
     const hurt=world.hitCorgi===character?world.bump:0;
+    const cone=world.shield>0?(world.shield<.65&&!reduced?.55+.25*Math.sin(t*18):.9):0;
+    const elapsed=Math.max(0,world.rules.shield-world.shield),conePop=world.shield>0&&!reduced?1+.06*Math.sin(elapsed*26)*Math.exp(-elapsed*12):1;
+    if(cone>0)ellipse(c,body.x,body.y+3,46*scale,11*scale,'#b9ecf32b','#9ac9d5',1.2);
     c.save();if(hurt>0)c.globalAlpha=reduced?.75:.7+Math.sin(t*15)*.15;
     const landing=character==='pepperoni'?world.flopRipples.at(-1):null,age=landing?t-landing.started:1;
     const squash=!reduced&&age>=0&&age<.18?Math.sin(age/.18*Math.PI)*.12:0;
     if(hop>0)ellipse(c,body.x,body.y+4,48*scale,9*scale,'#51633e20');
     c.translate(body.x,body.y);c.scale(1+squash,1-squash);
-    corgi(c,0,-hop,character,scale,body.facing,roll,hurt,hop===0);c.restore();
+    corgi(c,0,-hop,character,scale,body.facing,roll,hurt,hop===0,cone,conePop);c.restore();
     zoomiesSweat(c,body,character,scale,t,world.zoomies,reduced||preview);
-    if(world.shield>0){
-      c.save();c.globalAlpha=world.shield<.65&&!reduced?.45+.25*Math.sin(t*18):.8;
-      ellipse(c,body.x,body.y-14,49*scale/.72,45*scale/.72,'#b9ecf32b','#8bc9db',2.5);
-      ellipse(c,body.x-20,body.y-42,7,3,'#ffffffb0');c.restore();
-    }
+
     if(hurt>0){c.font='bold 14px sans-serif';c.textAlign='center';c.fillStyle='#a45f51';c.fillText('−1 ♥',body.x,body.y-72);}
   };
   const actors=[{y:world.player.y,draw:()=>{
