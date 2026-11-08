@@ -77,7 +77,7 @@ test('all published HTML pages declare their analytics policy and page identity'
       assert.doesNotMatch(html, /<script\b[^>]*\bsrc=["'][^"']*\/assets\/js\/analytics\.js(?:[?"'])/i, page.file);
       continue;
     }
-    const version = page.app === 'jsx' ? '20261020-2' : '20261019-1';
+    const version = page.app === 'jsx-united' ? '20261108-1' : page.app === 'jsx' ? '20261020-2' : '20261019-1';
     assert.equal(html.split(`src="/assets/js/analytics.js?v=${version}"`).length - 1, 1, page.file);
     assert.ok(html.includes(`data-app="${page.app}"`),page.file);
   }
@@ -115,4 +115,16 @@ test('verification visits are explicitly marked and the startup queue is bounded
   vm.runInNewContext(source,context);
   for(let i=0;i<100;i++)context.window.SiteAnalytics.capture('jsx_referral_clicked',{placement:'guide'});
   sdkScript.onload();assert.equal(captures.length,50);assert.ok(captures.every(e=>e.properties.is_test===true&&e.properties.tracking_version==='20261019-1'));
+});
+
+test('United JSX analytics retain the same privacy boundaries and a separate app identity', () => {
+  const {config} = setup('www.john-ta.com','jsx-united');
+  const clean=config.before_send({event:'jsx_referral_clicked',properties:{placement:'guide',referral_variant:'united_annual_credit_v1',email:'PRIVATE',query:'SECRET','$current_url':'https://www.john-ta.com/tools/jsx-united/?search=SECRET#PRIVATE'}});
+  assert.equal(clean.properties.app,'jsx-united');
+  assert.equal(clean.properties.referral_variant,'united_annual_credit_v1');
+  assert.equal(clean.properties.placement,'guide');
+  assert.equal(clean.properties.$current_url,'https://www.john-ta.com/tools/jsx-united/');
+  assert.doesNotMatch(JSON.stringify(clean),/PRIVATE|SECRET/);
+  const mismatch=config.before_send({event:'jsx_referral_clicked',properties:{referral_variant:'credit_near_fares_v1'}});
+  assert.equal(mismatch.properties.referral_variant,undefined);
 });

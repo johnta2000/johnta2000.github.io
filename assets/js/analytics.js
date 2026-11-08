@@ -5,7 +5,8 @@
   if (!productionHosts.includes(window.location.hostname) || window.__siteAnalytics) return;
   window.__siteAnalytics = true;
   const app = document.currentScript?.dataset.app || 'unknown';
-  const isTest = app === 'jsx' && /[?&]analytics_test=1(?:&|$)/.test(window.location.search || '');
+  const isJsx = app === 'jsx' || app === 'jsx-united';
+  const isTest = isJsx && /[?&]analytics_test=1(?:&|$)/.test(window.location.search || '');
   const projectToken = 'phc_n65AtSeHwYdMhbeV3YwV9m5uicRpBBH2DDj2tbz9qCVA';
 
   // Only anonymous page/session metadata leaves the browser. In particular,
@@ -31,7 +32,7 @@
   const jsxControls = new Set(['book', 'referral', 'account_continue', 'account_close', 'hide_guide', 'hide_credit', 'show_credit', 'show_guide', 'reset', 'empty_reset', 'clear_price', 'clear_dates', 'sort_price', 'sort_dates', 'first', 'prev', 'next', 'last', 'map_clear', 'map_zoom_in', 'map_zoom_out', 'map_fit', 'map_jump', 'map_view_fares', 'map_check_route']);
   const placements = new Set(['fare_table', 'route_map', 'offer_header', 'guide', 'account_dialog', 'fare_offer', 'selected_route']);
   const filterNames = new Set(['search', 'trip', 'origin', 'destination', 'min-price', 'budget', 'after', 'before', 'weekend', 'sort', 'per-page', 'reset', 'clear-price', 'clear-dates']);
-  const toolPaths = new Set(["/tools/jsx/", "/tools/menus/hem-by-lequy/", "/tools/menus/", "/tools/menus/sf-organica/", "/tools/monitoring/", "/tools/rally/", "/tools/seometadata/", "/tools/sleep/", "/tools/standups/", "/tools/tranquil-connect/", "/tools/video-downloader/"]);
+  const toolPaths = new Set(["/tools/jsx/", "/tools/jsx-united/", "/tools/menus/hem-by-lequy/", "/tools/menus/", "/tools/menus/sf-organica/", "/tools/monitoring/", "/tools/rally/", "/tools/seometadata/", "/tools/sleep/", "/tools/standups/", "/tools/tranquil-connect/", "/tools/video-downloader/"]);
   const urlKeys = new Set(['$current_url', '$initial_current_url', '$session_entry_url']);
   const referrerKeys = new Set(['$referrer', '$initial_referrer', '$session_entry_referrer']);
   const safeUrl = (value, originOnly = false) => {
@@ -43,7 +44,7 @@
   const standardErrorTypes = new Set(['Error', 'TypeError', 'ReferenceError', 'SyntaxError', 'RangeError', 'URIError', 'EvalError', 'AggregateError']);
   let exceptionsSent = 0;
   function sanitizeEvent(event) {
-    if (!event || (!['$pageview', '$pageleave', '$exception', 'ui_interaction', 'homepage_link_clicked'].includes(event.event) && !(app === 'jsx' && jsxEvents.has(event.event)))) return null;
+    if (!event || (!['$pageview', '$pageleave', '$exception', 'ui_interaction', 'homepage_link_clicked'].includes(event.event) && !(isJsx && jsxEvents.has(event.event)))) return null;
     const source = event.properties || {};
     const clean = {};
     for (const [key, value] of Object.entries(source)) {
@@ -54,8 +55,8 @@
       else if (['string', 'number', 'boolean'].includes(typeof value)) clean[key] = value;
     }
     // Extra dimensions are constrained public control identifiers, never form contents or URLs.
-    if (app === 'jsx') {
-      if (source.referral_variant === 'credit_near_fares_v1') clean.referral_variant = source.referral_variant;
+    if (isJsx) {
+      if (source.referral_variant === (app === 'jsx-united' ? 'united_annual_credit_v1' : 'credit_near_fares_v1')) clean.referral_variant = source.referral_variant;
       if (jsxControls.has(source.control)) clean.control = source.control;
       if (placements.has(source.placement)) clean.placement = source.placement;
       if (filterNames.has(source.filter_name)) clean.filter_name = source.filter_name;
@@ -106,7 +107,7 @@
     if (app === 'home' && ['affil', 'linkedin', 'login'].includes(link)) capture('homepage_link_clicked', { link });
     else {
       const properties = { action: 'click', element: element.tagName.toLowerCase() };
-      if (app === 'jsx') {
+      if (isJsx) {
         properties.control = element.dataset.analyticsControl;
         properties.placement = element.dataset.analyticsPlacement;
       }

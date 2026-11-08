@@ -45,6 +45,12 @@
     "file": "index.html"
   },
   {
+    "path": "/jsx-united/",
+    "file": "jsx-united/index.html",
+    "analytics": false,
+    "title": "JSX Flights for United Cards: $200+ Off"
+  },
+  {
     "app": "login",
     "path": "/login/",
     "file": "login/index.html"
@@ -117,6 +123,11 @@
     "file": "tools/investing/index.html",
     "analytics": false,
     "title": "The long game · Investing lab"
+  },
+  {
+    "app": "jsx-united",
+    "path": "/tools/jsx-united/",
+    "file": "tools/jsx-united/index.html"
   },
   {
     "app": "jsx",
