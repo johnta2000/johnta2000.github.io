@@ -2,7 +2,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs/promises');
 const path = require('node:path');
 
-async function openStandups(browser, width, height = 844, { platform, fathomNotes = [], initialPerson = "Jenny" } = {}) {
+async function openStandups(browser, width, height = 844, { platform, fathomNotes = [], initialPerson = "Jenny", url = "http://localhost/", revenueStore } = {}) {
   const page = await browser.newPage({ viewport: { width, height }, isMobile: width <= 760, hasTouch: true });
   page.setDefaultTimeout(10000);
   const errors = [];
@@ -10,8 +10,9 @@ async function openStandups(browser, width, height = 844, { platform, fathomNote
   const entries = new Map();
   const comments = [];
   const dayNotes = new Map();
+  const revenue = revenueStore || {snapshots:new Map(), targets:new Map(), drafts:new Map()};
   const mutations = [];
-  const controls = { failSave: false, saveDelay: 0, loadDelays: new Map() };
+  const controls = { failSave: false, saveDelay: 0, loadDelays: new Map(), failRevenueDraft:false, failRevenuePublish:false };
   if (platform) await page.addInitScript(platform => Object.defineProperty(navigator, 'platform', { value: platform }), platform);
   await page.addInitScript(() => {
     localStorage.setItem('standups:last-person-name', 'Jenny');
@@ -33,7 +34,22 @@ async function openStandups(browser, width, height = 844, { platform, fathomNote
     const key = `${args.personName}:${args.standupDate}`;
     let value = null;
     if (url.pathname.endsWith('/mutation')) mutations.push({ endpoint, args });
-    if (endpoint === 'standups:verify') value = { email: 'a.long.account.address@example.com' };
+    if (endpoint === 'standupRevenue:load') {
+      const month=args.date.slice(0,7), history=[...revenue.snapshots.values()].filter(row=>row.date.startsWith(month)).sort((a,b)=>a.date.localeCompare(b.date));
+      value={selected:revenue.snapshots.get(args.date)||null,previous:[...history].reverse().find(row=>row.date<args.date)||null,history,target:revenue.targets.get(month)||null,draft:revenue.drafts.get(args.date)||null};
+    } else if (endpoint === 'standupRevenue:saveDraft') {
+      if(controls.failRevenueDraft)return route.fulfill({json:{status:'error',errorMessage:'Synthetic revenue draft failure'}});
+      const current=revenue.drafts.get(args.date);
+      if((current?.version??null)!==args.expectedDraftVersion)return route.fulfill({json:{status:'error',errorMessage:'This draft changed in another tab.'}});
+      const version=(current?.version||0)+1;revenue.drafts.set(args.date,{...args,version,updatedAt:Date.now()});value={version};
+    } else if (endpoint === 'standupRevenue:publish') {
+      if(controls.failRevenuePublish)return route.fulfill({json:{status:'error',errorMessage:'A teammate updated this snapshot. Your draft is safe.'}});
+      const current=revenue.snapshots.get(args.date);
+      if((current?.version??null)!==args.baseVersion)return route.fulfill({json:{status:'error',errorMessage:'A teammate updated this snapshot.'}});
+      const totalCents=['compliance','chase','bofa','bofaMonthly','bilt','nextcard'].reduce((sum,key)=>sum+(args.values[key]??0),0),version=(current?.version||0)+1;
+      revenue.snapshots.set(args.date,{date:args.date,values:args.values,totalCents,version,updatedAt:Date.now()});
+      revenue.targets.set(args.date.slice(0,7),{targetCents:args.targetCents,version:1});revenue.drafts.delete(args.date);value={version,totalCents};
+    } else if (endpoint === 'standups:verify') value = { email: 'a.long.account.address@example.com' };
     else if (endpoint === 'standups:getForPersonAndDate') {
       const delay = controls.loadDelays.get(args.personName) || 0;
       if (delay) await new Promise(resolve => setTimeout(resolve, delay));
@@ -58,13 +74,15 @@ async function openStandups(browser, width, height = 844, { platform, fathomNote
     else if (endpoint.includes('list')) value = [];
     return route.fulfill({ json: { status: 'success', value } });
   });
-  await page.goto('http://localhost/');
+  await page.goto(url);
   await page.waitForFunction(() => !document.querySelector('#standupsApp').hidden && document.querySelector('#generalPanel').getAttribute('aria-busy') === 'false');
+  await page.waitForFunction(() => navigationReady);
+  if (url !== 'http://localhost/') return { page, errors, comments, mutations, controls, entries, dayNotes, revenue };
   if (initialPerson === 'General') await page.evaluate(() => selectMeetingPerson('General'));
   else if (width <= 760) await page.evaluate(person => selectMeetingPerson(person), initialPerson);
   if (initialPerson !== 'General') await page.waitForFunction(() => document.querySelector('#today').textContent.includes('Schedule posts') && !document.querySelector('#previousContent').textContent.includes('Looking for'));
   if (width <= 760 && initialPerson !== 'General') await page.locator('#mobileFormat').click();
-  return { page, errors, comments, mutations, controls, entries, dayNotes };
+  return { page, errors, comments, mutations, controls, entries, dayNotes, revenue };
 }
 
 async function assertNoOverflow(page) {

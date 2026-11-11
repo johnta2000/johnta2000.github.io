@@ -1,3 +1,4 @@
+import { standupRevenueTables } from "./standupRevenueTables";
 import { rentDraftTables } from './rentDraftTables';
 import { bankArchiveTables } from './bankArchiveTables';
 import { pdpApprovalTables } from './pdpApprovalTables';
@@ -21,6 +22,7 @@ import { rentTables } from "./rentTables";
 import { sleepTables } from "./sleepTables";
 
 export default defineSchema({
+  ...standupRevenueTables,
   ...bankArchiveTables,
   apartmentShareGuides: defineTable({keyHash: v.string(), version: v.string(), storageId: v.id("_storage"), createdAt: v.number()}).index("by_key_version", ["keyHash", "version"]),
   apartmentShareLinks: defineTable({ tokenHash: v.string(), key: v.string(), expiresAt: v.number(), guideStorageId: v.optional(v.id("_storage")) }).index("by_token", ["tokenHash"]),

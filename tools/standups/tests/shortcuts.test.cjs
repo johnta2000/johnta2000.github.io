@@ -105,7 +105,9 @@ test('shortcut letters are remappable, validated, persisted and can be disabled'
     await page.keyboard.press(hotkey('F'));
     await page.getByRole('button', { name: 'Exit spotlight', exact: true }).waitFor();
     await page.reload();
-    await page.waitForFunction(() => document.querySelector('#today').getAttribute('aria-disabled') === 'false');
+    await page.waitForFunction(() => navigationReady);
+    assert.equal(await inSpotlight(page), 'true', 'Refresh restores the Spotlight URL');
+    await page.locator('#spotlightToggle').click();
     assert.equal(await page.locator('#spotlightToggle').getAttribute('aria-keyshortcuts'), 'Control+Shift+F');
     await page.locator('#shortcutSettingsButton').click();
     await page.locator('#shortcutsEnabled').uncheck();

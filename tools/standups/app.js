@@ -97,6 +97,11 @@ let dailyNotesRevision = 0;
 let pendingDailyNotesSave = Promise.resolve(true);
 let dateLoadVersion = 0;
 let activeViewContext = null;
+let revenueController;
+let revenueOwner = "";
+let navigationReady = false;
+let restoringNavigation = false;
+const initialStandupRoute = readStandupRoute();
 let mobileTab = "general";
 let mobilePersonTab = "update";
 let mobileLastPerson = TEAM_MEMBERS.includes(localStorage.getItem(LOCAL_NAME_KEY)) ? localStorage.getItem(LOCAL_NAME_KEY) : TEAM_MEMBERS[0];
@@ -116,9 +121,24 @@ function init() {
 }
 
 function initStandups() {
-  els.date.value = toDateInputValue(new Date());
+  els.date.value = initialStandupRoute.date || toDateInputValue(new Date());
   els.personName.value = isMobileBrief() ? GENERAL_VIEW : localStorage.getItem(LOCAL_NAME_KEY) || GENERAL_VIEW;
+  if (initialStandupRoute.person) els.personName.value = initialStandupRoute.person;
   if (!els.personName.value) els.personName.value = GENERAL_VIEW;
+  revenueController = window.StandupRevenue.create(document.querySelector('#standupRevenue'), {
+    owner: () => revenueOwner,
+    load: date => convexQuery('standupRevenue:load', {teamId:TEAM_ID,date}),
+    saveDraft: args => convexMutation('standupRevenue:saveDraft', {teamId:TEAM_ID,...args}),
+    publish: args => convexMutation('standupRevenue:publish', {teamId:TEAM_ID,...args}),
+    modeChanged: () => syncStandupUrl(),
+    dateUrl: date => standupRevenueUrl(date,'history'),
+    navigateDate: async date => {
+      if(!await revenueController.flush()) return;
+      history.pushState({},'',standupRevenueUrl(date,'history'));
+      window.dispatchEvent(new PopStateEvent('popstate'));
+    },
+  });
+  configureStandupRouting();
   personPicker = window.SearchableSelect.enhance(els.personName);
   document.querySelector("#saveRetry").addEventListener("click", () => flushAutosave());
   configureRichTextCommands();
@@ -214,9 +234,16 @@ function initStandups() {
   loadDailyNotes();
   loadFathomNotes();
   scheduleMidnightDateReset();
-  Promise.all([refreshDailyList(), loadCommentsForDate()]).then(() => {
-    if (els.personName.value.trim()) loadPersonContext();
+  Promise.all([refreshDailyList(), loadCommentsForDate()]).then(async () => {
+    if (els.personName.value.trim()) await loadPersonContext();
+    restoringNavigation=true;
+    await applyStandupSubview(initialStandupRoute);
+    restoringNavigation=false;
+    navigationReady=true;
     updateTodayHeading();
+    syncStandupUrl({replace:true});
+    const destination=document.getElementById(location.hash.slice(1));
+    if(destination&&!destination.closest('[hidden]'))destination.scrollIntoView({block:'start'});
   });
 }
 
@@ -435,6 +462,7 @@ async function toggleSpotlight() {
     button.focus({ preventScroll: true });
     window.scrollTo(scrollPosition);
     scheduleCommentLayout();
+    syncStandupUrl();
   } finally {
     button.disabled = false;
   }
@@ -519,7 +547,9 @@ function configureMobileBrief() {
     const previousTab = mobileTab;
     const person = tab === 'updates' ? mobileLastPerson : GENERAL_VIEW;
     mobileTab = tab;
+    const wasRestoring=restoringNavigation;restoringNavigation=true;
     await selectMeetingPerson(person);
+    restoringNavigation=wasRestoring;
     if (els.personName.value !== person) mobileTab = previousTab;
     else if (isGeneralView()) mobileTab = tab;
     updateMobileBrief();
@@ -569,6 +599,7 @@ function updateMobileBrief() {
     document.body.classList.remove('editing-comments-hidden');
     document.querySelector('.comments-card').inert = false;
   } else document.querySelector('#generalTitle').textContent = 'General';
+  syncStandupUrl();
 }
 
 function isGeneralView() {
@@ -867,6 +898,7 @@ async function unlockApp() {
   setAuthState("verifying", "Opening your workspace…");
   try {
     const viewer = await convexQuery("standups:verify", {});
+    revenueOwner = viewer.email || "";
     els.accessGate.setAttribute("hidden", "");
     els.app.removeAttribute("hidden");
     els.lockButton.textContent = "Sign out";
@@ -880,9 +912,9 @@ async function unlockApp() {
 }
 
 async function signOut() {
+  if (revenueController && !await revenueController.flush()) return;
+  if (!await flushAutosave() || !await flushDailyNotesAutosave()) return;
   closeAllCommentThreads();
-  await flushAutosave();
-  await flushDailyNotesAutosave();
   if (window.Clerk?.isSignedIn) await window.Clerk.signOut();
   window.location.assign(window.location.href.split("#")[0]);
 }
@@ -904,8 +936,9 @@ async function handleDateChange() {
   activateCommentThread(null);
   const saved = await flushAutosave();
   const dailySaved = await flushDailyNotesAutosave();
+  const revenueSaved = await revenueController.flush();
   if (version !== dateLoadVersion) return;
-  if (!saved || !dailySaved) { restoreDocumentContext(); return; }
+  if (!saved || !dailySaved || !revenueSaved) { restoreDocumentContext(); return; }
   closeAllCommentThreads();
   clearForm();
   clearItemComments();
@@ -913,7 +946,7 @@ async function handleDateChange() {
   await Promise.all([refreshDailyList(), loadDailyNotes(), loadFathomNotes(), loadCommentsForDate()]);
   if (version !== dateLoadVersion) return;
   updateTodayHeading();
-  if (els.personName.value.trim()) loadPersonContext({ scrollToUpdate: true });
+  if (els.personName.value.trim()) await loadPersonContext({ scrollToUpdate: true });
 }
 
 async function refreshDailyList() {
@@ -947,12 +980,13 @@ async function loadPersonContext({ scrollToUpdate = false } = {}) {
   activateCommentThread(null);
   const saved = await flushAutosave();
   const dailySaved = await flushDailyNotesAutosave();
+  const revenueSaved = await revenueController.flush();
   if (version !== personLoadVersion) return;
-  if (!saved || !dailySaved) { restoreDocumentContext(); return; }
+  if (!saved || !dailySaved || !revenueSaved) { restoreDocumentContext(); return; }
   if (spotlightMode && personName === GENERAL_VIEW) await toggleSpotlight();
   activateCommentThread(null);
   personPicker.sync();
-  if (personName !== GENERAL_VIEW) { mobileLastPerson = personName; mobileTab = "updates"; }
+  if (personName !== GENERAL_VIEW) { mobileLastPerson = personName; mobileTab = "updates"; revenueController.setMode("summary",{route:false}); }
   else if (mobileTab !== "discussions") mobileTab = "general";
   mobilePersonTab = "update";
   updateTodayHeading();
@@ -961,7 +995,7 @@ async function loadPersonContext({ scrollToUpdate = false } = {}) {
     activeEntryContext = null;
     activeViewContext = { personName, standupDate };
     localStorage.setItem(LOCAL_NAME_KEY, personName);
-    await Promise.all([refreshDailyList(), loadCommentsForDate()]);
+    await Promise.all([refreshDailyList(), loadCommentsForDate(), revenueController.load(standupDate)]);
     if (version !== personLoadVersion || personName !== els.personName.value || standupDate !== els.date.value) return;
     editingCommentsVisible = true;
     setPersonEditingEnabled(true);
@@ -1908,6 +1942,7 @@ function activateCommentThread(key) {
     thread.panel.classList.toggle("is-active", key === threadKey);
   });
   document.querySelector("#mobileCommentBackdrop").hidden = !key || !isMobileBrief();
+  syncStandupUrl();
   renderGlobalComments();
   scheduleCommentLayout();
 }
@@ -2820,4 +2855,50 @@ function formatMeetingTimestamp(value) {
     hour: "numeric",
     minute: "2-digit",
   }).format(new Date(value));
+}
+
+function readStandupRoute() {
+  const p=new URLSearchParams(location.search),view=p.get('view');
+  const person=view?.toLowerCase()==='general'?GENERAL_VIEW:TEAM_MEMBERS.includes(view)?view:null;
+  const raw=p.get('date'),parsed=raw&&/^\d{4}-\d{2}-\d{2}$/.test(raw)?new Date(raw+'T12:00:00'):null;const date=parsed&&!Number.isNaN(parsed.valueOf())&&parsed.toISOString().slice(0,10)===raw?raw:null;
+  return {person,date,tab:p.get('tab'),revenue:['summary','edit','history'].includes(p.get('revenue'))?p.get('revenue'):'summary',spotlight:p.get('spotlight')==='1',dialog:p.get('dialog'),comment:p.get('comment')};
+}
+function standupRevenueUrl(date,mode='summary') {
+  const url=new URL(location.href);url.searchParams.set('view','general');url.searchParams.set('date',date);url.searchParams.set('revenue',mode);
+  ['tab','spotlight','comment','dialog'].forEach(key=>url.searchParams.delete(key));url.hash='standupRevenue';return url.pathname+url.search+url.hash;
+}
+function syncStandupUrl({replace=false}={}) {
+  if(!navigationReady||restoringNavigation)return;
+  const url=new URL(location.href),p=url.searchParams,person=els.personName.value;
+  p.set('view',isGeneralView()?'general':person);p.set('date',els.date.value);
+  const tab=isGeneralView()?mobileTab==='discussions'?'discussions':null:mobilePersonTab==='comments'?'comments':null;
+  tab?p.set('tab',tab):p.delete('tab');
+  if(isGeneralView()&&revenueController?.mode!=='summary')p.set('revenue',revenueController.mode);else p.delete('revenue');
+  spotlightMode?p.set('spotlight','1'):p.delete('spotlight');
+  const dialog=document.querySelector('#shortcutDialog[open]')?'shortcuts':!els.notetakerModal.hidden?'meeting-notes':null;
+  dialog?p.set('dialog',dialog):p.delete('dialog');
+  const thread=openCommentThreads.get(activeCommentKey),comment=thread?.target.comments?.[0]?._id;
+  comment?p.set('comment',comment):p.delete('comment');
+  const path=url.pathname+url.search+url.hash;if(path!==location.pathname+location.search+location.hash)history[replace?'replaceState':'pushState']({},'',path);
+}
+async function applyStandupSubview(route) {
+  if(isGeneralView()){mobileTab=route.tab==='discussions'?'discussions':'general';revenueController.setMode(route.revenue,{route:false});}
+  else mobilePersonTab=route.tab==='comments'?'comments':'update';
+  updateMobileBrief();
+  if(route.spotlight!==spotlightMode&&!isGeneralView())await toggleSpotlight();
+  if(route.comment){const group=groupComments(commentsForDate).find(group=>group.comments.some(comment=>comment._id===route.comment));if(group&&(isGeneralView()||group.personName===els.personName.value)){if(spotlightMode)setSpotlightCommentsVisible(true);openCommentThread(group);}}
+  const settings=document.querySelector('#shortcutDialog');if(route.dialog==='shortcuts'&&!settings.open)settings.showModal();else if(route.dialog!=='shortcuts'&&settings.open)settings.close();
+  if(route.dialog==='meeting-notes'&&els.notetakerModal.hidden)await openNotetakerModal();else if(route.dialog!=='meeting-notes'&&!els.notetakerModal.hidden)closeNotetakerModal();
+}
+function configureStandupRouting() {
+  window.addEventListener('popstate',async()=>{
+    const route=readStandupRoute();restoringNavigation=true;
+    try {
+      if(!await flushAutosave()||!await flushDailyNotesAutosave()||!await revenueController.flush()){restoreDocumentContext();return;}
+      activateCommentThread(null);els.personName.value=route.person||GENERAL_VIEW;personPicker.sync();
+      if(route.date&&route.date!==els.date.value){els.date.value=route.date;await handleDateChange();}else await loadPersonContext();
+      await applyStandupSubview(route);
+    } finally {restoringNavigation=false;syncStandupUrl({replace:true});}
+  });
+  const observer=new MutationObserver(()=>syncStandupUrl());observer.observe(document.querySelector('#shortcutDialog'),{attributes:true,attributeFilter:['open']});observer.observe(els.notetakerModal,{attributes:true,attributeFilter:['hidden']});
 }

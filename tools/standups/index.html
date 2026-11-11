@@ -7,6 +7,7 @@
     <meta name="robots" content="noindex, nofollow" />
     <title>Daily Standups</title>
     <link rel="stylesheet" href="../../assets/css/searchable-select.css?v=20261010-1" />
+    <link rel="stylesheet" href="./revenue.css?v=20261111-revenue1" />
     <link rel="stylesheet" href="./styles.css?v=20261029-brief1" />
     <link rel="stylesheet" href="../../assets/css/clerk-auth.css?v=20261011-otp1">
 </head>
@@ -102,7 +103,49 @@
               <h2 id="generalTitle">General</h2>
               <p class="general-description">Shared notes, discussions, and everyone’s updates for this day.</p>
             </div>
-            <div id="generalNotesSlot"></div>
+            <section id="standupRevenue" aria-label="Revenue" aria-busy="true">
+  <section class="rf-card" aria-labelledby="rf-title">
+   <div class="rf-heading"><div><h3 id="rf-title">Revenue</h3><p class="rf-month" id="rf-asof">Loading revenue…</p></div><button id="rf-update" disabled class="rf-update cursor-interaction" type="button" aria-expanded="false" aria-controls="rf-form"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="m15 4 5 5M4 20l5-1L21 7a2 2 0 0 0-4-4L5 15z"/></svg>Update numbers</button></div>
+   <div id="rf-overview" hidden>
+    <div class="rf-total" id="rf-total">—</div><p class="rf-target-copy" id="rf-target-copy">Month to date · target —</p>
+    <div class="rf-progress" role="progressbar" aria-label="Monthly revenue goal" aria-valuemin="0" aria-valuemax="100"><span></span></div><div class="rf-progress-copy"><span id="rf-percent"></span><span id="rf-remaining">— to go</span></div>
+    <div class="rf-ledger">
+     <div class="rf-line"><span>Compliance</span><span class="rf-number" id="rf-compliance-out">—</span></div>
+     <div class="rf-acquisitions"><div class="rf-line"><span>Acquisition commissions</span><span class="rf-number" id="rf-acquisitions-out">—</span></div>
+      <div class="rf-partner"><span>Chase<span class="rf-count" id="rf-chase-count-out">—</span></span><span class="rf-number" id="rf-chase-out">—</span></div>
+      <div class="rf-partner"><span>BOFA</span><span class="rf-number" id="rf-bofa-total-out">—</span></div>
+      <div class="rf-partner rf-bofa-detail"><span id="rf-bofa-count-out">—</span><span class="rf-number" id="rf-bofa-out">—</span></div>
+      <div class="rf-partner rf-bofa-detail"><span>Monthly payment</span><span class="rf-number" id="rf-monthly-out">—</span></div>
+      <div class="rf-partner"><span>Bilt<span class="rf-count" id="rf-bilt-count-out">—</span></span><span class="rf-unknown" id="rf-bilt-out">Not entered</span></div>
+     </div>
+     <div class="rf-line"><span>Nextcard<small id="rf-nextcard-count-out">—</small></span><span class="rf-number" id="rf-nextcard-out">—</span></div>
+    </div>
+    <div class="rf-footer"><button id="rf-slack" class="cursor-interaction" type="button"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V4H4v12h4"/></svg>Copy for Slack</button><span class="rf-muted" id="rf-saved"></span></div>
+    <textarea id="rf-summary" aria-label="Slack summary to copy" readonly hidden></textarea>
+   </div>
+   <section id="rf-form" class="rf-form" aria-label="Update revenue numbers" hidden>
+    <div class="rf-form-heading"><h3>Update month-to-date numbers</h3><p>Enter the latest totals for this month.</p></div>
+    <div class="rf-form-top"><label>As of<input type="date" id="rf-date" value="" required></label><label>Monthly target<div class="rf-money"><span aria-hidden="true">$</span><input id="rf-target" type="text" inputmode="decimal" value="" data-number required></div></label></div>
+    <div class="rf-simple-field"><label for="rf-compliance">Compliance</label><div class="rf-money"><span aria-hidden="true">$</span><input id="rf-compliance" type="text" inputmode="decimal" value="" data-number aria-label="Compliance revenue"></div></div>
+    <section class="rf-entry-group" aria-label="Acquisition commissions"><p>Acquisition commissions</p>
+     <div class="rf-entry-grid"><span>Partner</span><span style="text-align:right">Count</span><span style="text-align:right">Revenue</span><label for="rf-chase">Chase</label><input id="rf-chase-count" type="text" inputmode="numeric" value="" data-number data-count aria-label="Chase count"><div class="rf-money"><span aria-hidden="true">$</span><input id="rf-chase" type="text" inputmode="decimal" value="" data-number aria-label="Chase revenue"></div></div>
+     <section class="rf-bofa-editor" aria-label="BOFA revenue breakdown"><div class="rf-bofa-editor-heading"><span>BOFA</span><span id="rf-bofa-draft-total">—</span></div>
+      <div class="rf-entry-grid"><span>Type</span><span style="text-align:right">Count</span><span style="text-align:right">Revenue</span><label for="rf-bofa">Acquisitions</label><input id="rf-bofa-count" type="text" inputmode="numeric" value="" data-number data-count aria-label="BOFA acquisition count"><div class="rf-money"><span aria-hidden="true">$</span><input id="rf-bofa" type="text" inputmode="decimal" value="" data-number aria-label="BOFA acquisition revenue"></div></div>
+      <div class="rf-simple-field" style="margin-top:12px"><label for="rf-monthly">Monthly payment</label><div class="rf-money"><span aria-hidden="true">$</span><input id="rf-monthly" type="text" inputmode="decimal" value="" data-number aria-label="BOFA monthly payment revenue"></div></div>
+     </section>
+     <div class="rf-entry-grid"><label for="rf-bilt">Bilt</label><input id="rf-bilt-count" type="text" inputmode="numeric" value="" data-number data-count aria-label="Bilt count"><div class="rf-money"><span aria-hidden="true">$</span><input id="rf-bilt" type="text" inputmode="decimal" value="" placeholder="—" data-number aria-label="Bilt revenue"></div></div>
+    </section>
+    <section class="rf-entry-group" aria-label="Nextcard revenue"><p>Nextcard</p><div class="rf-entry-grid rf-nextcard-grid"><span>Source</span><span style="text-align:right">Subscriptions</span><span style="text-align:right">Revenue</span><label for="rf-nextcard">Nextcard</label><input id="rf-nextcard-count" type="text" inputmode="numeric" value="" data-number data-count aria-label="Nextcard subscriptions"><div class="rf-money"><span aria-hidden="true">$</span><input id="rf-nextcard" type="text" inputmode="decimal" value="" data-number aria-label="Nextcard revenue"></div></div></section>
+    <div class="rf-draft-total" aria-live="polite"><span>MTD total</span><span id="rf-draft-total">—</span></div><p id="rf-error" class="rf-error" role="alert"></p><button id="revenueReload" type="button" hidden>Reload latest totals</button>
+    <div class="rf-form-actions"><button id="rf-done" class="cursor-interaction" type="button">Close</button><button id="rf-save" class="rf-primary cursor-interaction" type="button">Save update</button></div>
+   </section>
+  <p id="revenueEmpty" class="rf-empty" hidden>No revenue update for this date yet.</p>
+  </section>
+  <details class="rf-history"><summary class="cursor-interaction"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 4v6h6M3 10a9 9 0 1 1 1 8M12 7v5l3 2"/></svg>Daily history<span class="rf-muted" id="rf-history-count">History</span></summary><div id="revenueChart"></div><div id="rf-history-rows"></div></details>
+  <button id="revenueRetry" class="revenue-retry" type="button" hidden>Retry save</button><p id="rf-status" class="rf-muted" role="status" style="margin-top:10px">Loading revenue…</p>
+
+</section>
+<div id="generalNotesSlot"></div>
             <div id="generalDiscussionSlot"></div>
             <section class="general-updates" aria-labelledby="generalUpdatesTitle">
               <h3 id="generalUpdatesTitle">Everyone’s updates</h3>
@@ -350,6 +393,8 @@
       type="text/javascript"
     ></script>
     <script defer src="../../assets/js/searchable-select.js?v=20261010-2"></script>
-    <script defer src="./app.js?v=20261030-shortcut1"></script>
+    <script defer src="./revenue-model.js?v=20261111-revenue1"></script>
+    <script defer src="./revenue.js?v=20261111-revenue1"></script>
+    <script defer src="./app.js?v=20261111-revenue1"></script>
   </body>
 </html>

@@ -59,13 +59,13 @@ test('teammate numbers are validated, remappable, persisted, disabled and reset'
     await page.keyboard.press('Meta+Alt+Digit5');
     await waitPerson(page, 'John');
     await page.reload();
-    await waitPerson(page, 'Jenny');
+    await waitPerson(page, 'John');
     assert.equal(await page.locator('[data-person-jump="John"]').getAttribute('aria-keyshortcuts'), 'Meta+Alt+5');
     await page.locator('#shortcutSettingsButton').click();
     await page.locator('#shortcutsEnabled').uncheck();
     await page.getByRole('button', { name: 'Save shortcuts' }).click();
     await page.keyboard.press('Meta+Alt+Digit5');
-    assert.equal(await page.locator('#personName').inputValue(), 'Jenny');
+    assert.equal(await page.locator('#personName').inputValue(), 'John');
     assert.equal(await page.locator('[data-person-jump="John"]').getAttribute('aria-keyshortcuts'), null);
     await page.locator('#shortcutSettingsButton').click();
     await page.getByRole('button', { name: 'Reset defaults' }).click();
