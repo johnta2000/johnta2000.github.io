@@ -17,6 +17,13 @@ test('direct General/editor links, commas, auto totals, server draft reload and 
  const browser=await launch();try{for(const width of [320,390,1440]){
   const store=seeded('2026-11-11');const f=await openStandups(browser,width,1000,{url:'http://localhost/?view=general&date=2026-11-11&revenue=edit',revenueStore:store});const {page,errors}=f;await ready(page);
   assert.equal(await page.locator('#rf-form').isVisible(),true);assert.equal(await page.locator('#rf-target').inputValue(),'1,000');
+  const layout=await page.locator('#rf-form').evaluate(form=>({width:form.getBoundingClientRect().width,fields:[...form.querySelectorAll('input')].map(input=>{const r=input.getBoundingClientRect(),label=input.labels[0].getBoundingClientRect();return {id:input.id,x:r.x,y:r.y,width:r.width,height:r.height,labelX:label.x,labelY:label.y};})}));
+  assert.ok(layout.width<=641,'The form must stay compact on wide screens.');
+  for(const field of layout.fields){assert.ok(field.height>=44);assert.ok(field.width>=96);assert.ok(Math.abs(field.x-field.labelX)<1,`${field.id} must align with its label`);assert.ok(field.y>field.labelY,`${field.id} needs its label immediately above`);}
+  const field=id=>layout.fields.find(f=>f.id===id);
+  for(const partner of ['bofa','bilt','nextcard']){assert.ok(Math.abs(field('rf-chase-count').x-field('rf-'+partner+'-count').x)<1);assert.ok(Math.abs(field('rf-chase').x-field('rf-'+partner).x)<1);assert.ok(Math.abs(field('rf-'+partner+'-count').y-field('rf-'+partner).y)<1);}
+  await page.locator('#rf-chase-count').focus();await page.keyboard.press('Tab');assert.equal(await page.locator('#rf-chase').evaluate(el=>el===document.activeElement),true);
+
   await page.locator('#rf-monthly').fill('1250.50');await page.locator('#rf-bofa').focus();assert.equal(await page.locator('#rf-monthly').inputValue(),'1,250.50');
   assert.equal(await page.locator('#rf-bofa-draft-total').textContent(),'$1,280.50');assert.equal(await page.locator('#rf-draft-total').textContent(),'$1,440.50');
   await page.waitForFunction(()=>document.querySelector('#rf-status').textContent.startsWith('Draft saved'));

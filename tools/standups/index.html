@@ -7,7 +7,7 @@
     <meta name="robots" content="noindex, nofollow" />
     <title>Daily Standups</title>
     <link rel="stylesheet" href="../../assets/css/searchable-select.css?v=20261010-1" />
-    <link rel="stylesheet" href="./styles.css?v=20261111-revenue1" />
+    <link rel="stylesheet" href="./styles.css?v=20261112-revenue-form1" />
     <link rel="stylesheet" href="../../assets/css/clerk-auth.css?v=20261011-otp1">
 </head>
   <body>
@@ -124,17 +124,47 @@
    </div>
    <section id="rf-form" class="rf-form" aria-label="Update revenue numbers" hidden>
     <div class="rf-form-heading"><h3>Update month-to-date numbers</h3><p>Enter the latest totals for this month.</p></div>
-    <div class="rf-form-top"><label>As of<input type="date" id="rf-date" value="" required></label><label>Monthly target<div class="rf-money"><span aria-hidden="true">$</span><input id="rf-target" type="text" inputmode="decimal" value="" data-number required></div></label></div>
-    <div class="rf-simple-field"><label for="rf-compliance">Compliance</label><div class="rf-money"><span aria-hidden="true">$</span><input id="rf-compliance" type="text" inputmode="decimal" value="" data-number aria-label="Compliance revenue"></div></div>
-    <section class="rf-entry-group" aria-label="Acquisition commissions"><p>Acquisition commissions</p>
-     <div class="rf-entry-grid"><span>Partner</span><span style="text-align:right">Count</span><span style="text-align:right">Revenue</span><label for="rf-chase">Chase</label><input id="rf-chase-count" type="text" inputmode="numeric" value="" data-number data-count aria-label="Chase count"><div class="rf-money"><span aria-hidden="true">$</span><input id="rf-chase" type="text" inputmode="decimal" value="" data-number aria-label="Chase revenue"></div></div>
-     <section class="rf-bofa-editor" aria-label="BOFA revenue breakdown"><div class="rf-bofa-editor-heading"><span>BOFA</span><span id="rf-bofa-draft-total">—</span></div>
-      <div class="rf-entry-grid"><span>Type</span><span style="text-align:right">Count</span><span style="text-align:right">Revenue</span><label for="rf-bofa">Acquisitions</label><input id="rf-bofa-count" type="text" inputmode="numeric" value="" data-number data-count aria-label="BOFA acquisition count"><div class="rf-money"><span aria-hidden="true">$</span><input id="rf-bofa" type="text" inputmode="decimal" value="" data-number aria-label="BOFA acquisition revenue"></div></div>
-      <div class="rf-simple-field" style="margin-top:12px"><label for="rf-monthly">Monthly payment</label><div class="rf-money"><span aria-hidden="true">$</span><input id="rf-monthly" type="text" inputmode="decimal" value="" data-number aria-label="BOFA monthly payment revenue"></div></div>
+    <div class="rf-form-top">
+     <label for="rf-date">As of<input type="date" id="rf-date" value="" required></label>
+     <label for="rf-target">Monthly target<div class="rf-money"><span aria-hidden="true">$</span><input id="rf-target" type="text" inputmode="decimal" value="" data-number required></div></label>
+    </div>
+    <div class="rf-entry-row rf-single-row">
+     <div class="rf-row-fields"><label for="rf-compliance">Compliance revenue<div class="rf-money"><span aria-hidden="true">$</span><input id="rf-compliance" type="text" inputmode="decimal" value="" data-number aria-label="Compliance revenue"></div></label></div>
+    </div>
+    <section class="rf-entry-group" aria-label="Acquisition commissions"><h4>Acquisition commissions</h4>
+     <div class="rf-entry-row">
+      <div class="rf-row-fields">
+       <label for="rf-chase-count">Chase count<input id="rf-chase-count" type="text" inputmode="numeric" value="" data-number data-count aria-label="Chase count"></label>
+       <label for="rf-chase">Chase revenue<div class="rf-money"><span aria-hidden="true">$</span><input id="rf-chase" type="text" inputmode="decimal" value="" data-number aria-label="Chase revenue"></div></label>
+      </div>
+     </div>
+     <section class="rf-bofa-editor" aria-label="BOFA revenue breakdown">
+      <div class="rf-bofa-editor-heading"><h5>BOFA</h5><span id="rf-bofa-draft-total">—</span></div>
+      <div class="rf-entry-row">
+       <div class="rf-row-fields">
+        <label for="rf-bofa-count">Count<input id="rf-bofa-count" type="text" inputmode="numeric" value="" data-number data-count aria-label="BOFA acquisition count"></label>
+        <label for="rf-bofa">Acquisition revenue<div class="rf-money"><span aria-hidden="true">$</span><input id="rf-bofa" type="text" inputmode="decimal" value="" data-number aria-label="BOFA acquisition revenue"></div></label>
+       </div>
+      </div>
+      <div class="rf-entry-row rf-single-row">
+       <div class="rf-row-fields"><label for="rf-monthly">Monthly payment<div class="rf-money"><span aria-hidden="true">$</span><input id="rf-monthly" type="text" inputmode="decimal" value="" data-number aria-label="BOFA monthly payment revenue"></div></label></div>
+      </div>
      </section>
-     <div class="rf-entry-grid"><label for="rf-bilt">Bilt</label><input id="rf-bilt-count" type="text" inputmode="numeric" value="" data-number data-count aria-label="Bilt count"><div class="rf-money"><span aria-hidden="true">$</span><input id="rf-bilt" type="text" inputmode="decimal" value="" placeholder="—" data-number aria-label="Bilt revenue"></div></div>
+     <div class="rf-entry-row">
+      <div class="rf-row-fields">
+       <label for="rf-bilt-count">Bilt count<input id="rf-bilt-count" type="text" inputmode="numeric" value="" data-number data-count aria-label="Bilt count"></label>
+       <label for="rf-bilt">Bilt revenue<div class="rf-money"><span aria-hidden="true">$</span><input id="rf-bilt" type="text" inputmode="decimal" value="" placeholder="—" data-number aria-label="Bilt revenue"></div></label>
+      </div>
+     </div>
     </section>
-    <section class="rf-entry-group" aria-label="Nextcard revenue"><p>Nextcard</p><div class="rf-entry-grid rf-nextcard-grid"><span>Source</span><span style="text-align:right">Subscriptions</span><span style="text-align:right">Revenue</span><label for="rf-nextcard">Nextcard</label><input id="rf-nextcard-count" type="text" inputmode="numeric" value="" data-number data-count aria-label="Nextcard subscriptions"><div class="rf-money"><span aria-hidden="true">$</span><input id="rf-nextcard" type="text" inputmode="decimal" value="" data-number aria-label="Nextcard revenue"></div></div></section>
+    <section class="rf-entry-group" aria-label="Nextcard revenue"><h4>Nextcard</h4>
+     <div class="rf-entry-row">
+      <div class="rf-row-fields">
+       <label for="rf-nextcard-count">Subscriptions<input id="rf-nextcard-count" type="text" inputmode="numeric" value="" data-number data-count aria-label="Nextcard subscriptions"></label>
+       <label for="rf-nextcard">Revenue<div class="rf-money"><span aria-hidden="true">$</span><input id="rf-nextcard" type="text" inputmode="decimal" value="" data-number aria-label="Nextcard revenue"></div></label>
+      </div>
+     </div>
+    </section>
     <div class="rf-draft-total" aria-live="polite"><span>MTD total</span><span id="rf-draft-total">—</span></div><p id="rf-error" class="rf-error" role="alert"></p><button id="revenueReload" type="button" hidden>Reload latest totals</button>
     <div class="rf-form-actions"><button id="rf-done" class="cursor-interaction" type="button">Close</button><button id="rf-save" class="rf-primary cursor-interaction" type="button">Save update</button></div>
    </section>
