@@ -63,7 +63,18 @@ window.StandupRevenue={create(root,api){
  $('revenueReload').addEventListener('click',async()=>{const values={...state.values},target=state.target;await load(state.date,{force:true});if(!state.data)return;state.values=values;state.target=target;state.baseVersion=state.data.selected?.version??null;state.baseTargetVersion=state.data.target?.version??null;state.draftVersion=state.data.draft?.version??null;state.dirty=true;state.revision++;render();cache();$('revenueReload').hidden=true;rf('error').textContent='Latest team total: '+M.money(state.data.selected?.totalCents??0)+'. Your draft is kept; review before saving again.';});
  $('revenueRetry').addEventListener('click',()=>state.data?flush():load(state.date,{force:true}));
  root.querySelector('.rf-history summary').addEventListener('click',event=>{event.preventDefault();setMode(state.mode==='history'?'summary':'history');});
- rf('slack').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(rf('summary').value);status('Copied for Slack.');}catch{rf('summary').hidden=false;rf('summary').focus();rf('summary').select();status('Select and copy the Slack summary.');}});
+ rf('slack').addEventListener('click',async()=>{
+  const record=state.data?.selected||state.data?.previous;if(!record)return;
+  const text=rf('summary').value,html=M.slackHtml(record.date,record.values,state.data.target?.targetCents??null);
+  if(navigator.clipboard?.write&&window.ClipboardItem){
+   try{
+    await navigator.clipboard.write([new ClipboardItem({'text/html':new Blob([html],{type:'text/html'}),'text/plain':new Blob([text],{type:'text/plain'})})]);
+    rf('summary').hidden=true;status('Copied with formatting. Paste into Slack with ⌘V or Ctrl+V.');return;
+   }catch{/* A plain-text copy can still work when rich clipboard writes are blocked. */}
+  }
+  try{await navigator.clipboard.writeText(text);rf('summary').hidden=true;status('Copied as plain text; formatted copying is unavailable in this browser.');}
+  catch{rf('summary').hidden=false;rf('summary').focus();rf('summary').select();status('Select and copy the Slack summary.');}
+ });
  window.addEventListener('resize',()=>{if(state.data&&state.mode==='history')history();});
  window.addEventListener('beforeunload',event=>{if(state.dirty||state.invalid||saving){cache();event.preventDefault();event.returnValue='';}});
  return {load,flush,setMode,get mode(){return state.mode;},get date(){return state.date;},get dirty(){return state.dirty;}};

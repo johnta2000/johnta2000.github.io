@@ -53,6 +53,27 @@ test('Back, Forward, direct history dates and fresh copied editor links restore 
  }finally{await browser.close();}
 });
 
+test('Slack copy includes rich headings and nested lists, with clear plain-text and manual fallbacks',async()=>{
+ const browser=await launch();try{for(const width of [390,1440]){
+  const date='2026-11-11',store=seeded(date),{page,errors}=await openStandups(browser,width,1000,{url:'http://localhost/?view=general&date=2026-11-11',revenueStore:store});
+  await page.evaluate(()=>Object.defineProperty(navigator,'clipboard',{configurable:true,value:{
+   write:async items=>{window.copiedRevenue={};for(const type of items[0].types)window.copiedRevenue[type]=await(await items[0].getType(type)).text();},
+   writeText:async text=>{window.copiedRevenue={'text/plain':text};},
+  }}));
+  await page.locator('#rf-slack').click();await page.waitForFunction(()=>document.querySelector('#rf-status').textContent.startsWith('Copied with formatting'));
+  const copied=await page.evaluate(()=>window.copiedRevenue);assert.equal(copied['text/plain'],M.slack(date,values,100000));
+  const structure=await page.evaluate(html=>{const doc=new DOMParser().parseFromString(html,'text/html');return {bold:doc.querySelectorAll('strong').length,topItems:doc.querySelectorAll('body>ul>li').length,partners:[...doc.querySelectorAll('body>ul>li>ul>li')].map(el=>el.firstChild.textContent),bofaDetails:[...doc.querySelectorAll('body>ul>li>ul>li>ul>li')].map(el=>el.textContent),text:doc.body.textContent};},copied['text/html']);
+  assert.equal(structure.bold,2);assert.equal(structure.topItems,3);assert.equal(structure.partners.length,3);assert.match(structure.partners[1],/^BOFA: \$80/);assert.deepEqual(structure.bofaDetails,['Acquisitions: 3 ($30)','Monthly payment: $50']);assert.match(structure.text,/4 subscriptions/);
+  await page.evaluate(()=>{navigator.clipboard.write=async()=>{throw Error('Rich clipboard blocked');};});
+  await page.locator('#rf-slack').click();await page.waitForFunction(()=>document.querySelector('#rf-status').textContent.startsWith('Copied as plain text'));
+  assert.deepEqual(await page.evaluate(()=>window.copiedRevenue),{'text/plain':M.slack(date,values,100000)});
+  await page.evaluate(()=>{navigator.clipboard.writeText=async()=>{throw Error('Clipboard denied');};});
+  await page.locator('#rf-slack').click();await page.waitForFunction(()=>!document.querySelector('#rf-summary').hidden);
+  assert.equal(await page.locator('#rf-summary').inputValue(),M.slack(date,values,100000));assert.match(await page.locator('#rf-status').textContent(),/Select and copy/);
+  assert.deepEqual(errors,[]);await page.close();
+ }}finally{await browser.close();}
+});
+
 test('failed saves retain recovery data, block navigation and allow retry; conflicting snapshots keep a draft',async()=>{
  const browser=await launch();try{
   const store=seeded('2026-11-11');const f=await openStandups(browser,390,1000,{url:'http://localhost/?view=general&date=2026-11-11&revenue=edit',revenueStore:store});const {page,controls}=f;

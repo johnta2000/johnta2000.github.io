@@ -25,6 +25,29 @@
  const bofa=v=>(v.bofa??0)+(v.bofaMonthly??0);
  const acquisitions=v=>(v.chase??0)+bofa(v)+(v.bilt??0);
  const dateLabel=date=>new Date(date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'});
- function slack(date,v,target){return `${new Date(date+'T12:00:00').toLocaleDateString('en-US')}:\n\nRevenue: ${money(total(v))} MTD${target!==null?' (target: '+money(target)+')':''}\n• Compliance: ${money(v.compliance)}\n• Acquisition commissions: ${money(acquisitions(v))}\n  • Chase: ${comma(v.chaseCount??0)} (${money(v.chase)})\n  • BOFA: ${money(bofa(v))}\n    • Acquisitions: ${comma(v.bofaCount??0)} (${money(v.bofa)})\n    • Monthly payment: ${money(v.bofaMonthly)}\n  • Bilt: ${comma(v.biltCount??0)}${v.bilt===null?'':' ('+money(v.bilt)+')'}\n• Nextcard: ${comma(v.nextcardSubscriptions??0)} subscriptions (${money(v.nextcard)})`;}
- return {amounts,counts,fields,empty,comma,money,parse,total,bofa,acquisitions,dateLabel,slack};
+ const reportCount=value=>value===null?'Not entered':comma(value);
+ function slackItems(v){return [
+  {text:'Compliance: '+money(v.compliance)},
+  {text:'Acquisition commissions: '+money(acquisitions(v)),children:[
+   {text:'Chase: '+reportCount(v.chaseCount)+' ('+money(v.chase)+')'},
+   {text:'BOFA: '+money(bofa(v)),children:[
+    {text:'Acquisitions: '+reportCount(v.bofaCount)+' ('+money(v.bofa)+')'},
+    {text:'Monthly payment: '+money(v.bofaMonthly)},
+   ]},
+   {text:'Bilt: '+reportCount(v.biltCount)+(v.bilt===null?'':' ('+money(v.bilt)+')')},
+  ]},
+  {text:'Nextcard: '+reportCount(v.nextcardSubscriptions)+' subscriptions ('+money(v.nextcard)+')'},
+ ];}
+ const reportDate=date=>new Date(date+'T12:00:00').toLocaleDateString('en-US');
+ function slack(date,v,target){
+  const list=(items,depth=0)=>items.map(item=>'  '.repeat(depth)+'• '+item.text+(item.children?'\n'+list(item.children,depth+1):'')).join('\n');
+  return reportDate(date)+':\n\nRevenue: '+money(total(v))+' MTD'+(target!==null?' (target: '+money(target)+')':'')+'\n'+list(slackItems(v));
+ }
+ function slackHtml(date,v,target){
+  const escape=value=>String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const list=items=>'<ul>'+items.map(item=>'<li>'+escape(item.text)+(item.children?list(item.children):'')+'</li>').join('')+'</ul>';
+  return '<p><strong>'+escape(reportDate(date))+':</strong></p>'+
+   '<p><strong>Revenue: '+escape(money(total(v)))+' MTD</strong>'+(target!==null?' (target: '+escape(money(target))+')':'')+'</p>'+list(slackItems(v));
+ }
+ return {amounts,counts,fields,empty,comma,money,parse,total,bofa,acquisitions,dateLabel,slack,slackHtml};
 });
