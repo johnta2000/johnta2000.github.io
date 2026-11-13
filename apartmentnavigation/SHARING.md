@@ -6,7 +6,7 @@ The initial page is a small shell. Password unlock alone downloads guide.json; r
 
 Tokens live in the fragment and request header. Only token hashes, private guide keys and storage IDs are stored in Convex. Recipient responses contain guide content, never the encryption key or password. Expiration is checked before and after storage retrieval on every request; the page clears at expiry. Downloaded content cannot be recalled. No analytics is loaded on this page.
 
-When updating guide.json, also update apartmentGuideVersion.ts to its SHA-256 hash and the version query in index.html. Existing links that already reference a snapshot retain it until expiration. No private plaintext content belongs in public source.
+When updating guide.json, also update apartmentGuideVersion.ts to its SHA-256 hash and the version query in index.html. Existing unexpired links resolve the current guide version on every open; their original tokens and expiration times stay unchanged. No private plaintext content belongs in public source.
 
 Deploy the backend first with scripts/apartment/deploy-sharing.cjs (dry run), then --apply. It preserves unrelated deployed modules, tables and routes. Call the internal apartmentShareHttp:warm action as an administrator before publishing, so existing links and first-time clicks use a ready private snapshot. No keys or guide content should be logged.
 

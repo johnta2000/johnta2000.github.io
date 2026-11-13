@@ -55,8 +55,9 @@ export const endpoint = httpAction(async (ctx, request) => {
     if (!/^[A-Za-z0-9_-]{43}$/.test(token)) throw Error();
     const link = await ctx.runQuery(anyApi.apartmentSharing.read, {tokenHash: await hash(token)});
     if (!link || link.expiresAt <= Date.now()) throw Error();
-    // Old links use the same prepared snapshot, so links already sent also become faster.
-    const storageId = link.guideStorageId || await prepareGuide(ctx, link.key);
+    // Resolve the current guide version for every valid link, including links issued
+    // before an update. The original token and expiry remain unchanged.
+    const storageId = await prepareGuide(ctx, link.key);
     const blob = await ctx.storage.get(storageId);
     if (!blob || link.expiresAt <= Date.now()) throw Error();
     if (new URL(request.url).searchParams.get('v') === '2') {
