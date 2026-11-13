@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="format-detection" content="telephone=no" />
+    <meta name="theme-color" content="#f5f3ee" />
+    <link rel="canonical" href="https://www.john-ta.com/apartment/" />
+    <link rel="stylesheet" href="/apartment/styles.css?v=20261112-1" />
+    <meta name="referrer" content="no-referrer" />
+    <script defer src="/apartment/app.js?v=20261112-1"></script>
+    <link rel="stylesheet" href="/apartmentnavigation/wifi.css?v=20261112">
+    <script defer src="/apartmentnavigation/wifi.js?v=20261112"></script>
+    <title>Apartment · Guest guide</title>
+  </head>
+  <body>
+    <main class="gate-layout">
+      <form class="gate" id="gate">
+        <h1>Apartment guide</h1>
+        <p>Enter the password for arrival details and Wi-Fi.</p>
+        <label for="password">Guest password</label>
+        <div class="password-field">
+          <input
+            id="password"
+            name="password"
+            type="password"
+            autocomplete="current-password"
+            required
+            aria-describedby="error"
+          />
+          <button
+            type="button"
+            class="text-button"
+            id="show-password"
+            aria-controls="password"
+            aria-pressed="false"
+          >
+            Show
+          </button>
+        </div>
+        <button type="submit" class="button primary" id="unlock">
+          Open guest guide <span aria-hidden="true">↗</span>
+        </button>
+        <p id="error" class="error" role="alert"></p>
+      </form>
+      <noscript>Please enable JavaScript to unlock this guest guide.</noscript>
+    </main>
+  </body>
+</html>

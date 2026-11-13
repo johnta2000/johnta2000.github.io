@@ -1,0 +1,16 @@
+.guest-wifi { background:#edf2e9; color:#172a21; border:1px solid #d3decc; border-radius:16px; padding:24px; margin:24px 0 0; text-align:left; scroll-margin-top:20px; font:16px/1.5 system-ui,sans-serif; }
+.guest-wifi h2 { margin:0 0 16px; font-size:22px; line-height:1.3; font-weight:650; letter-spacing:-.025em; }
+.guest-wifi-fields { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+.guest-wifi-fields > div { min-width:0; }
+.guest-wifi-label { display:block; color:#50604f; font-size:12px; font-weight:600; margin-bottom:4px; }
+.guest-wifi-row { display:flex; align-items:center; flex-wrap:wrap; gap:4px 12px; }
+.guest-wifi-value { font:500 19px/1.5 ui-monospace,SFMono-Regular,Consolas,monospace; overflow-wrap:anywhere; min-width:0; user-select:text; -webkit-user-select:text; }
+.guest-wifi button { box-sizing:border-box; width:auto; height:auto; min-height:44px; margin:0; padding:10px 12px; border:1px solid #bacab4; border-radius:9px; background:#fff; color:#243e2d; font:600 14px/1.5 system-ui,sans-serif; cursor:pointer; }
+.guest-wifi button:hover { background:#f9fcf6; border-color:#718669; }
+.guest-wifi :focus-visible, .guest-wifi-link:focus-visible { outline:2px solid #304b38; outline-offset:3px; }
+.guest-wifi-help { margin:16px 0 0; color:#50604f; font-size:13px; }
+.guest-wifi-status { margin:8px 0 0; font-size:13px; color:#243e2d; }
+.guest-wifi-status:empty { display:none; }
+.guest-wifi-link { display:inline-flex; align-items:center; min-height:44px; margin:0 0 12px; color:inherit; font:600 14px/1.5 system-ui,sans-serif; text-underline-offset:4px; }
+@media(max-width:640px) { .guest-wifi { padding:20px; } .guest-wifi-fields { grid-template-columns:1fr; gap:16px; } }
+@media print { .guest-wifi button, .guest-wifi-status, .guest-wifi-link { display:none; } }
