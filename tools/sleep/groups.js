@@ -333,7 +333,7 @@ try {
 } catch {}
 function bindStandingsControls() {
   $('#customizeStandings').addEventListener('click', () => {
-    $('#standingsOptions').innerHTML = Object.entries(Daylight.competitions).map(([key, rule]) => `<label class="standings-option"><input type="checkbox" name="standingMetric" value="${key}" ${selectedStandings.includes(key) ? 'checked' : ''}><span><strong>${rule.label}</strong><small>${rule.description}</small></span></label>`).join('');
+    $('#standingsOptions').innerHTML = Object.entries(Daylight.competitions).map(([key, rule]) => `<label class="standings-option"><input type="checkbox" name="standingMetric" value="${key}" ${selectedStandings.includes(key) ? 'checked' : ''}><span><strong>${rule.label}</strong><small>${Daylight.standings(groupSample || [], key, todayPacific(), selectedRange).rule.description}</small></span></label>`).join('');
     $('#standingsSearch').value = '';
     $('#standingsSearchEmpty').hidden = true;
     $('#standingsError').textContent = '';
@@ -374,13 +374,13 @@ function renderStandings() {
   const panel = $('#groupStandings');
   panel.hidden = !groupSample || (!isDemo && !liveGroup);
   if (panel.hidden) return;
-  const boards = selectedStandings.map(key => ({key, ...Daylight.standings(groupSample, key, todayPacific())}));
-  $('#standingsPeriod').textContent = `${formatShortDate(boards[0].start)} – ${formatShortDate(boards[0].end)} · LAST 7 COMPLETE DAYS`;
+  const boards = selectedStandings.map(key => ({key, ...Daylight.standings(groupSample, key, todayPacific(), selectedRange)}));
+  $('#standingsPeriod').textContent = `${formatRangeDate(boards[0].start)} – ${formatRangeDate(boards[0].end)} · ${selectedRange === 'all' ? 'ALL SHARED HISTORY · THROUGH YESTERDAY' : `LAST ${boards[0].days} COMPLETE DAYS`}`;
   $('#standingsBoards').innerHTML = boards.map(board => {
     const baseline = ['delta','percentChange'].includes(board.rule.mode);
     const rows = board.entries.map(member => {
       const value = !member.eligible ? '—' : baseline ? `${member.result > 0 ? '+' : ''}${member.result.toFixed(1)}${board.rule.mode === 'percentChange' ? '%' : ' pts'}` : board.rule.mode === 'total' ? formatDuration(member.result) : formatMetricValue(member.result, board.rule.metric);
-      return `<li class="standing-row${member.rank === 1 ? ' standing-leader' : ''}"><span class="standing-rank" aria-label="${member.rank ? `Rank ${member.rank}` : 'Unranked'}">${member.rank || '—'}</span><span class="standing-name"><span><i class="group-person-marker" style="background:${member.color}"></i>${escapeHtml(member.name.replace(' (sample)', ''))}</span><small>${member.eligible ? `${member.count}/7 ${board.rule.metric === 'durationMinutes' ? 'nights' : 'days'}${baseline ? ` · ${member.previousCount}/7 previous days` : ''}` : `${member.reason}${member.reason === 'Not shared' ? '' : ` · ${member.count}/7 days`}`}</small></span><strong>${value}</strong></li>`;
+      return `<li class="standing-row${member.rank === 1 ? ' standing-leader' : ''}"><span class="standing-rank" aria-label="${member.rank ? `Rank ${member.rank}` : 'Unranked'}">${member.rank || '—'}</span><span class="standing-name"><span><i class="group-person-marker" style="background:${member.color}"></i>${escapeHtml(member.name.replace(' (sample)', ''))}</span><small>${member.eligible ? `${member.count}/${board.days} ${board.rule.metric === 'durationMinutes' ? 'nights' : 'days'}${baseline ? ` · ${member.previousCount}/${board.days} previous days` : ''}` : `${member.reason}${member.reason === 'Not shared' ? '' : ` · ${member.count}/${board.days} days`}`}</small></span><strong>${value}</strong></li>`;
     }).join('');
     return `<article class="standings-card" aria-labelledby="standingTitle-${board.key}"><div class="standings-card-heading"><h3 id="standingTitle-${board.key}">${board.rule.label}</h3><p>${board.rule.description}</p></div><ol class="standings-rows">${rows}</ol></article>`;
   }).join('');
@@ -390,3 +390,4 @@ function formatMetricValue(value, metric) {
   const unit = Daylight.metrics[metric].unit;
   return unit === 'min' ? formatDuration(value) : unit === '%' ? `${value.toFixed(1)}%` : unit === '/21' ? `${value.toFixed(1)} / 21` : `${Number.isInteger(value) ? value : value.toFixed(1)} ${unit}`;
 }
+

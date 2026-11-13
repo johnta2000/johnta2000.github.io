@@ -1923,11 +1923,11 @@ footer {
 .group-preview-label { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin: 0 0 16px; color: var(--muted); font-size: 12px; }
 .group-readout-heading { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin: 24px 0 10px; font-size: 13px; }
 .group-readout-heading span { color: var(--muted); font-size: 11px; }
-.group-members { display: flex; gap: 12px; margin: 0 0 22px; }
-.group-members button { flex: 1; min-width: 0; min-height: 70px; padding: 12px 16px; border: 1px solid #e0e7e1; border-radius: 8px; background: #fff; text-align: left; color: var(--ink); font: inherit; cursor: pointer; }
+.group-members { display: grid; grid-template-columns: repeat(auto-fit, minmax(112px, 1fr)); gap: 8px; margin: 0 0 14px; }
+.group-members button { min-width: 0; min-height: 62px; padding: 10px 12px; border: 1px solid #e0e7e1; border-radius: 8px; background: #fff; text-align: left; color: var(--ink); font: inherit; cursor: pointer; }
 .group-member-name { display: flex; align-items: center; gap: 8px; font-size: 12px; }
 .group-member-name svg { color: var(--member-color); flex-shrink: 0; }
-.group-member-value { display: block; margin-top: 6px; font-size: 23px; font-weight: 550; font-variant-numeric: tabular-nums; }
+.group-member-value { display: block; margin-top: 4px; font-size: 20px; font-weight: 550; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .group-members button[aria-pressed="false"] { background: #f7f8f7; color: #8b948e; }
 .group-members button[aria-pressed="false"] svg { opacity: .35; }
 .group-members button[aria-pressed="false"] strong { font-size: 16px; }
@@ -1989,9 +1989,6 @@ footer {
 #groupDialogIntro { color:var(--muted); font-size:13px; }
 @media(max-width:650px) { .group-toolbar > label { width:100%; } .group-toolbar > div { width:100%; } .group-toolbar button { flex:1; } .group-dialog { padding:20px; } .invite-result > div { flex-wrap:wrap; } .invite-result input { flex-basis:100%; } }
 
-.group-members { flex-wrap:wrap; }
-.group-members button { flex:1 1 135px; }
-@media(max-width:650px) { .group-members button { flex:1 1 75px; } }
 
 /* Group comparison: readable ranks, transparent coverage, explicit sharing. */
 .group-standings { margin-top: 24px; }
@@ -2252,8 +2249,6 @@ body:has(#standingsDialog[open]) { overflow:hidden; }
   .variability-highlights { gap:10px; font-size:11px; flex-direction:column; padding-bottom:14px; }
 }
 .group-tooltip > small { display:block; color:var(--muted); margin:5px 0 12px; line-height:1.5; }
-.group-members { flex-wrap:wrap; }
-.group-members button { flex:1 1 130px; }
 
 .group-tooltip { max-height:min(420px,65vh); overflow-y:auto; pointer-events:auto; }
 
@@ -2347,3 +2342,4 @@ body:has(#standingsDialog[open]) { overflow:hidden; }
   .group-member-value { font-size:15px; }
   .group-member-change { display:block; grid-column:1/-1; padding-left:17px; font-size:11px; color:var(--muted); line-height:1.4; }
 }
+

@@ -185,22 +185,33 @@
     sleepGain: {label: "Sleep improvement", metric: "score", mode: "delta", description: "Sleep performance change vs. your previous 7 days. At least 4 days in each week."},
     hrvGain: {label: "HRV improvement", metric: "hrv", mode: "percentChange", description: "HRV change vs. your own previous 7 days. At least 4 days in each week; requires 14 days of sharing."},
   };
-  function standings(members, category, today) {
-    const rule = competitions[category] || competitions.score, end = dateShift(today, -1);
+  function standings(members, category, today, period = 7) {
+    const baseRule = competitions[category] || competitions.score, end = dateShift(today, -1);
+    const all = period === "all";
+    const days = all ? availableDays(members.flatMap(member => member.nights.filter(n => n.source === "whoop")), end) : [7, 28, 90].includes(Number(period)) ? Number(period) : 7;
+    const minimum = Math.ceil(days / 2);
+    const baseline = ["delta", "percentChange"].includes(baseRule.mode);
+    const unit = baseRule.metric === "durationMinutes" ? "nights" : "days";
+    const description = baseline
+      ? all ? "No previous period to compare with All. Select 7, 28, or 90 days for improvement rankings."
+        : `${baseRule.mode === "percentChange" ? "HRV change relative to your own baseline" : "Sleep performance change"} vs. the previous ${days} days. At least ${minimum} days in each period.`
+      : baseRule.mode === "total" ? `Total workout time. All ${days} days must be tracked to rank; rest days count as zero.`
+        : `${baseRule.description.split(". ")[0]}. At least ${minimum} of ${days} ${unit} to rank.${baseRule.metric === "strain" ? " Measures effort, not overall health." : ""}`;
+    const rule = {...baseRule, description};
     const entries = members.map(member => {
       const unique = [...new Map(member.nights.filter(n => n.source === "whoop").map(n => [n.sleepDate, n])).values()];
-      const data = stats(unique, rule.metric, 7, end);
+      const data = stats(unique, rule.metric, days, end);
       const shared = !member.metrics || member.metrics.includes(rule.metric);
-      const baseline = ["delta", "percentChange"].includes(rule.mode);
-      const eligible = shared && data.count >= (rule.mode === "total" ? 7 : 4) && (!baseline || data.previousCount >= 4) && (rule.mode !== "percentChange" || data.previous > 0);
+      
+      const eligible = shared && !(all && baseline) && data.count >= (rule.mode === "total" ? days : minimum) && (!baseline || data.previousCount >= minimum) && (rule.mode !== "percentChange" || data.previous > 0);
       const raw = !eligible ? null : rule.mode === "total" ? data.average * data.count : rule.mode === "delta" ? data.delta : rule.mode === "percentChange" ? data.delta / data.previous * 100 : data.average;
       // Rank at displayed precision, with competition-style ties (1, 1, 3).
       const result = raw === null ? null : (rule.mode === "total" || rule.metric === "durationMinutes") ? Math.round(raw) : Math.round(raw * 10) / 10;
-      return {...member, ...data, result, eligible, reason: !shared ? "Not shared" : baseline && data.previousCount < 4 ? "Needs previous-week history" : "Needs more tracked days"};
+      return {...member, ...data, result, eligible, reason: !shared ? "Not shared" : all && baseline ? "No previous period for All" : baseline && data.previousCount < minimum ? "Needs previous-period history" : "Needs more tracked days"};
     }).sort((a,b) => Number(b.eligible) - Number(a.eligible) || (b.result ?? 0) - (a.result ?? 0) || a.name.localeCompare(b.name));
     let rank = 0;
     entries.forEach((entry,index) => { if (entry.eligible) { if (index === 0 || entry.result !== entries[index - 1].result) rank = index + 1; entry.rank = rank; }});
-    return {entries, rule, start: dateShift(end, -6), end};
+    return {entries, rule, days, minimum, start: dateShift(end, 1 - days), end};
   }
   function variability(points) {
     const observed = points.filter(p => finite(p.value));
@@ -299,3 +310,4 @@
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else root.Daylight = api;
 })(typeof window !== "undefined" ? window : globalThis);
+

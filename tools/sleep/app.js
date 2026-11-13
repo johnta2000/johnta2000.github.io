@@ -73,7 +73,7 @@ let groupGeometry;
 let groupSelectedDate;
 const visibleGroupMembers = new Set(["you", "alex", "morgan"]);
 let selectedDays = 7;
-let selectedRange = "7";
+let selectedRange = readRangeFromUrl();
 let activeView = "overview";
 let isDemo = ["1", "empty"].includes(
   new URLSearchParams(location.search).get("demo"),
@@ -132,16 +132,14 @@ function bindEvents() {
     );
   document.querySelectorAll("[data-range]").forEach((button) =>
     button.addEventListener("click", () => {
-      selectedRange = button.dataset.range;
-      updateSelectedDays();
-      document
-        .querySelectorAll("[data-range]")
-        .forEach((item) =>
-          item.setAttribute("aria-pressed", String(item === button)),
-        );
-      renderDashboard();
+      const url = new URL(location.href);
+      url.searchParams.set("range", button.dataset.range);
+      if (url.search !== location.search) history.pushState({}, "", url.pathname + url.search + url.hash);
+      restoreRangeFromUrl();
     }),
   );
+  window.addEventListener("popstate", restoreRangeFromUrl);
+  document.querySelectorAll("[data-range]").forEach(button => button.setAttribute("aria-pressed", String(button.dataset.range === selectedRange)));
   $("#chartMetric").addEventListener("change", renderCharts);
   $("#groupMetric").addEventListener("change", drawGroupChart);
   for (const [id, offset] of [["groupPreviousDay", -1], ["groupNextDay", 1]]) {
@@ -490,6 +488,17 @@ function switchView(view) {
     else button.removeAttribute("aria-current");
   });
   $("#rangeControl").hidden = !["overview", "trends", "friends"].includes(view);
+  renderDashboard();
+}
+
+function readRangeFromUrl() {
+  const range = new URLSearchParams(location.search).get("range");
+  return ["7", "28", "90", "all"].includes(range) ? range : "7";
+}
+function restoreRangeFromUrl() {
+  selectedRange = readRangeFromUrl();
+  document.querySelectorAll("[data-range]").forEach(button => button.setAttribute("aria-pressed", String(button.dataset.range === selectedRange)));
+  updateSelectedDays();
   renderDashboard();
 }
 
@@ -1958,3 +1967,4 @@ function renderGroupVariability(metric) {
     document.getElementById(button.getAttribute("aria-controls")).hidden = !open;
   }));
 }
+
