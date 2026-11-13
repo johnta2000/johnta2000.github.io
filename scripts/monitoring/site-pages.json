@@ -1,10 +1,17 @@
 [
   {
+    "app": "apartment",
+    "path": "/apartment/",
+    "file": "apartment/index.html",
+    "analytics": false,
+    "title": "Apartment · Guest guide"
+  },
+  {
     "app": "apartmentnavigation",
     "path": "/apartmentnavigation/",
     "file": "apartmentnavigation/index.html",
     "analytics": false,
-    "title": "Apartment Navigation"
+    "title": "Apartment · Guest guide"
   },
   {
     "app": "burgery",
@@ -87,6 +94,13 @@
     "file": "tools/andrew/index.html",
     "analytics": false,
     "title": "Andrew · Mission Control"
+  },
+  {
+    "app": "apartment",
+    "path": "/tools/apartment/",
+    "file": "tools/apartment/index.html",
+    "analytics": false,
+    "title": "Apartment · Guest guide"
   },
   {
     "path": "/tools/card-payments/",
