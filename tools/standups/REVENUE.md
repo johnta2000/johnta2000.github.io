@@ -6,8 +6,10 @@ BOFA acquisition commissions include both per-acquisition revenue and the monthl
 BOFA payment. Never add a subtotal to its underlying line items.
 
 Amounts are integer cents; counts are whole numbers. Currency amounts of $1,000
-or more display in thousands (5k, 22.2k). Inputs accept either k notation or full
-dollar amounts, preserving exact cents through formatting and draft restoration. Blank values remain unknown,
+or more display in thousands with at most one decimal (5k, 22.2k). Editable
+fields retain all cents rather than rounding the stored amount. Inputs accept
+either k notation or full dollar amounts, preserving exact cents through
+formatting and draft restoration. Blank values remain unknown,
 including Bilt revenue, and are excluded from totals. Monthly targets are shared
 across snapshots for that month. New dates can begin with the latest earlier
 snapshot in the same month; a new month starts blank.

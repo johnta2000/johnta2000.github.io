@@ -4,12 +4,14 @@
  const fields=[...amounts,...counts];
  const empty=()=>Object.fromEntries(fields.map(key=>[key,null]));
  const comma=n=>new Intl.NumberFormat('en-US',{maximumFractionDigits:2}).format(n);
- const money=cents=>{
+ const formatMoney=(cents,precise=false)=>{
   if(cents===null)return 'Not entered';
   const thousands=Math.abs(cents)>=100000;
-  // Five decimal places in thousands preserve the original cents in editable fields.
-  return new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',minimumFractionDigits:thousands?0:cents%100?2:0,maximumFractionDigits:thousands?5:2}).format(cents/(thousands?100000:100))+(thousands?'k':'');
+  return new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',minimumFractionDigits:thousands?0:cents%100?2:0,maximumFractionDigits:thousands?(precise?5:1):2}).format(cents/(thousands?100000:100))+(thousands?'k':'');
  };
+ const money=cents=>formatMoney(cents);
+ // Editable fields must round-trip every cent, even when summaries are rounded.
+ const exactMoney=cents=>formatMoney(cents,true);
  function parse(raw,count=false){
   const str=String(raw??'').replace(/[,$\s]/g,'');if(!str)return null;
   let value;
@@ -49,5 +51,5 @@
   return '<p><strong>'+escape(reportDate(date))+':</strong></p>'+
    '<p><strong>Revenue: '+escape(money(total(v)))+' MTD</strong>'+(target!==null?' (target: '+escape(money(target))+')':'')+'</p>'+list(slackItems(v));
  }
- return {amounts,counts,fields,empty,comma,money,parse,total,bofa,acquisitions,dateLabel,slack,slackHtml};
+ return {amounts,counts,fields,empty,comma,money,exactMoney,parse,total,bofa,acquisitions,dateLabel,slack,slackHtml};
 });

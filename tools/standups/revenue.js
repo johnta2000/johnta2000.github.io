@@ -11,7 +11,7 @@ window.StandupRevenue={create(root,api){
  function clearCache(){try{localStorage.removeItem(key(state.date));}catch{}}
  function status(message,error=false){rf('status').textContent=message;rf('status').style.color=error?'var(--rf-danger)':'';}
  function draftTotals(){rf('draft-total').textContent=M.money(M.total(state.values));rf('bofa-draft-total').textContent=M.money(M.bofa(state.values));}
- function fields(){rf('date').value=state.date||'';rf('date').readOnly=true;rf('date').setAttribute('aria-label','Revenue date; change it using standup date navigation');for(const [key,id]of Object.entries(fieldIds)){if(document.activeElement!==rf(id))rf(id).value=state.values[key]===null?'':(M.counts.includes(key)?M.comma(state.values[key]):M.money(state.values[key]).slice(1));}if(document.activeElement!==rf('target'))rf('target').value=state.target===null?'':M.money(state.target).slice(1);draftTotals();}
+ function fields(){rf('date').value=state.date||'';rf('date').readOnly=true;rf('date').setAttribute('aria-label','Revenue date; change it using standup date navigation');for(const [key,id]of Object.entries(fieldIds)){if(document.activeElement!==rf(id))rf(id).value=state.values[key]===null?'':(M.counts.includes(key)?M.comma(state.values[key]):M.exactMoney(state.values[key]).slice(1));}if(document.activeElement!==rf('target'))rf('target').value=state.target===null?'':M.exactMoney(state.target).slice(1);draftTotals();}
  function setMode(mode,{route=true}={}){state.mode=['summary','edit','history'].includes(mode)?mode:'summary';render();if(route)api.modeChanged(state.mode);}
  function render(){
   const data=state.data,record=data?.selected||data?.previous,v=record?.values||M.empty(),total=record?M.total(v):0,target=data?.target?.targetCents??null,ratio=target?total/target*100:0;
@@ -50,7 +50,7 @@ window.StandupRevenue={create(root,api){
  rf('update').addEventListener('click',()=>{setMode('edit');});
  rf('done').addEventListener('click',async()=>{if(!await flush())return;setMode('summary');rf('update').focus({preventScroll:true});});
  root.addEventListener('input',event=>{if(!event.target.matches('[data-number]'))return;state.revision++;state.dirty=true;readInputs();cache();if(!state.invalid)schedule();});
- root.addEventListener('focusout',event=>{const input=event.target;if(!input.matches('[data-number]'))return;try{const key=Object.keys(fieldIds).find(key=>fieldIds[key]===input.id.slice(3)),isCount=M.counts.includes(key),n=M.parse(input.value,isCount);input.value=n===null?'':(isCount?M.comma(n):M.money(n).slice(1));}catch{}});
+ root.addEventListener('focusout',event=>{const input=event.target;if(!input.matches('[data-number]'))return;try{const key=Object.keys(fieldIds).find(key=>fieldIds[key]===input.id.slice(3)),isCount=M.counts.includes(key),n=M.parse(input.value,isCount);input.value=n===null?'':(isCount?M.comma(n):M.exactMoney(n).slice(1));}catch{}});
  rf('save').addEventListener('click',()=>{
   if(!state.data||saving)return;readInputs();if(state.invalid)return;
   saving=true;rf('save').disabled=true;root.querySelectorAll('input').forEach(input=>input.disabled=true);

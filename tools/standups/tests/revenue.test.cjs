@@ -7,9 +7,10 @@ const seeded=date=>({snapshots:new Map([[date,{date,values:{...values},totalCent
 const launch=()=> (process.env.STANDUPS_BROWSER==='webkit'?webkit:chromium).launch();
 const ready=page=>page.waitForFunction(()=>!document.querySelector('#standupRevenue').getAttribute('aria-busy')||document.querySelector('#standupRevenue').getAttribute('aria-busy')==='false');
 
-test('money abbreviates thousands without losing cents, BOFA is counted once, and subscriptions appear in Slack',()=>{
+test('money rounds displayed thousands while retaining exact editable cents, BOFA is counted once, and subscriptions appear in Slack',()=>{
  assert.equal(M.parse('27,000.50'),2700050);assert.equal(M.parse('0'),0);assert.equal(M.parse(''),null);assert.throws(()=>M.parse('not a number'));assert.throws(()=>M.parse('-5'));assert.throws(()=>M.parse('1.5',true));
- for(const [cents,formatted] of [[500000,'$5k'],[2220000,'$22.2k'],[125050,'$1.2505k'],[100001,'$1.00001k'],[99999,'$999.99'],[100000,'$1k'],[10410000,'$104.1k'],[0,'$0']]){assert.equal(M.money(cents),formatted);assert.equal(M.parse(formatted),cents);}
+ for(const [cents,formatted] of [[500000,'$5k'],[2220000,'$22.2k'],[125050,'$1.2505k'],[100001,'$1.00001k'],[99999,'$999.99'],[100000,'$1k'],[2345000,'$23.45k'],[0,'$0']]){assert.equal(M.exactMoney(cents),formatted);assert.equal(M.parse(formatted),cents);}
+ for(const [cents,display] of [[14662500,'$146.6k'],[14665000,'$146.7k'],[4817500,'$48.2k'],[7232500,'$72.3k'],[401000,'$4k'],[125050,'$1.3k'],[500000,'$5k']])assert.equal(M.money(cents),display);
  assert.equal(M.parse('5K'),500000);assert.equal(M.parse('0.00001k'),1);assert.equal(M.parse('10000000k'),1000000000000);assert.throws(()=>M.parse('10000001k'));assert.throws(()=>M.parse('1.000001k'));assert.throws(()=>M.parse('5k',true));assert.equal(M.parse('1,000',true),1000);
  assert.equal(M.bofa(values),8000);assert.equal(M.acquisitions(values),10000);assert.equal(M.total(values),24000);
  const copy=M.slack('2026-11-11',values,100000);assert.match(copy,/BOFA: \$80/);assert.match(copy,/Monthly payment: \$50/);assert.match(copy,/4 subscriptions/);
@@ -27,14 +28,14 @@ test('direct editor links, compact input, exact totals, draft reload and shared 
   await page.locator('#rf-chase-count').focus();await page.keyboard.press('Tab');assert.equal(await page.locator('#rf-chase').evaluate(el=>el===document.activeElement),true);
 
   await page.locator('#rf-monthly').fill('1.2505k');await page.locator('#rf-bofa').focus();assert.equal(await page.locator('#rf-monthly').inputValue(),'1.2505k');
-  assert.equal(await page.locator('#rf-bofa-draft-total').textContent(),'$1.2805k');assert.equal(await page.locator('#rf-draft-total').textContent(),'$1.4405k');
+  assert.equal(await page.locator('#rf-bofa-draft-total').textContent(),'$1.3k');assert.equal(await page.locator('#rf-draft-total').textContent(),'$1.4k');
   await page.waitForFunction(()=>document.querySelector('#rf-status').textContent.startsWith('Draft saved'));
   assert.equal(store.drafts.get('2026-11-11').values.bofaMonthly,125050);
   await page.reload();await page.waitForFunction(()=>navigationReady);assert.equal(await page.locator('#rf-monthly').inputValue(),'1.2505k');
   await page.locator('#rf-save').click();await page.waitForFunction(()=>document.querySelector('#rf-status').textContent==='Update saved for the team.');
-  assert.equal(store.snapshots.get('2026-11-11').totalCents,144050);assert.equal(store.drafts.size,0);assert.equal(await page.locator('#rf-bofa-total-out').textContent(),'$1.2805k');
+  assert.equal(store.snapshots.get('2026-11-11').totalCents,144050);assert.equal(store.drafts.size,0);assert.equal(await page.locator('#rf-bofa-total-out').textContent(),'$1.3k');
   assert.match(await page.locator('#rf-nextcard-count-out').textContent(),/4 subscriptions/);
-  const copied=page.url();const second=await openStandups(browser,width,1000,{url:copied,revenueStore:store});assert.equal(await second.page.locator('#rf-total').textContent(),'$1.4405k');
+  const copied=page.url();const second=await openStandups(browser,width,1000,{url:copied,revenueStore:store});assert.equal(await second.page.locator('#rf-total').textContent(),'$1.4k');
   await assertNoOverflow(page);await page.screenshot({path:`/tmp/standup-revenue-${width}.png`,fullPage:true});assert.deepEqual(errors,[]);assert.deepEqual(second.errors,[]);await second.page.close();await page.close();
  }}finally{await browser.close();}
 });
@@ -85,6 +86,6 @@ test('failed saves retain recovery data, block navigation and allow retry; confl
   controls.failRevenuePublish=false;await page.locator('#revenueReload').click();await page.locator('#rf-save').click();await page.waitForFunction(()=>document.querySelector('#rf-status').textContent==='Update saved for the team.');
   assert.equal(store.snapshots.get('2026-11-11').values.compliance,99900);
   await page.getByRole('button',{name:'Next day',exact:true}).click();await page.waitForFunction(()=>document.querySelector('#rf-asof').textContent.includes('no update'));
-  assert.equal(await page.locator('#rf-total').textContent(),'$1.139k');assert.deepEqual(f.errors,[]);
+  assert.equal(await page.locator('#rf-total').textContent(),'$1.1k');assert.deepEqual(f.errors,[]);
  }finally{await browser.close();}
 });
