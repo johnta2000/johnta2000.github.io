@@ -3,6 +3,47 @@
   "maxRuns": 336,
   "runs": [
     {
+      "id": "2026-11-14T19:12:22.317Z",
+      "monitorId": "paze-directory",
+      "timestamp": "2026-11-14T19:12:22.317Z",
+      "status": "success",
+      "changed": false,
+      "initialized": false,
+      "confirmed": true,
+      "durationMs": 2447,
+      "count": 35,
+      "previousCount": 35,
+      "pagination": {
+        "complete": true,
+        "pagesFetched": 3,
+        "pageCounts": [
+          12,
+          12,
+          11
+        ],
+        "finalPage": 2
+      },
+      "diff": {
+        "added": [],
+        "removed": [],
+        "renamed": []
+      },
+      "cache": {
+        "runId": "1794683542317",
+        "requestCount": 3,
+        "crawlIds": [
+          "primary"
+        ],
+        "requestIds": [
+          "1794683542323001",
+          "1794683543291002",
+          "1794683544035003"
+        ]
+      },
+      "summary": "No merchant changes across 3 pages.",
+      "error": null
+    },
+    {
       "id": "2026-11-14T14:12:06.179Z",
       "monitorId": "paze-directory",
       "timestamp": "2026-11-14T14:12:06.179Z",
@@ -13780,47 +13821,6 @@
           "1788643058178001",
           "1788643059117002",
           "1788643059765003"
-        ]
-      },
-      "summary": "No merchant changes across 3 pages.",
-      "error": null
-    },
-    {
-      "id": "2026-09-05T19:03:52.546Z",
-      "monitorId": "paze-directory",
-      "timestamp": "2026-09-05T19:03:52.546Z",
-      "status": "success",
-      "changed": false,
-      "initialized": false,
-      "confirmed": true,
-      "durationMs": 2131,
-      "count": 33,
-      "previousCount": 33,
-      "pagination": {
-        "complete": true,
-        "pagesFetched": 3,
-        "pageCounts": [
-          12,
-          12,
-          9
-        ],
-        "finalPage": 2
-      },
-      "diff": {
-        "added": [],
-        "removed": [],
-        "renamed": []
-      },
-      "cache": {
-        "runId": "1788635032546",
-        "requestCount": 3,
-        "crawlIds": [
-          "primary"
-        ],
-        "requestIds": [
-          "1788635032548001",
-          "1788635033323002",
-          "1788635034067003"
         ]
       },
       "summary": "No merchant changes across 3 pages.",
