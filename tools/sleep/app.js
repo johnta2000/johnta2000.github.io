@@ -369,6 +369,7 @@ async function disconnectWhoop() {
   try {
     await convexAction("whoop:disconnect", {});
     setWhoopConnectionState({ connected: false });
+  initializeGarmin();
     els.whoopMessage.textContent =
       "WHOOP disconnected. Imported history remains in your dashboard.";
   } catch (error) {
@@ -442,6 +443,7 @@ function startPreview() {
   els.lastUpdated.textContent = "Sample data";
   els.lockButton.textContent = "Exit preview ↗";
   setWhoopConnectionState({ connected: false });
+  initializeGarmin();
   $("#groupToolbar").hidden = true;
   $(".group-preview-label").hidden = false;
   renderDashboard();
@@ -472,7 +474,7 @@ function switchView(view, historyMode = "push") {
   };
   if (!views[view]) return;
   activeView = view;
-  $("#openPrivateWorkspace").href = view === "friends" ? "./?view=groups" : "./";
+
   els.app.dataset.activeView = view;
   $("#pageLabel").textContent = views[view][0];
   $("#pageTitle").textContent = views[view][1];
@@ -481,6 +483,8 @@ function switchView(view, historyMode = "push") {
   if (view === 'overview') pageUrl.searchParams.delete('view');
   else pageUrl.searchParams.set('view', view === 'friends' ? 'groups' : view);
   if (view !== 'friends') pageUrl.searchParams.delete('group');
+  const signInUrl = new URL(pageUrl); signInUrl.searchParams.delete("demo");
+  $("#openPrivateWorkspace").href = signInUrl.pathname + signInUrl.search;
   const destination = pageUrl.pathname + pageUrl.search + pageUrl.hash;
   if (destination !== location.pathname + location.search + location.hash) history[historyMode === 'push' ? 'pushState' : 'replaceState']({}, '', destination);
   updateGroupPageIdentity();

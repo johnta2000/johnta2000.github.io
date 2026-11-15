@@ -24,7 +24,14 @@ function bindGarminControls() {
   });
 }
 async function initializeGarmin() {
-  if(isDemo)return;
+  if(isDemo){
+    document.querySelector('#garminForm').hidden=true;
+    document.querySelector('#garminSync').hidden=true;
+    document.querySelector('#garminDisconnect').hidden=true;
+    document.querySelector('#garminStatus').textContent='Sign in to connect';
+    document.querySelector('#garminMessage').textContent='Garmin connections are available in your signed-in account. Preview mode does not connect or save data.';
+    return;
+  }
   const message=document.querySelector('#garminMessage');
   try {
     const status=await convexQuery('garminData:status',{});
