@@ -8,7 +8,7 @@ function bindGarminControls() {
       const result=await convexAction('garmin:syncPersonal',apiKey?{apiKey}:{});
       form.elements.apiKey.value='';
       await loadDashboard();await initializeGarmin();
-      message.textContent=`${result.synced ? `Synced ${result.synced} days. Your Garmin data is in My data.` : 'Connected, but Garmin returned no supported readings for this period. Sync your watch to Garmin Connect and try Sync now.'}`;
+      message.textContent=garminSyncSummary(result);
     } catch(error) { message.textContent=error.message || 'Garmin could not sync. Try again.'; }
     finally { buttons.forEach(b=>b.disabled=false); }
   }
@@ -38,7 +38,12 @@ async function initializeGarmin() {
     document.querySelector('#garminForm').hidden=!status.configured || status.connected;
     document.querySelector('#garminSync').hidden=!status.configured || !status.connected;
     document.querySelector('#garminDisconnect').hidden=!status.connected;
-    document.querySelector('#garminStatus').textContent=status.connected?'Connected · Manual sync':'Not connected';
-    message.textContent=!status.configured?'Garmin setup is being prepared. Personal API connection is not enabled for this account yet.':status.lastSyncedAt?`Last synced ${new Date(status.lastSyncedAt).toLocaleString()}. Sync now refreshes the last 7 days.`:'Use a Personal API key from your own Garmin account. Your first sync imports the last 28 days.';
+    document.querySelector('#garminStatus').textContent=status.connected?(status.complete===false?'Connected · Sync incomplete':'Connected · Manual sync'):'Not connected';
+    message.textContent=!status.configured?'Garmin setup is being prepared. Personal API connection is not enabled for this account yet.':status.lastSyncedAt?`${status.complete===false?'Last checked':'Last synced'} ${new Date(status.lastSyncedAt).toLocaleString()}. ${status.complete===false?(status.warnings||[]).join(' ')+' Sync now retries the last '+status.syncDays+' days.':'Sync now refreshes the last 7 days.'}`:'Use a Personal API key from your own Garmin account. Your first sync imports the last 28 days.';
   } catch {message.textContent='Garmin setup is not available yet. Your other connections are unaffected.';}
+}
+
+function garminSyncSummary(result) {
+  if(result.complete===false)return `Your Garmin key was accepted. ${result.synced?`Imported available readings for ${result.synced} ${result.synced===1?'day':'days'}.`:'The data sync is incomplete.'} ${(result.warnings||[]).join(' ')} Your existing readings were kept for failed requests. Use Sync now to retry; you do not need to enter your key again.`;
+  return result.synced?`Synced ${result.synced} days. Your Garmin data is in My data.`:'Connected, but Garmin returned no supported readings for this period. Sync your watch to Garmin Connect and try Sync now.';
 }

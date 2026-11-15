@@ -18,16 +18,17 @@ export function decryptKey(value:string,owner:string) {
   const decipher=createDecipheriv("aes-256-gcm",encryptionKey(),iv);decipher.setAAD(Buffer.from(owner));decipher.setAuthTag(tag);
   return Buffer.concat([decipher.update(data),decipher.final()]).toString("utf8");
 }
-export const syncPersonal = action({args:{apiKey:v.optional(v.string()),days:v.optional(v.union(v.literal(7),v.literal(28),v.literal(90)))},handler:async(ctx,args):Promise<{synced:number}>=>{
+export const syncPersonal = action({args:{apiKey:v.optional(v.string()),days:v.optional(v.union(v.literal(7),v.literal(28),v.literal(90)))},handler:async(ctx,args):Promise<{synced:number;warnings:string[];complete:boolean}>=>{
   const user=await ctx.runQuery(makeFunctionReference<"query">("garminData:authorize"),{});
   const connection=await ctx.runQuery(makeFunctionReference<"query">("garminData:connection"),{ownerSubject:user.subject});
   encryptionKey();
   const key=args.apiKey?.trim() || (connection?decryptKey(connection.encryptedKey,user.subject):"");
   if(!key)throw new Error("Add your Garmin Personal API key first.");
   const end=new Intl.DateTimeFormat("en-CA",{timeZone:"America/Los_Angeles",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
-  const start=shift(end,1-(args.days ?? (connection?7:28)));
-  let nights;
-  try { nights=await fetchGarmin(key,start,end); }
+  const days=args.days ?? (connection ? (connection.lastSyncComplete===false ? connection.lastSyncDays??28 : 7) : 28);
+  const start=shift(end,1-days);
+  let result;
+  try { result=await fetchGarmin(key,start,end); }
   catch(error) { if(error instanceof GarminRequestError) throw new ConvexError(error.message); throw error; }
-  return ctx.runMutation(makeFunctionReference<"mutation">("garminData:save"),{ownerSubject:user.subject,expectedRevision:connection?.revision??null,revision:randomBytes(16).toString("hex"),encryptedKey:encryptKey(key,user.subject),nights});
+  return ctx.runMutation(makeFunctionReference<"mutation">("garminData:save"),{ownerSubject:user.subject,expectedRevision:connection?.revision??null,revision:randomBytes(16).toString("hex"),encryptedKey:encryptKey(key,user.subject),...result,days});
 }});

@@ -7,5 +7,5 @@ export const garminNightFields = {
 };
 export const garminTables = {
   garminNights:defineTable({...garminNightFields,ownerSubject:v.string(),updatedAt:v.number()}).index("by_owner_date",["ownerSubject","sleepDate"]),
-  garminConnections:defineTable({ownerSubject:v.string(),encryptedKey:v.string(),revision:v.string(),lastSyncedAt:v.number(),lastSyncCount:v.number()}).index("by_owner",["ownerSubject"]),
+  garminConnections:defineTable({ownerSubject:v.string(),encryptedKey:v.string(),revision:v.string(),lastSyncedAt:v.number(),lastSyncCount:v.number(),lastSyncDays:v.optional(v.number()),lastSyncComplete:v.optional(v.boolean()),lastWarnings:v.optional(v.array(v.string()))}).index("by_owner",["ownerSubject"]),
 };

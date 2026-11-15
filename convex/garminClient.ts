@@ -16,7 +16,7 @@ export function windows(start: string, end: string) {
 }
 const number = (v: unknown, max: number, min = 0) => typeof v === "number" && Number.isFinite(v) && v >= min && v <= max ? v : undefined;
 const timestamp = (v: unknown) => {
-  if (typeof v === "number" && v > 0) return new Date(v).toISOString();
+  if (typeof v === "number" && v > 0) { const d = new Date(v); return Number.isFinite(d.getTime()) ? d.toISOString() : undefined; }
   if (typeof v !== "string" || !/^\d{4}-\d{2}-\d{2}T/.test(v)) return undefined;
   // Garmin's GMT fields may omit the Z suffix. Never interpret these in the server's local timezone.
   const time = Date.parse(/Z$|[+-]\d{2}:\d{2}$/.test(v) ? v : v + "Z");
@@ -55,40 +55,71 @@ export function normalizeGarmin(sleeps: any[], hrvs: any[], summaries: any[], st
 export class GarminRequestError extends Error {
   constructor(message: string, public readonly step: string, public readonly status?: number) { super(message); this.name = "GarminRequestError"; }
 }
-export async function fetchGarmin(apiKey: string, start: string, end: string, request: typeof fetch = fetch) {
+export type GarminCoverage = {sleep: string[]; hrv: string[]; restingHeartRate: string[]};
+export async function fetchGarmin(apiKey: string, start: string, end: string, request: typeof fetch = fetch, pause = (ms: number) => new Promise<void>(resolve => setTimeout(resolve,ms))) {
   const chunks = windows(start, end);
-  if (!apiKey.trim() || apiKey.length > 4096 || /[\r\n]/.test(apiKey)) throw new Error("Enter a valid Garmin Personal API key.");
+  if (!apiKey.trim() || apiKey.length > 4096 || /[\r\n]/.test(apiKey)) throw new GarminRequestError("Enter a valid Garmin Personal API key.","authorization");
+  const deadline=Date.now()+60000;
   async function json(path: string, auth: string, method = "GET") {
     const step = path.includes("/personal-api-key/token") ? "authorization" : path.includes("/sleep-service/") ? "sleep history" : path.includes("/hrv-service/") ? "overnight HRV" : "resting heart rate";
-    let response: Response;
-    try { response = await request(BASE + path, {method, headers:{Authorization:auth, Accept:"application/json"}, redirect:"error", signal:AbortSignal.timeout(20000)}); }
-    catch { throw new GarminRequestError(`Garmin ${step} could not be reached. Please try again. Your key has not been changed.`, step); }
-    if (response.status === 204) return null;
-    // Report only the fixed operation label and HTTP status. Never include URLs, dates, headers, or response bodies.
-    if (!response.ok) {
-      const detail = response.status === 401 || response.status === 403 ? "Access was denied. Check your Personal API key and its expiration." : response.status === 429 ? "Garmin is limiting requests. Try again later." : response.status >= 500 ? "Garmin returned a service error. Try again later." : "Garmin rejected this request. Please share this message with John so the connection can be checked.";
-      throw new GarminRequestError(`Garmin ${step} failed (HTTP ${response.status}). ${detail}`,step,response.status);
+    for(let attempt=0;attempt<2;attempt++) {
+      const remaining=deadline-Date.now();
+      if(remaining<=0)throw new GarminRequestError(`Garmin ${step} is taking too long. Use Sync now to retry.`,step);
+      let response: Response;
+      try { response = await request(BASE + path, {method, headers:{Authorization:auth, Accept:"application/json"}, redirect:"error", signal:AbortSignal.timeout(Math.min(12000,remaining))}); }
+      catch { if(attempt===0 && Date.now()+500<deadline){await pause(250);continue;} throw new GarminRequestError(`Garmin ${step} could not be reached. Use Sync now to retry.`, step); }
+      if (response.status === 204) return null;
+      if (!response.ok) {
+        if(attempt===0 && [502,503,504].includes(response.status) && Date.now()+500<deadline){await pause(250);continue;}
+        // Report only a fixed operation label and HTTP status, never provider response bodies or credentials.
+        const detail = response.status === 401 || response.status === 403 ? "Access was denied. Check your Personal API key and its expiration." : response.status === 429 ? "Garmin is limiting requests. Try again later." : response.status >= 500 ? "Garmin returned a service error. Try again later." : "Garmin rejected this request. Please share this message with John so the connection can be checked.";
+        throw new GarminRequestError(`Garmin ${step} failed (HTTP ${response.status}). ${detail}`,step,response.status);
+      }
+      try { return await response.json(); }
+      catch { throw new GarminRequestError(`Garmin ${step} returned an unreadable response. Use Sync now to retry.`,step,response.status); }
     }
-    try { return await response.json(); }
-    catch { throw new GarminRequestError(`Garmin ${step} returned an unreadable response. Please try again.`,step,response.status); }
+    throw new GarminRequestError(`Garmin ${step} could not finish. Use Sync now to retry.`,step);
   }
   const token = await json("/personalapitoken-service/personal-api/personal-api-key/token", "ApiKey " + apiKey.trim(), "POST");
   const bearer = token?.access_token ?? token?.accessToken;
-  if (typeof bearer !== "string" || !bearer || /[\r\n]/.test(bearer)) throw new Error("Garmin returned an unsupported token response.");
-  const auth = "Bearer " + bearer, sleeps:any[] = [], hrvs:any[] = [], summaries:any[] = [];
-  for (const chunk of chunks) {
-    const sleep = await json("/sleep-service/sleep/dailySleepSummariesByDate?" + new URLSearchParams({startDate:chunk.start,endDate:chunk.end}), auth);
-    if (sleep !== null && !Array.isArray(sleep)) throw new Error("Garmin returned an unsupported sleep response.");
-    sleeps.push(...(sleep || []));
-    const hrv = await json(`/hrv-service/hrv/daily/${chunk.start}/${chunk.end}`, auth);
-    if (hrv !== null && !Array.isArray(hrv.hrvSummaries)) throw new Error("Garmin returned an unsupported HRV response.");
-    hrvs.push(...(hrv?.hrvSummaries || []));
+  if (typeof bearer !== "string" || !bearer || /[\r\n]/.test(bearer)) throw new GarminRequestError("Garmin returned an unsupported token response.","authorization");
+  const auth="Bearer "+bearer, sleeps:any[]=[], hrvs:any[]=[], summaries:any[]=[], warnings:string[]=[];
+  const coverage:GarminCoverage={sleep:[],hrv:[],restingHeartRate:[]};
+  const dates=(from:string,to:string)=>{const result:string[]=[];for(let d=from;d<=to;d=shift(d,1))result.push(d);return result;};
+  function records(value:any,step:string) {
+    if(!Array.isArray(value))throw new GarminRequestError(`Garmin returned an unsupported ${step} response. Existing readings were kept.`,step);
+    for(const row of value) {try { if(!row || typeof row!=="object")throw Error();isoDate(row.calendarDate); } catch {throw new GarminRequestError(`Garmin returned an invalid date in ${step}. Existing readings were kept.`,step);} }
+    return value;
   }
-  // The batch v2 summary's restingValue can fall back to absolute minimum HR.
-  // Use the explicitly named restingHeartRate from the daily endpoint instead.
-  for (let date = start; date <= end; date = shift(date, 1)) {
-    const summary = await json("/usersummary-service/usersummary/daily?" + new URLSearchParams({calendarDate:date}), auth);
-    if (summary !== null) { if (summary.calendarDate !== date) throw new Error("Garmin returned a mismatched summary date."); summaries.push(summary); }
+  async function optional(work:()=>Promise<void>) {
+    try { await work();return true; }
+    catch(error) {
+      // An expired/rejected bearer token is an authorization failure, not missing health data.
+      if(!(error instanceof GarminRequestError) || error.status===401 || error.status===403)throw error;
+      if(!warnings.includes(error.message))warnings.push(error.message);
+      return false;
+    }
   }
-  return normalizeGarmin(sleeps, hrvs, summaries, start, end);
+  for(const chunk of chunks) {
+    await optional(async()=>{
+      const value=await json("/sleep-service/sleep/dailySleepSummariesByDate?"+new URLSearchParams({startDate:chunk.start,endDate:chunk.end}),auth);
+      sleeps.push(...records(value??[],"sleep history"));coverage.sleep.push(...dates(chunk.start,chunk.end));
+    });
+    await optional(async()=>{
+      const value=await json(`/hrv-service/hrv/daily/${chunk.start}/${chunk.end}`,auth);
+      // hrvSummaries is optional in Garmin's schema; watches without HRV may have no summaries.
+      if(value!==null && (typeof value!=="object" || Array.isArray(value)))throw new GarminRequestError("Garmin returned an unsupported overnight HRV response. Existing readings were kept.","overnight HRV");
+      hrvs.push(...records(value?.hrvSummaries??[],"overnight HRV"));coverage.hrv.push(...dates(chunk.start,chunk.end));
+    });
+  }
+  // Fetch the explicitly named restingHeartRate; the batch restingValue can be a minimum instead.
+  // Two requests at a time, newest first. Stop this optional stream on failure instead of making 28 failing calls.
+  const pending=dates(start,end).reverse();let next=0,stopped=false;
+  async function dailyWorker(){while(!stopped && next<pending.length){const date=pending[next++];const ok=await optional(async()=>{
+    const value=await json("/usersummary-service/usersummary/daily?"+new URLSearchParams({calendarDate:date}),auth);
+    if(value!==null){records([value],"resting heart rate");if(value.calendarDate!==date)throw new GarminRequestError("Garmin returned a mismatched summary date. Existing readings were kept.","resting heart rate");summaries.push(value);}
+    coverage.restingHeartRate.push(date);
+  });if(!ok)stopped=true;}}
+  await Promise.all([dailyWorker(),dailyWorker()]);
+  return {nights:normalizeGarmin(sleeps,hrvs,summaries,start,end),coverage,warnings,complete:warnings.length===0};
 }
