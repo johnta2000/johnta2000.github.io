@@ -1662,7 +1662,8 @@ async function convexCall(kind, path, args) {
   });
   const result = await response.json();
   if (!response.ok || result.status !== "success") {
-    const detail = result.errorMessage || result.message || result.code;
+    const detail = path === "garmin:syncPersonal" && typeof result.errorData === "string"
+      ? result.errorData : result.errorMessage || result.message || result.code;
     throw new Error(detail || `Data ${kind} failed.`);
   }
   return result.value;

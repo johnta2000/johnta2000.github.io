@@ -52,15 +52,25 @@ export function normalizeGarmin(sleeps: any[], hrvs: any[], summaries: any[], st
   return [...days.values()].filter(row => [row.durationMinutes,row.hrv,row.restingHeartRate].some(v => v !== undefined))
     .map(row => Object.fromEntries(Object.entries(row).filter(([,v]) => v !== undefined))).sort((a,b) => String(a.sleepDate).localeCompare(String(b.sleepDate)));
 }
+export class GarminRequestError extends Error {
+  constructor(message: string, public readonly step: string, public readonly status?: number) { super(message); this.name = "GarminRequestError"; }
+}
 export async function fetchGarmin(apiKey: string, start: string, end: string, request: typeof fetch = fetch) {
   const chunks = windows(start, end);
   if (!apiKey.trim() || apiKey.length > 4096 || /[\r\n]/.test(apiKey)) throw new Error("Enter a valid Garmin Personal API key.");
   async function json(path: string, auth: string, method = "GET") {
-    const response = await request(BASE + path, {method, headers:{Authorization:auth, Accept:"application/json"}, redirect:"error", signal:AbortSignal.timeout(20000)});
+    const step = path.includes("/personal-api-key/token") ? "authorization" : path.includes("/sleep-service/") ? "sleep history" : path.includes("/hrv-service/") ? "overnight HRV" : "resting heart rate";
+    let response: Response;
+    try { response = await request(BASE + path, {method, headers:{Authorization:auth, Accept:"application/json"}, redirect:"error", signal:AbortSignal.timeout(20000)}); }
+    catch { throw new GarminRequestError(`Garmin ${step} could not be reached. Please try again. Your key has not been changed.`, step); }
     if (response.status === 204) return null;
-    // Do not echo response bodies: providers can include credentials or private data in errors.
-    if (!response.ok) throw new Error(response.status === 401 || response.status === 403 ? "Garmin access was denied. Check whether your Personal API key has expired or been revoked." : response.status === 429 ? "Garmin is limiting requests. Try again later." : "Garmin could not complete the sync. Try again later.");
-    return response.json();
+    // Report only the fixed operation label and HTTP status. Never include URLs, dates, headers, or response bodies.
+    if (!response.ok) {
+      const detail = response.status === 401 || response.status === 403 ? "Access was denied. Check your Personal API key and its expiration." : response.status === 429 ? "Garmin is limiting requests. Try again later." : response.status >= 500 ? "Garmin returned a service error. Try again later." : "Garmin rejected this request. Please share this message with John so the connection can be checked.";
+      throw new GarminRequestError(`Garmin ${step} failed (HTTP ${response.status}). ${detail}`,step,response.status);
+    }
+    try { return await response.json(); }
+    catch { throw new GarminRequestError(`Garmin ${step} returned an unreadable response. Please try again.`,step,response.status); }
   }
   const token = await json("/personalapitoken-service/personal-api/personal-api-key/token", "ApiKey " + apiKey.trim(), "POST");
   const bearer = token?.access_token ?? token?.accessToken;

@@ -57,3 +57,26 @@ test('Garmin stage charts retain unclassified time instead of inventing light sl
  assert.equal(stages[0].minutes,220);assert.equal(stages[3].label,'Unclassified');assert.equal(stages[3].minutes,30);
  assert.equal(D.stages({source:'garmin',durationMinutes:450,deepMinutes:90,remMinutes:110}),null);
 });
+
+test('Garmin failures identify the failing operation and status without exposing credentials or provider bodies',async()=>{
+ for(const [endpoint,label] of [['/token','authorization'],['dailySleep','sleep history'],['/hrv/','overnight HRV'],['/usersummary/','resting heart rate']]) {
+  const response=body=>({ok:true,status:200,json:async()=>body});
+  const request=async url=>{
+   if(url.includes(endpoint))return {ok:false,status:502,json:async()=>{throw Error('must not read private response body')}};
+   if(url.includes('/token'))return response({access_token:'private-token'});
+   if(url.includes('dailySleep'))return response([sleep]);
+   if(url.includes('/hrv/'))return response({hrvSummaries:[]});
+   return response({calendarDate:sleep.calendarDate,source:'GARMIN'});
+  };
+  await assert.rejects(client.fetchGarmin('private-key',sleep.calendarDate,sleep.calendarDate,request),error=>error.step===label && error.status===502 && error.message.includes('HTTP 502') && !/private-|2026-|https:/.test(error.message));
+ }
+ await assert.rejects(client.fetchGarmin('private-key',sleep.calendarDate,sleep.calendarDate,async()=>{throw Error('private-token')}),error=>error.message.includes('authorization could not be reached')&&!error.message.includes('private-token'));
+});
+
+test('Garmin frontend displays the safe provider error instead of the server stack',async()=>{
+ const source=require('node:fs').readFileSync(path.join(__dirname,'../app.js'),'utf8');
+ const fn=source.slice(source.indexOf('async function convexCall('),source.indexOf('async function getConvexToken('));
+ const context={isDemo:false,CONVEX_URL:'https://test.invalid',getConvexToken:async()=>'test-token',fetch:async()=>({ok:true,json:async()=>({status:'error',errorMessage:'[Request ID: secret] Server Error',errorData:'Garmin sleep history failed (HTTP 502). Garmin returned a service error. Try again later.'})})};
+ vm.runInNewContext(fn+'; run=convexCall;',context);
+ await assert.rejects(context.run('action','garmin:syncPersonal',{}),e=>e.message.startsWith('Garmin sleep history failed (HTTP 502)')&&!e.message.includes('Request ID'));
+});

@@ -1,9 +1,9 @@
 "use node";
 import {action} from "./_generated/server";
 import {makeFunctionReference} from "convex/server";
-import {v} from "convex/values";
+import {v,ConvexError} from "convex/values";
 import {createCipheriv,createDecipheriv,randomBytes} from "node:crypto";
-import {fetchGarmin,shift} from "./garminClient";
+import {fetchGarmin,shift,GarminRequestError} from "./garminClient";
 function encryptionKey() {
   const key=Buffer.from(process.env.GARMIN_TOKEN_ENCRYPTION_KEY || "","base64");
   if(key.length!==32)throw new Error("Garmin encryption is not configured.");return key;
@@ -26,6 +26,8 @@ export const syncPersonal = action({args:{apiKey:v.optional(v.string()),days:v.o
   if(!key)throw new Error("Add your Garmin Personal API key first.");
   const end=new Intl.DateTimeFormat("en-CA",{timeZone:"America/Los_Angeles",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
   const start=shift(end,1-(args.days ?? (connection?7:28)));
-  const nights=await fetchGarmin(key,start,end);
+  let nights;
+  try { nights=await fetchGarmin(key,start,end); }
+  catch(error) { if(error instanceof GarminRequestError) throw new ConvexError(error.message); throw error; }
   return ctx.runMutation(makeFunctionReference<"mutation">("garminData:save"),{ownerSubject:user.subject,expectedRevision:connection?.revision??null,revision:randomBytes(16).toString("hex"),encryptedKey:encryptKey(key,user.subject),nights});
 }});
