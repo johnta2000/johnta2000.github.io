@@ -6,6 +6,7 @@
     {id:'whoop',name:'WHOOP',color:'#138477',dash:''},
     {id:'eightsleep',name:'Eight Sleep',color:'#7960d5',dash:'6 3'},
     {id:'apple_health',name:'Apple Health',color:'#c36a36',dash:'2 4'},
+    {id:'garmin',name:'Garmin',color:'#167ca5',dash:'10 3'},
     {id:'manual',name:'Other',color:'#66737e',dash:'8 3 2 3'},
   ];
   const metrics = [
@@ -33,7 +34,7 @@
     visible(){return this.providers.filter(p=>!this.hidden.has(p.id));}
     render(nights,whoopDays,days,end) {
       this.history=Daylight.providerHistory(nights,whoopDays,days,end);
-      this.providers=sources.filter(p=>p.id!=='manual'||nights.some(n=>n.source==='manual'));
+      this.providers=sources.filter(p=>!['manual','garmin'].includes(p.id)||nights.some(n=>n.source===p.id));
       const dates=this.history.dates;
       if(!dates.includes(this.date)) this.date=dates.findLast((_,i)=>Object.keys(this.history.rows[i]).length)||dates.at(-1);
       this.index=dates.indexOf(this.date);

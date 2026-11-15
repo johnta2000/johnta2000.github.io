@@ -1,8 +1,10 @@
+import {garminTables} from "./garminTables";
 import { defineTable } from "convex/server";
 import { v } from "convex/values";
 export const sharedMetric = v.union(v.literal("durationMinutes"), v.literal("score"), v.literal("efficiency"), v.literal("deepMinutes"), v.literal("remMinutes"), v.literal("consistency"), v.literal("recovery"), v.literal("hrv"), v.literal("restingHeartRate"), v.literal("strain"), v.literal("workoutMinutes"), v.literal("workoutCount"));
 export const dailyWhoopFields = { recovery: v.optional(v.number()), hrv: v.optional(v.number()), restingHeartRate: v.optional(v.number()), strain: v.optional(v.number()), workoutMinutes: v.optional(v.number()), workoutCount: v.optional(v.number()) };
 export const sleepTables = {
+  ...garminTables,
   whoopDays: defineTable({ ownerSubject: v.string(), sleepDate: v.string(), ...dailyWhoopFields, updatedAt: v.number() }).index("by_owner_date", ["ownerSubject", "sleepDate"]),
   sleepNights: defineTable({
     ownerSubject: v.optional(v.string()), sleepDate: v.string(),

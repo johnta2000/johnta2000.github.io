@@ -2343,3 +2343,14 @@ body:has(#standingsDialog[open]) { overflow:hidden; }
   .group-member-change { display:block; grid-column:1/-1; padding-left:17px; font-size:11px; color:var(--muted); line-height:1.4; }
 }
 
+/* Garmin's key stays in a password field and is submitted only to the signed-in backend. */
+.garmin-icon { background:#eaf4fa; color:#167ca5; }
+#garminForm { display:grid; gap:10px; }
+#garminForm[hidden] { display:none; }
+#garminForm label { font-size:12px; }
+#garminApiKey { width:100%; min-width:0; min-height:44px; padding:12px; border:1px solid var(--line); border-radius:8px; font:inherit; }
+#garminForm button { justify-self:start; }
+
+.garmin-steps { padding-left: 20px; margin: 0 0 18px; font-size: 13px; line-height: 1.6; color: var(--muted); }
+.garmin-steps li + li { margin-top: 9px; }
+.garmin-steps a { color: var(--ink); text-underline-offset: 3px; }

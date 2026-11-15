@@ -85,13 +85,18 @@
       !finite(row.remMinutes)
     )
       return null;
-    const light = row.durationMinutes - row.deepMinutes - row.remMinutes;
+    if (row.source === "garmin" && !finite(row.lightMinutes)) return null;
+    const light = row.source === "garmin" ? row.lightMinutes : row.durationMinutes - row.deepMinutes - row.remMinutes;
     if (light < 0 || row.deepMinutes < 0 || row.remMinutes < 0) return null;
-    return [
+    const breakdown = [
       { label: "Light", minutes: light, color: "#bfd0b9" },
       { label: "Deep", minutes: row.deepMinutes, color: "#648877" },
       { label: "REM", minutes: row.remMinutes, color: "#c6bfd8" },
     ];
+    const unknown = row.durationMinutes - light - row.deepMinutes - row.remMinutes;
+    if (row.source === "garmin" && unknown < 0) return null;
+    if (row.source === "garmin" && unknown > 0) breakdown.push({label:"Unclassified",minutes:unknown,color:"#dfe4e7"});
+    return breakdown;
   }
   function durationTick(minutes) {
     return duration(minutes).replace(/h 00m$/, "h");
@@ -310,4 +315,3 @@
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else root.Daylight = api;
 })(typeof window !== "undefined" ? window : globalThis);
-

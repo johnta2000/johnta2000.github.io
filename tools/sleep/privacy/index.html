@@ -125,7 +125,7 @@
       >
       <p class="eyebrow">Your data, explained</p>
       <h1>Daylight privacy notice</h1>
-      <p class="updated">Last updated October 3, 2026</p>
+      <p class="updated">Last updated November 14, 2026</p>
       <p class="intro">
         Daylight is a personal sleep dashboard operated by John Ta. This notice
         describes the data used by the current version at
@@ -145,6 +145,7 @@
           <li>
             <strong>WHOOP data, when you authorize it:</strong> sleep dates, performance, consistency, duration, efficiency, estimated deep and REM sleep, and start and end times. With the additional permissions, we also import recovery scores, heart rate variability (HRV), resting heart rate, daily strain, and daily workout counts and duration. The connection requests sleep, recovery, cycle, workout, and offline access so it can refresh without asking you to sign in each time. Existing sleep-only connections continue to work until you choose to reconnect for these additional categories.
           </li>
+          <li><strong>Garmin data, when you connect:</strong> sleep dates, sleep scores, duration and stages, overnight HRV, resting heart rate, and sleep start/end times when available. You provide a Personal API key from your own Garmin account. Daylight stores it encrypted on the backend and exchanges it for temporary access tokens to retrieve your data when you connect or select Sync now. Your Garmin password is never collected. Garmin records are currently visible only in your personal dashboard, not group comparisons.</li>
           <li>
             <strong>Connection credentials:</strong> WHOOP authorization tokens
             and refresh tokens are stored encrypted on the backend. Your WHOOP
@@ -219,6 +220,9 @@
           Disconnecting does not automatically delete previously imported sleep
           records or check-ins. The current dashboard has no automatic
           record-expiration schedule.
+        </p>
+        <p>
+          Disconnecting Garmin deletes the saved key from Daylight and retains imported history. To revoke the key and its tokens at Garmin, delete the key in Garmin Connect. Garmin keys expire according to the expiration you choose; reconnect with a new key after expiration.
         </p>
         <p>
           To request a copy, correction, or deletion of stored records, contact

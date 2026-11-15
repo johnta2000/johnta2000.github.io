@@ -10,7 +10,7 @@ before(async()=>{
  groups=await bundle('sleepGroups.ts');sleep=await bundle('sleep.ts');whoop=await bundle('whoopData.ts');
 });
 function fixture(){
- const tables=Object.fromEntries(['sleepNights','alertnessRatings','sleepProfiles','sleepGroups','sleepMembers','sleepInvites','whoopConnections','whoopDays'].map(t=>[t,[]]));let n=0;const reads=[];
+ const tables=Object.fromEntries(['sleepNights','alertnessRatings','sleepProfiles','sleepGroups','sleepMembers','sleepInvites','whoopConnections','whoopDays','garminNights','garminConnections'].map(t=>[t,[]]));let n=0;const reads=[];
  const db={query(table){let filters=[];const q={withIndex(index,fn){reads.push({table,index});const builder={eq(k,v){filters.push(r=>r[k]===v);return this},gte(k,v){filters.push(r=>r[k]>=v);return this},lte(k,v){filters.push(r=>r[k]<=v);return this}};fn(builder);return q},collect:async()=>tables[table].filter(r=>filters.every(f=>f(r))),async unique(){const rows=await q.collect();assert.ok(rows.length<=1);return rows[0]||null},async take(limit){return (await q.collect()).slice(0,limit)}};return q},get:async id=>Object.values(tables).flat().find(r=>r._id===id)||null,insert:async(t,v)=>{const id=t+ ++n;tables[t].push({...v,_id:id});return id},patch:async(id,v)=>Object.assign(await db.get(id),v),delete:async id=>{for(const rows of Object.values(tables)){const i=rows.findIndex(r=>r._id===id);if(i>=0)rows.splice(i,1)}}};
  const context=subject=>({db,auth:{getUserIdentity:async()=>subject===null?null:{subject,email:subject==='owner'?'owner@example.com':`${subject}@example.com`,emailVerified:subject!=='unverified'}}});
  const run=(api,name,subject,args={})=>api[name].handler(context(subject),args);
@@ -131,4 +131,15 @@ test('group reads select only WHOOP records and skip nights for daily-only shari
  assert.equal(sleepReads[0].index,'by_owner_source_date');
  assert.equal(result.members.find(m=>m.self).nights.length,1);
  assert.equal(result.members.find(m=>!m.self).nights[0].recovery,80);
+});
+
+
+test('Garmin history stays owner-scoped and never enters WHOOP group rankings',async()=>{
+ const f=await setup();await join(f);
+ for(const subject of ['owner','friend'])await f.db.insert('garminNights',{ownerSubject:subject,sleepDate:today(),source:'garmin',scoreKind:'native',durationMinutes:430,score:85});
+ for(const subject of ['owner','friend']){
+  const response=await f.run(sleep,'dashboard',subject,{startDate:today(),endDate:today()});
+  assert.equal(response.nights.length,1);assert.equal(response.nights[0].source,'garmin');assert.equal(response.nights[0].ownerSubject,subject);
+ }
+ const group=await f.group('history','owner',{groupId:f.id});assert.ok(group.members.every(m=>m.nights.length===0));
 });

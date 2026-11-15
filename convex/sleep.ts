@@ -70,7 +70,8 @@ export const dashboard = query({
         .collect(),
     ]);
 
-    return { nights, alertness, whoopDays };
+    const garminNights = await ctx.db.query("garminNights").withIndex("by_owner_date", q => q.eq("ownerSubject",identity.subject).gte("sleepDate",args.startDate).lte("sleepDate",args.endDate)).collect();
+    return { nights: [...nights, ...garminNights], alertness, whoopDays };
   },
 });
 

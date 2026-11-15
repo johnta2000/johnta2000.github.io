@@ -3,12 +3,14 @@ const SOURCE_LABELS = {
   whoop: "WHOOP",
   apple_health: "Apple Health",
   eightsleep: "Eight Sleep",
+  garmin: "Garmin",
   manual: "Other",
 };
 const SOURCE_COLORS = {
   whoop: "#5578ec",
   apple_health: "#ed8f5b",
   eightsleep: "#22aea3",
+  garmin: "#167ca5",
   manual: "#8b978f",
 };
 
@@ -96,7 +98,7 @@ async function init() {
   personalComparison = new DaylightComparison(document.querySelector("#personalComparison"));
   bindEvents();
   const requestedView = new URLSearchParams(location.search).get("view");
-  switchView(requestedView === "groups" ? "friends" : ["trends", "connections"].includes(requestedView) ? requestedView : "overview");
+  switchView(requestedView === "groups" ? "friends" : ["trends", "connections"].includes(requestedView) ? requestedView : "overview", "replace");
   document
     .querySelectorAll("select")
     .forEach((select) => SearchableSelect.enhance(select));
@@ -105,6 +107,7 @@ async function init() {
 }
 
 function bindEvents() {
+  bindGarminControls();
   bindGroupEvents();
   const mobileLayout = window.matchMedia("(max-width:700px)");
   const arrangeMobile = () => {
@@ -138,7 +141,11 @@ function bindEvents() {
       restoreRangeFromUrl();
     }),
   );
-  window.addEventListener("popstate", restoreRangeFromUrl);
+  window.addEventListener("popstate", () => {
+    const view = new URLSearchParams(location.search).get("view");
+    switchView(view === "groups" ? "friends" : ["trends", "connections"].includes(view) ? view : "overview", "replace");
+    restoreRangeFromUrl();
+  });
   document.querySelectorAll("[data-range]").forEach(button => button.setAttribute("aria-pressed", String(button.dataset.range === selectedRange)));
   $("#chartMetric").addEventListener("change", renderCharts);
   $("#groupMetric").addEventListener("change", drawGroupChart);
@@ -228,6 +235,7 @@ async function unlockDashboard() {
     els.app.hidden = false;
     await loadDashboard();
     await initializeWhoop();
+    await initializeGarmin();
     await initializeGroups();
   } catch (error) {
     console.error(error);
@@ -439,7 +447,7 @@ function startPreview() {
   renderDashboard();
 }
 
-function switchView(view) {
+function switchView(view, historyMode = "push") {
   const views = {
     overview: [
       "My data",
@@ -459,7 +467,7 @@ function switchView(view) {
     connections: [
       "Connections",
       "Your data, all together.",
-      "Connect WHOOP. Bring in Apple Health. Keep each source in perspective.",
+      "Connect WHOOP or Garmin. Import Apple Health. Compare each source.",
     ],
   };
   if (!views[view]) return;
@@ -473,7 +481,8 @@ function switchView(view) {
   if (view === 'overview') pageUrl.searchParams.delete('view');
   else pageUrl.searchParams.set('view', view === 'friends' ? 'groups' : view);
   if (view !== 'friends') pageUrl.searchParams.delete('group');
-  history.replaceState({}, '', pageUrl.pathname + pageUrl.search + pageUrl.hash);
+  const destination = pageUrl.pathname + pageUrl.search + pageUrl.hash;
+  if (destination !== location.pathname + location.search + location.hash) history[historyMode === 'push' ? 'pushState' : 'replaceState']({}, '', destination);
   updateGroupPageIdentity();
   $("#pageSubtitle").textContent = views[view][2];
   document
@@ -1967,4 +1976,3 @@ function renderGroupVariability(metric) {
     document.getElementById(button.getAttribute("aria-controls")).hidden = !open;
   }));
 }
-
