@@ -22,6 +22,7 @@
   class DaylightComparison {
     constructor(element) {
       this.el=element;this.hidden=new Set();this.date=null;this.pinned=false;this.geometry={};
+      this.providerControls=element.querySelector('#comparisonProviders');
       this.charts=element.querySelector('#comparisonCharts');this.inspector=element.querySelector('#comparisonInspector');
       this.charts.innerHTML=metrics.map(m=>`<section class="comparison-metric" data-metric="${m.id}"><div class="comparison-metric-heading"><h2>${m.name}</h2><details class="comparison-info"><summary aria-label="About ${m.name}">i</summary><p>${m.note}</p></details><span class="comparison-unit">${m.unit}</span></div><div class="comparison-readout" data-readout="${m.id}"></div><div class="comparison-mobile-date"><span data-selected-night></span><div><button type="button" data-night="-1" aria-label="Previous night for ${m.name}">←</button><button type="button" data-night="1" aria-label="Next night for ${m.name}">→</button></div></div><div class="comparison-plot"><svg role="img" tabindex="0" aria-label="${m.name}. Use left and right arrows to select a night, Escape to unpin."></svg><div class="comparison-tooltip" role="tooltip" hidden></div></div></section>`).join('');
       this.inspector.innerHTML='<div class="comparison-kicker">SELECTED NIGHT</div><h2 id="comparisonDate"></h2><p id="comparisonPinState"></p><div class="comparison-date-buttons"><button type="button" data-night="-1" aria-label="Previous night">←</button><button type="button" data-night="1" aria-label="Next night">→</button><button type="button" id="comparisonPin" aria-pressed="false">Pin night</button></div><section><h3>Time asleep</h3><div id="comparisonDurations"></div><p class="comparison-spread">Provider spread <strong id="comparisonSpread"></strong></p></section><section><h3>Sleep stages</h3><div id="comparisonStages"></div></section><section><h3>Readings available</h3><div id="comparisonCoverage"></div></section>';
@@ -36,6 +37,7 @@
       if(this.pinned)url.searchParams.set('night',this.date);else url.searchParams.delete('night');
       if(this.hidden.size)url.searchParams.set('hideSources',[...this.hidden].sort().join(','));else url.searchParams.delete('hideSources');
       if(url.href!==location.href)history.pushState({},'',url.pathname+url.search+url.hash);
+      window.SleepFilters?.sync();
     }
     visible(){return this.providers.filter(p=>!this.hidden.has(p.id));}
     render(nights,whoopDays,days,end) {
@@ -50,9 +52,10 @@
       this.index=dates.indexOf(this.date);
       const hasData=this.history.rows.some(row=>Object.keys(row).length);
       this.el.querySelector('#comparisonEmpty').hidden=hasData;
-      this.el.querySelector('#comparisonProviders').innerHTML=this.providers.map(p=>`<button type="button" data-source="${p.id}" aria-pressed="${!this.hidden.has(p.id)}" style="--source-color:${p.color}"><i class="comparison-swatch" style="border-top-style:${p.id==='whoop'?'solid':p.id==='apple_health'?'dotted':'dashed'}"></i>${p.name}</button>`).join('');
-      this.el.querySelectorAll('[data-source]').forEach(b=>b.onclick=()=>{this.hidden.has(b.dataset.source)?this.hidden.delete(b.dataset.source):this.hidden.add(b.dataset.source);b.setAttribute('aria-pressed',String(!this.hidden.has(b.dataset.source)));this.hideTips();this.draw();this.saveView();});
+      this.providerControls.innerHTML=this.providers.map(p=>`<button type="button" data-source="${p.id}" aria-pressed="${!this.hidden.has(p.id)}" style="--source-color:${p.color}"><i class="comparison-swatch" style="border-top-style:${p.id==='whoop'?'solid':p.id==='apple_health'?'dotted':'dashed'}"></i>${p.name}</button>`).join('');
+      this.providerControls.querySelectorAll('[data-source]').forEach(b=>b.onclick=()=>{this.hidden.has(b.dataset.source)?this.hidden.delete(b.dataset.source):this.hidden.add(b.dataset.source);b.setAttribute('aria-pressed',String(!this.hidden.has(b.dataset.source)));this.hideTips();this.draw();this.saveView();});
       this.draw();
+      window.SleepFilters?.sync();
     }
     draw() {
       if(!this.history||!this.charts.clientWidth)return;

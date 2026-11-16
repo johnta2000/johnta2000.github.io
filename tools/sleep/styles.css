@@ -2412,3 +2412,31 @@ body:has(#standingsDialog[open]) { overflow:hidden; }
 }
 
 @media(min-width:701px) { .app[data-active-view="overview"] .sidebar { width:224px; } .app[data-active-view="overview"] .workspace { margin-left:224px; } }
+
+/* Phone filters occupy one quiet row; the chart gets the space. */
+#rangeControlHome { display:contents; }
+#mobileFiltersBar { display:none; }
+#mobileFiltersDialog { width:min(460px,calc(100% - 32px)); max-height:85dvh; padding:0; border:1px solid var(--line); border-radius:20px; overflow:auto; color:var(--ink); background:#fff; box-shadow:0 20px 80px #18352c30; }
+#mobileFiltersDialog::backdrop { background:#19362d66; }
+.mobile-filters-heading { display:flex; align-items:center; justify-content:space-between; padding:16px 20px 4px; }
+.mobile-filters-heading h2 { font-size:22px; margin:0; }
+.mobile-filters-heading button { width:44px; height:44px; border:0; border-radius:50%; background:#f3f6f4; color:var(--ink); font-size:18px; }
+#mobileFiltersDialog section { padding:12px 20px; }
+#mobileFiltersDialog section h3 { margin:0 0 12px; font-size:14px; }
+#mobileFiltersDialog #rangeControl { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:6px; padding:6px; }
+#mobileFiltersDialog #rangeControl button { min-height:48px; font-size:14px; }
+#mobileFiltersDialog .comparison-providers { display:grid; width:100%; gap:8px; overflow:visible; padding:0; }
+#mobileFiltersDialog .comparison-providers button { width:100%; min-height:48px; border:1px solid var(--line); border-radius:10px; padding:12px; font-size:14px; text-decoration:none; opacity:1; }
+#mobileFiltersDialog .comparison-providers button::after { content:'✓'; margin-left:auto; }
+#mobileFiltersDialog .comparison-providers button[aria-pressed="false"] { background:#fff; color:var(--muted); }
+#mobileFiltersDialog .comparison-providers button[aria-pressed="false"]::after { content:'+'; }
+#mobileFiltersDialog .comparison-providers button[aria-pressed="true"] { background:#eaf2ee; border-color:#8eb6a6; }
+.mobile-filters-note { padding:0 20px; color:var(--muted); font-size:12px; }
+#mobileFiltersDialog>.primary-button { width:calc(100% - 40px); margin:4px 20px 20px; min-height:48px; }
+@media(max-width:700px) {
+  #rangeControlHome, .comparison-toolbar { display:none; }
+  #mobileFiltersBar:not([hidden]) { width:100%; display:flex; align-items:center; justify-content:space-between; gap:12px; }
+  #mobileFilterSummary { font-size:13px; line-height:1.4; color:var(--muted); }
+  #openMobileFilters { min-height:44px; padding:8px 12px; display:flex; align-items:center; gap:8px; border:1px solid var(--line); border-radius:10px; background:#fff; color:var(--ink); font:inherit; font-size:13px; font-weight:600; flex-shrink:0; }
+  #mobileFiltersDialog { margin:auto 0 0; width:100%; max-width:none; max-height:85dvh; border-radius:22px 22px 0 0; padding-bottom:env(safe-area-inset-bottom); }
+}

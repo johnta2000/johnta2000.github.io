@@ -107,6 +107,7 @@ async function init() {
 }
 
 function bindEvents() {
+  window.initializeSleepFilters();
   bindGarminControls();
   bindGroupEvents();
   const mobileLayout = window.matchMedia("(max-width:700px)");
@@ -560,6 +561,7 @@ function renderDashboard() {
   renderCheckin();
   renderCharts();
   renderHistory(groupNightsByDate(currentRows()));
+  window.SleepFilters?.sync();
 }
 
 function renderMetrics() {
