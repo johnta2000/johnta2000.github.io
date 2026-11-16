@@ -76,7 +76,11 @@ function closeFilterPanel(navigate=true){
  if(navigate)writeLinkView(true,false);
 }
 function restoreFilterPanel(){if(linkParams().get('panel')==='filters'){if(!$('filters-dialog').open)showFilterPanel(false);}else if($('filters-dialog').open)closeFilterPanel(false);}
-function matchesView(r,assignment,kind,from,to,search){return (assignment==='all'||assignment==='ignored'&&r.ignored||!r.ignored&&(assignment==='unassigned'&&!r.allocation||people.includes(assignment)&&(r.allocation?.[assignment]??0)!==0))&&(kind==='all'||r.kind===kind)&&(!from||r.date>=from)&&(!to||r.date<=to)&&(!search||`${r.description} ${r.date} ${r.note} ${money(r.amountCents)}`.toLowerCase().includes(search));}
+function matchesView(r,assignment,kind,from,to,search){
+ const collecting=totalsMode==='collect',entry=collecting?StatementReconciliation.collectionForRow(r):null;
+ const match=assignment==='all'||assignment==='ignored'&&r.ignored||assignment==='unassigned'&&(collecting?entry.unassigned!==0:!r.ignored&&!r.allocation)||people.includes(assignment)&&(collecting?(entry.allocation?.[assignment]??0)!==0:!r.ignored&&(r.allocation?.[assignment]??0)!==0);
+ return match&&(kind==='all'||r.kind===kind)&&(!from||r.date>=from)&&(!to||r.date<=to)&&(!search||`${r.description} ${r.date} ${r.note} ${r.collectionNote||''} ${money(r.amountCents)}`.toLowerCase().includes(search));
+}
 function updateFilterPreview(){
  const from=$('date-from').value,to=$('date-to').value,invalid=!!(from&&to&&from>to);
  $('filter-error').hidden=!invalid;$('filter-error').textContent=invalid?'Choose an end date on or after the start date.':'';$('apply-filters').disabled=invalid;
@@ -125,7 +129,7 @@ function renderReconciliation(math){
 }
 for(const [id,mode] of [['charges-view','charges'],['balances-view','collect']])$(id).addEventListener('click',event=>{
  if(event.button||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return;
- event.preventDefault();totalsMode=mode;writeLinkView();updateTotals();
+ event.preventDefault();totalsMode=mode;writeLinkView();updateTotals();renderRows();
 });
 function updateRow(r){
  const item=[...$('transactions').querySelectorAll('.row')].find(n=>n.dataset.id===r._id);if(!item)return;

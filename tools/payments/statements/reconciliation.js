@@ -3,6 +3,11 @@
   'use strict';
   const people = ['parents', 'john', 'jevin', 'other'];
   const chargeKinds = new Set(['purchase', 'credit', 'fee', 'interest']);
+  function collectionForRow(row) {
+    const allocation = row.kind === 'opening' && row.collectionAllocation
+      ? row.collectionAllocation : !row.ignored ? row.allocation : null;
+    return { allocation, unassigned: row.amountCents - people.reduce((sum,p) => sum+(allocation?.[p]||0),0) };
+  }
   function calculate(statement) {
     const result = { charges: 0, opening: 0, payments: 0, imported: 0,
       assigned: 0, unassigned: 0, ignored: 0, unassignedCount: 0,
@@ -13,8 +18,7 @@
     result.collectionUnassigned = 0; result.collectionUnassignedCount = 0; result.collectionAdjustments = [];
     for (const row of statement.rows) {
       const charge = chargeKinds.has(row.kind);
-      const collection = row.kind === 'opening' && row.collectionAllocation
-        ? row.collectionAllocation : !row.ignored ? row.allocation : null;
+      const collection = collectionForRow(row).allocation;
       let applied = 0;
       for (const person of people) {
         const amount = collection?.[person] || 0;
@@ -53,7 +57,7 @@
     result.collectionReady = result.importMatches && !result.collectionUnassignedCount && !result.invalidSplits;
     return result;
   }
-  const api = { calculate };
+  const api = { calculate, collectionForRow };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else globalThis.StatementReconciliation = api;
 })();

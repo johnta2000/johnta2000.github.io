@@ -46,7 +46,7 @@ Ignore and restore save in the shared backend using the same version checks and 
 
 ## Collection and purchase history
 
-The default **To collect** view allocates the remaining imported statement balance. It applies assigned card payments against the relevant shares and uses an owner-confirmed prior split when available. **Purchase history** (`totals=charges` in the fragment) retains full purchase/refund allocations, including purchases already covered by a card payment. Both views restore through copied links, refresh and Back/Forward. Older `totals=balance` links open To collect.
+The default **To collect** view allocates the remaining imported statement balance. It applies assigned card payments against the relevant shares and uses an owner-confirmed prior split when available. **Purchase history** (`totals=charges` in the fragment) retains full purchase/refund allocations, including purchases already covered by a card payment. Both views restore through copied links, refresh and Back/Forward. Older `totals=balance` links open To collect. Person and Unassigned filters use the effective collection split in this view, including a carried share on an ignored source row and any unassigned credit residual. Purchase history retains the original assignment filter behavior.
 
 Person totals plus unassigned adjustments always equal the imported row sum. Ignored or unassigned rows remain unassigned adjustments in To collect instead of disappearing. Unassigned credits may make provisional person totals exceed the statement; list each unresolved item and clearly withhold a ready-to-collect message until all adjustments are allocated and saves have finished. CSV activity never implies a verified issuer balance.
 

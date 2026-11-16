@@ -290,6 +290,8 @@ test('To collect is the default, carries prior shares, deducts payments and keep
   assert.equal(await page.locator('#john-total').textContent(),'$700.00');
   assert.equal(await page.locator('#parents-total').textContent(),'$0.00');
   assert.equal(await page.locator('#unassigned-total').textContent(),'-$0.50');
+  await page.locator('[data-filter="unassigned"]').click();assert.equal(await page.locator('.row').count(),1);assert.equal(await page.locator('.row').getAttribute('data-id'),'prior');
+  await page.locator('[data-filter="all"]').click();
   assert.match(await page.locator('#allocation-check').textContent(),/not final payment requests/);
   await page.locator('#charges-view').click();assert.equal(await page.locator('#john-total').textContent(),'$1,000.00');
   assert.match(page.url(),/totals=charges/);const copied=page.url();await page.reload();await page.locator('.row').first().waitFor();
