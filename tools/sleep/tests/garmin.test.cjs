@@ -153,3 +153,17 @@ test('authorization follows Garmin official plain-text JWT contract while data s
  await assert.rejects(client.fetchGarmin('test-key',sleep.calendarDate,sleep.calendarDate,async()=>{attempts++;return new Response('provider-private-body',{status:406});}),e=>e.status===406&&e.step==='authorization'&&!e.message.includes('provider-private-body'));
  assert.equal(attempts,1);
 });
+
+test('Garmin undated empty sleep summaries do not reject measured nights or fabricate sleep from naps',async()=>{
+ const placeholder={id:null,calendarDate:null,sleepTimeSeconds:null,deepSleepSeconds:null,lightSleepSeconds:null,remSleepSeconds:null,sleepStartTimestampGMT:null,sleepEndTimestampGMT:null,napTimeSeconds:1800,deviceRemCapable:true,sleepNeed:{calendarDate:'2026-11-13',actual:480},dailyNapDTOS:[{durationInSeconds:1800}]};
+ const normalized=client.normalizeGarmin([placeholder,sleep,{...placeholder,napTimeSeconds:null}],[],[], '2026-11-13','2026-11-14');
+ assert.equal(normalized.length,1);assert.equal(normalized[0].sleepDate,sleep.calendarDate);assert.equal(normalized[0].durationMinutes,450);
+ const result=await client.fetchGarmin('key','2026-11-13','2026-11-14',async url=>url.includes('dailySleep')?goodResponse([placeholder,sleep]):usualGarmin(url));
+ assert.equal(result.complete,true);assert.equal(result.warnings.length,0);assert.equal(result.coverage.sleep.length,2);
+ assert.equal(result.nights.filter(n=>n.durationMinutes!==undefined).length,1);
+ assert.equal(result.nights.find(n=>n.sleepDate==='2026-11-13').durationMinutes,undefined);
+ for(const malformed of [{...placeholder,sleepTimeSeconds:27000},{...placeholder,id:123},{...placeholder,sleepScores:{overall:{value:84}}},{...placeholder,calendarDate:'bad-date'}]){
+  const failed=await client.fetchGarmin('key',sleep.calendarDate,sleep.calendarDate,async url=>url.includes('dailySleep')?goodResponse([malformed,sleep]):usualGarmin(url));
+  assert.equal(failed.complete,false);assert.equal(failed.coverage.sleep.length,0);assert.match(failed.warnings.join(' '),/invalid date/);
+ }
+});

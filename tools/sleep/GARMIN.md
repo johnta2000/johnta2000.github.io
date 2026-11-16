@@ -1,6 +1,6 @@
 # Garmin integration — implementation status, November 14, 2026
 
-The Personal API backend is deployed and enabled for invited members as of November 14, 2026. The Connections page provides self-service setup using each member's own Garmin Personal API key. No real Garmin account has been connected or tested. No account application, terms acceptance, key creation, or paid service was performed.
+The Personal API backend is deployed and enabled for invited members as of November 14, 2026. The Connections page provides self-service setup using each member's own Garmin Personal API key. A real invited-member connection and sleep import were verified on November 15, 2026. No account application, terms acceptance, key creation, or paid service was performed.
 
 ## Current capability
 
@@ -42,7 +42,7 @@ Validation: `node --test tools/sleep/tests/*.test.cjs` covers mappings, missing 
 
 Release verification: 70 automated tests passed; desktop and 390px mobile onboarding, direct Connections link, refresh and Back/Forward checked. Real Garmin authorization and payload verification still require the account holder to submit her own key. No test health records were written to the live backend.
 
-Reliability update: successful-stream coverage determines which fields may be replaced. A failed stream preserves prior measurements; a successful empty response clears only that stream. Connection status persists warnings and distinguishes complete/incomplete syncs. An accepted token can be saved encrypted even when subsequent data requests fail, so retry does not require recopying the key. Expired/rejected token responses never become partial success. Documentation verifies endpoint support, not Jessi’s actual authorization or device coverage. No live Garmin account has yet been verified by this work.
+Reliability update: successful-stream coverage determines which fields may be replaced. A failed stream preserves prior measurements; a successful empty response clears only that stream. Connection status persists warnings and distinguishes complete/incomplete syncs. An accepted token can be saved encrypted even when subsequent data requests fail, so retry does not require recopying the key. Expired/rejected token responses never become partial success. Documentation verifies endpoint support, not Jessi’s actual authorization or device coverage. This reliability update initially used synthetic responses; real-account verification is recorded below.
 
 
 ## Authorization format correction — November 15, 2026
@@ -52,3 +52,10 @@ Garmin's official Python authenticator sends `Accept: */*` and reads the token e
 Reference: https://github.com/garmin/connect-personal-api-python/blob/main/src/garmin_personal_api/auth.py
 
 The screenshot's authorization HTTP 406 is consistent with the old Accept header, but the response body and a real valid-key retry are unavailable. A two-request diagnostic with an explicitly fake key returned HTTP 401 with both Accept headers, so it did not reproduce the valid-key 406. Do not claim the account is connected until the holder retries and data/status confirms it. No actual user key or health records were used for these tests.
+
+
+## Empty sleep summary correction — November 15, 2026
+
+A real range response included measured, dated sleep summaries alongside undated placeholders with null IDs, main-sleep duration, timestamps and stages. Nap/sleep-need metadata can still be present in those placeholders. The strict date check rejected the entire sleep stream. The parser now skips only explicitly undated placeholders without main-sleep measurements; malformed records containing measurements still produce a warning and do not replace stored sleep fields. No date is inferred from the array position, naps, or sleep-need metadata.
+
+The corrected importer was used to resync the affected member's existing 28-day window through the normal revision-guarded save mutation. The sync completed without warnings and saved measured sleep records alongside the existing biometric data. Credentials and raw health measurements were never written to diagnostic files or source control. Regression suite: 79 tests passed. Group Garmin sharing remains unimplemented; these records are private to the owner's personal dashboard.

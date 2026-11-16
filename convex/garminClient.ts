@@ -15,6 +15,12 @@ export function windows(start: string, end: string) {
   return out;
 }
 const number = (v: unknown, max: number, min = 0) => typeof v === "number" && Number.isFinite(v) && v >= min && v <= max ? v : undefined;
+function emptySleepSummary(value: any) {
+  // Garmin includes undated placeholders for nights without a measured main sleep.
+  // They can contain nap/sleep-need metadata, which is not a main-sleep reading.
+  return value && typeof value === "object" && !Array.isArray(value) && value.calendarDate === null
+    && ["id", "sleepTimeSeconds", "sleepStartTimestampGMT", "sleepEndTimestampGMT", "lightSleepSeconds", "deepSleepSeconds", "remSleepSeconds", "sleepScores"].every(field => value[field] == null);
+}
 const timestamp = (v: unknown) => {
   if (typeof v === "number" && v > 0) { const d = new Date(v); return Number.isFinite(d.getTime()) ? d.toISOString() : undefined; }
   if (typeof v !== "string" || !/^\d{4}-\d{2}-\d{2}T/.test(v)) return undefined;
@@ -27,6 +33,7 @@ export function normalizeGarmin(sleeps: any[], hrvs: any[], summaries: any[], st
   const days = new Map<string, any>();
   const get = (date: unknown) => { const d = isoDate(date); if (d < start || d > end) return null; if (!days.has(d)) days.set(d, {sleepDate:d, source:"garmin", scoreKind:"native"}); return days.get(d); };
   for (const sleep of sleeps) {
+    if (emptySleepSummary(sleep)) continue;
     const row = get(sleep.calendarDate); if (!row) continue;
     const seconds = number(sleep.sleepTimeSeconds, 86400);
     // Unknown/off-wrist summaries must not produce a zero-hour night or fabricated score.
@@ -108,7 +115,8 @@ export async function fetchGarmin(apiKey: string, start: string, end: string, re
   for(const chunk of chunks) {
     await optional(async()=>{
       const value=await json("/sleep-service/sleep/dailySleepSummariesByDate?"+new URLSearchParams({startDate:chunk.start,endDate:chunk.end}),auth);
-      sleeps.push(...records(value??[],"sleep history"));coverage.sleep.push(...dates(chunk.start,chunk.end));
+      const measured = Array.isArray(value) ? value.filter(row => !emptySleepSummary(row)) : value;
+      sleeps.push(...records(measured??[],"sleep history"));coverage.sleep.push(...dates(chunk.start,chunk.end));
     });
     await optional(async()=>{
       const value=await json(`/hrv-service/hrv/daily/${chunk.start}/${chunk.end}`,auth);
