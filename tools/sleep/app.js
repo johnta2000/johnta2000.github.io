@@ -1813,7 +1813,7 @@ function drawGroupChart() {
   groupHistory = Daylight.groupHistory(groupSample.filter(member => visibleGroupMembers.has(member.id)), metric, selectedDays, todayPacific(), groupChartMode);
   $("#groupPeriod").textContent = `${selectedRange === "all" ? "All shared · " : ""}${formatRangeDate(groupHistory.dates[0])} – ${formatRangeDate(groupHistory.dates.at(-1))} · ${[...new Set(groupSample.map(providerName))].join(" + ")}`;
   $("#groupMetricHeading").textContent = metricName;
-  $('.group-chart-note').textContent = metric === 'score' ? 'WHOOP sleep performance and Garmin sleep score use different definitions. Raw scores use a common 0–100 scale; rankings stay separate.' : ['hrv','restingHeartRate'].includes(metric) ? 'Provider measurements can differ. Compare each person’s trend in context; missing days stay gaps.' : 'Each person’s selected provider · Missing days appear as gaps. Select a person to hide or show their line.';
+  $('.group-chart-note').textContent = metric === 'score' ? 'WHOOP sleep performance and Garmin sleep score are compared together out of 100. Each provider calculates its score differently.' : ['hrv','restingHeartRate'].includes(metric) ? 'Provider measurements can differ. Compare each person’s trend in context; missing days stay gaps.' : 'Each person’s selected provider · Missing days appear as gaps. Select a person to hide or show their line.';
   $("#groupBaselineNote").textContent = selectedRange === "all" ? "All available shared history. Each person’s sharing window still applies; coverage may differ. There is no previous period for All." : `Compared with each person’s previous ${selectedDays} days. Only tracked days count. HRV and resting heart rate are personal measures.`;
   if (!$("#groupMembers").children.length) {
     $("#groupMembers").innerHTML = groupSample.map(member => `<button type="button" data-member="${member.id}" aria-pressed="${visibleGroupMembers.has(member.id)}" style="--member-color:${member.color}"><span class="group-member-name"><svg width="22" height="12" aria-hidden="true"><line x1="0" x2="22" y1="6" y2="6" stroke="currentColor" stroke-width="3" stroke-dasharray="${member.dash}"/></svg>${escapeHtml(member.name.replace(' (sample)', ''))}${providerBadge(member)}</span><strong class="group-member-value"></strong><small class="group-member-change"></small></button>`).join("");
@@ -1953,7 +1953,7 @@ function formatGroupPoint(member, point) {
 function renderGroupVariability(metric) {
   const members = groupHistory.members;
   // Compare playful distinctions only where every shown person has substantial coverage.
-  const sameScoreScale = !["score","hrv","restingHeartRate"].includes(metric) || new Set(members.map(providerName)).size <= 1;
+  const sameScoreScale = !["hrv","restingHeartRate"].includes(metric) || new Set(members.map(providerName)).size <= 1;
   const comparable = sameScoreScale && members.length > 1 && members.every(m => m.count >= Math.ceil(selectedDays * .8) && m.variability.pairCount >= Math.max(4, Math.ceil((selectedDays - 1) * .8)));
   const displayed = value => Daylight.metrics[metric].unit === "min" ? Math.round(value) : Math.round(value * 10) / 10;
   const swings = members.map(m => displayed(m.variability.typicalSwing));

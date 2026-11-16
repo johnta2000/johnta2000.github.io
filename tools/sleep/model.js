@@ -173,7 +173,7 @@
   }
   // Receives separate, already-authorized member histories; this is not an access-control layer.
   const metrics = {
-    durationMinutes: {label: "Time asleep", unit: "min"}, score: {label: "Sleep score / performance", unit: "%"},
+    durationMinutes: {label: "Time asleep", unit: "min"}, score: {label: "Sleep score", unit: "%"},
     efficiency: {label: "Sleep efficiency", unit: "%"}, deepMinutes: {label: "Deep sleep", unit: "min"},
     remMinutes: {label: "REM sleep", unit: "min"}, consistency: {label: "Sleep consistency", unit: "%"},
     recovery: {label: "Recovery", unit: "%"}, hrv: {label: "HRV", unit: "ms"},
@@ -182,13 +182,12 @@
   };
   const competitions = {
     durationMinutes: {label: "Time asleep", metric: "durationMinutes", mode: "average", description: "Average time asleep per night, longest first. At least 4 of 7 nights to rank."},
-    score: {label: "WHOOP sleep performance", provider: "whoop", metric: "score", mode: "average", description: "Average sleep performance. At least 4 of 7 days to rank."},
-    garminScore: {label: "Garmin sleep score", provider: "garmin", metric: "score", mode: "average", description: "Average Garmin sleep score, out of 100. Ranked separately from WHOOP performance."},
+    score: {label: "Sleep score", metric: "score", mode: "average", description: "Average score out of 100, using WHOOP sleep performance or Garmin sleep score. At least 4 of 7 days to rank."},
     recovery: {label: "Recovery", provider: "whoop", metric: "recovery", mode: "average", description: "Average recovery score. At least 4 of 7 days to rank."},
     consistency: {provider: "whoop", label: "Sleep consistency", metric: "consistency", mode: "average", description: "Average WHOOP sleep consistency. At least 4 of 7 days to rank."},
     strain: {provider: "whoop", label: "Day strain", metric: "strain", mode: "average", description: "Average completed-day strain. At least 4 of 7 days. Measures effort, not overall health."},
     workoutMinutes: {provider: "whoop", label: "Workout time", metric: "workoutMinutes", mode: "total", description: "Total workout time. All 7 days must be tracked to rank; rest days count as zero."},
-    sleepGain: {provider: "whoop", label: "Sleep improvement", metric: "score", mode: "delta", description: "Sleep performance change vs. your previous 7 days. At least 4 days in each week."},
+    sleepGain: {label: "Sleep improvement", metric: "score", mode: "delta", description: "Sleep score change vs. your previous 7 days. At least 4 days in each week."},
     hrvGain: {label: "HRV improvement", metric: "hrv", mode: "percentChange", description: "HRV change vs. your own previous 7 days. At least 4 days in each week; requires 14 days of sharing."},
   };
   function standings(members, category, today, period = 7) {
@@ -200,7 +199,7 @@
     const unit = baseRule.metric === "durationMinutes" ? "nights" : "days";
     const description = baseline
       ? all ? "No previous period to compare with All. Select 7, 28, or 90 days for improvement rankings."
-        : `${baseRule.mode === "percentChange" ? "HRV change relative to your own baseline" : "Sleep performance change"} vs. the previous ${days} days. At least ${minimum} days in each period.`
+        : `${baseRule.mode === "percentChange" ? "HRV change relative to your own baseline" : "Sleep score change"} vs. the previous ${days} days. At least ${minimum} days in each period.`
       : baseRule.mode === "total" ? `Total workout time. All ${days} days must be tracked to rank; rest days count as zero.`
         : `${baseRule.description.split(". ")[0]}. At least ${minimum} of ${days} ${unit} to rank.${baseRule.metric === "strain" ? " Measures effort, not overall health." : ""}`;
     const rule = {...baseRule, description};

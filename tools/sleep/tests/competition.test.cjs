@@ -57,10 +57,12 @@ test('mixed-provider history and duration standings use exactly the chosen sourc
  assert.equal(chart.members[1].points[0].value,420);
  const board=D.standings([whoop,garmin],'durationMinutes','2026-10-01');
  assert.deepEqual(board.entries.map(m=>[m.id,m.result,m.rank]),[['WHOOP',480,1],['Garmin',420,2]]);
- for(const [key,winner,excluded] of [['score','WHOOP','Garmin'],['garminScore','Garmin','WHOOP']]){
-  const scores=D.standings([whoop,garmin],key,'2026-10-01');
-  assert.equal(scores.entries[0].id,winner);assert.equal(scores.entries[0].rank,1);assert.equal(scores.entries[1].id,excluded);assert.equal(scores.entries[1].eligible,false);
- }
+ const scores=D.standings([whoop,garmin],'score','2026-10-01');
+ assert.equal(scores.rule.label,'Sleep score');
+ assert.deepEqual(scores.entries.map(m=>[m.id,m.result,m.rank]),[['Garmin',90,1],['WHOOP',75,2]]);
+ const gains=D.standings([whoop,garmin],'sleepGain','2026-10-01');
+ assert.ok(gains.entries.every(m=>m.eligible && m.rank===1 && m.result===0));
+ assert.equal(D.standings([{...garmin,metrics:[]}],'score','2026-10-01').entries[0].eligible,false);
  const privateChart=D.groupHistory([{...garmin,metrics:[]}],'score',7,'2026-09-30');
  assert.equal(privateChart.members[0].count,0);assert.equal(privateChart.members[0].points[0].value,undefined);
 });

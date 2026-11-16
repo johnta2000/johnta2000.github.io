@@ -333,12 +333,12 @@ function resetGroupsPreview() {
   $('#groupsPreviewBadge').hidden = false;
 }
 
-const DEFAULT_STANDINGS = ['durationMinutes', 'score', 'garminScore', 'recovery', 'workoutMinutes'];
+const DEFAULT_STANDINGS = ['durationMinutes', 'score', 'recovery', 'workoutMinutes'];
 let selectedStandings = [...DEFAULT_STANDINGS];
 try {
   const saved = JSON.parse(localStorage.getItem('daylightStandingsMetrics'));
   if (Array.isArray(saved)) {
-    const valid = [...new Set(saved.filter(key => Object.hasOwn(Daylight.competitions, key)))];
+    const valid = [...new Set(saved.map(key => key === 'garminScore' ? 'score' : key).filter(key => Object.hasOwn(Daylight.competitions, key)))];
     if (valid.length) selectedStandings = valid;
   }
 } catch {}
@@ -385,13 +385,12 @@ function renderStandings() {
   const panel = $('#groupStandings');
   panel.hidden = !groupSample || (!isDemo && !liveGroup);
   if (panel.hidden) return;
-  const displayedStandings = selectedStandings.filter(key => key !== 'garminScore' || selectedStandings.length === 1 || groupSample.some(member => member.provider === 'garmin'));
-  const boards = displayedStandings.map(key => ({key, ...Daylight.standings(groupSample, key, todayPacific(), selectedRange)}));
+  const boards = selectedStandings.map(key => ({key, ...Daylight.standings(groupSample, key, todayPacific(), selectedRange)}));
   $('#standingsPeriod').textContent = `${formatRangeDate(boards[0].start)} – ${formatRangeDate(boards[0].end)} · ${selectedRange === 'all' ? 'ALL SHARED HISTORY · THROUGH YESTERDAY' : `LAST ${boards[0].days} COMPLETE DAYS`}`;
   $('#standingsBoards').innerHTML = boards.map(board => {
     const baseline = ['delta','percentChange'].includes(board.rule.mode);
     const rows = board.entries.map(member => {
-      const value = !member.eligible ? '—' : board.key === 'garminScore' ? `${member.result.toFixed(1)} / 100` : baseline ? `${member.result > 0 ? '+' : ''}${member.result.toFixed(1)}${board.rule.mode === 'percentChange' ? '%' : ' pts'}` : board.rule.mode === 'total' ? formatDuration(member.result) : formatMetricValue(member.result, board.rule.metric);
+      const value = !member.eligible ? '—' : board.key === 'score' ? `${member.result.toFixed(1)} / 100` : baseline ? `${member.result > 0 ? '+' : ''}${member.result.toFixed(1)}${board.rule.mode === 'percentChange' ? '%' : ' pts'}` : board.rule.mode === 'total' ? formatDuration(member.result) : formatMetricValue(member.result, board.rule.metric);
       return `<li class="standing-row${member.rank === 1 ? ' standing-leader' : ''}"><span class="standing-rank" aria-label="${member.rank ? `Rank ${member.rank}` : 'Unranked'}">${member.rank || '—'}</span><span class="standing-name"><span><i class="group-person-marker" style="background:${member.color}"></i>${escapeHtml(member.name.replace(' (sample)', ''))}${providerBadge(member)}</span><small>${member.eligible ? `${member.count}/${board.days} ${board.rule.metric === 'durationMinutes' ? 'nights' : 'days'}${baseline ? ` · ${member.previousCount}/${board.days} previous days` : ''}` : `${member.reason}${['Not shared','WHOOP only','Garmin only'].includes(member.reason) ? '' : ` · ${member.count}/${board.days} days`}`}</small></span><strong>${value}</strong></li>`;
     }).join('');
     return `<article class="standings-card" aria-labelledby="standingTitle-${board.key}"><div class="standings-card-heading"><h3 id="standingTitle-${board.key}">${board.rule.label}</h3><p>${board.rule.description}</p></div><ol class="standings-rows">${rows}</ol></article>`;
