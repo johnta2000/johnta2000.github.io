@@ -53,6 +53,21 @@ export const revoke = mutation({ args: { id: v.id('paymentStatements') }, handle
   if (!s || s.owner !== user.workspaceOwner) throw Error('Statement not found.');
   await ctx.db.patch(id,{enabled:false});
 } });
+// A confirmed prior split can exceed a net opening balance by an unallocated
+// credit. Preserve that residual explicitly instead of guessing its owner.
+export const setCarryover = mutation({ args: { id: v.id('paymentStatementRows'), expectedVersion: v.number(), allocation: v.union(allocation, v.null()), note: v.string() }, handler: async (ctx, args) => {
+  const user = await authorized(ctx), row = await ctx.db.get(args.id);
+  if (!row) throw Error('Charge not found.');
+  const statement = await ctx.db.get(row.statementId);
+  if (!statement || statement.owner !== user.workspaceOwner || !statement.enabled) throw Error('Statement not found.');
+  if (row.kind !== 'opening') throw Error('Only an opening balance can carry a prior split.');
+  if (!Number.isSafeInteger(args.expectedVersion) || row.version !== args.expectedVersion) throw Error('This charge changed on another device. Refresh and review it before saving again.');
+  if (!args.note.trim() || args.note.length > 500) throw Error('Explain the prior split in 1–500 characters.');
+  const values = Object.values(args.allocation || {});
+  if (values.some(n => !money(n)) || !money(row.amountCents - values.reduce((a,b) => a+b,0))) throw Error('Invalid prior split.');
+  await ctx.db.patch(args.id, { collectionAllocation: args.allocation ?? undefined, collectionNote: args.allocation ? args.note.trim() : undefined, version: row.version+1, updatedAt: Date.now() });
+  return { version: row.version+1 };
+} });
 // Imports run through the deployment's authenticated administrator API. No public import endpoint.
 export const importStatement = internalMutation({ args: { token:v.string(), title:v.string(), period:v.string(), sourceType:v.optional(v.union(v.literal('pdf'),v.literal('csv'))), sourceName:v.optional(v.string()), dueDate:v.string(), balanceCents:v.number(), fingerprint:v.string(), storageId:v.id('_storage'), rows:v.array(v.object(statementRow)) }, handler: async (ctx,args) => {
   const owner = process.env.CARD_PAYMENTS_WORKSPACE_OWNER?.trim();

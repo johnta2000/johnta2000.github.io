@@ -9,8 +9,23 @@
       chargeUnassigned: 0, chargeUnassignedCount: 0, chargeIgnored: 0,
       personCharges: Object.fromEntries(people.map(p => [p, 0])),
       personBalances: Object.fromEntries(people.map(p => [p, 0])), invalidSplits: 0 };
+    result.personCollection = Object.fromEntries(people.map(p => [p, 0]));
+    result.collectionUnassigned = 0; result.collectionUnassignedCount = 0; result.collectionAdjustments = [];
     for (const row of statement.rows) {
       const charge = chargeKinds.has(row.kind);
+      const collection = row.kind === 'opening' && row.collectionAllocation
+        ? row.collectionAllocation : !row.ignored ? row.allocation : null;
+      let applied = 0;
+      for (const person of people) {
+        const amount = collection?.[person] || 0;
+        result.personCollection[person] += amount; applied += amount;
+      }
+      const residual = row.amountCents - applied;
+      result.collectionUnassigned += residual;
+      if (residual !== 0 || (!collection && row.amountCents !== 0)) {
+        result.collectionUnassignedCount++;
+        result.collectionAdjustments.push({id:row._id, description:row.description, kind:row.kind, amountCents:residual});
+      }
       result.imported += row.amountCents;
       if (charge) result.charges += row.amountCents;
       if (row.kind === 'opening') result.opening += row.amountCents;
@@ -34,6 +49,8 @@
     result.importMatches = result.imported === statement.balanceCents;
     result.balanceGap = result.assigned - statement.balanceCents;
     result.balanceAllocated = result.importMatches && result.balanceGap === 0 && !result.unassignedCount && !statement.rows.some(r => r.ignored) && !result.invalidSplits;
+    result.collectionTotal = Object.values(result.personCollection).reduce((sum, n) => sum+n, 0);
+    result.collectionReady = result.importMatches && !result.collectionUnassignedCount && !result.invalidSplits;
     return result;
   }
   const api = { calculate };

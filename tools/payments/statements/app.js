@@ -15,14 +15,14 @@ function saved(){
  $('save-status').textContent=pending.size?`Saving ${pending.size} ${pending.size===1?'change':'changes'}…${warning?' Some changes need review.':''}`:desiredView||viewSaving?'Saving view…':warning||'All changes saved';
  $('save-status').classList.toggle('error',!!warning);
 }
-let order='newest',kindFilter='all',dateFrom='',dateTo='',totalsMode='charges';
+let order='newest',kindFilter='all',dateFrom='',dateTo='',totalsMode='collect';
 const kindNames={purchase:'Purchases',credit:'Credits & refunds',payment:'Payments',fee:'Fees',interest:'Interest',opening:'Opening balance'};
 const pickers=Object.fromEntries(['sort-order','filter-assignment','filter-kind','filter-period'].map(id=>[id,SearchableSelect.enhance($(id))]));
 let linkedView=new URLSearchParams(location.hash.split('&').slice(1).join('&')).has('view');
 const linkParams=()=>new URLSearchParams(location.hash.split('&').slice(1).join('&'));
 function readLinkView(){
  const params=linkParams();
- totalsMode=params.get('totals')==='balance'?'balance':'charges';
+ totalsMode=params.get('totals')==='charges'?'charges':'collect';
  order=['newest','oldest','amount','type'].includes(params.get('sort'))?params.get('sort'):'newest';
  kindFilter=['purchase','credit','payment','fee','interest','opening'].includes(params.get('type'))?params.get('type'):'all';
  dateFrom=/^\d{4}-\d{2}-\d{2}$/.test(params.get('from'))?params.get('from'):'';
@@ -31,7 +31,7 @@ function readLinkView(){
 }
 function writeLinkView(replace=false,panel=$('filters-dialog').open){
  const params=new URLSearchParams({view:filter,sort:order});
- if(totalsMode==='balance')params.set('totals','balance');
+ if(totalsMode==='charges')params.set('totals','charges');
  if(kindFilter!=='all')params.set('type',kindFilter);
  if(dateFrom)params.set('from',dateFrom);if(dateTo)params.set('to',dateTo);
  if(panel)params.set('panel','filters');
@@ -85,21 +85,22 @@ function updateFilterPreview(){
 }
 function updateTotals(){
  const math=StatementReconciliation.calculate(data),chargeMode=totalsMode==='charges';
- const totals={...(chargeMode?math.personCharges:math.personBalances),unassigned:chargeMode?math.chargeUnassigned:math.unassigned};let assigned=0,ignored=0,ignoredAmount=0;
+ const totals={...(chargeMode?math.personCharges:math.personCollection),unassigned:chargeMode?math.chargeUnassigned:math.collectionUnassigned};let assigned=0,ignored=0,ignoredAmount=0;
  for(const r of data.rows){if(r.ignored){ignored++;ignoredAmount+=r.amountCents;continue;}if(r.allocation)assigned++;}
  for(const [p,n] of Object.entries(totals))$(p+'-total').textContent=money(n);
  renderReconciliation(math);
- $('ignored-summary').hidden=!ignored;$('ignored-summary').textContent=`${ignored} ignored ${ignored===1?'item':'items'} · ${money(ignoredAmount)} excluded from allocation totals. Restore them from Ignored.`;
+ $('ignored-summary').hidden=!ignored;$('ignored-summary').textContent=`${ignored} ignored ${ignored===1?'item':'items'} · ${money(ignoredAmount)} excluded from person totals. ${chargeMode?'Restore them from Ignored.':'Kept in unassigned adjustments unless a prior split is applied.'}`;
  $('progress').textContent=assigned+ignored===data.rows.length?(ignored?'All remaining items assigned':'All items assigned'):`${data.rows.length-assigned-ignored} ${data.rows.length-assigned-ignored===1?'item':'items'} left to assign`;
  $('progress-bar').max=data.rows.length;$('progress-bar').value=assigned+ignored;saved();
 }
 function renderReconciliation(math){
- const chargeMode=totalsMode==='charges',csv=data.sourceType==='csv';
- $('totals-title').textContent=chargeMode?'Charge allocations':'Balance allocations';
- $('totals-help').textContent=chargeMode?'This period’s purchases, refunds, fees and interest, split by person. Prior balances and card payments stay in the statement reconciliation above.':csv?'Includes assigned activity and card payments. The CSV provides no opening balance, so these are not verified current balances.':'Includes assigned charges, carried balances and card payments. Ignored items are excluded; these totals do not confirm reimbursements.';
+ const chargeMode=totalsMode==='charges',csv=data.sourceType==='csv',ready=math.collectionReady&&!csv&&!pending.size&&!failures.size&&!saveWarning;
+ $('totals-title').textContent=chargeMode?'Purchase history':ready?'To collect':'To collect · provisional';
+ $('unassigned-label').textContent=chargeMode?'Unassigned':'Unassigned adjustments';
+ $('totals-help').textContent=chargeMode?'This period’s purchases, refunds, fees and interest, split by person. Prior balances and card payments stay in the statement reconciliation below.':csv?'Payments reduce the assigned shares. This CSV has no opening balance; confirm the issuer balance before requesting money.':'What remains after the prior split and allocated card payments. Purchases stay in their original history. Resolve unassigned adjustments before making final payment requests.';
  const params=linkParams();
- for(const [id,mode] of [['charges-view','charges'],['balances-view','balance']]){
-  const p=new URLSearchParams(params);if(mode==='balance')p.set('totals','balance');else p.delete('totals');
+ for(const [id,mode] of [['charges-view','charges'],['balances-view','collect']]){
+  const p=new URLSearchParams(params);if(mode==='charges')p.set('totals','charges');else p.delete('totals');
   const link=$(id);link.href=location.pathname+location.search+'#'+token+(p.size?'&'+p:'');
   if(mode===totalsMode)link.setAttribute('aria-current','page');else link.removeAttribute('aria-current');
  }
@@ -109,16 +110,20 @@ function renderReconciliation(math){
  }
  $('statement-math-status').textContent=math.importMatches?csv?'Imported activity arithmetic matches':'Statement arithmetic matches':'Imported amounts need review';
  $('statement-math-help').textContent=csv?'The imported activity includes payments and refunds. No opening balance was provided; this is not the issuer’s current balance.':'New charges + carried balance + card payments = statement balance. Older charges stay with their original statement. Paying the card does not by itself mean someone has reimbursed you.';
- const context=data.rows.filter(r=>r.kind==='opening'&&r.note).map(r=>r.note).join('\n');
+ const context=data.rows.filter(r=>r.kind==='opening'&&(r.collectionNote||r.note)).map(r=>r.collectionNote||r.note).join('\n');
  $('prior-context').textContent=context;$('prior-context').hidden=!context;
+ const adjustments=$('collection-adjustments');adjustments.replaceChildren();adjustments.hidden=chargeMode||!math.collectionAdjustments.length;
+ if(!chargeMode)for(const a of math.collectionAdjustments){const li=el('li');li.append(el('span',a.kind==='opening'?'Prior balance adjustment':merchantName(a.description||'Unassigned item')),el('strong',money(a.amountCents)));adjustments.append(li);}
  if(chargeMode){
+  $('allocation-check').classList.remove('needs-review');
   const assigned=Object.values(math.personCharges).reduce((a,b)=>a+b,0);
   $('allocation-check').textContent=math.invalidSplits?'A saved split needs review.':math.chargeUnassignedCount?`${math.chargeUnassignedCount} charge ${math.chargeUnassignedCount===1?'item still needs':'items still need'} a label · ${money(math.chargeUnassigned)} net unassigned. Assigned ${money(assigned)} + unassigned ${money(math.chargeUnassigned)} + ignored charges ${money(math.chargeIgnored)} = ${money(math.charges)}.`:`Charge review complete. Assigned ${money(assigned)} + ignored charges ${money(math.chargeIgnored)} = ${money(math.charges)}. This is spending after refunds, before card payments.`;
  }else{
-  $('allocation-check').textContent=math.balanceAllocated?`All rows are allocated and the person totals match the ${csv?'imported activity':'statement'}.`:`Assigned ${money(math.assigned)} + unassigned ${money(math.unassigned)} + ignored ${money(math.ignored)} = ${money(data.balanceCents)}. ${money(Math.abs(math.balanceGap))} ${math.balanceGap>=0?'above':'below'} the ${csv?'imported activity':'statement'} in assigned totals. Review excluded items before using person totals as amounts still due.`;
+  $('allocation-check').textContent=ready?`Ready to collect: the person totals add up to ${money(data.balanceCents)}.`:`${pending.size||failures.size||saveWarning?'Finish saving or resolve save errors before collecting.':`${math.collectionUnassignedCount} ${math.collectionUnassignedCount===1?'adjustment needs':'adjustments need'} an owner.`} Person totals ${money(math.collectionTotal)} + unassigned adjustments ${money(math.collectionUnassigned)} = ${money(math.imported)}. ${csv?'Confirm the issuer balance before requesting money.':'These are provisional amounts, not final payment requests.'}`;
+  $('allocation-check').classList.toggle('needs-review',!ready);
  }
 }
-for(const [id,mode] of [['charges-view','charges'],['balances-view','balance']])$(id).addEventListener('click',event=>{
+for(const [id,mode] of [['charges-view','charges'],['balances-view','collect']])$(id).addEventListener('click',event=>{
  if(event.button||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return;
  event.preventDefault();totalsMode=mode;writeLinkView();updateTotals();
 });
@@ -135,7 +140,7 @@ function updateRow(r){
 }
 
 function clearReview(){++request;for(const entry of pending.values())entry.resolve(false);pending.clear();needsRefresh.clear();failures.clear();closePdf();data=null;sharedViewVersion=null;desiredView=null;clearTimeout(viewTimer);$('review').hidden=true;$('balance').hidden=true;$('copy-link').hidden=true;$('transactions').replaceChildren();if(pdfUrl)URL.revokeObjectURL(pdfUrl);pdfUrl=null;StatementPdf.reset();$('pdf-open').removeAttribute('href');$('edit-dialog').close();editing=null;}
-async function refresh(silent=false){if(pending.size||editing||viewSaving||desiredView)return;const seq=++request;try{const value=await call('query','review',{token});if(seq!==request||pending.size||editing||viewSaving||desiredView)return;const oldRows=new Map((data?.rows||[]).map(r=>[r._id,r]));const sameList=data&&data.rows.length===value.rows.length&&value.rows.every(r=>oldRows.has(r._id));value.rows=value.rows.map(r=>{const old=oldRows.get(r._id);if(old){delete old.allocation;delete old.ignored;Object.assign(old,r);return old;}return r;});const viewChanged=sharedViewVersion!==(value.viewVersion??0);data=value;if(viewChanged){sharedViewVersion=value.viewVersion??0;if(!linkedView||sameList){filter=normalizeFilter(value.view?.filter);if(linkedView)writeLinkView(true);}$('search').value=value.view?.search||'';}needsRefresh.clear();$('status').textContent='';syncViewControls();if(sameList&&!viewChanged&&filter==='all'&&!$('search').value){updateTotals();data.rows.forEach(updateRow);}else render();}catch(e){if(seq!==request)return;if(/unavailable/.test(e.message)){clearReview();$('status').textContent='This statement link is unavailable. Ask John for a current link.';}else if(!silent||!data){$('status').textContent='Could not load the statement. Check your connection, then reload this page.';}else{saveWarning='Could not refresh. Displaying the last loaded version.';saved();}}}
+async function refresh(silent=false){if(pending.size||editing||viewSaving||desiredView)return;const seq=++request;try{const value=await call('query','review',{token});if(seq!==request||pending.size||editing||viewSaving||desiredView)return;const oldRows=new Map((data?.rows||[]).map(r=>[r._id,r]));const sameList=data&&data.rows.length===value.rows.length&&value.rows.every(r=>oldRows.has(r._id));value.rows=value.rows.map(r=>{const old=oldRows.get(r._id);if(old){delete old.allocation;delete old.ignored;delete old.collectionAllocation;delete old.collectionNote;Object.assign(old,r);return old;}return r;});const viewChanged=sharedViewVersion!==(value.viewVersion??0);data=value;if(viewChanged){sharedViewVersion=value.viewVersion??0;if(!linkedView||sameList){filter=normalizeFilter(value.view?.filter);if(linkedView)writeLinkView(true);}$('search').value=value.view?.search||'';}needsRefresh.clear();$('status').textContent='';syncViewControls();if(sameList&&!viewChanged&&filter==='all'&&!$('search').value){updateTotals();data.rows.forEach(updateRow);}else render();}catch(e){if(seq!==request)return;if(/unavailable/.test(e.message)){clearReview();$('status').textContent='This statement link is unavailable. Ask John for a current link.';}else if(!silent||!data){$('status').textContent='Could not load the statement. Check your connection, then reload this page.';}else{saveWarning='Could not refresh. Displaying the last loaded version.';saved();}}}
 function allocationLabel(row){if(!row.allocation)return null;return people.find(p=>row.allocation[p]===row.amountCents&&people.filter(x=>x!==p).every(x=>(row.allocation[x]??0)===0))||'split';}
 function render(){
  $('review').hidden=false;$('balance').hidden=false;$('copy-link').hidden=false;$('title').textContent=data.title;$('period').textContent=data.period;$('balance-amount').textContent=money(data.balanceCents);$('due-date').textContent=data.dueDate?'Due '+new Date(data.dueDate+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'Due date not provided';
@@ -168,7 +173,7 @@ function merchantName(description){
 function row(r){
  const item=el('article',undefined,'row'+(r.ignored?' ignored':''));item.dataset.id=r._id;
  const top=el('div',undefined,'row-top'),heading=el('div'),amount=el('div',money(r.amountCents),'amount'+(r.amountCents<0?' negative':''));
- heading.append(el('h3',merchantName(r.description),'merchant'),el('div',new Date(r.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}),'date'));top.append(heading,amount);item.append(top);const badge=el('p','Ignored · excluded from totals','ignored-badge');badge.hidden=!r.ignored;item.append(badge);
+ heading.append(el('h3',merchantName(r.description),'merchant'),el('div',new Date(r.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}),'date'));top.append(heading,amount);item.append(top);const badge=el('p','Ignored · excluded from person assignments','ignored-badge');badge.hidden=!r.ignored;item.append(badge);
  const actions=el('div',undefined,'row-actions'),label=allocationLabel(r);
  for(const p of people){const b=el('button',title(p),'label-button');b.dataset.label=p;b.setAttribute('aria-pressed',String(label===p));b.title=label===p?'Click again to clear this label':'Assign to '+title(p);b.setAttribute('aria-label',`Assign ${r.description} to ${title(p)}`);b.disabled=!!r.ignored||needsRefresh.has(r._id);b.onclick=()=>saveRow(r,allocationLabel(r)===p?null:Object.fromEntries(people.map(k=>[k,k===p?r.amountCents:0])),r.note);actions.append(b);}
  const ignore=el('button',r.ignored?'Restore row':'Ignore row','quiet ignore-row');ignore.setAttribute('aria-pressed',String(!!r.ignored));ignore.disabled=needsRefresh.has(r._id);ignore.onclick=()=>saveRow(r,r.allocation,r.note,false,!r.ignored);

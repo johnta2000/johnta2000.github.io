@@ -3,6 +3,21 @@ const token='a'.repeat(43),otherToken='b'.repeat(43);
 before(async()=>{const result=await esbuild.build({entryPoints:[path.join(__dirname,'../../../../convex/statements.ts')],bundle:true,write:false,platform:'node',format:'cjs',plugins:[{name:'test',setup(build){build.onResolve({filter:/\.\/_generated\/server$/},()=>({path:'server',namespace:'test'}));build.onLoad({filter:/.*/,namespace:'test'},()=>({contents:'export const query=x=>x, mutation=x=>x, internalQuery=x=>x, internalMutation=x=>x;'}));}}]});const module={exports:{}};vm.runInNewContext(result.outputFiles[0].text,{module,exports:module.exports,require,process:{env:{CARD_PAYMENTS_WORKSPACE_OWNER:'owner',CARD_PAYMENTS_ALLOWED_EMAIL:'owner@example.com'}},console,TextEncoder,TextDecoder});api=module.exports;});
 function fixture(identity=null){const tables={paymentStatements:[{_id:'s1',owner:'owner',token,enabled:true,title:'Sample',period:'Sample period',dueDate:'2026-10-12',balanceCents:7000,storageId:'private-file',fingerprint:'old'},{_id:'s2',owner:'other',token:otherToken,enabled:true}],paymentStatementRows:[{_id:'r1',statementId:'s1',date:'2026-09-01',description:'Test merchant',kind:'purchase',page:1,order:0,amountCents:10000,version:0,note:''},{_id:'r2',statementId:'s1',date:'2026-09-02',description:'Test refund',kind:'credit',page:2,order:1,amountCents:-3000,version:0,note:''},{_id:'r3',statementId:'s2',amountCents:5000,version:0,note:''}]};let seq=0;const ctx={auth:{getUserIdentity:async()=>identity},db:{system:{get:async()=>({contentType:'application/pdf',size:500})},query(table){const filters=[];const q={eq(k,v){filters.push(r=>r[k]===v);return q;}};const b={withIndex(_,fn){fn(q);return b;},async collect(){return tables[table].filter(r=>filters.every(f=>f(r)));},async unique(){const rows=await b.collect();assert.ok(rows.length<=1);return rows[0]||null;}};return b;},async get(id){return Object.values(tables).flat().find(r=>r._id===id)||null;},async patch(id,data){const row=await ctx.db.get(id);for(const[k,v]of Object.entries(data)){if(v===undefined)delete row[k];else row[k]=v;}},async insert(table,data){const id='new'+(++seq);tables[table].push({_id:id,...data});return id;}}};return {tables,ctx,run:(name,args={})=>api[name].handler(ctx,args)};}
 const assign={token,id:'r1',expectedVersion:0,allocation:{parents:10000,john:0,other:0},note:''};
+test('only owners can carry a previous split; credits stay residual and source rows and labels are preserved',async()=>{
+ const f=fixture({email:'owner@example.com',emailVerified:true});
+ const r=f.tables.paymentStatementRows[0];r.kind='opening';r.amountCents=9950;r.ignored=true;
+ const args={id:'r1',expectedVersion:0,allocation:{parents:6000,john:4000,other:0},note:'Prior split; unassigned credit remains separate.'};
+ await assert.rejects(fixture().run('setCarryover',args),/not authorized/);
+ await assert.rejects(f.run('setCarryover',{...args,id:'r3'}),/not found/);
+ await assert.rejects(f.run('setCarryover',{...args,id:'r2'}),/opening balance/);
+ await assert.rejects(f.run('setCarryover',{...args,allocation:{parents:1.5,john:0,other:0}}),/Invalid prior split/);
+ await f.run('setCarryover',args);
+ assert.equal(r.collectionAllocation.john,4000);assert.equal(r.amountCents,9950);assert.equal(r.ignored,true);assert.equal(r.allocation,undefined);
+ assert.equal(r.amountCents-Object.values(r.collectionAllocation).reduce((a,b)=>a+b,0),-50);
+ await assert.rejects(f.run('setCarryover',args),/changed/);
+ const review=await f.run('review',{token});assert.equal(review.rows[0].collectionNote,args.note);
+ await f.run('setCarryover',{...args,expectedVersion:1,allocation:null});assert.equal(r.collectionAllocation,undefined);
+});
 test('legacy statements open to unassigned without changing their records',async()=>{
  const f=fixture(),before=JSON.stringify(f.tables);
  const result=await f.run('review',{token});

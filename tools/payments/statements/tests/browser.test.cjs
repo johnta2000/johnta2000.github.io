@@ -207,6 +207,7 @@ for(const browserType of [chromium,webkit])test(`${browserType.name()}: clicking
 for(const browserType of [chromium,webkit])test(`${browserType.name()}: ignored rows persist, exclude amounts, restore labels and support direct filters and history`,async()=>{
  const browser=await browserType.launch();try{for(const width of [390,1280]){
  const {page,db,errors}=await setup(browser,width,844);
+ await page.locator('#charges-view').click();
  await page.locator('[data-id="1"] [data-label="parents"]').click();await page.waitForFunction(()=>document.getElementById('save-status').textContent==='All changes saved');
  await page.locator('[data-id="1"] details').evaluate(n=>n.open=true);await page.locator('[data-id="1"] .ignore-row').click();await page.waitForFunction(()=>document.getElementById('save-status').textContent==='All changes saved');
  assert.equal(db.rows[0].ignored,true);assert.equal(db.rows[0].allocation.parents,14321);assert.equal(await page.locator('#parents-total').textContent(),'$0.00');assert.equal(await page.locator('#unassigned-total').textContent(),'$0.00');assert.match(await page.locator('#progress').textContent(),/2 items left/);assert.match(await page.locator('#ignored-summary').textContent(),/1 ignored item · \$143.21/);
@@ -235,16 +236,17 @@ test('statement reconciliation separates charges from carried balances and payme
   db.rows.push({_id:'payment',date:'2026-09-10',kind:'payment',description:'Card payment',amountCents:-6000,allocation:{parents:-2000,john:-4000,other:0},note:'',version:0,page:2});
   const before=JSON.stringify(db.rows);
   const {page,errors}=await setup(browser,width,900,db);
-  assert.equal(await page.locator('#totals-title').textContent(),'Charge allocations');
+  await page.locator('#charges-view').click();
+  assert.equal(await page.locator('#totals-title').textContent(),'Purchase history');
   assert.equal(await page.locator('#parents-total').textContent(),'$143.21');
   assert.equal(await page.locator('#john-total').textContent(),'$0.00');
   assert.match(await page.locator('#statement-equation').textContent(),/\$143.21.*\$50.00.*-\$60.00.*\$133.21/);
   assert.match(await page.locator('#prior-context').textContent(),/already reviewed/);
   assert.match(await page.locator('#statement-math-status').textContent(),/arithmetic matches/);
   await page.locator('#balances-view').click();
-  assert.match(page.url(),/totals=balance/);
+  assert.ok(!page.url().includes('totals=charges'));
   assert.equal(await page.locator('#john-total').textContent(),'-$10.00');
-  assert.match(await page.locator('#allocation-check').textContent(),/person totals match/);
+  assert.match(await page.locator('#allocation-check').textContent(),/Ready to collect/);
   const copied=page.url();await page.reload();await page.locator('.row').first().waitFor();
   assert.equal(await page.locator('#john-total').textContent(),'-$10.00');
   const fresh=await setup(browser,width,900,db);await fresh.page.goto(copied);await fresh.page.locator('.row').first().waitFor();
@@ -265,9 +267,39 @@ test('ignored payments and cancelling unassigned items cannot claim fully alloca
   db.rows.push({_id:'payment',date:'2026-09-10',kind:'payment',description:'Payment',amountCents:-1000,ignored:true,note:'',version:0,page:2});
   const {page}=await setup(browser,390,900,db);
   await page.locator('#balances-view').click();
-  assert.match(await page.locator('#allocation-check').textContent(),/ignored -\$10.00/);
-  assert.ok(!(await page.locator('#allocation-check').textContent()).includes('person totals match'));
+  assert.match(await page.locator('#allocation-check').textContent(),/unassigned adjustments/);
+  assert.ok(!(await page.locator('#allocation-check').textContent()).includes('Ready to collect'));
   assert.match(await page.locator('#statement-math-status').textContent(),/arithmetic matches/);
   await page.close();
  }finally{await browser.close();}
+});
+
+
+test('To collect is the default, carries prior shares, deducts payments and keeps unassigned credits provisional',async()=>{
+ const browser=await chromium.launch();
+ try {for(const width of [1280,390,320]){
+  const db=fixture();db.balanceCents=69950;
+  db.rows=[
+   {_id:'prior',kind:'opening',date:'2026-08-18',description:'Prior balance',amountCents:9950,collectionAllocation:{parents:5000,john:5000,other:0},collectionNote:'Prior split with an unassigned credit.',ignored:true,note:'Prior context',version:0,page:1},
+   {_id:'old-payment',kind:'payment',date:'2026-09-02',description:'Prior balance paid',amountCents:-10000,allocation:{parents:-5000,john:-5000,other:0},note:'',version:0,page:2},
+   {_id:'purchase',kind:'purchase',date:'2026-09-03',description:'Reimbursed purchase',amountCents:100000,allocation:{john:100000,parents:0,other:0},note:'Reimbursed; remains John purchase',version:0,page:2},
+   {_id:'paid',kind:'payment',date:'2026-09-04',description:'Already covered',amountCents:-30000,allocation:{john:-30000,parents:0,other:0},note:'',version:0,page:2},
+  ];
+  const before=JSON.stringify(db.rows);const {page,errors}=await setup(browser,width,900,db);
+  assert.equal(await page.locator('#totals-title').textContent(),'To collect · provisional');
+  assert.equal(await page.locator('#john-total').textContent(),'$700.00');
+  assert.equal(await page.locator('#parents-total').textContent(),'$0.00');
+  assert.equal(await page.locator('#unassigned-total').textContent(),'-$0.50');
+  assert.match(await page.locator('#allocation-check').textContent(),/not final payment requests/);
+  await page.locator('#charges-view').click();assert.equal(await page.locator('#john-total').textContent(),'$1,000.00');
+  assert.match(page.url(),/totals=charges/);const copied=page.url();await page.reload();await page.locator('.row').first().waitFor();
+  assert.equal(await page.locator('#john-total').textContent(),'$1,000.00');
+  const fresh=await setup(browser,width,900,db);await fresh.page.goto(copied);await fresh.page.locator('.row').first().waitFor();assert.equal(await fresh.page.locator('#john-total').textContent(),'$1,000.00');await fresh.page.close();
+  await page.locator('#balances-view').click();assert.equal(await page.locator('#john-total').textContent(),'$700.00');
+  await page.goBack();assert.equal(await page.locator('#john-total').textContent(),'$1,000.00');
+  await page.goForward();assert.equal(await page.locator('#john-total').textContent(),'$700.00');
+  assert.equal(JSON.stringify(db.rows),before);assert.equal(db.requests.length,0);assert.deepEqual(errors,[]);
+  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+  await page.screenshot({path:`/private/tmp/statement-collect-${width}.png`,fullPage:true});await page.close();
+ }}finally{await browser.close();}
 });

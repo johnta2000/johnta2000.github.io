@@ -35,3 +35,19 @@ test('import differences and malformed splits remain visible',()=>{
  const m=calculate({balanceCents:1001,rows:[row('purchase',1000,{allocation:{john:900}})]});
  assert.equal(m.importMatches,false);assert.equal(m.invalidSplits,1);assert.equal(m.balanceAllocated,false);
 });
+test('collection applies confirmed prior splits and payments while preserving the full purchase history',()=>{
+ const s={balanceCents:6950,rows:[
+  row('opening',1950,{ignored:true,collectionAllocation:{parents:1000,john:1000}}),
+  row('payment',-2000,{allocation:{parents:-1000,john:-1000}}),
+  row('purchase',10000,{allocation:{john:10000}}),
+  row('payment',-3000,{allocation:{john:-3000}}),
+ ]};
+ const m=calculate(s);
+ assert.equal(m.personCharges.john,10000);assert.equal(m.personCollection.john,7000);assert.equal(m.personCollection.parents,0);
+ assert.equal(m.collectionUnassigned,-50);assert.equal(m.collectionUnassignedCount,1);assert.equal(m.collectionReady,false);
+ assert.equal(m.collectionTotal+m.collectionUnassigned,s.balanceCents);
+});
+test('ignored and unassigned rows are held as adjustments, never silently removed from collection',()=>{
+ const m=calculate({balanceCents:1000,rows:[row('purchase',2000,{allocation:{john:2000}}),row('credit',-1000,{ignored:true})]});
+ assert.equal(m.personCollection.john,2000);assert.equal(m.collectionUnassigned,-1000);assert.equal(m.collectionReady,false);
+});
