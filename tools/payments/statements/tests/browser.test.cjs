@@ -223,3 +223,51 @@ for(const browserType of [chromium,webkit])test(`${browserType.name()}: ignored 
  assert.deepEqual(errors,[]);assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));await page.close();
  }}finally{await browser.close();}
 });
+
+test('statement reconciliation separates charges from carried balances and payments; totals views survive links and navigation',async()=>{
+ const browser=await chromium.launch();
+ try{for(const width of [1280,390,320]){
+  const db=fixture();db.balanceCents=13321;
+  db.rows[0].allocation={parents:14321,john:0,other:0};
+  db.rows[1].allocation={parents:0,john:100000,other:0};
+  db.rows[2].allocation={parents:0,john:-100000,other:0};
+  db.rows.push({_id:'opening',date:'2026-08-18',kind:'opening',description:'Previous balance',amountCents:5000,allocation:{parents:2000,john:3000,other:0},note:'Prior statement split already reviewed. No new spending.',version:0,page:1});
+  db.rows.push({_id:'payment',date:'2026-09-10',kind:'payment',description:'Card payment',amountCents:-6000,allocation:{parents:-2000,john:-4000,other:0},note:'',version:0,page:2});
+  const before=JSON.stringify(db.rows);
+  const {page,errors}=await setup(browser,width,900,db);
+  assert.equal(await page.locator('#totals-title').textContent(),'Charge allocations');
+  assert.equal(await page.locator('#parents-total').textContent(),'$143.21');
+  assert.equal(await page.locator('#john-total').textContent(),'$0.00');
+  assert.match(await page.locator('#statement-equation').textContent(),/\$143.21.*\$50.00.*-\$60.00.*\$133.21/);
+  assert.match(await page.locator('#prior-context').textContent(),/already reviewed/);
+  assert.match(await page.locator('#statement-math-status').textContent(),/arithmetic matches/);
+  await page.locator('#balances-view').click();
+  assert.match(page.url(),/totals=balance/);
+  assert.equal(await page.locator('#john-total').textContent(),'-$10.00');
+  assert.match(await page.locator('#allocation-check').textContent(),/person totals match/);
+  const copied=page.url();await page.reload();await page.locator('.row').first().waitFor();
+  assert.equal(await page.locator('#john-total').textContent(),'-$10.00');
+  const fresh=await setup(browser,width,900,db);await fresh.page.goto(copied);await fresh.page.locator('.row').first().waitFor();
+  assert.equal(await fresh.page.locator('#john-total').textContent(),'-$10.00');await fresh.page.close();
+  await page.locator('#charges-view').click();assert.equal(await page.locator('#john-total').textContent(),'$0.00');
+  await page.goBack();assert.equal(await page.locator('#john-total').textContent(),'-$10.00');
+  await page.goForward();assert.equal(await page.locator('#john-total').textContent(),'$0.00');
+  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+  await page.screenshot({path:`/private/tmp/statement-reconciliation-${width}.png`,fullPage:true});
+  assert.equal(db.requests.length,0);assert.equal(JSON.stringify(db.rows),before);assert.deepEqual(errors,[]);await page.close();
+ }}finally{await browser.close();}
+});
+
+test('ignored payments and cancelling unassigned items cannot claim fully allocated balance',async()=>{
+ const browser=await chromium.launch();
+ try{
+  const db=fixture();db.balanceCents-=1000;
+  db.rows.push({_id:'payment',date:'2026-09-10',kind:'payment',description:'Payment',amountCents:-1000,ignored:true,note:'',version:0,page:2});
+  const {page}=await setup(browser,390,900,db);
+  await page.locator('#balances-view').click();
+  assert.match(await page.locator('#allocation-check').textContent(),/ignored -\$10.00/);
+  assert.ok(!(await page.locator('#allocation-check').textContent()).includes('person totals match'));
+  assert.match(await page.locator('#statement-math-status').textContent(),/arithmetic matches/);
+  await page.close();
+ }finally{await browser.close();}
+});
