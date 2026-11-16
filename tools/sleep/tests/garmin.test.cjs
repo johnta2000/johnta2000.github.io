@@ -1,6 +1,7 @@
 const {test,before}=require('node:test'),assert=require('node:assert/strict'),esbuild=require('esbuild'),vm=require('node:vm'),path=require('node:path');
 const {getFunctionName}=require('convex/server');
 let client,cryptoApi,data,env;
+const tokenFixture='eyJhbGciOiJSUzI1NiJ9.eyJleHAiOjE5MDAwMDAwMDB9.synthetic-signature';
 before(async()=>{
  env={SLEEP_ALLOWED_EMAIL:'owner@example.com',GARMIN_PERSONAL_ENABLED:'true',GARMIN_TOKEN_ENCRYPTION_KEY:Buffer.alloc(32,7).toString('base64')};
  async function bundle(name){const b=await esbuild.build({entryPoints:[path.join(__dirname,'../../../convex',name+'.ts')],bundle:true,write:false,platform:'node',format:'cjs',plugins:[{name:'handlers',setup(b){b.onResolve({filter:/\.\/_generated\/server$/},()=>({path:'server',namespace:'test'}));b.onLoad({filter:/.*/,namespace:'test'},()=>({contents:'export const query=x=>x;export const mutation=x=>x;export const internalQuery=x=>x;export const internalMutation=x=>x;export const action=x=>x;'}));}}]});const m={exports:{}};vm.runInNewContext(b.outputFiles[0].text,{module:m,exports:m.exports,require,Buffer,Date,Intl,URLSearchParams,AbortSignal,setTimeout,process:{env},fetch:async()=>{throw Error('Unexpected network request')}});return m.exports;}
@@ -20,9 +21,9 @@ test('off-wrist, absent and invalid data stay missing; stages cannot exceed slee
  const w=client.windows('2026-08-17','2026-11-14');assert.equal(w.length,3);assert.equal(w[0].end,'2026-09-16');assert.equal(w[1].start,'2026-09-17');assert.equal(w[2].end,'2026-11-14');
 });
 test('Personal API client uses fixed hosts, headers only, no redirect following, and safe errors',async()=>{
- const calls=[];const response=body=>({ok:true,status:200,json:async()=>body});
- const fetcher=async(url,options)=>{calls.push({url,options});if(url.includes('/token'))return response({access_token:'test-token'});if(url.includes('dailySleep'))return response([sleep]);if(url.includes('/hrv/'))return response({hrvSummaries:[{calendarDate:sleep.calendarDate,lastNightAvg:55}]});return response({calendarDate:sleep.calendarDate,source:'GARMIN',restingHeartRate:52});};
- const rows=await client.fetchGarmin('test-key','2026-11-14','2026-11-14',fetcher);assert.equal(rows.nights[0].score,84);assert.equal(calls.length,4);assert.equal(calls[0].options.headers.Authorization,'ApiKey test-key');assert.equal(calls[1].options.headers.Authorization,'Bearer test-token');
+ const calls=[];const response=body=>({ok:true,status:200,json:async()=>body,text:async()=>typeof body==='string'?body:JSON.stringify(body)});
+ const fetcher=async(url,options)=>{calls.push({url,options});if(url.includes('/token'))return response(tokenFixture);if(url.includes('dailySleep'))return response([sleep]);if(url.includes('/hrv/'))return response({hrvSummaries:[{calendarDate:sleep.calendarDate,lastNightAvg:55}]});return response({calendarDate:sleep.calendarDate,source:'GARMIN',restingHeartRate:52});};
+ const rows=await client.fetchGarmin('test-key','2026-11-14','2026-11-14',fetcher);assert.equal(rows.nights[0].score,84);assert.equal(calls.length,4);assert.equal(calls[0].options.headers.Authorization,'ApiKey test-key');assert.equal(calls[1].options.headers.Authorization,'Bearer '+tokenFixture);
  for(const c of calls){assert.ok(c.url.startsWith('https://personal.connectapi.garmin.com/'));assert.ok(!c.url.includes('test-key'));assert.equal(c.options.redirect,'error');}
  await assert.rejects(client.fetchGarmin('test-key','2026-11-14','2026-11-14',async()=>({ok:false,status:429,json:async()=>({secret:'test-key'})})),e=>e.message.includes('limiting')&&!e.message.includes('test-key'));
  await assert.rejects(client.fetchGarmin('test-key','2026-11-14','2026-11-14',async()=>response({wrong:'shape'})),/unsupported token/);
@@ -60,10 +61,10 @@ test('Garmin stage charts retain unclassified time instead of inventing light sl
 
 test('Garmin failures identify the failing operation and status without exposing credentials or provider bodies',async()=>{
  for(const [endpoint,label] of [['/token','authorization'],['dailySleep','sleep history'],['/hrv/','overnight HRV'],['/usersummary/','resting heart rate']]) {
-  const response=body=>({ok:true,status:200,json:async()=>body});
+  const response=body=>({ok:true,status:200,json:async()=>body,text:async()=>typeof body==='string'?body:JSON.stringify(body)});
   const request=async url=>{
    if(url.includes(endpoint))return {ok:false,status:502,json:async()=>{throw Error('must not read private response body')}};
-   if(url.includes('/token'))return response({access_token:'private-token'});
+   if(url.includes('/token'))return response(tokenFixture);
    if(url.includes('dailySleep'))return response([sleep]);
    if(url.includes('/hrv/'))return response({hrvSummaries:[]});
    return response({calendarDate:sleep.calendarDate,source:'GARMIN'});
@@ -85,8 +86,8 @@ test('Garmin frontend displays the safe provider error instead of the server sta
  vm.runInNewContext(fn+'; run=convexCall;',context);
  await assert.rejects(context.run('action','garmin:syncPersonal',{}),e=>e.message.startsWith('Garmin sleep history failed (HTTP 502)')&&!e.message.includes('Request ID'));
 });
-const goodResponse=body=>({ok:true,status:200,json:async()=>body});
-const usualGarmin=async url=>url.includes('/token')?goodResponse({access_token:'test-token'}):url.includes('dailySleep')?goodResponse([sleep]):url.includes('/hrv/')?goodResponse({hrvSummaries:[]}):goodResponse({calendarDate:new URL(url).searchParams.get('calendarDate'),source:'GARMIN',restingHeartRate:52});
+const goodResponse=body=>({ok:true,status:200,json:async()=>body,text:async()=>typeof body==='string'?body:JSON.stringify(body)});
+const usualGarmin=async url=>url.includes('/token')?goodResponse(tokenFixture):url.includes('dailySleep')?goodResponse([sleep]):url.includes('/hrv/')?goodResponse({hrvSummaries:[]}):goodResponse({calendarDate:new URL(url).searchParams.get('calendarDate'),source:'GARMIN',restingHeartRate:52});
 test('optional failures preserve sleep and keep failed dates out of replacement coverage',async()=>{
  let dailyCalls=0;
  const result=await client.fetchGarmin('key','2026-10-18','2026-11-14',async url=>{
@@ -129,4 +130,26 @@ test('partial-sync UI identifies accepted key and incomplete readings without cl
  vm.runInNewContext(ui+'; summarize=garminSyncSummary;',ctx);
  const message=ctx.summarize({synced:2,complete:false,warnings:['Garmin overnight HRV failed (HTTP 404).']});
  assert.match(message,/key was accepted/);assert.match(message,/HTTP 404/);assert.match(message,/retry/);
+});
+
+test('authorization follows Garmin official plain-text JWT contract while data stays JSON',async()=>{
+ const calls=[];
+ const result=await client.fetchGarmin('test-key',sleep.calendarDate,sleep.calendarDate,async(url,options)=>{
+  calls.push({url,options});
+  if(url.endsWith('/token')){
+   assert.equal(options.method,'POST');assert.equal(options.headers.Accept,'*/*');assert.equal(options.body,undefined);
+   return new Response('  '+tokenFixture+'\n',{status:200,headers:{'Content-Type':'text/plain'}});
+  }
+  assert.equal(options.headers.Accept,'application/json');assert.equal(options.headers.Authorization,'Bearer '+tokenFixture);
+  return usualGarmin(url);
+ });
+ assert.equal(result.complete,true);assert.equal(result.nights[0].durationMinutes,450);assert.equal(calls.length,4);
+ for(const body of ['', '<html>error</html>', '{"access_token":"wrong-contract"}', 'token\r\nInjected: value', 'a.b.', 'a.b.c d']){
+  let count=0;
+  await assert.rejects(client.fetchGarmin('test-key',sleep.calendarDate,sleep.calendarDate,async()=>{count++;return new Response(body,{status:200});}),e=>e.step==='authorization'&&e.message==='Garmin returned an unsupported token response.');
+  assert.equal(count,1);
+ }
+ let attempts=0;
+ await assert.rejects(client.fetchGarmin('test-key',sleep.calendarDate,sleep.calendarDate,async()=>{attempts++;return new Response('provider-private-body',{status:406});}),e=>e.status===406&&e.step==='authorization'&&!e.message.includes('provider-private-body'));
+ assert.equal(attempts,1);
 });

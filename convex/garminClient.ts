@@ -62,11 +62,14 @@ export async function fetchGarmin(apiKey: string, start: string, end: string, re
   const deadline=Date.now()+60000;
   async function json(path: string, auth: string, method = "GET") {
     const step = path.includes("/personal-api-key/token") ? "authorization" : path.includes("/sleep-service/") ? "sleep history" : path.includes("/hrv-service/") ? "overnight HRV" : "resting heart rate";
+    // Garmin's official authenticator accepts */* and reads a plain-text JWT.
+    // Only the health-data endpoints return JSON.
+    const tokenRequest = step === "authorization";
     for(let attempt=0;attempt<2;attempt++) {
       const remaining=deadline-Date.now();
       if(remaining<=0)throw new GarminRequestError(`Garmin ${step} is taking too long. Use Sync now to retry.`,step);
       let response: Response;
-      try { response = await request(BASE + path, {method, headers:{Authorization:auth, Accept:"application/json"}, redirect:"error", signal:AbortSignal.timeout(Math.min(12000,remaining))}); }
+      try { response = await request(BASE + path, {method, headers:{Authorization:auth, Accept:tokenRequest ? "*/*" : "application/json"}, redirect:"error", signal:AbortSignal.timeout(Math.min(12000,remaining))}); }
       catch { if(attempt===0 && Date.now()+500<deadline){await pause(250);continue;} throw new GarminRequestError(`Garmin ${step} could not be reached. Use Sync now to retry.`, step); }
       if (response.status === 204) return null;
       if (!response.ok) {
@@ -75,14 +78,16 @@ export async function fetchGarmin(apiKey: string, start: string, end: string, re
         const detail = response.status === 401 || response.status === 403 ? "Access was denied. Check your Personal API key and its expiration." : response.status === 429 ? "Garmin is limiting requests. Try again later." : response.status >= 500 ? "Garmin returned a service error. Try again later." : "Garmin rejected this request. Please share this message with John so the connection can be checked.";
         throw new GarminRequestError(`Garmin ${step} failed (HTTP ${response.status}). ${detail}`,step,response.status);
       }
-      try { return await response.json(); }
+      try { return tokenRequest ? await response.text() : await response.json(); }
       catch { throw new GarminRequestError(`Garmin ${step} returned an unreadable response. Use Sync now to retry.`,step,response.status); }
     }
     throw new GarminRequestError(`Garmin ${step} could not finish. Use Sync now to retry.`,step);
   }
   const token = await json("/personalapitoken-service/personal-api/personal-api-key/token", "ApiKey " + apiKey.trim(), "POST");
-  const bearer = token?.access_token ?? token?.accessToken;
-  if (typeof bearer !== "string" || !bearer || /[\r\n]/.test(bearer)) throw new GarminRequestError("Garmin returned an unsupported token response.","authorization");
+  const bearer = typeof token === "string" ? token.trim() : "";
+  // Reject HTML, JSON wrappers and malformed responses before using them in a header.
+  // This is a format check, not JWT signature verification; Garmin validates its bearer token.
+  if (bearer.length > 16384 || !/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(bearer)) throw new GarminRequestError("Garmin returned an unsupported token response.","authorization");
   const auth="Bearer "+bearer, sleeps:any[]=[], hrvs:any[]=[], summaries:any[]=[], warnings:string[]=[];
   const coverage:GarminCoverage={sleep:[],hrv:[],restingHeartRate:[]};
   const dates=(from:string,to:string)=>{const result:string[]=[];for(let d=from;d<=to;d=shift(d,1))result.push(d);return result;};
