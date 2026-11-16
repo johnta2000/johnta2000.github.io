@@ -165,3 +165,11 @@ test('Garmin sharing is explicit, source-isolated, metric-filtered and window-bo
  f.reads.length=0;friend=(await f.group('history','owner',{groupId:f.id})).members.find(m=>!m.self);
  assert.equal(friend.nights.length,0);assert.equal(f.reads.some(r=>r.table==='garminNights'),false);
 });
+
+test('Garmin workout sharing returns only opted-in daily totals',async()=>{
+ const f=await setup();await join(f);
+ f.tables.garminNights.push({...night('garmin'),ownerSubject:'friend',workoutMinutes:30,workoutCount:1,activityId:'private',route:'private'});
+ await f.group('updateSharing','friend',{groupId:f.id,name:'Friend',provider:'garmin',metrics:['workoutMinutes'],shareDays:7});
+ const friend=(await f.group('history','owner',{groupId:f.id})).members.find(m=>!m.self);
+ assert.equal(friend.nights[0].workoutMinutes,30);assert.equal(friend.nights[0].workoutCount,undefined);assert.equal(friend.nights[0].score,undefined);assert.ok(!JSON.stringify(friend).includes('private'));
+});

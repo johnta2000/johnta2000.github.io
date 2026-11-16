@@ -39,7 +39,17 @@ async function initializeGarmin() {
     document.querySelector('#garminSync').hidden=!status.configured || !status.connected;
     document.querySelector('#garminDisconnect').hidden=!status.connected;
     document.querySelector('#garminStatus').textContent=status.connected?(status.complete===false?'Connected · Sync incomplete':'Connected · Manual sync'):'Not connected';
-    message.textContent=!status.configured?'Garmin setup is being prepared. Personal API connection is not enabled for this account yet.':status.lastSyncedAt?`${status.complete===false?'Last checked':'Last synced'} ${new Date(status.lastSyncedAt).toLocaleString()}. ${status.complete===false?(status.warnings||[]).join(' ')+' Sync now retries the last '+status.syncDays+' days.':'Sync now refreshes the last 7 days.'}`:'Use a Personal API key from your own Garmin account. Your first sync imports the last 28 days.';
+    const syncHint = !status.activityReady
+      ? 'Sync now imports at least 28 days, including workouts.'
+      : status.complete === false
+        ? 'Sync now retries the last ' + status.syncDays + ' days.'
+        : 'Sync now refreshes the last 7 days.';
+    const warnings = status.complete === false ? (status.warnings || []).join(' ') : '';
+    message.textContent = !status.configured
+      ? 'Garmin setup is being prepared. Personal API connection is not enabled for this account yet.'
+      : status.lastSyncedAt
+        ? `${status.complete === false ? 'Last checked' : 'Last synced'} ${new Date(status.lastSyncedAt).toLocaleString()}. ${warnings} ${syncHint}`
+        : 'Use a Personal API key from your own Garmin account. Your first sync imports the last 28 days.';
   } catch {message.textContent='Garmin setup is not available yet. Your other connections are unaffected.';}
 }
 

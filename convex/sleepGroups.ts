@@ -5,7 +5,7 @@ import { requireSleepUser, signedIn } from "./sleepAccess";
 import { sharedMetric } from "./sleepTables";
 
 const sharing = { provider: v.optional(v.union(v.literal("whoop"), v.literal("garmin"))), name: v.string(), metrics: v.array(sharedMetric), shareDays: v.number() };
-const garminMetrics = new Set(["durationMinutes", "score", "deepMinutes", "remMinutes", "hrv", "restingHeartRate"]);
+const garminMetrics = new Set(["durationMinutes", "score", "deepMinutes", "remMinutes", "hrv", "restingHeartRate", "workoutMinutes", "workoutCount"]);
 function cleanSharing(args: {provider?: "whoop" | "garmin"; name: string; metrics: string[]; shareDays: number}) {
   const name = args.name.trim();
   if (!name || name.length > 40) throw new Error("Use a display name between 1 and 40 characters.");

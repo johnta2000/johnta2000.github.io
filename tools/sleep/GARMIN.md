@@ -1,10 +1,10 @@
-# Garmin integration — implementation status, November 14, 2026
+# Garmin integration — implementation status, November 15, 2026
 
 The Personal API backend is deployed and enabled for invited members as of November 14, 2026. The Connections page provides self-service setup using each member's own Garmin Personal API key. A real invited-member connection and sleep import were verified on November 15, 2026. No account application, terms acceptance, key creation, or paid service was performed.
 
 ## Current capability
 
-- `garmin:syncPersonal`: authenticated invited-member setup and manual sync. Initial sync retrieves 28 days; subsequent complete syncs default to 7. Incomplete syncs retry their original 28/90-day window. The action accepts 7/28/90 for explicit backfills.
+- `garmin:syncPersonal`: authenticated invited-member setup and manual sync. Initial sync retrieves 28 days; the first sync after the activity upgrade also backfills at least 28 days. Subsequent complete syncs default to 7. Incomplete syncs retry their original 28/90-day window. The action accepts 7/28/90 for explicit backfills.
 - `garminClient.ts`: exchanges a Personal API key for a temporary bearer token, fetches sleep and HRV summaries in windows of at most 31 days, and fetches daily resting heart rate. Headers carry credentials; fixed official hosts and disabled redirects prevent forwarding credentials elsewhere. Authentication rejection still aborts without writes. Independent data requests can save partial readings with explicit warnings. Network failures and 502/503/504 retry once within a 60-second request budget; daily resting-heart-rate requests use two workers and stop on a failed request. No scheduled polling yet.
 - AES-256-GCM encrypted keys, with the owner subject bound as authenticated data; tokens stay in memory. A separate random 32-byte server encryption key is required. Public status never exposes secrets. Revision checking prevents stale sync results from restoring a disconnected or replaced connection.
 - Private `garminNights` records merge into the authenticated personal dashboard. Group access requires explicit Garmin provider selection and metric opt-in; legacy memberships continue using WHOOP. Repeated sync replaces only the same owner's Garmin/date records. Disconnect removes the stored credential and retains imported history; revocation in Garmin itself is separate.
@@ -26,7 +26,7 @@ Garmin keys expire according to the period chosen by the account holder (30/90/1
 
 Garmin now documents Starter access as well as Enterprise access. Request the appropriate Health/Activity capabilities for Daylight's actual private-group use. Before implementing callbacks, obtain the program-specific data/delivery documentation and verify the permission/revocation contract. OAuth uses PKCE S256 and a server-side code exchange; use one-time, expiring, user-bound state and an allowlisted return destination. Do not assume the Personal API endpoints are the business Health API endpoints. Group sharing must be explicitly opt-in and source-labeled; don't silently replace WHOOP metrics with Garmin values.
 
-Workouts, continuous heart-rate charts, automatic refresh, native iOS Garmin UI, and multi-user OAuth are future work. The Personal API schema advertises activity and daily heart-rate endpoints, but this initial connector does not ingest them.
+Continuous heart-rate charts, automatic refresh, native iOS Garmin UI, and multi-user OAuth are future work. Daily workout totals are supported as described below.
 
 ## Primary references checked November 14, 2026
 
@@ -68,3 +68,18 @@ Members choose WHOOP or Garmin, individual metrics, and their rolling history wi
 Sleep-duration and Sleep score standings combine providers, with source badges across charts, hover details, members and standings. Score values are compared directly out of 100, with a brief note that provider calculations differ. Sleep improvement also accepts both providers. Saved selections of the former Garmin-only score board migrate to the combined score board without duplicates.
 
 Validation: 81 automated tests passed, including opt-in boundaries, source isolation, sharing windows, no double-counting, legacy memberships and combined score rankings. Synthetic desktop/mobile checks covered provider search, saved settings, failed-save draft recovery, refresh, copied URLs, Back/Forward and modal dismissal. Deploy with `scripts/sleep/deploy-group-providers.cjs` (dry run by default, `--apply` to publish); it patches only sleepGroups and the optional sleepMembers provider field on the live configuration.
+
+
+## Workout import and sharing — November 15, 2026
+
+Manual sync now fetches all pages of `/activitylist-service/activities/search/activities` within the requested date window. It uses Garmin's activity `duration` (timer seconds), never `elapsedDuration` (which includes pauses) or moving time. Activity local start dates determine the day. Duplicate activity IDs are counted once; multisport child activities are excluded to avoid counting both the parent and its legs. Conflicting duplicates, missing durations, repeated pages and incomplete pagination fail the activity stream safely.
+
+Only daily workout minutes and counts are stored. Raw workout titles, routes and locations are not retained. A completed day with another measured Garmin summary and a successfully retrieved empty activity result can count as a zero-workout rest day. Unknown days and an empty current day remain gaps. Failed activity requests preserve previously saved workout totals and allow independent sleep/biometric streams to complete with a warning. Activity endpoint permission failures do not discard a valid sleep import.
+
+The first successful activity sync sets a version marker. Existing connections without it backfill at least 28 days on their next default Sync now, retrying the full window if activities fail. Explicit 7/28/90-day requests remain supported. This release does not trigger a background import or alter anyone's sharing settings.
+
+After syncing, members select Garmin and opt into Workout time and/or Workouts in Members → Edit sharing. Workout duration standings combine Garmin and WHOOP with source labels; workout counts are available in the group chart. Existing completeness rules apply to the selected period. Sleep score is not mapped to recovery.
+
+Validation: 86 automated tests cover timer-versus-elapsed duration, local dates, duplicate/multisport handling, pagination, failed-stream preservation, rest-day gaps, owner isolation, per-metric sharing and mixed-provider standings. Synthetic desktop/mobile checks verified saving, refresh, copied sharing links and a Garmin workout total in standings. No real member's workouts were fetched or sharing settings changed during validation. Real-device activity import remains to be checked after an account holder syncs.
+
+Deploy with `node scripts/sleep/deploy-garmin-activities.cjs` (dry run by default; `--apply` publishes). It patches only garmin, garminData and sleepGroups modules plus optional Garmin workout/version fields, preserving all unrelated deployed modules.

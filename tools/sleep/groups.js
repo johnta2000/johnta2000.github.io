@@ -405,7 +405,7 @@ function formatMetricValue(value, metric) {
 
 function providerName(member) { return member.provider === 'garmin' ? 'Garmin' : 'WHOOP'; }
 function providerBadge(member) { return `<span class="group-provider">${providerName(member)}</span>`; }
-const GARMIN_SHARED_METRICS = ['durationMinutes','score','deepMinutes','remMinutes','hrv','restingHeartRate'];
+const GARMIN_SHARED_METRICS = ['durationMinutes','score','deepMinutes','remMinutes','hrv','restingHeartRate','workoutMinutes','workoutCount'];
 function updateSharingProvider() {
   const garmin = $('#groupShareProvider').value === 'garmin';
   $('#groupForm').querySelectorAll('[name="sharedMetric"]').forEach(input => {

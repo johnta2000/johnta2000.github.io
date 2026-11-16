@@ -25,7 +25,7 @@ export const syncPersonal = action({args:{apiKey:v.optional(v.string()),days:v.o
   const key=args.apiKey?.trim() || (connection?decryptKey(connection.encryptedKey,user.subject):"");
   if(!key)throw new Error("Add your Garmin Personal API key first.");
   const end=new Intl.DateTimeFormat("en-CA",{timeZone:"America/Los_Angeles",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
-  const days=args.days ?? (connection ? (connection.lastSyncComplete===false ? connection.lastSyncDays??28 : 7) : 28);
+  const days=args.days ?? (connection ? (connection.activitySyncVersion!==1 ? Math.max(28,connection.lastSyncDays??28) : connection.lastSyncComplete===false ? connection.lastSyncDays??28 : 7) : 28);
   const start=shift(end,1-days);
   let result;
   try { result=await fetchGarmin(key,start,end); }

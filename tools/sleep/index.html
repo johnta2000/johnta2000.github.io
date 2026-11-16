@@ -403,7 +403,7 @@
                 <div class="connection-icon garmin-icon" aria-hidden="true">G</div>
                 <span class="tag">PERSONAL CONNECTION</span>
                 <h2>Garmin</h2>
-                <p>Compare Garmin sleep scores, stages, overnight HRV, and resting heart rate in My data.</p>
+                <p>Import Garmin sleep scores, stages, overnight HRV, resting heart rate, and workouts. Share selected stats in Groups.</p>
                 <div class="source-data"><strong id="garminStatus">Not connected</strong><small>Private to your account · Manual sync</small></div>
                 <form id="garminForm" hidden>
                   <ol class="garmin-steps">
@@ -675,10 +675,10 @@
       </div>
     </dialog>
     <dialog id="groupDialog" class="group-dialog"><form id="groupForm"><div class="panel-heading"><h2 id="groupDialogTitle">Create a group</h2><button id="cancelGroupDialog" type="button" class="text-button">Cancel</button></div><p id="groupDialogIntro"></p><label id="groupNameLabel">Group name<input id="groupNameInput" maxlength="60" type="text"></label><label>Your display name<input id="groupDisplayName" maxlength="40" required type="text" autocomplete="nickname"></label><label>Provider to share<select id="groupShareProvider" aria-label="Provider to share"><option value="whoop">WHOOP</option><option value="garmin">Garmin</option></select></label><p id="groupProviderHelp" class="small-note"></p><fieldset id="groupSharingOptions"><legend>Share with this group</legend><p>Nothing is shared unless you select it. Your notes always stay private.</p><label><input type="checkbox" name="sharedMetric" value="durationMinutes"> Time asleep</label><label><input type="checkbox" name="sharedMetric" value="score"> Sleep performance</label><label><input type="checkbox" name="sharedMetric" value="efficiency"> Sleep efficiency</label></fieldset><label>History to share<select id="groupShareDays" aria-label="History to share"><option value="7">Last 7 days</option><option value="28">Last 28 days</option><option value="90" selected>Last 90 days</option><option value="180">Last 180 days</option></select></label><p class="small-note">This is a rolling window that includes future synced days. New members of this group can see the metrics you share.</p><p id="groupFormError" role="alert"></p><button id="saveGroupForm" type="submit" class="primary-button">Create group</button></form></dialog>
-    <script defer src="./model.js?v=20261115-groups-2"></script>
+    <script defer src="./model.js?v=20261115-activity-1"></script>
     <script defer src="./comparison.js?v=20261114-3"></script>
-    <script defer src="./groups.js?v=20261115-groups-2"></script>
-    <script defer src="./garmin.js?v=20261114-5"></script>
-    <script defer src="./app.js?v=20261115-groups-2"></script>
+    <script defer src="./groups.js?v=20261115-activity-1"></script>
+    <script defer src="./garmin.js?v=20261115-activity-1"></script>
+    <script defer src="./app.js?v=20261115-activity-1"></script>
   </body>
 </html>

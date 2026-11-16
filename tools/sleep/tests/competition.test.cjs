@@ -66,3 +66,12 @@ test('mixed-provider history and duration standings use exactly the chosen sourc
  const privateChart=D.groupHistory([{...garmin,metrics:[]}],'score',7,'2026-09-30');
  assert.equal(privateChart.members[0].count,0);assert.equal(privateChart.members[0].points[0].value,undefined);
 });
+
+test('Garmin and WHOOP workout totals rank together with complete coverage and explicit sharing',()=>{
+ const rows=Array.from({length:14},(_,i)=>({workoutMinutes:i%2?40:0}));
+ const whoop=member('WHOOP',rows),garmin=member('Garmin',rows,{provider:'garmin'});
+ garmin.nights=garmin.nights.map(n=>({...n,source:'garmin'}));
+ const board=D.standings([whoop,garmin],'workoutMinutes','2026-10-01');assert.ok(board.entries.every(m=>m.eligible&&m.rank===1&&m.result===160));
+ garmin.nights.pop();assert.equal(D.standings([garmin],'workoutMinutes','2026-10-01').entries[0].eligible,false);
+ garmin.metrics=[];assert.equal(D.standings([garmin],'workoutMinutes','2026-10-01').entries[0].reason,'Not shared');
+});

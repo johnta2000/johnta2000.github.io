@@ -1,11 +1,11 @@
 const {test,before}=require('node:test'),assert=require('node:assert/strict'),esbuild=require('esbuild'),vm=require('node:vm'),path=require('node:path');
 const {getFunctionName}=require('convex/server');
-let client,cryptoApi,data,env;
+let client,cryptoApi,data,activities,env;
 const tokenFixture='eyJhbGciOiJSUzI1NiJ9.eyJleHAiOjE5MDAwMDAwMDB9.synthetic-signature';
 before(async()=>{
  env={SLEEP_ALLOWED_EMAIL:'owner@example.com',GARMIN_PERSONAL_ENABLED:'true',GARMIN_TOKEN_ENCRYPTION_KEY:Buffer.alloc(32,7).toString('base64')};
  async function bundle(name){const b=await esbuild.build({entryPoints:[path.join(__dirname,'../../../convex',name+'.ts')],bundle:true,write:false,platform:'node',format:'cjs',plugins:[{name:'handlers',setup(b){b.onResolve({filter:/\.\/_generated\/server$/},()=>({path:'server',namespace:'test'}));b.onLoad({filter:/.*/,namespace:'test'},()=>({contents:'export const query=x=>x;export const mutation=x=>x;export const internalQuery=x=>x;export const internalMutation=x=>x;export const action=x=>x;'}));}}]});const m={exports:{}};vm.runInNewContext(b.outputFiles[0].text,{module:m,exports:m.exports,require,Buffer,Date,Intl,URLSearchParams,AbortSignal,setTimeout,process:{env},fetch:async()=>{throw Error('Unexpected network request')}});return m.exports;}
- client=await bundle('garminClient');cryptoApi=await bundle('garmin');data=await bundle('garminData');
+ activities=await bundle('garminActivities');client=await bundle('garminClient');cryptoApi=await bundle('garmin');data=await bundle('garminData');
 });
 const sleep={calendarDate:'2026-11-14',sleepTimeSeconds:27000,napTimeSeconds:1800,deepSleepSeconds:5400,remSleepSeconds:6600,sleepScores:{overall:{value:84}},sleepStartTimestampGMT:'2026-11-14T04:00:00',sleepEndTimestampGMT:'2026-11-14T12:00:00'};
 test('Garmin keeps native scores, uses seconds, excludes naps, and joins biometrics only on their own calendar date',()=>{
@@ -22,8 +22,8 @@ test('off-wrist, absent and invalid data stay missing; stages cannot exceed slee
 });
 test('Personal API client uses fixed hosts, headers only, no redirect following, and safe errors',async()=>{
  const calls=[];const response=body=>({ok:true,status:200,json:async()=>body,text:async()=>typeof body==='string'?body:JSON.stringify(body)});
- const fetcher=async(url,options)=>{calls.push({url,options});if(url.includes('/token'))return response(tokenFixture);if(url.includes('dailySleep'))return response([sleep]);if(url.includes('/hrv/'))return response({hrvSummaries:[{calendarDate:sleep.calendarDate,lastNightAvg:55}]});return response({calendarDate:sleep.calendarDate,source:'GARMIN',restingHeartRate:52});};
- const rows=await client.fetchGarmin('test-key','2026-11-14','2026-11-14',fetcher);assert.equal(rows.nights[0].score,84);assert.equal(calls.length,4);assert.equal(calls[0].options.headers.Authorization,'ApiKey test-key');assert.equal(calls[1].options.headers.Authorization,'Bearer '+tokenFixture);
+ const fetcher=async(url,options)=>{calls.push({url,options});if(url.includes('/token'))return response(tokenFixture);if(url.includes('dailySleep'))return response([sleep]);if(url.includes('/activitylist-service/'))return response([]);if(url.includes('/hrv/'))return response({hrvSummaries:[{calendarDate:sleep.calendarDate,lastNightAvg:55}]});return response({calendarDate:sleep.calendarDate,source:'GARMIN',restingHeartRate:52});};
+ const rows=await client.fetchGarmin('test-key','2026-11-14','2026-11-14',fetcher);assert.equal(rows.nights[0].score,84);assert.equal(calls.length,5);assert.equal(calls[0].options.headers.Authorization,'ApiKey test-key');assert.equal(calls[1].options.headers.Authorization,'Bearer '+tokenFixture);
  for(const c of calls){assert.ok(c.url.startsWith('https://personal.connectapi.garmin.com/'));assert.ok(!c.url.includes('test-key'));assert.equal(c.options.redirect,'error');}
  await assert.rejects(client.fetchGarmin('test-key','2026-11-14','2026-11-14',async()=>({ok:false,status:429,json:async()=>({secret:'test-key'})})),e=>e.message.includes('limiting')&&!e.message.includes('test-key'));
  await assert.rejects(client.fetchGarmin('test-key','2026-11-14','2026-11-14',async()=>response({wrong:'shape'})),/unsupported token/);
@@ -66,7 +66,7 @@ test('Garmin failures identify the failing operation and status without exposing
    if(url.includes(endpoint))return {ok:false,status:502,json:async()=>{throw Error('must not read private response body')}};
    if(url.includes('/token'))return response(tokenFixture);
    if(url.includes('dailySleep'))return response([sleep]);
-   if(url.includes('/hrv/'))return response({hrvSummaries:[]});
+   if(url.includes('/activitylist-service/'))return response([]);if(url.includes('/hrv/'))return response({hrvSummaries:[]});
    return response({calendarDate:sleep.calendarDate,source:'GARMIN'});
   };
   if(label==='authorization') await assert.rejects(client.fetchGarmin('private-key',sleep.calendarDate,sleep.calendarDate,request,async()=>{}),error=>error.step===label && error.status===502 && !/private-|2026-|https:/.test(error.message));
@@ -87,7 +87,7 @@ test('Garmin frontend displays the safe provider error instead of the server sta
  await assert.rejects(context.run('action','garmin:syncPersonal',{}),e=>e.message.startsWith('Garmin sleep history failed (HTTP 502)')&&!e.message.includes('Request ID'));
 });
 const goodResponse=body=>({ok:true,status:200,json:async()=>body,text:async()=>typeof body==='string'?body:JSON.stringify(body)});
-const usualGarmin=async url=>url.includes('/token')?goodResponse(tokenFixture):url.includes('dailySleep')?goodResponse([sleep]):url.includes('/hrv/')?goodResponse({hrvSummaries:[]}):goodResponse({calendarDate:new URL(url).searchParams.get('calendarDate'),source:'GARMIN',restingHeartRate:52});
+const usualGarmin=async url=>url.includes('/token')?goodResponse(tokenFixture):url.includes('dailySleep')?goodResponse([sleep]):url.includes('/hrv/')?goodResponse({hrvSummaries:[]}):url.includes('/activitylist-service/')?goodResponse([]):goodResponse({calendarDate:new URL(url).searchParams.get('calendarDate'),source:'GARMIN',restingHeartRate:52});
 test('optional failures preserve sleep and keep failed dates out of replacement coverage',async()=>{
  let dailyCalls=0;
  const result=await client.fetchGarmin('key','2026-10-18','2026-11-14',async url=>{
@@ -113,7 +113,7 @@ test('transient responses retry once; valid missing data stays absent; malformed
  assert.equal(sleepCalls,2);assert.equal(recovered.complete,true);
  const malformed=await client.fetchGarmin('key',sleep.calendarDate,sleep.calendarDate,async url=>url.includes('dailySleep')?goodResponse([{...sleep,calendarDate:'invalid'}]):usualGarmin(url),async()=>{});
  assert.equal(malformed.complete,false);assert.equal(malformed.nights[0].restingHeartRate,52);assert.equal(malformed.coverage.sleep.length,0);
- const empty=await client.fetchGarmin('key',sleep.calendarDate,sleep.calendarDate,async url=>url.includes('/token')?usualGarmin(url):{ok:true,status:204},async()=>{});
+ const empty=await client.fetchGarmin('key',sleep.calendarDate,sleep.calendarDate,async url=>url.includes('/token')||url.includes('/activitylist-service/')?usualGarmin(url):{ok:true,status:204},async()=>{});
  assert.equal(empty.complete,true);assert.equal(empty.nights.length,0);
 });
 test('partial imports retain old failed-stream measurements and persist an honest retry state',async()=>{
@@ -143,7 +143,7 @@ test('authorization follows Garmin official plain-text JWT contract while data s
   assert.equal(options.headers.Accept,'application/json');assert.equal(options.headers.Authorization,'Bearer '+tokenFixture);
   return usualGarmin(url);
  });
- assert.equal(result.complete,true);assert.equal(result.nights[0].durationMinutes,450);assert.equal(calls.length,4);
+ assert.equal(result.complete,true);assert.equal(result.nights[0].durationMinutes,450);assert.equal(calls.length,5);
  for(const body of ['', '<html>error</html>', '{"access_token":"wrong-contract"}', 'token\r\nInjected: value', 'a.b.', 'a.b.c d']){
   let count=0;
   await assert.rejects(client.fetchGarmin('test-key',sleep.calendarDate,sleep.calendarDate,async()=>{count++;return new Response(body,{status:200});}),e=>e.step==='authorization'&&e.message==='Garmin returned an unsupported token response.');
@@ -166,4 +166,39 @@ test('Garmin undated empty sleep summaries do not reject measured nights or fabr
   const failed=await client.fetchGarmin('key',sleep.calendarDate,sleep.calendarDate,async url=>url.includes('dailySleep')?goodResponse([malformed,sleep]):usualGarmin(url));
   assert.equal(failed.complete,false);assert.equal(failed.coverage.sleep.length,0);assert.match(failed.warnings.join(' '),/invalid date/);
  }
+});
+
+test('Garmin workouts use timer duration, local dates, deduplication and only covered rest days',()=>{
+ const a={activityId:101,startTimeLocal:'2026-11-13 23:30:00',startTimeGMT:'2026-11-14 07:30:00',duration:1800,elapsedDuration:14400,movingDuration:900};
+ const rows=activities.normalizeGarminActivities([a,a,{...a,activityId:102,parentId:101,duration:600}],['2026-11-12','2026-11-13','2026-11-14'].map(calendarDate=>({calendarDate,source:'GARMIN'})),'2026-11-11','2026-11-14');
+ assert.equal(rows.find(r=>r.sleepDate==='2026-11-13').workoutMinutes,30);assert.equal(rows.find(r=>r.sleepDate==='2026-11-13').workoutCount,1);
+ assert.equal(rows.find(r=>r.sleepDate==='2026-11-12').workoutMinutes,0);assert.equal(rows.find(r=>r.sleepDate==='2026-11-14'),undefined);assert.equal(rows.find(r=>r.sleepDate==='2026-11-11'),undefined);
+ assert.throws(()=>activities.normalizeGarminActivities([{...a,duration:null}],[],'2026-11-13','2026-11-14'),/timer duration/);
+ assert.throws(()=>activities.normalizeGarminActivities([a,{...a,duration:2000}],[],'2026-11-13','2026-11-14'),/changed during import/);
+ assert.throws(()=>activities.normalizeGarminActivities([{...a,startTimeLocal:'bad'}],[],'2026-11-13','2026-11-14'),/invalid workout date/);
+});
+test('Garmin activity pagination completes before totals replace history; repeated pages and permission failures remain partial',async()=>{
+ const page=Array.from({length:99},(_,i)=>({activityId:i+1,startTimeLocal:'2026-11-13 12:00:00',duration:60}));
+ const offsets=[];
+ const result=await client.fetchGarmin('key','2026-11-13','2026-11-14',async url=>{
+  if(!url.includes('/activitylist-service/'))return usualGarmin(url);
+  const p=new URL(url).searchParams;assert.equal(p.get('excludeChildren'),'true');assert.equal(p.get('startDate'),'2026-11-13');offsets.push(p.get('start'));
+  return goodResponse(p.get('start')==='0'?page:[{...page[0],activityId:100}]);
+ });
+ assert.equal(result.complete,true);assert.deepEqual(offsets,['0','99']);assert.equal(result.activitySyncVersion,1);
+ const day=result.nights.find(n=>n.sleepDate==='2026-11-13');assert.equal(day.workoutMinutes,100);assert.equal(day.workoutCount,100);
+ for(const response of [goodResponse(page),{ok:false,status:403},{ok:false,status:500},{ok:true,status:204}]){
+  const partial=await client.fetchGarmin('key','2026-11-13','2026-11-14',url=>url.includes('/activitylist-service/')?Promise.resolve(response):usualGarmin(url),async()=>{});
+  assert.equal(partial.complete,false);assert.equal(partial.coverage.workouts,undefined);assert.equal(partial.activitySyncVersion,undefined);assert.ok(partial.nights.some(n=>n.durationMinutes===450));assert.ok(partial.warnings.length>0);
+ }
+});
+test('failed activity imports preserve existing totals; successful replacements honor owner and rest-day coverage',async()=>{
+ const f=fixture(),day=sleep.calendarDate;
+ const initial={ownerSubject:'owner',expectedRevision:null,revision:'v1',encryptedKey:'ciphertext',nights:[{sleepDate:day,source:'garmin',scoreKind:'native',workoutMinutes:45,workoutCount:1,durationMinutes:450}]};
+ await data.save.handler(f.ctx,initial);await data.save.handler(f.ctx,{...initial,ownerSubject:'friend'});
+ await data.save.handler(f.ctx,{...initial,expectedRevision:'v1',revision:'v2',nights:[],coverage:{sleep:[],hrv:[],restingHeartRate:[]},complete:false});
+ assert.equal(f.tables.garminNights.find(r=>r.ownerSubject==='owner').workoutMinutes,45);
+ await data.save.handler(f.ctx,{...initial,expectedRevision:'v2',revision:'v3',nights:[{sleepDate:day,source:'garmin',scoreKind:'native',workoutMinutes:0,workoutCount:0}],coverage:{sleep:[],hrv:[],restingHeartRate:[],workouts:[day]},activitySyncVersion:1});
+ const own=f.tables.garminNights.find(r=>r.ownerSubject==='owner');assert.equal(own.workoutMinutes,0);assert.equal(own.durationMinutes,450);assert.equal(f.tables.garminNights.find(r=>r.ownerSubject==='friend').workoutMinutes,45);
+ assert.equal((await data.status.handler(f.ctx,{})).activityReady,true);
 });

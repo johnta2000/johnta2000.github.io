@@ -1,3 +1,4 @@
+import {fetchGarminActivities, normalizeGarminActivities} from "./garminActivities";
 // Official Personal API: https://developer.garmin.com/gc-developer-program/personal/swagger-docs/
 // Keep transport separate from storage so mappings can also serve a future approved OAuth connector.
 const BASE = "https://personal.connectapi.garmin.com";
@@ -62,13 +63,13 @@ export function normalizeGarmin(sleeps: any[], hrvs: any[], summaries: any[], st
 export class GarminRequestError extends Error {
   constructor(message: string, public readonly step: string, public readonly status?: number) { super(message); this.name = "GarminRequestError"; }
 }
-export type GarminCoverage = {sleep: string[]; hrv: string[]; restingHeartRate: string[]};
+export type GarminCoverage = {sleep: string[]; hrv: string[]; restingHeartRate: string[]; workouts?: string[]};
 export async function fetchGarmin(apiKey: string, start: string, end: string, request: typeof fetch = fetch, pause = (ms: number) => new Promise<void>(resolve => setTimeout(resolve,ms))) {
   const chunks = windows(start, end);
   if (!apiKey.trim() || apiKey.length > 4096 || /[\r\n]/.test(apiKey)) throw new GarminRequestError("Enter a valid Garmin Personal API key.","authorization");
   const deadline=Date.now()+60000;
   async function json(path: string, auth: string, method = "GET") {
-    const step = path.includes("/personal-api-key/token") ? "authorization" : path.includes("/sleep-service/") ? "sleep history" : path.includes("/hrv-service/") ? "overnight HRV" : "resting heart rate";
+    const step = path.includes("/personal-api-key/token") ? "authorization" : path.includes("/sleep-service/") ? "sleep history" : path.includes("/hrv-service/") ? "overnight HRV" : path.includes("/activitylist-service/") ? "workouts" : "resting heart rate";
     // Garmin's official authenticator accepts */* and reads a plain-text JWT.
     // Only the health-data endpoints return JSON.
     const tokenRequest = step === "authorization";
@@ -103,11 +104,11 @@ export async function fetchGarmin(apiKey: string, start: string, end: string, re
     for(const row of value) {try { if(!row || typeof row!=="object")throw Error();isoDate(row.calendarDate); } catch {throw new GarminRequestError(`Garmin returned an invalid date in ${step}. Existing readings were kept.`,step);} }
     return value;
   }
-  async function optional(work:()=>Promise<void>) {
+  async function optional(work:()=>Promise<void>, permissionRequired = true) {
     try { await work();return true; }
     catch(error) {
       // An expired/rejected bearer token is an authorization failure, not missing health data.
-      if(!(error instanceof GarminRequestError) || error.status===401 || error.status===403)throw error;
+      if(!(error instanceof GarminRequestError) || error.status===401 || (permissionRequired && error.status===403))throw error;
       if(!warnings.includes(error.message))warnings.push(error.message);
       return false;
     }
@@ -134,5 +135,18 @@ export async function fetchGarmin(apiKey: string, start: string, end: string, re
     coverage.restingHeartRate.push(date);
   });if(!ok)stopped=true;}}
   await Promise.all([dailyWorker(),dailyWorker()]);
-  return {nights:normalizeGarmin(sleeps,hrvs,summaries,start,end),coverage,warnings,complete:warnings.length===0};
+  const nights = normalizeGarmin(sleeps,hrvs,summaries,start,end);
+  let activitySyncVersion: number | undefined;
+  await optional(async()=>{
+    const activities = await fetchGarminActivities(path => json(path, auth), start, end);
+    const daily = normalizeGarminActivities(activities, summaries, start, end);
+    const byDate = new Map(nights.map(n => [n.sleepDate, n]));
+    for (const day of daily) {
+      if (!byDate.has(day.sleepDate)) {const row = {sleepDate:day.sleepDate,source:"garmin",scoreKind:"native"};nights.push(row);byDate.set(day.sleepDate,row);}
+      Object.assign(byDate.get(day.sleepDate)!,day);
+    }
+    coverage.workouts = dates(start,end);
+    activitySyncVersion = 1;
+  },false);
+  return {nights,coverage,warnings,complete:warnings.length===0,...(activitySyncVersion ? {activitySyncVersion} : {})};
 }

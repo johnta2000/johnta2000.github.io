@@ -186,7 +186,7 @@
     recovery: {label: "Recovery", provider: "whoop", metric: "recovery", mode: "average", description: "Average recovery score. At least 4 of 7 days to rank."},
     consistency: {provider: "whoop", label: "Sleep consistency", metric: "consistency", mode: "average", description: "Average WHOOP sleep consistency. At least 4 of 7 days to rank."},
     strain: {provider: "whoop", label: "Day strain", metric: "strain", mode: "average", description: "Average completed-day strain. At least 4 of 7 days. Measures effort, not overall health."},
-    workoutMinutes: {provider: "whoop", label: "Workout time", metric: "workoutMinutes", mode: "total", description: "Total workout time. All 7 days must be tracked to rank; rest days count as zero."},
+    workoutMinutes: {label: "Workout time", metric: "workoutMinutes", mode: "total", description: "Total workout time. All 7 days must be tracked to rank; rest days count as zero."},
     sleepGain: {label: "Sleep improvement", metric: "score", mode: "delta", description: "Sleep score change vs. your previous 7 days. At least 4 days in each week."},
     hrvGain: {label: "HRV improvement", metric: "hrv", mode: "percentChange", description: "HRV change vs. your own previous 7 days. At least 4 days in each week; requires 14 days of sharing."},
   };
