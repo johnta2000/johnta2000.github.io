@@ -2354,3 +2354,61 @@ body:has(#standingsDialog[open]) { overflow:hidden; }
 .garmin-steps { padding-left: 20px; margin: 0 0 18px; font-size: 13px; line-height: 1.6; color: var(--muted); }
 .garmin-steps li + li { margin-top: 9px; }
 .garmin-steps a { color: var(--ink); text-underline-offset: 3px; }
+
+/* Sleepington: readable phone charts with values beside their source names. */
+.sidebar .brand-mark { font-size:25px; letter-spacing:-1px; gap:8px; }
+.app[data-active-view="overview"] .sidebar .brand-mark { font-size:21px; }
+.sidebar .sun-mark { font-size:30px; }
+.comparison-mobile-date { display:none; }
+@media(max-width:700px) {
+  .sidebar { padding:12px 16px; }
+  .sidebar .brand-mark, .app[data-active-view="overview"] .sidebar .brand-mark { font-size:24px; }
+  .sidebar .signout-button { font-size:12px; }
+  .main-nav button { font-size:12px; min-height:60px; }
+  .personal-comparison { background:transparent; border:0; overflow:visible; }
+  .comparison-toolbar { padding:0 0 12px; border:0; }
+  .comparison-providers { gap:6px; flex-wrap:nowrap; overflow-x:auto; width:100%; padding-bottom:2px; }
+  .comparison-providers button { background:white; border:1px solid var(--line); border-radius:22px; padding:8px 9px; font-size:13px; flex-shrink:0; }
+  .comparison-providers button[aria-pressed="false"] { opacity:1; color:var(--muted); background:transparent; text-decoration:line-through; }
+  .comparison-charts { padding:0; }
+  .comparison-metric, .comparison-metric:last-child { display:flex; flex-direction:column; padding:14px; margin-bottom:16px; background:white; border:1px solid var(--line); border-radius:16px; }
+  .comparison-metric-heading { order:0; margin:0 0 8px; flex-wrap:wrap; gap:6px; }
+  .comparison-metric-heading h2 { font-size:17px; }
+  .comparison-metric-heading>span { display:none; }
+  .comparison-info summary { width:44px; height:44px; border:0; font-size:15px; }
+  .comparison-info p { top:40px; font-size:14px; }
+  .comparison-plot { order:1; }
+  .comparison-plot svg text { font-size:12px; fill:#52645b; }
+  .comparison-plot svg:focus:not(:focus-visible) { outline:none; }
+  .comparison-tooltip { display:none; }
+  .comparison-mobile-date { order:2; display:flex; align-items:center; justify-content:space-between; gap:8px; margin:8px 0 4px; font-size:13px; font-weight:600; }
+  .comparison-mobile-date>div { display:flex; gap:6px; }
+  .comparison-mobile-date button { width:44px; height:44px; border:1px solid var(--line); border-radius:10px; background:#fff; font:inherit; font-size:20px; }
+  .comparison-mobile-date button:disabled { opacity:.3; }
+  .comparison-readout { order:3; display:grid; gap:0; min-height:0; }
+  .comparison-readout>span { min-height:40px; gap:8px; border-top:1px solid #edf1ee; }
+  .comparison-readout .comparison-provider-name { display:inline; font-size:14px; color:var(--ink); }
+  .comparison-readout strong { margin-left:auto; font-size:17px; font-weight:600; }
+  .comparison-inspector { border:1px solid var(--line); border-radius:16px; background:white; padding:18px; }
+  .comparison-inspector h3 { font-size:15px; }
+  .comparison-value, .comparison-coverage, .comparison-stage-labels { font-size:14px; }
+  .comparison-footnote { font-size:12px; line-height:1.6; border:0; padding:16px 2px; }
+  .group-history .metric-picker .search-select-trigger, .group-mode-picker .search-select-trigger { font-size:14px; }
+  .group-mode-picker { flex-basis:126px; }
+  .group-member-name { font-size:14px; }
+  .group-member-value { font-size:17px; }
+  .group-member-change { font-size:12px; }
+  .group-provider { font-size:11px; }
+  .group-chart-note, .group-preview-label, .standings-card>p { font-size:12px; line-height:1.6; }
+  .connection-card { padding:20px; }
+  .connection-card>p, .connection-card .small-note, .garmin-steps { font-size:14px; line-height:1.65; }
+  input:not([type="checkbox"]):not([type="radio"]), textarea, .search-select-search { font-size:16px; }
+}
+@media(max-width:360px) {
+  .sidebar .brand-mark, .app[data-active-view="overview"] .sidebar .brand-mark { font-size:21px; }
+  .main-nav button { font-size:11px; }
+  .group-history .metric-picker .search-select-trigger, .group-mode-picker .search-select-trigger { font-size:12px; }
+  .group-mode-picker { flex-basis:112px; }
+}
+
+@media(min-width:701px) { .app[data-active-view="overview"] .sidebar { width:224px; } .app[data-active-view="overview"] .workspace { margin-left:224px; } }

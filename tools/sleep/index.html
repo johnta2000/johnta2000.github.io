@@ -15,18 +15,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="robots" content="noindex, nofollow" />
     <meta name="theme-color" content="#f7f8fa" />
-    <title>Daylight — Your sleep, in perspective</title>
+    <title>Sleepington — Your sleep, in perspective</title>
     <link rel="stylesheet" href="/assets/css/searchable-select.css" />
-    <link rel="stylesheet" href="./styles.css?v=20261114-3" />
+    <link rel="icon" href="./sleepington.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="./styles.css?v=20261116-sleepington-1" />
     <link rel="stylesheet" href="../../assets/css/clerk-auth.css?v=20261011-otp1">
 <style>.group-provider{display:inline-block;font-size:10px;font-weight:600;line-height:1.5;padding:1px 5px;border-radius:4px;background:#eef3f1;color:#52665e;white-space:nowrap;margin-left:5px}.group-member-name{flex-wrap:wrap}.sharing-category[hidden]{display:none}</style></head>
   <body>
     <section data-auth-screen="sleep" id="accessGate" class="access-gate" aria-labelledby="gateTitle">
       <div class="gate-orbit" aria-hidden="true"><span></span></div>
       <div class="gate-card">
-        <div class="brand-mark"><span></span> Daylight</div>
+        <div class="brand-mark"><span></span> Sleepington</div>
         <p class="eyebrow">Your sleep, in perspective</p>
-        <h1 id="gateTitle">A little clarity.<br />A better <em>day.</em></h1>
+        <h1 id="gateTitle">Your nights.<br />In <em>perspective.</em></h1>
         <p class="gate-copy">
           Your WHOOP nights, longer-term patterns, and wearable data in one calm
           place. Sign in to open your private dashboard.
@@ -62,7 +63,7 @@
       <a class="skip-link" href="#mainContent">Skip to content</a>
       <aside class="sidebar">
         <a class="brand-mark" href="./"
-          ><span class="sun-mark" aria-hidden="true">☀</span> daylight<span
+          ><span class="sun-mark" aria-hidden="true">☾</span> sleepington<span
             class="brand-period"
             >.</span
           ></a
@@ -103,7 +104,7 @@
           <div class="header-actions">
             <span class="status-dot" aria-hidden="true"></span>
             <p id="lastUpdated" role="status">Loading your data…</p>
-            <span class="avatar" aria-label="Personal workspace">D</span>
+            <span class="avatar" aria-label="Personal workspace">S</span>
           </div>
         </header>
         <div id="demoBanner" class="demo-banner" hidden>
@@ -467,7 +468,7 @@
                   <summary>How to export your data</summary>
                   <p>
                     On iPhone, open Health → your profile → Export All Health
-                    Data. Unzip the export and choose export.xml here. Daylight
+                    Data. Unzip the export and choose export.xml here. Sleepington
                     reads the sleep records; this is a manual import, not
                     automatic Watch syncing.
                   </p>
@@ -501,10 +502,10 @@
           </section>
           <footer>
             <span
-              ><span class="mini-sun" aria-hidden="true">☀</span> A little
+              ><span class="mini-sun" aria-hidden="true">☾</span> A little
               clarity for your everyday.</span
             ><span
-              >Daylight · Personal sleep lab ·
+              >Sleepington · Personal sleep lab ·
               <a href="./privacy/">Privacy</a></span
             >
           </footer>
@@ -623,7 +624,7 @@
             ><span id="previewSources"></span>
           </div>
           <button id="confirmImport" class="primary-button" type="button">
-            Import to Daylight
+            Import to Sleepington
           </button>
         </div>
         <p id="importMessage" class="dialog-message" role="status"></p>
@@ -676,9 +677,9 @@
     </dialog>
     <dialog id="groupDialog" class="group-dialog"><form id="groupForm"><div class="panel-heading"><h2 id="groupDialogTitle">Create a group</h2><button id="cancelGroupDialog" type="button" class="text-button">Cancel</button></div><p id="groupDialogIntro"></p><label id="groupNameLabel">Group name<input id="groupNameInput" maxlength="60" type="text"></label><label>Your display name<input id="groupDisplayName" maxlength="40" required type="text" autocomplete="nickname"></label><label>Provider to share<select id="groupShareProvider" aria-label="Provider to share"><option value="whoop">WHOOP</option><option value="garmin">Garmin</option></select></label><p id="groupProviderHelp" class="small-note"></p><fieldset id="groupSharingOptions"><legend>Share with this group</legend><p>Nothing is shared unless you select it. Your notes always stay private.</p><label><input type="checkbox" name="sharedMetric" value="durationMinutes"> Time asleep</label><label><input type="checkbox" name="sharedMetric" value="score"> Sleep performance</label><label><input type="checkbox" name="sharedMetric" value="efficiency"> Sleep efficiency</label></fieldset><label>History to share<select id="groupShareDays" aria-label="History to share"><option value="7">Last 7 days</option><option value="28">Last 28 days</option><option value="90" selected>Last 90 days</option><option value="180">Last 180 days</option></select></label><p class="small-note">This is a rolling window that includes future synced days. New members of this group can see the metrics you share.</p><p id="groupFormError" role="alert"></p><button id="saveGroupForm" type="submit" class="primary-button">Create group</button></form></dialog>
     <script defer src="./model.js?v=20261115-activity-1"></script>
-    <script defer src="./comparison.js?v=20261114-3"></script>
-    <script defer src="./groups.js?v=20261115-activity-1"></script>
+    <script defer src="./comparison.js?v=20261116-sleepington-1"></script>
+    <script defer src="./groups.js?v=20261116-sleepington-1"></script>
     <script defer src="./garmin.js?v=20261115-activity-1"></script>
-    <script defer src="./app.js?v=20261115-activity-1"></script>
+    <script defer src="./app.js?v=20261116-sleepington-1"></script>
   </body>
 </html>

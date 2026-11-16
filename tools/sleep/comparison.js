@@ -23,25 +23,35 @@
     constructor(element) {
       this.el=element;this.hidden=new Set();this.date=null;this.pinned=false;this.geometry={};
       this.charts=element.querySelector('#comparisonCharts');this.inspector=element.querySelector('#comparisonInspector');
-      this.charts.innerHTML=metrics.map(m=>`<section class="comparison-metric" data-metric="${m.id}"><div class="comparison-metric-heading"><h2>${m.name}</h2><details class="comparison-info"><summary aria-label="About ${m.name}">i</summary><p>${m.note}</p></details><span class="comparison-unit">${m.unit}</span></div><div class="comparison-readout" data-readout="${m.id}"></div><div class="comparison-plot"><svg role="img" tabindex="0" aria-label="${m.name}. Use left and right arrows to select a night, Escape to unpin."></svg><div class="comparison-tooltip" role="tooltip" hidden></div></div></section>`).join('');
+      this.charts.innerHTML=metrics.map(m=>`<section class="comparison-metric" data-metric="${m.id}"><div class="comparison-metric-heading"><h2>${m.name}</h2><details class="comparison-info"><summary aria-label="About ${m.name}">i</summary><p>${m.note}</p></details><span class="comparison-unit">${m.unit}</span></div><div class="comparison-readout" data-readout="${m.id}"></div><div class="comparison-mobile-date"><span data-selected-night></span><div><button type="button" data-night="-1" aria-label="Previous night for ${m.name}">←</button><button type="button" data-night="1" aria-label="Next night for ${m.name}">→</button></div></div><div class="comparison-plot"><svg role="img" tabindex="0" aria-label="${m.name}. Use left and right arrows to select a night, Escape to unpin."></svg><div class="comparison-tooltip" role="tooltip" hidden></div></div></section>`).join('');
       this.inspector.innerHTML='<div class="comparison-kicker">SELECTED NIGHT</div><h2 id="comparisonDate"></h2><p id="comparisonPinState"></p><div class="comparison-date-buttons"><button type="button" data-night="-1" aria-label="Previous night">←</button><button type="button" data-night="1" aria-label="Next night">→</button><button type="button" id="comparisonPin" aria-pressed="false">Pin night</button></div><section><h3>Time asleep</h3><div id="comparisonDurations"></div><p class="comparison-spread">Provider spread <strong id="comparisonSpread"></strong></p></section><section><h3>Sleep stages</h3><div id="comparisonStages"></div></section><section><h3>Readings available</h3><div id="comparisonCoverage"></div></section>';
-      element.querySelectorAll('[data-night]').forEach(b=>b.onclick=()=>{this.pinned=true;this.select(this.index+Number(b.dataset.night),true);this.hideTips();});
-      element.querySelector('#comparisonPin').onclick=()=>{this.pinned=!this.pinned;this.update();this.hideTips();};
-      element.addEventListener('keydown',e=>{if(e.key==='Escape'){this.pinned=false;this.update();this.hideTips();}});
+      element.querySelectorAll('[data-night]').forEach(b=>b.onclick=()=>{this.pinned=true;this.select(this.index+Number(b.dataset.night),true);this.hideTips();this.saveView();});
+      element.querySelector('#comparisonPin').onclick=()=>{this.pinned=!this.pinned;this.update();this.hideTips();this.saveView();};
+      element.addEventListener('keydown',e=>{if(e.key==='Escape'){this.pinned=false;this.update();this.hideTips();this.saveView();}});
       this.width=0;
       new ResizeObserver(()=>{const width=this.charts.clientWidth;if(width>0&&width!==this.width){this.width=width;if(this.history)this.draw();}}).observe(this.charts);
+    }
+    saveView(){
+      const url=new URL(location.href);
+      if(this.pinned)url.searchParams.set('night',this.date);else url.searchParams.delete('night');
+      if(this.hidden.size)url.searchParams.set('hideSources',[...this.hidden].sort().join(','));else url.searchParams.delete('hideSources');
+      if(url.href!==location.href)history.pushState({},'',url.pathname+url.search+url.hash);
     }
     visible(){return this.providers.filter(p=>!this.hidden.has(p.id));}
     render(nights,whoopDays,days,end) {
       this.history=Daylight.providerHistory(nights,whoopDays,days,end);
       this.providers=sources.filter(p=>!['manual','garmin'].includes(p.id)||nights.some(n=>n.source===p.id));
+      const params=new URLSearchParams(location.search);
+      this.hidden=new Set((params.get('hideSources')||'').split(',').filter(id=>sources.some(p=>p.id===id)));
+      this.pinned=this.history.dates.includes(params.get('night'));
+      if(this.pinned)this.date=params.get('night');
       const dates=this.history.dates;
-      if(!dates.includes(this.date)) this.date=dates.findLast((_,i)=>Object.keys(this.history.rows[i]).length)||dates.at(-1);
+      if(!this.pinned || !dates.includes(this.date)) this.date=dates.findLast((_,i)=>Object.keys(this.history.rows[i]).length)||dates.at(-1);
       this.index=dates.indexOf(this.date);
       const hasData=this.history.rows.some(row=>Object.keys(row).length);
       this.el.querySelector('#comparisonEmpty').hidden=hasData;
       this.el.querySelector('#comparisonProviders').innerHTML=this.providers.map(p=>`<button type="button" data-source="${p.id}" aria-pressed="${!this.hidden.has(p.id)}" style="--source-color:${p.color}"><i class="comparison-swatch" style="border-top-style:${p.id==='whoop'?'solid':p.id==='apple_health'?'dotted':'dashed'}"></i>${p.name}</button>`).join('');
-      this.el.querySelectorAll('[data-source]').forEach(b=>b.onclick=()=>{this.hidden.has(b.dataset.source)?this.hidden.delete(b.dataset.source):this.hidden.add(b.dataset.source);b.setAttribute('aria-pressed',String(!this.hidden.has(b.dataset.source)));this.hideTips();this.draw();});
+      this.el.querySelectorAll('[data-source]').forEach(b=>b.onclick=()=>{this.hidden.has(b.dataset.source)?this.hidden.delete(b.dataset.source):this.hidden.add(b.dataset.source);b.setAttribute('aria-pressed',String(!this.hidden.has(b.dataset.source)));this.hideTips();this.draw();this.saveView();});
       this.draw();
     }
     draw() {
@@ -49,7 +59,7 @@
       const count=this.history.dates.length, rows=this.history.rows;
       for(const metric of metrics){
         const section=this.charts.querySelector(`[data-metric="${metric.id}"]`), svg=section.querySelector('svg');
-        const w=section.clientWidth,h=164,left=64,right=12,top=12,bottom=30;
+        const w=section.clientWidth,mobile=window.matchMedia("(max-width:700px)").matches,h=mobile?204:164,left=mobile?44:64,right=12,top=12,bottom=30;
         const all=rows.flatMap(row=>this.providers.map(p=>value(row,p.id,metric.id))).filter(finite);
         const shown=rows.flatMap(row=>this.visible().map(p=>value(row,p.id,metric.id))).filter(finite);
         let low=0,high=100,ticks=[0,25,50,75,100];
@@ -80,8 +90,8 @@
         const pick=e=>{const rect=svg.getBoundingClientRect(),px=(e.clientX-rect.left)*w/rect.width;return {px,index:Math.max(0,Math.min(count-1,Math.round((px-left)/(w-left-right)*(count-1))))};};
         hit.onpointermove=e=>{if(this.pinned||e.pointerType==='touch')return;const hit=pick(e);this.select(hit.index);this.tip(metric,hit.px);};
         hit.onpointerleave=()=>this.hideTips();
-        hit.onclick=e=>{const hit=pick(e);this.pinned=!(this.pinned&&this.index===hit.index);this.select(hit.index,true);this.tip(metric,hit.px);};
-        svg.onkeydown=e=>{if(!['ArrowLeft','ArrowRight','Home','End'].includes(e.key))return;e.preventDefault();this.pinned=true;this.select(e.key==='Home'?0:e.key==='End'?count-1:this.index+(e.key==='ArrowLeft'?-1:1),true);this.tip(metric,x(this.index));};
+        hit.onclick=e=>{const hit=pick(e);this.pinned=!(this.pinned&&this.index===hit.index);this.select(hit.index,true);this.tip(metric,hit.px);this.saveView();};
+        svg.onkeydown=e=>{if(!['ArrowLeft','ArrowRight','Home','End'].includes(e.key))return;e.preventDefault();this.pinned=true;this.select(e.key==='Home'?0:e.key==='End'?count-1:this.index+(e.key==='ArrowLeft'?-1:1),true);this.tip(metric,x(this.index));this.saveView();};
       }
       this.update();
     }
@@ -90,9 +100,10 @@
       if(!this.history)return;
       const row=this.history.rows[this.index],ps=this.visible();
       this.el.querySelector('#comparisonDate').textContent=fullDate(this.date);
-      this.el.querySelector('#comparisonPinState').textContent=this.pinned?'Pinned · click again to release':'Following your cursor';
+      this.el.querySelector('#comparisonPinState').textContent=this.pinned?'Selected night · tap again to release':'Tap a chart or use the arrows to explore';
       const pin=this.el.querySelector('#comparisonPin');pin.textContent=this.pinned?'Unpin':'Pin night';pin.setAttribute('aria-pressed',String(this.pinned));
-      this.el.querySelector('[data-night="-1"]').disabled=this.index===0;this.el.querySelector('[data-night="1"]').disabled=this.index===this.history.dates.length-1;
+      this.el.querySelectorAll('[data-night]').forEach(b=>b.disabled=Number(b.dataset.night)<0?this.index===0:this.index===this.history.dates.length-1);
+      this.el.querySelectorAll('[data-selected-night]').forEach(e=>e.textContent=fullDate(this.date));
       for(const metric of metrics){
         const section=this.charts.querySelector(`[data-metric="${metric.id}"]`),g=this.geometry[metric.id];if(!g)continue;
         section.querySelector('.comparison-unit').textContent=`${dateLabel(this.date)} · ${metric.unit}`;
@@ -113,7 +124,7 @@
     }
     hideTips(){this.el.querySelectorAll('.comparison-tooltip').forEach(t=>t.hidden=true);}
     tip(metric,px){
-      this.hideTips();const row=this.history.rows[this.index],g=this.geometry[metric.id],tip=this.charts.querySelector(`[data-metric="${metric.id}"] .comparison-tooltip`);
+      this.hideTips();if(window.matchMedia('(max-width:700px), (hover:none)').matches)return;const row=this.history.rows[this.index],g=this.geometry[metric.id],tip=this.charts.querySelector(`[data-metric="${metric.id}"] .comparison-tooltip`);
       tip.innerHTML=`<strong>${fullDate(this.date)}${this.pinned?' · Pinned':''}</strong><span class="comparison-tip-metric">${metric.name}</span>${this.visible().map(p=>`<div class="comparison-value" style="--source-color:${p.color}"><i></i>${p.name}<strong>${format(value(row,p.id,metric.id),metric.id,p.id)}</strong></div>`).join('')}${metric.id==='score'?'<p>WHOOP: sleep performance · Other sources: native sleep score</p>':''}`;
       tip.hidden=false;const width=tip.offsetWidth;tip.style.left=`${Math.max(0,Math.min(g.w-width,px>g.w/2?px-width-12:px+12))}px`;
     }

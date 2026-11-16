@@ -272,7 +272,7 @@ function showAuthError(error) {
   els.authStatus.hidden = false;
   els.authSignOut.hidden = !window.Clerk?.isSignedIn;
   if (/invitation is required/i.test(message)) {
-    els.authStatus.textContent = "Ask a group owner for a Daylight invitation, then open their link to join.";
+    els.authStatus.textContent = "Ask a group owner for a Sleepington invitation, then open their link to join.";
   } else if (/not authorized/i.test(message)) {
     els.authStatus.textContent =
       "This Clerk account is signed in, but it is not approved for this private dashboard.";
@@ -487,7 +487,7 @@ function switchView(view, historyMode = "push") {
   els.app.dataset.activeView = view;
   $("#pageLabel").textContent = views[view][0];
   $("#pageTitle").textContent = views[view][1];
-  document.title = `${views[view][0]} · Daylight`;
+  document.title = `${views[view][0]} · Sleepington`;
   const pageUrl = new URL(location.href);
   if (view === 'overview') pageUrl.searchParams.delete('view');
   else pageUrl.searchParams.set('view', view === 'friends' ? 'groups' : view);
@@ -1152,7 +1152,7 @@ async function importStagedNights() {
       error.message || "Import failed. Try again.";
   } finally {
     els.confirmImport.disabled = false;
-    els.confirmImport.textContent = "Import to Daylight";
+    els.confirmImport.textContent = "Import to Sleepington";
   }
 }
 
@@ -1612,14 +1612,14 @@ function downloadNoonReminder() {
   const ics = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
-    "PRODID:-//Daylight Sleep Lab//Noon Alertness//EN",
+    "PRODID:-//Sleepington Sleep Lab//Noon Alertness//EN",
     "CALSCALE:GREGORIAN",
     "BEGIN:VEVENT",
     `UID:daylight-noon-${date}@johnta.com`,
     `DTSTART;TZID=America/Los_Angeles:${date}T120000`,
     "DURATION:PT5M",
     "RRULE:FREQ=DAILY",
-    "SUMMARY:Rate noon alertness in Daylight",
+    "SUMMARY:Rate noon alertness in Sleepington",
     "DESCRIPTION:Log a 1–10 alertness rating in your personal sleep dashboard.",
     "BEGIN:VALARM",
     "TRIGGER:PT0M",
@@ -1632,7 +1632,7 @@ function downloadNoonReminder() {
   const url = URL.createObjectURL(new Blob([ics], { type: "text/calendar" }));
   const link = document.createElement("a");
   link.href = url;
-  link.download = "daylight-noon-alertness.ics";
+  link.download = "sleepington-noon-alertness.ics";
   link.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }

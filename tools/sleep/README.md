@@ -1,4 +1,4 @@
-# Daylight
+# Sleepington
 
 Personal provider-comparison sleep dashboard for the personal website. Static HTML/CSS/JavaScript with the existing Clerk sign-in and Convex endpoints.
 
@@ -69,3 +69,10 @@ Groups offers Values, Daily changes (first differences), and Whiplash (second di
 Consistency & chaos cards show the mean, average absolute daily change, minimum/maximum, and biggest signed daily drop. Expand a card for population standard deviation, least-squares slope per calendar day, biggest jump, and range width. Single observations have no volatility or slope; zero remains a valid reading. Coverage includes unique tracked days and adjacent pairs. Playful distinctions compare shown members only when all have at least 80% day/pair coverage and four pairs; ties share distinctions. These are descriptions, not health rankings.
 
 Validated with synthetic model tests for equal means/different variance, gaps, zero values, sharp reversals, native/source boundaries, deduplication, opt-in, empty/single observations, and date windows.
+
+
+## Sleepington mobile update — November 16, 2026
+
+The visible web brand is Sleepington. Existing `/tools/sleep/` links, stored preferences, sign-in and provider connections retain their identifiers. On phones, personal charts use larger plots, named provider/value rows below the chart, and nearby previous/next-night buttons; tapping never overlays the plot with a tooltip. The fixed bottom navigation remains available. `night` and `hideSources` URL parameters restore intentional personal-chart selection and provider visibility on reload, copied links and Back/Forward. Desktop retains the multi-chart comparison and inspector.
+
+The iOS source uses Sleepington for its display name and visible copy while preserving its bundle identifier. Provider-owned authorization screens may continue to show the registered Daylight name until that external app registration is renamed.

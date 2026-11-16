@@ -158,7 +158,7 @@ function updateGroupPageIdentity() {
   if (activeView !== 'friends') return;
   const name = isDemo ? 'Sample group' : liveGroup?.name || 'Groups';
   $('#pageTitle').textContent = name;
-  document.title = `${name} · Daylight`;
+  document.title = `${name} · Sleepington`;
   if (!isDemo && liveGroup) {
     const url = new URL(location.href);
     url.searchParams.set('view', 'groups');
