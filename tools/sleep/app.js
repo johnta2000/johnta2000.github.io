@@ -142,8 +142,17 @@ function bindEvents() {
     }),
   );
   window.addEventListener("popstate", () => {
-    const view = new URLSearchParams(location.search).get("view");
+    const route = new URLSearchParams(location.search);
+    const view = route.get("view");
+    if (view === "groups" && route.get("group") && route.get("group") !== activeGroupId) {
+      activeGroupId = route.get("group");
+      clearLiveGroup();
+      $('#groupSelect').value = activeGroupId;
+      SearchableSelect.enhance($('#groupSelect')).sync();
+      refreshLiveGroup();
+    }
     switchView(view === "groups" ? "friends" : ["trends", "connections"].includes(view) ? view : "overview", "replace");
+    restoreGroupRoute();
     restoreRangeFromUrl();
   });
   document.querySelectorAll("[data-range]").forEach(button => button.setAttribute("aria-pressed", String(button.dataset.range === selectedRange)));
@@ -1802,11 +1811,12 @@ function drawGroupChart() {
   const metric = $("#groupMetric").value;
   const metricName = $("#groupMetric").selectedOptions[0].textContent;
   groupHistory = Daylight.groupHistory(groupSample.filter(member => visibleGroupMembers.has(member.id)), metric, selectedDays, todayPacific(), groupChartMode);
-  $("#groupPeriod").textContent = `${selectedRange === "all" ? "All shared · " : ""}${formatRangeDate(groupHistory.dates[0])} – ${formatRangeDate(groupHistory.dates.at(-1))} · WHOOP`;
+  $("#groupPeriod").textContent = `${selectedRange === "all" ? "All shared · " : ""}${formatRangeDate(groupHistory.dates[0])} – ${formatRangeDate(groupHistory.dates.at(-1))} · ${[...new Set(groupSample.map(providerName))].join(" + ")}`;
   $("#groupMetricHeading").textContent = metricName;
+  $('.group-chart-note').textContent = metric === 'score' ? 'WHOOP sleep performance and Garmin sleep score use different definitions. Raw scores use a common 0–100 scale; rankings stay separate.' : ['hrv','restingHeartRate'].includes(metric) ? 'Provider measurements can differ. Compare each person’s trend in context; missing days stay gaps.' : 'Each person’s selected provider · Missing days appear as gaps. Select a person to hide or show their line.';
   $("#groupBaselineNote").textContent = selectedRange === "all" ? "All available shared history. Each person’s sharing window still applies; coverage may differ. There is no previous period for All." : `Compared with each person’s previous ${selectedDays} days. Only tracked days count. HRV and resting heart rate are personal measures.`;
   if (!$("#groupMembers").children.length) {
-    $("#groupMembers").innerHTML = groupSample.map(member => `<button type="button" data-member="${member.id}" aria-pressed="${visibleGroupMembers.has(member.id)}" style="--member-color:${member.color}"><span class="group-member-name"><svg width="22" height="12" aria-hidden="true"><line x1="0" x2="22" y1="6" y2="6" stroke="currentColor" stroke-width="3" stroke-dasharray="${member.dash}"/></svg>${escapeHtml(member.name.replace(' (sample)', ''))}</span><strong class="group-member-value"></strong><small class="group-member-change"></small></button>`).join("");
+    $("#groupMembers").innerHTML = groupSample.map(member => `<button type="button" data-member="${member.id}" aria-pressed="${visibleGroupMembers.has(member.id)}" style="--member-color:${member.color}"><span class="group-member-name"><svg width="22" height="12" aria-hidden="true"><line x1="0" x2="22" y1="6" y2="6" stroke="currentColor" stroke-width="3" stroke-dasharray="${member.dash}"/></svg>${escapeHtml(member.name.replace(' (sample)', ''))}${providerBadge(member)}</span><strong class="group-member-value"></strong><small class="group-member-change"></small></button>`).join("");
     $("#groupMembers").querySelectorAll("button").forEach(button => button.addEventListener("click", () => {
       const id = button.dataset.member;
       if (visibleGroupMembers.has(id)) visibleGroupMembers.delete(id); else visibleGroupMembers.add(id);
@@ -1842,7 +1852,7 @@ function drawGroupChart() {
   const y = value => top + (1 - (value - lower) / (upper - lower)) * (h - top - bottom);
   groupGeometry = { w, h, x, y, left, right };
   const ticks = Array.from({length: Math.round((upper - lower) / step) + 1}, (_, i) => lower + i * step);
-  const grid = ticks.map(value => `<line x1="${left}" x2="${w - right}" y1="${y(value)}" y2="${y(value)}" stroke="${difference && value === 0 ? "#82958a" : "#e4eae5"}" stroke-dasharray="${difference && value === 0 ? "none" : "3 5"}"/><text x="0" y="${y(value) + 4}" fill="#6d7c75" font-size="12">${percent ? `${value}${difference ? "pt" : "%"}` : unit === "min" ? Daylight.durationTick(value) : Number(value.toFixed(1))}</text>`).join("");
+  const grid = ticks.map(value => `<line x1="${left}" x2="${w - right}" y1="${y(value)}" y2="${y(value)}" stroke="${difference && value === 0 ? "#82958a" : "#e4eae5"}" stroke-dasharray="${difference && value === 0 ? "none" : "3 5"}"/><text x="0" y="${y(value) + 4}" fill="#6d7c75" font-size="12">${percent ? `${value}${difference ? "pt" : metric === "score" ? "" : "%"}` : unit === "min" ? Daylight.durationTick(value) : Number(value.toFixed(1))}</text>`).join("");
   const labelCount = Math.min(selectedDays, selectedDays === 7 && w > 500 ? 7 : w < 400 ? 3 : 5);
   const labels = Array.from({length: labelCount}, (_, i) => Math.round(i * (selectedDays - 1) / Math.max(1, labelCount - 1))).map(i => `<text x="${x(i)}" y="${h - 5}" text-anchor="${i === 0 ? "start" : i === selectedDays - 1 ? "end" : "middle"}" fill="#6d7c75" font-size="12">${formatShortDate(groupHistory.dates[i])}</text>`).join("");
   const series = groupHistory.members.map(member => member.segments.map(segment => `<path d="${segment.map((point, i) => `${i ? "L" : "M"}${x(point.index)},${y(point.value)}`).join(" ")}" fill="none" stroke="${member.color}" stroke-width="2.5" stroke-dasharray="${member.dash}" stroke-linecap="round" stroke-linejoin="round"/>${segment.map(point => `<circle cx="${x(point.index)}" cy="${y(point.value)}" r="${selectedDays > 28 ? 1.8 : 3.5}" fill="${member.color}"/>`).join("")}`).join("")).join("");
@@ -1871,10 +1881,10 @@ function drawGroupChart() {
     : !isDemo && !liveGroup.members.some(member => member.metrics.includes(metric))
       ? "This metric isn’t shared yet. Use Edit sharing in Members below to choose what to share."
       : difference ? `No ${groupChartMode === "whiplash" ? "three-day runs" : "consecutive-day pairs"} in this period. Try Values or a longer period.`
-      : "No shared data in this period. Enable recovery & activity in Connections, or choose a longer sharing window.";
+      : "No shared data in this period. Check your selected provider in Connections and your sharing choices in Members.";
   $("#groupSummaryRows").innerHTML = groupHistory.members.map(member => {
     const delta = selectedRange === "all" ? "—" : member.delta === null ? "Not enough history" : formatGroupDifference(member.delta);
-    return `<tr><th scope="row"><span class="group-person-marker" style="background:${member.color}"></span>${escapeHtml(member.name.replace(' (sample)', ''))}</th><td>${formatMemberValue(member, member.average)}</td><td>${delta}<small class="group-coverage">${selectedRange === "all" ? "No previous period" : `${member.previousCount} / ${selectedDays} previous days`}</small></td><td>${member.count} / ${selectedDays}</td></tr>`;
+    return `<tr><th scope="row"><span class="group-person-marker" style="background:${member.color}"></span>${escapeHtml(member.name.replace(' (sample)', ''))}${providerBadge(member)}</th><td>${formatMemberValue(member, member.average)}</td><td>${delta}<small class="group-coverage">${selectedRange === "all" ? "No previous period" : `${member.previousCount} / ${selectedDays} previous days`}</small></td><td>${member.count} / ${selectedDays}</td></tr>`;
   }).join("") || '<tr><td colspan="4">Select a person above to compare.</td></tr>';
   const selected = groupHistory.dates.indexOf(groupSelectedDate);
   showGroupDay(selected >= 0 ? selected : selectedDays - 1);
@@ -1883,7 +1893,7 @@ function drawGroupChart() {
 
 function formatGroupValue(value) {
   if (!Number.isFinite(value)) return "No data";
-  return formatMetricValue(value, $("#groupMetric").value);
+  return $("#groupMetric").value === "score" ? `${Number(value.toFixed(1))} / 100` : formatMetricValue(value, $("#groupMetric").value);
 }
 
 function showGroupDay(index, tooltip = false) {
@@ -1911,7 +1921,7 @@ function showGroupDay(index, tooltip = false) {
     const p = member.points[index];
     let detail = Number.isFinite(p.change) ? `${formatGroupValue(p.previous)} → ${formatGroupValue(p.rawValue)} · ${formatGroupDifference(p.change)} vs. yesterday` : "No consecutive-day comparison";
     if (groupChartMode === "whiplash" && Number.isFinite(p.acceleration)) detail += `<br>Daily change: ${formatGroupDifference(p.change - p.acceleration)} → ${formatGroupDifference(p.change)}`;
-    return `<div><span><i class="group-person-marker" style="background:${member.color}"></i>${escapeHtml(member.name.replace(' (sample)', ''))}</span><strong>${formatGroupPoint(member, p)}</strong></div><small>${detail}</small>`;
+    return `<div><span><i class="group-person-marker" style="background:${member.color}"></i>${escapeHtml(member.name.replace(' (sample)', ''))}${providerBadge(member)}</span><strong>${formatGroupPoint(member, p)}</strong></div><small>${detail}</small>`;
   }).join("");
   const tip = $("#groupTooltip");
   tip.innerHTML = `<p>${formatTableDate(groupSelectedDate)}</p>${rows}`;
@@ -1943,7 +1953,8 @@ function formatGroupPoint(member, point) {
 function renderGroupVariability(metric) {
   const members = groupHistory.members;
   // Compare playful distinctions only where every shown person has substantial coverage.
-  const comparable = members.length > 1 && members.every(m => m.count >= Math.ceil(selectedDays * .8) && m.variability.pairCount >= Math.max(4, Math.ceil((selectedDays - 1) * .8)));
+  const sameScoreScale = !["score","hrv","restingHeartRate"].includes(metric) || new Set(members.map(providerName)).size <= 1;
+  const comparable = sameScoreScale && members.length > 1 && members.every(m => m.count >= Math.ceil(selectedDays * .8) && m.variability.pairCount >= Math.max(4, Math.ceil((selectedDays - 1) * .8)));
   const displayed = value => Daylight.metrics[metric].unit === "min" ? Math.round(value) : Math.round(value * 10) / 10;
   const swings = members.map(m => displayed(m.variability.typicalSwing));
   const minSwing = Math.min(...swings), maxSwing = Math.max(...swings);
@@ -1954,7 +1965,7 @@ function renderGroupVariability(metric) {
     const v = member.variability;
     return comparable ? [maxSwing > minSwing && displayed(v.typicalSwing) === minSwing ? "Most consistent" : "", maxSwing > minSwing && displayed(v.typicalSwing) === maxSwing ? "Biggest roller coaster" : "", comeback > 0 && displayed(v.biggestJump?.value || 0) === comeback ? "Biggest jump" : ""].filter(Boolean) : [];
   };
-  const nameOf = member => escapeHtml(member.name.replace(' (sample)', ''));
+  const nameOf = member => escapeHtml(member.name.replace(' (sample)', '')) + providerBadge(member);
   const number = text => `<span class="stat-number">${text}</span>`;
   const highlights = ["Most consistent", "Biggest roller coaster", "Biggest jump"].map(label => {
     const winners = members.filter(m => badgesFor(m).includes(label));
@@ -1967,7 +1978,7 @@ function renderGroupVariability(metric) {
     const detailColumns = window.matchMedia("(max-width:700px)").matches ? 4 : 5;
     const range = v.min !== null ? `${number(formatGroupValue(v.min))} <span class="stat-range-arrow">→</span> ${number(formatGroupValue(v.max))}` : "—";
     const event = item => item ? `<strong>${formatGroupDifference(item.value)}</strong><small>${formatTableDate(item.date)}<br>${number(formatGroupValue(item.previous))} → ${number(formatGroupValue(item.current))}</small>` : v.pairCount ? "None" : "—";
-    return `<tr class="variability-person"><th scope="row"><span class="stat-person"><i class="group-person-marker" style="background:${member.color}"></i><span>${name}</span></span><small>${shared ? `${member.count} / ${selectedDays} days` : "Not shared"}</small></th><td>${number(shared ? formatGroupValue(member.average) : "—")}</td><td>${number(formatGroupDifference(v.typicalSwing, false))}</td><td class="stat-range-column">${range}</td><td class="stat-action"><button type="button" data-stat-details="${escapeHtml(member.id)}" aria-expanded="${open}" aria-controls="${detailId}" aria-label="${open ? "Hide" : "Show"} details for ${name}"><span class="stat-details-label">Details</span><span class="stat-chevron" aria-hidden="true">⌄</span></button></td></tr>
+    return `<tr class="variability-person"><th scope="row"><span class="stat-person"><i class="group-person-marker" style="background:${member.color}"></i><span>${name}</span></span><small>${shared ? `${member.count} / ${selectedDays} days` : "Not shared"}</small></th><td>${number(shared ? formatGroupValue(member.average) : "—")}</td><td>${number(formatGroupDifference(v.typicalSwing, false))}</td><td class="stat-range-column">${range}</td><td class="stat-action"><button type="button" data-stat-details="${escapeHtml(member.id)}" aria-expanded="${open}" aria-controls="${detailId}" aria-label="${open ? "Hide" : "Show"} details for ${escapeHtml(member.name.replace(' (sample)', ''))}"><span class="stat-details-label">Details</span><span class="stat-chevron" aria-hidden="true">⌄</span></button></td></tr>
       <tr class="variability-detail-row" id="${detailId}"${open ? "" : " hidden"}><td colspan="${detailColumns}"><div class="variability-detail-body"><dl>
       <div><dt>Low → high</dt><dd>${range}</dd></div><div><dt>Range width</dt><dd>${v.min !== null ? formatGroupDifference(v.max - v.min, false) : "—"}</dd></div><div><dt>Volatility (SD)</dt><dd>${formatGroupDifference(v.volatility, false)}</dd></div><div><dt>Trend per day</dt><dd>${formatGroupDifference(v.trend)}</dd></div>
       <div class="stat-event"><dt>Biggest drop</dt><dd>${event(v.biggestDrop)}</dd></div><div class="stat-event"><dt>Biggest jump</dt><dd>${event(v.biggestJump)}</dd></div></dl><p>${v.pairCount} consecutive-day pairs · ${member.count} tracked days in this period</p></div></td></tr>`;

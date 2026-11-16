@@ -47,3 +47,20 @@ test('sleep duration standings use nightly averages, round minute ties, and hono
  assert.equal(board.entries.find(x=>x.id==='sparse').eligible,false);
  assert.equal(board.entries[0].count,7);
 });
+
+test('mixed-provider history and duration standings use exactly the chosen source per person',()=>{
+ const whoop=member('WHOOP',Array.from({length:14},()=>({score:75,durationMinutes:480})),{metrics:['score','durationMinutes']});
+ const garmin={...member('Garmin',Array.from({length:14},()=>({score:100,durationMinutes:900}))),provider:'garmin',metrics:['score','durationMinutes']};
+ garmin.nights.push(...whoop.nights.map(n=>({...n,source:'garmin',score:90,durationMinutes:420})));
+ const chart=D.groupHistory([whoop,garmin],'durationMinutes',7,'2026-09-30');
+ assert.equal(chart.members[1].provider,'garmin');assert.equal(chart.members[1].average,420);assert.equal(chart.members[1].count,7);
+ assert.equal(chart.members[1].points[0].value,420);
+ const board=D.standings([whoop,garmin],'durationMinutes','2026-10-01');
+ assert.deepEqual(board.entries.map(m=>[m.id,m.result,m.rank]),[['WHOOP',480,1],['Garmin',420,2]]);
+ for(const [key,winner,excluded] of [['score','WHOOP','Garmin'],['garminScore','Garmin','WHOOP']]){
+  const scores=D.standings([whoop,garmin],key,'2026-10-01');
+  assert.equal(scores.entries[0].id,winner);assert.equal(scores.entries[0].rank,1);assert.equal(scores.entries[1].id,excluded);assert.equal(scores.entries[1].eligible,false);
+ }
+ const privateChart=D.groupHistory([{...garmin,metrics:[]}],'score',7,'2026-09-30');
+ assert.equal(privateChart.members[0].count,0);assert.equal(privateChart.members[0].points[0].value,undefined);
+});

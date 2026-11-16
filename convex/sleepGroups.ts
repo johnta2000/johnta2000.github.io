@@ -4,12 +4,15 @@ import { v } from "convex/values";
 import { requireSleepUser, signedIn } from "./sleepAccess";
 import { sharedMetric } from "./sleepTables";
 
-const sharing = { name: v.string(), metrics: v.array(sharedMetric), shareDays: v.number() };
-function cleanSharing(args: {name: string; metrics: string[]; shareDays: number}) {
+const sharing = { provider: v.optional(v.union(v.literal("whoop"), v.literal("garmin"))), name: v.string(), metrics: v.array(sharedMetric), shareDays: v.number() };
+const garminMetrics = new Set(["durationMinutes", "score", "deepMinutes", "remMinutes", "hrv", "restingHeartRate"]);
+function cleanSharing(args: {provider?: "whoop" | "garmin"; name: string; metrics: string[]; shareDays: number}) {
   const name = args.name.trim();
   if (!name || name.length > 40) throw new Error("Use a display name between 1 and 40 characters.");
   if (![7, 28, 90, 180].includes(args.shareDays)) throw new Error("Choose a supported history window.");
-  return {name, metrics: [...new Set(args.metrics)], shareDays: args.shareDays};
+  const provider = args.provider ?? "whoop";
+  if (provider === "garmin" && args.metrics.some(metric => !garminMetrics.has(metric))) throw new Error("Choose only metrics available from Garmin.");
+  return {name, provider, metrics: [...new Set(args.metrics)], shareDays: args.shareDays};
 }
 async function membership(ctx: any, groupId: any, subject: string) {
   const group = await ctx.db.get(groupId);
@@ -111,7 +114,7 @@ export const acceptInvite = mutation({args: {token: v.string(), ...sharing}, han
 export const updateSharing = mutation({args: {groupId: v.id("sleepGroups"), ...sharing}, handler: async (ctx, args) => {
   const user = await requireSleepUser(ctx);
   const {member} = await membership(ctx, args.groupId, user.subject);
-  const settings = cleanSharing(args);
+  const settings = cleanSharing({...args, provider: args.provider ?? member.provider ?? "whoop"});
   await ctx.db.patch(member._id, {...settings, metrics: settings.metrics as any});
 }});
 export const revokeInvite = mutation({args: {inviteId: v.id("sleepInvites")}, handler: async (ctx, args) => {
@@ -145,6 +148,21 @@ export const history = query({args: {groupId: v.id("sleepGroups")}, handler: asy
   const members = await ctx.db.query("sleepMembers").withIndex("by_group", q => q.eq("groupId", args.groupId)).collect();
   const visible = [];
   for (const member of members) {
+    const provider = member.provider ?? "whoop";
+    if (provider === "garmin") {
+      const allowed = member.metrics.filter(metric => garminMetrics.has(metric));
+      const records = allowed.length ? await ctx.db.query("garminNights").withIndex("by_owner_date", q => q.eq("ownerSubject", member.subject).gte("sleepDate", dateShift(today, 1 - member.shareDays)).lte("sleepDate", today)).collect() : [];
+      const nights = records.map(record => {
+        const result: any = {sleepDate: record.sleepDate, source: "garmin"};
+        for (const metric of allowed) {
+          const value = (record as any)[metric];
+          if (typeof value === "number" && Number.isFinite(value)) {result[metric] = value; if (metric === "score") result.scoreKind = "native";}
+        }
+        return result;
+      }).filter(record => Object.keys(record).length > 2);
+      visible.push({id: member._id, name: member.name, self: member.subject === user.subject, provider, metrics: allowed, shareDays: member.shareDays, nights});
+      continue;
+    }
     const dailyMetrics = new Set(["recovery", "hrv", "restingHeartRate", "strain", "workoutMinutes", "workoutCount"]);
     // Read only the selected provider, and skip sleep records for daily-only sharing.
     const nights = member.metrics.some(m => !dailyMetrics.has(m)) ? await ctx.db.query("sleepNights").withIndex("by_owner_source_date", q => q.eq("ownerSubject", member.subject).eq("source", "whoop").gte("sleepDate", dateShift(today, 1 - member.shareDays)).lte("sleepDate", today)).collect() : [];
@@ -163,10 +181,10 @@ export const history = query({args: {groupId: v.id("sleepGroups")}, handler: asy
       }
       if (Object.keys(result).length > 2) merged.set(n.sleepDate, result);
     }
-    visible.push({id: member._id, name: member.name, self: member.subject === user.subject, metrics: member.metrics, shareDays: member.shareDays, nights: [...merged.values()]});
+    visible.push({id: member._id, name: member.name, self: member.subject === user.subject, provider, metrics: member.metrics, shareDays: member.shareDays, nights: [...merged.values()]});
   }
   const invites = group.ownerSubject === user.subject ? await ctx.db.query("sleepInvites").withIndex("by_group", q => q.eq("groupId", group._id)).collect() : [];
-  return {id: group._id, name: group.name, owner: group.ownerSubject === user.subject, own: {name: own.name, metrics: own.metrics, shareDays: own.shareDays}, members: visible, invites: invites.filter(i => !i.usedAt && !i.revokedAt && i.expiresAt > Date.now()).map(i => ({id: i._id, createdAt: i.createdAt, expiresAt: i.expiresAt})), invitationHistory: invites.sort((a,b) => b.createdAt - a.createdAt).map(i => ({id: i._id, label: i.label || "Unlabeled invitation", createdAt: i.createdAt, expiresAt: i.expiresAt, usedAt: i.usedAt, revokedAt: i.revokedAt, acceptedName: i.acceptedName, replaced: Boolean(i.replacedBy), status: i.usedAt ? "accepted" : i.revokedAt ? "revoked" : i.expiresAt <= Date.now() ? "expired" : "pending"}))};
+  return {id: group._id, name: group.name, owner: group.ownerSubject === user.subject, own: {name: own.name, provider: own.provider ?? "whoop", metrics: own.metrics, shareDays: own.shareDays}, members: visible, invites: invites.filter(i => !i.usedAt && !i.revokedAt && i.expiresAt > Date.now()).map(i => ({id: i._id, createdAt: i.createdAt, expiresAt: i.expiresAt})), invitationHistory: invites.sort((a,b) => b.createdAt - a.createdAt).map(i => ({id: i._id, label: i.label || "Unlabeled invitation", createdAt: i.createdAt, expiresAt: i.expiresAt, usedAt: i.usedAt, revokedAt: i.revokedAt, acceptedName: i.acceptedName, replaced: Boolean(i.replacedBy), status: i.usedAt ? "accepted" : i.revokedAt ? "revoked" : i.expiresAt <= Date.now() ? "expired" : "pending"}))};
 }});
 export const migrateLegacy = internalMutation({args: {}, handler: async ctx => {
   const subject = process.env.SLEEP_LEGACY_OWNER_SUBJECT;

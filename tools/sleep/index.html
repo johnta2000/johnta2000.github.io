@@ -19,7 +19,7 @@
     <link rel="stylesheet" href="/assets/css/searchable-select.css" />
     <link rel="stylesheet" href="./styles.css?v=20261114-3" />
     <link rel="stylesheet" href="../../assets/css/clerk-auth.css?v=20261011-otp1">
-</head>
+<style>.group-provider{display:inline-block;font-size:10px;font-weight:600;line-height:1.5;padding:1px 5px;border-radius:4px;background:#eef3f1;color:#52665e;white-space:nowrap;margin-left:5px}.group-member-name{flex-wrap:wrap}.sharing-category[hidden]{display:none}</style></head>
   <body>
     <section data-auth-screen="sleep" id="accessGate" class="access-gate" aria-labelledby="gateTitle">
       <div class="gate-orbit" aria-hidden="true"><span></span></div>
@@ -378,7 +378,7 @@
               <div id="groupMembers" class="group-members" role="group" aria-label="People shown in the chart"></div>
               <div class="group-plot-wrap"><div id="groupPlot" tabindex="0" role="group" aria-label="Group history. Use left and right arrow keys to explore dates." aria-describedby="groupChartStatus"></div><div id="groupTooltip" class="group-tooltip" hidden></div><p id="groupEmpty" class="chart-empty" hidden>Select a person to show their history.</p></div>
               <p id="groupChartStatus" class="sr-only" role="status" aria-live="polite"></p>
-              <p class="group-chart-note">WHOOP · Missing days appear as gaps. Select a person to hide or show their line.</p>
+              <p class="group-chart-note">Each person’s selected provider · Missing days appear as gaps. Select a person to hide or show their line.</p>
               <div class="group-summary-heading"><h3>Consistency &amp; chaos</h3><p class="small-note">Compare the average and how much each person varies day to day.</p></div>
               <div id="groupVariability" class="group-variability"></div>
               <details class="stats-method"><summary>How these stats work</summary><p>Typical swing is the average absolute change between consecutive tracked days. Volatility is the population standard deviation; trend is a fitted change per calendar day. Gaps are excluded. Highlights compare shown people only when everyone has at least 80% day and pair coverage, with at least four daily pairs. Ties share highlights. These describe variation, not health.</p></details>
@@ -417,7 +417,7 @@
                 </form>
                 <div class="connection-actions"><button id="garminSync" type="button" class="primary-button" hidden>Sync now</button><button id="garminDisconnect" type="button" class="text-button" hidden>Disconnect</button></div>
                 <p id="garminMessage" class="source-message" role="status">Checking connection…</p>
-                <p class="small-note">Garmin scores retain their own meaning. Group comparisons currently use WHOOP only.</p>
+                <p class="small-note">Garmin scores retain their own meaning. To share with a group, choose Garmin in Members → Edit sharing.</p>
                 <a class="text-button" href="https://developer.garmin.com/gc-developer-program/personal/personal-api/" target="_blank" rel="noopener noreferrer">Garmin setup documentation ↗</a>
               </article>
               <article class="panel connection-card">
@@ -671,14 +671,14 @@
               <div id="invitationFilters" class="invitation-filters" role="group" aria-label="Filter invitations"></div>
               <div id="invitationRows"></div><p id="invitationMessage" class="small-note" role="status"></p>
             </section>
-<details class="group-onboarding"><summary>How invitations work</summary><p>Open an invitation → sign in → choose what to share → connect WHOOP. Each link works once and expires after 7 days. Use Edit sharing on your member row to change your metrics or stop sharing.</p></details>
+<details class="group-onboarding"><summary>How invitations work</summary><p>Open an invitation → sign in → choose a provider and metrics → connect WHOOP or Garmin. Each link works once and expires after 7 days. Use Edit sharing on your member row to change your metrics or stop sharing.</p></details>
       </div>
     </dialog>
-    <dialog id="groupDialog" class="group-dialog"><form id="groupForm"><div class="panel-heading"><h2 id="groupDialogTitle">Create a group</h2><button id="cancelGroupDialog" type="button" class="text-button">Cancel</button></div><p id="groupDialogIntro"></p><label id="groupNameLabel">Group name<input id="groupNameInput" maxlength="60" type="text"></label><label>Your display name<input id="groupDisplayName" maxlength="40" required type="text" autocomplete="nickname"></label><fieldset id="groupSharingOptions"><legend>Share with this group</legend><p>Nothing is shared unless you select it. Your notes always stay private.</p><label><input type="checkbox" name="sharedMetric" value="durationMinutes"> Time asleep</label><label><input type="checkbox" name="sharedMetric" value="score"> Sleep performance</label><label><input type="checkbox" name="sharedMetric" value="efficiency"> Sleep efficiency</label></fieldset><label>History to share<select id="groupShareDays" aria-label="History to share"><option value="7">Last 7 days</option><option value="28">Last 28 days</option><option value="90" selected>Last 90 days</option><option value="180">Last 180 days</option></select></label><p class="small-note">This is a rolling window that includes future synced days. New members of this group can see the metrics you share.</p><p id="groupFormError" role="alert"></p><button id="saveGroupForm" type="submit" class="primary-button">Create group</button></form></dialog>
-    <script defer src="./model.js?v=20261114-3"></script>
+    <dialog id="groupDialog" class="group-dialog"><form id="groupForm"><div class="panel-heading"><h2 id="groupDialogTitle">Create a group</h2><button id="cancelGroupDialog" type="button" class="text-button">Cancel</button></div><p id="groupDialogIntro"></p><label id="groupNameLabel">Group name<input id="groupNameInput" maxlength="60" type="text"></label><label>Your display name<input id="groupDisplayName" maxlength="40" required type="text" autocomplete="nickname"></label><label>Provider to share<select id="groupShareProvider" aria-label="Provider to share"><option value="whoop">WHOOP</option><option value="garmin">Garmin</option></select></label><p id="groupProviderHelp" class="small-note"></p><fieldset id="groupSharingOptions"><legend>Share with this group</legend><p>Nothing is shared unless you select it. Your notes always stay private.</p><label><input type="checkbox" name="sharedMetric" value="durationMinutes"> Time asleep</label><label><input type="checkbox" name="sharedMetric" value="score"> Sleep performance</label><label><input type="checkbox" name="sharedMetric" value="efficiency"> Sleep efficiency</label></fieldset><label>History to share<select id="groupShareDays" aria-label="History to share"><option value="7">Last 7 days</option><option value="28">Last 28 days</option><option value="90" selected>Last 90 days</option><option value="180">Last 180 days</option></select></label><p class="small-note">This is a rolling window that includes future synced days. New members of this group can see the metrics you share.</p><p id="groupFormError" role="alert"></p><button id="saveGroupForm" type="submit" class="primary-button">Create group</button></form></dialog>
+    <script defer src="./model.js?v=20261115-groups-1"></script>
     <script defer src="./comparison.js?v=20261114-3"></script>
-    <script defer src="./groups.js?v=20261113-1"></script>
+    <script defer src="./groups.js?v=20261115-groups-1"></script>
     <script defer src="./garmin.js?v=20261114-5"></script>
-    <script defer src="./app.js?v=20261114-4"></script>
+    <script defer src="./app.js?v=20261115-groups-1"></script>
   </body>
 </html>

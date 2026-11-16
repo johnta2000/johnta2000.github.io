@@ -143,3 +143,25 @@ test('Garmin history stays owner-scoped and never enters WHOOP group rankings',a
  }
  const group=await f.group('history','owner',{groupId:f.id});assert.ok(group.members.every(m=>m.nights.length===0));
 });
+
+test('Garmin sharing is explicit, source-isolated, metric-filtered and window-bounded',async()=>{
+ const f=await setup();await join(f);
+ f.tables.garminNights.push({...night('garmin'),ownerSubject:'friend',hrv:65,asleepAt:'private',encryptedKey:'private'}, {...night('garmin'),ownerSubject:'owner',score:99}, {...night('garmin'),ownerSubject:'friend',sleepDate:'2020-01-01'});
+ f.tables.sleepNights.push({...night(),ownerSubject:'friend',score:30});
+ delete f.tables.sleepMembers.find(m=>m.subject==='friend').provider;
+ let result=await f.group('history','owner',{groupId:f.id}),friend=result.members.find(m=>!m.self);
+ assert.equal(friend.provider,'whoop');assert.equal(friend.nights[0].score,30);
+ assert.equal(f.reads.some(r=>r.table==='garminNights'),false);
+ await f.group('updateSharing','friend',{groupId:f.id,name:'Friend',provider:'garmin',metrics:['score'],shareDays:7});
+ result=await f.group('history','owner',{groupId:f.id});friend=result.members.find(m=>!m.self);
+ assert.equal(friend.provider,'garmin');assert.equal(friend.nights.length,1);assert.equal(friend.nights[0].score,80);assert.equal(friend.nights[0].source,'garmin');assert.equal(friend.nights[0].scoreKind,'native');
+ assert.deepEqual(Object.keys(friend.nights[0]).sort(),['score','scoreKind','sleepDate','source']);
+ assert.ok(!JSON.stringify(result).includes('private'));
+ // Older clients preserve a member's selected source instead of silently reverting it.
+ await f.group('updateSharing','friend',{groupId:f.id,name:'Friend',metrics:['durationMinutes'],shareDays:7});
+ assert.equal((await f.group('history','friend',{groupId:f.id})).own.provider,'garmin');
+ await assert.rejects(f.group('updateSharing','friend',{groupId:f.id,name:'Friend',provider:'garmin',metrics:['recovery'],shareDays:7}),/available from Garmin/);
+ await f.group('updateSharing','friend',{groupId:f.id,name:'Friend',provider:'garmin',metrics:[],shareDays:7});
+ f.reads.length=0;friend=(await f.group('history','owner',{groupId:f.id})).members.find(m=>!m.self);
+ assert.equal(friend.nights.length,0);assert.equal(f.reads.some(r=>r.table==='garminNights'),false);
+});

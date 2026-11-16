@@ -3,6 +3,7 @@ let pendingSleepInvite = null;
 let liveGroup = null;
 let activeGroupId = null;
 let groupFormMode = null;
+let groupFormOpener = null;
 let groupsRequest = 0;
 let groupPoll;
 const GROUP_COLORS = ['#397967', '#b66b3d', '#7c6da7', '#367ea0', '#a65375', '#79702f', '#6754a1', '#277f82', '#976444', '#577545'];
@@ -21,8 +22,9 @@ function bindGroupEvents() {
   $('#groupSharingOptions').innerHTML = '<legend>Share with this group</legend><p>Only checked metrics are shared. Your notes stay private.</p>' + [
     ['Sleep', ['durationMinutes','score','efficiency','deepMinutes','remMinutes','consistency']],
     ['Recovery', ['recovery','hrv','restingHeartRate']], ['Activity', ['strain','workoutMinutes','workoutCount']],
-  ].map(([title,keys]) => `<div class="sharing-category"><h3>${title}</h3><div>${keys.map(key => `<label><input type="checkbox" name="sharedMetric" value="${key}"> ${Daylight.metrics[key].label}</label>`).join('')}</div></div>`).join('');
+  ].map(([title,keys]) => `<div class="sharing-category"><h3>${title}</h3><div>${keys.map(key => `<label><input type="checkbox" name="sharedMetric" value="${key}"> <span data-sharing-label="${key}">${Daylight.metrics[key].label}</span></label>`).join('')}</div></div>`).join('');
 
+  bindGroupSharingState();
   $('#createFirstGroup').addEventListener('click', () => openGroupForm('create'));
   $('#inviteFriend').addEventListener('click', () => openInvitationForm());
   $('#cancelInvitation').addEventListener('click', () => $('#invitationDialog').close());
@@ -39,6 +41,7 @@ function bindGroupEvents() {
       return;
     }
     activeGroupId = $('#groupSelect').value;
+    setGroupRoute({group:activeGroupId,dialog:null});
     sessionStorage.setItem('daylightActiveGroup', activeGroupId);
     $('#newInvite').hidden = true;
     refreshLiveGroup();
@@ -83,7 +86,8 @@ async function reviewSleepInvite() {
     } else $('#reviewInviteButton').hidden = false;
   }
 }
-function openGroupForm(mode, invite) {
+function openGroupForm(mode, invite, fromUrl = false) {
+  groupFormOpener = document.activeElement;
   groupFormMode = mode;
   $('#groupForm').reset();
   $('#groupFormError').textContent = '';
@@ -91,17 +95,21 @@ function openGroupForm(mode, invite) {
   $('#groupNameInput').required = mode === 'create';
   $('#groupDisplayName').value = mode === 'sharing' ? liveGroup.own.name : (window.Clerk?.user?.firstName || '');
   $('#groupDialogTitle').textContent = mode === 'create' ? 'Create a private group' : mode === 'join' ? `Join ${invite.name}` : 'Your sharing';
-  $('#groupDialogIntro').textContent = mode === 'join' ? `${invite.count} ${invite.count === 1 ? 'person' : 'people'} in this group. You can connect WHOOP after joining.` : mode === 'sharing' ? `Choose what members of ${liveGroup.name} can see. Uncheck all metrics to stop sharing.` : 'Give your group a name and choose what you want to share.';
+  $('#groupDialogIntro').textContent = mode === 'join' ? `${invite.count} ${invite.count === 1 ? 'person' : 'people'} in this group. You can connect WHOOP or Garmin after joining.` : mode === 'sharing' ? `Choose what members of ${liveGroup.name} can see. Uncheck all metrics to stop sharing.` : 'Give your group a name and choose what you want to share.';
   $('#saveGroupForm').textContent = mode === 'create' ? 'Create group' : mode === 'join' ? 'Join group' : 'Save sharing';
   $('#groupShareDays').value = String(mode === 'sharing' ? liveGroup.own.shareDays : 90);
   if (mode === 'sharing') $('#groupForm').querySelectorAll('[name="sharedMetric"]').forEach(input => { input.checked = liveGroup.own.metrics.includes(input.value); });
+  $('#groupShareProvider').value = mode === 'sharing' ? liveGroup.own.provider || 'whoop' : 'whoop';
+  restoreGroupDraft();
+  updateSharingProvider();
   SearchableSelect.enhance($('#groupShareDays')).sync();
+  if (!fromUrl && mode !== 'join') setGroupRoute({dialog:mode === 'sharing' ? 'sharing' : 'new-group'});
   $('#groupDialog').showModal();
 }
 async function saveGroupForm(event) {
   event.preventDefault();
   const button = $('#saveGroupForm'); button.disabled = true;
-  const args = {name: $('#groupDisplayName').value.trim(), metrics: [...$('#groupForm').querySelectorAll('[name="sharedMetric"]:checked')].map(input => input.value), shareDays: Number($('#groupShareDays').value)};
+  const args = {provider: $('#groupShareProvider').value, name: $('#groupDisplayName').value.trim(), metrics: [...$('#groupForm').querySelectorAll('[name="sharedMetric"]:checked:not(:disabled)')].map(input => input.value), shareDays: Number($('#groupShareDays').value)};
   try {
     const joining = groupFormMode === 'join';
     if (joining) {
@@ -111,11 +119,13 @@ async function saveGroupForm(event) {
     } else if (groupFormMode === 'create') activeGroupId = await convexMutation('sleepGroups:create', {...args, groupName: $('#groupNameInput').value.trim()});
     else await convexMutation('sleepGroups:updateSharing', {...args, groupId: activeGroupId});
     sessionStorage.setItem('daylightActiveGroup', activeGroupId);
+    try { localStorage.removeItem(groupDraftKey()); } catch {}
+    if (!joining) setGroupRoute({dialog:null},true);
     $('#groupDialog').close();
     if (joining) {
       await unlockDashboard();
       switchView('connections');
-      els.whoopMessage.textContent = 'You joined the group. Connect your own WHOOP account to import your sleep history.';
+      els.whoopMessage.textContent = 'You joined the group. Connect your selected provider to import your sleep history.';
     } else { await initializeGroups(); switchView('friends'); }
   } catch (error) { $('#groupFormError').textContent = groupError(error); }
   finally { button.disabled = false; }
@@ -170,7 +180,7 @@ function clearLiveGroup() {
 async function refreshLiveGroup() {
   if (isDemo) return;
   const request = ++groupsRequest, id = activeGroupId;
-  if (!id) { clearLiveGroup(); return; }
+  if (!id) { clearLiveGroup(); restoreGroupRoute(); return; }
   if (liveGroup?.id !== id) clearLiveGroup();
   try {
     const data = await convexQuery('sleepGroups:history', {groupId: id});
@@ -185,13 +195,14 @@ async function refreshLiveGroup() {
     $('#inviteFriend').hidden = !data.owner;
     $('#friendSample').hidden = false;
     $('#groupManagement').hidden = false;
-    $('#groupMemberList').innerHTML = data.members.map(member => `<div class="group-member-row${member.self ? ' is-self' : ''}"><div class="group-member-details"><strong>${escapeHtml(member.name)}${member.self ? ' <span class="member-you">You</span>' : ''}</strong><small>${member.metrics.length ? `Last ${member.shareDays} days · ${member.metrics.length} ${member.metrics.length === 1 ? 'metric' : 'metrics'}` : 'Not sharing data'}</small><p class="member-shared-metrics">${member.metrics.length ? member.metrics.map(key => escapeHtml(Daylight.metrics[key]?.label || key)).join(' · ') : member.self ? 'Choose the metrics you want others to see.' : 'This person has not shared any metrics.'}</p></div>${member.self ? '<button type="button" id="editSharing" class="secondary-button">Edit sharing</button>' : data.owner ? `<button type="button" class="text-button" data-remove-member="${escapeHtml(member.id)}">Remove</button>` : ''}</div>`).join('');
+    $('#groupMemberList').innerHTML = data.members.map(member => `<div class="group-member-row${member.self ? ' is-self' : ''}"><div class="group-member-details"><strong>${escapeHtml(member.name)}${member.self ? ' <span class="member-you">You</span>' : ''}${providerBadge(member)}</strong><small>${member.metrics.length ? `Last ${member.shareDays} days · ${member.metrics.length} ${member.metrics.length === 1 ? 'metric' : 'metrics'}` : 'Not sharing data'}</small><p class="member-shared-metrics">${member.metrics.length ? member.metrics.map(key => escapeHtml(key === 'score' ? (member.provider === 'garmin' ? 'Garmin sleep score' : 'WHOOP sleep performance') : Daylight.metrics[key]?.label || key)).join(' · ') : member.self ? 'Choose the metrics you want others to see.' : 'This person has not shared any metrics.'}</p></div>${member.self ? '<button type="button" id="editSharing" class="secondary-button">Edit sharing</button>' : data.owner ? `<button type="button" class="text-button" data-remove-member="${escapeHtml(member.id)}">Remove</button>` : ''}</div>`).join('');
     $('#editSharing')?.addEventListener('click', () => openGroupForm('sharing'));
     $('#groupMemberList').querySelectorAll('[data-remove-member]').forEach(button => button.addEventListener('click', () => {
       if (confirm('Remove this person from the group? Their private records will remain in their account.')) groupOperation(async () => { await convexMutation('sleepGroups:removeMember', {groupId: id, memberId: button.dataset.removeMember}); await refreshLiveGroup(); });
     }));
     renderInvitations();
     $('#leaveGroup').textContent = data.owner ? 'Close group' : 'Leave group';
+    restoreGroupRoute();
     drawGroupChart();
   } catch (error) {
     if (request !== groupsRequest) return;
@@ -322,7 +333,7 @@ function resetGroupsPreview() {
   $('#groupsPreviewBadge').hidden = false;
 }
 
-const DEFAULT_STANDINGS = ['durationMinutes', 'score', 'recovery', 'workoutMinutes'];
+const DEFAULT_STANDINGS = ['durationMinutes', 'score', 'garminScore', 'recovery', 'workoutMinutes'];
 let selectedStandings = [...DEFAULT_STANDINGS];
 try {
   const saved = JSON.parse(localStorage.getItem('daylightStandingsMetrics'));
@@ -374,13 +385,14 @@ function renderStandings() {
   const panel = $('#groupStandings');
   panel.hidden = !groupSample || (!isDemo && !liveGroup);
   if (panel.hidden) return;
-  const boards = selectedStandings.map(key => ({key, ...Daylight.standings(groupSample, key, todayPacific(), selectedRange)}));
+  const displayedStandings = selectedStandings.filter(key => key !== 'garminScore' || selectedStandings.length === 1 || groupSample.some(member => member.provider === 'garmin'));
+  const boards = displayedStandings.map(key => ({key, ...Daylight.standings(groupSample, key, todayPacific(), selectedRange)}));
   $('#standingsPeriod').textContent = `${formatRangeDate(boards[0].start)} – ${formatRangeDate(boards[0].end)} · ${selectedRange === 'all' ? 'ALL SHARED HISTORY · THROUGH YESTERDAY' : `LAST ${boards[0].days} COMPLETE DAYS`}`;
   $('#standingsBoards').innerHTML = boards.map(board => {
     const baseline = ['delta','percentChange'].includes(board.rule.mode);
     const rows = board.entries.map(member => {
-      const value = !member.eligible ? '—' : baseline ? `${member.result > 0 ? '+' : ''}${member.result.toFixed(1)}${board.rule.mode === 'percentChange' ? '%' : ' pts'}` : board.rule.mode === 'total' ? formatDuration(member.result) : formatMetricValue(member.result, board.rule.metric);
-      return `<li class="standing-row${member.rank === 1 ? ' standing-leader' : ''}"><span class="standing-rank" aria-label="${member.rank ? `Rank ${member.rank}` : 'Unranked'}">${member.rank || '—'}</span><span class="standing-name"><span><i class="group-person-marker" style="background:${member.color}"></i>${escapeHtml(member.name.replace(' (sample)', ''))}</span><small>${member.eligible ? `${member.count}/${board.days} ${board.rule.metric === 'durationMinutes' ? 'nights' : 'days'}${baseline ? ` · ${member.previousCount}/${board.days} previous days` : ''}` : `${member.reason}${member.reason === 'Not shared' ? '' : ` · ${member.count}/${board.days} days`}`}</small></span><strong>${value}</strong></li>`;
+      const value = !member.eligible ? '—' : board.key === 'garminScore' ? `${member.result.toFixed(1)} / 100` : baseline ? `${member.result > 0 ? '+' : ''}${member.result.toFixed(1)}${board.rule.mode === 'percentChange' ? '%' : ' pts'}` : board.rule.mode === 'total' ? formatDuration(member.result) : formatMetricValue(member.result, board.rule.metric);
+      return `<li class="standing-row${member.rank === 1 ? ' standing-leader' : ''}"><span class="standing-rank" aria-label="${member.rank ? `Rank ${member.rank}` : 'Unranked'}">${member.rank || '—'}</span><span class="standing-name"><span><i class="group-person-marker" style="background:${member.color}"></i>${escapeHtml(member.name.replace(' (sample)', ''))}${providerBadge(member)}</span><small>${member.eligible ? `${member.count}/${board.days} ${board.rule.metric === 'durationMinutes' ? 'nights' : 'days'}${baseline ? ` · ${member.previousCount}/${board.days} previous days` : ''}` : `${member.reason}${['Not shared','WHOOP only','Garmin only'].includes(member.reason) ? '' : ` · ${member.count}/${board.days} days`}`}</small></span><strong>${value}</strong></li>`;
     }).join('');
     return `<article class="standings-card" aria-labelledby="standingTitle-${board.key}"><div class="standings-card-heading"><h3 id="standingTitle-${board.key}">${board.rule.label}</h3><p>${board.rule.description}</p></div><ol class="standings-rows">${rows}</ol></article>`;
   }).join('');
@@ -391,3 +403,56 @@ function formatMetricValue(value, metric) {
   return unit === 'min' ? formatDuration(value) : unit === '%' ? `${value.toFixed(1)}%` : unit === '/21' ? `${value.toFixed(1)} / 21` : `${Number.isInteger(value) ? value : value.toFixed(1)} ${unit}`;
 }
 
+
+function providerName(member) { return member.provider === 'garmin' ? 'Garmin' : 'WHOOP'; }
+function providerBadge(member) { return `<span class="group-provider">${providerName(member)}</span>`; }
+const GARMIN_SHARED_METRICS = ['durationMinutes','score','deepMinutes','remMinutes','hrv','restingHeartRate'];
+function updateSharingProvider() {
+  const garmin = $('#groupShareProvider').value === 'garmin';
+  $('#groupForm').querySelectorAll('[name="sharedMetric"]').forEach(input => {
+    input.disabled = garmin && !GARMIN_SHARED_METRICS.includes(input.value);
+    input.closest('label').hidden = input.disabled;
+  });
+  $('#groupForm').querySelectorAll('.sharing-category').forEach(section => section.hidden = !section.querySelector('input:not(:disabled)'));
+  $('[data-sharing-label="score"]').textContent = garmin ? 'Garmin sleep score' : 'WHOOP sleep performance';
+  $('#groupProviderHelp').textContent = garmin ? 'Share selected Garmin readings only. WHOOP data stays out of this group view. Connect Garmin in Connections to add readings.' : 'Share selected WHOOP readings only. Choose Garmin to share that provider instead.';
+  SearchableSelect.enhance($('#groupShareProvider')).sync();
+}
+function groupDraftKey() { return 'daylightSharingDraft:'+ (window.Clerk?.user?.id || 'preview') + ':' + (groupFormMode === 'sharing' ? activeGroupId : groupFormMode); }
+function saveGroupDraft() {
+  if (!$('#groupDialog').open) return;
+  const draft={name:$('#groupDisplayName').value,groupName:$('#groupNameInput').value,provider:$('#groupShareProvider').value,days:$('#groupShareDays').value,metrics:[...$('#groupForm').querySelectorAll('[name="sharedMetric"]:checked')].map(x=>x.value)};
+  try { localStorage.setItem(groupDraftKey(),JSON.stringify(draft)); } catch { $('#groupFormError').textContent='This browser could not save your unfinished changes. Keep this page open until you save sharing.'; }
+}
+function restoreGroupDraft() {
+  try { const draft=JSON.parse(localStorage.getItem(groupDraftKey()));if(!draft)return;
+    $('#groupDisplayName').value=draft.name;$('#groupNameInput').value=draft.groupName;$('#groupShareProvider').value=draft.provider;$('#groupShareDays').value=draft.days;
+    $('#groupForm').querySelectorAll('[name="sharedMetric"]').forEach(x=>x.checked=draft.metrics.includes(x.value));
+  } catch {}
+}
+function setGroupRoute(values, replace=false) {
+  const url=new URL(location.href);for(const [key,value] of Object.entries(values))value===null?url.searchParams.delete(key):url.searchParams.set(key,value);
+  if(url.href!==location.href)history[replace?'replaceState':'pushState']({},'',url.pathname+url.search+url.hash);
+}
+function restoreGroupRoute() {
+  const params=new URLSearchParams(location.search),metric=params.get('metric') || 'durationMinutes',mode=params.get('chart') || 'values';
+  if(metric && Daylight.metrics[metric]){$('#groupMetric').value=metric;SearchableSelect.enhance($('#groupMetric')).sync();}
+  if(['values','changes','whiplash'].includes(mode)){
+    groupChartMode=mode;$('#groupChartView').value=mode;SearchableSelect.enhance($('#groupChartView')).sync();
+    document.querySelectorAll('[data-group-mode]').forEach(x=>x.setAttribute('aria-pressed',String(x.dataset.groupMode===mode)));
+  }
+  const dialog=params.get('dialog');
+  if(activeView==='friends' && ['sharing','new-group'].includes(dialog) && !$('#groupDialog').open && (dialog!=='sharing'||liveGroup))openGroupForm(dialog==='sharing'?'sharing':'create',undefined,true);
+  if(!dialog && $('#groupDialog').open && groupFormMode!=='join')$('#groupDialog').close();
+}
+function bindGroupSharingState() {
+  $('#groupShareProvider').addEventListener('change',()=>{updateSharingProvider();saveGroupDraft();});
+  $('#groupForm').addEventListener('input',saveGroupDraft);$('#groupForm').addEventListener('change',saveGroupDraft);
+  const dialog=$('#groupDialog');let outside=false;
+  dialog.addEventListener('pointerdown',event=>outside=event.target===dialog);
+  dialog.addEventListener('click',event=>{if(outside&&event.target===dialog)dialog.close();outside=false;});
+  dialog.addEventListener('close',()=>{if(groupFormMode!=='join')setGroupRoute({dialog:null},true);(groupFormMode === 'sharing' ? $('#editSharing') : groupFormOpener)?.focus();});
+  $('#groupMetric').addEventListener('change',()=>setGroupRoute({metric:$('#groupMetric').value}));
+  $('#groupChartView').addEventListener('change',()=>setGroupRoute({chart:$('#groupChartView').value}));
+  document.querySelectorAll('[data-group-mode]').forEach(button=>button.addEventListener('click',()=>setGroupRoute({chart:button.dataset.groupMode})));
+}

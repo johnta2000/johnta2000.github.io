@@ -173,7 +173,7 @@
   }
   // Receives separate, already-authorized member histories; this is not an access-control layer.
   const metrics = {
-    durationMinutes: {label: "Time asleep", unit: "min"}, score: {label: "Sleep performance", unit: "%"},
+    durationMinutes: {label: "Time asleep", unit: "min"}, score: {label: "Sleep score / performance", unit: "%"},
     efficiency: {label: "Sleep efficiency", unit: "%"}, deepMinutes: {label: "Deep sleep", unit: "min"},
     remMinutes: {label: "REM sleep", unit: "min"}, consistency: {label: "Sleep consistency", unit: "%"},
     recovery: {label: "Recovery", unit: "%"}, hrv: {label: "HRV", unit: "ms"},
@@ -182,18 +182,19 @@
   };
   const competitions = {
     durationMinutes: {label: "Time asleep", metric: "durationMinutes", mode: "average", description: "Average time asleep per night, longest first. At least 4 of 7 nights to rank."},
-    score: {label: "Sleep performance", metric: "score", mode: "average", description: "Average sleep performance. At least 4 of 7 days to rank."},
-    recovery: {label: "Recovery", metric: "recovery", mode: "average", description: "Average recovery score. At least 4 of 7 days to rank."},
-    consistency: {label: "Sleep consistency", metric: "consistency", mode: "average", description: "Average WHOOP sleep consistency. At least 4 of 7 days to rank."},
-    strain: {label: "Day strain", metric: "strain", mode: "average", description: "Average completed-day strain. At least 4 of 7 days. Measures effort, not overall health."},
-    workoutMinutes: {label: "Workout time", metric: "workoutMinutes", mode: "total", description: "Total workout time. All 7 days must be tracked to rank; rest days count as zero."},
-    sleepGain: {label: "Sleep improvement", metric: "score", mode: "delta", description: "Sleep performance change vs. your previous 7 days. At least 4 days in each week."},
+    score: {label: "WHOOP sleep performance", provider: "whoop", metric: "score", mode: "average", description: "Average sleep performance. At least 4 of 7 days to rank."},
+    garminScore: {label: "Garmin sleep score", provider: "garmin", metric: "score", mode: "average", description: "Average Garmin sleep score, out of 100. Ranked separately from WHOOP performance."},
+    recovery: {label: "Recovery", provider: "whoop", metric: "recovery", mode: "average", description: "Average recovery score. At least 4 of 7 days to rank."},
+    consistency: {provider: "whoop", label: "Sleep consistency", metric: "consistency", mode: "average", description: "Average WHOOP sleep consistency. At least 4 of 7 days to rank."},
+    strain: {provider: "whoop", label: "Day strain", metric: "strain", mode: "average", description: "Average completed-day strain. At least 4 of 7 days. Measures effort, not overall health."},
+    workoutMinutes: {provider: "whoop", label: "Workout time", metric: "workoutMinutes", mode: "total", description: "Total workout time. All 7 days must be tracked to rank; rest days count as zero."},
+    sleepGain: {provider: "whoop", label: "Sleep improvement", metric: "score", mode: "delta", description: "Sleep performance change vs. your previous 7 days. At least 4 days in each week."},
     hrvGain: {label: "HRV improvement", metric: "hrv", mode: "percentChange", description: "HRV change vs. your own previous 7 days. At least 4 days in each week; requires 14 days of sharing."},
   };
   function standings(members, category, today, period = 7) {
     const baseRule = competitions[category] || competitions.score, end = dateShift(today, -1);
     const all = period === "all";
-    const days = all ? availableDays(members.flatMap(member => member.nights.filter(n => n.source === "whoop")), end) : [7, 28, 90].includes(Number(period)) ? Number(period) : 7;
+    const days = all ? availableDays(members.flatMap(member => member.nights.filter(n => n.source === (member.provider || "whoop"))), end) : [7, 28, 90].includes(Number(period)) ? Number(period) : 7;
     const minimum = Math.ceil(days / 2);
     const baseline = ["delta", "percentChange"].includes(baseRule.mode);
     const unit = baseRule.metric === "durationMinutes" ? "nights" : "days";
@@ -204,15 +205,16 @@
         : `${baseRule.description.split(". ")[0]}. At least ${minimum} of ${days} ${unit} to rank.${baseRule.metric === "strain" ? " Measures effort, not overall health." : ""}`;
     const rule = {...baseRule, description};
     const entries = members.map(member => {
-      const unique = [...new Map(member.nights.filter(n => n.source === "whoop").map(n => [n.sleepDate, n])).values()];
-      const data = stats(unique, rule.metric, days, end);
+      const unique = [...new Map(member.nights.filter(n => n.source === (member.provider || "whoop")).map(n => [n.sleepDate, n])).values()];
+      const data = stats(unique, rule.metric, days, end, member.provider || "whoop");
       const shared = !member.metrics || member.metrics.includes(rule.metric);
       
-      const eligible = shared && !(all && baseline) && data.count >= (rule.mode === "total" ? days : minimum) && (!baseline || data.previousCount >= minimum) && (rule.mode !== "percentChange" || data.previous > 0);
+      const compatible = !rule.provider || rule.provider === (member.provider || "whoop");
+      const eligible = compatible && shared && !(all && baseline) && data.count >= (rule.mode === "total" ? days : minimum) && (!baseline || data.previousCount >= minimum) && (rule.mode !== "percentChange" || data.previous > 0);
       const raw = !eligible ? null : rule.mode === "total" ? data.average * data.count : rule.mode === "delta" ? data.delta : rule.mode === "percentChange" ? data.delta / data.previous * 100 : data.average;
       // Rank at displayed precision, with competition-style ties (1, 1, 3).
       const result = raw === null ? null : (rule.mode === "total" || rule.metric === "durationMinutes") ? Math.round(raw) : Math.round(raw * 10) / 10;
-      return {...member, ...data, result, eligible, reason: !shared ? "Not shared" : all && baseline ? "No previous period for All" : baseline && data.previousCount < minimum ? "Needs previous-period history" : "Needs more tracked days"};
+      return {...member, ...data, result, eligible, reason: !compatible ? `${rule.provider === "garmin" ? "Garmin" : "WHOOP"} only` : !shared ? "Not shared" : all && baseline ? "No previous period for All" : baseline && data.previousCount < minimum ? "Needs previous-period history" : "Needs more tracked days"};
     }).sort((a,b) => Number(b.eligible) - Number(a.eligible) || (b.result ?? 0) - (a.result ?? 0) || a.name.localeCompare(b.name));
     let rank = 0;
     entries.forEach((entry,index) => { if (entry.eligible) { if (index === 0 || entry.result !== entries[index - 1].result) rank = index + 1; entry.rank = rank; }});
@@ -239,7 +241,7 @@
   function groupHistory(members, metric, days, endDate, mode = "values") {
     const dates = Array.from({ length: days }, (_, i) => dateShift(endDate, i - days + 1));
     return { dates, members: members.map((member) => {
-      const byDate = new Map(member.nights.filter(row => row.source === "whoop" && (!member.metrics || member.metrics.includes(metric))).map(row => [row.sleepDate, row]));
+      const byDate = new Map(member.nights.filter(row => row.source === (member.provider || "whoop") && (!member.metrics || member.metrics.includes(metric))).map(row => [row.sleepDate, row]));
       const nights = [...byDate.values()];
       const rawPoints = dates.map(date => ({ date, value: byDate.has(date) ? value(byDate.get(date), metric) : undefined }));
       const points = rawPoints.map((p, i) => {
@@ -255,7 +257,7 @@
         else if (segment.length) { segments.push(segment); segment = []; }
       });
       if (segment.length) segments.push(segment);
-      return { id: member.id, name: member.name, color: member.color, dash: member.dash, points, segments, variability: variability(rawPoints), ...stats(nights, metric, days, endDate) };
+      return { id: member.id, name: member.name, provider: member.provider || "whoop", color: member.color, dash: member.dash, points, segments, variability: variability(rawPoints), ...stats(nights, metric, days, endDate, member.provider || "whoop") };
     }) };
   }
   function sampleGroup(endDate) {

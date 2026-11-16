@@ -125,7 +125,7 @@
       >
       <p class="eyebrow">Your data, explained</p>
       <h1>Daylight privacy notice</h1>
-      <p class="updated">Last updated November 14, 2026</p>
+      <p class="updated">Last updated November 15, 2026</p>
       <p class="intro">
         Daylight is a personal sleep dashboard operated by John Ta. This notice
         describes the data used by the current version at
@@ -133,7 +133,7 @@
       </p>
       <div class="notice">
         <strong>Current access:</strong> Daylight is a private personal-use
-        dashboard. Access requires sign-in and either operator approval or a valid group invitation. Each account has its own private sleep history and check-ins. The operator administers the backend and can access stored data for support and maintenance. Group members can see only the WHOOP metrics and history window that each person explicitly chooses to share. Demo mode uses fictional data.
+        dashboard. Access requires sign-in and either operator approval or a valid group invitation. Each account has its own private sleep history and check-ins. The operator administers the backend and can access stored data for support and maintenance. Group members can see only the metrics from the chosen WHOOP or Garmin provider and history window that each person explicitly chooses to share. Demo mode uses fictional data.
       </div>
       <section>
         <h2>What Daylight collects</h2>
@@ -145,7 +145,7 @@
           <li>
             <strong>WHOOP data, when you authorize it:</strong> sleep dates, performance, consistency, duration, efficiency, estimated deep and REM sleep, and start and end times. With the additional permissions, we also import recovery scores, heart rate variability (HRV), resting heart rate, daily strain, and daily workout counts and duration. The connection requests sleep, recovery, cycle, workout, and offline access so it can refresh without asking you to sign in each time. Existing sleep-only connections continue to work until you choose to reconnect for these additional categories.
           </li>
-          <li><strong>Garmin data, when you connect:</strong> sleep dates, sleep scores, duration and stages, overnight HRV, resting heart rate, and sleep start/end times when available. You provide a Personal API key from your own Garmin account. Daylight stores it encrypted on the backend and exchanges it for temporary access tokens to retrieve your data when you connect or select Sync now. Your Garmin password is never collected. Garmin records are currently visible only in your personal dashboard, not group comparisons.</li>
+          <li><strong>Garmin data, when you connect:</strong> sleep dates, sleep scores, duration and stages, overnight HRV, resting heart rate, and sleep start/end times when available. You provide a Personal API key from your own Garmin account. Daylight stores it encrypted on the backend and exchanges it for temporary access tokens to retrieve your data when you connect or select Sync now. Your Garmin password is never collected. Garmin records are private by default. You can explicitly choose Garmin as your group provider and share selected metrics for a chosen history window.</li>
           <li>
             <strong>Connection credentials:</strong> WHOOP authorization tokens
             and refresh tokens are stored encrypted on the backend. Your WHOOP
@@ -170,8 +170,8 @@
           trends, compare overlapping nights across data sources, and relate
           sleep to your own alertness check-ins. WHOOP syncing can run when you
           request it and automatically in the background. The integration
-          requests up to one year of WHOOP history. Connecting WHOOP
-          does not activate friend sharing by itself. When creating or joining a group, you choose individual sleep, recovery, and activity metrics for a rolling history window. Shared metrics are used in group charts, averages, and weekly standings, including changes against your own previous period. Adding new metrics does not enable sharing them automatically. Sharing also covers future synced days and future members of that group. No metrics are selected by default. Personal check-in notes, account credentials, and unselected health metrics are not returned in group views.
+          requests up to one year of WHOOP history. Connecting a provider
+          does not activate friend sharing by itself. When creating or joining a group, or editing your sharing, you choose a provider and individual sleep, recovery, and activity metrics for a rolling history window. Shared metrics are used in group charts, averages, and weekly standings, including changes against your own previous period. Adding new metrics does not enable sharing them automatically. Sharing also covers future synced days and future members of that group. No metrics are selected by default. Personal check-in notes, account credentials, and unselected health metrics are not returned in group views.
         </p>
       </section>
       <section>
@@ -210,7 +210,7 @@
       </section>
       <section>
         <h2>Groups and invitations</h2>
-        <p>Group owners can create single-use invitations that expire after seven days, revoke unused invitations, remove members, or close the group. Treat an invitation like a private access link: anyone signed in who receives it can accept it before it is used or expires. The backend stores a hash of the invitation token. Your browser keeps a pending invitation in session storage during sign-in.</p>
+        <p>Group owners can create single-use invitations that expire after seven days, revoke unused invitations, remove members, or close the group. Treat an invitation like a private access link: anyone signed in who receives it can accept it before it is used or expires. The backend stores a hash of the invitation token. Your browser keeps a pending invitation in session storage during sign-in. Unfinished group-sharing edits are kept on your device so you can recover them after dismissal or reload; saving sharing sends the chosen settings to the backend.</p>
         <p>You can change your sharing choices, uncheck all metrics to stop sharing, or leave a group. These changes block subsequent group reads; they cannot erase information someone has already viewed or copied. Leaving a group or being removed does not delete your private history or disconnect your WHOOP account. Membership and invitation records may be retained to operate the service.</p>
         <h2>Retention and disconnecting</h2>
         <p>
