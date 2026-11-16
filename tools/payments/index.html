@@ -31,7 +31,7 @@
       <div class="overview">
       <div class="month-bar">
         <button id="previous" class="arrow" aria-label="Previous month">←</button>
-        <label class="month-label">Due on the 1st<input id="month" type="month" min="2000-01" max="2099-12" aria-label="Due month"></label>
+        <label class="month-label"><span id="month-purpose">Due on the 1st</span><input id="month" type="month" min="2000-01" max="2099-12" aria-label="Selected month"></label>
         <button id="next" class="arrow" aria-label="Next month">→</button>
       </div>
       <section class="progress-panel" aria-label="Monthly progress">
@@ -40,16 +40,21 @@
         <progress id="progress" value="0" max="1" aria-label="Accounts complete"></progress>
       </section>
       </div>
+      <nav class="review-modes" aria-label="Payment checklist view">
+        <a id="payment-view" href="?review=payments">Due on the 1st</a>
+        <a id="midmonth-view" href="?review=midmonth">Midmonth check-in</a>
+      </nav>
       <aside id="midmonth" class="midmonth" hidden aria-label="Midmonth check-in">
-        <label class="midmonth-label"><input id="midmonth-check" type="checkbox"><span><strong>Midmonth check-in · <span id="midmonth-date"></span></strong><span class="midmonth-description">I’ve checked in on all bills and payments for this month.</span></span></label>
-        <p id="midmonth-state" role="status" aria-live="polite"></p><button id="midmonth-retry" class="text-button" hidden>Retry check-in save</button>
+        <strong>Midmonth check-in · <span id="midmonth-date"></span></strong>
+        <p class="midmonth-description">Check each account as you review it. These checkmarks are separate from Paid / Not paid.</p>
+        <p id="midmonth-state" role="status" aria-live="polite"></p><button id="midmonth-retry" class="text-button" hidden>Retry unsaved check-ins</button>
       </aside>
       <div class="table-controls">
-      <div class="filters"><div class="picker-field"><span id="person-label">Person</span><select id="person" aria-labelledby="person-label"><option value="">Everyone</option></select></div><label class="switch"><input id="remaining" type="checkbox">Only unpaid</label></div>
+      <div class="filters"><div class="picker-field"><span id="person-label">Person</span><select id="person" aria-labelledby="person-label"><option value="">Everyone</option></select></div><label class="switch"><input id="remaining" type="checkbox"><span id="remaining-label">Only unpaid</span></label></div>
       <div class="list-heading"><button id="refresh" class="text-button">Refresh</button><button id="add" class="secondary">+ Add account</button></div>
       </div>
       <div class="card-section-heading"><h2 class="section-title">Card payments</h2>
-      <div class="matrix-guide"><p>Click to mark paid. Right-click for flags and details.</p></div></div>
+      <div class="matrix-guide"><p id="matrix-guide">Click to mark paid. Right-click for flags and details.</p></div></div>
       <p id="load-state" role="status"></p><div id="accounts" class="accounts"></div>
       <section id="housing-section" class="housing-section" aria-labelledby="housing-title">
         <div class="section-heading"><h2 id="housing-title">Housing Payments</h2><span id="housing-progress" class="muted"></span></div>

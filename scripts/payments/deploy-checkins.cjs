@@ -19,17 +19,19 @@ const apply=process.argv.includes('--apply');
   if(!response.ok) { const error=await response.json().catch(()=>({}));throw Error(endpoint+' failed '+response.status+': '+String(error.message||error.errorMessage||error.code||'').slice(0,900)); }
   return response.json();
  };
+ const before=await call('/api/get_config_hashes',{version:'1.41.0'});
  const snapshot=await call('/api/get_config',{version:'1.41.0'});
  const hashes=await call('/api/get_config_hashes',{version:'1.41.0'});
+ const fingerprint=x=>JSON.stringify(x.moduleHashes.map(m=>[m.environment,m.path,m.hash]).sort());
+ if(fingerprint(before)!==fingerprint(hashes))throw Error('Production changed while taking the snapshot; retry against latest');
  const backups=fs.mkdtempSync('/private/tmp/payment-checkins-backup-');
  fs.chmodSync(backups,0o700);
  fs.writeFileSync(path.join(backups,'modules.json'),JSON.stringify(snapshot),{mode:0o600});
- const tables=JSON.parse(defineSchema({paymentCheckins:defineTable({owner:v.string(),month:v.string(),checked:v.boolean(),version:v.number(),updatedAt:v.number()}).index('by_owner_month',['owner','month'])}).export()).tables;
+ const tables=JSON.parse(defineSchema({paymentAccountCheckins:defineTable({owner:v.string(),accountId:v.id('paymentAccounts'),month:v.string(),checked:v.boolean(),version:v.number(),updatedAt:v.number(),requestKey:v.string()}).index('by_owner_month',['owner','month']).index('by_owner_account_month',['owner','accountId','month'])}).export()).tables;
  const schema={...snapshot.modules.find(m=>m.path==='schema.js')};
  if(!schema.source)throw Error('Missing schema');delete schema.sourceMap;
- const match=schema.source.match(/export\s*\{\s*(\w+)\s+as\s+default\s*\}/);
- if(!match)throw Error('Unrecognized schema export');const schemaName=match[1];
- schema.source+=`\n(()=>{const previous=${schemaName}.export.bind(${schemaName});${schemaName}.export=()=>{const s=JSON.parse(previous());const tables=${JSON.stringify(tables)};const names=new Set(tables.map(t=>t.tableName));s.tables=s.tables.filter(t=>!names.has(t.tableName)).concat(tables);return JSON.stringify(s);};})();\n`;
+ const liveSchema=schema.source;
+ schema.source=(await esbuild.build({stdin:{contents:`import schema from 'live-schema';const previous=schema.export.bind(schema);schema.export=()=>{const s=JSON.parse(previous());const tables=${JSON.stringify(tables)};const names=new Set(tables.map(t=>t.tableName));s.tables=s.tables.filter(t=>!names.has(t.tableName)).concat(tables);return JSON.stringify(s);};export default schema;`,resolveDir:repo},bundle:true,write:false,format:'esm',platform:'browser',target:'esnext',plugins:[{name:'preserve-live-schema',setup(build){build.onResolve({filter:/^live-schema$/},()=>({path:'schema',namespace:'live-schema'}));build.onLoad({filter:/.*/,namespace:'live-schema'},()=>({contents:liveSchema,loader:'js'}));}}]})).outputFiles[0].text;
  const modules=['paymentCheckins'].map(name=>({path:name+'.js',environment:'isolate',source:esbuild.buildSync({entryPoints:[path.join(repo,'convex',name+'.ts')],bundle:true,write:false,format:'esm',platform:'browser',target:'esnext'}).outputFiles[0].text}));
  const replaced=new Set(['schema.js',...modules.map(m=>m.path)]);
  const request={dryRun:!apply,functions:snapshot.config.functions,appDefinition:{definition:null,dependencies:[],schema,changedModules:modules,unchangedModuleHashes:hashes.moduleHashes.filter(m=>!replaced.has(m.path)).map(m=>({path:m.path,environment:m.environment,sha256:m.hash})),udfServerVersion:snapshot.udfServerVersion},componentDefinitions:[],nodeDependencies:[]};
@@ -43,11 +45,15 @@ const apply=process.argv.includes('--apply');
  }
  if(!complete)throw Error('Schema validation did not complete');
  const latest=await call('/api/get_config_hashes',{version:'1.41.0'});
- const fingerprint=x=>JSON.stringify(x.moduleHashes.map(m=>[m.path,m.hash]).sort());
  if(fingerprint(latest)!==fingerprint(hashes))throw Error('Production changed during preparation; retry against latest');
- const diff=await call('/api/deploy2/finish_push',{startPush:start,dryRun:!apply,message:'Add monthly payment review check-ins'},true);
+ const diff=await call('/api/deploy2/finish_push',{startPush:start,dryRun:!apply,message:'Track midmonth payment reviews per account'},true);
  // Never print startPush, which contains environment variables.
  fs.writeFileSync(path.join(backups,'deployment-diff.json'),JSON.stringify(diff),{mode:0o600});
  const component=diff.componentDiffs?.[''];
+ if(apply){
+  const after=await call('/api/get_config_hashes',{version:'1.41.0'});
+  const map=new Map(after.moduleHashes.map(m=>[`${m.environment}:${m.path}`,m.hash]));
+  for(const m of request.appDefinition.unchangedModuleHashes)if(map.get(`${m.environment}:${m.path}`)!==m.sha256)throw Error('Post-deploy preservation check failed for '+m.path);
+ }
  console.log(JSON.stringify({applied:apply,preservedModules:request.appDefinition.unchangedModuleHashes.length,changedModules:request.appDefinition.changedModules.map(m=>m.path),backup:backups,addedModules:component?.moduleDiff?.added,removedModules:component?.moduleDiff?.removed,addedIndexes:component?.indexDiff?.added_indexes?.map(i=>i.name),removedIndexes:component?.indexDiff?.removed_indexes?.map(i=>i.name),authDiff:diff.authDiff},null,2));
 })().catch(e=>{console.error(e.message);process.exitCode=1});

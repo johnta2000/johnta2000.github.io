@@ -17,6 +17,7 @@
 - Housing Payments belongs below Card payments, uses the same selected month and filters, and keeps separate monthly checkoffs. Keep housing records out of the bank matrix. Store property addresses only in the private backend, never in public source files.
 - Payment screenshot attachments belong to an account and month, use the Payments allowlist, and must be uploaded/read through the authenticated `/payment-file` endpoint. Keep full previews visible, preserve failed uploads for retry, and never mark a payment paid just because a screenshot was uploaded.
 - Test payment changes with mock data. Never change real payment logs just to exercise the UI.
+- The Midmonth check-in view (`?review=midmonth`) tracks each account and month independently in `paymentAccountCheckins`. Never infer individual reviews from the legacy whole-month checkmark or change Paid/Not paid when checking an account. Preserve failed selections for retry, keep the view/filters in the URL, and test cards, housing, refresh, Back/Forward and another device with mock data.
 
 ## Payment questions
 

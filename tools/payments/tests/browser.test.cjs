@@ -11,7 +11,7 @@ function store() {
     { _id: 'two', person: 'Alex', bank: 'American Express', nickname: 'Travel', dueDay: 1, startMonth: '2020-01' },
     { _id: 'three', person: 'Dana', bank: 'Citi', nickname: '', dueDay: 1, startMonth: '2020-01' },
     { _id: 'four', person: 'Dana', bank: 'Bank of America', nickname: '', dueDay: 15, startMonth: '2020-01' },
-  ], logs: [], files: [], checkins: {}, requests: [], failSave: false, conflict: false, delayQuery: null };
+  ], logs: [], files: [], checkins: {}, accountCheckins: [], requests: [], failSave: false, conflict: false, delayQuery: null };
 }
 async function open(browser, width = 390, db = store(), mode = 'signed-in') {
   const page = await browser.newPage({ viewport: { width, height: 844 }, hasTouch: width < 900, isMobile: width < 600 });
@@ -23,7 +23,7 @@ async function open(browser, width = 390, db = store(), mode = 'signed-in') {
     window.__internal_ClerkUICtor = {};
     window.Clerk = {
       session: mode === 'signed-out' ? null : session, load: async () => {},
-      mountSignIn: element => { element.textContent = 'Sign in form'; }, unmountSignIn: element => { element.textContent = ''; },
+      mountSignIn: (element, options) => { element.textContent = 'Sign in form'; window.signInOptions = options; }, unmountSignIn: element => { element.textContent = ''; },
       addListener(callback) { window.changeSession = session => { this.session = session; callback({ session }); }; },
       signOut: async () => window.changeSession(null),
     };
@@ -53,6 +53,19 @@ async function open(browser, width = 390, db = store(), mode = 'signed-in') {
     let value = null;
     if (mode === 'denied') return route.fulfill({ json: { status: 'error', errorMessage: 'This account is not authorized for card payments.' } });
     if (endpoint === 'paymentCheckins:get') value = db.checkins[args.month] || null;
+    if (endpoint === 'paymentCheckins:accounts') value = structuredClone(db.accountCheckins.filter(c=>c.month===args.month));
+    if (endpoint === 'paymentCheckins:saveAccount') {
+      if (db.delayCheckin) await db.delayCheckin(args);
+      if (db.failCheckin) return route.abort('failed');
+      const old = db.accountCheckins.find(c=>c.month===args.month && c.accountId===args.accountId);
+      if (old?.requestKey === args.requestKey) value = structuredClone(old);
+      else {
+        if ((old?.version || 0) !== args.expectedVersion) return route.fulfill({json:{status:'error',errorMessage:'This entry changed on another device. Refresh and review it before saving again.'}});
+        value = {...args,version:(old?.version||0)+1};
+        if (old) Object.assign(old,value); else db.accountCheckins.push(value);
+      }
+      if (db.loseCheckinResponse) { db.loseCheckinResponse=false; return route.abort('failed'); }
+    }
     if (endpoint === 'paymentCheckins:save') {
       if (db.failCheckin) return route.abort('failed');
       value = db.checkins[args.month] = {...args, version: args.expectedVersion + 1};
@@ -495,39 +508,138 @@ test('payment screenshots preview failed uploads, retry once, persist for the mo
   } finally { await browser.close(); }
 });
 
-test('midmonth check-in dates, persistence, retry and navigation on phone and desktop', async () => {
+test('individual midmonth card and housing checks persist across modes, devices, months and navigation', async () => {
  const browser = await browserType.launch();
- try { for (const width of [390,1280]) {
-  const {page,db,errors} = await open(browser,width);
-  await page.goto('http://localhost/?month=2026-11');
-  await page.locator('#midmonth').waitFor();
+ try { for (const width of [320,390,1280]) {
+  const db=store();
+  db.accounts.push({_id:'rent',person:'Alex',bank:'Rent',category:'housing',nickname:'Example residence',dueDay:1,startMonth:'2020-01'});
+  db.checkins['2026-11']={checked:true,version:1};
+  db.logs.push({accountId:'two',month:'2026-11',status:'paid',version:1});
+  const {page,errors}=await open(browser,width,db);
+  const button=id=>page.locator(`[data-account="${id}"] .quick-paid`);
+  await page.goto('http://localhost/?month=2026-11&review=midmonth'); await page.locator('#midmonth').waitFor();
   assert.match(await page.locator('#midmonth-date').textContent(),/Nov 14/);
+  assert.equal(await page.locator('#progress-number').textContent(),'0 / 5');
+  assert.equal(await button('two').getAttribute('aria-pressed'),'false','paid does not imply reviewed');
+  await button('one').click();
+  await page.waitForFunction(()=>document.querySelector('#midmonth-state').textContent.includes('Each account saves separately'));
+  assert.equal(await page.locator('#progress-number').textContent(),'1 / 5');
+  assert.equal(await button('three').getAttribute('aria-pressed'),'false');
+  await button('rent').click();
+  await page.waitForFunction(()=>document.querySelector('#housing-progress').textContent.startsWith('1 / 1 checked'));
+  await page.waitForFunction(()=>document.querySelector('#midmonth-state').textContent.includes('Each account saves separately'));
+  assert.equal(db.logs.length,1); assert.equal(db.logs[0].accountId,'two');
   await fits(page);
-  await page.screenshot({path:path.join(os.tmpdir(),`midmonth-${width}.png`),fullPage:true});
-  await page.locator('#midmonth-check').check();
-  await page.waitForFunction(() => document.querySelector('#midmonth-state').textContent === 'Check-in saved.');
-  assert.equal(db.logs.length,0);
+  await page.screenshot({path:path.join(os.tmpdir(),`individual-midmonth-${width}.png`),fullPage:true});
+  const copied=page.url();
+  const fresh=await open(browser,width,db); await fresh.page.goto(copied);
+  await fresh.page.waitForFunction(()=>document.querySelector('#progress-number').textContent==='2 / 5');
+  await fresh.page.close();
   await page.reload(); await page.locator('#midmonth').waitFor();
-  assert.equal(await page.locator('#midmonth-check').isChecked(),true);
-  await page.locator('#next').click();
-  await page.waitForFunction(() => document.querySelector('#midmonth-date').textContent.includes('Dec 12'));
-  assert.equal(await page.locator('#midmonth-check').isChecked(),false);
+  assert.equal(await button('one').getAttribute('aria-pressed'),'true');
+  await page.locator('#payment-view').click();
+  assert.equal(await button('one').getAttribute('aria-pressed'),'false');
+  assert.equal(await button('two').getAttribute('aria-pressed'),'true');
+  assert.equal(await page.locator('#progress-number').textContent(),'1 / 5');
   await page.goBack(); await page.locator('#midmonth').waitFor();
-  assert.equal(await page.locator('#month').inputValue(),'2026-11');
-  assert.equal(await page.locator('#midmonth-check').isChecked(),true);
-  await page.goForward(); await page.waitForFunction(() => document.querySelector('#midmonth-date').textContent.includes('Dec 12'));
-  db.failCheckin=true; await page.locator('#midmonth-check').check(); await page.locator('#midmonth-retry').waitFor();
-  assert.equal(await page.locator('#midmonth-check').isChecked(),true);
-  page.on('dialog', dialog => dialog.accept()); await page.reload(); await page.locator('#midmonth-retry').waitFor();
-  assert.equal(await page.locator('#midmonth-check').isChecked(),true);
-  db.failCheckin=false; await page.locator('#midmonth-retry').click();
-  await page.waitForFunction(() => document.querySelector('#midmonth-state').textContent === 'Check-in saved.');
-  const copied = page.url(); const fresh = await open(browser,width,db); await fresh.page.goto(copied); await fresh.page.locator('#midmonth').waitFor();
-  assert.equal(await fresh.page.locator('#midmonth-check').isChecked(),true); await fresh.page.close();
-  for (const [month,date] of [['2027-01','Jan 9'],['2027-02','Feb 13'],['2027-03','Mar 13'],['2027-04','Apr 10'],['2027-05','May 8'],['2027-06','Jun 12'],['2027-07','Jul 10'],['2027-08','Aug 14'],['2027-09','Sep 11'],['2027-10','Oct 9']]) {
-    await page.goto('http://localhost/?month='+month); await page.locator('#midmonth').waitFor(); assert.ok((await page.locator('#midmonth-date').textContent()).includes(date));
-  }
-  await page.goto('http://localhost/?month=2027-11'); await page.locator('.account').first().waitFor(); assert.equal(await page.locator('#midmonth').isVisible(),false);
+  assert.equal(await button('one').getAttribute('aria-pressed'),'true');
+  await page.goForward(); await page.waitForFunction(()=>document.querySelector('#midmonth').hidden);
+  await page.locator('#midmonth-view').click();
+  await page.locator('#remaining').check();
+  assert.equal(await page.locator('.account').count(),3);
+  assert.ok(new URL(page.url()).searchParams.get('unchecked')==='1');
+  await pick(page,'person','Dana'); assert.equal(await page.locator('.account').count(),2);
+  const filtered=page.url(); await page.reload(); await page.locator('.account').first().waitFor();
+  assert.equal(await page.locator('#person').inputValue(),'Dana');
+  assert.equal(page.url(),filtered);
+  await pick(page,'person','Everyone'); await page.locator('#remaining').uncheck();
+  await page.locator('#next').click(); await page.waitForFunction(()=>document.querySelector('#progress-number').textContent==='0 / 5');
+  assert.match(await page.locator('#midmonth-date').textContent(),/Dec 12/);
+  await page.goBack(); await page.waitForFunction(()=>document.querySelector('#progress-number').textContent==='2 / 5');
+  await button('one').click();
+  await page.waitForFunction(()=>document.querySelector('#midmonth-state').textContent.includes('Each account saves separately'));
+  assert.equal(await page.locator('#progress-number').textContent(),'1 / 5');
+  assert.equal(await button('rent').getAttribute('aria-pressed'),'true');
   assert.deepEqual(errors,[]); await page.close();
  } } finally { await browser.close(); }
+});
+
+test('individual midmonth check-ins keep failed drafts across reload and retry lost responses safely', async () => {
+ const browser=await browserType.launch();
+ try { for(const width of [390,1280]) {
+  const {page,db,errors}=await open(browser,width);
+  await page.goto('http://localhost/?month=2026-11&review=midmonth'); await page.locator('#midmonth').waitFor();
+  const button=id=>page.locator(`[data-account="${id}"] .quick-paid`);
+  db.failCheckin=true;
+  await button('one').click(); await page.locator('#midmonth-retry').waitFor();
+  assert.equal(await button('one').getAttribute('aria-pressed'),'true');
+  assert.equal(db.accountCheckins.length,0);
+  page.on('dialog',dialog=>dialog.accept());
+  await page.reload(); await page.locator('#midmonth-retry').waitFor();
+  assert.equal(await button('one').getAttribute('aria-pressed'),'true');
+  assert.equal(await button('two').getAttribute('aria-pressed'),'false');
+  db.failCheckin=false; db.loseCheckinResponse=true;
+  await page.locator('#midmonth-retry').click();
+  await page.waitForFunction(()=>document.querySelector('#midmonth-state').textContent.includes('not saved'));
+  assert.equal(db.accountCheckins.length,1); assert.equal(db.accountCheckins[0].version,1);
+  await page.locator('#midmonth-retry').click();
+  await page.waitForFunction(()=>document.querySelector('#midmonth-state').textContent.includes('Each account saves separately'));
+  assert.equal(db.accountCheckins[0].version,1);
+  assert.equal(await button('one').getAttribute('aria-pressed'),'true');
+  assert.equal(db.logs.length,0);
+  await page.evaluate(()=>window.changeSession(null));
+  assert.equal(await page.locator('#accounts').textContent(),'');
+  assert.equal(await page.locator('#housing-accounts').textContent(),'');
+  assert.deepEqual(errors,[]); await page.close();
+ } } finally {await browser.close();}
+});
+
+test('midmonth saves are optimistic per account, serialize rapid clicks and retain conflicts for explicit retry', async()=>{
+ const browser=await browserType.launch();
+ try {
+  const {page,db}=await open(browser,1280);
+  await page.goto('http://localhost/?month=2026-11&review=midmonth'); await page.locator('#midmonth').waitFor();
+  let release; const hold=new Promise(resolve=>release=resolve);
+  db.delayCheckin=()=>hold;
+  const one=page.locator('[data-account="one"] .quick-paid');
+  await one.click(); assert.equal(await one.getAttribute('aria-pressed'),'true');
+  await one.click(); assert.equal(await one.getAttribute('aria-pressed'),'false');
+  await page.locator('[data-account="two"] .quick-paid').click();
+  assert.equal(await page.locator('[data-account="two"] .quick-paid').isEnabled(),true);
+  db.delayCheckin=null; release();
+  await page.waitForFunction(()=>document.querySelector('#midmonth-state').textContent.includes('Each account saves separately'));
+  assert.equal(db.accountCheckins.find(c=>c.accountId==='one').checked,false);
+  assert.equal(db.accountCheckins.find(c=>c.accountId==='two').checked,true);
+  db.accountCheckins.find(c=>c.accountId==='one').version++;
+  await one.click(); await page.locator('#midmonth-retry').waitFor();
+  assert.match(await page.locator('#midmonth-state').textContent(),/another device/);
+  assert.equal(await one.getAttribute('aria-pressed'),'true');
+  await page.locator('#midmonth-retry').click();
+  await page.waitForFunction(()=>document.querySelector('#midmonth-state').textContent.includes('Each account saves separately'));
+  assert.equal(db.accountCheckins.find(c=>c.accountId==='one').checked,true);
+  assert.equal(db.logs.length,0);
+ } finally {await browser.close();}
+});
+
+test('midmonth deep links survive authentication and pending saves stay in their original month', async()=>{
+ const browser=await browserType.launch();
+ try {
+  const signedOut=await open(browser,390,store(),'signed-out');
+  await signedOut.page.goto('http://localhost/?month=2026-11&review=midmonth&unchecked=1&personId=three');
+  await signedOut.page.waitForFunction(()=>!!window.signInOptions);
+  const destination=await signedOut.page.evaluate(()=>window.signInOptions.forceRedirectUrl);
+  assert.equal(new URL(destination).search,'?month=2026-11&review=midmonth&unchecked=1&personId=three');
+  await signedOut.page.close();
+  const {page,db}=await open(browser,390);
+  await page.goto('http://localhost/?month=2026-11&review=midmonth'); await page.locator('#midmonth').waitFor();
+  let release; const hold=new Promise(resolve=>release=resolve); db.delayCheckin=()=>hold;
+  await page.locator('[data-account="one"] .quick-paid').click();
+  await page.locator('#next').click(); await page.waitForFunction(()=>document.querySelector('#month').value==='2026-12' && document.querySelector('#progress-number').textContent==='0 / 4');
+  db.delayCheckin=null; release();
+  await page.waitForFunction(()=>document.querySelector('#save-state').textContent==='All changes saved.');
+  assert.equal(db.accountCheckins[0].month,'2026-11');
+  assert.equal(await page.locator('[data-account="one"] .quick-paid').getAttribute('aria-pressed'),'false');
+  await page.goBack(); await page.waitForFunction(()=>document.querySelector('#progress-number').textContent==='1 / 4');
+  assert.equal(db.logs.length,0); await page.close();
+ } finally {await browser.close();}
 });

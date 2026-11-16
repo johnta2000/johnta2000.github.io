@@ -14,10 +14,11 @@
   $('month').value = `${deadline.getFullYear()}-${String(deadline.getMonth() + 1).padStart(2, '0')}`;
   const initialView = new URL(location.href).searchParams;
   if (validMonth(initialView.get('month'))) $('month').value = initialView.get('month');
-  $('remaining').checked = initialView.get('unpaid') === '1';
+  let reviewMode = initialView.get('review') === 'midmonth';
+  $('remaining').checked = initialView.get(reviewMode ? 'unchecked' : 'unpaid') === '1';
   if (!validMonth(initialView.get('month'))) { const url = new URL(location.href); url.searchParams.set('month', $('month').value); history.replaceState(null, '', url); }
   const checkinDrafts = new Map();
-  let checkin = null, checkinSaving = false;
+  let checkins = [];
   const pending = new Map();
   let saveWarning = '';
   let menuAccount = null;
@@ -38,6 +39,8 @@
   function validMonth(value) { return /^20\d{2}-(0[1-9]|1[0-2])$/.test(value); }
   function activeAccounts() { return (data?.accounts || []).filter(a => a.startMonth <= selectedMonth() && (!a.endMonth || a.endMonth >= selectedMonth())); }
   function logFor(id) { return pending.get(`${selectedMonth()}/${id}`)?.desired || data?.logs.find(log => log.accountId === id); }
+  function reviewed(id) { return checkinDrafts.get(`${selectedMonth()}/${id}`)?.checked ?? !!checkins.find(c => c.accountId === id)?.checked; }
+  function accountDone(id) { return reviewMode ? reviewed(id) : complete(logFor(id)?.status); }
   function formatMoney(cents) { return (cents / 100).toLocaleString('en-US', { style: 'currency', currency: 'USD' }); }
   function dueLabel(account) {
     const [year, month] = selectedMonth().split('-').map(Number);
@@ -58,7 +61,7 @@
   function clearPrivate() {
     screenshots.reset();
     personPicker.close(); statusPicker.close(); categoryPicker.close();
-    ++request; checkinDrafts.clear(); checkin = null; checkinSaving = false; $('midmonth').hidden = true; pending.clear(); saveWarning = ''; closeMenu(); data = null; ready = false; editingAccount = null; closeDialogs(); setBusy(false);
+    ++request; checkinDrafts.clear(); checkins = []; $('midmonth').hidden = true; pending.clear(); saveWarning = ''; closeMenu(); data = null; ready = false; editingAccount = null; closeDialogs(); setBusy(false);
     $('app').hidden = true; $('accounts').replaceChildren(); $('housing-accounts').replaceChildren(); message('housing-progress', ''); $('manage-list').replaceChildren(); $('import-preview').replaceChildren();
     $('entry-form').reset(); $('add-form').reset(); $('import-form').reset();
     ['entry-person', 'entry-title', 'entry-month', 'entry-error', 'add-error', 'manage-error', 'import-summary', 'import-error', 'save-state'].forEach(id => message(id, ''));
@@ -144,7 +147,7 @@
       }
     }
   }
-  window.addEventListener('beforeunload', event => { if (pending.size || checkinDrafts.size || checkinSaving || busy) { event.preventDefault(); event.returnValue = ''; } });
+  window.addEventListener('beforeunload', event => { if (pending.size || checkinDrafts.size || busy) { event.preventDefault(); event.returnValue = ''; } });
 
   function closeMenu(restoreFocus = false) {
     const account = menuAccount; menuAccount = null; $('payment-menu').hidden = true;
@@ -183,11 +186,12 @@
   document.addEventListener('scroll', () => closeMenu(), true);
 
   function accountControl(account, matrix = false) {
-    const log = logFor(account._id), status = log?.status || 'unchecked';
-    const row = node(matrix ? 'div' : 'article', undefined, `account${complete(status) ? ' done' : ''}${matrix ? ' matrix-account' : ''}`);
+    const log = logFor(account._id), status = log?.status || 'unchecked', done = accountDone(account._id);
+    const row = node(matrix ? 'div' : 'article', undefined, `account${done ? ' done' : ''}${matrix ? ' matrix-account' : ''}${reviewMode ? ' review-account' : ''}`);
     row.dataset.account = account._id;
     row.classList.toggle('flagged', !!log?.flagged);
-    row.classList.toggle('saving', pending.has(`${selectedMonth()}/${account._id}`));
+    row.classList.toggle('saving', reviewMode ? !!checkinDrafts.get(`${selectedMonth()}/${account._id}`)?.running : pending.has(`${selectedMonth()}/${account._id}`));
+    row.classList.toggle('unsaved-review', reviewMode && !!checkinDrafts.get(`${selectedMonth()}/${account._id}`)?.error);
     const heading = node('div', undefined, 'account-heading');
     if (!matrix && account.category === 'housing') {
       row.classList.add('housing-account');
@@ -197,14 +201,15 @@
     else if (account.nickname) heading.append(node('p', account.nickname, 'card-nickname'));
     if (!matrix) heading.append(node('p', `${account.category === 'housing' ? '' : `${account.person} · `}Due ${dueLabel(account)}${log?.amountCents != null ? ` · ${formatMoney(log.amountCents)}` : ''}`, 'meta'));
     const actions = node('div', undefined, 'account-actions');
-    const paid = node('button', undefined, `quick-paid status-${status}`);
-    paid.type = 'button'; paid.dataset.action = 'toggle'; paid.setAttribute('aria-pressed', String(complete(status)));
-    paid.setAttribute('aria-label', `${complete(status) ? 'Mark not paid:' : 'Mark paid:'} ${account.person}, ${account.bank}${account.nickname ? `, ${account.nickname}` : ''}`);
-    const check = node('span', complete(status) ? '✓' : '', 'check-box'); check.setAttribute('aria-hidden', 'true');
-    paid.append(check, node('span', labels[status], `status-badge ${status}`));
-    paid.addEventListener('click', () => quickSave(account, { status: complete(logFor(account._id)?.status) ? 'unchecked' : 'paid' }));
+    const controlStatus = reviewMode ? done ? 'reviewed' : 'unreviewed' : status;
+    const paid = node('button', undefined, `quick-paid status-${controlStatus}`);
+    paid.type = 'button'; paid.dataset.action = 'toggle'; paid.setAttribute('aria-pressed', String(done));
+    paid.setAttribute('aria-label', `${reviewMode ? done ? 'Mark not checked:' : 'Mark checked:' : complete(status) ? 'Mark not paid:' : 'Mark paid:'} ${account.person}, ${account.bank}${account.nickname ? `, ${account.nickname}` : ''}`);
+    const check = node('span', done ? '✓' : '', 'check-box'); check.setAttribute('aria-hidden', 'true');
+    paid.append(check, node('span', reviewMode ? done ? 'Checked' : 'Not checked' : labels[status], `status-badge ${controlStatus}`));
+    paid.addEventListener('click', () => reviewMode ? toggleCheckin(account) : quickSave(account, { status: complete(logFor(account._id)?.status) ? 'unchecked' : 'paid' }));
     paid.setAttribute('aria-haspopup', 'menu');
-    paid.title = 'Click to toggle payment. Right-click for flag and details.';
+    paid.title = reviewMode ? 'Click to check this account. Right-click for payment flags and details.' : 'Click to toggle payment. Right-click for flag and details.';
     if (log?.flagged) { const marker = node('span', '⚑', 'flag-marker'); marker.setAttribute('aria-label', 'Flagged for attention'); paid.append(marker); }
     paid.addEventListener('keydown', event => {
       if (event.key === 'ContextMenu' || (event.shiftKey && event.key === 'F10') || event.key === 'ArrowDown') { event.preventDefault(); openMenu(account, paid); }
@@ -230,16 +235,16 @@
 
   function renderMatrix(accounts, people) {
     const holder = $('accounts'); holder.classList.add('is-matrix');
-    const banks = [...new Set(accounts.map(a => a.bank))].filter(bank => !$('remaining').checked || accounts.some(a => a.bank === bank && !complete(logFor(a._id)?.status)));
+    const banks = [...new Set(accounts.map(a => a.bank))].filter(bank => !$('remaining').checked || accounts.some(a => a.bank === bank && !accountDone(a._id)));
     if (!banks.length) { holder.append(node('div', accounts.length ? 'Everything in this view is checked off.' : 'No accounts for this person and month yet.', 'empty')); return; }
     const scroll = node('div', undefined, 'matrix-scroll'); scroll.tabIndex = 0; scroll.setAttribute('role', 'region'); scroll.setAttribute('aria-label', 'Payments by bank and person');
     const table = node('table', undefined, 'payment-matrix');
-    table.append(node('caption', `Payments due in ${monthLabel(selectedMonth())}`, 'sr-only'));
+    table.append(node('caption', `${reviewMode ? 'Midmonth check-in' : 'Payments due'} in ${monthLabel(selectedMonth())}`, 'sr-only'));
     const head = node('thead'), headers = node('tr'), bankHead = node('th', 'Bank'); bankHead.scope = 'col'; headers.append(bankHead);
     for (const person of people) {
       const th = node('th'); th.scope = 'col'; th.append(node('span', person));
-      const group = accounts.filter(a => a.person === person), done = group.filter(a => complete(logFor(a._id)?.status)).length;
-      th.append(node('small', `${done} / ${group.length} complete`)); headers.append(th);
+      const group = accounts.filter(a => a.person === person), done = group.filter(a => accountDone(a._id)).length;
+      th.append(node('small', `${done} / ${group.length} ${reviewMode ? 'checked' : 'complete'}`)); headers.append(th);
     }
     head.append(headers); table.append(head); const body = node('tbody');
     for (const bank of banks) {
@@ -251,7 +256,7 @@
           const retired = data.accounts.some(a => a.bank === bank && a.person === person && a.endMonth && a.endMonth < selectedMonth());
           const empty = node('span', retired ? 'Retired' : '—', 'no-account'); empty.setAttribute('aria-label', retired ? 'Retired account' : 'No account'); cell.append(empty);
         } else {
-          const shown = group.filter(a => !$('remaining').checked || !complete(logFor(a._id)?.status));
+          const shown = group.filter(a => !$('remaining').checked || !accountDone(a._id));
           if (!shown.length) cell.append(node('span', '✓ Complete', 'cell-complete'));
           else for (const account of shown) cell.append(accountControl(account, true));
         }
@@ -276,14 +281,14 @@
     const allAccounts = activeAccounts().filter(a => !$('person').value || a.person === $('person').value);
     const accounts = allAccounts.filter(a => a.category !== 'housing');
     const housing = allAccounts.filter(a => a.category === 'housing');
-    const done = allAccounts.filter(a => complete(logFor(a._id)?.status)).length;
+    const done = allAccounts.filter(a => accountDone(a._id)).length;
     const flagged = allAccounts.filter(a => logFor(a._id)?.flagged).length;
     message('scope', $('person').value || 'All accounts');
-    message('progress-heading', allAccounts.length ? done === allAccounts.length ? 'All paid.' : `${allAccounts.length - done} not paid` : 'A fresh start.');
-    message('progress-detail', allAccounts.length ? `Due ${new Date(`${selectedMonth()}-01T12:00:00`).toLocaleDateString(undefined, { month: 'long', day: 'numeric' })} · ${done} paid${flagged ? ` · ${flagged} flagged for attention` : ''}` : 'Add your accounts once. They repeat each month.');
+    message('progress-heading', allAccounts.length ? done === allAccounts.length ? reviewMode ? 'All checked.' : 'All paid.' : `${allAccounts.length - done} ${reviewMode ? 'left to check' : 'not paid'}` : 'A fresh start.');
+    message('progress-detail', allAccounts.length ? `${reviewMode ? 'Midmonth check-in' : 'Due ' + new Date(`${selectedMonth()}-01T12:00:00`).toLocaleDateString(undefined, { month: 'long', day: 'numeric' })} · ${done} ${reviewMode ? 'checked' : 'paid'}${flagged ? ` · ${flagged} flagged for attention` : ''}` : 'Add your accounts once. They repeat each month.');
     message('progress-number', `${done} / ${allAccounts.length}`);
     $('progress').max = allAccounts.length || 1; $('progress').value = done;
-    const shown = accounts.filter(a => !$('remaining').checked || !complete(logFor(a._id)?.status));
+    const shown = accounts.filter(a => !$('remaining').checked || !accountDone(a._id));
     const focus = document.activeElement, focusAccount = focus?.closest('[data-account]')?.dataset.account, focusAction = focus?.dataset.action;
     $('accounts').replaceChildren(); $('housing-accounts').replaceChildren(); message('housing-progress', ''); $('accounts').classList.remove('is-matrix');
     if (desktop.matches) {
@@ -292,13 +297,14 @@
       for (const account of shown) $('accounts').append(accountControl(account));
       if (!shown.length) $('accounts').append(node('div', accounts.length ? 'You’re all caught up for this person and month.' : 'No accounts for this person and month yet.', 'empty'));
     }
-    const housingDone = housing.filter(a => complete(logFor(a._id)?.status)).length;
-    message('housing-progress', `${housingDone} / ${housing.length} paid · Due on the 1st`);
-    const housingShown = housing.filter(a => !$('remaining').checked || !complete(logFor(a._id)?.status));
+    const housingDone = housing.filter(a => accountDone(a._id)).length;
+    message('housing-progress', `${housingDone} / ${housing.length} ${reviewMode ? 'checked · Midmonth review' : 'paid · Due on the 1st'}`);
+    const housingShown = housing.filter(a => !$('remaining').checked || !accountDone(a._id));
     for (const account of housingShown) $('housing-accounts').append(accountControl(account));
-    if (!housingShown.length) $('housing-accounts').append(node('p', housing.length ? 'Housing is all paid for this month.' : 'No housing payments for this person and month.', 'housing-empty'));
+    if (!housingShown.length) $('housing-accounts').append(node('p', housing.length ? reviewMode ? 'Housing is all checked for this month.' : 'Housing is all paid for this month.' : 'No housing payments for this person and month.', 'housing-empty'));
     setBusy(busy);
     renderCheckin();
+    renderModes();
     if (focusAccount && focusAction) $('app').querySelector(`[data-account="${CSS.escape(focusAccount)}"] [data-action="${focusAction}"]`)?.focus({ preventScroll: true });
   }
   desktop.addEventListener('change', render);
@@ -308,9 +314,9 @@
     const version = ++request, generation = epoch, value = selectedMonth();
     if (!silent) message('load-state', 'Loading…');
     try {
-      const [result, savedCheckin] = await Promise.all([call('query', 'dashboard', { month: value }), call('query', 'paymentCheckins:get', { month: value })]);
+      const [result, savedCheckins] = await Promise.all([call('query', 'dashboard', { month: value }), call('query', 'paymentCheckins:accounts', { month: value })]);
       if (generation !== epoch || version !== request || value !== selectedMonth()) return;
-      data = result; checkin = savedCheckin; render(); message('load-state', '');
+      data = result; checkins = savedCheckins; render(); message('load-state', '');
     } catch (error) {
       if (generation !== epoch || version !== request) return;
       if (/not authorized/i.test(error.message)) { clearPrivate(); $('gate').hidden = false; message('gate-message', 'This account doesn’t have access. Sign out and use your approved email.'); }
@@ -320,7 +326,7 @@
 
   async function mutate(path, args, { errorId, success, close } = {}) {
     if (busy || !session) return false;
-    if (pending.size) { message(errorId || 'save-state', 'Finishing your checkoffs. Try again in a moment.'); return false; }
+    if (pending.size || [...checkinDrafts.values()].some(d => d.running)) { message(errorId || 'save-state', 'Finishing your checkoffs. Try again in a moment.'); return false; }
     const generation = epoch; ++request; setBusy(true);
     message('save-state', 'Saving…'); if (errorId) message(errorId, '');
     try {
@@ -435,7 +441,7 @@
   ['person', 'remaining'].forEach(id => $(id).addEventListener('change', () => { saveView(); render(); }));
   function changeMonth(push = true) {
     if (push) saveView();
-    $('midmonth').hidden = true; checkin = null;
+    $('midmonth').hidden = true; checkins = [];
     closeMenu();
     if (!validMonth(selectedMonth())) { message('load-state', 'Choose a valid month between 2000 and 2099.'); $('accounts').replaceChildren(); $('housing-accounts').replaceChildren(); message('housing-progress', ''); return; }
     data = null; $('accounts').replaceChildren(); $('housing-accounts').replaceChildren(); message('housing-progress', ''); message('progress-heading', 'Loading accounts…'); message('progress-number', '—'); message('progress-detail', ''); $('progress').value = 0;
@@ -457,58 +463,114 @@
     const personId = data?.accounts.find(a => a.person === $('person').value)?._id;
     if (personId) url.searchParams.set('personId', personId); else url.searchParams.delete('personId');
     url.searchParams.delete('person');
-    if ($('remaining').checked) url.searchParams.set('unpaid', '1'); else url.searchParams.delete('unpaid');
+    url.searchParams.delete('unpaid'); url.searchParams.delete('unchecked');
+    if ($('remaining').checked) url.searchParams.set(reviewMode ? 'unchecked' : 'unpaid', '1');
+    if (reviewMode) url.searchParams.set('review', 'midmonth'); else url.searchParams.delete('review');
     if (url.href !== location.href) history.pushState(null, '', url);
   }
   window.addEventListener('popstate', () => {
     const params = new URL(location.href).searchParams;
     $('month').value = validMonth(params.get('month')) ? params.get('month') : `${deadline.getFullYear()}-${String(deadline.getMonth() + 1).padStart(2, '0')}`;
-    $('remaining').checked = params.get('unpaid') === '1';
+    reviewMode = params.get('review') === 'midmonth';
+    $('remaining').checked = params.get(reviewMode ? 'unchecked' : 'unpaid') === '1';
     $('person').value = '';
     changeMonth(false);
   });
+  function renderModes() {
+    $('app').classList.toggle('midmonth-mode', reviewMode);
+    message('month-purpose', reviewMode ? 'Second Saturday check-in' : 'Due on the 1st');
+    message('remaining-label', reviewMode ? 'Only unchecked' : 'Only unpaid');
+    message('matrix-guide', reviewMode ? 'Click to check each account. Right-click for payment flags and details.' : 'Click to mark paid. Right-click for flags and details.');
+    for (const [id, active] of [['payment-view', false], ['midmonth-view', true]]) {
+      const link = $(id), url = new URL(location.href);
+      if (active) url.searchParams.set('review', 'midmonth'); else url.searchParams.delete('review');
+      url.searchParams.delete('unpaid'); url.searchParams.delete('unchecked');
+      if ($('remaining').checked) url.searchParams.set(active ? 'unchecked' : 'unpaid', '1');
+      link.href = url.pathname + url.search;
+      if (active === reviewMode) link.setAttribute('aria-current', 'page'); else link.removeAttribute('aria-current');
+    }
+  }
+  for (const [id, active] of [['payment-view', false], ['midmonth-view', true]]) $(id).addEventListener('click', event => {
+    if (event.button || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    event.preventDefault(); reviewMode = active; closeMenu(); saveView(); render();
+  });
   function persistCheckinDrafts() {
     if (!sessionId) return;
-    try { sessionStorage.setItem(`payment-checkin-drafts:${sessionId}`, JSON.stringify([...checkinDrafts])); }
-    catch { message('save-state', 'Keep this tab open until the check-in saves.'); }
+    try {
+      sessionStorage.setItem(`payment-account-checkin-drafts:${sessionId}`, JSON.stringify([...checkinDrafts].map(([key, d]) => [key, {accountId:d.accountId, month:d.month, checked:d.checked, baseVersion:d.baseVersion || 0, attempt:d.attempt, error:d.error || ''}])));
+    } catch { message('save-state', 'Keep this tab open until your check-ins save.'); }
   }
   function renderCheckin() {
-    const month = selectedMonth();
-    $('midmonth').hidden = !data || month < '2026-11' || month > '2027-10';
-    if ($('midmonth').hidden) return;
-    const [year, number] = month.split('-').map(Number);
+    $('midmonth').hidden = !data || !reviewMode;
+    const [year, number] = selectedMonth().split('-').map(Number);
     const first = new Date(year, number - 1, 1);
     const date = new Date(year, number - 1, 8 + (6 - first.getDay() + 7) % 7);
     message('midmonth-date', date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }));
-    const draft = checkinDrafts.get(month);
-    $('midmonth-check').checked = draft ? draft.checked : !!checkin?.checked;
-    $('midmonth-check').disabled = busy || checkinSaving;
-    $('midmonth-retry').hidden = !draft || checkinSaving;
-    message('midmonth-state', checkinSaving ? 'Saving check-in…' : draft ? 'Check-in not saved. Your selection is kept here; retry to save it.' : checkin?.checked ? 'Check-in saved.' : 'Second Saturday · One check-in for all bills and payments.');
+    const drafts = [...checkinDrafts.values()], failed = drafts.filter(d => !d.running), saving = drafts.filter(d => d.running);
+    $('midmonth-retry').hidden = !failed.length;
+    $('midmonth-retry').disabled = busy;
+    const state = failed.length ? `${failed.length} check-in${failed.length === 1 ? '' : 's'} not saved. Your selections are kept for retry. ${failed.find(d => d.error)?.error || ''}` : saving.length ? `Saving ${saving.length} check-in${saving.length === 1 ? '' : 's'}…` : 'Each account saves separately and starts fresh each month.';
+    message('midmonth-state', state);
+    // Keep recovery visible even when the user switches back to the payment view.
+    if (drafts.length) message('save-state', failed.length ? 'Some midmonth checks are not saved. Open Midmonth check-in to retry.' : 'Saving midmonth checks…');
   }
-  async function saveCheckin() {
-    if (!data || busy || checkinSaving || !session) return;
-    const month = selectedMonth(), generation = epoch;
-    const draft = checkinDrafts.get(month) || { checked: $('midmonth-check').checked, expectedVersion: checkin?.version || 0 };
-    checkinDrafts.set(month, draft); persistCheckinDrafts(); checkinSaving = true; ++request; setBusy(true); renderCheckin();
+  function toggleCheckin(account) {
+    if (!data || busy || !session) return;
+    const key = `${selectedMonth()}/${account._id}`;
+    let draft = checkinDrafts.get(key);
+    if (!draft) {
+      draft = {accountId:account._id, month:selectedMonth(), checked:reviewed(account._id), baseVersion:checkins.find(c => c.accountId === account._id)?.version || 0, revision:0, running:false, generation:epoch, attempt:null, error:''};
+      checkinDrafts.set(key, draft);
+    }
+    draft.checked = !draft.checked; draft.revision++; ++request;
+    persistCheckinDrafts(); render();
+    if (!draft.running) void flushCheckin(key, draft);
+  }
+  async function flushCheckin(key, draft) {
+    if (draft.running || !session) return;
+    draft.running = true; draft.error = ''; render();
     try {
-      const saved = await call('mutation', 'paymentCheckins:save', { month, ...draft });
-      if (generation !== epoch) return;
-      checkinDrafts.delete(month); persistCheckinDrafts(); if (selectedMonth() === month) checkin = saved;
+      while (draft.generation === epoch) {
+        if (!draft.attempt) draft.attempt = {accountId:draft.accountId, month:draft.month, checked:draft.checked, expectedVersion:draft.baseVersion || 0, requestKey:crypto.randomUUID()};
+        const attempt = {...draft.attempt}; persistCheckinDrafts();
+        const saved = await call('mutation', 'paymentCheckins:saveAccount', attempt);
+        if (draft.generation !== epoch) return;
+        ++request;
+        if (draft.month === selectedMonth()) {
+          const index = checkins.findIndex(c => c.accountId === draft.accountId);
+          if (index < 0) checkins.push(saved); else checkins[index] = saved;
+        }
+        draft.baseVersion = saved.version; draft.attempt = null;
+        if (draft.checked === saved.checked) { checkinDrafts.delete(key); break; }
+        draft.attempt = {accountId:draft.accountId, month:draft.month, checked:draft.checked, expectedVersion:saved.version, requestKey:crypto.randomUUID()};
+      }
     } catch (error) {
-      if (generation !== epoch) return;
-      message('save-state', friendly(error));
-      // Refresh obtains the current version; retry remains an explicit user choice.
+      if (draft.generation !== epoch) return;
+      draft.error = friendly(error);
     } finally {
-      if (generation === epoch) {
-        checkinSaving = false; setBusy(false); renderCheckin(); await refresh({ silent: true });
-        const retry = checkinDrafts.get(month);
-        if (retry && selectedMonth() === month) { retry.expectedVersion = checkin?.version || 0; persistCheckinDrafts(); }
+      if (draft.generation === epoch) {
+        draft.running = false; persistCheckinDrafts(); render();
+        if (!checkinDrafts.size) { saveMessage(); void refresh({silent:true}); }
       }
     }
   }
-  $('midmonth-check').addEventListener('change', () => { checkinDrafts.delete(selectedMonth()); void saveCheckin(); });
-  $('midmonth-retry').addEventListener('click', () => void saveCheckin());
+  $('midmonth-retry').addEventListener('click', async () => {
+    const generation = epoch;
+    for (const [key, draft] of checkinDrafts) {
+      if (draft.running) continue;
+      // Only an explicit retry rebases a conflicting selection onto the latest
+      // server version. A lost response retries the same idempotent request.
+      if (/another device/.test(draft.error)) {
+        try {
+          const latest = await call('query', 'paymentCheckins:accounts', {month:draft.month});
+          if (generation !== epoch) return;
+          draft.attempt = {accountId:draft.accountId, month:draft.month, checked:draft.checked, expectedVersion:latest.find(c => c.accountId === draft.accountId)?.version || 0, requestKey:crypto.randomUUID()};
+        } catch (error) { draft.error = friendly(error); persistCheckinDrafts(); render(); continue; }
+      }
+      if (generation !== epoch) return;
+      void flushCheckin(key, draft);
+    }
+  });
 
   async function sessionChanged(state) {
     if (state.session === undefined) return;
@@ -516,13 +578,13 @@
     if (id === sessionId) return;
     sessionId = id; session = state.session; const generation = ++epoch;
     clearPrivate();
-    if (sessionId) { try { for (const [month, draft] of JSON.parse(sessionStorage.getItem(`payment-checkin-drafts:${sessionId}`) || '[]')) if (validMonth(month) && typeof draft.checked === 'boolean') checkinDrafts.set(month, draft); } catch { /* Ignore malformed recovery data. */ } }
+    if (sessionId) { try { for (const [key, draft] of JSON.parse(sessionStorage.getItem(`payment-account-checkin-drafts:${sessionId}`) || '[]')) if (validMonth(draft.month) && typeof draft.accountId === 'string' && key === `${draft.month}/${draft.accountId}` && typeof draft.checked === 'boolean') checkinDrafts.set(key, {...draft, running:false, generation:epoch, revision:0}); } catch { /* Ignore malformed recovery data. */ } }
     $('gate').hidden = false; $('sign-out').hidden = !session; $('retry-auth').hidden = true;
     if (!session) {
       message('gate-message', 'Sign in to keep your checklist in sync across your phone and computer.');
       $('sign-in').hidden = false;
       if (!mounted) {
-        const returnUrl = location.origin + location.pathname;
+        const returnUrl = location.origin + location.pathname + location.search;
         window.Clerk.mountSignIn($('sign-in'), { routing: 'hash', withSignUp: false, forceRedirectUrl: returnUrl,
           appearance: { variables: { colorPrimary: '#276347', borderRadius: '10px' }, elements: { cardBox: { boxShadow: 'none', maxWidth: '100%' } } },
         }); mounted = true;
