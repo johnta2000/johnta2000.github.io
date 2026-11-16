@@ -89,7 +89,7 @@ function updateTotals(){
  for(const r of data.rows){if(r.ignored){ignored++;ignoredAmount+=r.amountCents;continue;}if(r.allocation)assigned++;}
  for(const [p,n] of Object.entries(totals))$(p+'-total').textContent=money(n);
  renderReconciliation(math);
- $('ignored-summary').hidden=!ignored;$('ignored-summary').textContent=`${ignored} ignored ${ignored===1?'item':'items'} · ${money(ignoredAmount)} excluded from person totals. ${chargeMode?'Restore them from Ignored.':'Kept in unassigned adjustments unless a prior split is applied.'}`;
+ $('ignored-summary').hidden=!ignored;$('ignored-summary').textContent=chargeMode?`${ignored} ignored ${ignored===1?'item':'items'} · ${money(ignoredAmount)} excluded from person totals. Restore them from Ignored.`:`${ignored} ignored original ${ignored===1?'entry':'entries'} · ${money(ignoredAmount)}. To collect applies saved prior splits; other excluded amounts remain unassigned.`;
  $('progress').textContent=assigned+ignored===data.rows.length?(ignored?'All remaining items assigned':'All items assigned'):`${data.rows.length-assigned-ignored} ${data.rows.length-assigned-ignored===1?'item':'items'} left to assign`;
  $('progress-bar').max=data.rows.length;$('progress-bar').value=assigned+ignored;saved();
 }
@@ -173,7 +173,7 @@ function merchantName(description){
 function row(r){
  const item=el('article',undefined,'row'+(r.ignored?' ignored':''));item.dataset.id=r._id;
  const top=el('div',undefined,'row-top'),heading=el('div'),amount=el('div',money(r.amountCents),'amount'+(r.amountCents<0?' negative':''));
- heading.append(el('h3',merchantName(r.description),'merchant'),el('div',new Date(r.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}),'date'));top.append(heading,amount);item.append(top);const badge=el('p','Ignored · excluded from person assignments','ignored-badge');badge.hidden=!r.ignored;item.append(badge);
+ heading.append(el('h3',merchantName(r.description),'merchant'),el('div',new Date(r.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}),'date'));top.append(heading,amount);item.append(top);const badge=el('p',r.collectionAllocation?'Prior split recorded · original entry ignored':'Ignored · excluded from person assignments','ignored-badge');badge.hidden=!r.ignored;item.append(badge);
  const actions=el('div',undefined,'row-actions'),label=allocationLabel(r);
  for(const p of people){const b=el('button',title(p),'label-button');b.dataset.label=p;b.setAttribute('aria-pressed',String(label===p));b.title=label===p?'Click again to clear this label':'Assign to '+title(p);b.setAttribute('aria-label',`Assign ${r.description} to ${title(p)}`);b.disabled=!!r.ignored||needsRefresh.has(r._id);b.onclick=()=>saveRow(r,allocationLabel(r)===p?null:Object.fromEntries(people.map(k=>[k,k===p?r.amountCents:0])),r.note);actions.append(b);}
  const ignore=el('button',r.ignored?'Restore row':'Ignore row','quiet ignore-row');ignore.setAttribute('aria-pressed',String(!!r.ignored));ignore.disabled=needsRefresh.has(r._id);ignore.onclick=()=>saveRow(r,r.allocation,r.note,false,!r.ignored);
