@@ -7,7 +7,7 @@
     <meta name="robots" content="noindex, nofollow" />
     <title>Daily Standups</title>
     <link rel="stylesheet" href="../../assets/css/searchable-select.css?v=20261010-1" />
-    <link rel="stylesheet" href="./styles.css?v=20261112-revenue-form1" />
+    <link rel="stylesheet" href="./styles.css?v=20261117-subtasks1" />
     <link rel="stylesheet" href="../../assets/css/clerk-auth.css?v=20261011-otp1">
 </head>
   <body>
@@ -219,6 +219,8 @@
                   <button type="button" data-command="insertUnorderedList" aria-label="Bulleted list" title="Bulleted list (⌘/Ctrl Shift 8)" aria-pressed="false">≡•</button>
                   <button type="button" data-command="insertOrderedList" aria-label="Numbered list" title="Numbered list (⌘/Ctrl Shift 7)" aria-pressed="false">1.</button>
                   <button type="button" data-command="toggleChecklist" aria-label="Checklist" title="Checklist — type [ ] then space" aria-pressed="false">☑</button>
+                  <button type="button" data-command="outdent" aria-label="Outdent task" title="Outdent task (Shift Tab)">⇤</button>
+                  <button type="button" data-command="indent" aria-label="Indent task" title="Indent task (Tab)">⇥</button>
                 </div>
                 <div class="toolbar-group" aria-label="Insert and clean up">
                   <button type="button" data-link-editor aria-label="Insert link" title="Insert link (⌘/Ctrl K)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-2 2M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l2-2"/></svg></button>
@@ -305,6 +307,8 @@
                 <button type="button" data-command="insertUnorderedList" title="Bulleted list, Command Shift 8">•</button>
                 <button type="button" data-command="insertOrderedList" title="Numbered list, Command Shift 7">1.</button>
                 <button type="button" data-command="toggleChecklist" title="Checklist, type [ ] then space">☐</button>
+                  <button type="button" data-command="outdent" aria-label="Outdent task" title="Outdent task (Shift Tab)">⇤</button>
+                  <button type="button" data-command="indent" aria-label="Indent task" title="Indent task (Tab)">⇥</button>
               </div>
               <div class="note-area">
                 <div id="dailyNotes" class="rich-editor daily-notes-editor" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Daily notes" data-placeholder="General context for the whole team's standup."></div>
@@ -424,6 +428,6 @@
     <script defer src="../../assets/js/searchable-select.js?v=20261010-2"></script>
     <script defer src="./revenue-model.js?v=20261114-revenue-round1"></script>
     <script defer src="./revenue.js?v=20261114-revenue-round1"></script>
-    <script defer src="./app.js?v=20261111-revenue1"></script>
+    <script defer src="./app.js?v=20261117-subtasks1"></script>
   </body>
 </html>

@@ -2,12 +2,12 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs/promises');
 const path = require('node:path');
 
-async function openStandups(browser, width, height = 844, { platform, fathomNotes = [], initialPerson = "Jenny", url = "http://localhost/", revenueStore } = {}) {
+async function openStandups(browser, width, height = 844, { platform, fathomNotes = [], initialPerson = "Jenny", url = "http://localhost/", revenueStore, entriesStore } = {}) {
   const page = await browser.newPage({ viewport: { width, height }, isMobile: width <= 760, hasTouch: true });
   page.setDefaultTimeout(10000);
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
-  const entries = new Map();
+  const entries = entriesStore || new Map();
   const comments = [];
   const dayNotes = new Map();
   const revenue = revenueStore || {snapshots:new Map(), targets:new Map(), drafts:new Map()};

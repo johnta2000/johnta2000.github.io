@@ -584,16 +584,16 @@ select:focus,
   list-style: none;
 }
 
-.rendered-rich-text ul.check-list li,
-.rich-editor ul.check-list li {
+.rendered-rich-text ul.check-list > li,
+.rich-editor ul.check-list > li {
   position: relative;
   min-height: 24px;
   margin: 0;
   padding-left: 32px;
 }
 
-.rendered-rich-text ul.check-list li::before,
-.rich-editor ul.check-list li::before {
+.rendered-rich-text ul.check-list > li::before,
+.rich-editor ul.check-list > li::before {
   content: "";
   position: absolute;
   top: 2px;
@@ -605,28 +605,28 @@ select:focus,
   background: #fff;
 }
 
-.previous-content .rendered-rich-text ul.check-list li {
+.previous-content .rendered-rich-text ul.check-list > li {
   color: #8b9189;
 }
 
-.previous-content .rendered-rich-text ul.check-list li::before {
+.previous-content .rendered-rich-text ul.check-list > li::before {
   border-color: #aeb4ab;
   background: #f0f1ed;
 }
 
-.previous-content .rendered-rich-text ul.check-list li[data-checked="true"]::before {
+.previous-content .rendered-rich-text ul.check-list > li[data-checked="true"]::before {
   border-color: #8e9992;
   background: #8e9992;
 }
 
-.rendered-rich-text ul.check-list li[data-checked="true"]::before,
-.rich-editor ul.check-list li[data-checked="true"]::before {
+.rendered-rich-text ul.check-list > li[data-checked="true"]::before,
+.rich-editor ul.check-list > li[data-checked="true"]::before {
   border-color: var(--accent);
   background: var(--accent);
 }
 
-.rendered-rich-text ul.check-list li[data-checked="true"]::after,
-.rich-editor ul.check-list li[data-checked="true"]::after {
+.rendered-rich-text ul.check-list > li[data-checked="true"]::after,
+.rich-editor ul.check-list > li[data-checked="true"]::after {
   content: "";
   position: absolute;
   top: 6px;
@@ -788,22 +788,6 @@ button svg {
 
 .rich-editor.is-invalid {
   border-color: var(--danger);
-}
-
-.rich-editor ul.check-list {
-  margin-left: 40px;
-}
-
-.rich-editor ul.check-list > li {
-  padding: 0;
-}
-
-.rich-editor ul.check-list > li::before {
-  left: -40px;
-}
-
-.rich-editor ul.check-list > li[data-checked="true"]::after {
-  left: -35px;
 }
 
 ::highlight(standup-comments) {
@@ -2397,3 +2381,8 @@ body:not(.is-spotlight) .spotlight-comments-toggle { visibility: visible; }
 #standupRevenue .rf-history-row a[aria-current="date"] {font-weight:700;}
 #standupRevenue .rf-empty {padding:20px 0;color:var(--rf-sub);font-size:14px;}
 @media(max-width:760px){.mobile-discussions #standupRevenue {display:none;}}
+
+/* Native list editing uses sibling lists; saved markup nests them inside the parent item. */
+.rich-editor :is(ul, ol) > :is(ul, ol) { margin-left: 32px; }
+.rich-editor li > :is(ul, ol), .rendered-rich-text li > :is(ul, ol) { margin-top: 8px; }
+.rich-editor li > ul.check-list, .rendered-rich-text li > ul.check-list { margin-left: 0; }

@@ -716,7 +716,7 @@ function updateToolbarState() {
       const command = button.dataset.command;
       let pressed = false;
       if (hasSelection) {
-        const checklist = Boolean(getCurrentListItem()?.closest("ul.check-list"));
+        const checklist = isChecklistItem(getCurrentListItem());
         pressed = command === "toggleChecklist" ? checklist
           : command === "insertUnorderedList" ? !checklist && document.queryCommandState(command)
           : document.queryCommandState(command);
@@ -2472,9 +2472,18 @@ function handleEditorKeydown(event) {
     event.currentTarget === els.dailyNotes ? flushDailyNotesAutosave() : flushAutosave();
     return;
   }
+  if (event.key === "Tab" && !event.metaKey && !event.ctrlKey && !event.altKey && getCurrentListItem()) {
+    event.preventDefault();
+    applyEditorCommand(event.shiftKey ? "outdent" : "indent");
+    normalizeChecklists(event.currentTarget);
+    rememberEditorSelection();
+    queueEditorAutosave(event.currentTarget);
+    scheduleCommentLayout();
+    return;
+  }
   if (event.key === "Enter") {
     const item = getCurrentListItem();
-    shouldResetNewChecklistItem = item?.closest("ul.check-list") && item.dataset.checked === "true";
+    shouldResetNewChecklistItem = isChecklistItem(item) && item.dataset.checked === "true";
   }
 
   if ((event.metaKey || event.ctrlKey) && event.altKey && event.code === "KeyM") {
@@ -2532,53 +2541,111 @@ function handleEditorKeyup(event) {
   }
 }
 
+function selectedEditorLists() {
+  const selection = window.getSelection();
+  const editor = allEditors.find(candidate => editorContainsSelection(candidate, selection));
+  if (!editor) return [];
+  const item = getCurrentListItem();
+  if (selection.isCollapsed) return item ? [item.parentElement] : [];
+  const range = selection.getRangeAt(0);
+  // Use each item's own content so selecting a subtask doesn't select its parent list.
+  const lists = [...editor.querySelectorAll("li")].filter(li =>
+    [...li.childNodes].some(node => !["UL", "OL"].includes(node.nodeName) && range.intersectsNode(node))
+  ).map(li => li.parentElement);
+  return [...new Set(lists)];
+}
+
+function setListChecklist(list, enabled) {
+  if (list.tagName !== "UL") return;
+  list.classList.toggle("check-list", enabled);
+  if (enabled) list.dataset.list = "checklist";
+  else delete list.dataset.list;
+  [...list.children].filter(item => item.tagName === "LI").forEach(item => {
+    if (enabled) item.dataset.checked = item.dataset.checked === "true" ? "true" : "false";
+    else delete item.dataset.checked;
+  });
+}
+
+function isChecklistItem(item) {
+  return Boolean(item?.parentElement?.matches("ul.check-list, ul[data-list='checklist']"));
+}
+
+function prepareListEditing(editor) {
+  // Chromium/WebKit edit nested lists as siblings of their parent LI. Flatten
+  // saved semantic nesting before native indent/outdent so they don't emit LI > LI.
+  // Keep the same text nodes and selection; serialization restores LI > UL/OL.
+  const selection = window.getSelection();
+  const anchor = selection.anchorNode, focus = selection.focusNode;
+  const anchorOffset = selection.anchorOffset, focusOffset = selection.focusOffset;
+  [...editor.querySelectorAll("li > ul, li > ol")].reverse().forEach(list => list.parentElement.after(list));
+  if (editor.contains(anchor) && editor.contains(focus)) selection.setBaseAndExtent(anchor, anchorOffset, focus, focusOffset);
+}
+
 function applyEditorCommand(command) {
-  if (command === "toggleChecklist") {
-    document.execCommand("insertUnorderedList", false, null);
-    convertCurrentListToChecklist();
+  if (command === "indent" || command === "outdent") {
+    const item = getCurrentListItem();
+    if (!item) return;
+    // A first item has no parent task to nest beneath; don't create a blank parent.
+    if (command === "indent" && !item.previousElementSibling) return;
+    const checklist = isChecklistItem(item);
+    const editor = item.closest(".rich-editor");
+    const checkedStates = [...editor.querySelectorAll("li")].map(li => li.dataset.checked);
+    prepareListEditing(editor);
+    document.execCommand(command, false, null);
+    if (checklist && command === "indent") {
+      const list = getCurrentListItem()?.parentElement;
+      if (list?.tagName === "UL") setListChecklist(list, true);
+    }
+    // Outdent can replace LI nodes and drop their attributes. Nesting preserves
+    // item order, so carry completion state over to the resulting list items.
+    const items = [...editor.querySelectorAll("li")];
+    if (items.length === checkedStates.length) items.forEach((li, index) => {
+      if (isChecklistItem(li)) li.dataset.checked = checkedStates[index] === "true" ? "true" : "false";
+    });
     return;
   }
-
+  if (command === "toggleChecklist") {
+    let lists = selectedEditorLists();
+    // An existing bullet list is already the right structure. Toggling the browser's
+    // unordered-list command here would REMOVE it before we could add checkboxes.
+    const createList = !lists.length || lists.some(list => list.tagName !== "UL");
+    if (createList) {
+      document.execCommand("insertUnorderedList", false, null);
+      lists = selectedEditorLists();
+    }
+    const enabled = createList || !lists.every(list => list.classList.contains("check-list"));
+    lists.forEach(list => setListChecklist(list, enabled));
+    return;
+  }
+  if (command === "insertUnorderedList") {
+    const lists = selectedEditorLists();
+    if (lists.length && lists.every(list => list.classList.contains("check-list"))) {
+      lists.forEach(list => setListChecklist(list, false));
+      return;
+    }
+  }
   document.execCommand(command, false, null);
 }
 
 function handleChecklistClick(event) {
   if (spotlightMode && personEditors.includes(event.currentTarget)) return;
   const item = event.target.closest("li");
-  if (!item?.closest("ul.check-list")) return;
+  if (!isChecklistItem(item)) return;
 
   const rect = item.getBoundingClientRect();
-  if (event.clientX > rect.left + 28) return;
+  if (event.clientX < rect.left || event.clientX > rect.left + 28 || event.clientY > rect.top + 28) return;
 
   event.preventDefault();
   toggleChecklistItem(item);
 }
 
-function convertCurrentListToChecklist() {
-  const item = getCurrentListItem();
-  const list = item?.closest("ul");
-  if (!item || !list) return;
-
-  list.classList.add("check-list");
-  list.dataset.list = "checklist";
-  list.querySelectorAll("li").forEach((listItem) => {
-    if (!listItem.dataset.checked) listItem.dataset.checked = "false";
-  });
-}
-
 function normalizeChecklists(editor) {
-  editor.querySelectorAll("ul.check-list, ul[data-list='checklist']").forEach((list) => {
-    list.classList.add("check-list");
-    list.dataset.list = "checklist";
-    list.querySelectorAll("li").forEach((item) => {
-      if (item.dataset.checked !== "true") item.dataset.checked = "false";
-    });
-  });
+  editor.querySelectorAll("ul.check-list, ul[data-list='checklist']").forEach(list => setListChecklist(list, true));
 }
 
 function setCurrentChecklistItemChecked(checked) {
   const item = getCurrentListItem();
-  if (item?.closest("ul.check-list")) {
+  if (isChecklistItem(item)) {
     item.dataset.checked = checked ? "true" : "false";
   }
 }
@@ -2738,7 +2805,7 @@ function sanitizeRichText(html) {
     }
 
     const isChecklist = node.tagName === "UL" && (node.classList.contains("check-list") || node.dataset.list === "checklist");
-    const isChecklistItem = node.tagName === "LI" && node.closest("ul.check-list, ul[data-list='checklist']");
+    const checklistItem = node.tagName === "LI" && isChecklistItem(node);
     const wasChecked = node.dataset.checked === "true";
     const href = node.tagName === "A" ? node.getAttribute("href") || "" : "";
     [...node.attributes].forEach((attribute) => node.removeAttribute(attribute.name));
@@ -2751,9 +2818,13 @@ function sanitizeRichText(html) {
       node.classList.add("check-list");
       node.dataset.list = "checklist";
     }
-    if (isChecklistItem) {
+    if (checklistItem) {
       node.dataset.checked = wasChecked ? "true" : "false";
     }
+  });
+  template.content.querySelectorAll("ul > ul, ul > ol, ol > ul, ol > ol").forEach(list => {
+    const parentItem = list.previousElementSibling;
+    if (parentItem?.tagName === "LI") parentItem.append(list);
   });
   return template.innerHTML;
 }
