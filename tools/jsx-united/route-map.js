@@ -16,12 +16,13 @@
     for (const item of catalog) {
       const key = `${item.origin}-${item.destination}`;
       if (!routes.has(key)) routes.set(key, { ...item, key, fares: [], cheapest: null });
+      else Object.assign(routes.get(key), item);
     }
     return [...routes.values()].sort((a, b) => routePrice(a) - routePrice(b) || a.originCity.localeCompare(b.originCity) || a.destinationCity.localeCompare(b.destinationCity));
   }
   const colors = ['#398875', '#c18a32', '#ce6d43', '#a96b85'];
   const routePrice = route => route.cheapest?.priceUsd ?? Infinity;
-  const routeColor = route => route.cheapest ? colors[band(routePrice(route))] : '#9aa4ad';
+  const routeColor = route => route.cheapest ? colors[band(routePrice(route))] : route.serviceStart ? '#2469a5' : '#9aa4ad';
   const band = price => price < 200 ? 0 : price < 300 ? 1 : price < 500 ? 2 : 3;
   const mercator = lat => Math.log(Math.tan(Math.PI / 4 + lat * Math.PI / 360));
   function project(lon, lat) { return [40 + (lon + 127) / 62 * 920, 32 + (mercator(50) - mercator(lat)) / (mercator(50) - mercator(21)) * 510]; }
@@ -35,8 +36,18 @@
     const el = (tag, className, text) => { const node = document.createElement(tag); if (className) node.className = className; if (text !== undefined) node.textContent = text; return node; };
     let routes = [], focus = '', destination = '', selected = '', box = { x: 0, y: 0, w: 1000, h: 600 };
     let cities = new Map(), lastSignature = null, drag = null;
-    let filtered = false, matches = new Map();
-    const displayRoute = route => matches.get(route.key) || { ...route, fares: [], cheapest: null };
+    let filtered = false, matches = new Map(), catalogQuery = {};
+    const serviceDate = route => new Date(route.serviceStart + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    const serviceLabel = route => `${route.serviceStart > new Date().toLocaleDateString('en-CA') ? 'Starts' : 'Service from'} ${serviceDate(route)}`;
+    function isAnnouncedMatch(route) {
+      if (!route.serviceStart || matches.has(route.key)) return false;
+      if (catalogQuery.origin && route.origin !== catalogQuery.origin || catalogQuery.destination && route.destination !== catalogQuery.destination) return false;
+      if (catalogQuery.budget || catalogQuery.minPrice || catalogQuery.weekend) return false;
+      if (catalogQuery.before && route.serviceStart > catalogQuery.before || catalogQuery.after && catalogQuery.before && catalogQuery.after > catalogQuery.before) return false;
+      const words = (catalogQuery.search || '').trim().toLowerCase().split(/\s+/).filter(Boolean);
+      return words.every(word => `${route.originCity} ${route.origin} ${route.destinationCity} ${route.destination} Hanscom`.toLowerCase().includes(word));
+    }
+    const displayRoute = route => matches.has(route.key) ? { ...route, ...matches.get(route.key) } : { ...route, fares: [], cheapest: null };
     const isMatch = route => matches.has(route.key);
     const title = createSvg('title'); title.textContent = 'JSX route map: select an airport or route to explore sampled fares.'; svg.append(title);
     const land = createSvg('g', { 'aria-hidden': 'true' });
@@ -51,7 +62,7 @@
     geography.countries.forEach(country => land.append(createSvg('path', { d: pathFor(country.geometry), class: 'map-land' })));
     geography.states.forEach(state => land.append(createSvg('path', { d: pathFor(state), class: 'map-state' })));
     [['UNITED STATES', -101, 44], ['MEXICO', -103, 24.3]].forEach(([name, lon, lat]) => { const [x, y] = project(lon, lat); const text = createSvg('text', { x, y, class: 'map-country-label', 'text-anchor': 'middle' }); text.textContent = name; land.append(text); });
-    function visibleRoutes() { return [...matches.values()].sort((a, b) => routePrice(a) - routePrice(b)); }
+    function visibleRoutes() { return routes.filter(route => matches.has(route.key) || isAnnouncedMatch(route)).map(displayRoute).sort((a, b) => Number(!!b.serviceStart && !b.cheapest) - Number(!!a.serviceStart && !a.cheapest) || routePrice(a) - routePrice(b) || (a.serviceStart || '').localeCompare(b.serviceStart || '')); }
     function coordinate(code) { const port = geography.airports[code]; return port && project(port.lon, port.lat); }
     function chooseAirportAtPointer(event, fallback) {
       // Overlapping touch targets in dense airport clusters must choose the nearest marker.
@@ -94,7 +105,7 @@
     function drawGraph() {
       lines.replaceChildren(); points.replaceChildren(); labels.replaceChildren();
       const visible = routes.map(displayRoute), chosen = visible.find(r => r.key === selected);
-      const highlighting = filtered || !!focus, matchedPorts = new Set(visible.filter(isMatch).flatMap(r => [r.origin, r.destination]));
+      const highlighting = filtered || !!focus, matchedPorts = new Set(visible.filter(route => isMatch(route) || isAnnouncedMatch(route)).flatMap(r => [r.origin, r.destination]));
       const ports = new Map(), corridors = new Map();
       const corridorPriority = route => Number(isMatch(route)) * 8 + Number(route.key === selected) * 4 + Number(route.origin === focus) * 2 + Number(route.destination === destination);
       visible.forEach(route => {
@@ -110,11 +121,11 @@
         const bend = Math.min(.14, 55 / (Math.hypot(dx, dy) || 1)) * direction;
         const d = `M${a.join(',')}Q${(a[0] + b[0]) / 2 - dy * bend},${(a[1] + b[1]) / 2 + dx * bend} ${b.join(',')}`;
         const active = chosen && [route.origin, route.destination].sort().join('-') === [chosen.origin, chosen.destination].sort().join('-');
-        const lit = highlighting && isMatch(route);
+        const lit = highlighting && (isMatch(route) || isAnnouncedMatch(route));
         const muted = !active && ((highlighting && !lit) || (chosen && !active));
         const group = createSvg('g', { class: `map-connection${active ? ' is-selected' : ''}${lit ? ' is-matching' : ''}${muted ? ' is-muted' : ''}`, 'data-route': route.key });
-        group.append(createSvg('path', { d, class: 'map-route-hit', 'vector-effect': 'non-scaling-stroke' }), createSvg('path', { d, class: 'map-route-line', stroke: routeColor(route), 'stroke-dasharray': route.cheapest ? 'none' : '4 4', 'vector-effect': 'non-scaling-stroke' }));
-        graphButton(group, `${route.originCity} (${route.origin}) → ${route.destinationCity} (${route.destination}), ${route.cheapest ? `from ${money(routePrice(route))}` : 'no fares match the current filters'}. Explore route.`, () => selectRoute(route.key));
+        group.append(createSvg('path', { d, class: 'map-route-hit', 'vector-effect': 'non-scaling-stroke' }), createSvg('path', { d, class: 'map-route-line', stroke: routeColor(route), 'stroke-dasharray': route.cheapest ? 'none' : route.serviceStart ? '8 4' : '4 4', 'vector-effect': 'non-scaling-stroke' }));
+        graphButton(group, `${route.originCity} (${route.origin}) → ${route.destinationCity} (${route.destination}), ${route.cheapest ? `from ${money(routePrice(route))}` : route.serviceStart ? serviceLabel(route) : 'no fares match the current filters'}. Explore route.`, () => selectRoute(route.key));
         lines.append(group);
       }
       // Label the selected airport first, then the lowest-fare airports. Place labels
@@ -130,7 +141,7 @@
         group.append(createSvg('circle', { cx: p[0], cy: p[1], r: (active ? 5 : 3.8) * scale, fill: routeColor(route), stroke: '#fff', 'stroke-width': 1.8 * scale }));
         group.dataset.code = code;
         group.setAttribute('aria-pressed', String(code === focus));
-        graphButton(group, `${cities.get(code)} (${code}), ${route.cheapest ? `lowest matching fare involving this airport ${money(routePrice(route))}` : 'no fares match the current filters'}. Set From airport.`, event => chooseAirportAtPointer(event, code));
+        graphButton(group, `${cities.get(code)} (${code}), ${route.cheapest ? `lowest matching fare involving this airport ${money(routePrice(route))}` : route.serviceStart ? 'announced Boston service' : 'no fares match the current filters'}. Set From airport.`, event => chooseAirportAtPointer(event, code));
         points.append(group);
         if (p[0] < box.x || p[0] > box.x + box.w || p[1] < box.y || p[1] > box.y + box.h) continue;
         const text = `${code}${!chosen && route.cheapest ? ` ${money(routePrice(route))}` : ''}`;
@@ -157,9 +168,13 @@
       const f = route.cheapest;
       panel.append(el('h4', '', `${route.originCity} → ${route.destinationCity}`), el('p', 'map-detail-codes', `${route.origin} → ${route.destination}`));
       if (!f) {
-        panel.append(el('p', 'map-detail-dates', 'No fares on this route match the current filters. Your date, budget, and trip settings have been kept. Adjust the filters above, or check current availability on JSX.'));
+        if (route.serviceStart) {
+          panel.append(el('p', 'map-announced', serviceLabel(route)), el('p', 'map-detail-dates', `${route.serviceType} service. Boston flights use Hanscom Field (BED) in Bedford. This route has no fare samples in the saved snapshot; check dates and prices on JSX.`));
+        } else panel.append(el('p', 'map-detail-dates', 'No fares on this route match the current filters. Your date, budget, and trip settings have been kept. Adjust the filters above, or check current availability on JSX.'));
         const link = el('a', 'book', 'Check route on JSX ↗');
-        link.href = `https://www.jsx.com/home/search?o=${route.origin}&d=${route.destination}`;
+        const booking = new URLSearchParams({ o: route.bookingOrigin || route.origin, d: route.bookingDestination || route.destination });
+        if (route.serviceStart) booking.set('dd', route.serviceStart);
+        link.href = `https://www.jsx.com/home/search?${booking}`;
         link.dataset.analyticsControl = 'map_check_route'; link.dataset.analyticsPlacement = 'route_map';
         link.target = '_blank'; link.rel = 'noopener noreferrer'; panel.append(link);
         return;
@@ -177,14 +192,14 @@
     }
     function renderList() {
       const visible = visibleRoutes();
-      $('map-list-title').textContent = selected ? 'Selected route' : 'Matching routes';
+      $('map-list-title').textContent = selected ? 'Selected route' : visible.some(route => route.serviceStart && !route.cheapest) ? 'Fares & announced routes' : 'Matching routes';
       $('map-routes').hidden = !!selected;
       $('map-clear').hidden = !focus && !destination;
       $('map-routes').replaceChildren(...visible.map(route => {
         const button = el('button', `map-route-option${filtered && isMatch(route) ? ' is-matching' : ''}`); button.type = 'button'; button.dataset.route = route.key;
         button.setAttribute('aria-pressed', String(selected === route.key));
         const copy = el('span', 'map-route-copy'); copy.append(el('strong', '', `${route.origin} → ${route.destination}`), el('span', '', `${route.originCity} → ${route.destinationCity}`));
-        const price = el('span', 'map-route-price', route.cheapest ? `From ${money(routePrice(route))}` : 'No matching fare'); price.style.color = routeColor(route);
+        const price = el('span', 'map-route-price', route.cheapest ? `From ${money(routePrice(route))}` : route.serviceStart ? serviceLabel(route) : 'No matching fare'); price.style.color = routeColor(route);
         button.append(copy, price); button.addEventListener('click', () => {
           selectRoute(route.key);
           $('map-detail').querySelector('button,a')?.focus({ preventScroll: true });
@@ -193,7 +208,10 @@
       if (!visible.length) $('map-routes').append(el('p', 'map-no-routes', 'No fares match the filters above. The full route network stays visible on the map.'));
       const fareCount = visible.reduce((count, route) => count + route.fares.length, 0);
       const selection = [focus, destination].filter(Boolean).join(' → ');
-      $('map-summary').textContent = `${fareCount.toLocaleString()} ${fareCount === 1 ? 'fare' : 'fares'} · ${visible.length} ${visible.length === 1 ? 'route matches' : 'routes match'}${selection ? ` · ${selection}` : ''}`;
+      const announcedCount = visible.filter(route => route.serviceStart && !route.cheapest).length;
+      const announcedSummary = `${announcedCount} announced ${announcedCount === 1 ? 'route' : 'routes'}`;
+      const fareSummary = `${fareCount.toLocaleString()} ${fareCount === 1 ? 'fare' : 'fares'} · ${visible.length - announcedCount} ${visible.length - announcedCount === 1 ? 'route matches' : 'routes match'}`;
+      $('map-summary').textContent = `${announcedCount && announcedCount === visible.length ? announcedSummary : fareSummary + (announcedCount ? ` · ${announcedSummary}` : '')}${selection ? ` · ${selection}` : ''}`;
       $('map-empty').hidden = routes.length > 0;
     }
     function selectRoute(key) {
@@ -220,9 +238,11 @@
     svg.addEventListener('pointerup', stopDrag); svg.addEventListener('pointercancel', stopDrag);
     if (typeof ResizeObserver !== 'undefined') new ResizeObserver(drawGraph).observe(svg);
     return {
+      hasAnnouncedRoutes() { return visibleRoutes().some(route => route.serviceStart && !route.cheapest); },
       update(fares, options = {}) {
         const nextMatches = options.matches || [];
-        const signature = `${options.origin || ''}:${options.destination || ''}:` + String(!!options.filtered) + ':' + nextMatches.map(f => `${f.origin}-${f.destination}-${f.departDate}-${f.returnDate}-${f.priceUsd}-${f.tripType}`).sort().join('|') + ':' + fares.map(f => `${f.origin}-${f.destination}-${f.departDate}-${f.returnDate}-${f.priceUsd}-${f.tripType}`).sort().join('|');
+        catalogQuery = options.catalogQuery || {};
+        const signature = JSON.stringify(catalogQuery) + ':' + `${options.origin || ''}:${options.destination || ''}:` + String(!!options.filtered) + ':' + nextMatches.map(f => `${f.origin}-${f.destination}-${f.departDate}-${f.returnDate}-${f.priceUsd}-${f.tripType}`).sort().join('|') + ':' + fares.map(f => `${f.origin}-${f.destination}-${f.departDate}-${f.returnDate}-${f.priceUsd}-${f.tripType}`).sort().join('|');
         if (signature === lastSignature) return; lastSignature = signature;
         focus = options.origin || ''; destination = options.destination || '';
         selected = focus && destination ? `${focus}-${destination}` : '';
@@ -232,7 +252,7 @@
         const allCities = new Map(geography.routes.flatMap(f => [[f.origin, f.originCity], [f.destination, f.destinationCity]]));
         cities = new Map([...allCities, ...cities]);
         if (!routes.some(r => r.key === selected)) selected = '';
-        $('map-date').textContent = `Fare snapshot: ${fmt(window.JSX_FARES.asOf)}.`;
+        $('map-date').textContent = `Fare snapshot: ${fmt(window.JSX_FARES.asOf)}.${geography.routesCheckedOn ? ` Boston route update checked ${fmt(geography.routesCheckedOn)}.` : ''}`;
         drawGraph(); renderDetail(); renderList();
       }
     };

@@ -133,3 +133,34 @@ test('fare route links include current filters for copied and modified clicks',(
  assert.equal(copy.get('map-detail').hidden,false);
  copy.close();close();
 });
+
+test('Boston announcements are searchable, selectable, and restored through copied links and history',async()=>{
+ const {w,d,get,change,close}=setup('?origin=BED#route-map');
+ assert.match(get('origin-trigger').textContent,/BED/);
+ assert.match(d.querySelector('#origin option[value="BED"]').textContent,/Boston.*Bedford/);
+ assert.equal(get('total').textContent,'0 fares');
+ assert.match(get('empty').textContent,/No sampled fares yet/);
+ assert.equal(d.querySelectorAll('#map-routes button').length,2);
+ assert.match(get('map-routes').textContent,/Feb 8, 2027/);
+ assert.match(get('map-routes').textContent,/Feb 11, 2027/);
+ d.querySelector('#map-routes [data-route="BED-TEB"]').click();
+ assert.equal(new URL(w.location.href).searchParams.get('destination'),'TEB');
+ assert.match(get('map-detail').textContent,/Boston.*Bedford.*New York.*Teterboro/);
+ assert.match(get('map-detail').textContent,/Starts Feb 8, 2027/);
+ assert.equal(get('map-detail').querySelector('.map-detail-price'),null);
+ const booking=new URL(get('map-detail').querySelector('a').href);
+ assert.equal(booking.searchParams.get('o'),'BED');assert.equal(booking.searchParams.get('d'),'NYC');assert.equal(booking.searchParams.get('dd'),'2027-02-08');
+ const copy=setup(w.location.search+w.location.hash);
+ assert.match(copy.get('map-detail').textContent,/Starts Feb 8, 2027/);copy.close();
+ await new Promise(resolve=>{w.addEventListener('popstate',resolve,{once:true});w.history.back();});
+ assert.equal(get('destination').value,'');assert.equal(d.querySelectorAll('#map-routes button').length,2);
+ await new Promise(resolve=>{w.addEventListener('popstate',resolve,{once:true});w.history.forward();});
+ assert.equal(get('destination').value,'TEB');
+ get('reset').click();get('search').value='Boston';get('search').dispatchEvent(new w.Event('input',{bubbles:true}));
+ assert.equal(d.querySelectorAll('#map-routes button').length,4);
+ change('origin','BED');change('before','2027-02-07');assert.equal(d.querySelectorAll('#map-routes button').length,0);
+ change('before','2027-02-09');assert.equal(d.querySelectorAll('#map-routes button').length,1);
+ change('before','');get('budget').value='300';get('budget').dispatchEvent(new w.Event('input',{bubbles:true}));
+ assert.equal(d.querySelectorAll('#map-routes button').length,0);assert.equal(get('total').textContent,'0 fares');
+ close();
+});

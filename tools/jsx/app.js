@@ -28,11 +28,18 @@
       else if (field.tagName!=='SELECT' || [...field.options].some(o=>o.value===value)) field.value=value;
     });
     Object.values(pickers).forEach(p=>p.sync());
+    page = Math.max(1, Number.parseInt(params.get('page'), 10) || 1);
   }
-  function save() {
+  function viewParams() {
     const params=new URLSearchParams();
     ids.forEach(id => { const value=id==='weekend' ? (controls[id].checked?'1':'') : controls[id].value; if(value && value!==defaults[id]) params.set(id,value); });
-    try { history.replaceState(null,'',location.pathname+(params.size?`?${params}`:'')+location.hash); } catch { /* Opening the HTML directly can restrict history updates. */ }
+    if (page > 1) params.set('page', String(page));
+    return params;
+  }
+  function save(mode = 'push', hash = location.hash) {
+    const params = viewParams();
+    const next = location.pathname+(params.size?`?${params}`:'')+hash;
+    try { if (next !== location.pathname+location.search+location.hash) history[mode === 'replace' ? 'replaceState' : 'pushState'](null,'',next); } catch { /* Opening the HTML directly can restrict history updates. */ }
   }
   function cell(text, className) { const td=document.createElement('td'); if(text) td.textContent=text; if(className) td.className=className; return td; }
   const accountDialog = $('account-dialog');
@@ -157,7 +164,10 @@
     const tr=document.createElement('tr');
     const route=cell('', 'fare-route');
     const mapLink=document.createElement('a'); mapLink.className='fare-route-link';
-    mapLink.href='#route-map'; mapLink.textContent=`${f.originCity} (${f.origin}) → ${f.destinationCity} (${f.destination})`;
+    const routeUrl = new URL(location.href); routeUrl.search = viewParams().toString();
+    routeUrl.searchParams.set('origin', f.origin); routeUrl.searchParams.set('destination', f.destination);
+    routeUrl.searchParams.delete('page'); routeUrl.hash='route-map';
+    mapLink.href=routeUrl.pathname+routeUrl.search+routeUrl.hash; mapLink.textContent=`${f.originCity} (${f.origin}) → ${f.destinationCity} (${f.destination})`;
     mapLink.setAttribute('aria-label',`Show ${f.originCity} to ${f.destinationCity} on the map`);
     mapLink.dataset.analyticsControl='map_jump'; mapLink.dataset.analyticsPlacement='fare_table';
     mapLink.append(' ',icon('pin'));
@@ -165,7 +175,7 @@
       if(event.button!==0||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey) return;
       event.preventDefault();
       controls.origin.value=f.origin; controls.destination.value=f.destination;
-      pickers.origin.sync(); pickers.destination.sync(); changed();
+      pickers.origin.sync(); pickers.destination.sync(); changed('push', '#route-map');
       track('jsx_map_route_selected',{placement:'fare_table'});
       $('route-map').scrollIntoView({behavior:'smooth',block:'start'});
       $('map-title').focus({preventScroll:true});
@@ -255,17 +265,21 @@
     $('sort-dates').querySelector('span').textContent=controls.sort.value==='date'?'↑':controls.sort.value==='latest'?'↓':'↕';
     // The network map always includes the full catalog, independently of table filters.
     const mapFiltered = ids.some(id => !['sort', 'per-page'].includes(id) && (id === 'weekend' ? controls[id].checked : controls[id].value !== (defaults[id] || '')));
-    routeMap?.update(data.fares.filter(f => f.tripType === 'one_way' && f.departDate >= now), { matches: fares, filtered: mapFiltered, origin: controls.origin.value, destination: controls.destination.value });
-    save();
+    routeMap?.update(data.fares.filter(f => f.tripType === 'one_way' && f.departDate >= now), { matches: fares, filtered: mapFiltered, origin: controls.origin.value, destination: controls.destination.value, catalogQuery: { origin: controls.origin.value, destination: controls.destination.value, search: controls.search.value, after, before, budget: controls.budget.value, minPrice: controls['min-price'].value, weekend: controls.weekend.checked } });
+    if (!fares.length && routeMap?.hasAnnouncedRoutes()) $('empty').querySelector('p').textContent = 'No sampled fares yet. See the announced routes on the map below, or check dates and prices on JSX.';
   }
-  function changed() { page=1; render(); }
+  function changed(mode = 'push', hash = location.hash) { page=1; render(); save(mode, hash); }
   const filterTimers = new Map();
   function trackFilter(id) {
     track('jsx_filter_changed', { filter_name: id, trip_type: controls.trip.value, result_count: Number($('total').dataset.resultCount || 0) });
   }
   function reset() { filterTimers.forEach(clearTimeout); filterTimers.clear(); ids.forEach(id=>{if(id==='weekend') controls[id].checked=false;else controls[id].value=defaults[id]||'';}); Object.values(pickers).forEach(p=>p.sync()); changed(); }
+  let lastInput = '', lastInputAt = 0;
   ids.forEach(id=>controls[id].addEventListener(['search','min-price','budget'].includes(id)?'input':'change', () => {
-    changed();
+    const typing = ['search','min-price','budget'].includes(id);
+    const mode = typing && lastInput === id && Date.now() - lastInputAt < 800 ? 'replace' : 'push';
+    lastInput = typing ? id : ''; lastInputAt = Date.now();
+    changed(mode);
     clearTimeout(filterTimers.get(id));
     if (['search','min-price','budget'].includes(id)) filterTimers.set(id, setTimeout(() => trackFilter(id), 600));
     else trackFilter(id);
@@ -273,7 +287,7 @@
   ['reset','empty-reset'].forEach(id=>$(id).addEventListener('click',() => { reset(); trackFilter('reset'); }));
   $('clear-price').addEventListener('click',()=>{controls.budget.value='';controls['min-price'].value='';changed();trackFilter('clear-price');});
   $('clear-dates').addEventListener('click',()=>{controls.after.value='';controls.before.value='';controls.weekend.checked=false;changed();trackFilter('clear-dates');});
-  ['first','prev','next','last'].forEach(id=>$(id).addEventListener('click',()=>{page=id==='first'?1:id==='last'?pages:page+(id==='next'?1:-1);render();document.querySelector('.table-wrap').scrollTop=0;}));
+  ['first','prev','next','last'].forEach(id=>$(id).addEventListener('click',()=>{page=id==='first'?1:id==='last'?pages:page+(id==='next'?1:-1);render();save();document.querySelector('.table-wrap').scrollTop=0;}));
   $('sort-price').addEventListener('click',()=>{controls.sort.value=controls.sort.value==='price'?'highest':'price';pickers.sort.sync();changed();});
   $('sort-dates').addEventListener('click',()=>{controls.sort.value=controls.sort.value==='date'?'latest':'date';pickers.sort.sync();changed();});
   const panels=[$('price-panel'),$('date-panel')];
@@ -290,7 +304,7 @@
   document.addEventListener('pointerdown',event=>panels.forEach(panel=>{if(!panel.contains(event.target)) panel.open=false;}));
   document.addEventListener('focusin',event=>panels.forEach(panel=>{if(!panel.contains(event.target)) panel.open=false;}));
   window.addEventListener('resize',()=>panels.filter(p=>p.open).forEach(position));
-  window.addEventListener('popstate',()=>{restore();changed();});
+  window.addEventListener('popstate',()=>{restore();render();});
   const guideStorageKey = 'jsx-guide-hidden-v1';
   function setGuideHidden(hidden, moveFocus = false) {
     $('offer-guide').hidden = hidden;
@@ -308,6 +322,6 @@
   });
   try { setGuideHidden(localStorage.getItem(guideStorageKey) === '1'); } catch { /* Show the guide by default. */ }
   $('snapshot').textContent=fmt(data.asOf);
-  $('coverage').textContent=`${data.emptyRoutes} of ${data.routeCount} JSX routes had no sampled fares and aren’t listed.`;
+  $('coverage').textContent=`${data.emptyRoutes} of ${data.routeCount} JSX routes had no sampled fares and aren’t listed in the fare table.`;
   restore();render();
 })();

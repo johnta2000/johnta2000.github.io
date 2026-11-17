@@ -206,3 +206,5 @@
 
 .referral,.account-action.account-primary{color:#fff}
 @media(max-width:600px){#account-close,#hide-guide,.credit-close{width:44px;height:44px}.account-action{min-height:44px}.sort-select .search-select-trigger{height:44px;min-height:44px}}
+
+.fare-band-announced{background:#2469a5}.map-announced{font-size:17px;font-weight:700;color:#2469a5;margin:12px 0 8px}

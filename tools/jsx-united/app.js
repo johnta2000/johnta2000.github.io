@@ -277,7 +277,8 @@
     $('sort-dates').querySelector('span').textContent=controls.sort.value==='date'?'↑':controls.sort.value==='latest'?'↓':'↕';
     // The network map always includes the full catalog, independently of table filters.
     const mapFiltered = ids.some(id => !['sort', 'per-page'].includes(id) && (id === 'weekend' ? controls[id].checked : controls[id].value !== (defaults[id] || '')));
-    routeMap?.update(data.fares.filter(f => f.tripType === 'one_way' && f.departDate >= now), { matches: fares, filtered: mapFiltered, origin: controls.origin.value, destination: controls.destination.value });
+    routeMap?.update(data.fares.filter(f => f.tripType === 'one_way' && f.departDate >= now), { matches: fares, filtered: mapFiltered, origin: controls.origin.value, destination: controls.destination.value, catalogQuery: { origin: controls.origin.value, destination: controls.destination.value, search: controls.search.value, after, before, budget: controls.budget.value, minPrice: controls['min-price'].value, weekend: controls.weekend.checked } });
+    if (!fares.length && routeMap?.hasAnnouncedRoutes()) $('empty').querySelector('p').textContent = 'No sampled fares yet. See the announced routes on the map below, or check dates and prices on JSX.';
   }
   function changed(mode = 'push', hash = location.hash) { page=1; render(); save(mode, hash); }
   const filterTimers = new Map();
@@ -335,6 +336,6 @@
   });
   try { setGuideHidden(localStorage.getItem(guideStorageKey) === '1' && !new URLSearchParams(location.search).has('guide')); } catch { /* Show the guide by default. */ }
   $('snapshot').textContent=fmt(data.asOf);
-  $('coverage').textContent=`${data.emptyRoutes} of ${data.routeCount} JSX routes had no sampled fares and aren’t listed.`;
+  $('coverage').textContent=`${data.emptyRoutes} of ${data.routeCount} JSX routes had no sampled fares and aren’t listed in the fare table.`;
   restore();render();
 })();
