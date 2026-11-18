@@ -3,6 +3,47 @@
   "maxRuns": 336,
   "runs": [
     {
+      "id": "2026-11-18T04:27:06.685Z",
+      "monitorId": "paze-directory",
+      "timestamp": "2026-11-18T04:27:06.685Z",
+      "status": "success",
+      "changed": false,
+      "initialized": false,
+      "confirmed": true,
+      "durationMs": 1819,
+      "count": 35,
+      "previousCount": 35,
+      "pagination": {
+        "complete": true,
+        "pagesFetched": 3,
+        "pageCounts": [
+          12,
+          12,
+          11
+        ],
+        "finalPage": 2
+      },
+      "diff": {
+        "added": [],
+        "removed": [],
+        "renamed": []
+      },
+      "cache": {
+        "runId": "1794976026685",
+        "requestCount": 3,
+        "crawlIds": [
+          "primary"
+        ],
+        "requestIds": [
+          "1794976026688001",
+          "1794976027317002",
+          "1794976027916003"
+        ]
+      },
+      "summary": "No merchant changes across 3 pages.",
+      "error": null
+    },
+    {
       "id": "2026-11-17T22:55:31.713Z",
       "monitorId": "paze-directory",
       "timestamp": "2026-11-17T22:55:31.713Z",
@@ -13783,47 +13824,6 @@
         ]
       },
       "summary": "0 added, 1 removed, 0 renamed.",
-      "error": null
-    },
-    {
-      "id": "2026-09-07T16:29:50.327Z",
-      "monitorId": "paze-directory",
-      "timestamp": "2026-09-07T16:29:50.327Z",
-      "status": "success",
-      "changed": false,
-      "initialized": false,
-      "confirmed": true,
-      "durationMs": 1909,
-      "count": 33,
-      "previousCount": 33,
-      "pagination": {
-        "complete": true,
-        "pagesFetched": 3,
-        "pageCounts": [
-          12,
-          12,
-          9
-        ],
-        "finalPage": 2
-      },
-      "diff": {
-        "added": [],
-        "removed": [],
-        "renamed": []
-      },
-      "cache": {
-        "runId": "1788798590327",
-        "requestCount": 3,
-        "crawlIds": [
-          "primary"
-        ],
-        "requestIds": [
-          "1788798590329001",
-          "1788798591117002",
-          "1788798591719003"
-        ]
-      },
-      "summary": "No merchant changes across 3 pages.",
       "error": null
     }
   ]
