@@ -3,6 +3,47 @@
   "maxRuns": 336,
   "runs": [
     {
+      "id": "2026-11-18T14:05:42.552Z",
+      "monitorId": "paze-directory",
+      "timestamp": "2026-11-18T14:05:42.552Z",
+      "status": "success",
+      "changed": false,
+      "initialized": false,
+      "confirmed": true,
+      "durationMs": 1827,
+      "count": 35,
+      "previousCount": 35,
+      "pagination": {
+        "complete": true,
+        "pagesFetched": 3,
+        "pageCounts": [
+          12,
+          12,
+          11
+        ],
+        "finalPage": 2
+      },
+      "diff": {
+        "added": [],
+        "removed": [],
+        "renamed": []
+      },
+      "cache": {
+        "runId": "1795010742552",
+        "requestCount": 3,
+        "crawlIds": [
+          "primary"
+        ],
+        "requestIds": [
+          "1795010742557001",
+          "1795010743254002",
+          "1795010743698003"
+        ]
+      },
+      "summary": "No merchant changes across 3 pages.",
+      "error": null
+    },
+    {
       "id": "2026-11-18T04:27:06.685Z",
       "monitorId": "paze-directory",
       "timestamp": "2026-11-18T04:27:06.685Z",
@@ -13777,53 +13818,6 @@
         ]
       },
       "summary": "No merchant changes across 3 pages.",
-      "error": null
-    },
-    {
-      "id": "2026-09-07T20:36:35.760Z",
-      "monitorId": "paze-directory",
-      "timestamp": "2026-09-07T20:36:35.760Z",
-      "status": "success",
-      "changed": true,
-      "initialized": false,
-      "confirmed": true,
-      "durationMs": 4198,
-      "count": 32,
-      "previousCount": 33,
-      "pagination": {
-        "complete": true,
-        "pagesFetched": 3,
-        "pageCounts": [
-          12,
-          12,
-          8
-        ],
-        "finalPage": 2
-      },
-      "diff": {
-        "added": [],
-        "removed": [
-          "Xsolla"
-        ],
-        "renamed": []
-      },
-      "cache": {
-        "runId": "1788813395760",
-        "requestCount": 6,
-        "crawlIds": [
-          "primary",
-          "confirmation"
-        ],
-        "requestIds": [
-          "1788813395763001",
-          "1788813396558002",
-          "1788813397239003",
-          "1788813397947004",
-          "1788813398682005",
-          "1788813399359006"
-        ]
-      },
-      "summary": "0 added, 1 removed, 0 renamed.",
       "error": null
     }
   ]
