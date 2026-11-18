@@ -342,13 +342,13 @@
       <form id="shortcutForm">
         <div class="link-dialog-heading"><h2 id="shortcutDialogTitle">Call shortcuts</h2><button id="shortcutClose" type="button" aria-label="Close shortcut settings">×</button></div>
         <label class="shortcut-enable"><input id="shortcutsEnabled" type="checkbox" checked /> Enable call shortcuts</label>
-        <p>Switch directly to a teammate: hold <strong id="memberShortcutModifiers">Command + Option</strong>, then press their number.</p>
+        <p>Hold <strong id="memberShortcutModifiers">Command + Option</strong>, then press a teammate’s number to switch, or <strong>0</strong> to toggle Spotlight.</p>
         <div class="shortcut-binding"><label for="shortcutMemberJohn">John</label><input id="shortcutMemberJohn" data-shortcut-member="John" maxlength="1" pattern="[1-9]" inputmode="numeric" required autocomplete="off" spellcheck="false" /></div>
         <div class="shortcut-binding"><label for="shortcutMemberVivek">Vivek</label><input id="shortcutMemberVivek" data-shortcut-member="Vivek" maxlength="1" pattern="[1-9]" inputmode="numeric" required autocomplete="off" spellcheck="false" /></div>
         <div class="shortcut-binding"><label for="shortcutMemberVishal">Vishal</label><input id="shortcutMemberVishal" data-shortcut-member="Vishal" maxlength="1" pattern="[1-9]" inputmode="numeric" required autocomplete="off" spellcheck="false" /></div>
         <div class="shortcut-binding"><label for="shortcutMemberJenny">Jenny</label><input id="shortcutMemberJenny" data-shortcut-member="Jenny" maxlength="1" pattern="[1-9]" inputmode="numeric" required autocomplete="off" spellcheck="false" /></div>
-        <p>Spotlight shows one teammate’s update for the call. To open or close it, hold <strong id="spotlightShortcutModifiers">Control + Shift</strong> and press its letter. Other actions use <strong id="shortcutModifiers">Command + Option</strong>. Change any letter below.</p>
-        <div class="shortcut-binding"><label for="shortcutSpotlight">Spotlight on / off</label><input id="shortcutSpotlight" data-shortcut-letter="spotlight" maxlength="1" pattern="[A-Za-z]" required autocomplete="off" autocapitalize="characters" spellcheck="false" /></div>
+        <p>Letter shortcuts use <strong id="shortcutModifiers">Command + Option</strong> except where shown.</p>
+        <div class="shortcut-binding"><label for="shortcutSpotlight">Spotlight alternate <small id="spotlightShortcutModifiers">Control + Shift</small></label><input id="shortcutSpotlight" data-shortcut-letter="spotlight" maxlength="1" pattern="[A-Za-z]" required autocomplete="off" autocapitalize="characters" spellcheck="false" /></div>
         <div class="shortcut-binding"><label for="shortcutDiscussions">Discussions show / hide <small>In Spotlight</small></label><input id="shortcutDiscussions" data-shortcut-letter="discussions" maxlength="1" pattern="[A-Za-z]" required autocomplete="off" autocapitalize="characters" spellcheck="false" /></div>
         <div class="shortcut-binding"><label for="shortcutNext">Next teammate</label><input id="shortcutNext" data-shortcut-letter="next" maxlength="1" pattern="[A-Za-z]" required autocomplete="off" autocapitalize="characters" spellcheck="false" /></div>
         <div class="shortcut-binding"><label for="shortcutPrevious">Previous teammate</label><input id="shortcutPrevious" data-shortcut-letter="previous" maxlength="1" pattern="[A-Za-z]" required autocomplete="off" autocapitalize="characters" spellcheck="false" /></div>
@@ -428,6 +428,6 @@
     <script defer src="../../assets/js/searchable-select.js?v=20261010-2"></script>
     <script defer src="./revenue-model.js?v=20261114-revenue-round1"></script>
     <script defer src="./revenue.js?v=20261114-revenue-round1"></script>
-    <script defer src="./app.js?v=20261118-spotlight-label"></script>
+    <script defer src="./app.js?v=20261118-spotlight-zero"></script>
   </body>
 </html>

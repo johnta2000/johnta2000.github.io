@@ -331,8 +331,9 @@ function updateCallShortcutHints() {
     const button = document.querySelector(selector);
     const enabled = callShortcuts.enabled && (action !== "discussions" || spotlightMode) && (action !== "spotlight" || !isGeneralView());
     const modifiers = actionShortcutModifiers(action);
+    const memberModifiers = actionShortcutModifiers("members");
     const shortcut = action === "spotlight"
-      ? `${modifiers.label} + ${callShortcuts.letters[action]}`
+      ? `${memberModifiers.label} + 0`
       : `${modifiers.hint}${callShortcuts.letters[action]}`;
     const hint = button.querySelector("[data-shortcut-hint]");
     if (hint) { hint.textContent = shortcut; hint.hidden = !enabled; }
@@ -342,7 +343,8 @@ function updateCallShortcutHints() {
     }
     button.title = `${description}${enabled ? ` (${shortcut})` : ""}`;
     if (enabled) {
-      button.setAttribute("aria-keyshortcuts", `${modifiers.aria}+${callShortcuts.letters[action]}`);
+      const letterShortcut = `${modifiers.aria}+${callShortcuts.letters[action]}`;
+      button.setAttribute("aria-keyshortcuts", action === "spotlight" ? `${memberModifiers.aria}+0 ${letterShortcut}` : letterShortcut);
     } else button.removeAttribute("aria-keyshortcuts");
   }
   updateMemberShortcutHints();
@@ -411,6 +413,12 @@ function configureCallShortcuts() {
   });
   document.addEventListener("keydown", (event) => {
     if (!callShortcuts.enabled || callShortcutContextBlocked(event)) return;
+    if (event.code === "Digit0" && matchesActionModifiers("members", event)) {
+      if (!personEditingAvailable || isGeneralView()) return;
+      event.preventDefault();
+      toggleSpotlight();
+      return;
+    }
     const person = TEAM_MEMBERS.find(name => event.code === `Digit${callShortcuts.members[name]}`);
     if (person && matchesActionModifiers("members", event)) {
       if (!personEditingAvailable) return;

@@ -13,9 +13,9 @@ test('mnemonic call shortcuts switch states and teammates; Escape dismisses one 
     await page.locator('#shortcutSettingsButton').focus();
     await page.keyboard.press(hotkey('D'));
     assert.equal(await inSpotlight(page), 'false', 'Discussions shortcut only applies in Spotlight');
-    await page.keyboard.press(hotkey('S'));
+    await page.keyboard.press('Meta+Alt+Digit0');
     await page.getByRole('button', { name: 'Exit spotlight', exact: true }).waitFor();
-    assert.equal(await page.locator('[data-shortcut-hint="spotlight"]').textContent(), 'Control + Shift + S');
+    assert.equal(await page.locator('[data-shortcut-hint="spotlight"]').textContent(), 'Command + Option + 0');
     await page.keyboard.press(hotkey('D'));
     assert.equal(await page.locator('.comments-card').isVisible(), true);
     await page.keyboard.press(hotkey('D'));
@@ -99,7 +99,7 @@ test('shortcut letters are remappable, validated, persisted and can be disabled'
     assert.ok((await page.locator('#shortcutError').textContent()).includes('reserved'));
     await page.locator('#shortcutSpotlight').fill('f');
     await page.getByRole('button', { name: 'Save shortcuts', exact: true }).click();
-    assert.equal(await page.locator('#spotlightToggle').getAttribute('aria-keyshortcuts'), 'Control+Shift+F');
+    assert.equal(await page.locator('#spotlightToggle').getAttribute('aria-keyshortcuts'), 'Meta+Alt+0 Control+Shift+F');
     await page.keyboard.press(hotkey('S'));
     assert.equal(await inSpotlight(page), 'false');
     await page.keyboard.press(hotkey('F'));
@@ -108,7 +108,7 @@ test('shortcut letters are remappable, validated, persisted and can be disabled'
     await page.waitForFunction(() => navigationReady);
     assert.equal(await inSpotlight(page), 'true', 'Refresh restores the Spotlight URL');
     await page.locator('#spotlightToggle').click();
-    assert.equal(await page.locator('#spotlightToggle').getAttribute('aria-keyshortcuts'), 'Control+Shift+F');
+    assert.equal(await page.locator('#spotlightToggle').getAttribute('aria-keyshortcuts'), 'Meta+Alt+0 Control+Shift+F');
     await page.locator('#shortcutSettingsButton').click();
     await page.locator('#shortcutsEnabled').uncheck();
     await page.getByRole('button', { name: 'Save shortcuts', exact: true }).click();
@@ -175,9 +175,9 @@ test('non-Mac keyboards use Control instead of Command and show matching hints',
     await page.locator('#shortcutSettingsButton').focus();
     await page.keyboard.press(hotkey('S'));
     assert.equal(await inSpotlight(page), 'false');
-    await page.keyboard.press('Control+Alt+S');
+    await page.keyboard.press('Control+Alt+Digit0');
     await page.getByRole('button', { name: 'Exit spotlight', exact: true }).waitFor();
-    assert.equal(await page.locator('[data-shortcut-hint="spotlight"]').textContent(), 'Control + Alt + S');
+    assert.equal(await page.locator('[data-shortcut-hint="spotlight"]').textContent(), 'Control + Alt + 0');
     await page.keyboard.press('Control+Alt+D');
     assert.equal(await page.locator('.comments-card').isVisible(), true);
     await page.locator('#shortcutSettingsButton').click();
@@ -196,7 +196,7 @@ test('existing Mac preferences use the new Spotlight modifiers without resetting
     })));
     await page.reload();
     await page.waitForFunction(() => document.querySelector('#today').isContentEditable);
-    assert.equal(await page.locator('#spotlightToggle').getAttribute('aria-keyshortcuts'), 'Control+Shift+S');
+    assert.equal(await page.locator('#spotlightToggle').getAttribute('aria-keyshortcuts'), 'Meta+Alt+0 Control+Shift+S');
     assert.equal(await page.locator('[data-person-jump=John]').getAttribute('aria-keyshortcuts'), 'Meta+Alt+5');
     await page.locator('#shortcutSettingsButton').focus();
     await page.keyboard.press('Meta+Alt+S');
