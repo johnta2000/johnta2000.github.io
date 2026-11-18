@@ -573,7 +573,8 @@
           "startingPrice": true,
           "kind": "drinks"
         }
-      ]
+      ],
+      "capturedDate": "2026-10-31"
     },
     {
       "id": "sightglass",
@@ -1213,46 +1214,15 @@
           "startingPrice": false,
           "kind": "pantry"
         }
-      ]
+      ],
+      "capturedDate": "2026-10-31"
     },
     {
       "id": "philz",
       "name": "Philz Coffee",
       "address": "1775 17th Street",
-      "url": "https://www.doordash.com/store/philz-coffee-san-francisco-55374/",
+      "url": "https://www.doordash.com/store/philz-coffee-san-francisco-55374/?pickup=true",
       "items": [
-        {
-          "category": "Bakery Treats",
-          "name": "Bacon Onion Pretzel Croissant",
-          "displayPrice": "$5.95",
-          "basePrice": 5.95,
-          "startingPrice": false,
-          "kind": "food"
-        },
-        {
-          "category": "Bakery Treats",
-          "name": "Blueberry Muffin",
-          "displayPrice": "$5.25",
-          "basePrice": 5.25,
-          "startingPrice": false,
-          "kind": "food"
-        },
-        {
-          "category": "Bakery Treats",
-          "name": "Chocolate Peppermint Cookie",
-          "displayPrice": "$4.15",
-          "basePrice": 4.15,
-          "startingPrice": false,
-          "kind": "food"
-        },
-        {
-          "category": "Bakery Treats",
-          "name": "Dulce de Leche Kouign Amann",
-          "displayPrice": "$6.30",
-          "basePrice": 6.3,
-          "startingPrice": false,
-          "kind": "food"
-        },
         {
           "category": "Bakery Treats",
           "name": "Everything Bagel",
@@ -1271,41 +1241,9 @@
         },
         {
           "category": "Bakery Treats",
-          "name": "Mexican Hot Chocolate Croissant",
-          "displayPrice": "$5.85",
-          "basePrice": 5.85,
-          "startingPrice": false,
-          "kind": "food"
-        },
-        {
-          "category": "Bakery Treats",
-          "name": "Mini Banana Loaf",
-          "displayPrice": "$4.75",
-          "basePrice": 4.75,
-          "startingPrice": false,
-          "kind": "food"
-        },
-        {
-          "category": "Bakery Treats",
           "name": "Plain Bagel",
           "displayPrice": "$3.95",
           "basePrice": 3.95,
-          "startingPrice": false,
-          "kind": "food"
-        },
-        {
-          "category": "Bakery Treats",
-          "name": "Pumpkin Bread Slice (V)",
-          "displayPrice": "$4.75",
-          "basePrice": 4.75,
-          "startingPrice": false,
-          "kind": "food"
-        },
-        {
-          "category": "Bakery Treats",
-          "name": "Twice Baked Almond Croissant",
-          "displayPrice": "$5.45",
-          "basePrice": 5.45,
           "startingPrice": false,
           "kind": "food"
         },
@@ -1483,7 +1421,21 @@
           "displayPrice": "$5.99+",
           "basePrice": 5.99,
           "startingPrice": true,
-          "kind": "drinks"
+          "kind": "drinks",
+          "variants": [
+            {
+              "size": "Small",
+              "price": 5.99
+            },
+            {
+              "size": "Medium",
+              "price": 6.89
+            },
+            {
+              "size": "Large",
+              "price": 7.19
+            }
+          ]
         },
         {
           "category": "Featured Creations",
@@ -1515,7 +1467,21 @@
           "displayPrice": "$5.99+",
           "basePrice": 5.99,
           "startingPrice": true,
-          "kind": "drinks"
+          "kind": "drinks",
+          "variants": [
+            {
+              "size": "Small",
+              "price": 5.99
+            },
+            {
+              "size": "Medium",
+              "price": 6.89
+            },
+            {
+              "size": "Large",
+              "price": 7.19
+            }
+          ]
         },
         {
           "category": "Featured Creations",
@@ -1544,22 +1510,6 @@
         {
           "category": "Hot Breakfast",
           "name": "Bacon Burrito",
-          "displayPrice": "$7.15",
-          "basePrice": 7.15,
-          "startingPrice": false,
-          "kind": "food"
-        },
-        {
-          "category": "Hot Breakfast",
-          "name": "Focaccia Club",
-          "displayPrice": "$7.95",
-          "basePrice": 7.95,
-          "startingPrice": false,
-          "kind": "food"
-        },
-        {
-          "category": "Hot Breakfast",
-          "name": "Green Chile Burrito",
           "displayPrice": "$7.15",
           "basePrice": 7.15,
           "startingPrice": false,
@@ -1775,6 +1725,14 @@
         },
         {
           "category": "Iced Coffee, Tea, and Others",
+          "name": "Green Tea",
+          "displayPrice": "$4.99+",
+          "basePrice": 4.99,
+          "startingPrice": true,
+          "kind": "drinks"
+        },
+        {
+          "category": "Iced Coffee, Tea, and Others",
           "name": "Honey Haze",
           "displayPrice": "$5.99+",
           "basePrice": 5.99,
@@ -1847,6 +1805,14 @@
         },
         {
           "category": "Iced Coffee, Tea, and Others",
+          "name": "Philz Iced Tea*",
+          "displayPrice": "$4.99+",
+          "basePrice": 4.99,
+          "startingPrice": true,
+          "kind": "drinks"
+        },
+        {
+          "category": "Iced Coffee, Tea, and Others",
           "name": "Salted Caramel Matcha",
           "displayPrice": "$7.59+",
           "basePrice": 7.59,
@@ -1877,6 +1843,19 @@
           "startingPrice": true,
           "kind": "drinks"
         }
+      ],
+      "capturedDate": "2026-11-18",
+      "notListed": [
+        "Bacon Onion Pretzel Croissant",
+        "Blueberry Muffin",
+        "Chocolate Peppermint Cookie",
+        "Dulce de Leche Kouign Amann",
+        "Focaccia Club",
+        "Green Chile Burrito",
+        "Mexican Hot Chocolate Croissant",
+        "Mini Banana Loaf",
+        "Pumpkin Bread Slice (V)",
+        "Twice Baked Almond Croissant"
       ]
     },
     {
@@ -2317,7 +2296,8 @@
           "startingPrice": false,
           "kind": "food"
         }
-      ]
+      ],
+      "capturedDate": "2026-10-31"
     }
   ],
   "unresolved": [

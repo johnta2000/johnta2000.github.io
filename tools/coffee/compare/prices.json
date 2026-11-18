@@ -36,6 +36,7 @@
       "basis": "Café’s Toast pickup menu. Not independently confirmed at the register."
     },
     "philz-storefront": {
+      "cafeName": "Philz",
       "cafe": "philz",
       "channel": "online",
       "label": "Online (DD) · Oct 31",
@@ -2477,7 +2478,10 @@
       "startingPrice": false,
       "sizeMatched": false,
       "sourceUrl": "https://philzcoffee.order.online/store/-55374/?hideModal=true&pickup=true",
-      "doorDashPrice": 5.95
+      "doorDashPrice": null,
+      "directOnly": true,
+      "kind": "food",
+      "category": "Bakery Treats"
     },
     {
       "cafe": "philz",
@@ -2501,7 +2505,10 @@
       "startingPrice": false,
       "sizeMatched": false,
       "sourceUrl": "https://philzcoffee.order.online/store/-55374/?hideModal=true&pickup=true",
-      "doorDashPrice": 5.25
+      "doorDashPrice": null,
+      "directOnly": true,
+      "kind": "food",
+      "category": "Bakery Treats"
     },
     {
       "cafe": "philz",
@@ -2513,7 +2520,10 @@
       "startingPrice": false,
       "sizeMatched": false,
       "sourceUrl": "https://philzcoffee.order.online/store/-55374/?hideModal=true&pickup=true",
-      "doorDashPrice": 4.15
+      "doorDashPrice": null,
+      "directOnly": true,
+      "kind": "food",
+      "category": "Bakery Treats"
     },
     {
       "cafe": "philz",
@@ -2525,7 +2535,10 @@
       "startingPrice": false,
       "sizeMatched": false,
       "sourceUrl": "https://philzcoffee.order.online/store/-55374/?hideModal=true&pickup=true",
-      "doorDashPrice": 6.3
+      "doorDashPrice": null,
+      "directOnly": true,
+      "kind": "food",
+      "category": "Bakery Treats"
     },
     {
       "cafe": "philz",
@@ -2561,7 +2574,10 @@
       "startingPrice": false,
       "sizeMatched": false,
       "sourceUrl": "https://philzcoffee.order.online/store/-55374/?hideModal=true&pickup=true",
-      "doorDashPrice": 5.85
+      "doorDashPrice": null,
+      "directOnly": true,
+      "kind": "food",
+      "category": "Bakery Treats"
     },
     {
       "cafe": "philz",
@@ -2573,7 +2589,10 @@
       "startingPrice": false,
       "sizeMatched": false,
       "sourceUrl": "https://philzcoffee.order.online/store/-55374/?hideModal=true&pickup=true",
-      "doorDashPrice": 4.75
+      "doorDashPrice": null,
+      "directOnly": true,
+      "kind": "food",
+      "category": "Bakery Treats"
     },
     {
       "cafe": "philz",
@@ -2585,7 +2604,10 @@
       "startingPrice": false,
       "sizeMatched": false,
       "sourceUrl": "https://philzcoffee.order.online/store/-55374/?hideModal=true&pickup=true",
-      "doorDashPrice": 4.75
+      "doorDashPrice": null,
+      "directOnly": true,
+      "kind": "food",
+      "category": "Bakery Treats"
     },
     {
       "cafe": "philz",
@@ -2609,7 +2631,10 @@
       "startingPrice": false,
       "sizeMatched": false,
       "sourceUrl": "https://philzcoffee.order.online/store/-55374/?hideModal=true&pickup=true",
-      "doorDashPrice": 5.45
+      "doorDashPrice": null,
+      "directOnly": true,
+      "kind": "food",
+      "category": "Bakery Treats"
     },
     {
       "cafe": "philz",
@@ -2657,7 +2682,10 @@
       "startingPrice": false,
       "sizeMatched": false,
       "sourceUrl": "https://philzcoffee.order.online/store/-55374/?hideModal=true&pickup=true",
-      "doorDashPrice": 7.15
+      "doorDashPrice": null,
+      "directOnly": true,
+      "kind": "food",
+      "category": "Hot Breakfast"
     },
     {
       "cafe": "philz",
@@ -2681,7 +2709,10 @@
       "startingPrice": false,
       "sizeMatched": false,
       "sourceUrl": "https://philzcoffee.order.online/store/-55374/?hideModal=true&pickup=true",
-      "doorDashPrice": 7.95
+      "doorDashPrice": null,
+      "directOnly": true,
+      "kind": "food",
+      "category": "Hot Breakfast"
     },
     {
       "cafe": "philz",
