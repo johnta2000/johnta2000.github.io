@@ -15,7 +15,7 @@ test('mnemonic call shortcuts switch states and teammates; Escape dismisses one 
     assert.equal(await inSpotlight(page), 'false', 'Discussions shortcut only applies in Spotlight');
     await page.keyboard.press(hotkey('S'));
     await page.getByRole('button', { name: 'Exit spotlight', exact: true }).waitFor();
-    assert.equal(await page.locator('[data-shortcut-hint="spotlight"]').textContent(), '⌃⇧S');
+    assert.equal(await page.locator('[data-shortcut-hint="spotlight"]').textContent(), 'Control + Shift + S');
     await page.keyboard.press(hotkey('D'));
     assert.equal(await page.locator('.comments-card').isVisible(), true);
     await page.keyboard.press(hotkey('D'));
@@ -177,7 +177,7 @@ test('non-Mac keyboards use Control instead of Command and show matching hints',
     assert.equal(await inSpotlight(page), 'false');
     await page.keyboard.press('Control+Alt+S');
     await page.getByRole('button', { name: 'Exit spotlight', exact: true }).waitFor();
-    assert.equal(await page.locator('[data-shortcut-hint="spotlight"]').textContent(), 'Ctrl+Alt+S');
+    assert.equal(await page.locator('[data-shortcut-hint="spotlight"]').textContent(), 'Control + Alt + S');
     await page.keyboard.press('Control+Alt+D');
     assert.equal(await page.locator('.comments-card').isVisible(), true);
     await page.locator('#shortcutSettingsButton').click();

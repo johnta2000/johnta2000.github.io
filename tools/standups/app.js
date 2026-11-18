@@ -331,10 +331,16 @@ function updateCallShortcutHints() {
     const button = document.querySelector(selector);
     const enabled = callShortcuts.enabled && (action !== "discussions" || spotlightMode) && (action !== "spotlight" || !isGeneralView());
     const modifiers = actionShortcutModifiers(action);
-    const shortcut = `${modifiers.hint}${callShortcuts.letters[action]}`;
+    const shortcut = action === "spotlight"
+      ? `${modifiers.label} + ${callShortcuts.letters[action]}`
+      : `${modifiers.hint}${callShortcuts.letters[action]}`;
     const hint = button.querySelector("[data-shortcut-hint]");
     if (hint) { hint.textContent = shortcut; hint.hidden = !enabled; }
-    button.title = `${button.getAttribute("aria-label")}${enabled ? ` (${shortcut})` : ""}`;
+    let description = button.getAttribute("aria-label");
+    if (action === "spotlight") {
+      description = spotlightMode ? "Return to editing" : "Present the selected teammate’s update";
+    }
+    button.title = `${description}${enabled ? ` (${shortcut})` : ""}`;
     if (enabled) {
       button.setAttribute("aria-keyshortcuts", `${modifiers.aria}+${callShortcuts.letters[action]}`);
     } else button.removeAttribute("aria-keyshortcuts");
