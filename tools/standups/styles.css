@@ -2386,3 +2386,18 @@ body:not(.is-spotlight) .spotlight-comments-toggle { visibility: visible; }
 .rich-editor :is(ul, ol) > :is(ul, ol) { margin-left: 32px; }
 .rich-editor li > :is(ul, ol), .rendered-rich-text li > :is(ul, ol) { margin-top: 8px; }
 .rich-editor li > ul.check-list, .rendered-rich-text li > ul.check-list { margin-left: 0; }
+
+@media (min-width: 761px) {
+  .meeting-controls { flex-wrap: wrap; }
+  .meeting-controls .member-navigation button,
+  .meeting-controls .member-step-controls button,
+  .meeting-controls .meeting-actions button:has(kbd:not([hidden])) {
+    display: inline-flex; flex-direction: column; align-items: center; justify-content: center;
+    width: auto; gap: 2px; min-height: 44px; padding-inline: 6px;
+  }
+  .member-step-controls button > span { display: none; }
+  .meeting-controls kbd:not([hidden]), .meeting-controls .meeting-actions kbd:not([hidden]) {
+    display: inline-block; height: auto; margin: 0; padding: 1px 3px; white-space: nowrap;
+    font: 11px/1.2 ui-monospace, monospace; color: #475569; opacity: 1;
+  }
+}

@@ -346,7 +346,7 @@ function updateMemberShortcutHints() {
   document.querySelectorAll("[data-person-jump]").forEach(button => {
     const digit = callShortcuts.members[button.dataset.personJump];
     const hint = button.querySelector(".member-shortcut-hint");
-    hint.textContent = digit;
+    hint.textContent = actionShortcutModifiers("next").hint + digit;
     hint.hidden = !callShortcuts.enabled;
     button.title = button.getAttribute("aria-label") + (callShortcuts.enabled ? ` (${isMacKeyboard ? "⌘⌥" : "Ctrl+Alt+"}${digit})` : "");
     if (callShortcuts.enabled) button.setAttribute("aria-keyshortcuts", `${isMacKeyboard ? "Meta" : "Control"}+Alt+${digit}`);
@@ -1128,7 +1128,7 @@ async function loadFathomNotes() {
   closeNotetakerModal();
   els.notetakerDate.textContent = formatDate(standupDate);
   els.notetakerModalDate.textContent = formatDate(standupDate);
-  els.notetakerSummary.textContent = "Loading Fathom notes...";
+  els.notetakerSummary.textContent = "Loading meeting notes...";
   els.notetakerStatus.textContent = "Loading notetaker notes...";
   els.notetakerViewButton.disabled = true;
   els.notetakerViewButton.setAttribute("aria-busy", "true");
@@ -1146,7 +1146,7 @@ async function loadFathomNotes() {
     console.error(error);
     fathomNotesForDate = [];
     fathomNotesError = "Couldn't load meeting notes. Choose this date again to retry.";
-    els.notetakerSummary.textContent = "Could not load Fathom notes.";
+    els.notetakerSummary.textContent = "Could not load meeting notes.";
     els.notetakerStatus.textContent = getConvexMissingFunctionMessage(error) || "Notetaker notes unavailable.";
   } finally {
     if (version === fathomNotesLoadVersion) {
@@ -1224,7 +1224,7 @@ function renderFathomNoteCard(note) {
   headerText.className = "notetaker-note-header-text";
   headerActions.className = "notetaker-note-actions";
   title.textContent = note.title || note.meetingTitle || "Affilignment";
-  meta.textContent = [note.startedAt ? formatMeetingTimestamp(note.startedAt) : "", "Imported from Fathom"]
+  meta.textContent = [note.startedAt ? formatMeetingTimestamp(note.startedAt) : "", note.recordingId?.startsWith("wispr:") ? "Imported from Wispr Flow" : "Imported from Fathom"]
     .filter(Boolean)
     .join(" · ");
 
@@ -1261,7 +1261,7 @@ function buildNotetakerContent(note) {
   const template = document.createElement("template");
   template.innerHTML = sanitizeRichText(note.html);
   removeGeneratedFathomHeader(template.content);
-  removeActionItemsSection(template.content);
+  if (!note.recordingId?.startsWith("wispr:")) removeActionItemsSection(template.content);
   const sections = sectionizeNotetakerBlocks(extractNotetakerBlocks(template.content));
   if (!sections.length) {
     if (!actionItems.length) {

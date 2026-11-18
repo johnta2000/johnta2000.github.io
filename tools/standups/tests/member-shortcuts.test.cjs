@@ -17,7 +17,7 @@ test('Command Option numbers select teammates directly in editing and Spotlight,
       await waitPerson(page, name);
       const button = page.locator(`[data-person-jump="${name}"]`);
       assert.equal(await button.getAttribute('aria-keyshortcuts'), `Meta+Alt+${digit}`);
-      assert.equal(await button.locator('kbd').textContent(), digit);
+      assert.equal(await button.locator('kbd').textContent(), '⌘⌥' + digit);
     }
     assert.ok(entries.get(`Jenny:${date}`).today.includes('Preserve Jenny draft'));
     await page.locator('#spotlightToggle').click();

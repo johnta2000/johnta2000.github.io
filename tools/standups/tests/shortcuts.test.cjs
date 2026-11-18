@@ -131,6 +131,7 @@ test('shortcut hints and settings fit tablet and desktop', async () => {
       const { page, errors } = await openStandups(browser, width, 900);
       await page.locator('#spotlightToggle').click();
       await page.locator('#spotlightCommentsToggle').click();
+      for (const action of ["spotlight","discussions","previous","next"]) assert.ok(await page.locator(`[data-shortcut-hint="${action}"]`).isVisible());
       await assertNoOverflow(page);
       await page.locator('#shortcutSettingsButton').click();
       await assertNoOverflow(page);

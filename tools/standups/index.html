@@ -7,7 +7,7 @@
     <meta name="robots" content="noindex, nofollow" />
     <title>Daily Standups</title>
     <link rel="stylesheet" href="../../assets/css/searchable-select.css?v=20261010-1" />
-    <link rel="stylesheet" href="./styles.css?v=20261117-subtasks1" />
+    <link rel="stylesheet" href="./styles.css?v=20261117-visiblekeys1" />
     <link rel="stylesheet" href="../../assets/css/clerk-auth.css?v=20261011-otp1">
 </head>
   <body>
@@ -76,9 +76,9 @@
             <button type="button" data-person-jump="Jenny" aria-pressed="false">Jenny<kbd class="member-shortcut-hint" aria-hidden="true">4</kbd><span class="submission-dot" aria-hidden="true"></span></button>
           </nav>
           <div class="member-step-controls">
-            <button id="previousPerson" type="button" aria-label="Previous teammate" title="Previous teammate"><span aria-hidden="true">←</span> Prev</button>
+            <button id="previousPerson" type="button" aria-label="Previous teammate" title="Previous teammate"><span aria-hidden="true">←</span> Prev <kbd data-shortcut-hint="previous" aria-hidden="true"></kbd></button>
             <span id="memberPosition" class="member-position" aria-live="polite"></span>
-            <button id="nextPerson" type="button" aria-label="Next teammate" title="Next teammate">Next <span aria-hidden="true">→</span></button>
+            <button id="nextPerson" type="button" aria-label="Next teammate" title="Next teammate">Next <span aria-hidden="true">→</span> <kbd data-shortcut-hint="next" aria-hidden="true"></kbd></button>
           </div>
           <nav class="section-navigation" aria-label="Submission sections"><span class="section-navigation-label" aria-hidden="true">Jump to</span>
             <a href="#yesterday" data-section-jump="yesterday">Yesterday</a>
@@ -428,6 +428,6 @@
     <script defer src="../../assets/js/searchable-select.js?v=20261010-2"></script>
     <script defer src="./revenue-model.js?v=20261114-revenue-round1"></script>
     <script defer src="./revenue.js?v=20261114-revenue-round1"></script>
-    <script defer src="./app.js?v=20261117-subtasks1"></script>
+    <script defer src="./app.js?v=20261117-visiblekeys1"></script>
   </body>
 </html>
