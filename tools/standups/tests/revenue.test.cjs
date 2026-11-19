@@ -89,3 +89,34 @@ test('failed saves retain recovery data, block navigation and allow retry; confl
   assert.equal(await page.locator('#rf-total').textContent(),'$1.1k');assert.deepEqual(f.errors,[]);
  }finally{await browser.close();}
 });
+
+test('daily growth compares exact consecutive snapshots, labels gaps and restores the selected day', async()=>{
+ const browser=await launch();
+ try {
+  const dates=['2026-11-02','2026-11-03','2026-11-06','2026-11-07'];
+  const totals=[1000000,1000015,950000,950000];
+  const store=seeded(dates[0]);
+  dates.forEach((date,i)=>store.snapshots.set(date,{date,values:{...M.empty(),compliance:totals[i]},totalCents:totals[i],version:1,updatedAt:Date.now()}));
+  for(const width of [320,1440]){
+   const url='http://localhost/?view=general&date='+dates[3];
+   const {page,errors}=await openStandups(browser,width,900,{url,revenueStore:store});
+   const bars=page.locator('.rf-growth-day');
+   assert.equal(await bars.count(),3);
+   assert.match(await bars.first().getAttribute('aria-label'),/\+\$0\.15$/);
+   assert.match(await bars.nth(1).getAttribute('aria-label'),/3 days.*−\$500\.15$/);
+   assert.equal(await bars.nth(1).locator('.rf-multiday[data-direction=down]').count(),1);
+   assert.equal(await bars.last().locator('[data-direction=flat]').count(),1);
+   const copied=await bars.first().getAttribute('href');
+   await bars.first().click();
+   await page.waitForFunction(()=>document.querySelector('#standupDate').value==='2026-11-03');
+   await page.reload();await page.locator('.rf-growth-day[aria-current=date]').waitFor();
+   assert.match(await page.locator('#rf-growth-detail').textContent(),/\+\$0\.15$/);
+   await page.goBack();await page.waitForFunction(()=>document.querySelector('#standupDate').value==='2026-11-07');
+   await page.goForward();await page.waitForFunction(()=>document.querySelector('#standupDate').value==='2026-11-03');
+   const fresh=await openStandups(browser,width,900,{url:new URL(copied,url).href,revenueStore:store});
+   assert.match(await fresh.page.locator('#rf-growth-detail').textContent(),/\+\$0\.15$/);
+   await assertNoOverflow(page);assert.deepEqual(errors,[]);
+   await fresh.page.close();await page.close();
+  }
+ } finally {await browser.close();}
+});

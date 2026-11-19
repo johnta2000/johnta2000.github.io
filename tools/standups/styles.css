@@ -2401,3 +2401,20 @@ body:not(.is-spotlight) .spotlight-comments-toggle { visibility: visible; }
     font: 11px/1.2 ui-monospace, monospace; color: #475569; opacity: 1;
   }
 }
+
+#standupRevenue .rf-growth {margin:20px 0;padding:14px 16px;background:#f7f9fc;border:1px solid var(--rf-line);border-radius:10px}
+#standupRevenue .rf-growth h4 {margin:0;font-size:14px}
+#rf-growth-detail {margin:4px 0 0;font-size:13px;font-variant-numeric:tabular-nums}
+.rf-growth-plot {position:relative;display:grid;grid-template-columns:repeat(var(--days),minmax(0,1fr));height:122px}
+.rf-growth-plot::before {content:"";position:absolute;inset:var(--zero) 0 auto;border-top:1px solid #8796aa}
+.rf-growth-day {position:relative;display:block;grid-row:1;border-radius:3px}
+.rf-growth-day:hover,.rf-growth-day:focus-visible,.rf-growth-day[aria-current=date] {background:#1967d210}
+.rf-growth-bar {position:absolute;inset-inline:8%;max-width:32px;margin:auto;border-radius:2px;background-color:#1967d2}
+.rf-growth-bar[data-direction=down] {background-color:#b44938}
+.rf-growth-bar[data-direction=flat] {background-color:#576982}
+.rf-growth-bar.rf-multiday {background-image:repeating-linear-gradient(135deg,transparent 0 3px,#ffffff8a 3px 5px)}
+.rf-growth-axis {display:flex;justify-content:space-between}
+.rf-growth-axis,.rf-growth small {font-size:11px;color:var(--rf-sub)}
+.rf-growth small {display:block;margin-top:6px}
+.rf-growth-plot,.rf-growth-axis {margin-left:48px}
+.rf-growth-tick {position:absolute;right:calc(100% + 5px);transform:translateY(-50%);font-size:10px;white-space:nowrap;color:var(--rf-sub)}

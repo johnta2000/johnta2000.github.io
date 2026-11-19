@@ -23,6 +23,88 @@ window.StandupRevenue={create(root,api){
   rf('bofa-total-out').textContent=M.money(M.bofa(v));rf('acquisitions-out').textContent=M.money(M.acquisitions(v));rf('saved').textContent=record?'Saved '+new Date(record.updatedAt).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}):'';
   rf('slack').disabled=!record;rf('summary').value=record?M.slack(record.date,v,target):'';
   fields();history();
+  if (!rf('overview').hidden) dailyGrowth(data.history, record.date);
+ }
+ function dailyGrowth(rows, selectedDate) {
+  const chart = rf('growth-chart'), detail = rf('growth-detail');
+  chart.replaceChildren();
+  if (rows.length < 2) {
+   detail.textContent = 'The next dated update will show the first change.';
+   return;
+  }
+  const changes = rows.slice(1).map((record, index) => {
+   const prior = rows[index];
+   const cents = record.totalCents - prior.totalCents;
+   const days = (Date.parse(record.date) - Date.parse(prior.date)) / 86400000;
+   const amount = new Intl.NumberFormat('en-US', {style:'currency',currency:'USD',
+    minimumFractionDigits:cents % 100 ? 2 : 0,maximumFractionDigits:2}).format(Math.abs(cents)/100);
+   const label = days === 1 ? M.dateLabel(record.date) + ' vs. previous day'
+    : M.dateLabel(prior.date) + ' to ' + M.dateLabel(record.date) + ' (' + days + ' days)';
+   return {date:record.date,cents,days,description:label + ' · ' + (cents > 0 ? '+' : cents < 0 ? '−' : '') + amount};
+  });
+  const selected = changes.find(change => change.date === selectedDate);
+  const defaultText = selected?.description || M.dateLabel(selectedDate) + ' · first update this month';
+  detail.textContent = defaultText;
+  const gain = Math.max(0, ...changes.map(change => change.cents));
+  const loss = Math.max(0, ...changes.map(change => -change.cents));
+  const range = gain + loss || 1;
+  const top = 12, height = 98, zero = top + height * gain / range;
+  const dayCount = new Date(Number(selectedDate.slice(0,4)),Number(selectedDate.slice(5,7)),0).getDate();
+  const plot = document.createElement('div');
+  plot.className = 'rf-growth-plot';
+  plot.style.setProperty('--days', dayCount);
+  plot.style.setProperty('--zero', zero + 'px');
+  chart.append(plot);
+  const ticks = [{value:0, y:zero}];
+  if (gain && zero-top > 16) ticks.push({value:gain, y:top});
+  if (loss && top+height-zero > 16) ticks.push({value:-loss, y:top+height});
+  for (const tick of ticks) {
+   const label = document.createElement('span');
+   label.className = 'rf-growth-tick';
+   label.style.top = tick.y + 'px';
+   label.textContent = M.money(tick.value);
+   plot.append(label);
+  }
+  for (const change of changes) {
+   const day = Number(change.date.slice(-2));
+   const link = document.createElement('a');
+   link.className = 'rf-growth-day';
+   link.href = api.dateUrl(change.date, 'summary');
+   link.style.gridColumn = String(day);
+   link.setAttribute('aria-label', change.description);
+   if (change.date === selectedDate) link.setAttribute('aria-current','date');
+   link.title = change.description;
+   const bar = document.createElement('span');
+   bar.className = 'rf-growth-bar';
+   bar.dataset.direction = change.cents < 0 ? 'down' : change.cents > 0 ? 'up' : 'flat';
+   if (change.days > 1) bar.classList.add('rf-multiday');
+   const size = Math.max(3, Math.abs(change.cents) / range * height);
+   bar.style.height = size + 'px';
+   bar.style.top = (change.cents > 0 ? zero - size : change.cents < 0 ? zero : zero - 1) + 'px';
+   link.append(bar);
+   link.onfocus = link.onpointerenter = () => {detail.textContent = change.description;};
+   link.onblur = link.onpointerleave = () => {detail.textContent = defaultText;};
+   link.addEventListener('click',event => {
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    event.preventDefault();
+    detail.textContent = change.description;
+    if (change.date !== state.date) api.navigateDate(change.date,'summary');
+   });
+   plot.append(link);
+  }
+  const axis = document.createElement('div');
+  axis.className = 'rf-growth-axis';
+  for (const day of [1, 15, dayCount]) {
+   const label = document.createElement('span');
+   label.textContent = M.dateLabel(selectedDate.slice(0,8) + String(day).padStart(2,'0'));
+   axis.append(label);
+  }
+  chart.append(axis);
+  if (changes.some(change => change.days > 1)) {
+   const legend = document.createElement('small');
+   legend.textContent = 'Striped bars span multiple days between updates.';
+   chart.append(legend);
+  }
  }
  function history(){const rows=state.data?.history||[];rf('history-count').textContent=rows.length+' update'+(rows.length===1?'':'s');const container=root.querySelector('.rf-history');container.open=state.mode==='history';rf('history-rows').replaceChildren(...rows.map((record,i)=>{const row=document.createElement('div');row.className='rf-history-row';const link=document.createElement('a');link.href=api.dateUrl(record.date);link.textContent=M.dateLabel(record.date);if(record.date===state.date)link.setAttribute('aria-current','date');link.addEventListener('click',event=>{if(event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return;event.preventDefault();api.navigateDate(record.date);});row.append(link);const prior=rows[i-1],change=prior?record.totalCents-prior.totalCents:null;for(const text of [M.money(record.totalCents),change===null?'First update':(change>=0?'+':'−')+M.money(Math.abs(change))]){const span=document.createElement('span');span.textContent=text;row.append(span);}return row;}));
   const chart=$('revenueChart');chart.replaceChildren();if(rows.length<2){const text=document.createElement('p');text.className='rf-muted';text.textContent=rows.length?'The monthly trend appears after the next dated update.':'No saved snapshots this month.';chart.append(text);return;}

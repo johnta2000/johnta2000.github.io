@@ -131,10 +131,10 @@ function initStandups() {
     saveDraft: args => convexMutation('standupRevenue:saveDraft', {teamId:TEAM_ID,...args}),
     publish: args => convexMutation('standupRevenue:publish', {teamId:TEAM_ID,...args}),
     modeChanged: () => syncStandupUrl(),
-    dateUrl: date => standupRevenueUrl(date,'history'),
-    navigateDate: async date => {
+    dateUrl: (date, mode='history') => standupRevenueUrl(date,mode),
+    navigateDate: async (date, mode='history') => {
       if(!await revenueController.flush()) return;
-      history.pushState({},'',standupRevenueUrl(date,'history'));
+      history.pushState({},'',standupRevenueUrl(date,mode));
       window.dispatchEvent(new PopStateEvent('popstate'));
     },
   });
@@ -2949,7 +2949,7 @@ function readStandupRoute() {
   return {person,date,tab:p.get('tab'),revenue:['summary','edit','history'].includes(p.get('revenue'))?p.get('revenue'):'summary',spotlight:p.get('spotlight')==='1',dialog:p.get('dialog'),comment:p.get('comment')};
 }
 function standupRevenueUrl(date,mode='summary') {
-  const url=new URL(location.href);url.searchParams.set('view','general');url.searchParams.set('date',date);url.searchParams.set('revenue',mode);
+  const url=new URL(location.href);url.searchParams.set('view','general');url.searchParams.set('date',date);if(mode==='summary')url.searchParams.delete('revenue');else url.searchParams.set('revenue',mode);
   ['tab','spotlight','comment','dialog'].forEach(key=>url.searchParams.delete(key));url.hash='standupRevenue';return url.pathname+url.search+url.hash;
 }
 function syncStandupUrl({replace=false}={}) {

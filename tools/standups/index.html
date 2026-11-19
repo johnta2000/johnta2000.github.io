@@ -7,7 +7,7 @@
     <meta name="robots" content="noindex, nofollow" />
     <title>Daily Standups</title>
     <link rel="stylesheet" href="../../assets/css/searchable-select.css?v=20261010-1" />
-    <link rel="stylesheet" href="./styles.css?v=20261117-visiblekeys1" />
+    <link rel="stylesheet" href="./styles.css?v=20261119-daily-growth" />
     <link rel="stylesheet" href="../../assets/css/clerk-auth.css?v=20261011-otp1">
 </head>
   <body>
@@ -108,6 +108,11 @@
    <div id="rf-overview" hidden>
     <div class="rf-total" id="rf-total">—</div><p class="rf-target-copy" id="rf-target-copy">Month to date · target —</p>
     <div class="rf-progress" role="progressbar" aria-label="Monthly revenue goal" aria-valuemin="0" aria-valuemax="100"><span></span></div><div class="rf-progress-copy"><span id="rf-percent"></span><span id="rf-remaining">— to go</span></div>
+    <section class="rf-growth" aria-labelledby="rf-growth-title">
+     <h4 id="rf-growth-title">Daily revenue change</h4>
+     <p id="rf-growth-detail"></p>
+     <div id="rf-growth-chart"></div>
+    </section>
     <div class="rf-ledger">
      <div class="rf-line"><span>Compliance</span><span class="rf-number" id="rf-compliance-out">—</span></div>
      <div class="rf-acquisitions"><div class="rf-line"><span>Acquisition commissions</span><span class="rf-number" id="rf-acquisitions-out">—</span></div>
@@ -427,7 +432,7 @@
     ></script>
     <script defer src="../../assets/js/searchable-select.js?v=20261010-2"></script>
     <script defer src="./revenue-model.js?v=20261114-revenue-round1"></script>
-    <script defer src="./revenue.js?v=20261114-revenue-round1"></script>
-    <script defer src="./app.js?v=20261118-spotlight-zero"></script>
+    <script defer src="./revenue.js?v=20261119-daily-growth"></script>
+    <script defer src="./app.js?v=20261119-daily-growth"></script>
   </body>
 </html>
