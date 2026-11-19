@@ -108,6 +108,11 @@
    <div id="rf-overview" hidden>
     <div class="rf-total" id="rf-total">—</div><p class="rf-target-copy" id="rf-target-copy">Month to date · target —</p>
     <div class="rf-progress" role="progressbar" aria-label="Monthly revenue goal" aria-valuemin="0" aria-valuemax="100"><span></span></div><div class="rf-progress-copy"><span id="rf-percent"></span><span id="rf-remaining">— to go</span></div>
+    <section class="rf-growth" aria-labelledby="rf-cumulative-title">
+     <h4 id="rf-cumulative-title">Month-to-date revenue</h4>
+     <p id="rf-cumulative-detail" class="rf-muted"></p>
+     <div id="revenueChart"></div>
+    </section>
     <section class="rf-growth" aria-labelledby="rf-growth-title">
      <h4 id="rf-growth-title">Daily revenue change</h4>
      <p id="rf-growth-detail"></p>
@@ -175,7 +180,7 @@
    </section>
   <p id="revenueEmpty" class="rf-empty" hidden>No revenue update for this date yet.</p>
   </section>
-  <details class="rf-history"><summary class="cursor-interaction"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 4v6h6M3 10a9 9 0 1 1 1 8M12 7v5l3 2"/></svg>Daily history<span class="rf-muted" id="rf-history-count">History</span></summary><div id="revenueChart"></div><div id="rf-history-rows"></div></details>
+  <details class="rf-history"><summary class="cursor-interaction"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 4v6h6M3 10a9 9 0 1 1 1 8M12 7v5l3 2"/></svg>Daily history<span class="rf-muted" id="rf-history-count">History</span></summary><div id="rf-history-rows"></div></details>
   <button id="revenueRetry" class="revenue-retry" type="button" hidden>Retry save</button><p id="rf-status" class="rf-muted" role="status" style="margin-top:10px">Loading revenue…</p>
 
 </section>
@@ -432,7 +437,7 @@
     ></script>
     <script defer src="../../assets/js/searchable-select.js?v=20261010-2"></script>
     <script defer src="./revenue-model.js?v=20261114-revenue-round1"></script>
-    <script defer src="./revenue.js?v=20261119-daily-growth"></script>
+    <script defer src="./revenue.js?v=20261119-cumulative"></script>
     <script defer src="./app.js?v=20261119-daily-growth"></script>
   </body>
 </html>

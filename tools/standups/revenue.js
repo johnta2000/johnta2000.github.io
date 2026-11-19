@@ -23,7 +23,10 @@ window.StandupRevenue={create(root,api){
   rf('bofa-total-out').textContent=M.money(M.bofa(v));rf('acquisitions-out').textContent=M.money(M.acquisitions(v));rf('saved').textContent=record?'Saved '+new Date(record.updatedAt).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}):'';
   rf('slack').disabled=!record;rf('summary').value=record?M.slack(record.date,v,target):'';
   fields();history();
-  if (!rf('overview').hidden) dailyGrowth(data.history, record.date);
+  if (!rf('overview').hidden) {
+   cumulativeRevenue(data.history, record);
+   dailyGrowth(data.history, record.date);
+  }
  }
  function dailyGrowth(rows, selectedDate) {
   const chart = rf('growth-chart'), detail = rf('growth-detail');
@@ -107,14 +110,31 @@ window.StandupRevenue={create(root,api){
   }
  }
  function history(){const rows=state.data?.history||[];rf('history-count').textContent=rows.length+' update'+(rows.length===1?'':'s');const container=root.querySelector('.rf-history');container.open=state.mode==='history';rf('history-rows').replaceChildren(...rows.map((record,i)=>{const row=document.createElement('div');row.className='rf-history-row';const link=document.createElement('a');link.href=api.dateUrl(record.date);link.textContent=M.dateLabel(record.date);if(record.date===state.date)link.setAttribute('aria-current','date');link.addEventListener('click',event=>{if(event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return;event.preventDefault();api.navigateDate(record.date);});row.append(link);const prior=rows[i-1],change=prior?record.totalCents-prior.totalCents:null;for(const text of [M.money(record.totalCents),change===null?'First update':(change>=0?'+':'−')+M.money(Math.abs(change))]){const span=document.createElement('span');span.textContent=text;row.append(span);}return row;}));
-  const chart=$('revenueChart');chart.replaceChildren();if(rows.length<2){const text=document.createElement('p');text.className='rf-muted';text.textContent=rows.length?'The monthly trend appears after the next dated update.':'No saved snapshots this month.';chart.append(text);return;}
-  const svgNS='http://www.w3.org/2000/svg',svg=document.createElementNS(svgNS,'svg');svg.classList.add('revenue-chart');const measuredWidth=Math.max(280,Math.round(root.getBoundingClientRect().width));svg.setAttribute('viewBox',`0 0 ${measuredWidth} 200`);svg.setAttribute('role','img');svg.setAttribute('aria-label','Month-to-date revenue by snapshot date. Exact values are listed below.');
-  const width=measuredWidth,height=200,left=78,right=12,top=20,bottom=35,days=new Date(Number(state.date.slice(0,4)),Number(state.date.slice(5,7)),0).getDate();const target=state.data.target?.targetCents;const max=Math.max(1,...rows.map(row=>row.totalCents),target||0)*1.2;const x=day=>left+(day-1)/(days-1)*(width-left-right),y=value=>height-bottom-value/max*(height-top-bottom);
+ }
+ function cumulativeRevenue(rows, record) {
+  const chart = $('revenueChart');
+  const detail = rf('cumulative-detail');
+  const description = row => '$' + M.comma(row.totalCents / 100) + ' through ' + M.dateLabel(row.date);
+  detail.textContent = description(record);
+  chart.replaceChildren();
+  const svgNS = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(svgNS, 'svg');
+  const width = Math.max(200, chart.clientWidth), height = 170;
+  svg.classList.add('revenue-chart');
+  svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+  svg.setAttribute('role', 'img');
+  svg.setAttribute('aria-label', 'Month-to-date revenue by report date. ' + description(record));
+  const left = 54, right = 20, top = 20, bottom = 30;
+  const days = new Date(Number(record.date.slice(0,4)), Number(record.date.slice(5,7)), 0).getDate();
+  const target = state.data.target?.targetCents;
+  const max = Math.max(1, ...rows.map(row => row.totalCents), target || 0) * 1.2;
+  const x = day => left + (day - 1) / (days - 1) * (width - left - right);
+  const y = value => height - bottom - value / max * (height - top - bottom);
   const node=(name,attrs,text)=>{const el=document.createElementNS(svgNS,name);for(const [k,v]of Object.entries(attrs))el.setAttribute(k,String(v));if(text!==undefined)el.textContent=text;svg.append(el);return el;};
   const sub='var(--rf-sub)',line='var(--rf-line)';for(const value of [0,max/2,max]){node('line',{x1:left,x2:width-right,y1:y(value),y2:y(value),stroke:line});node('text',{x:left-8,y:y(value)+4,'text-anchor':'end',fill:sub,'font-size':11},M.money(Math.round(value)));}
   for(const day of [1,15,days])node('text',{x:x(day),y:height-12,'text-anchor':'middle',fill:sub,'font-size':12},state.date.slice(5,7)+'/'+day);
   if(target){node('line',{x1:left,x2:width-right,y1:y(target),y2:y(target),stroke:sub,'stroke-dasharray':'4 4'});node('text',{x:width-right,y:y(target)-5,'text-anchor':'end',fill:sub,'font-size':11},'Target '+M.money(target));}
-  node('polyline',{points:rows.map(row=>x(Number(row.date.slice(8)))+','+y(row.totalCents)).join(' '),fill:'none',stroke:'var(--rf-blue)','stroke-width':2.5});for(const row of rows){const dot=node('circle',{cx:x(Number(row.date.slice(8))),cy:y(row.totalCents),r:3.5,fill:'var(--rf-blue)'});const title=document.createElementNS(svgNS,'title');title.textContent=M.dateLabel(row.date)+': '+M.money(row.totalCents);dot.append(title);}chart.append(svg);
+  node('polyline',{points:rows.map(row=>x(Number(row.date.slice(8)))+','+y(row.totalCents)).join(' '),fill:'none',stroke:'var(--rf-blue)','stroke-width':2.5});for(const row of rows){const dot=node('circle',{cx:x(Number(row.date.slice(8))),cy:y(row.totalCents),r:row.date===record.date?5:3.5,fill:'var(--rf-blue)'});const title=document.createElementNS(svgNS,'title');title.textContent=description(row);dot.append(title);}chart.append(svg);
  }
  async function load(date,{force=false,preserve=false}={}){
   if(date===state.date&&state.data&&!force)return;
@@ -157,7 +177,7 @@ window.StandupRevenue={create(root,api){
   try{await navigator.clipboard.writeText(text);rf('summary').hidden=true;status('Copied as plain text; formatted copying is unavailable in this browser.');}
   catch{rf('summary').hidden=false;rf('summary').focus();rf('summary').select();status('Select and copy the Slack summary.');}
  });
- window.addEventListener('resize',()=>{if(state.data&&state.mode==='history')history();});
+ window.addEventListener('resize',()=>{const record=state.data?.selected||state.data?.previous;if(record&&!rf('overview').hidden)cumulativeRevenue(state.data.history,record);});
  window.addEventListener('beforeunload',event=>{if(state.dirty||state.invalid||saving){cache();event.preventDefault();event.returnValue='';}});
  return {load,flush,setMode,get mode(){return state.mode;},get date(){return state.date;},get dirty(){return state.dirty;}};
 }};

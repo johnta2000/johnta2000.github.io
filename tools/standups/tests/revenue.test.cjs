@@ -100,6 +100,12 @@ test('daily growth compares exact consecutive snapshots, labels gaps and restore
   for(const width of [320,1440]){
    const url='http://localhost/?view=general&date='+dates[3];
    const {page,errors}=await openStandups(browser,width,900,{url,revenueStore:store});
+   const chart=page.locator('#revenueChart');
+   assert.ok(await chart.isVisible());
+   assert.deepEqual(await chart.locator('circle title').allTextContents(),[
+    '$10,000 through Nov 2','$10,000.15 through Nov 3','$9,500 through Nov 6','$9,500 through Nov 7',
+   ]);
+   assert.equal(await page.locator('#rf-cumulative-detail').textContent(),'$9,500 through Nov 7');
    const bars=page.locator('.rf-growth-day');
    assert.equal(await bars.count(),3);
    assert.match(await bars.first().getAttribute('aria-label'),/\+\$0\.15$/);
@@ -111,6 +117,7 @@ test('daily growth compares exact consecutive snapshots, labels gaps and restore
    await page.waitForFunction(()=>document.querySelector('#standupDate').value==='2026-11-03');
    await page.reload();await page.locator('.rf-growth-day[aria-current=date]').waitFor();
    assert.match(await page.locator('#rf-growth-detail').textContent(),/\+\$0\.15$/);
+   assert.equal(await page.locator('#rf-cumulative-detail').textContent(),'$10,000.15 through Nov 3');
    await page.goBack();await page.waitForFunction(()=>document.querySelector('#standupDate').value==='2026-11-07');
    await page.goForward();await page.waitForFunction(()=>document.querySelector('#standupDate').value==='2026-11-03');
    const fresh=await openStandups(browser,width,900,{url:new URL(copied,url).href,revenueStore:store});
