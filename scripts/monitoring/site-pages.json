@@ -133,12 +133,6 @@
     "title": "Costco archive — John Ta"
   },
   {
-    "path": "/tools/investing/",
-    "file": "tools/investing/index.html",
-    "analytics": false,
-    "title": "The long game · Investing lab"
-  },
-  {
     "app": "jsx-united",
     "path": "/tools/jsx-united/",
     "file": "tools/jsx-united/index.html"
