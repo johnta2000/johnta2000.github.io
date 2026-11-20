@@ -19,6 +19,12 @@
     "file": "burgery/index.html"
   },
   {
+    "path": "/edit-pricing/",
+    "file": "edit-pricing/index.html",
+    "analytics": false,
+    "title": "Credit card hotel pricing tool · John Ta"
+  },
+  {
     "path": "/games/corgi-days/",
     "file": "games/corgi-days/index.html",
     "analytics": false,
@@ -45,6 +51,12 @@
     "app": "hertz-las-may-2027",
     "path": "/hertz-las-may-2027/",
     "file": "hertz-las-may-2027/index.html"
+  },
+  {
+    "path": "/hotel-pricing/",
+    "file": "hotel-pricing/index.html",
+    "analytics": false,
+    "title": "Compare hotel prices from credit card programs · John Ta"
   },
   {
     "app": "home",
