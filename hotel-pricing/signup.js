@@ -3,7 +3,8 @@ const email = form.elements.email;
 const button = form.querySelector("button");
 const status = document.querySelector("#status");
 const draftKey = "edit-pricing.email-draft";
-const doneKey = "hotel-pricing.confirmation-request-v1";
+const doneKey = "hotel-pricing.launch-request-v1";
+const previousDoneKey = "hotel-pricing.confirmation-request-v1";
 
 function restore(key) {
   try { return sessionStorage.getItem(key); } catch { return null; }
@@ -17,10 +18,10 @@ function store(key, value) {
 function confirmSignup() {
   form.hidden = true;
   status.removeAttribute("data-error");
-  status.textContent = "Check your inbox for a confirmation from John Ta. Once you confirm, I’ll email you the signup link when the tool is ready.";
+  status.textContent = "Got it. Your request for the signup link is saved.";
 }
 email.value = restore(draftKey) || "";
-if (restore(doneKey)) confirmSignup();
+if (restore(doneKey) || restore(previousDoneKey)) confirmSignup();
 button.disabled = false;
 
 email.addEventListener("input", () => {
@@ -59,31 +60,13 @@ form.addEventListener("submit", async (event) => {
       signal: controller.signal,
     });
     if (!response.ok || (await response.json()).status !== "success") throw new Error("Signup failed");
-    const confirmation = await fetch("https://app.loops.so/api/newsletter-form/cmwob8wm601yq0j25rianm6ba", {
-      method: "POST",
-      body: new URLSearchParams({
-        email: address,
-        source: "john-ta.com/hotel-pricing",
-        userGroup: "Hotel pricing launch",
-      }),
-      signal: controller.signal,
-    });
-    if (confirmation.status === 429) {
-      status.dataset.error = "";
-      status.textContent = "Too many attempts. Wait a minute and try again.";
-      return;
-    }
-    if (!confirmation.ok || (await confirmation.json()).success !== true) {
-      throw new Error("Confirmation request failed");
-    }
-
     store(doneKey, "yes");
     store(draftKey, "");
     email.value = "";
     confirmSignup();
   } catch {
     status.dataset.error = "";
-    status.textContent = "We couldn’t request the confirmation email. Please try again.";
+    status.textContent = "We couldn’t save your request. Please try again.";
   } finally {
     clearTimeout(timer);
     button.disabled = false;
