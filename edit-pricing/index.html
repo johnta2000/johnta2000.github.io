@@ -8,22 +8,24 @@
   <link rel="canonical" href="https://www.john-ta.com/edit-pricing/">
   <link rel="icon" href="/assets/img/jt-mark.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/assets/css/home.css">
-  <link rel="stylesheet" href="./signup.css">
-  <script src="./signup.js" defer></script>
+  <link rel="stylesheet" href="./signup.css?v=2">
+  <script src="./signup.js?v=2" defer></script>
 </head>
 <body>
   <main>
     <a class="byline" href="/">John Ta</a>
     <header>
       <h1>The Edit hotel pricing tool</h1>
-      <p>I built a tool to compare prices for hotels in The Edit by Chase Travel. Leave your email and I’ll send you updates about the tool.</p>
+      <p>I built a tool to compare prices for hotels in The Edit by Chase Travel.</p>
     </header>
     <form method="post" id="signup">
       <label for="email">Email address</label>
-      <div class="form-row">
-        <input id="email" name="email" type="email" autocomplete="email" autocapitalize="none" spellcheck="false" placeholder="you@example.com" maxlength="254" required>
-        <button type="submit" disabled>Notify me</button>
-      </div>
+      <input id="email" name="email" type="email" autocomplete="email" autocapitalize="none" spellcheck="false" placeholder="you@example.com" maxlength="254" required>
+      <label class="consent">
+        <input type="checkbox" name="consent" value="edit-pricing-v1" required>
+        <span>Yes, email me updates from John Ta about The Edit hotel pricing tool.</span>
+      </label>
+      <button type="submit" disabled>Sign me up</button>
       <div class="trap" aria-hidden="true" inert><label>Website<input name="website" tabindex="-1" autocomplete="off"></label></div>
     </form>
     <noscript>Enable JavaScript to join the list.</noscript>
