@@ -3,7 +3,7 @@ const email = form.elements.email;
 const button = form.querySelector("button");
 const status = document.querySelector("#status");
 const draftKey = "edit-pricing.email-draft";
-const doneKey = "hotel-pricing.launch-request-v1";
+const doneKey = "hotel-pricing.confirmation-request-v1";
 
 function restore(key) {
   try { return sessionStorage.getItem(key); } catch { return null; }
@@ -17,7 +17,7 @@ function store(key, value) {
 function confirmSignup() {
   form.hidden = true;
   status.removeAttribute("data-error");
-  status.textContent = "Got it. I’ll email you the signup link when the tool is ready.";
+  status.textContent = "Check your inbox for a confirmation from John Ta. Once you confirm, I’ll email you the signup link when the tool is ready.";
 }
 email.value = restore(draftKey) || "";
 if (restore(doneKey)) confirmSignup();
@@ -37,6 +37,9 @@ form.addEventListener("submit", async (event) => {
     email.focus();
     return;
   }
+  const website = form.elements.website.value;
+  if (website) return;
+
   store(draftKey, address);
   button.disabled = true;
   email.readOnly = true;
@@ -49,17 +52,38 @@ form.addEventListener("submit", async (event) => {
     const response = await fetch("https://standing-beagle-745.convex.cloud/api/mutation", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ path: "signups:join", args: { email: address, consent: form.elements.consent.checked ? form.elements.consent.value : null, website: form.elements.website.value } }),
+      body: JSON.stringify({
+        path: "signups:join",
+        args: { email: address, consent: form.elements.consent.value, website },
+      }),
       signal: controller.signal,
     });
     if (!response.ok || (await response.json()).status !== "success") throw new Error("Signup failed");
+    const confirmation = await fetch("https://app.loops.so/api/newsletter-form/cmwob8wm601yq0j25rianm6ba", {
+      method: "POST",
+      body: new URLSearchParams({
+        email: address,
+        source: "john-ta.com/hotel-pricing",
+        userGroup: "Hotel pricing launch",
+      }),
+      signal: controller.signal,
+    });
+    if (confirmation.status === 429) {
+      status.dataset.error = "";
+      status.textContent = "Too many attempts. Wait a minute and try again.";
+      return;
+    }
+    if (!confirmation.ok || (await confirmation.json()).success !== true) {
+      throw new Error("Confirmation request failed");
+    }
+
     store(doneKey, "yes");
     store(draftKey, "");
     email.value = "";
     confirmSignup();
   } catch {
     status.dataset.error = "";
-    status.textContent = "We couldn’t confirm your signup. Please try again.";
+    status.textContent = "We couldn’t request the confirmation email. Please try again.";
   } finally {
     clearTimeout(timer);
     button.disabled = false;
