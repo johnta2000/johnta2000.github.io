@@ -1,0 +1,6 @@
+{
+  "name": "edit-pricing-signups",
+  "private": true,
+  "type": "module",
+  "dependencies": { "convex": "1.41.0" }
+}

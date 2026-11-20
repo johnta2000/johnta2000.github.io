@@ -1,0 +1,17 @@
+main { max-width: 34rem; }
+.byline { display: inline-block; margin-bottom: 2.75rem; color: #555; }
+h1 { font-size: clamp(2rem, 6vw, 2.75rem); line-height: 1.1; letter-spacing: -.045em; }
+header p { font-size: 1.0625rem; color: #515151; }
+form { margin-top: 2rem; }
+label { display: block; margin-bottom: .45rem; font-weight: 600; }
+.form-row { display: flex; gap: .625rem; }
+input, button { font: inherit; font-size: 1rem; min-height: 3rem; border-radius: .5rem; padding: .65rem .9rem; }
+input { flex: 1; min-width: 0; border: 1px solid #999; color: #222; background: white; }
+button { cursor: pointer; border: 1px solid #222; color: white; background: #222; font-weight: 600; padding-inline: 1.4rem; }
+button:hover { background: #444; }
+button:disabled { cursor: default; opacity: .65; }
+input:focus-visible, button:focus-visible { outline: 2px solid #285ba1; outline-offset: 3px; }
+#status { margin: 1.25rem 0 0; font-size: 1rem; }
+#status[data-error] { color: #962c1f; }
+.trap { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+@media (max-width: 30rem) { .form-row { flex-direction: column; } }
