@@ -6,7 +6,8 @@
   window.__siteAnalytics = true;
   const app = document.currentScript?.dataset.app || 'unknown';
   const isJsx = app === 'jsx' || app === 'jsx-united';
-  const isTest = isJsx && /[?&]analytics_test=1(?:&|$)/.test(window.location.search || '');
+  const isHotels = app === 'hotels';
+  const isTest = (isJsx || isHotels) && /[?&]analytics_test=1(?:&|$)/.test(window.location.search || '');
   const projectToken = 'phc_n65AtSeHwYdMhbeV3YwV9m5uicRpBBH2DDj2tbz9qCVA';
 
   // Only anonymous page/session metadata leaves the browser. In particular,
@@ -28,6 +29,9 @@
     '$process_person_profile', '$cookieless_mode', '$raw_user_agent', '$user_agent',
     'app', 'action', 'element', 'link',
   ]);
+  const hotelEvents = new Set(['hotel_guide_app_selected', 'hotel_guide_setup_opened', 'hotel_guide_question_opened', 'hotel_guide_copied', 'hotel_guide_signup_clicked', 'hotel_guide_load_failed', 'hotel_guide_fallback_clicked']);
+  const hotelClients = new Set(['claude', 'chatgpt', 'other']);
+  const hotelCopyTargets = new Set(['server_url', 'setup_prompt', 'example_question']);
   const jsxEvents = new Set(['jsx_booking_clicked', 'jsx_booking_opened', 'jsx_referral_clicked', 'jsx_referral_seen', 'jsx_referral_dismissed', 'jsx_referral_restored', 'jsx_account_prompt_shown', 'jsx_account_prompt_closed', 'jsx_filter_changed', 'jsx_map_route_selected', 'jsx_map_airport_selected']);
   const jsxControls = new Set(['book', 'referral', 'account_continue', 'account_close', 'hide_guide', 'hide_credit', 'show_credit', 'show_guide', 'reset', 'empty_reset', 'clear_price', 'clear_dates', 'sort_price', 'sort_dates', 'first', 'prev', 'next', 'last', 'map_clear', 'map_zoom_in', 'map_zoom_out', 'map_fit', 'map_jump', 'map_view_fares', 'map_check_route']);
   const placements = new Set(['fare_table', 'route_map', 'offer_header', 'guide', 'account_dialog', 'fare_offer', 'selected_route']);
@@ -44,7 +48,7 @@
   const standardErrorTypes = new Set(['Error', 'TypeError', 'ReferenceError', 'SyntaxError', 'RangeError', 'URIError', 'EvalError', 'AggregateError']);
   let exceptionsSent = 0;
   function sanitizeEvent(event) {
-    if (!event || (!['$pageview', '$pageleave', '$exception', 'ui_interaction', 'homepage_link_clicked'].includes(event.event) && !(isJsx && jsxEvents.has(event.event)))) return null;
+    if (!event || (!['$pageview', '$pageleave', '$exception', 'ui_interaction', 'homepage_link_clicked'].includes(event.event) && !(isJsx && jsxEvents.has(event.event)) && !(isHotels && hotelEvents.has(event.event)))) return null;
     const source = event.properties || {};
     const clean = {};
     for (const [key, value] of Object.entries(source)) {
@@ -55,6 +59,11 @@
       else if (['string', 'number', 'boolean'].includes(typeof value)) clean[key] = value;
     }
     // Extra dimensions are constrained public control identifiers, never form contents or URLs.
+    if (isHotels) {
+      if (hotelClients.has(source.assistant)) clean.assistant = source.assistant;
+      if (hotelCopyTargets.has(source.copy_target)) clean.copy_target = source.copy_target;
+      if (Number.isInteger(source.question_number) && source.question_number > 0 && source.question_number <= 100) clean.question_number = source.question_number;
+    }
     if (isJsx) {
       if (source.referral_variant === (app === 'jsx-united' ? 'united_annual_credit_v1' : 'credit_near_fares_v1')) clean.referral_variant = source.referral_variant;
       if (jsxControls.has(source.control)) clean.control = source.control;

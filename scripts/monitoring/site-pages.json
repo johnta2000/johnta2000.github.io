@@ -59,6 +59,12 @@
     "title": "Compare hotel prices from credit card programs · John Ta"
   },
   {
+    "app": "hotels",
+    "path": "/hotels/",
+    "file": "hotels/index.html",
+    "analyticsVersion": "20261122-1"
+  },
+  {
     "app": "home",
     "path": "/",
     "file": "index.html"

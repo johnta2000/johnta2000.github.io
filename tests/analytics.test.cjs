@@ -77,7 +77,7 @@ test('all published HTML pages declare their analytics policy and page identity'
       assert.doesNotMatch(html, /<script\b[^>]*\bsrc=["'][^"']*\/assets\/js\/analytics\.js(?:[?"'])/i, page.file);
       continue;
     }
-    const version = page.app === 'jsx-united' ? '20261108-1' : page.app === 'jsx' ? '20261020-2' : '20261019-1';
+    const version = page.analyticsVersion || (page.app === 'jsx-united' ? '20261108-1' : page.app === 'jsx' ? '20261020-2' : '20261019-1');
     assert.equal(html.split(`src="/assets/js/analytics.js?v=${version}"`).length - 1, 1, page.file);
     assert.ok(html.includes(`data-app="${page.app}"`),page.file);
   }
@@ -127,4 +127,21 @@ test('United JSX analytics retain the same privacy boundaries and a separate app
   assert.doesNotMatch(JSON.stringify(clean),/PRIVATE|SECRET/);
   const mismatch=config.before_send({event:'jsx_referral_clicked',properties:{referral_variant:'credit_near_fares_v1'}});
   assert.equal(mismatch.properties.referral_variant,undefined);
+});
+
+test('hotel engagement keeps only safe guide dimensions and stays scoped to hotels', () => {
+  const { config } = setup('www.john-ta.com', 'hotels');
+  const name = 'hotel_guide_copied';
+  const safe = config.before_send({ event: name, properties: {
+    assistant: 'other', copy_target: 'example_question', question_number: 2, prompt: 'PRIVATE',
+  } }).properties;
+  assert.equal(safe.assistant, 'other');
+  assert.equal(safe.question_number, 2);
+  assert.equal(safe.copy_target, 'example_question');
+  assert.doesNotMatch(JSON.stringify(safe), /PRIVATE/);
+  const invalid = config.before_send({ event: name, properties: {
+    assistant: 'PRIVATE', copy_target: 'PRIVATE', question_number: -1,
+  } }).properties;
+  assert.deepEqual(Object.keys(invalid).sort(), ['app', 'tracking_version']);
+  assert.equal(setup().config.before_send({event: name}), null);
 });
