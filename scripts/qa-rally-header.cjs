@@ -4,7 +4,7 @@ const {chromium,webkit}=process.env.RALLY_PLAYWRIGHT?require(process.env.RALLY_P
 const root=path.resolve(__dirname,'..'),base=process.env.RALLY_QA_URL||'http://127.0.0.1:8798',engine=process.env.RALLY_BROWSER||'chromium';
 const fixture={id:'midnight-carnival-rl-grime-2026',name:'Midnight Carnival Block Party ft. RL GRIME',startsAt:'2026-10-31',endsAt:'2026-10-31',projectTheme:'midnight',eventTimeZone:'America/Los_Angeles',isAdmin:true,currentMemberId:'alex',members:[{id:'alex',name:'Alex',role:'admin',initials:'A',color:'purple',origin:'SFO'}],rooms:[],travel:[],cars:[],passes:[],tasks:[],lineup:[],notes:[],lineupInterests:{},currentLineupFavorites:[]};
 const bootstrap=`
-window.Clerk={user:{id:'qa'},isSignedIn:true};data=${JSON.stringify(fixture)};events=[data];activeEvent=data.id;activeView=new URLSearchParams(location.search).get('view')||'home';offlineMode=false;window.RallyCrewLocation=undefined;wireShell();
+window.Clerk={user:{id:'qa'},isSignedIn:true};data=${JSON.stringify(fixture)};events=[data,{...data,id:"other-room",startsAt:"2027-05-15T20:00:00-07:00"}];activeEvent=data.id;activeView=new URLSearchParams(location.search).get('view')||'home';offlineMode=false;window.RallyCrewLocation=undefined;wireShell();
 const banner=document.createElement('div');banner.id='offlineStatus';el.page.before(banner);
 window.qaView=(view,admin,theme='midnight')=>{activeView=view;data.isAdmin=admin;data.projectTheme=theme;render();banner.textContent='Available offline · Oct 29, 7:19 PM';};
 qaView(activeView,true);el.accessGate.hidden=true;el.rallyApp.hidden=false;document.body.classList.remove('booting');`;
@@ -26,6 +26,7 @@ async function check(page,label){
   for(const admin of [true,false])for(const theme of ['midnight','warm'])for(const view of ['home','crew','stay','travel','passes','tasks','notes','lineup']){await page.evaluate(({view,admin,theme})=>qaView(view,admin,theme),{view,admin,theme});await check(page,width+' '+view+' '+theme+' '+admin);}
   await page.evaluate(()=>qaView('home',true));await page.screenshot({path:'/tmp/raveington-header-'+engine+'-'+width+'.png'});
   if(width===390||width===1440){for(const view of ['home','crew','passes','lineup','notes']){await page.goto(base+'/tools/rally/?event='+fixture.id+'&view='+view);await page.locator('#offlineStatus').waitFor();await check(page,width+' direct '+view);await page.reload();await page.locator('#offlineStatus').waitFor();await check(page,width+' refreshed '+view);}await page.goBack();await check(page,width+' back');await page.goForward();await check(page,width+' forward');}
+  if(width===390||width===1440){const copy=await context.newPage();await copy.goto(page.url());await check(copy,width+' copied route');assert.equal(await copy.locator('#eventMenu button[data-event="other-room"] .event-menu-date').textContent(),'Dates TBD');await copy.close();}
   await context.close();
  }assert.deepEqual(errors,[]);console.log(engine+': header controls stay within one row and above the status bar across nine widths, all sections, both admin states and light/dark themes. Direct links, refresh and history passed.');}finally{await browser.close();}
 })().catch(error=>{console.error(error.message);process.exitCode=1;});

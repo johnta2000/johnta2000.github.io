@@ -1,7 +1,7 @@
 window.RallyHistory={
  menu(events,current){
   const rows=list=>list.map(event=>`<button data-event="${escapeAttr(event.id)}"><strong>${escapeHtml(event.name)}</strong><small class="event-menu-date">${dateRange(event.startsAt,event.endsAt)}</small><small>${escapeHtml(event.location)}</small></button>`).join('');
-  const all=events.map(e=>e.id===current.id?{...e,...current}:e),past=all.filter(e=>RallyEvents.lifecycle(e).past).sort((a,b)=>b.endsAt.localeCompare(a.endsAt)),active=all.filter(e=>!RallyEvents.lifecycle(e).past).sort((a,b)=>a.startsAt.localeCompare(b.startsAt));
+  const all=events.map(e=>e.id===current.id?{...e,...current}:e),past=all.filter(e=>RallyEvents.lifecycle(e).past).sort((a,b)=>String(b.endsAt||"").localeCompare(String(a.endsAt||""))),active=all.filter(e=>!RallyEvents.lifecycle(e).past).sort((a,b)=>String(a.startsAt||"").localeCompare(String(b.startsAt||"")));
   return `<small class="event-group-label">Upcoming & ongoing</small>${rows(active)||'<p class="event-group-label">No upcoming raves</p>'}${past.length?`<details class="past-raves"><summary>Past raves <span>${past.length}</span></summary>${rows(past)}</details>`:''}`;
  },
  mount(data){

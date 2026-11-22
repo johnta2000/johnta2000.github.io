@@ -16,10 +16,15 @@ export function localInstant(local: string, zone: string): number {
   }
   return result;
 }
+export function validDay(value:unknown): value is string {
+  if(typeof value!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(value))return false;
+  const ms=Date.parse(value+'T12:00:00Z');
+  return Number.isFinite(ms)&&new Date(ms).toISOString().slice(0,10)===value;
+}
 export function lifecycle(event: Event, now=Date.now()) {
   const zone=zoneFor(event);
   let end=Number(event.eventEndAt)||0;
-  if(!end && zone && /^\d{4}-\d{2}-\d{2}$/.test(event.endsAt||'')){
+  if(!end && zone && validDay(event.endsAt)){
     const lastDay=(event.lineup||[]).filter((s:Event)=>(s.festivalDate||s.date)===event.endsAt && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(s.end||''));
     const latest=lastDay.map((s:Event)=>s.end).sort().at(-1);
     const next=new Date(Date.parse(event.endsAt+'T00:00Z')+86400000).toISOString().slice(0,10);

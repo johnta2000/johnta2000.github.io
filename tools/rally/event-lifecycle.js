@@ -23,6 +23,7 @@ var RallyEvents = (() => {
     configureLifecycle: () => configureLifecycle,
     lifecycle: () => lifecycle,
     localInstant: () => localInstant,
+    validDay: () => validDay,
     zoneFor: () => zoneFor
   });
   var zones = {
@@ -49,10 +50,15 @@ var RallyEvents = (() => {
     }
     return result;
   }
+  function validDay(value) {
+    if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+    const ms = Date.parse(value + "T12:00:00Z");
+    return Number.isFinite(ms) && new Date(ms).toISOString().slice(0, 10) === value;
+  }
   function lifecycle(event, now = Date.now()) {
     const zone = zoneFor(event);
     let end = Number(event.eventEndAt) || 0;
-    if (!end && zone && /^\d{4}-\d{2}-\d{2}$/.test(event.endsAt || "")) {
+    if (!end && zone && validDay(event.endsAt)) {
       const lastDay = (event.lineup || []).filter((s) => (s.festivalDate || s.date) === event.endsAt && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(s.end || ""));
       const latest = lastDay.map((s) => s.end).sort().at(-1);
       const next = new Date(Date.parse(event.endsAt + "T00:00Z") + 864e5).toISOString().slice(0, 10);

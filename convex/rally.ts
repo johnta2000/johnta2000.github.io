@@ -4,7 +4,7 @@ import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { v, ConvexError } from "convex/values";
 import { LOST_LANDS_SET_TIMES, LOST_LANDS_SET_TIMES_META } from "./lostLandsSetTimes";
 import { updateNotes } from "./rallyNotes";
-import { lifecycle, configureLifecycle } from './rallyEventLifecycle';
+import { lifecycle, configureLifecycle, validDay } from './rallyEventLifecycle';
 import { updateMeetups } from "./rallyMeetups";
 import { locationFix, mergeTrail, sharingWindow, LOST_LANDS_SHARING_WINDOWS } from './rallyLocationRules';
 
@@ -955,6 +955,7 @@ export const act = mutation({
       state.lineupFavorites ||= {};
       state.lineupFavorites[current.id] = artistIds;
     } else if (args.action === "create-event") {
+      if (!validDay(p.startsAt) || !validDay(p.endsAt) || p.endsAt < p.startsAt) throw new Error("Choose valid start and end dates, with the end on or after the start.");
       if (!["admin", "leader"].includes(current.role)) throw new Error("Only an admin can create a rave room.");
       const eventId = String(p.name || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 48);
       if (!eventId || await findDoc(ctx, eventId)) throw new Error("Choose a unique rave-room name.");
