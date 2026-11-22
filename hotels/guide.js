@@ -1,9 +1,7 @@
 // Design and copy come from the published nextcard guide. This adapter handles
-// personal-site URLs, clipboard feedback and the handoff to nextcard for signup.
+// personal-site URLs, clipboard feedback and plugin engagement analytics.
 const setup = document.querySelector('#setup');
-const setupDataUrl = new URL('setup.json', document.currentScript.src);
-const signupUrl = new URL('https://www.nextcard.com/sign-up');
-signupUrl.searchParams.set('redirect_url', 'https://www.nextcard.com/mcp/hotels');
+const setupDataUrl = new URL('setup.json?v=plugin-1', document.currentScript.src);
 
 function trackHotel(name, properties) {
   window.SiteAnalytics?.capture(name, properties);
@@ -22,7 +20,6 @@ function trackHotelLink(event) {
   if (link.closest('.setup-fallback')) return trackHotel('hotel_guide_fallback_clicked');
   const assistant = setup.querySelector('[data-app][aria-pressed="true"]')?.dataset.app;
   if (link.dataset.app) trackHotel('hotel_guide_app_selected', {assistant: link.dataset.app});
-  else if (link.hasAttribute('data-signup')) trackHotel('hotel_guide_signup_clicked', {assistant});
   else if (link.closest('section[aria-labelledby="mcp-guide-heading"]')) trackHotel('hotel_guide_setup_opened', {assistant});
   else if (link.closest('section[aria-labelledby="ask"]')) trackHotel('hotel_guide_question_opened', {assistant, question_number: questionNumber(link)});
 }
@@ -47,15 +44,6 @@ async function loadGuide() {
     const requested = new URLSearchParams(location.search).get('app');
     const selected = Object.hasOwn(views, requested) ? requested : 'claude';
     setup.innerHTML = views[selected];
-    const signup = setup.querySelector('[data-signup]');
-    const link = document.createElement('a');
-    link.dataset.signup = '';
-    link.href = signupUrl.href;
-    link.className = signup.className;
-    link.textContent = signup.textContent;
-    link.target = '_blank';
-    link.rel = 'noopener noreferrer';
-    signup.replaceWith(link);
     for (const button of setup.querySelectorAll('[data-app]')) {
       const toggle = document.createElement('a');
       for (const {name,value} of button.attributes) {
