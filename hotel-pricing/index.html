@@ -4,32 +4,23 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Compare hotel prices from credit card programs · John Ta</title>
-  <meta name="description" content="Get the signup link from John Ta when his credit card hotel pricing tool is ready.">
+  <meta name="description" content="Set up nextcard in Claude, ChatGPT, or another AI app to compare hotels where you can use your card credits.">
   <link rel="canonical" href="https://www.john-ta.com/hotel-pricing/">
   <link rel="icon" href="/assets/img/jt-mark.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="/assets/css/home.css">
-  <link rel="stylesheet" href="./signup.css?v=2">
-  <script src="./signup.js?v=4" defer></script>
+  <link rel="stylesheet" href="/hotels/guide.css?v=shared-1">
+  <script src="/hotels/guide.js?v=onboarding-1" defer></script>
 </head>
 <body>
   <main>
-    <a class="byline" href="/">John Ta</a>
-    <header>
+    <div class="personal-intro">
+      <header><a class="byline" href="/">John Ta</a></header>
       <h1>Compare hotel prices from credit card programs</h1>
-      <p>You can <a href="/hotels/">try the tool now with my setup guide</a>. If you’d like the signup link by email, leave your address below.</p>
-    </header>
-    <form method="post" id="signup">
-      <label for="email">Email address</label>
-      <input id="email" name="email" type="email" autocomplete="email" autocapitalize="none" spellcheck="false" placeholder="you@example.com" maxlength="254" required>
-      <label class="consent">
-        <input type="checkbox" name="consent" value="hotel-pricing-launch-v2" required>
-        <span>I agree to receive one email from John Ta with the link to the hotel pricing tool when it’s ready.</span>
-      </label>
-      <button type="submit" disabled>Let me know</button>
-      <div class="trap" aria-hidden="true" inert><label>Website<input name="website" tabindex="-1" autocomplete="off"></label></div>
-    </form>
-    <noscript>Enable JavaScript to join the list.</noscript>
-    <p id="status" role="status" aria-live="polite" aria-atomic="true"></p>
+      <p class="intro">Use nextcard in Claude, ChatGPT, or another AI app to compare hotels where you can use your card credits.</p>
+      <p class="disclaimer"><em>Rates are estimates. Check current prices and availability before booking.</em></p>
+    </div>
+    <div id="setup" aria-label="Set up nextcard">
+      <p class="setup-fallback"><a href="https://www.nextcard.com/mcp/hotels">Open the nextcard setup guide</a></p>
+    </div>
   </main>
 </body>
 </html>

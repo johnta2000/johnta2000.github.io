@@ -1,6 +1,7 @@
 // Design and copy come from the published nextcard guide. This adapter handles
 // personal-site URLs, clipboard feedback and the handoff to nextcard for signup.
 const setup = document.querySelector('#setup');
+const setupDataUrl = new URL('setup.json', document.currentScript.src);
 const signupUrl = new URL('https://www.nextcard.com/sign-up');
 signupUrl.searchParams.set('redirect_url', 'https://www.nextcard.com/mcp/hotels');
 
@@ -29,7 +30,7 @@ setup.addEventListener('click', trackHotelLink);
 setup.addEventListener('auxclick', trackHotelLink);
 
 async function loadGuide() {
-  const response = await fetch('./setup.json');
+  const response = await fetch(setupDataUrl);
   if (!response.ok) throw new Error('Setup unavailable');
   const {styles, fontClass, views} = await response.json();
   await Promise.all(styles.map(href => new Promise((resolve, reject) => {
