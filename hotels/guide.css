@@ -1,49 +1,15 @@
-:root {
-  color-scheme: light;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  color: #242924;
-  background: #fff;
-  -webkit-font-smoothing: antialiased;
-}
-* { box-sizing: border-box; }
-body { margin: 0; font-size: 1rem; line-height: 1.65; }
-main { width: min(100% - 44px, 660px); margin: clamp(32px, 6vw, 80px) auto 80px; }
-a { color: #285a43; text-underline-offset: .2em; }
-a:hover { text-decoration: underline; }
-a:focus-visible, button:focus-visible { outline: 3px solid #39805c; outline-offset: 3px; }
-header { padding-bottom: 18px; border-bottom: 1px solid #dbe1db; margin-bottom: clamp(26px, 4vw, 42px); }
-.byline { font-weight: 650; text-decoration: none; color: #343d35; }
-h1, h2, h3, h4, p { margin: 0; }
-h1, h2 { font-family: Georgia, "Times New Roman", serif; font-weight: 500; text-wrap: balance; }
-h1 { font-size: clamp(2.5rem, 5.3vw, 3.8rem); line-height: 1.06; letter-spacing: -.047em; }
-h2 { font-size: clamp(1.85rem, 3.4vw, 2.35rem); line-height: 1.15; letter-spacing: -.035em; }
-h3 { font-size: 1.2rem; letter-spacing: -.018em; }
-h4 { font-size: 1rem; margin-top: 18px; }
-h1 + p { margin-top: 1.2rem; }
-p + p, h2 + p, h3 + p { margin-top: .65rem; }
-.intro { font-size: 1.16rem; line-height: 1.55; }
-section { margin-top: 2.6rem; scroll-margin-top: 20px; }
-.app-links { display: flex; flex-wrap: wrap; gap: 6px; margin: 20px 0 14px; }
-.app-links a { padding: 10px 17px; border-radius: 25px; border: 1px solid #c9d4ca; font-weight: 600; font-size: .94rem; text-decoration: none; }
-.app-links a:hover { background: #eaf1eb; }
-.app-links a[aria-current] { background: #294f3d; border-color: #294f3d; color: white; }
-article { padding: clamp(19px, 4vw, 30px); border: 1px solid #d9e2db; background: #f6f8f5; border-radius: 14px; }
-ol { margin: 12px 0 16px; padding-left: 1.45em; }
-ol li { padding-left: .35em; margin-top: .5em; }
-ol li::marker { color: #4b6755; font-weight: 650; }
-.action { display: inline-flex; align-items: center; min-height: 44px; font-weight: 650; }
-.shot { display: block; margin-top: 12px; }
-.shot img { width: 100%; display: block; border-radius: 6px; border: 1px solid #d9e2db; }
-.note { color: #515c53; font-size: .92rem; margin-top: 12px; }
-.copy-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 12px; padding: 6px 12px; background: white; border: 1px solid #d9e2db; border-radius: 6px; }
-.copy-row code, .copy-row span { overflow-wrap: anywhere; }
-.copy-row code { font-size: .92rem; }
-.questions { padding: 0; margin: 16px 0 0; list-style: none; }
-.questions li { padding: 17px 0 9px; border-top: 1px solid #dbe1db; }
-.questions li p { font-family: Georgia, serif; font-size: 1.22rem; line-height: 1.4; }
-.question-actions { display: flex; align-items: center; gap: 22px; }
-.question-actions a, button { display: inline-flex; align-items: center; min-height: 44px; color: #285a43; font: 600 .9rem/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
-button { border: 0; background: transparent; cursor: pointer; padding: 0 3px; }
-button:hover { text-decoration: underline; }
-#status:not(:empty) { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); width: max-content; max-width: calc(100% - 32px); background: #24372c; color: #fff; padding: 10px 16px; border-radius: 7px; }
-@media (max-width: 420px) { .app-links a { padding-inline: 14px; } }
+body { margin: 0; background: white; color: #242924; }
+.personal-intro { box-sizing: border-box; max-width: 72rem; margin: clamp(32px, 6vw, 80px) auto 2.5rem; padding: 0 .75rem; font: 1rem/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+.personal-intro header { border-bottom: 1px solid #dbe1db; padding-bottom: 18px; margin-bottom: clamp(26px, 4vw, 42px); }
+.personal-intro .byline { font-weight: 650; color: #343d35; text-decoration: none; }
+.personal-intro a:hover { text-decoration: underline; }
+.personal-intro h1 { max-width: 660px; font: 500 clamp(2.5rem, 5.3vw, 3.8rem)/1.06 Georgia, serif; letter-spacing: -.047em; text-wrap: balance; margin: 0; }
+.personal-intro p { max-width: 660px; margin: .65rem 0 0; }
+.personal-intro .intro { font-size: 1.16rem; line-height: 1.55; margin-top: 1.2rem; }
+.personal-intro .disclaimer { font-size: .925rem; color: #515c53; }
+#setup { scroll-margin-top: 1rem; }
+@media (min-width: 40rem) { .personal-intro { padding-inline: 1rem; } }
+@media (min-width: 48rem) { .personal-intro { padding-inline: 1.5rem; } }
+@media (min-width: 64rem) { .personal-intro { padding-inline: 2rem; } }
+#setup .setup-fallback { max-width: 72rem; margin: 1rem auto; padding: 0 1rem; }
+#setup .setup-fallback a { color: #285a43; text-decoration: underline; }

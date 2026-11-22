@@ -24,6 +24,12 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
+      - name: Refresh hotel setup from the public nextcard guide
+        timeout-minutes: 2
+        continue-on-error: true
+        run: |
+          npm install --prefix "$RUNNER_TEMP/hotel-sync" --ignore-scripts --no-audit --no-fund playwright-core@1.55.1
+          NODE_PATH="$RUNNER_TEMP/hotel-sync/node_modules" node scripts/hotels/sync-setup.cjs
       - uses: actions/configure-pages@v5
       # Preserve the existing branch-publishing Jekyll behavior and exclusions.
       - uses: actions/jekyll-build-pages@v1

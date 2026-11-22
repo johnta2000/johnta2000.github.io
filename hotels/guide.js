@@ -1,58 +1,88 @@
-const appNames = { claude: 'Claude', chatgpt: 'ChatGPT', other: 'Other apps' };
-const requestedApp = new URLSearchParams(location.search).get('app');
-const app = Object.hasOwn(appNames, requestedApp) ? requestedApp : 'claude';
+// Design and copy come from the published nextcard guide. This adapter handles
+// personal-site URLs, clipboard feedback and the handoff to nextcard for signup.
+const setup = document.querySelector('#setup');
+const signupUrl = new URL('https://www.nextcard.com/sign-up');
+signupUrl.searchParams.set('redirect_url', 'https://www.nextcard.com/mcp/hotels');
 
-for (const guide of document.querySelectorAll('[data-guide]')) {
-  guide.hidden = guide.dataset.guide !== app;
-}
-document.querySelector('[data-app="' + app + '"]').setAttribute('aria-current', 'page');
+async function loadGuide() {
+  const response = await fetch('./setup.json');
+  if (!response.ok) throw new Error('Setup unavailable');
+  const {styles, fontClass, views} = await response.json();
+  await Promise.all(styles.map(href => new Promise((resolve, reject) => {
+    const sheet = document.createElement('link');
+    sheet.rel = 'stylesheet';
+    sheet.href = href;
+    sheet.onload = resolve;
+    sheet.onerror = reject;
+    document.head.append(sheet);
+  })));
+  document.documentElement.classList.add(...fontClass.trim().split(/\s+/));
 
-const chatUrls = { claude: 'https://claude.ai/new', chatgpt: 'https://chatgpt.com/' };
-document.querySelector('#question-help').textContent = app === 'other'
-  ? 'Copy a question and paste it into your app.'
-  : 'Open a question in ' + appNames[app] + ', then edit it or send it.';
-
-for (const [index, row] of document.querySelectorAll('.questions li').entries()) {
-  const question = row.querySelector('p');
-  question.id = 'question-' + (index + 1);
-  const actions = document.createElement('div');
-  actions.className = 'question-actions';
-  if (chatUrls[app]) {
-    const url = new URL(chatUrls[app]);
-    url.searchParams.set('q', 'Use nextcard to answer: ' + question.textContent);
+  function render() {
+    const requested = new URLSearchParams(location.search).get('app');
+    const selected = Object.hasOwn(views, requested) ? requested : 'claude';
+    setup.innerHTML = views[selected];
+    const signup = setup.querySelector('[data-signup]');
     const link = document.createElement('a');
-    link.href = url.href;
+    link.href = signupUrl.href;
+    link.className = signup.className;
+    link.textContent = signup.textContent;
     link.target = '_blank';
-    link.rel = 'noopener';
-    link.textContent = 'Ask ' + appNames[app];
-    link.setAttribute('aria-describedby', question.id);
-    actions.append(link);
+    link.rel = 'noopener noreferrer';
+    signup.replaceWith(link);
+    for (const button of setup.querySelectorAll('[data-app]')) {
+      const toggle = document.createElement('a');
+      for (const {name,value} of button.attributes) {
+        if (!['type','aria-pressed'].includes(name)) toggle.setAttribute(name,value);
+      }
+      toggle.href = '?app=' + button.dataset.app + '#setup';
+      // The source uses aria-pressed to style its buttons. Keep native button
+      // semantics and Space activation alongside the copyable destination.
+      toggle.setAttribute('role','button');
+      toggle.setAttribute('aria-pressed', String(button.dataset.app === selected));
+      toggle.append(...button.childNodes);
+      button.replaceWith(toggle);
+    }
   }
-  const copy = document.createElement('button');
-  copy.type = 'button';
-  copy.dataset.copy = question.id;
-  copy.textContent = 'Copy question';
-  copy.setAttribute('aria-describedby', question.id);
-  actions.append(copy);
-  row.append(actions);
+  render();
+  if (location.hash === '#questions') setup.querySelector('#ask')?.scrollIntoView();
+  else if (location.hash === '#setup' || location.hash === '#ask') document.querySelector(location.hash)?.scrollIntoView();
+  window.addEventListener('popstate', render);
+  setup.addEventListener('keydown', event => {
+    if (event.key === ' ' && event.target.matches('[data-app]')) {
+      event.preventDefault();
+      event.target.click();
+    }
+  });
+  setup.addEventListener('click', async event => {
+    const toggle = event.target.closest('[data-app]');
+    if (toggle && !event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey) {
+      event.preventDefault();
+      if (location.href !== toggle.href) history.pushState(null, '', toggle.href);
+      render();
+      setup.querySelector('#mcp-guide-heading').focus();
+      return;
+    }
+    const copy = event.target.closest('button[data-copy]');
+    if (!copy) return;
+    const status = copy.parentElement.querySelector('[role=status]');
+    try {
+      await navigator.clipboard.writeText(copy.dataset.copy);
+      const label = [...copy.childNodes].find(node => node.nodeType === Node.TEXT_NODE && node.textContent.trim());
+      if (label) label.textContent = 'Copied';
+      status.textContent = 'Copied.';
+      clearTimeout(copy.resetTimer);
+      copy.resetTimer = setTimeout(() => {
+        if (label) label.textContent = 'Copy';
+        status.textContent = '';
+      }, 2000);
+    } catch {
+      status.classList.remove('sr-only');
+      status.textContent = 'Select and copy this text: ' + copy.dataset.copy;
+    }
+  });
 }
-
-document.addEventListener('click', async (event) => {
-  const button = event.target.closest('button[data-copy]');
-  if (!button) return;
-  const text = document.getElementById(button.dataset.copy);
-  const status = document.querySelector('#status');
-  try {
-    await navigator.clipboard.writeText(text.textContent);
-    status.textContent = 'Copied to clipboard.';
-  } catch {
-    const range = document.createRange();
-    range.selectNodeContents(text);
-    const selection = window.getSelection();
-    selection.removeAllRanges();
-    selection.addRange(range);
-    status.textContent = 'Text selected. Use your device’s Copy command.';
-  }
-  clearTimeout(status.hideTimer);
-  status.hideTimer = setTimeout(() => { status.textContent = ''; }, 3500);
+loadGuide().catch(() => {
+  // The original public guide stays available when the snapshot cannot load.
+  setup.querySelector('.setup-fallback')?.prepend('The setup section could not load. ');
 });
