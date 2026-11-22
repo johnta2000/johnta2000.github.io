@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>How I find hotels for my card credits · John Ta</title>
+  <meta name="description" content="My setup for comparing Chase, Amex, and United hotel programs in Claude, ChatGPT, or another AI app.">
+  <link rel="canonical" href="https://www.john-ta.com/hotels/">
+  <meta property="og:title" content="How I find hotels for my card credits">
+  <meta property="og:description" content="A short guide by John Ta. Connect your AI app, pick a city, and compare hotels by estimated nightly rate.">
+  <meta property="og:url" content="https://www.john-ta.com/hotels/">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary">
+  <link rel="icon" href="/assets/img/jt-mark.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="guide.css">
+  <script defer src="guide.js"></script>
+</head>
+<body>
+  <main>
+    <header><a class="byline" href="/">John Ta</a></header>
+    <h1>How I find hotels for my card credits</h1>
+    <p class="intro">I built a tool to answer the question I always have before booking a trip: which hotels can I use my card credits at, and what do they usually cost?</p>
+    <p>It lets me compare Chase’s The Edit, Amex Fine Hotels + Resorts, The Hotel Collection, and United Renowned Hotels in one chat. I use the estimated nightly rates to narrow things down, then check my dates and the live price before booking.</p>
+
+    <section id="setup" aria-labelledby="setup-title">
+      <h2 id="setup-title">Set it up in your app</h2>
+      <p>The connector is called <strong>nextcard</strong>. Hotel searches are free and work without a nextcard account.</p>
+      <nav class="app-links" aria-label="Choose your app">
+        <a href="?app=claude#setup" data-app="claude">Claude</a>
+        <a href="?app=chatgpt#setup" data-app="chatgpt">ChatGPT</a>
+        <a href="?app=other#setup" data-app="other">Other apps</a>
+      </nav>
+
+      <article data-guide="claude">
+        <h3>Connect to Claude</h3>
+        <ol>
+          <li>Open the nextcard directory listing below. Sign in to Claude if prompted, then choose <strong>Connect to Claude</strong>.</li>
+          <li>In a chat, open the <strong>+</strong> menu, choose <strong>Connectors</strong>, and turn on nextcard.</li>
+        </ol>
+        <a class="action" href="https://claude.ai/directory/nextcard" target="_blank" rel="noopener">Open nextcard in Claude</a>
+        <a class="shot" href="claude.webp" aria-label="View the full-size Claude directory screenshot"><img src="claude.webp" alt="Claude’s nextcard directory listing with the sign-in button in the upper right." loading="lazy"></a>
+      </article>
+      <article data-guide="chatgpt">
+        <h3>Connect to ChatGPT</h3>
+        <ol>
+          <li>Open the nextcard listing below and sign in to ChatGPT if prompted.</li>
+          <li>Choose <strong>Install plugin</strong>, then <strong>Connect</strong>.</li>
+          <li>Start a new chat. Type <strong>@nextcard</strong> to choose the tool yourself.</li>
+        </ol>
+        <a class="action" href="https://chatgpt.com/plugins/plugin_asdk_app_6ada3f4fa21c8191805d8c0f3d55bedf" target="_blank" rel="noopener">Open nextcard in ChatGPT</a>
+        <a class="shot" href="chatgpt.webp" aria-label="View the full-size ChatGPT listing screenshot"><img src="chatgpt.webp" alt="ChatGPT’s nextcard listing with Install plugin in the upper right." loading="lazy"></a>
+      </article>
+      <article data-guide="other">
+        <h3>Connect another app</h3>
+        <p>In Muse, Gemini, Perplexity, or another app that supports remote MCP servers, open the connector settings.</p>
+        <ol>
+          <li>Add a remote MCP server named <strong>nextcard</strong> and paste the server URL below.</li>
+          <li>Choose <strong>Streamable HTTP</strong> and <strong>OAuth</strong>. Leave the client ID and secret blank.</li>
+          <li>Complete the connection and refresh the app’s tools.</li>
+        </ol>
+        <div class="copy-row"><code id="server-url">https://mcp.nextcard.com/mcp</code><button type="button" data-copy="server-url">Copy URL</button></div>
+        <h4>If your app can set itself up</h4>
+        <div class="copy-row"><span id="setup-prompt">Set up this MCP for me: https://nextcard.com/mcp</span><button type="button" data-copy="setup-prompt">Copy prompt</button></div>
+      </article>
+      <p class="note">If you want answers about the cards in your own wallet, you can sign in to nextcard when you connect.</p>
+    </section>
+
+    <section id="questions" aria-labelledby="questions-title">
+      <h2 id="questions-title">Try a hotel question</h2>
+      <p id="question-help">Pick a question to ask in your chat.</p>
+      <ul class="questions">
+        <li><p>Which hotels in Chicago are in Chase’s The Edit or Amex Fine Hotels + Resorts, and which look cheapest?</p></li>
+        <li><p>Which hotels in Paris have estimated rates under $500 a night, and which card programs are they in?</p></li>
+        <li><p>Which Hyatt hotels in Tokyo participate in a card program, and what’s the lowest estimated nightly rate at each?</p></li>
+        <li><p>Is The Ritz-Carlton, Kyoto in Fine Hotels + Resorts or The Hotel Collection?</p></li>
+        <li><p>Show me hotels within 25 miles of Napa and the card programs I can book each one through.</p></li>
+      </ul>
+    </section>
+    <p id="status" role="status"></p>
+  </main>
+</body>
+</html>
