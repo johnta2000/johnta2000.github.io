@@ -518,7 +518,7 @@ test('individual midmonth card and housing checks persist across modes, devices,
   const {page,errors}=await open(browser,width,db);
   const button=id=>page.locator(`[data-account="${id}"] .quick-paid`);
   await page.goto('http://localhost/?month=2026-11&review=midmonth'); await page.locator('#midmonth').waitFor();
-  assert.match(await page.locator('#midmonth-date').textContent(),/Nov 14/);
+  assert.equal(await page.locator('#midmonth-date').textContent(),'Sat, Oct 10, 2026');
   assert.equal(await page.locator('#progress-number').textContent(),'0 / 5');
   assert.equal(await button('two').getAttribute('aria-pressed'),'false','paid does not imply reviewed');
   await button('one').click();
@@ -554,12 +554,16 @@ test('individual midmonth card and housing checks persist across modes, devices,
   assert.equal(page.url(),filtered);
   await pick(page,'person','Everyone'); await page.locator('#remaining').uncheck();
   await page.locator('#next').click(); await page.waitForFunction(()=>document.querySelector('#progress-number').textContent==='0 / 5');
-  assert.match(await page.locator('#midmonth-date').textContent(),/Dec 12/);
+  assert.equal(await page.locator('#midmonth-date').textContent(),'Sat, Nov 14, 2026');
   await page.goBack(); await page.waitForFunction(()=>document.querySelector('#progress-number').textContent==='2 / 5');
   await button('one').click();
   await page.waitForFunction(()=>document.querySelector('#midmonth-state').textContent.includes('Each account saves separately'));
   assert.equal(await page.locator('#progress-number').textContent(),'1 / 5');
   assert.equal(await button('rent').getAttribute('aria-pressed'),'true');
+  await page.goto('http://localhost/tools/payments/?month=2027-01&review=midmonth');
+  await page.locator('#midmonth').waitFor();
+  assert.equal(await page.locator('#month').inputValue(),'2027-01');
+  assert.equal(await page.locator('#midmonth-date').textContent(),'Sat, Dec 12, 2026');
   assert.deepEqual(errors,[]); await page.close();
  } } finally { await browser.close(); }
 });

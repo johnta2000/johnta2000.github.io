@@ -478,7 +478,7 @@
   });
   function renderModes() {
     $('app').classList.toggle('midmonth-mode', reviewMode);
-    message('month-purpose', reviewMode ? 'Second Saturday check-in' : 'Due on the 1st');
+    message('month-purpose', reviewMode ? 'Payment due month' : 'Due on the 1st');
     message('remaining-label', reviewMode ? 'Only unchecked' : 'Only unpaid');
     message('matrix-guide', reviewMode ? 'Click to check each account. Right-click for payment flags and details.' : 'Click to mark paid. Right-click for flags and details.');
     for (const [id, active] of [['payment-view', false], ['midmonth-view', true]]) {
@@ -502,10 +502,10 @@
   }
   function renderCheckin() {
     $('midmonth').hidden = !data || !reviewMode;
-    const [year, number] = selectedMonth().split('-').map(Number);
-    const first = new Date(year, number - 1, 1);
-    const date = new Date(year, number - 1, 8 + (6 - first.getDay() + 7) % 7);
-    message('midmonth-date', date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }));
+    const date = new Date(selectedMonth() + '-01T12:00:00');
+    date.setMonth(date.getMonth() - 1);
+    date.setDate(14 - date.getDay()); // Second Saturday of the month before payment is due.
+    message('midmonth-date', date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }));
     const drafts = [...checkinDrafts.values()], failed = drafts.filter(d => !d.running), saving = drafts.filter(d => d.running);
     $('midmonth-retry').hidden = !failed.length;
     $('midmonth-retry').disabled = busy;
