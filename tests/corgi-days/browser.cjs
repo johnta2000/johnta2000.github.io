@@ -25,6 +25,17 @@ const fs=require('node:fs/promises');
     const updated=await page.evaluate(()=>JSON.parse(localStorage.getItem('corgi-days-v1')));assert.equal(updated.name,'Potato');assert.equal(updated.accessory,'bow');assert.equal(updated.created,start.created);
     await page.locator('[data-action=feed]').click();await page.reload();assert.equal(await page.locator('.count').innerText(),'1 / 4');
     for(const a of ['play','wash','sleep'])await page.locator(`[data-action=${a}]`).click();assert.equal(await page.locator('.coin').innerText(),'✿ 40 biscuits');
+    const completedPet = await page.evaluate(() => localStorage.getItem('corgi-days-v1'));
+    await page.reload();
+    for (const action of ['feed','feed','play','wash','sleep']) {
+      const button = page.locator(`[data-action="${action}"]`);
+      if (mobile) await button.tap(); else await button.click();
+      assert.equal(await page.locator('#corgi-stage').getAttribute('data-mood'), action);
+      assert.notEqual(await page.locator('#bubble').innerText(), 'My wish came true! ♡');
+      assert.equal(await page.evaluate(() => localStorage.getItem('corgi-days-v1')), completedPet);
+    }
+    await page.evaluate(() => document.fonts.ready);
+    assert.ok(await page.evaluate(() => [...document.fonts].some(f => f.family.includes('Quicksand') && f.status === 'loaded')));
     await page.locator('.reminder-prompt a').click();await page.locator('#calendar-reminder').waitFor();assert.ok(page.url().endsWith('#reminders'));
     await page.locator('#reminder-time').fill('18:15');await page.reload();assert.equal(await page.locator('#reminder-time').inputValue(),'18:15');
     const download=page.waitForEvent('download');await page.locator('#calendar-reminder').click();const calendar=await download;assert.ok((await fs.readFile(await calendar.path(),'utf8')).includes('RRULE:FREQ=DAILY'));

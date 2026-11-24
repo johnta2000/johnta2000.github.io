@@ -1,10 +1,10 @@
-import {mountCorgi} from './corgi-2d.mjs?v=5';
+import {mountCorgi} from './corgi-2d.mjs?v=8';
 import {fresh,day,needs,act,currentStreak,valid,actions,dailyWish} from './model.mjs?v=7';
 import {normalize,editorDraft,adopt,anniversary,calendarReminder} from './setup.mjs?v=6';
 const $=s=>document.querySelector(s),KEY='corgi-days-v1',DRAFT='corgi-days-style-v1',EDITORS='corgi-days-editors-v1';
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let bubbleTimer;
-let pet,badSave=false,saveError='',draftError='',drafts={},stage=null,toastTimer,playing=false,scenePose={};
+let pet,badSave=false,saveError='',draftError='',drafts={},stage=null,toastTimer,scenePose={};
 try{const raw=localStorage.getItem(KEY);if(raw){pet=JSON.parse(raw);if(!valid(pet))throw Error('Your save could not be read. It has been kept intact. Restore a backup to continue.');pet=normalize(pet);}else pet={...fresh(),adopted:false,accessory:'none'};}catch(e){saveError=e.message;badSave=true;pet={...fresh(),adopted:false};}
 try{
   scenePose=JSON.parse(localStorage.getItem('corgi-days-pose-v1')||'{}');
@@ -32,12 +32,12 @@ function wardrobe(){currentDraft();return `<div class="intro"><div><div class="e
 function hasPerfectDay(){return Object.values(pet.days).some(a=>a.length===4);}
 function homeWelcome(){const years=anniversary(pet);if(years)return `<div class="welcome" role="status">♡ Happy gotcha day, ${esc(pet.name)}! ${years} ${years===1?'year':'years'} together.</div>`;if(!Object.values(pet.days).some(a=>a.length))return `<div class="welcome"><strong>Welcome home, ${esc(pet.name)}!</strong><p>Read your corgi’s wish on the screen, then press a care button.</p></div>`;const keys=Object.keys(pet.days).sort(),last=keys.at(-1);if(last&&last<day(Date.now()-86400000,pet.timezone))return `<div class="welcome"><strong>Happy to see you again. ♡</strong><p>No catching up needed. Your corgi is safe and today is a fresh start.</p></div>`;return '';}
 function reminderPrompt(){return hasPerfectDay()&&!pet.reminderPromptDismissed?`<div class="card reminder-prompt"><h2>A little nudge tomorrow?</h2><p>Optional: add a daily reminder to your calendar.</p><a class="edit-link" href="?view=settings#reminders">Choose a reminder ↗</a><button class="quiet-button" id="dismiss-reminder">No thanks</button></div>`:'';}
-function settings(){currentDraft();return `<div class="intro"><div><div class="eyebrow">The little details</div><h1>Your corgi, your way.</h1><p>Identity, daily rhythm, and keeping your friend safe.</p></div></div><div class="layout"><section>${scene(previewPet())}<p class="note">♡ Home together since ${adoptionDate()}</p></section><form class="card" id="identity-form">${nameAndCoat()}<p>Changing these keeps the same corgi, adoption day, and care history.</p><button class="primary" ${badSave?'disabled':''}>Save name & coat</button><p class="save-note">Your unfinished edits save as you go.</p><a class="edit-link" href="?view=wardrobe">Change accessories in Wardrobe ↗</a></form></div><div class="settings-grid"><section class="card"><h2>Our daily rhythm</h2><p>Four rituals, once a day. A new day begins at midnight in <strong>${esc(pet.timezone)}</strong>, the timezone recorded when your corgi’s home was created. Travel won’t unexpectedly reset your progress.</p><p>Miss a day? Your streak restarts, but your corgi is always safe and happy to see you.</p></section><section class="card" id="reminders"><h2>A gentle reminder</h2>${hasPerfectDay()?`<p>Add an optional daily event to your calendar. The calendar handles notifications, even when the game is closed.</p><label for="reminder-time">Remind me at</label><input class="field" type="time" id="reminder-time" value="${pet.reminderTime||'09:00'}"><button class="primary" id="calendar-reminder">Download calendar reminder</button><p class="save-note">Open the downloaded file and add it to your calendar. It uses your calendar’s local time. Manage or remove it there; remove an old reminder before importing a replacement.</p>`:'<p>Finish your first day’s four rituals to unlock an optional calendar reminder. For now, just enjoy getting to know each other.</p>'}</section><section class="card"><h2>Keep your friend safe</h2><p>Your corgi and edits save in this browser on this device. They don’t sync to other devices. Clearing browser data removes them.</p><p>Download a backup to keep a copy or move to another device. Restore replaces the current corgi after confirmation.</p>${backupControls()}</section></div>`;}
+function settings(){currentDraft();return `<div class="intro"><div><div class="eyebrow">The little details</div><h1>Your corgi, your way.</h1><p>Identity, daily rhythm, and keeping your friend safe.</p></div></div><div class="layout"><section>${scene(previewPet())}<p class="note">♡ Home together since ${adoptionDate()}</p></section><form class="card" id="identity-form">${nameAndCoat()}<p>Changing these keeps the same corgi, adoption day, and care history.</p><button class="primary" ${badSave?'disabled':''}>Save name & coat</button><p class="save-note">Your unfinished edits save as you go.</p><a class="edit-link" href="?view=wardrobe">Change accessories in Wardrobe ↗</a></form></div><div class="settings-grid"><section class="card"><h2>Our daily rhythm</h2><p>Care for your corgi anytime. Each button earns biscuits on its first use each day. A new day begins at midnight in <strong>${esc(pet.timezone)}</strong>, the timezone recorded when your corgi’s home was created. Travel won’t unexpectedly reset your progress.</p><p>Miss a day? Your streak restarts, but your corgi is always safe and happy to see you.</p></section><section class="card" id="reminders"><h2>A gentle reminder</h2>${hasPerfectDay()?`<p>Add an optional daily event to your calendar. The calendar handles notifications, even when the game is closed.</p><label for="reminder-time">Remind me at</label><input class="field" type="time" id="reminder-time" value="${pet.reminderTime||'09:00'}"><button class="primary" id="calendar-reminder">Download calendar reminder</button><p class="save-note">Open the downloaded file and add it to your calendar. It uses your calendar’s local time. Manage or remove it there; remove an old reminder before importing a replacement.</p>`:'<p>Finish your first day’s four rituals to unlock an optional calendar reminder. For now, just enjoy getting to know each other.</p>'}</section><section class="card"><h2>Keep your friend safe</h2><p>Your corgi and edits save in this browser on this device. They don’t sync to other devices. Clearing browser data removes them.</p><p>Download a backup to keep a copy or move to another device. Restore replaces the current corgi after confirmation.</p>${backupControls()}</section></div>`;}
 const care = {
-  feed: { label: 'Feed', icon: '🥣', wish: 'My bowl is empty!', thanks: 'A full tummy! Happy little tail wiggles.' },
-  play: { label: 'Play', icon: '🎾', wish: 'I brought you my ball!', thanks: 'Caught it! One victory lap around the garden.' },
-  wash: { label: 'Wash', icon: '🫧', wish: 'Oops. Muddy paws!', thanks: 'Shake, shake! You got a little wet too.' },
-  sleep: { label: 'Rest', icon: '🌙', wish: 'Is it nap time yet?', thanks: 'Three tiny snores. One very happy corgi.' }
+  feed: { label: 'Feed', icon: '🥣', reply: 'Nom, nom!', wish: 'My bowl is empty!', thanks: 'A full tummy! Happy little tail wiggles.' },
+  play: { label: 'Play', icon: '🎾', reply: 'Throw it again!', wish: 'I brought you my ball!', thanks: 'Caught it! One victory lap around the garden.' },
+  wash: { label: 'Wash', icon: '🫧', reply: 'Shake, shake!', wish: 'Oops. Muddy paws!', thanks: 'Shake, shake! You got a little wet too.' },
+  sleep: { label: 'Rest', icon: '🌙', reply: 'Zzz… cozy paws.', wish: 'Is it nap time yet?', thanks: 'Three tiny snores. One very happy corgi.' }
 };
 const labels = ['Full tummy', 'Happiness', 'Freshness', 'Energy'];
 const icons = actions.map(action => care[action].icon);
@@ -45,8 +45,8 @@ const icons = actions.map(action => care[action].icon);
 function careKeys(done) {
   return `<div class="care-keys" aria-label="Daily care">${actions.map(action => {
     const finished = done.includes(action);
-    return `<button data-action="${action}" ${finished || badSave ? 'disabled' : ''} aria-label="${care[action].label}${finished ? ', done today' : ''}">
-      <span class="keycap" aria-hidden="true">${finished ? '✓' : care[action].icon}</span>${care[action].label}
+    return `<button data-action="${action}" ${badSave ? 'disabled' : ''} aria-label="${care[action].label}${finished ? ', daily biscuit earned' : ''}">
+      <span class="keycap" aria-hidden="true">${care[action].icon}${finished ? '<span class="earned">✓</span>' : ''}</span>${care[action].label}
     </button>`;
   }).join('')}</div>`;
 }
@@ -78,10 +78,10 @@ function home() {
     ${homeWelcome()}
     <div class="card"><div class="card-head"><h2>Daily care</h2><span class="count">${done.length} / 4</span></div>
       <div class="stats">${stats.map((n,i) => `<div class="stat"><div class="stat-label"><span>${labels[i]}</span><span>${n}%</span></div><div class="meter" role="meter" aria-label="${labels[i]}" aria-valuenow="${n}" aria-valuemin="0" aria-valuemax="100"><i style="width:${n}%"></i></div></div>`).join('')}</div>
-      <div class="bonus">${done.length === 4 ? 'Daily bonus collected · +20 biscuits' : 'Complete all four for 20 bonus biscuits.'}</div>
+      <div class="bonus">${done.length === 4 ? 'Daily bonus collected! Keep playing anytime.' : 'First tap per button: +5 biscuits. All four: +20 bonus.'}</div>
     </div><a class="history-link" href="?view=journal">☀ ${currentStreak(pet)}-day streak <span>Journal ↗</span></a>${reminderPrompt()}</aside></div>`;
 }
-function journal(){const entries=Object.entries(pet.days).sort().reverse(),total=entries.filter(([,v])=>v.length===4).length;return `<div class="journal"><div class="intro"><div><div class="eyebrow">The days add up to love</div><h1>Our little story.</h1><p>All the good days with ${esc(pet.name)}.</p></div></div><p class="adoption-date">♡ Home together since ${adoptionDate()}</p><div class="journal-summary"><div class="card"><strong>${total}</strong><small>happy days</small></div><div class="card"><strong>${currentStreak(pet)}</strong><small>day streak</small></div><div class="card"><strong>${pet.biscuits}</strong><small>biscuits earned</small></div></div><div class="card"><h2>Little moments</h2>${entries.length?entries.map(([d,a])=>`<div class="entry"><span>${new Date(d+'T12:00:00Z').toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric',timeZone:'UTC'})}</span><span>${a.map(x=>icons[actions.indexOf(x)]).join(' ')} <small>${a.length===4?'♡ Perfect day':a.length+'/4 rituals'}</small></span></div>`).join(''):'<div class="empty"><span>🌱</span><p>Every friendship starts with a little hello.<br>Complete a ritual to begin your story.</p><a class="edit-link" href="?view=home">Care for your corgi ↗</a></div>'}</div><div class="card" style="margin-top:20px"><h2>A little care guide</h2><p>Visit each day to feed, play, wash, and rest. Each ritual earns 5 biscuits; completing all four earns 20 more and keeps your streak going. Biscuits are a keepsake of your time together. All styles are free.</p><p>Needs slowly decrease while you’re away. Missed days reset the streak, but your corgi always welcomes you back. Daily rituals reset at midnight in ${esc(pet.timezone)}.</p><h2 class="section-heading">Keep your friend safe</h2><p>Your corgi saves in this browser on this device. Clearing browser data removes it. Download a backup to keep a copy or move to another device. Restore replaces the current corgi after confirmation.</p><div class="backup"><button id="backup">↓ Download backup</button><label for="restore">↑ Restore backup</label><input id="restore" class="hidden" type="file" accept="application/json,.json"></div></div></div>`}
+function journal(){const entries=Object.entries(pet.days).sort().reverse(),total=entries.filter(([,v])=>v.length===4).length;return `<div class="journal"><div class="intro"><div><div class="eyebrow">The days add up to love</div><h1>Our little story.</h1><p>All the good days with ${esc(pet.name)}.</p></div></div><p class="adoption-date">♡ Home together since ${adoptionDate()}</p><div class="journal-summary"><div class="card"><strong>${total}</strong><small>happy days</small></div><div class="card"><strong>${currentStreak(pet)}</strong><small>day streak</small></div><div class="card"><strong>${pet.biscuits}</strong><small>biscuits earned</small></div></div><div class="card"><h2>Little moments</h2>${entries.length?entries.map(([d,a])=>`<div class="entry"><span>${new Date(d+'T12:00:00Z').toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric',timeZone:'UTC'})}</span><span>${a.map(x=>icons[actions.indexOf(x)]).join(' ')} <small>${a.length===4?'♡ Perfect day':a.length+'/4 rituals'}</small></span></div>`).join(''):'<div class="empty"><span>🌱</span><p>Every friendship starts with a little hello.<br>Complete a ritual to begin your story.</p><a class="edit-link" href="?view=home">Care for your corgi ↗</a></div>'}</div><div class="card" style="margin-top:20px"><h2>A little care guide</h2><p>Visit each day to feed, play, wash, and rest. The first use of each care button earns 5 biscuits per day; completing all four earns 20 more and keeps your streak going. Biscuits are a keepsake of your time together. All styles are free.</p><p>Needs slowly decrease while you’re away. Missed days reset the streak, but your corgi always welcomes you back. Daily rituals reset at midnight in ${esc(pet.timezone)}.</p><h2 class="section-heading">Keep your friend safe</h2><p>Your corgi saves in this browser on this device. Clearing browser data removes it. Download a backup to keep a copy or move to another device. Restore replaces the current corgi after confirmation.</p><div class="backup"><button id="backup">↓ Download backup</button><label for="restore">↑ Restore backup</label><input id="restore" class="hidden" type="file" accept="application/json,.json"></div></div></div>`}
 function render(){
   clearTimeout(bubbleTimer);stage?.dispose();stage=null;const v=view();
   if(new URLSearchParams(location.search).get('view')!==v)history.replaceState({},'',route(v));
@@ -124,19 +124,28 @@ function bind(){
   const host=$('#corgi-stage');if(host)stage=mountCorgi(host,previewPet());
   document.querySelectorAll('a[href^="?view="]').forEach(a=>a.onclick=e=>{if(e.ctrlKey||e.metaKey||e.shiftKey||e.altKey)return;e.preventDefault();const u=new URL(a.href);go(u.searchParams.get('view'),u.hash);});
   $('#pet')?.addEventListener('click',()=>petAnimation(['You’re my favorite human. ♡','A very good day for belly rubs.','Tiny paws. So much love.','Did someone say treats?'][Math.floor(Math.random()*4)]));
-  document.querySelectorAll('[data-action]').forEach(b=>b.onclick=()=>{if(playing||badSave)return;playing=true;
-    const now = Date.now(), action = b.dataset.action, wish = dailyWish(pet, now);
-    const next = act(pet, action, now);
-    if (next !== pet) {
+  document.querySelectorAll('[data-action]').forEach(button => {
+    button.onclick = () => {
+      if (badSave) return;
+      const action = button.dataset.action;
+      const now = Date.now();
+      const next = act(pet, action, now);
+      if (next === pet) {
+        petAnimation(care[action].reply, action);
+        return;
+      }
+      const wish = dailyWish(pet, now);
+      const keyboardFocus = button.matches(':focus-visible');
       pet = next;
       const saved = save();
       render();
-      const matched = !wish.fulfilled && wish.action === action;
-      petAnimation(matched ? care[action].thanks : ['Yum!', 'Fetch!', 'All clean!', 'Zzz…'][actions.indexOf(action)], action);
+      if (keyboardFocus) document.querySelector(`[data-action="${action}"]`).focus({preventScroll:true});
+      const matched = wish.action === action;
+      petAnimation(matched ? care[action].thanks : care[action].reply, action);
       const perfect = pet.days[day(now,pet.timezone)].length === 4;
       if (saved) toast((matched ? 'Wish granted! ' : '') + (perfect ? '+25 biscuits' : '+5 biscuits'));
-    }
-    playing=false;});
+    };
+  });
   $('#name')?.addEventListener('input',e=>{e.target.setCustomValidity('');currentDraft().name=e.target.value;draftSave();});
   $('#color')?.addEventListener('input',e=>{currentDraft().color=e.target.value;draftSave();stage?.style(previewPet());});
   document.querySelectorAll('[data-style]').forEach(b=>b.onclick=()=>{currentDraft()[b.dataset.style]=b.dataset.value;draftSave();render();});

@@ -29,6 +29,7 @@ export function mountCorgi(host, pet) {
     <g class="cuddle-hearts" fill="#d99593"><path d="M125 65C111 49 103 70 125 81C147 67 137 50 125 65Z"/><path d="M337 118C325 106 320 122 337 131C354 119 346 107 337 118Z"/></g>
     <g class="wash-bubbles" fill="#fffef8" fill-opacity=".7" stroke="#a8c9ca" stroke-width="2"><circle cx="135" cy="142" r="13"/><circle cx="305" cy="110" r="10"/><circle cx="332" cy="157" r="15"/><circle cx="153" cy="112" r="6"/></g>
     <g class="sleep-moons" fill="#7f789a" font-family="sans-serif" font-weight="600"><text x="311" y="112" font-size="18">z</text><text x="332" y="90" font-size="24">z</text></g>
+    <g class="fetch-ball" stroke-width="3"><circle cx="100" cy="99" r="23" fill="#c1df69" stroke="#577641"/><path d="M81 86Q105 96 113 117" fill="none" stroke="#fbffce"/></g>
     <g class="snack" transform="translate(249 211) rotate(-12)" fill="#d7a667" stroke="#946e4c" stroke-width="2"><rect x="-10" y="-6" width="20" height="13" rx="5"/><path d="M-3-2V3M4-2V3"/></g>
   </svg>`;
   let timer;
