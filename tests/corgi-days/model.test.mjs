@@ -1,6 +1,18 @@
-import {test} from 'node:test';import assert from 'node:assert/strict';import {fresh,act,needs,valid,currentStreak,actions} from '../../games/corgi-days/model.mjs';
+import {test} from 'node:test';import assert from 'node:assert/strict';import {fresh,act,needs,valid,currentStreak,actions,dailyWish} from '../../games/corgi-days/model.mjs';
 const start=Date.parse('2026-11-06T12:00:00Z');
 test('daily care awards once, streaks progress and reset after missed days',()=>{let p=fresh(start);p.timezone='UTC';for(const a of actions)p=act(p,a,start);assert.equal(p.biscuits,40);assert.equal(p.streak,1);assert.deepEqual(act(p,'feed',start),p);for(const a of actions)p=act(p,a,start+86400000);assert.equal(p.streak,2);assert.equal(p.biscuits,80);assert.equal(currentStreak(p,start+3*86400000),0);for(const a of actions)p=act(p,a,start+3*86400000);assert.equal(p.streak,1);assert.ok(valid(p))});
 test('needs decay offline without killing corgi, care restores individual need',()=>{let p=fresh(start);const n=needs(p,start+86400000);assert.ok(n.every((x,i)=>x<p.stats[i]));p=act(p,'feed',start+86400000);assert.equal(p.stats[0],100);assert.deepEqual(p.stats.slice(1),n.slice(1));assert.ok(needs(p,start+100*86400000).every(x=>x===10))});
 test('calendar day resets at local midnight including daylight savings',()=>{let p=fresh(start);p.timezone='America/Los_Angeles';const before=Date.parse('2026-11-07T07:59:59Z'),after=Date.parse('2026-11-07T08:00:01Z');p=act(p,'feed',before);p=act(p,'feed',after);assert.equal(p.biscuits,10);assert.equal(Object.keys(p.days).length,2)});
 test('backup validation rejects malformed state',()=>{const p=fresh();assert.ok(valid(p));for(const patch of [{name:''},{stats:[NaN,1,1,1]},{timezone:'invalid'},{coat:'bad'},{days:{'2026-11-06':['feed','feed']}},{biscuits:-1}])assert.ok(!valid({...p,...patch}))});
+
+test('daily wish uses the adoption timezone and existing care history', () => {
+  const adoption = Date.parse('2026-11-01T06:30:00Z');
+  let pet = { ...fresh(adoption), timezone: 'America/Los_Angeles' };
+  assert.deepEqual(dailyWish(pet, adoption), { action: 'feed', fulfilled: false });
+  pet = act(pet, 'feed', adoption);
+  assert.deepEqual(dailyWish(pet, adoption), { action: 'feed', fulfilled: true });
+  for (const time of ['2026-11-01T07:00:00Z', '2026-11-02T07:59:59Z']) {
+    assert.deepEqual(dailyWish(pet, Date.parse(time)), { action: 'play', fulfilled: false });
+  }
+  assert.equal(dailyWish(pet, Date.parse('2026-11-02T08:00:00Z')).action, 'wash');
+});

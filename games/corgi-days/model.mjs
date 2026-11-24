@@ -5,3 +5,11 @@ export function needs(p,now=Date.now()){const hours=Math.max(0,(now-p.updated)/3
 export function act(p,a,now=Date.now()){const i=actions.indexOf(a);if(i<0)throw Error('Unknown activity');const today=day(now,p.timezone);const done=p.days[today]||[];if(done.includes(a))return p;const stats=needs(p,now);stats[i]=100;const completed=[...done,a];let streak=p.streak,lastCheck=p.lastCheck,biscuits=p.biscuits+5;if(completed.length===4){const prev=new Date(today+'T12:00:00Z');prev.setUTCDate(prev.getUTCDate()-1);streak=lastCheck===prev.toISOString().slice(0,10)?streak+1:1;lastCheck=today;biscuits+=20;}return {...p,stats,days:Object.fromEntries(Object.entries({...p.days,[today]:completed}).sort().slice(-365)),streak,lastCheck,biscuits,updated:now}}
 export function currentStreak(p,now=Date.now()){const today=day(now,p.timezone);const d=new Date(today+'T12:00:00Z');d.setUTCDate(d.getUTCDate()-1);return [today,d.toISOString().slice(0,10)].includes(p.lastCheck)?p.streak:0}
 export function valid(p){try{return p?.schema===1&&(p.adopted===undefined||typeof p.adopted==='boolean')&&(p.reminderTime===undefined||/^([01]\d|2[0-3]):[0-5]\d$/.test(p.reminderTime))&&(p.reminderPromptDismissed===undefined||typeof p.reminderPromptDismissed==='boolean')&&typeof p.name==='string'&&p.name.trim().length>0&&p.name.length<=24&&['golden','tricolor','cocoa','cream'].includes(p.coat)&&['none','bandana','bow','crown','flower'].includes(p.accessory)&&/^#[a-f0-9]{6}$/i.test(p.color)&&['garden','peach','lavender'].includes(p.room)&&Number.isFinite(p.created)&&Number.isFinite(p.updated)&&p.stats?.length===4&&p.stats.every(x=>Number.isFinite(x)&&x>=0&&x<=100)&&Number.isInteger(p.streak)&&p.streak>=0&&Number.isInteger(p.biscuits)&&p.biscuits>=0&&typeof p.lastCheck==='string'&&typeof p.days==='object'&&Object.entries(p.days).every(([k,v])=>/^\d{4}-\d{2}-\d{2}$/.test(k)&&Array.isArray(v)&&v.every(x=>actions.includes(x))&&new Set(v).size===v.length)&&!!day(Date.now(),p.timezone)}catch{return false}}
+
+export function dailyWish(pet, now = Date.now()) {
+  const today = day(now, pet.timezone);
+  const birthday = day(pet.created, pet.timezone);
+  const age = Math.max(0, (Date.parse(today) - Date.parse(birthday)) / 86400000);
+  const action = actions[age % actions.length];
+  return { action, fulfilled: (pet.days[today] || []).includes(action) };
+}
