@@ -108,3 +108,12 @@ main { max-width: 960px; }
 #toast { pointer-events: none; }
 .fetch-ball { display: none; }
 [data-mood=play] .fetch-ball { display: block; }
+.account-gate { max-width: 480px; padding-top: 9vh; }
+.account-gate h1 { margin-top: 0; }
+#account-controls button:not([class]), #sync button { border-radius: 10px; padding: 10px; margin: 4px; }
+#sync { position: sticky; top: 0; z-index: 20; padding: 10px 16px; background: #fff0cf; color: #3c302c; text-align: center; }
+.music-controls { display: grid; gap: 12px; margin-top: 14px; }
+.music-controls label:first-child { display: flex; align-items: center; gap: 8px; min-height: 44px; }
+.music-controls input { accent-color: #87646b; }
+#sign-out { padding: 4px; font-size: 11px; }
+@media(max-width:400px){header{padding:0 10px}.header-right{gap:4px}.brand{gap:5px}}

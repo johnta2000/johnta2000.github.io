@@ -1,3 +1,4 @@
+const {accountFixture,savedPet}=require('./account-fixture.cjs');
 const {chromium} = require('playwright');
 const assert = require('node:assert/strict');
 (async () => {
@@ -5,6 +6,7 @@ const assert = require('node:assert/strict');
   const base = process.env.CORGI_BASE || 'http://127.0.0.1:8794/games/corgi-days/';
   for (const width of [1360, 390, 320]) {
     const context = await browser.newContext({viewport:{width,height:900}, isMobile:width<700, hasTouch:width<700});
+    const store=await accountFixture(context);
     const page = await context.newPage();
     const errors = [], requests = [];
     page.on('pageerror', e => errors.push(e.message));
@@ -21,7 +23,7 @@ const assert = require('node:assert/strict');
       await page.locator(`[data-action=${action}]`).click();
       assert.equal(await page.locator('#corgi-stage').getAttribute('data-mood'),action);
     }
-    const original = await page.evaluate(()=>JSON.parse(localStorage.getItem('corgi-days-v1')));
+    const original = await savedPet(page,store);
     await page.locator('.nav a[href="?view=wardrobe"]').click();
 
     for (const coat of ['golden','tricolor','cocoa','cream']) {
@@ -40,7 +42,7 @@ const assert = require('node:assert/strict');
     await page.reload();
     assert.ok((await page.locator('.pet-heading').innerText()).includes('Little loaf'));
     assert.equal(await page.locator('.count').innerText(),'4 / 4');
-    const saved=await page.evaluate(()=>JSON.parse(localStorage.getItem('corgi-days-v1')));
+    const saved=await savedPet(page,store);
     assert.deepEqual(saved.days,original.days);assert.equal(saved.biscuits,original.biscuits);
     assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
     assert.ok(!requests.some(url=>/three\.module|corgi-3d|plush-/.test(url)));
