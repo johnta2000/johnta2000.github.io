@@ -18,7 +18,7 @@
     <title>Sleepington — Your sleep, in perspective</title>
     <link rel="stylesheet" href="/assets/css/searchable-select.css" />
     <link rel="icon" href="./sleepington.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="./styles.css?v=20261116-filters-1" />
+    <link rel="stylesheet" href="./styles.css?v=20261125-group-layout" />
     <link rel="stylesheet" href="../../assets/css/clerk-auth.css?v=20261011-otp1">
 <style>.group-provider{display:inline-block;font-size:10px;font-weight:600;line-height:1.5;padding:1px 5px;border-radius:4px;background:#eef3f1;color:#52665e;white-space:nowrap;margin-left:5px}.group-member-name{flex-wrap:wrap}.sharing-category[hidden]{display:none}</style></head>
   <body>
@@ -370,7 +370,8 @@
             <p id="groupMessage" role="status" class="small-note"></p>
             <div id="groupEmptyState" class="panel" hidden><h2>Your first group</h2><p>Create a private group, then send a friend an invitation. Everyone chooses what to share.</p><button id="createFirstGroup" type="button" class="primary-button">Create a group</button></div>
             <p class="group-preview-label"><span class="tag">SAMPLE GROUP</span> Fictional data · Sign in to compare with your friends.</p>
-            <article id="friendSample" class="panel group-history">
+            <div id="friendSample" class="group-chart-stack">
+            <article class="panel group-history">
               <div class="group-chart-controls"><div class="panel-heading">
                 <div><p class="eyebrow" id="groupPeriod">SHARED HISTORY</p><h2>Head to head</h2></div>
                 <label class="metric-picker"><span class="sr-only">Group chart metric</span><select id="groupMetric" aria-label="Group chart metric"><option value="durationMinutes">Time asleep</option><option value="score">Sleep performance</option><option value="efficiency">Sleep efficiency</option></select></label>
@@ -383,12 +384,16 @@
               <div class="group-plot-wrap"><div id="groupPlot" tabindex="0" role="group" aria-label="Group history. Use left and right arrow keys to explore dates." aria-describedby="groupChartStatus"></div><div id="groupTooltip" class="group-tooltip" hidden></div><p id="groupEmpty" class="chart-empty" hidden>Select a person to show their history.</p></div>
               <p id="groupChartStatus" class="sr-only" role="status" aria-live="polite"></p>
               <p class="group-chart-note">Each person’s selected provider · Missing days appear as gaps. Select a person to hide or show their line.</p>
-              <div class="group-summary-heading"><h3>Consistency &amp; chaos</h3><p class="small-note">Compare the average and how much each person varies day to day.</p></div>
+            </article>
+            <section class="panel group-consistency" aria-labelledby="groupConsistencyTitle">
+              <h2 id="groupConsistencyTitle">Consistency &amp; chaos</h2>
+              <p id="groupConsistencyMetric" class="small-note"></p>
               <div id="groupVariability" class="group-variability"></div>
               <details class="stats-method"><summary>How these stats work</summary><p>Typical swing is the average absolute change between consecutive tracked days. Volatility is the population standard deviation; trend is a fitted change per calendar day. Gaps are excluded. Highlights compare shown people only when everyone has at least 80% day and pair coverage, with at least four daily pairs. Ties share highlights. These describe variation, not health.</p></details>
               <details class="stats-previous"><summary>Compare with the previous period</summary><p id="groupBaselineNote" class="small-note"></p>
               <div class="table-wrap"><table><caption class="sr-only">Selected members’ average, change from their own previous period, and data coverage</caption><thead><tr><th scope="col">Person</th><th scope="col" id="groupMetricHeading">Time asleep</th><th scope="col">Change vs. own previous period</th><th scope="col">Days tracked</th></tr></thead><tbody id="groupSummaryRows"></tbody></table></div></details>
-            </article>
+            </section>
+            </div>
             <section id="groupStandings" class="panel group-standings" hidden>
               <div class="panel-heading"><div><p class="eyebrow" id="standingsPeriod">LAST 7 COMPLETE DAYS</p><h2>Standings</h2></div><button id="customizeStandings" type="button" class="secondary-button">Choose metrics</button></div>
               <div id="standingsBoards" class="standings-grid"></div>
@@ -688,9 +693,9 @@
     <dialog id="groupDialog" class="group-dialog"><form id="groupForm"><div class="panel-heading"><h2 id="groupDialogTitle">Create a group</h2><button id="cancelGroupDialog" type="button" class="text-button">Cancel</button></div><p id="groupDialogIntro"></p><label id="groupNameLabel">Group name<input id="groupNameInput" maxlength="60" type="text"></label><label>Your display name<input id="groupDisplayName" maxlength="40" required type="text" autocomplete="nickname"></label><label>Provider to share<select id="groupShareProvider" aria-label="Provider to share"><option value="whoop">WHOOP</option><option value="garmin">Garmin</option></select></label><p id="groupProviderHelp" class="small-note"></p><fieldset id="groupSharingOptions"><legend>Share with this group</legend><p>Nothing is shared unless you select it. Your notes always stay private.</p><label><input type="checkbox" name="sharedMetric" value="durationMinutes"> Time asleep</label><label><input type="checkbox" name="sharedMetric" value="score"> Sleep performance</label><label><input type="checkbox" name="sharedMetric" value="efficiency"> Sleep efficiency</label></fieldset><label>History to share<select id="groupShareDays" aria-label="History to share"><option value="7">Last 7 days</option><option value="28">Last 28 days</option><option value="90" selected>Last 90 days</option><option value="180">Last 180 days</option></select></label><p class="small-note">This is a rolling window that includes future synced days. New members of this group can see the metrics you share.</p><p id="groupFormError" role="alert"></p><button id="saveGroupForm" type="submit" class="primary-button">Create group</button></form></dialog>
     <script defer src="./model.js?v=20261115-activity-1"></script>
     <script defer src="./comparison.js?v=20261116-filters-1"></script>
-    <script defer src="./groups.js?v=20261116-sleepington-1"></script>
+    <script defer src="./groups.js?v=20261125-group-layout"></script>
     <script defer src="./garmin.js?v=20261115-activity-1"></script>
     <script defer src="./mobile-filters.js?v=20261116-filters-1"></script>
-    <script defer src="./app.js?v=20261116-filters-1"></script>
+    <script defer src="./app.js?v=20261125-group-layout"></script>
   </body>
 </html>

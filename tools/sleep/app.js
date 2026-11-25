@@ -102,7 +102,10 @@ async function init() {
   document
     .querySelectorAll("select")
     .forEach((select) => SearchableSelect.enhance(select));
-  if (isDemo) return startPreview();
+  if (isDemo) {
+    restoreGroupRoute();
+    return startPreview();
+  }
   await initializeClerk();
 }
 
@@ -492,7 +495,10 @@ function switchView(view, historyMode = "push") {
   const pageUrl = new URL(location.href);
   if (view === 'overview') pageUrl.searchParams.delete('view');
   else pageUrl.searchParams.set('view', view === 'friends' ? 'groups' : view);
-  if (view !== 'friends') pageUrl.searchParams.delete('group');
+  if (view !== 'friends') {
+    pageUrl.searchParams.delete('group');
+    pageUrl.searchParams.delete('memberStats');
+  }
   const signInUrl = new URL(pageUrl); signInUrl.searchParams.delete("demo");
   $("#openPrivateWorkspace").href = signInUrl.pathname + signInUrl.search;
   const destination = pageUrl.pathname + pageUrl.search + pageUrl.hash;
@@ -1815,6 +1821,7 @@ function drawGroupChart() {
   groupHistory = Daylight.groupHistory(groupSample.filter(member => visibleGroupMembers.has(member.id)), metric, selectedDays, todayPacific(), groupChartMode);
   $("#groupPeriod").textContent = `${selectedRange === "all" ? "All shared · " : ""}${formatRangeDate(groupHistory.dates[0])} – ${formatRangeDate(groupHistory.dates.at(-1))} · ${[...new Set(groupSample.map(providerName))].join(" + ")}`;
   $("#groupMetricHeading").textContent = metricName;
+  $("#groupConsistencyMetric").textContent = metric === "score" ? `${metricName} · out of 100` : metricName;
   $('.group-chart-note').textContent = metric === 'score' ? 'WHOOP sleep performance and Garmin sleep score are compared together out of 100. Each provider calculates its score differently.' : ['hrv','restingHeartRate'].includes(metric) ? 'Provider measurements can differ. Compare each person’s trend in context; missing days stay gaps.' : 'Each person’s selected provider · Missing days appear as gaps. Select a person to hide or show their line.';
   $("#groupBaselineNote").textContent = selectedRange === "all" ? "All available shared history. Each person’s sharing window still applies; coverage may differ. There is no previous period for All." : `Compared with each person’s previous ${selectedDays} days. Only tracked days count. HRV and resting heart rate are personal measures.`;
   if (!$("#groupMembers").children.length) {
@@ -1915,8 +1922,8 @@ function showGroupDay(index, tooltip = false) {
     button.querySelector(".group-member-value").textContent = member ? formatGroupPoint(member, member.points[index]) : "Hidden";
     const point = member?.points[index];
     const detail = !member ? "Tap to show" : groupChartMode === "values"
-      ? Number.isFinite(point.change) ? `${formatGroupDifference(point.change)} vs. yesterday` : "No previous-day comparison"
-      : Number.isFinite(point.rawValue) ? `Daily value: ${formatGroupValue(point.rawValue)}` : "No daily reading";
+      ? Number.isFinite(point.change) ? `${formatGroupDifference(point.change)} vs. yesterday` : ""
+      : Number.isFinite(point.rawValue) ? `Daily value: ${formatGroupValue(point.rawValue)}` : "";
     button.querySelector(".group-member-change").textContent = detail;
   });
   const rows = groupHistory.members.map(member => {
@@ -1962,35 +1969,55 @@ function renderGroupVariability(metric) {
   const minSwing = Math.min(...swings), maxSwing = Math.max(...swings);
   const comeback = Math.max(0, ...members.map(m => displayed(m.variability.biggestJump?.value || 0)));
   const container = $("#groupVariability");
-  const expanded = new Set([...container.querySelectorAll("[data-stat-details][aria-expanded='true']")].map(el => el.dataset.statDetails));
+  const expanded = new URLSearchParams(location.search).get("memberStats");
+  const scale = Math.max(0, ...members.map(member => member.variability.typicalSwing ?? 0)) || 1;
   const badgesFor = member => {
     const v = member.variability;
     return comparable ? [maxSwing > minSwing && displayed(v.typicalSwing) === minSwing ? "Most consistent" : "", maxSwing > minSwing && displayed(v.typicalSwing) === maxSwing ? "Biggest roller coaster" : "", comeback > 0 && displayed(v.biggestJump?.value || 0) === comeback ? "Biggest jump" : ""].filter(Boolean) : [];
   };
-  const nameOf = member => escapeHtml(member.name.replace(' (sample)', '')) + providerBadge(member);
+  const nameOf = member => escapeHtml(member.name.replace(' (sample)', ''));
   const number = text => `<span class="stat-number">${text}</span>`;
   const highlights = ["Most consistent", "Biggest roller coaster", "Biggest jump"].map(label => {
     const winners = members.filter(m => badgesFor(m).includes(label));
-    return winners.length ? `<span><b>${label}</b> ${winners.map(nameOf).join(", ")}</span>` : "";
+    return winners.length ? `<div><dt>${label}</dt><dd>${winners.map(nameOf).join(", ")}</dd></div>` : "";
   }).join("");
   const rows = members.map((member, index) => {
     const v = member.variability, name = nameOf(member);
     const shared = isDemo || liveGroup?.members.find(m => m.id === member.id)?.metrics.includes(metric);
-    const open = expanded.has(member.id), detailId = `variability-detail-${index}`;
-    const detailColumns = window.matchMedia("(max-width:700px)").matches ? 4 : 5;
+    const hasData = shared && member.count > 0;
+    const open = hasData && expanded === member.id;
+    const detailId = `variability-detail-${index}`;
+    const nameId = `variability-name-${index}`;
     const range = v.min !== null ? `${number(formatGroupValue(v.min))} <span class="stat-range-arrow">→</span> ${number(formatGroupValue(v.max))}` : "—";
     const event = item => item ? `<strong>${formatGroupDifference(item.value)}</strong><small>${formatTableDate(item.date)}<br>${number(formatGroupValue(item.previous))} → ${number(formatGroupValue(item.current))}</small>` : v.pairCount ? "None" : "—";
-    return `<tr class="variability-person"><th scope="row"><span class="stat-person"><i class="group-person-marker" style="background:${member.color}"></i><span>${name}</span></span><small>${shared ? `${member.count} / ${selectedDays} days` : "Not shared"}</small></th><td>${number(shared ? formatGroupValue(member.average) : "—")}</td><td>${number(formatGroupDifference(v.typicalSwing, false))}</td><td class="stat-range-column">${range}</td><td class="stat-action"><button type="button" data-stat-details="${escapeHtml(member.id)}" aria-expanded="${open}" aria-controls="${detailId}" aria-label="${open ? "Hide" : "Show"} details for ${escapeHtml(member.name.replace(' (sample)', ''))}"><span class="stat-details-label">Details</span><span class="stat-chevron" aria-hidden="true">⌄</span></button></td></tr>
-      <tr class="variability-detail-row" id="${detailId}"${open ? "" : " hidden"}><td colspan="${detailColumns}"><div class="variability-detail-body"><dl>
+    const swing = hasData && Number.isFinite(v.typicalSwing)
+      ? `<div class="stat-swing">${number(formatGroupDifference(v.typicalSwing, false))}<span class="stat-swing-track" aria-hidden="true"><i style="width:${100 * v.typicalSwing / scale}%;background:${member.color}"></i></span></div>`
+      : "—";
+    const action = hasData ? `<button type="button" data-stat-details="${escapeHtml(member.id)}" aria-expanded="${open}" aria-controls="${detailId}" aria-labelledby="variabilityDetailsLabel ${nameId}"><span class="stat-chevron" aria-hidden="true"></span></button>` : "";
+    const average = metric === "score" && hasData ? String(Number(member.average.toFixed(1))) : formatGroupValue(member.average);
+    const row = `<tr class="variability-person${hasData ? "" : " stat-unavailable"}">
+      <th scope="row"><span class="stat-person"><i class="group-person-marker" style="background:${member.color}"></i><span id="${nameId}">${name}</span></span>${hasData ? "" : `<small>${shared ? "No readings" : "Not shared"}</small>`}</th>
+      <td>${hasData ? number(average) : "—"}</td><td>${swing}</td><td class="stat-action">${action}</td></tr>`;
+    if (!hasData) return row;
+    return `${row}<tr class="variability-detail-row" id="${detailId}"${open ? "" : " hidden"}><td colspan="4"><div class="variability-detail-body">
+      <p>${providerName(member)} · ${member.count} of ${selectedDays} days tracked · ${v.pairCount} consecutive-day ${v.pairCount === 1 ? "pair" : "pairs"}</p><dl>
       <div><dt>Low → high</dt><dd>${range}</dd></div><div><dt>Range width</dt><dd>${v.min !== null ? formatGroupDifference(v.max - v.min, false) : "—"}</dd></div><div><dt>Volatility (SD)</dt><dd>${formatGroupDifference(v.volatility, false)}</dd></div><div><dt>Trend per day</dt><dd>${formatGroupDifference(v.trend)}</dd></div>
-      <div class="stat-event"><dt>Biggest drop</dt><dd>${event(v.biggestDrop)}</dd></div><div class="stat-event"><dt>Biggest jump</dt><dd>${event(v.biggestJump)}</dd></div></dl><p>${v.pairCount} consecutive-day pairs · ${member.count} tracked days in this period</p></div></td></tr>`;
+      <div class="stat-event"><dt>Biggest drop</dt><dd>${event(v.biggestDrop)}</dd></div><div class="stat-event"><dt>Biggest jump</dt><dd>${event(v.biggestJump)}</dd></div></dl></div></td></tr>`;
   }).join("");
-  container.innerHTML = members.length ? `${highlights ? `<div class="variability-highlights">${highlights}</div>` : ""}<table class="variability-table"><caption class="sr-only">${escapeHtml(Daylight.metrics[metric].label)} comparison for selected members</caption><colgroup><col class="stat-person-col"><col><col><col class="stat-range-column"><col class="stat-action-col"></colgroup><thead><tr><th scope="col">Person</th><th scope="col">Average</th><th scope="col">Typical swing</th><th scope="col" class="stat-range-column">Low → high</th><th scope="col"><span class="sr-only">Details</span></th></tr></thead><tbody>${rows}</tbody></table>` : '<p class="small-note">Select a person above to explore their stats.</p>';
-  container.querySelectorAll("[data-stat-details]").forEach(button => button.addEventListener("click", () => {
-    const open = button.getAttribute("aria-expanded") !== "true";
-    button.setAttribute("aria-expanded", String(open));
-    const member = members.find(m => m.id === button.dataset.statDetails);
-    button.setAttribute("aria-label", `${open ? "Hide" : "Show"} details for ${member.name.replace(' (sample)', '')}`);
-    document.getElementById(button.getAttribute("aria-controls")).hidden = !open;
+  container.innerHTML = members.length ? `<table class="variability-table">
+    <caption class="sr-only">${escapeHtml(Daylight.metrics[metric].label)} comparison for selected members</caption>
+    <colgroup><col class="stat-person-col"><col><col><col class="stat-action-col"></colgroup>
+    <thead><tr><th scope="col">Person</th><th scope="col">Average</th><th scope="col">Typical swing</th><th scope="col"><span id="variabilityDetailsLabel" class="sr-only">Details for</span></th></tr></thead>
+    <tbody>${rows}</tbody></table>${highlights ? `<dl class="variability-highlights" aria-label="Highlights">${highlights}</dl>` : ""}`
+    : '<p class="small-note">Select a person above to explore their stats.</p>';
+  const buttons = Array.from(container.querySelectorAll("[data-stat-details]"));
+  buttons.forEach(button => button.addEventListener("click", () => {
+    const selected = button.getAttribute("aria-expanded") === "true" ? null : button.dataset.statDetails;
+    setGroupRoute({memberStats: selected});
+    buttons.forEach(toggle => {
+      const open = toggle.dataset.statDetails === selected;
+      toggle.setAttribute("aria-expanded", String(open));
+      document.getElementById(toggle.getAttribute("aria-controls")).hidden = !open;
+    });
   }));
 }

@@ -41,7 +41,7 @@ function bindGroupEvents() {
       return;
     }
     activeGroupId = $('#groupSelect').value;
-    setGroupRoute({group:activeGroupId,dialog:null});
+    setGroupRoute({group:activeGroupId,dialog:null,memberStats:null});
     sessionStorage.setItem('daylightActiveGroup', activeGroupId);
     $('#newInvite').hidden = true;
     refreshLiveGroup();
