@@ -44,8 +44,7 @@
     snapshot = null;
     $('inventory').hidden = true;
     $('rows').replaceChildren();
-    $('active').textContent = 'Active';
-    $('paused').textContent = 'Paused';
+    $('count').textContent = '';
     $('updated').textContent = $('empty').textContent = $('search').value = '';
     $('gate').hidden = false;
     $('message').textContent = message;
@@ -54,14 +53,19 @@
 
   function route() {
     const url = new URL(location.href);
-    return { status: url.searchParams.get('status') === 'paused' ? 'paused' : 'active',
-      descending: url.searchParams.get('sort') === 'name-desc',
-      search: new URLSearchParams(url.hash.slice(1)).get('q') || '' };
+    const sort = /^(name|status|frequency|time)-(asc|desc)$/.exec(url.searchParams.get('sort'));
+    const status = url.searchParams.get('status');
+    return {
+      // Explicit status links from the former two-tab layout remain usable.
+      status: ['paused', 'active'].includes(status) ? status : '',
+      column: sort?.[1] || 'status', direction: sort?.[2] || 'asc',
+      search: new URLSearchParams(url.hash.slice(1)).get('q') || ''
+    };
   }
-  function urlFor(status, search, descending = route().descending) {
+  function urlFor({ status, column, direction, search }) {
     const url = new URL(location.pathname, location.origin);
-    if (status === 'paused') url.searchParams.set('status', status);
-    if (descending) url.searchParams.set('sort', 'name-desc');
+    if (status) url.searchParams.set('status', status);
+    if (column !== 'status' || direction !== 'asc') url.searchParams.set('sort', column + '-' + direction);
     if (search) url.hash = new URLSearchParams({ q: search }).toString();
     return url;
   }
@@ -71,27 +75,39 @@
     if (className) el.className = className;
     return el;
   }
+  const collator = new Intl.Collator('en', { numeric:true, sensitivity:'base' });
+  function tableJob(job) {
+    const [cadence, ...details] = job.schedule.split(' · ');
+    const clock = details.find(part => /^\d{1,2}:\d{2} [AP]M.* PT$/.test(part));
+    const times = Array.from((clock || '').matchAll(/(\d+):(\d+) (AM|PM)/g),
+      ([,hour,minute,period]) => (+hour % 12 + (period === 'PM' ? 12 : 0)) * 60 + Number(minute));
+    return { ...job, statusText:job.status === 'ACTIVE' ? 'Active' : 'Inactive',
+      cadence, details:details.filter(part => part !== clock), timeText:clock?.slice(0, -3) || '—',
+      firstTime:times.length ? Math.min(...times) : null };
+  }
+  function compareJobs(a, b, {column, direction}) {
+    let order;
+    if (column === 'time') {
+      // Interval-only jobs have no clock time and belong at the end in either direction.
+      if ((a.firstTime === null) !== (b.firstTime === null)) return a.firstTime === null ? 1 : -1;
+      order = (a.firstTime ?? 0) - (b.firstTime ?? 0);
+    } else {
+      const field = { status:'statusText', name:'name', frequency:'cadence' }[column];
+      order = collator.compare(a[field], b[field]);
+    }
+    return (direction === 'desc' ? -order : order) || collator.compare(a.name, b.name) || collator.compare(a.id, b.id);
+  }
   function jobRow(job) {
     const row = element('tr');
     const name = element('th', job.name, 'job-name');
     name.scope = 'row';
+    const status = element('td', '', 'status');
+    status.append(element('span', job.statusText, job.status === 'ACTIVE' ? 'active' : 'inactive'));
     const frequency = element('td', '', 'frequency');
-    const time = element('td', '', 'time');
-    // The Mac sync separates cadence, clock times and end dates with a middle dot.
-    const parts = job.schedule.split(' · ');
-    const clock = parts.find(part => /^\d{1,2}:\d{2} [AP]M.* PT$/.test(part));
-    frequency.append(element('span', parts[0]));
-    for (const detail of parts.slice(1).filter(part => part !== clock)) {
-      frequency.append(element('small', detail));
-    }
-    if (clock) {
-      time.textContent = clock.slice(0, -3);
-      time.append(element('span', ' PT', 'mobile-zone'));
-    } else {
-      time.classList.add('no-time');
-      time.append(element('span', '—'));
-      time.setAttribute('aria-label', 'No fixed time listed');
-    }
+    frequency.append(element('span', job.cadence));
+    for (const detail of job.details) frequency.append(element('small', detail));
+    const time = element('td', job.timeText, 'time');
+    if (job.firstTime === null) time.setAttribute('aria-label', 'No fixed time listed');
     const links = element('td', '', 'link-cell');
     const actions = element('div', '', 'actions');
     const manage = element('a', 'Manage ↗');
@@ -105,31 +121,36 @@
       actions.append(chat);
     }
     links.append(actions);
-    row.append(name, frequency, time, links);
+    row.append(name, status, frequency, time, links);
     return row;
   }
   function render() {
     if (!snapshot) return;
-    const { status, search, descending } = route();
-    const sort = $('sort-name');
-    sort.href = urlFor(status, search, !descending);
-    sort.parentElement.setAttribute('aria-sort', descending ? 'descending' : 'ascending');
-    sort.setAttribute('aria-label', descending ? 'Sort job names A to Z' : 'Sort job names Z to A');
-    sort.querySelector('span').textContent = descending ? '↓' : '↑';
-    if ($('search').value !== search) $('search').value = search;
-    for (const key of ['active', 'paused']) {
-      const tab = $(key), count = snapshot.jobs.filter(job => job.status.toLowerCase() === key).length;
-      tab.textContent = (key === 'active' ? 'Active' : 'Paused') + ' · ' + count;
-      tab.href = urlFor(key, search);
-      if (key === status) tab.setAttribute('aria-current', 'page');
-      else tab.removeAttribute('aria-current');
+    const state = route();
+    const { status, search, column, direction } = state;
+    for (const link of document.querySelectorAll('[data-sort]')) {
+      const current = link.dataset.sort === column;
+      const next = current && direction === 'asc' ? 'desc' : 'asc';
+      link.href = urlFor({ ...state, column:link.dataset.sort, direction:next });
+      if (current) link.parentElement.setAttribute('aria-sort', direction === 'asc' ? 'ascending' : 'descending');
+      else link.parentElement.removeAttribute('aria-sort');
+      link.querySelector('span').textContent = current ? (direction === 'asc' ? '↑' : '↓') : '↕';
     }
-    const matches = snapshot.jobs.filter(job => job.status.toLowerCase() === status &&
-      (job.name + ' ' + job.schedule).toLowerCase().includes(search.trim().toLowerCase()));
-    matches.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric:true }) * (descending ? -1 : 1));
+    $('show-all').hidden = !status;
+    $('show-all').href = urlFor({ ...state, status:'' });
+    if ($('search').value !== search) $('search').value = search;
+    const query = search.trim().toLowerCase();
+    const matches = snapshot.jobs.map(tableJob).filter(job => {
+      if (status && job.status.toLowerCase() !== status) return false;
+      if (query === 'active' || query === 'inactive') return job.statusText.toLowerCase() === query;
+      return [job.name, job.schedule, job.statusText, job.status].join(' ').toLowerCase().includes(query);
+    });
+    matches.sort((a, b) => compareJobs(a, b, state));
     $('rows').replaceChildren(...matches.map(jobRow));
+    const total = snapshot.jobs.length;
+    $('count').textContent = (status || query ? matches.length + ' of ' + total : total) + (total === 1 ? ' job' : ' jobs');
     $('empty').hidden = matches.length > 0;
-    $('empty').textContent = search ? 'No matching jobs.' : 'No ' + status + ' jobs.';
+    $('empty').textContent = query || status ? 'No matching jobs.' : 'No recurring jobs.';
     const when = new Intl.DateTimeFormat('en-US', { timeZone:'America/Los_Angeles', month:'short', day:'numeric', year:'numeric', hour:'numeric', minute:'2-digit' });
     $('updated').textContent = snapshot.checkedAt ? 'Mac last synced ' + when.format(snapshot.checkedAt) + ' PT' : 'Waiting for the first Mac sync.';
     $('gate').hidden = true;
@@ -177,22 +198,17 @@
       mounted = true;
     }
   }
-  for (const id of ['active','paused']) $(id).addEventListener('click', event => {
-    if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
-    event.preventDefault();
-    if (route().status !== id) history.pushState(null,'',$(id).href);
-    searchStarted = false;
-    render();
-  });
-  $('sort-name').addEventListener('click', event => {
-    if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
-    event.preventDefault();
-    history.pushState(null, '', $('sort-name').href);
-    searchStarted = false;
-    render();
-  });
+  for (const link of document.querySelectorAll('[data-sort], #show-all')) {
+    link.addEventListener('click', event => {
+      if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+      event.preventDefault();
+      history.pushState(null, '', link.href);
+      searchStarted = false;
+      render();
+    });
+  }
   $('search').addEventListener('input', () => {
-    const url = urlFor(route().status, $('search').value);
+    const url = urlFor({ ...route(), search:$('search').value });
     history[searchStarted ? 'replaceState' : 'pushState'](null, '', url);
     searchStarted = true;
     render();

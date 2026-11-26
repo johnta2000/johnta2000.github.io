@@ -7,7 +7,7 @@ const origin = 'https://jobs-preview.test';
 const jobs = [
   { id:'one', name:'Weekly sample', status:'ACTIVE', schedule:'Weekdays · 9:00 AM PT', thread:'10000000-0000-4000-8000-000000000001' },
   { id:'second-active', name:'Yearly inventory review', status:'ACTIVE', schedule:'Every 6 hours' },
-  { id:'two', name:'Monthly sample', status:'PAUSED', schedule:'Monthly' },
+  { id:'two', name:'Monthly sample', status:'PAUSED', schedule:'Every month · day 1 · 2:00 PM PT' },
 ];
 
 for (const width of [390, 1280]) test('Private inventory and URL navigation at width ' + width, async () => {
@@ -45,38 +45,51 @@ for (const width of [390, 1280]) test('Private inventory and URL navigation at w
     assert.equal(await row.locator('a').nth(1).getAttribute('href'), 'codex://threads/10000000-0000-4000-8000-000000000001');
     assert.equal(await row.locator('.frequency').innerText(), 'Weekdays');
     assert.match(await row.locator('.time').innerText(), /9:00 AM/);
-    const desktop = width > 760;
-    assert.equal(await page.locator('.time-heading').isVisible(), desktop);
-    assert.equal(await page.locator('.no-time').isVisible(), desktop);
-    const cells = await row.locator('th,td').evaluateAll(items => items.map(el => {
-      const r = el.getBoundingClientRect();
-      return { x:r.x, y:r.y };
-    }));
-    if (desktop) assert.ok(cells.every((c,i) => c.y === cells[0].y && (!i || c.x > cells[i-1].x)));
-    else assert.ok(cells.every((c,i) => c.x === cells[0].x && (!i || c.y > cells[i-1].y)));
-    await page.locator('#sort-name').click();
-    assert.match(await row.innerText(), /Yearly inventory review/);
+    const rows = page.locator('#rows tr');
+    const names = () => rows.locator('.job-name').allTextContents();
+    const sort = key => page.locator('[data-sort="' + key + '"]').click();
+    assert.deepEqual(await rows.locator('.status').allTextContents(), ['Active','Active','Inactive']);
+    assert.equal(await page.locator('#count').innerText(), '3 jobs');
+    const sheet = page.locator('.sheet');
+    assert.equal(await sheet.evaluate(el => el.scrollWidth > el.clientWidth), width < 760);
+    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+    const left = (await row.locator('th').boundingBox()).x;
+    await sheet.evaluate(el => { el.scrollLeft = el.scrollWidth; });
+    assert.ok(Math.abs((await row.locator('th').boundingBox()).x - left) < 2);
+    await sheet.evaluate(el => { el.scrollLeft = 0; });
+
+    await sort('name');
+    assert.deepEqual(await names(), ['Monthly sample','Weekly sample','Yearly inventory review']);
+    await sort('name');
+    assert.deepEqual(await names(), ['Yearly inventory review','Weekly sample','Monthly sample']);
+    await sort('time');
+    assert.deepEqual(await names(), ['Weekly sample','Monthly sample','Yearly inventory review']);
+    await sort('time');
+    assert.deepEqual(await names(), ['Monthly sample','Weekly sample','Yearly inventory review']);
+    await sort('frequency');
+    assert.deepEqual(await names(), ['Yearly inventory review','Monthly sample','Weekly sample']);
+    await sort('status'); await sort('status');
+    assert.equal(await row.locator('.status').innerText(), 'Inactive');
     await page.reload(); await row.waitFor();
-    assert.match(await row.innerText(), /Yearly inventory review/);
-    await page.goBack();
-    assert.match(await row.innerText(), /Weekly sample/);
-    await page.locator('#paused').click();
-    assert.match(await row.innerText(), /Monthly sample/);
-    await page.locator('#search').fill('monthly');
-    await page.waitForURL(url => url.hash === '#q=monthly', {timeout:3000});
+    assert.equal(await row.locator('.status').innerText(), 'Inactive');
+    await page.locator('#search').fill('active');
+    assert.deepEqual(await rows.locator('.status').allTextContents(), ['Active','Active']);
+    await page.locator('#search').fill('inactive');
+    await page.waitForURL(url => url.hash === '#q=inactive');
+    assert.equal(await rows.count(), 1);
     const copied = page.url();
-    assert.match(copied, /status=paused#q=monthly$/);
     await page.goBack();
-    assert.equal(await page.locator('#search').inputValue(), '');
-    await page.goBack();
-    assert.match(await row.innerText(), /Weekly sample/);
-    await page.goForward(); await page.goForward();
-    await page.reload(); await row.first().waitFor();
-    assert.equal(await page.locator('#search').inputValue(), 'monthly');
+    assert.equal(await rows.count(), 3);
+    await page.goForward();
+    assert.equal(await rows.count(), 1);
     const fresh = await ctx.newPage();
+    await fresh.goto(origin + '/tools/jobs/?status=paused');
+    await fresh.locator('#rows tr').waitFor();
+    assert.equal(await fresh.locator('#rows tr').count(),1);
+    await fresh.getByRole('link',{name:'Show all jobs'}).click();
+    assert.equal(await fresh.locator('#rows tr').count(),3);
     await fresh.goto(copied); await fresh.locator('#rows tr').waitFor();
     assert.match(await fresh.locator('#rows tr').innerText(), /Monthly sample/);
-    assert.ok(await fresh.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
     await fresh.evaluate(() => window.Clerk.change('outsider'));
     await fresh.getByText(/does not have access/).waitFor();
     assert.equal(await fresh.locator('#rows tr').count(),0);
@@ -84,7 +97,7 @@ for (const width of [390, 1280]) test('Private inventory and URL navigation at w
     assert.equal(await fresh.evaluate(() => window.Clerk.redirect), copied);
     await fresh.evaluate(() => window.Clerk.change('owner'));
     await fresh.locator('#rows tr').waitFor();
-    assert.equal(await fresh.locator('#search').inputValue(),'monthly');
+    assert.equal(await fresh.locator('#search').inputValue(),'inactive');
     await fresh.locator('#search').fill('missing');
     await fresh.getByText('No matching jobs.').waitFor();
     await fresh.locator('#signout').click();

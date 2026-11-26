@@ -1,46 +1,50 @@
-:root { color-scheme:light; font:16px/1.5 Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; color:#182921; background:#f7f8f5 }
-* { box-sizing:border-box } [hidden] { display:none!important }
-body { margin:0 } main { max-width:1256px; margin:auto; padding:24px clamp(16px,5vw,56px) 64px }
-nav,.toolbar,.meta,.actions { display:flex; align-items:center; justify-content:space-between; gap:12px }
-nav { padding-bottom:15px; border-bottom:1px solid #cbd4cb }
-a,button { color:#1d5941; font:inherit } button,a { touch-action:manipulation }
-a { text-underline-offset:3px } nav a,.tabs a,.actions a { text-decoration:none }
-button,nav a,.actions a,.tabs a { display:inline-flex; align-items:center; min-height:44px }
-button { background:transparent; border:0; cursor:pointer } a:hover,button:hover { text-decoration:underline }
-:focus-visible { outline:3px solid #227c58; outline-offset:2px }
-h1 { font-size:clamp(36px,6vw,60px); line-height:1.05; margin:42px 0 32px; letter-spacing:-.05em }
-#gate { border:1px solid #d3dbd1; background:white; border-radius:16px }
-.tabs { display:inline-flex; gap:4px; padding:4px; border-radius:12px; background:#e6ece4 }
-.tabs a { padding:0 14px; border-radius:9px; font-weight:600; color:#3a5143 }
-.tabs [aria-current="page"] { background:#244e38; color:white }
-input { width:min(300px,100%); font:inherit; max-width:100%; padding:10px 14px; border:1px solid #b8c6b9; border-radius:9px; background:white }
-.meta { color:#4c5e51; font-size:.875rem }
-.table-panel { border:1px solid #cfd8cf; border-radius:15px; background:#fff; box-shadow:0 3px 14px #19312308 }
-.toolbar { padding:16px 20px }
-table { width:100%; border-spacing:0; table-layout:fixed; text-align:left }
-thead th { position:sticky; top:0; z-index:1; padding:0 16px; height:42px; border-block:1px solid #c8d4c9; background:#eaf0e9; color:#415649; font-size:.8rem; font-weight:650 }
-thead a { display:inline-flex; align-items:center; gap:7px; min-height:44px; color:inherit; text-decoration:none }
-.name-heading { width:33% }.frequency-heading { width:20% }.time-heading { width:24% }.actions-heading { width:23% }
-tbody td,tbody th { padding:9px 16px; border-bottom:1px solid #e0e6df; vertical-align:middle; line-height:1.4; overflow-wrap:anywhere }
-thead th:first-child,tbody th:first-child { padding-left:20px }
-tbody tr:nth-child(even) { background:#f8faf7 }
-tbody tr:hover,tbody tr:focus-within { background:#eff6ee }
-.job-name { font-size:.95rem; font-weight:650 }
-.frequency,.time { color:#3c5043; font-size:.9rem }
-.frequency small { display:block; margin-top:3px; color:#58695d; font-size:.8rem }
-.time { font-variant-numeric:tabular-nums }.no-time { color:#75857a }.mobile-zone { display:none }
-.actions { justify-content:flex-start; flex-wrap:wrap; gap:0 14px; font-size:.84rem }
-.actions a { min-height:36px; white-space:nowrap }.actions a:first-child { font-weight:650 }
-.meta { padding:4px 20px; gap:8px }.meta p { margin:6px 0 }.meta button { font-weight:600 }
-#empty { padding:24px 20px; margin:0; color:#506457; border-bottom:1px solid #e0e6df }
+:root { color-scheme:light; font:16px/1.45 Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; color:#172b22; background:#fafbf9 }
+* { box-sizing:border-box }
+[hidden] { display:none!important }
+body { margin:0 }
+main { max-width:1450px; margin:auto; padding:16px clamp(14px,3.5vw,54px) 40px }
+nav,.toolbar,.meta,.actions { display:flex; align-items:center; gap:12px }
+nav,.meta { justify-content:space-between }
+nav { border-bottom:1px solid #d9e0dc; font-size:.875rem }
+button,a { color:#186444; font:inherit; touch-action:manipulation }
+a { text-underline-offset:3px } nav a,.actions a { text-decoration:none }
+button,nav a,.actions a { display:inline-flex; align-items:center; min-height:38px }
+button { background:transparent; border:0; cursor:pointer }
+a:hover,button:hover { text-decoration:underline }
+:focus-visible { outline:2px solid #11784b; outline-offset:2px }
+h1 { font-size:clamp(1.8rem,3vw,2.5rem); line-height:1.15; margin:26px 0 22px; font-weight:660; letter-spacing:-.045em }
+#gate { border:1px solid #d3dbd1; background:white; border-radius:12px }
+.toolbar { margin-bottom:12px; font-size:.875rem }
+input { width:min(290px,100%); min-width:0; font:inherit; padding:8px 11px; border:1px solid #b9c5be; border-radius:5px; background:white }
+#count { margin-left:auto; color:#506258; white-space:nowrap; font-variant-numeric:tabular-nums }
+.sheet { max-height:75vh; overflow:auto; border:1px solid #b8c8bd; background:white }
+table { width:100%; min-width:780px; border-spacing:0; table-layout:fixed; text-align:left; font-size:.88rem; line-height:1.35 }
+th,td { padding:7px 12px; border-right:1px solid #dae2dc; border-bottom:1px solid #dce4de; vertical-align:middle; overflow-wrap:anywhere }
+th:last-child,td:last-child { border-right:none } tbody tr:last-child>* { border-bottom:none }
+thead th { position:sticky; top:0; z-index:2; background:#e2eae4; color:#263e30; font-size:.82rem; height:36px; font-weight:650; border-bottom-color:#aebfb2 }
+thead th:has(a) { padding:0 }
+thead a { padding:9px 12px; display:flex; align-items:center; justify-content:space-between; gap:4px; color:inherit; text-decoration:none }
+thead a:hover { background:#d6e3d9; text-decoration:none }
+thead a:focus-visible { outline-offset:-3px }
+thead span { color:#73897a; font-weight:400 } thead [aria-sort] span { color:#125f39; font-weight:700 }
+.name-heading { width:33% }.status-heading { width:11% }.frequency-heading { width:18% }.time-heading { width:21% }.actions-heading { width:17% }
+tbody tr { background:#fff } tbody tr:nth-child(even) { background:#f6f8f6 } tbody tr:hover,tbody tr:focus-within { background:#ebf4ee }
+.job-name { font-weight:580 } .time { font-variant-numeric:tabular-nums }
+.status span { display:inline-flex; align-items:center; gap:7px; white-space:nowrap }
+.status span::before { content:""; width:7px; height:7px; border-radius:50%; background:#15824f }
+.status .inactive::before { background:#89958d }.status .inactive { color:#536058 }
+.frequency small { display:block; color:#526457; font-size:.77rem }
+.actions { flex-wrap:wrap; gap:0 14px; font-size:.83rem }
+.actions a { white-space:nowrap; min-height:24px }
+.meta,#empty { color:#536259; font-size:.82rem }
+.meta p { margin:8px 0 }
 @media(max-width:760px) {
-  .toolbar { flex-wrap:wrap; padding:12px }.toolbar input { flex:1 1 165px; min-width:0 }
-  table,tbody { display:block }
-  thead { display:block; background:#eaf0e9; border-block:1px solid #c8d4c9 }
-  thead tr { display:block } thead th { display:none } thead .name-heading { position:static; display:block; width:auto; height:auto; padding:0 14px; border:none }
-  tbody tr { display:grid; grid-template-columns:minmax(0,1fr); padding:13px 14px 6px; border-bottom:1px solid #dbe4da }
-  tbody th,tbody td { display:block; padding:0; border:0 }
-  tbody th:first-child { padding-left:0 }
-  .job-name { margin-bottom:4px; font-size:1rem }.time { margin-top:3px }.no-time { display:none }.mobile-zone { display:inline }
-  .actions { gap:16px }.actions a { min-height:44px }.meta { padding:4px 14px }
+  main { padding-inline:12px } h1 { margin-block:20px 16px }
+  input { font-size:16px } thead a,.actions a,nav a,button { min-height:44px }
+  .sheet { max-height:72vh } table { min-width:810px }
+  .name-heading { width:20% }.status-heading { width:13% }.frequency-heading { width:20% }
+  .time-heading { width:24% }.actions-heading { width:23% }
+  .job-name { position:sticky; left:0; z-index:1; background:inherit }
+  .name-heading { left:0; z-index:3 }
+  tbody th,td { padding:5px 10px }
 }
