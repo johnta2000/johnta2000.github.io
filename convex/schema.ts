@@ -22,6 +22,15 @@ import { rentTables } from "./rentTables";
 import { sleepTables } from "./sleepTables";
 
 export default defineSchema({
+  worcesterPickLists: defineTable({
+    picks: v.string(), base: v.number(), extra: v.boolean(),
+  }).index("by_selection", ["picks", "base", "extra"]),
+  worcesterFamilyLists: defineTable({
+    picks: v.string(), base: v.number(), extra: v.boolean(), request: v.string(), version: v.number(),
+  }).index("by_request", ["request"]),
+  worcesterFamilyEdits: defineTable({
+    list: v.id("worcesterFamilyLists"), request: v.string(),
+  }).index("by_list_request", ["list", "request"]),
   ...standupRevenueTables,
   ...bankArchiveTables,
   apartmentShareGuides: defineTable({keyHash: v.string(), version: v.string(), storageId: v.id("_storage"), createdAt: v.number()}).index("by_key_version", ["keyHash", "version"]),
