@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#f7f8f5" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#131917" media="(prefers-color-scheme: dark)">
+  <title>Group standings design review · Sleepington</title>
+  <meta name="description" content="Try six ways to see the same group's sleep and activity standings. Compare layouts, then share your favorite. All readings are fictional.">
+  <meta property="og:title" content="Which group scoreboard would you use? · Sleepington">
+  <meta property="og:description" content="Six working designs, one sample group. Compare your favorites and send your pick back to John.">
+  <link rel="icon" href="../sleepington.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./studio.css">
+  <script type="module" src="./studio.js"></script>
+</head>
+<body>
+  <a class="skip" href="#content">Skip to designs</a>
+  <header class="topbar">
+    <div class="wrap topbar-inner">
+      <a href="./" data-studio-home class="wordmark" aria-label="Sleepington design gallery"><span class="moon" aria-hidden="true"></span>sleepington<span class="wordmark-stop">.</span></a>
+      <span class="mast-divider" aria-hidden="true"></span><span class="mast-label">Design review</span>
+      <div class="mast-actions">
+        <button type="button" class="quiet theme" id="theme" aria-label="Change appearance">System theme</button>
+        <button type="button" class="action copy" id="copy">Copy link</button>
+      </div>
+    </div>
+  </header>
+  <main class="wrap" id="content" tabindex="-1">
+    <noscript>Enable JavaScript to open and compare the six interactive scoreboards.</noscript>
+  </main>
+  <aside class="wrap" id="share-fallback" hidden>
+    <label for="share-text">Copy this message to your group chat</label>
+    <input id="share-text" readonly>
+    <button class="quiet" type="button" id="close-share">Done</button>
+  </aside>
+  <footer class="wrap footer"><span>Sleepington · Group design review</span><span>Fictional readings · Nov 19–25, 2026</span></footer>
+  <div id="notice" role="status" aria-live="polite"></div>
+</body>
+</html>
