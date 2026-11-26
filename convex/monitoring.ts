@@ -17,6 +17,12 @@ type MonitoringSnapshot = {
 };
 
 const EXTERNAL_MONITORS = {
+  "programmatic-article-growth": {
+    name: "Programmatic article growth",
+    description: "Published city guides, Google clicks and impressions, and first-week performance by series.",
+    cadence: "Daily",
+    defaultSource: "https://www.nextcard.com/articles",
+  },
   "seo-content-opportunities": {
     name: "nextcard SEO opportunities",
     description: "Content and tool opportunities from GSC, published coverage, Keyword Planner and dated competitor reviews.",

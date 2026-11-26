@@ -78,6 +78,9 @@ function statusMeta(status) {
 }
 
 function monitorStats(monitor) {
+  if (monitor.id === "programmatic-article-growth") {
+    return [["Published guides",number(monitor.metrics?.published)],["Clicks · 7d",number(monitor.metrics?.clicks)],["Impressions · 7d",number(monitor.metrics?.impressions)]];
+  }
   if (monitor.id === "seo-content-opportunities") {
     if (monitor.metrics?.readyTaskCount != null) return [["Reviewed tasks ready", number(monitor.metrics.readyTaskCount)], ["Source checks", number(monitor.metrics.sourceCheckCount)], ["Planner keywords", number(monitor.metrics.plannerKeywords)]];
     return [["Update candidates", number(monitor.metrics?.updateCount)], ["Research gaps", number(monitor.metrics?.researchCount)], ["Planner keywords", number(monitor.metrics?.plannerKeywords)]];
@@ -119,6 +122,8 @@ function monitorCard(monitor, index) {
   const { className: statusClass, label: statusLabel } = statusMeta(monitor.status);
   const openLink = monitor.id === "seo-content-opportunities"
     ? '<a class="monitor-open" href="/tools/seo/">Open SEO workspace <span aria-hidden="true">↗</span></a>'
+    : monitor.id === "programmatic-article-growth"
+    ? '<a class="monitor-open" href="?monitor=programmatic-article-growth">View article growth <span aria-hidden="true">↗</span></a>'
     : `<button class="monitor-open" type="button" data-monitor-id="${escapeHtml(monitor.id)}">View details <span aria-hidden="true">↗</span></button>`;
   let body;
   if (active) {
@@ -644,6 +649,7 @@ function renderMonitorDialog(monitor) {
   els.monitorDialogTitle.textContent = monitor.name;
   els.monitorDialogEyebrow.textContent = monitor.configured ? "Active monitor" : "Collector placeholder";
   if (!monitor.configured) els.monitorDialogContent.innerHTML = placeholderDialogMarkup(monitor);
+  else if (monitor.id === "programmatic-article-growth") els.monitorDialogContent.innerHTML = window.ArticleGrowth.render(monitor);
   else if (monitor.id === "paze-directory") els.monitorDialogContent.innerHTML = pazeDialogMarkup(monitor);
   else if (monitor.id === "edit-hotels-ranking") els.monitorDialogContent.innerHTML = editRankingDialogMarkup(monitor);
   else if (["paze-clover-map-ranking", "bilt-calculator-ranking"].includes(monitor.id)) els.monitorDialogContent.innerHTML = rankingDialogMarkup(monitor);
@@ -850,8 +856,22 @@ els.monitorList.addEventListener("click", (event) => {
   if (button) openMonitorDialog(button.dataset.monitorId);
 });
 els.monitorDialogClose.addEventListener("click", () => els.monitorDialog.close());
-els.monitorDialog.addEventListener("close", () => {activeMonitorId = null; detailRequest += 1; queryChart = null; els.monitorDialogContent.removeAttribute("aria-busy");});
+els.monitorDialog.addEventListener("close", () => {
+  if (activeMonitorId === "programmatic-article-growth" && new URLSearchParams(location.search).get("monitor") === activeMonitorId) {
+    const url = new URL(location.href);
+    url.searchParams.delete("series"); url.searchParams.delete("monitor");
+    history.pushState(null,"",url);
+  }
+  activeMonitorId = null; detailRequest += 1; queryChart = null; els.monitorDialogContent.removeAttribute("aria-busy");});
 els.monitorDialogContent.addEventListener("click", event => {
+  const link = event.target.closest("[data-growth-series]");
+  if (link && !event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey) {
+    event.preventDefault();
+    if (location.href !== link.href) history.pushState(null,"",link.href);
+    const monitor = currentSnapshot?.state.monitors.find(m => m.id === "programmatic-article-growth");
+    if (monitor) {renderMonitorDialog(monitor); els.monitorDialogContent.querySelector('[aria-current="page"]')?.focus();}
+    return;
+  }
   const button = event.target.closest("[data-retry-detail]");
   if (button) openMonitorDialog(button.dataset.retryDetail, {refresh:true});
 });
@@ -884,3 +904,10 @@ window.setInterval(() => {
   if (document.visibilityState === "visible") refreshDashboard();
 }, 60_000);
 initializeClerk();
+
+window.addEventListener("popstate", () => {
+  if (!currentSnapshot || els.app.hidden) return;
+  const requested = new URLSearchParams(location.search).get("monitor");
+  if (requested === "programmatic-article-growth") openMonitorDialog(requested,{refresh:els.monitorDialog.open});
+  else if (activeMonitorId === "programmatic-article-growth" && els.monitorDialog.open) els.monitorDialog.close();
+});
