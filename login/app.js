@@ -135,6 +135,7 @@
         addApp('PG&E bills', '../tools/rent/#rent-records', 'Shared utility bills and payment records.');
       }
       if (values.pdpApprovals) addApp('PDP approvals', '../tools/pdp-approvals/', 'Live pages, approved mockups, and approval emails in one place.');
+      if (values.accessOverview) addApp('Recurring jobs', '../tools/jobs/', 'Schedules and management links for your Codex jobs.');
       if (values.accessOverview) addApp('Site access', '../tools/access/', 'Owner overview of accounts, permissions, and areas to review.');
       el.directory.hidden = false;
       el.empty.hidden = el.apps.children.length > 0 || incomplete;

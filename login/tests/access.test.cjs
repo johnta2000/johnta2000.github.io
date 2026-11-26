@@ -146,10 +146,10 @@ test('payment questions can appear independently of the Payments allowlist', asy
 
 test('the owner overview appears only when its own server guard approves', async () => {
   const owner = setup({ signedIn: true, responses: { 'accessOverview:verify': success({ email: 'owner@example.com' }) } }); await settle();
-  assert.deepEqual(owner.element('apps').children.map(item => item.children[0].textContent), ['Site access']);
-  assert.equal(owner.element('apps').children[0].children[0].href, '../tools/access/');
+  assert.deepEqual(owner.element('apps').children.map(item => item.children[0].textContent), ['Recurring jobs', 'Site access']);
+  assert.deepEqual(owner.element('apps').children.map(item => item.children[0].href), ['../tools/jobs/', '../tools/access/']);
   const member = setup({ signedIn: true, responses: { 'cardPayments:verify': success({ email: 'member@example.com' }) } }); await settle();
-  assert.ok(!member.element('apps').children.some(item => item.children[0].textContent === 'Site access'));
+  assert.ok(!member.element('apps').children.some(item => ['Recurring jobs','Site access'].includes(item.children[0].textContent)));
 });
 
  test('Costco appears only after its separate server check approves', async () => {
