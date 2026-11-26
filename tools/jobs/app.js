@@ -55,11 +55,13 @@
   function route() {
     const url = new URL(location.href);
     return { status: url.searchParams.get('status') === 'paused' ? 'paused' : 'active',
+      descending: url.searchParams.get('sort') === 'name-desc',
       search: new URLSearchParams(url.hash.slice(1)).get('q') || '' };
   }
-  function urlFor(status, search) {
+  function urlFor(status, search, descending = route().descending) {
     const url = new URL(location.pathname, location.origin);
     if (status === 'paused') url.searchParams.set('status', status);
+    if (descending) url.searchParams.set('sort', 'name-desc');
     if (search) url.hash = new URLSearchParams({ q: search }).toString();
     return url;
   }
@@ -70,22 +72,50 @@
     return el;
   }
   function jobRow(job) {
-    const row = element('li'), details = element('div'), actions = element('div', '', 'actions');
-    details.append(element('h2', job.name), element('p', job.schedule, 'schedule'));
-    const manage = element('a', 'Manage in Codex ↗');
+    const row = element('tr');
+    const name = element('th', job.name, 'job-name');
+    name.scope = 'row';
+    const frequency = element('td', '', 'frequency');
+    const time = element('td', '', 'time');
+    // The Mac sync separates cadence, clock times and end dates with a middle dot.
+    const parts = job.schedule.split(' · ');
+    const clock = parts.find(part => /^\d{1,2}:\d{2} [AP]M.* PT$/.test(part));
+    frequency.append(element('span', parts[0]));
+    for (const detail of parts.slice(1).filter(part => part !== clock)) {
+      frequency.append(element('small', detail));
+    }
+    if (clock) {
+      time.textContent = clock.slice(0, -3);
+      time.append(element('span', ' PT', 'mobile-zone'));
+    } else {
+      time.classList.add('no-time');
+      time.append(element('span', '—'));
+      time.setAttribute('aria-label', 'No fixed time listed');
+    }
+    const links = element('td', '', 'link-cell');
+    const actions = element('div', '', 'actions');
+    const manage = element('a', 'Manage ↗');
     manage.href = 'codex://automations/' + encodeURIComponent(job.id) + '?automationSource=local&edit=true';
+    manage.setAttribute('aria-label', 'Manage ' + job.name + ' in Codex');
     actions.append(manage);
     if (job.thread) {
       const chat = element('a', 'Open chat ↗');
       chat.href = 'codex://threads/' + encodeURIComponent(job.thread);
+      chat.setAttribute('aria-label', 'Open chat for ' + job.name);
       actions.append(chat);
     }
-    row.append(details, actions);
+    links.append(actions);
+    row.append(name, frequency, time, links);
     return row;
   }
   function render() {
     if (!snapshot) return;
-    const { status, search } = route();
+    const { status, search, descending } = route();
+    const sort = $('sort-name');
+    sort.href = urlFor(status, search, !descending);
+    sort.parentElement.setAttribute('aria-sort', descending ? 'descending' : 'ascending');
+    sort.setAttribute('aria-label', descending ? 'Sort job names A to Z' : 'Sort job names Z to A');
+    sort.querySelector('span').textContent = descending ? '↓' : '↑';
     if ($('search').value !== search) $('search').value = search;
     for (const key of ['active', 'paused']) {
       const tab = $(key), count = snapshot.jobs.filter(job => job.status.toLowerCase() === key).length;
@@ -96,7 +126,8 @@
     }
     const matches = snapshot.jobs.filter(job => job.status.toLowerCase() === status &&
       (job.name + ' ' + job.schedule).toLowerCase().includes(search.trim().toLowerCase()));
-    $('rows').replaceChildren(...matches.sort((a,b) => a.name.localeCompare(b.name)).map(jobRow));
+    matches.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric:true }) * (descending ? -1 : 1));
+    $('rows').replaceChildren(...matches.map(jobRow));
     $('empty').hidden = matches.length > 0;
     $('empty').textContent = search ? 'No matching jobs.' : 'No ' + status + ' jobs.';
     const when = new Intl.DateTimeFormat('en-US', { timeZone:'America/Los_Angeles', month:'short', day:'numeric', year:'numeric', hour:'numeric', minute:'2-digit' });
@@ -150,6 +181,13 @@
     if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
     event.preventDefault();
     if (route().status !== id) history.pushState(null,'',$(id).href);
+    searchStarted = false;
+    render();
+  });
+  $('sort-name').addEventListener('click', event => {
+    if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+    event.preventDefault();
+    history.pushState(null, '', $('sort-name').href);
     searchStarted = false;
     render();
   });
