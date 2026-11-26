@@ -151,6 +151,12 @@
     "title": "Costco archive — John Ta"
   },
   {
+    "path": "/tools/jobs/",
+    "file": "tools/jobs/index.html",
+    "analytics": false,
+    "title": "Recurring jobs · John Ta"
+  },
+  {
     "app": "jsx-united",
     "path": "/tools/jsx-united/",
     "file": "tools/jsx-united/index.html"
