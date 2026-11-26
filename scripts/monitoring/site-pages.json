@@ -269,6 +269,13 @@
     "file": "tools/seometadata/index.html"
   },
   {
+    "app": "sleep-design-review",
+    "path": "/tools/sleep/designs/",
+    "file": "tools/sleep/designs/index.html",
+    "analytics": false,
+    "title": "Group standings design review · Sleepington"
+  },
+  {
     "app": "sleep",
     "path": "/tools/sleep/",
     "file": "tools/sleep/index.html"
