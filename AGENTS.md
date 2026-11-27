@@ -1,5 +1,10 @@
 # Site development instructions
 
+## Page registration and publishing
+
+- Update `scripts/monitoring/site-pages.json` in the same change that adds, removes, renames, or changes the identity of a published HTML page. For pages without analytics, use `analytics: false` with the expected title.
+- Stage the HTML and manifest together, then run `node --test tests/analytics.test.cjs` from the repository root before pushing. The check reads the Git index to discover pages, including newly staged files.
+
 ## Dropdowns and selectors
 
 - Every dropdown selector added or changed on this site must include a visible, typeable search field when opened, even for short option lists. Filter options as the user types and show a helpful empty state when nothing matches.

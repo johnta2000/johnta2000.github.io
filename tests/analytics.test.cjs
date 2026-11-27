@@ -66,8 +66,9 @@ test('interaction capture ignores labels, values, and dynamic links', () => {
 });
 test('all published HTML pages declare their analytics policy and page identity', () => {
   const manifest = JSON.parse(fs.readFileSync('scripts/monitoring/site-pages.json'));
-  const tracked = require('node:child_process').execFileSync('git', ['ls-files', '*.html'], {encoding:'utf8'}).trim().split('\n');
-  assert.deepEqual(manifest.map(x=>x.file).sort(), tracked.sort());
+  const tracked = require('node:child_process').execFileSync('git', ['ls-files', '-z', '*.html'], {encoding:'utf8'}).split('\0').filter(Boolean).sort();
+  assert.deepEqual(manifest.map(page => page.file).sort(), tracked,
+    'Update scripts/monitoring/site-pages.json in the same change as added, removed, or renamed HTML pages.');
   for (const page of manifest) {
     const html = fs.readFileSync(page.file,'utf8');
     if (page.analytics === false) {
