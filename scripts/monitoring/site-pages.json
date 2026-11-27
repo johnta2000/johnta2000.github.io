@@ -7,6 +7,12 @@
     "title": "Apartment · Guest guide"
   },
   {
+    "path": "/tools/sf-best-buy/",
+    "file": "tools/sf-best-buy/index.html",
+    "analytics": false,
+    "title": "Pick your favorites · Best Buy San Francisco"
+  },
+  {
     "app": "apartmentnavigation",
     "path": "/apartmentnavigation/",
     "file": "apartmentnavigation/index.html",
