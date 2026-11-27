@@ -7,12 +7,6 @@
     "title": "Apartment · Guest guide"
   },
   {
-    "path": "/tools/sf-best-buy/",
-    "file": "tools/sf-best-buy/index.html",
-    "analytics": false,
-    "title": "Pick your favorites · Best Buy San Francisco"
-  },
-  {
     "app": "apartmentnavigation",
     "path": "/apartmentnavigation/",
     "file": "apartmentnavigation/index.html",
@@ -275,6 +269,12 @@
     "file": "tools/seometadata/index.html"
   },
   {
+    "path": "/tools/sf-best-buy/",
+    "file": "tools/sf-best-buy/index.html",
+    "analytics": false,
+    "title": "Pick your favorites · Best Buy San Francisco"
+  },
+  {
     "app": "sleep-design-review",
     "path": "/tools/sleep/designs/",
     "file": "tools/sleep/designs/index.html",
@@ -306,6 +306,12 @@
     "app": "video-downloader",
     "path": "/tools/video-downloader/",
     "file": "tools/video-downloader/index.html"
+  },
+  {
+    "path": "/tools/worcester-best-buy/",
+    "file": "tools/worcester-best-buy/index.html",
+    "analytics": false,
+    "title": "Pick your favorites · Best Buy Millbury"
   },
   {
     "app": "tutoring",
