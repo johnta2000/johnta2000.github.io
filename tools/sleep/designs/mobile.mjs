@@ -18,9 +18,9 @@ function selection(c, id, peer=false) {
     '<div><small>'+name+'</small><div>'+ids.filter(k=>phoneLayouts[k].group===group).map(k=>link(c,{[field]:k},phoneLayouts[k].name,id===k)).join('')+'</div></div>'
   ).join('')+'</nav>';
 }
-function memberLink(c,r,content) {
+function memberLink(c,r,content,reading) {
   const id=r.person.id, open=c.s.inspect===id;
-  return '<a data-nav class="phone-row" href="'+c.url({inspect:open?'':id,who:id})+'" aria-expanded="'+open+'" aria-label="'+(open?'Close':'Inspect')+' '+r.person.name+'">'+content+'</a>';
+  return '<a data-nav class="phone-row" href="'+c.url({inspect:open?'':id,who:id})+'" aria-expanded="'+open+'" aria-label="'+(open?'Close':'Inspect')+' '+r.person.name+', '+reading+'">'+content+'</a>';
 }
 function detail(c,r,key,group) {
   if(c.s.inspect!==r.person.id)return '';
@@ -40,7 +40,7 @@ function scoreboard(c,id) {
     const other=byPerson[second][r.person.id],name='<strong>'+r.person.name+'</strong>';
     const cell=(k,x)=>'<span class="phone-stat"><b>'+rank(x)+'</b><small>'+value(k,x)+'</small></span>';
     const line=ledger?name+cell(key,r)+cell(second,other):'<span class="phone-place">'+rank(r)+'</span>'+name+'<b class="ladder-value">'+value(key,r)+'</b>';
-    return '<li>'+memberLink(c,r,line)+detail(c,r,key,'split')+'</li>';
+    return '<li>'+memberLink(c,r,line,[key,...(ledger?[second]:[])].map(k=>{const stat=byPerson[k][r.person.id];return metrics[k].label+' '+(stat.rank?'rank '+stat.rank+', ':'')+value(k,stat)}).join(', '))+detail(c,r,key,'split')+'</li>';
   }).join('');
   const sorting='<div class="phone-tools"><span>Rank by</span>'+choice(c,'metric',key,'Rank by')+'</div>';
   const secondPick=ledger?'<div class="phone-tools"><span>Against</span>'+choice(c,'second',second,'Second metric')+'</div>':'';
@@ -65,7 +65,7 @@ function ranges(c,id) {
   return choice(c,'metric',key,'Range metric')+header+'<ol>'+rows.map(r=>{
     const mark=bars?'<i class="phone-track"><i style="left:'+pct(r.low)+'%;width:'+(pct(r.high)-pct(r.low))+'%"></i><b style="left:'+pct(r.avg)+'%"></b></i>':traces(r,min,max);
     const end=r.rank?difference(key,r.span):gapReason(r,key);
-    return '<li>'+memberLink(c,r,'<strong>'+r.person.name+'</strong>'+(r.count?mark:'<span></span>')+'<b class="range-value">'+end+'</b>')+detail(c,r,key,'range')+'</li>';
+    return '<li>'+memberLink(c,r,'<strong>'+r.person.name+'</strong>'+(r.count?mark:'<span></span>')+'<b class="range-value">'+end+'</b>',r.count?'low '+number(key,r.low)+', high '+number(key,r.high)+', spread '+difference(key,r.span):end)+detail(c,r,key,'range')+'</li>';
   }).join('')+'</ol>';
 }
 export function phoneContents(c,id) {
