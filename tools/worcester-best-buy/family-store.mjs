@@ -3,8 +3,8 @@ import { callPicks, validSnapshot } from './pick-storage.mjs?v=1';
 
 // A separate local journal entry for each tap survives reloads and avoids two tabs
 // overwriting each other's unsent edits. The server deduplicates retries by request ID.
-export function familyStore(id, { storage, request=callPicks, notify=()=>{}, uuid=()=>crypto.randomUUID() } = {}) {
-  const prefix='worcester-best-buy.family.'+id+'.';
+export function familyStore(id, { storage, catalogKey='worcester-best-buy', request=callPicks, notify=()=>{}, uuid=()=>crypto.randomUUID() } = {}) {
+  const prefix=catalogKey+'.family.'+id+'.';
   const baselineKey=prefix+'confirmed';
   const editPrefix=prefix+'edit.';
   const queue=[];

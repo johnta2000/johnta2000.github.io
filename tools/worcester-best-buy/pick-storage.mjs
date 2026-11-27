@@ -1,5 +1,4 @@
 const endpoint = 'https://rapid-shark-565.convex.cloud/api/';
-const recoveryKey = 'worcester-best-buy.picks.v1';
 
 export function selectionKey({ picks, base, extra }) {
   return JSON.stringify([picks, base, extra]);
@@ -27,7 +26,7 @@ export async function callPicks(method, args) {
 }
 
 // Immutable snapshots make opening an old shared link safe even after edits elsewhere.
-export function pickStore({ request = callPicks, storage } = {}) {
+export function pickStore({ request = callPicks, storage, recoveryKey = 'worcester-best-buy.picks.v1' } = {}) {
   const ids = new Map();
   const lists = new Map();
   const pending = new Map();

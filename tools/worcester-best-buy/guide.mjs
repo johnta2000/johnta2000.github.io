@@ -1,22 +1,22 @@
 import { target, canModel, price, changeQuantity, decodeCart, encodeCart, quote, subtotalOf, saleSavings, parseAmount, rankedAdditions, cheapestSubset } from './optimizer.mjs';
-import { pickStore, selectionKey, callPicks } from './pick-storage.mjs?v=1';
-import { familyStore } from './family-store.mjs';
+import { pickStore, selectionKey, callPicks } from './pick-storage.mjs?v=2';
+import { familyStore } from './family-store.mjs?v=2';
 import { changedItems } from './family-picks.mjs';
 import { makeNameSearch } from './named-picks.mjs';
 
 const $ = id => document.getElementById(id);
-const { data, categories, deals, picks: featured } = JSON.parse($('catalog-data').textContent);
+const { data, categories, deals, picks: featured, config = {} } = JSON.parse($('catalog-data').textContent);
 const byId = new Map(data.map(item => [item.id, item]));
 const eligible = new Map(data.filter(canModel).map(item => [item.id, item]));
 const findNames = makeNameSearch(data);
 const shortName = item => item.short || item.name;
 const sources = { shop: 'Deal items', door: 'DoorDash', uber: 'Uber Eats', both: 'All listings' };
-const stores = {
+const stores = config.stores || {
   door: 'https://www.doordash.com/en/convenience/store/26060658',
   uber: 'https://www.ubereats.com/store/best-buy-70-worcester-providence-tpke-ste-140/J20OVzdqUt2PWoYppRk5Ww',
 };
 const groupNames = { 'Home & kitchen': 'Kitchen', 'Lighting': 'Lighting', 'Gaming': 'Games', 'TV & streaming': 'TV' };
-const firstShelf = [156, 133, 109, 147, 138, 161, 170, 150, 153, 112, 163, 171, 139, 148, 142, 151, 132, 110];
+const firstShelf = config.shelf || [156, 133, 109, 147, 138, 161, 170, 150, 153, 112, 163, 171, 139, 148, 142, 151, 132, 110];
 const shelfRank = new Map(firstShelf.map((id, i) => ['item-' + id, i]));
 const closestStarter=rankedAdditions(0,[...eligible.values()],new Map(),{limit:1})[0];
 const formatter = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
@@ -25,7 +25,8 @@ const fullPrice = item => usd(price(item)) + (item.high ? '–' + usd(Math.round
 const esc = value => String(value).replaceAll('&', '&amp;').replaceAll('"', '&quot;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
 let browserStorage;
 try { browserStorage = window.localStorage; } catch { /* Direct links also restore the list. */ }
-const store = pickStore({ storage: browserStorage });
+const catalogKey = config.key || 'worcester-best-buy';
+const store = pickStore({ storage: browserStorage, recoveryKey: catalogKey + '.picks.v1' });
 const families=new Map();
 let creation;
 let current;
@@ -36,11 +37,11 @@ let timer;
 let searchTyping = false;
 let baseDraft;
 let baseProblem = false;
-const draftKey = 'worcester-best-buy.subtotal-draft';
+const draftKey = catalogKey + '.subtotal-draft';
 const nameDrafts = new Map();
 
 function nameDraft(s) {
-  const key = 'worcester-best-buy.names.' + (s.family || new URLSearchParams(location.search).get('list') || 'personal');
+  const key = catalogKey + '.names.' + (s.family || new URLSearchParams(location.search).get('list') || 'personal');
   if (!nameDrafts.has(key)) {
     let saved;
     try { saved = JSON.parse(sessionStorage.getItem(key)); } catch {}
@@ -101,7 +102,7 @@ function viewName() {
 
 function familyFor(id) {
   if (!families.has(id)) {
-    const family=familyStore(id,{storage:browserStorage,notify:()=>familyChanged(id)});
+    const family=familyStore(id,{catalogKey,storage:browserStorage,notify:()=>familyChanged(id)});
     families.set(id,family);
   }
   return families.get(id);
@@ -141,7 +142,7 @@ function read(value, p) {
 function productUrl(item) {
   if (item.platform === 'uber') return stores.uber;
   const search = shortName(item).split(' ').slice(0, item.product ? 1 : 6).join(' ');
-  return 'https://www.doordash.com/convenience/store/26060658/search/' + encodeURIComponent(search) +
+  return stores.door + '/search/' + encodeURIComponent(search) +
     (item.product ? '?product_id=' + encodeURIComponent(item.product) : '');
 }
 
@@ -155,7 +156,7 @@ function reason(item) {
 }
 
 function photo(item, cls = '', lazy = true) {
-  return item.photo ? `<img class="${cls}" src="./photos/${esc(item.photo)}" alt="" loading="${lazy ? 'lazy' : 'eager'}" decoding="async">` : '';
+  return item.photo ? `<img class="${cls}" src="${esc(item.photoURL || (config.photoRoot || './photos/') + item.photo)}" alt="" loading="${lazy ? 'lazy' : 'eager'}" decoding="async">` : '';
 }
 
 function pickButton(item, cart) {
@@ -515,7 +516,7 @@ function draw(s) {
   $('mobile-tray').innerHTML=shopTab ? mobileTray(s)+'<div id="mobile-save" hidden>Couldn’t sync. Your picks are in the page link.</div>' : '';
   document.body.classList.toggle('with-tray',shopTab);
   const name=({catalog:'Pick your favorites',list:'Pick several by name',builder:'My picks',picks:'Deal ideas',deal:'Deal preview',share:'Share your picks',uber:'Uber Eats offers'})[section]||shortName(byId.get(section));
-  document.title=name+' · Best Buy Millbury';
+  document.title=name+' · Best Buy '+(config.city || 'Millbury');
   updateSync();
 }
 
