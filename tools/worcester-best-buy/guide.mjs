@@ -121,10 +121,10 @@ function read(value, p) {
   const items = eligiblePicks(cart);
   return {
     cart, value, items, family:p.get('family'), estimate: quote(value.base + subtotalOf(items, eligible), value.extra), section: viewName(),
-    app: Object.hasOwn(sources, p.get('app')) ? p.get('app') : 'shop',
+    app: Object.hasOwn(sources, p.get('app')) ? p.get('app') : 'both',
     q: (p.get('q') || '').slice(0,100),
     category: categories.includes(p.get('category')) ? p.get('category') : '',
-    under: p.get('max') === '15', filters: p.get('filters') === '1',
+    under: p.get('max') === '15',
     sort: ['near','low','high','store'].includes(p.get('sort')) ? p.get('sort') : 'featured',
     named: p.has('matches') ? listingIds(p.get('matches')) : null,
     checked: new Set(listingIds(p.get('checked'))),
@@ -164,6 +164,11 @@ function pickButton(item, cart) {
     aria-pressed="${chosen}" aria-label="${esc((chosen ? 'Remove ' : 'Pick ') + shortName(item))}"><span aria-hidden="true">${chosen ? '✓' : '+'}</span> ${chosen ? 'Picked' : 'Pick'}</button>`;
 }
 
+function quantityPicker(item, qty) {
+  const step = (direction, symbol) => `<button type="button" data-qty="${item.id}" data-by="${direction}" aria-label="${esc((direction < 0 ? 'Decrease ' : qty ? 'Increase ' : 'Pick ') + shortName(item))}" ${(qty === 99 && direction > 0 || qty === 0 && direction < 0) ? 'disabled' : ''}>${symbol}</button>`;
+  return `<div class="stepper">${step(-1,'−')}<span aria-label="Quantity ${qty}">${qty}</span>${step(1,'+')}</div>`;
+}
+
 function productCard(item, state, position) {
   const detail = href(item.id);
   const old = !item.high && item.compare > item.price ? `<s>${usd(Math.round(item.compare*100))}</s>` : '';
@@ -172,7 +177,7 @@ function productCard(item, state, position) {
     ${item.photo ? `<a data-nav href="${esc(detail)}" class="photo" tabindex="-1" aria-hidden="true">${photo(item, '', position > 5)}</a>` : ''}
     <div class="product-info"><span class="category-label">${esc(item.cat)}</span>
     <h2>${a(shortName(item), detail)}</h2>${note ? `<small class="source-note">${esc(note)}</small>` : ''}
-    <div class="product-bottom"><div class="prices"><strong>${fullPrice(item)}</strong>${old}</div>${pickButton(item, state.cart)}</div></div></article>`;
+    <div class="product-bottom"><div class="prices"><strong>${fullPrice(item)}</strong>${old}</div>${quantityPicker(item, state.cart.get(item.id) || 0)}</div></div></article>`;
 }
 
 function resultSet(state) {
@@ -201,12 +206,11 @@ function progress(estimate, extra, hasItems) {
 }
 
 function rail(s) {
-  const recent = [...s.cart].slice(-3).reverse();
+  const picks = [...s.cart];
   const total = s.estimate;
-  const emptyHelp = s.section === 'list' ? 'Check the items you want, then tap Add.' : 'Tap Pick on anything you like. Your list will appear here.';
-  return `<aside class="rail" aria-label="Shopping list summary"><div class="rail-head"><h2>My picks</h2><span class="bubble">${itemCount(s.cart)}</span></div>
-    ${recent.length ? `<ul class="mini-lines">${recent.map(([id,qty]) => { const item = byId.get(id); return `<li><span>${qty > 1 ? qty + ' × ' : ''}${esc(shortName(item))}</span><b>${item.high ? fullPrice(item) : usd(price(item)*qty)}</b></li>`; }).join('')}</ul>` : `<p>${emptyHelp}</p>`}
-    ${s.cart.size > 3 ? `<p class="small">${s.cart.size-3} more on your list</p>` : ''}
+  const emptyHelp = s.section === 'list' ? 'Check the items you want, then tap Add.' : 'Tap + on an item to add it to your list.';
+  return `<aside class="rail${picks.length ? ' has-picks' : ''}" aria-label="Shopping list summary"><div class="rail-head"><h2>My picks</h2><span class="bubble">${itemCount(s.cart)}</span></div>
+    ${picks.length ? `<ul class="mini-lines">${picks.map(([id,qty]) => { const item = byId.get(id); return `<li><span>${qty > 1 ? qty + ' × ' : ''}${esc(shortName(item))}</span><b>${item.high ? fullPrice(item) : usd(price(item)*qty)}</b></li>`; }).join('')}</ul>` : `<p>${emptyHelp}</p>`}
     <div class="rail-price"><span>Deal subtotal</span><strong>${usd(total.subtotal)}</strong></div>
     ${progress(total, s.value.extra, !!total.subtotal)}
     ${total.savings ? `<div class="net-line"><span>After offers</span><b>${usd(total.net)}</b></div>` : ''}
@@ -217,7 +221,7 @@ function rail(s) {
 function mobileTray(s) {
   if (s.section !== 'catalog' && s.section !== 'list' && !byId.has(s.section)) return '';
   const total = s.estimate;
-  const startHint = s.section === 'list' ? 'Tap Add to save your choices' : 'Tap Pick to start your list';
+  const startHint = s.section === 'list' ? 'Tap Add to save your choices' : 'Tap + to start your list';
   const caption = !total.gap ? usd(total.net) + ' after offers' : total.subtotal ? usd(total.gap) + ' to reach $100' : startHint;
   return `<div class="tray"><div><strong>${countText(s.cart)} · ${usd(total.subtotal)}</strong><small>${caption}${s.family?' <span data-family-tray></span>':''}</small></div>${a('Review picks',href('builder'),'button lime')}</div>`;
 }
@@ -228,21 +232,20 @@ function shop(s) {
   const matches = resultSet(s);
   const primaryFilters = [
     pill('All',filterUrl({category:'',max:''}),!s.category && !s.under),
-    ...Object.entries(groupNames).map(([name,label]) => pill(label,filterUrl({category:name,max:''}),s.category === name && !s.under)),
+    ...categories.map(name => pill(groupNames[name] || name,filterUrl({category:name,max:''}),s.category === name && !s.under)),
     pill('$15 or less',filterUrl({max:s.under ? '' : '15', category:''}),s.under),
   ].join('');
-  const filtersActive = s.q || s.category || s.under || s.app !== 'shop' || s.sort !== 'featured';
-  const moreFilters = s.filters ? `<div class="filter-box">
-    <div><strong>Listings</strong><div class="chips">${Object.entries(sources).map(([v,t]) => pill(t,filterUrl({app:v === 'shop' ? '' : v}),s.app===v)).join('')}</div></div>
-    <div><strong>All categories</strong><div class="chips">${pill('All',filterUrl({category:''}),!s.category)}${categories.map(c => pill(groupNames[c] || c,filterUrl({category:c}),s.category===c)).join('')}</div></div>
+  const filtersActive = s.q || s.category || s.under || s.app !== 'both' || s.sort !== 'featured';
+  const filters = `<div class="filter-box">
+    <div><strong>Listings</strong><div class="chips">${Object.entries(sources).map(([v,t]) => pill(t,filterUrl({app:v === 'both' ? '' : v}),s.app===v)).join('')}</div></div>
     <div><strong>Sort by</strong><div class="chips">${[['featured','Featured'],['low','Price ↑'],['high','Price ↓'],['near','Near my target'],['store','Store order']].map(([v,t])=>pill(t,filterUrl({sort:v==='featured'?'':v}),s.sort===v)).join('')}</div></div>
-    ${a('Compare the Uber Eats offer',href('uber'),'inline-link')}</div>` : '';
-  return `<section class="shop-intro">${s.family?'<div class="family-label">Shared family list · picks update for both of you</div>':''}<h1>Pick your favorites<span class="accent-dot">.</span></h1><p>Pick as many items as you like. At <b>$100</b> in eligible items, ${s.value.extra ? 'the $40 DoorDash offer plus your extra $10 brings the estimate to <b>$50</b>.' : 'the $40 DoorDash offer brings the estimate to <b>$60</b>.'}</p></section>
+    ${a('Compare the Uber Eats offer',href('uber'),'inline-link')}</div>`;
+  return `<section class="shop-intro">${s.family?'<div class="family-label">Shared family list · picks update for both of you</div>':''}<h1>Pick your favorites<span class="accent-dot">.</span></h1><p>Use <b>+</b> and <b>−</b> to choose how many of each item you want. At <b>$100</b> in eligible items, ${s.value.extra ? 'the $40 DoorDash offer plus your extra $10 brings the estimate to <b>$50</b>.' : 'the $40 DoorDash offer brings the estimate to <b>$60</b>.'}</p></section>
     <div class="shop-layout"><div class="shelves">
     <div class="shop-search"><form id="search-form" class="search" role="search"><span class="glass" aria-hidden="true"></span><input id="search" aria-label="Search products" type="search" maxlength="100" placeholder="Search products" value="${esc(s.q)}" autocomplete="off"></form>${a('Pick several by name',href('list'),'button outline')}</div>
     <nav class="chips quick" aria-label="Product categories">${primaryFilters}</nav>
-    <div class="result-bar"><span>${matches.length} ${s.app==='shop' ? 'DoorDash items' : 'listings'}</span><div>${filtersActive ? a('Clear',reset,'text-button') : a('See all '+data.length,filterUrl({app:'both'}),'text-button')}${a(s.filters?'Hide filters':'More filters',filterUrl({filters:s.filters?'':'1'}),'text-button','aria-expanded="'+s.filters+'"')}</div></div>
-    ${moreFilters}
+    <div class="result-bar"><span>${matches.length} ${s.app==='shop' ? 'DoorDash items' : 'listings'}</span><div>${filtersActive ? a('Clear',reset,'text-button') : ''}</div></div>
+    ${filters}
     <div class="grid">${matches.map((item,i)=>productCard(item,s,i)).join('') || `<div class="empty"><h2>No matching products</h2><p>Try a different search or browse all the products again.</p>${s.app!=='both'?a('Search all '+data.length+' listings',filterUrl({app:'both',category:'',max:''}),'button outline'):a('Clear filters',reset,'button outline')}</div>`}</div>
     </div>${rail(s)}</div>`;
 }
@@ -277,11 +280,10 @@ function addLabel(count) {
 }
 
 function line(item, qty, edit = false, note = '') {
-  const step = (direction, symbol) => `<button type="button" data-qty="${item.id}" data-by="${direction}" aria-label="${esc((direction > 0 ? 'Increase ' : 'Decrease ') + shortName(item))}" ${qty === 99 && direction > 0 ? 'disabled' : ''}>${symbol}</button>`;
   const priceLabel = item.high ? fullPrice(item) : usd(price(item) * qty);
   return `<div class="line">${photo(item,'thumb')}<div class="line-copy">${a(shortName(item),href(item.id),'line-name')}
     <small>${esc(note || reason(item) || (qty>1 ? usd(price(item))+' each' : groupNames[item.cat] || item.cat))}</small></div>
-    <div class="line-right"><strong>${priceLabel}</strong>${edit ? `<div class="stepper">${step(-1,'−')}<span>${qty}</span>${step(1,'+')}</div>` : qty>1 ? `<small>Qty ${qty}</small>` : ''}</div></div>`;
+    <div class="line-right"><strong>${priceLabel}</strong>${edit ? quantityPicker(item, qty) : qty>1 ? `<small>Qty ${qty}</small>` : ''}</div></div>`;
 }
 
 function receipt(estimate, value, cart) {
@@ -652,7 +654,7 @@ document.addEventListener('click',event=>{
     edit(changeQuantity(current.cart,id,by),current.value.base,current.value.extra,current.section,undefined,{id:Number(id.slice(5)),count:by,relative:true});
     const replacement=document.querySelector('[data-qty="'+id+'"][data-by="'+button.dataset.by+'"]');
     if (replacement && !replacement.disabled) replacement.focus({preventScroll:true});
-    else $('main').focus({preventScroll:true});
+    else (document.querySelector('[data-qty="'+id+'"]:enabled') || $('main')).focus({preventScroll:true});
   } else if (button.dataset.action==='keep') {
     const combined=new Map(current.cart);
     for (const [id,n] of current.preview) combined.set(id,Math.max(n,combined.get(id)||0));
