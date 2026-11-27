@@ -203,8 +203,9 @@ function progress(estimate, extra, hasItems) {
 function rail(s) {
   const recent = [...s.cart].slice(-3).reverse();
   const total = s.estimate;
+  const emptyHelp = s.section === 'list' ? 'Check the items you want, then tap Add.' : 'Tap Pick on anything you like. Your list will appear here.';
   return `<aside class="rail" aria-label="Shopping list summary"><div class="rail-head"><h2>My picks</h2><span class="bubble">${itemCount(s.cart)}</span></div>
-    ${recent.length ? `<ul class="mini-lines">${recent.map(([id,qty]) => { const item = byId.get(id); return `<li><span>${qty > 1 ? qty + ' × ' : ''}${esc(shortName(item))}</span><b>${item.high ? fullPrice(item) : usd(price(item)*qty)}</b></li>`; }).join('')}</ul>` : '<p>Tap Pick on anything you like. Your list will appear here.</p>'}
+    ${recent.length ? `<ul class="mini-lines">${recent.map(([id,qty]) => { const item = byId.get(id); return `<li><span>${qty > 1 ? qty + ' × ' : ''}${esc(shortName(item))}</span><b>${item.high ? fullPrice(item) : usd(price(item)*qty)}</b></li>`; }).join('')}</ul>` : `<p>${emptyHelp}</p>`}
     ${s.cart.size > 3 ? `<p class="small">${s.cart.size-3} more on your list</p>` : ''}
     <div class="rail-price"><span>Deal subtotal</span><strong>${usd(total.subtotal)}</strong></div>
     ${progress(total, s.value.extra, !!total.subtotal)}
@@ -216,7 +217,8 @@ function rail(s) {
 function mobileTray(s) {
   if (s.section !== 'catalog' && s.section !== 'list' && !byId.has(s.section)) return '';
   const total = s.estimate;
-  const caption = !total.gap ? usd(total.net) + ' after offers' : total.subtotal ? usd(total.gap) + ' to reach $100' : 'Tap Pick to start your list';
+  const startHint = s.section === 'list' ? 'Tap Add to save your choices' : 'Tap Pick to start your list';
+  const caption = !total.gap ? usd(total.net) + ' after offers' : total.subtotal ? usd(total.gap) + ' to reach $100' : startHint;
   return `<div class="tray"><div><strong>${countText(s.cart)} · ${usd(total.subtotal)}</strong><small>${caption}${s.family?' <span data-family-tray></span>':''}</small></div>${a('Review picks',href('builder'),'button lime')}</div>`;
 }
 
