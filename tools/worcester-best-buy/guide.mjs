@@ -2,11 +2,13 @@ import { target, canModel, price, changeQuantity, decodeCart, encodeCart, quote,
 import { pickStore, selectionKey, callPicks } from './pick-storage.mjs?v=1';
 import { familyStore } from './family-store.mjs';
 import { changedItems } from './family-picks.mjs';
+import { makeNameSearch } from './named-picks.mjs';
 
 const $ = id => document.getElementById(id);
 const { data, categories, deals, picks: featured } = JSON.parse($('catalog-data').textContent);
 const byId = new Map(data.map(item => [item.id, item]));
 const eligible = new Map(data.filter(canModel).map(item => [item.id, item]));
+const findNames = makeNameSearch(data);
 const shortName = item => item.short || item.name;
 const sources = { shop: 'Deal items', door: 'DoorDash', uber: 'Uber Eats', both: 'All listings' };
 const stores = {
@@ -17,7 +19,6 @@ const groupNames = { 'Home & kitchen': 'Kitchen', 'Lighting': 'Lighting', 'Gamin
 const firstShelf = [156, 133, 109, 147, 138, 161, 170, 150, 153, 112, 163, 171, 139, 148, 142, 151, 132, 110];
 const shelfRank = new Map(firstShelf.map((id, i) => ['item-' + id, i]));
 const closestStarter=rankedAdditions(0,[...eligible.values()],new Map(),{limit:1})[0];
-const pageSize = 18;
 const formatter = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
 const usd = cents => formatter.format(cents / 100);
 const fullPrice = item => usd(price(item)) + (item.high ? '–' + usd(Math.round(item.high * 100)) : '');
@@ -36,6 +37,27 @@ let searchTyping = false;
 let baseDraft;
 let baseProblem = false;
 const draftKey = 'worcester-best-buy.subtotal-draft';
+const nameDrafts = new Map();
+
+function nameDraft(s) {
+  const key = 'worcester-best-buy.names.' + (s.family || new URLSearchParams(location.search).get('list') || 'personal');
+  if (!nameDrafts.has(key)) {
+    let saved;
+    try { saved = JSON.parse(sessionStorage.getItem(key)); } catch {}
+    nameDrafts.set(key, { key, text: typeof saved?.text === 'string' ? saved.text : '', route:saved?.route });
+  }
+  return nameDrafts.get(key);
+}
+
+function saveNames(draft) {
+  try { sessionStorage.setItem(draft.key, JSON.stringify({text:draft.text, route:draft.route})); } catch {}
+}
+
+function listingIds(param) {
+  return [...new Set((param || '').split('.').map(n => 'item-' + n).filter(id => byId.has(id)))];
+}
+
+function idParam(ids) { return ids.map(id => id.slice(5)).join('.'); }
 
 function loadDraft(value) {
   try {
@@ -47,6 +69,8 @@ function loadDraft(value) {
 function href(section = 'catalog', changes = {}, clean = false) {
   const u = new URL(location.href);
   if (clean) u.search = '';
+  u.searchParams.delete('page');
+  if (section !== 'list') { u.searchParams.delete('matches'); u.searchParams.delete('checked'); }
   for (const [key, value] of Object.entries(changes)) {
     if (value === undefined || value === null || value === '') u.searchParams.delete(key);
     else u.searchParams.set(key, String(value));
@@ -72,7 +96,7 @@ function snapshot(cart, base, extra) { return { picks: encodeCart(cart), base, e
 function inlineSelection(value) { return { list: '', cart: value.picks || '0', base: value.base ? (value.base / 100).toFixed(2) : '', extra: value.extra ? '' : '0' }; }
 function viewName() {
   const name = location.hash.slice(1);
-  return ['catalog','builder','picks','deal','share','uber'].includes(name) || byId.has(name) ? name : 'catalog';
+  return ['catalog','list','builder','picks','deal','share','uber'].includes(name) || byId.has(name) ? name : 'catalog';
 }
 
 function familyFor(id) {
@@ -89,7 +113,7 @@ function familyChanged(id) {
   if (!value || selectionKey(value)===selectionKey(current.value)) { updateSync(); return; }
   const field=document.activeElement;
   const focus=field?.id;
-  const cursor=field?.matches('input[type="search"],#base') ? field.selectionStart : undefined;
+  const cursor=field?.matches('input[type="search"],#base,#names') ? field.selectionStart : undefined;
   void restore({focus,cursor});
 }
 function read(value, p) {
@@ -102,7 +126,8 @@ function read(value, p) {
     category: categories.includes(p.get('category')) ? p.get('category') : '',
     under: p.get('max') === '15', filters: p.get('filters') === '1',
     sort: ['near','low','high','store'].includes(p.get('sort')) ? p.get('sort') : 'featured',
-    page: Math.max(1, Number.parseInt(p.get('page'), 10) || 1),
+    named: p.has('matches') ? listingIds(p.get('matches')) : null,
+    checked: new Set(listingIds(p.get('checked'))),
     settings: p.get('settings') === '1', tune: p.get('tune') === '1',
     maxItems: ['1','2'].includes(p.get('n')) ? Number(p.get('n')) : 3,
     scope: categories.includes(p.get('scope')) ? p.get('scope') : '',
@@ -189,19 +214,16 @@ function rail(s) {
 }
 
 function mobileTray(s) {
-  if (s.section !== 'catalog' && !byId.has(s.section)) return '';
+  if (s.section !== 'catalog' && s.section !== 'list' && !byId.has(s.section)) return '';
   const total = s.estimate;
   const caption = !total.gap ? usd(total.net) + ' after offers' : total.subtotal ? usd(total.gap) + ' to reach $100' : 'Tap Pick to start your list';
   return `<div class="tray"><div><strong>${countText(s.cart)} · ${usd(total.subtotal)}</strong><small>${caption}${s.family?' <span data-family-tray></span>':''}</small></div>${a('Review picks',href('builder'),'button lime')}</div>`;
 }
 
 function shop(s) {
-  const filterUrl = changes => href('catalog', { page:'', ...changes });
+  const filterUrl = changes => href('catalog', changes);
   const reset = filterUrl({app:'', q:'', category:'', sort:'', max:'', filters:''});
   const matches = resultSet(s);
-  const pages = Math.max(1, Math.ceil(matches.length / pageSize));
-  const page = Math.min(s.page, pages);
-  const start = (page-1)*pageSize;
   const primaryFilters = [
     pill('All',filterUrl({category:'',max:''}),!s.category && !s.under),
     ...Object.entries(groupNames).map(([name,label]) => pill(label,filterUrl({category:name,max:''}),s.category === name && !s.under)),
@@ -213,14 +235,43 @@ function shop(s) {
     <div><strong>All categories</strong><div class="chips">${pill('All',filterUrl({category:''}),!s.category)}${categories.map(c => pill(groupNames[c] || c,filterUrl({category:c}),s.category===c)).join('')}</div></div>
     <div><strong>Sort by</strong><div class="chips">${[['featured','Featured'],['low','Price ↑'],['high','Price ↓'],['near','Near my target'],['store','Store order']].map(([v,t])=>pill(t,filterUrl({sort:v==='featured'?'':v}),s.sort===v)).join('')}</div></div>
     ${a('Compare the Uber Eats offer',href('uber'),'inline-link')}</div>` : '';
-  return `<section class="shop-intro">${s.family?'<div class="family-label">Shared family list · picks update for both of you</div>':''}<h1>Pick your favorites<span class="accent-dot">.</span></h1><p>Tap <b>Pick</b> on anything you like. At <b>$100</b> in eligible items, ${s.value.extra ? 'the $40 DoorDash offer plus your extra $10 brings the estimate to <b>$50</b>.' : 'the $40 DoorDash offer brings the estimate to <b>$60</b>.'}</p></section>
+  return `<section class="shop-intro">${s.family?'<div class="family-label">Shared family list · picks update for both of you</div>':''}<h1>Pick your favorites<span class="accent-dot">.</span></h1><p>Pick as many items as you like. At <b>$100</b> in eligible items, ${s.value.extra ? 'the $40 DoorDash offer plus your extra $10 brings the estimate to <b>$50</b>.' : 'the $40 DoorDash offer brings the estimate to <b>$60</b>.'}</p></section>
     <div class="shop-layout"><div class="shelves">
-    <form id="search-form" class="search" role="search"><span class="glass" aria-hidden="true"></span><input id="search" aria-label="Search products" type="search" maxlength="100" placeholder="Search products" value="${esc(s.q)}" autocomplete="off"></form>
+    <div class="shop-search"><form id="search-form" class="search" role="search"><span class="glass" aria-hidden="true"></span><input id="search" aria-label="Search products" type="search" maxlength="100" placeholder="Search products" value="${esc(s.q)}" autocomplete="off"></form>${a('Pick several by name',href('list'),'button outline')}</div>
     <nav class="chips quick" aria-label="Product categories">${primaryFilters}</nav>
     <div class="result-bar"><span>${matches.length} ${s.app==='shop' ? 'DoorDash items' : 'listings'}</span><div>${filtersActive ? a('Clear',reset,'text-button') : a('See all '+data.length,filterUrl({app:'both'}),'text-button')}${a(s.filters?'Hide filters':'More filters',filterUrl({filters:s.filters?'':'1'}),'text-button','aria-expanded="'+s.filters+'"')}</div></div>
     ${moreFilters}
-    <div class="grid">${matches.slice(start,start+pageSize).map((item,i)=>productCard(item,s,i)).join('') || `<div class="empty"><h2>No matching products</h2><p>Try a different search or browse all the products again.</p>${s.app!=='both'?a('Search all '+data.length+' listings',filterUrl({app:'both',category:'',max:''}),'button outline'):a('Clear filters',reset,'button outline')}</div>`}</div>
-    ${pages > 1 ? `<nav class="pages" aria-label="Product pages">${page>1?a('← Previous',href('catalog',{page:page-1}),'button outline'):''}<span>Page ${page} of ${pages}</span>${page<pages?a('Next →',href('catalog',{page:page+1}),'button outline'):''}</nav>` : ''}</div>${rail(s)}</div>`;
+    <div class="grid">${matches.map((item,i)=>productCard(item,s,i)).join('') || `<div class="empty"><h2>No matching products</h2><p>Try a different search or browse all the products again.</p>${s.app!=='both'?a('Search all '+data.length+' listings',filterUrl({app:'both',category:'',max:''}),'button outline'):a('Clear filters',reset,'button outline')}</div>`}</div>
+    </div>${rail(s)}</div>`;
+}
+
+function pickByName(s) {
+  const draft = nameDraft(s);
+  const ids = s.named || [];
+  const text = s.named === null || draft.route === idParam(ids) ? draft.text : history.state?.namesText || '';
+  const missing = history.state?.missingNames || [];
+  const count = ids.filter(id => s.checked.has(id) && !s.cart.has(id)).length;
+  const rows = ids.map(id => {
+    const item = byId.get(id);
+    const picked = s.cart.has(id);
+    const note = [picked ? 'Already picked' : '', reason(item) || 'DoorDash deal item'].filter(Boolean).join(' · ');
+    return `<label class="named-option"><input id="check-${id}" data-named="${id}" type="checkbox" ${picked || s.checked.has(id) ? 'checked' : ''} ${picked ? 'disabled' : ''}>
+      ${photo(item,'thumb')}<span><b>${esc(shortName(item))}</b><small>${esc(note)}</small></span><strong>${fullPrice(item)}</strong></label>`;
+  }).join('');
+  return `<div class="view-intro">${a('← Browse products',href('catalog'),'back')}<h1>Pick several by name<span class="accent-dot">.</span></h1></div>
+    <div class="shop-layout"><section class="panel named-panel">
+      <form id="names-form"><label for="names">What would you like?</label>
+      <p id="names-help">Type or use your keyboard’s microphone. Separate items with commas, “and” or a new line.</p>
+      <textarea id="names" rows="2" maxlength="800" required aria-describedby="names-help" placeholder="An espresso machine and a Govee light strip">${esc(text)}</textarea>
+      <button class="button outline" type="submit">Find items</button></form>
+      ${s.named === null ? '' : `<section class="named-results" aria-labelledby="matches-title"><h2 id="matches-title" tabindex="-1">${ids.length ? 'Choose your items' : 'No matching items'}</h2>
+        ${missing.length ? `<p>No match for ${missing.map(part=>'“'+esc(part)+'”').join(', ')}. Try a brand or product name.</p>` : !ids.length ? '<p>Try a brand or product name.</p>' : ''}
+        ${ids.length ? `<form id="add-names"><div class="named-actions"><button class="button primary" id="add-checked" type="submit" ${count ? '' : 'disabled'}>${addLabel(count)}</button></div>${rows}</form>` : ''}</section>`}
+    </section>${rail(s)}</div>`;
+}
+
+function addLabel(count) {
+  return count ? 'Add ' + count + (count === 1 ? ' item' : ' items') + ' to my picks' : 'Select items to add';
 }
 
 function line(item, qty, edit = false, note = '') {
@@ -378,7 +429,7 @@ function uber() {
     <div class="ideas-grid">${deals.filter(d=>d.app==='uber').map(d=>{
       const items=d.items.map(i=>byId.get(i.id));const total=items.reduce((sum,i)=>sum+price(i),0);
       return `<article class="panel"><h2>${esc(d.title)}</h2>${items.map(i=>line(i,1)).join('')}<p><b>${usd(quote(total,false).net)} after Uber’s offer</b> · ${usd(total)} subtotal</p></article>`;
-    }).join('')}</div><div class="alternate">${a('Browse Uber Eats listings',href('catalog',{app:'uber',filters:'',page:'',q:'',category:'',max:'',sort:''}),'button outline')} ${out('Uber offer details ↗','https://www.uber.com/us/en/blog/holiday-member-days-2026/','inline-link')}</div>`;
+    }).join('')}</div><div class="alternate">${a('Browse Uber Eats listings',href('catalog',{app:'uber',filters:'',q:'',category:'',max:'',sort:''}),'button outline')} ${out('Uber offer details ↗','https://www.uber.com/us/en/blog/holiday-member-days-2026/','inline-link')}</div>`;
 }
 
 function updateSync() {
@@ -437,11 +488,12 @@ function saveSelection(value, immediate=false) {
 function draw(s) {
   const section=s.section;
   const quickScroll=document.querySelector('.quick')?.scrollLeft || 0;
-  const shopTab=section==='catalog'||byId.has(section);
+  const shopTab=section==='catalog'||section==='list'||byId.has(section);
   const navLinks=[['catalog','Shop',shopTab],['builder','My picks ('+itemCount(s.cart)+')',['builder','share','deal'].includes(section)],['picks','Deal ideas',['picks','uber'].includes(section)]];
   $('nav').innerHTML=navLinks.map(([view,title,active])=>a(title,href(view,{of:''}),'nav-link',active?'aria-current="page"':'')).join('');
   $('shop-brand').href=href('catalog');
   if (section==='catalog') $('main').innerHTML=shop(s);
+  else if (section==='list') $('main').innerHTML=pickByName(s);
   else if (section==='builder') $('main').innerHTML=review(s);
   else if (section==='picks') $('main').innerHTML=ideas(s);
   else if (section==='deal') $('main').innerHTML=preview(s);
@@ -458,7 +510,7 @@ function draw(s) {
   }
   $('mobile-tray').innerHTML=shopTab ? mobileTray(s)+'<div id="mobile-save" hidden>Couldn’t sync. Your picks are in the page link.</div>' : '';
   document.body.classList.toggle('with-tray',shopTab);
-  const name=({catalog:'Pick your favorites',builder:'My picks',picks:'Deal ideas',deal:'Deal preview',share:'Share your picks',uber:'Uber Eats offers'})[section]||shortName(byId.get(section));
+  const name=({catalog:'Pick your favorites',list:'Pick several by name',builder:'My picks',picks:'Deal ideas',deal:'Deal preview',share:'Share your picks',uber:'Uber Eats offers'})[section]||shortName(byId.get(section));
   document.title=name+' · Best Buy Millbury';
   updateSync();
 }
@@ -516,7 +568,8 @@ async function restore(options={}) {
 
 function go(dest,options={}) {
   const url=new URL(dest,location.href);
-  if (url.href!==location.href) history[options.replace?'replaceState':'pushState'](null,'',url);
+  if (url.href!==location.href) history[options.replace?'replaceState':'pushState'](options.state || null,'',url);
+  else if (options.state) history.replaceState(options.state,'',url);
   void restore(options);
 }
 
@@ -577,8 +630,7 @@ document.addEventListener('click',event=>{
   if (anchor) {
     event.preventDefault(); searchTyping=false;
     const next=new URL(anchor.href);
-    const pageChanged=next.searchParams.get('page')!==new URLSearchParams(location.search).get('page');
-    go(anchor.href,{top:next.hash.slice(1)!==current?.section || pageChanged});
+    go(anchor.href,{top:next.hash.slice(1)!==current?.section});
     return;
   }
   const button=event.target.closest('button');
@@ -611,6 +663,13 @@ document.addEventListener('click',event=>{
 });
 
 document.addEventListener('input',event=>{
+  if (event.target.id==='names') {
+    const draft=nameDraft(current);
+    draft.text=event.target.value;
+    draft.route=current.named ? idParam(current.named) : null;
+    saveNames(draft);
+    return;
+  }
   if (event.target.id==='base') {
     baseDraft=event.target.value;
     try { sessionStorage.setItem(draftKey,JSON.stringify({key:selectionKey(current.value),text:baseDraft})); } catch {}
@@ -618,11 +677,31 @@ document.addEventListener('input',event=>{
   }
   if (event.target.id!=='search') return;
   const input=event.target;
-  go(href('catalog',{q:input.value,page:''}),{replace:searchTyping,focus:'search',cursor:input.selectionStart});
+  go(href('catalog',{q:input.value}),{replace:searchTyping,focus:'search',cursor:input.selectionStart});
   searchTyping=true;
 });
 
 document.addEventListener('submit',event=>{
+  if (event.target.id==='names-form') {
+    event.preventDefault();
+    const draft=nameDraft(current);
+    draft.text=$('names').value;
+    const { ids, missing }=findNames(draft.text);
+    // Keep any checked choices when looking up more names before adding them.
+    const checked=(current.named || []).filter(id=>current.checked.has(id) && !current.cart.has(id));
+    const combined=[...new Set([...ids,...checked])];
+    draft.route=idParam(combined); saveNames(draft);
+    go(href('list',{matches:idParam(combined)||'0',checked:idParam(checked)}),{focus:'matches-title',state:{namesText:draft.text,missingNames:missing}});
+    $('matches-title')?.scrollIntoView({block:'nearest'});
+    return;
+  }
+  if (event.target.id==='add-names') {
+    event.preventDefault();
+    const cart=new Map(current.cart);
+    for (const id of current.named || []) if (current.checked.has(id) && !cart.has(id)) cart.set(id,1);
+    if (cart.size!==current.cart.size) edit(cart,current.value.base,current.value.extra,'builder');
+    return;
+  }
   if (event.target.id==='search-form') { event.preventDefault(); searchTyping=false; $('search').blur(); }
   if (event.target.id==='base-form') {
     event.preventDefault();
@@ -635,6 +714,15 @@ document.addEventListener('submit',event=>{
   }
 });
 document.addEventListener('change',event=>{
+  const id=event.target.dataset.named;
+  if (id && current?.named?.includes(id) && !current.cart.has(id)) {
+    if (event.target.checked) current.checked.add(id);
+    else current.checked.delete(id);
+    history.replaceState(history.state,'',href('list',{checked:idParam([...current.checked])}));
+    const count=current.named.filter(item=>current.checked.has(item) && !current.cart.has(item)).length;
+    $('add-checked').textContent=addLabel(count); $('add-checked').disabled=!count;
+    return;
+  }
   if (event.target.id==='extra') edit(current.cart,current.value.base,event.target.checked,'builder','extra');
 });
 window.addEventListener('popstate',()=>{ searchTyping=false; void restore(); });
@@ -652,6 +740,7 @@ window.addEventListener('pagehide',()=>{
 // Pin the initial selection into browser history so Back and reload can return
 // to the original empty list even after the visitor has saved later picks.
 const start=new URLSearchParams(location.search);
+if (start.has('page')) history.replaceState(null,'',href(viewName()));
 if (!start.has('family') && !start.has('list') && !start.has('cart') && !start.has('base') && !start.has('extra')) {
   const last=!location.search && !location.hash && store.last();
   const value=last || {picks:'',base:0,extra:true};

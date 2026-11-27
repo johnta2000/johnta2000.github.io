@@ -24,7 +24,7 @@ h1{font-size:clamp(39px,5vw,66px)}h2{font-size:23px;letter-spacing:-.035em;line-
 .chips{display:flex;gap:7px;flex-wrap:wrap}.quick{margin-top:10px}.chip,.button,.pick-button{border-radius:8px;display:inline-flex;align-items:center;justify-content:center;text-decoration:none;line-height:1.15;font-weight:800;min-height:44px}
 .chip{border:1px solid #cbd6cc;color:#3c5045;background:#fff;padding:8px 13px;font-size:14px;border-radius:24px;white-space:nowrap}
 .chip.active{background:var(--green);border-color:var(--green);color:white}.chip:hover:not(.active),.outline:hover,.pick-button:hover{background:#eaf2e7;border-color:#80a28b}
-.result-bar,.section-row,.rail-head,.panel-actions,.net-line,.rail-price,.prices,.base-line,.base-fields,.pages{display:flex;align-items:center}
+.result-bar,.section-row,.rail-head,.panel-actions,.net-line,.rail-price,.prices,.base-line,.base-fields{display:flex;align-items:center}
 .result-bar,.section-row,.net-line,.rail-head,.rail-price,.base-line{justify-content:space-between;gap:12px}
 .result-bar{min-height:47px;color:var(--muted);font-size:14px}.result-bar>div{display:flex;gap:12px}
 .text-button,.inline-link,.back,.relink{font-weight:800;color:var(--green)}.text-button,.inline-link,.back{display:inline-flex;align-items:center;min-height:44px}
@@ -43,7 +43,7 @@ h1{font-size:clamp(39px,5vw,66px)}h2{font-size:23px;letter-spacing:-.035em;line-
 .prices strong{font-size:20px;letter-spacing:-.045em;font-weight:850}.prices s{font-size:13px;color:#617268}.pick-button{background:#fff;color:var(--green);border:1.4px solid #95b19d;gap:6px;min-width:82px;padding:7px 14px}
 .product .pick-button{width:100%;margin-top:8px}.pick-button span{font-family:system-ui,sans-serif;font-size:19px;line-height:1}
 .pick-button.chosen{background:#e5f1db;border-color:var(--green);color:#174b33}.source-note{font-size:12px;color:var(--muted);margin:-4px 0 10px}
-.no-photo{min-height:158px}.pages{justify-content:center;gap:15px;margin:28px 0 5px}.pages span,.small,.fine{color:var(--muted);font-size:13px}
+.no-photo{min-height:158px}.small,.fine{color:var(--muted);font-size:13px}
 .rail{background:var(--deep);color:#fff;border-radius:16px;padding:23px;position:sticky;top:18px}.rail h2{font-size:34px}.bubble{background:#3d6052;border-radius:30px;min-width:30px;text-align:center;padding:4px 9px;font-weight:800}
 .rail>p{color:#e0eade;font-size:15px;margin:13px 0 16px}.rail-price{padding-top:14px;border-top:1px solid #56806b;margin-top:15px;font-size:15px}.rail-price strong,.net-line b{font-size:23px;font-weight:850}
 .progress{margin:12px 0 18px}.track{height:7px;background:#d2dfcf;border-radius:20px;overflow:hidden}.track i{display:block;height:100%;background:#487440;border-radius:inherit;transition:width .18s ease-out}
@@ -97,3 +97,12 @@ h1{font-size:clamp(39px,5vw,66px)}h2{font-size:23px;letter-spacing:-.035em;line-
 .create-family{margin-top:18px;border-top:1px solid var(--line);padding-top:8px}
 .create-family button{background:none;border:0;padding:0;text-decoration:underline;text-underline-offset:3px}
 .create-family p,[data-create-note]{font-size:14px;color:var(--muted);display:block}.create-family p{margin-top:-4px}
+.shop-search{display:flex;align-items:stretch;gap:8px}.shop-search .search{flex:1;min-width:0}.shop-search .button{font-size:14px}
+.named-panel{min-width:0}.named-panel label[for="names"]{font-size:20px;font-weight:800}.named-panel p{margin:5px 0 11px;color:var(--muted)}
+#names{display:block;width:100%;min-height:70px;padding:10px 12px;margin:9px 0;border:1px solid #a8baac;border-radius:8px;font:inherit;color:var(--ink);resize:vertical}
+.named-results{border-top:1px solid var(--line);margin-top:20px;padding-top:16px}.named-results h2:focus{outline:0}
+.named-actions{position:sticky;top:0;z-index:1;background:white;padding:9px 0}.named-actions button:disabled{background:#e3e9df;color:#536559}
+.named-option{display:flex;align-items:center;gap:10px;min-height:56px;padding:9px 5px;border-top:1px solid var(--line);cursor:pointer}
+.named-option:has(input:checked){background:#f0f6eb}.named-option input{flex:none;width:20px;height:20px;accent-color:var(--green)}
+.named-option>span{flex:1;min-width:0;line-height:1.3}.named-option small{display:block;color:var(--muted);font-size:13px;margin-top:3px}.named-option>strong{font-variant-numeric:tabular-nums}
+@media(max-width:480px){.shop-search{flex-wrap:wrap}.shop-search .search{flex-basis:100%}.shop-search .button{width:100%}.named-option .thumb{width:35px;height:42px}.named-option{gap:7px}.named-option>strong{font-size:14px}}
