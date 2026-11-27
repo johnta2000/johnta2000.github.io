@@ -6,16 +6,16 @@ const fields = { picks: v.string(), base: v.number(), extra: v.boolean() };
 type Selection = { picks: string; base: number; extra: boolean };
 
 function checkSelection({ picks, base }: Selection, allowEmpty: boolean) {
-  if (picks.length > 1220 || !Number.isSafeInteger(base) || base < 0 || base > 999999999) {
+  if (picks.length > 1800 || !Number.isSafeInteger(base) || base < 0 || base > 999999999) {
     throw new Error("Invalid shopping list.");
   }
   const tokens = picks ? picks.split(".") : [];
   if ((!tokens.length && !base && !allowEmpty) || tokens.length > 174) throw new Error("Invalid shopping list.");
   let previous = 0;
   for (const token of tokens) {
-    const match = /^([1-9]\d{0,2})(?:x([2-9]|[1-9]\d))?$/.exec(token);
+    const match = /^([1-9]\d{0,4})(?:x([2-9]|[1-9]\d))?$/.exec(token);
     const product = match ? Number(match[1]) : 0;
-    if (product < 1 || product > 174 || product <= previous) throw new Error("Invalid product reference.");
+    if (product < 1 || product > 99999 || product <= previous) throw new Error("Invalid product reference.");
     previous = product;
   }
 }
@@ -76,7 +76,7 @@ export const updateFamily = mutation({
   args: { id: v.id("worcesterFamilyLists"), request: v.string(), change: v.object(changeFields) },
   handler: async (ctx, { id, request, change }) => {
     validateRequest(request);
-    if (change.items.length > 174 || change.items.some(op => !Number.isInteger(op.id) || op.id < 1 || op.id > 174 ||
+    if (change.items.length > 174 || change.items.some(op => !Number.isInteger(op.id) || op.id < 1 || op.id > 99999 ||
       !Number.isInteger(op.count) || Math.abs(op.count) > 99 || (!op.relative && op.count < 0))) throw new Error("Invalid item change.");
     const list = await ctx.db.get(id);
     if (!list) throw new Error("Shopping list unavailable.");

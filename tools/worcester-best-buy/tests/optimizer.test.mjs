@@ -94,3 +94,25 @@ test('changing basket size and ranking searches the correct qualifying carts', (
   assert.equal(quote(10098,true).net,5098);
   assert.deepEqual(saleSavings(coffee,inventory,0),{markdown:15900,complete:true});
 });
+
+test('larger groups of similarly priced products preserve the highest-ranked qualifying totals', () => {
+  const products = Array.from({ length: 22 }, (_, i) => ({
+    id: 'item-' + (200 + i), price: [18, 24, 33, 41, 52, 60][i % 6],
+    compare: 64 + i, cat: ['Gaming','Audio'][i % 2], platform: 'door'
+  }));
+  for (const rank of ['near','sale']) {
+    const matches = [];
+    function search(start, chosen, sum) {
+      for (let i=start;i<products.length;i++) {
+        const next = [...chosen,products[i]], total = sum + products[i].price * 100;
+        if (total < 10000 && next.length < 3) search(i+1,next,total);
+        if (total < 10000 || total-Math.min(...next.map(p=>p.price))*100 >= 10000 || (rank==='sale' && total>11000)) continue;
+        matches.push([total,next.length,new Set(next.map(p=>p.cat)).size,next.reduce((n,p)=>n+(p.compare-p.price)*100,0)]);
+      }
+    }
+    search(0,[],700);
+    matches.sort((a,b)=>(rank==='sale'?b[3]-a[3]:0)||a[0]-b[0]||a[1]-b[1]||a[2]-b[2]||b[3]-a[3]);
+    const actual=rankedAdditions(700,products,new Map(),{rank,limit:4});
+    assert.deepEqual(actual.map(m=>[m.subtotal,m.items.length,m.categories,m.markdown]),matches.slice(0,4));
+  }
+});

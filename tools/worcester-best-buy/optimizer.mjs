@@ -76,29 +76,54 @@ export function rankedAdditions(subtotal, pool, cart, options = {}) {
   if (subtotal >= target) return [];
   const candidates = pool.filter(item => canModel(item) && item.flag !== 'guest listing' &&
     !cart.has(item.id) && (!category || category === item.cat));
-  const matches = [];
-  function visit(start, selected, total, cheapest) {
-    for (let i = start; i < candidates.length; i++) {
-      const item = candidates[i];
-      const cents = price(item);
-      const sum = total + cents;
-      const lowest = Math.min(cheapest, cents);
-      if (sum - lowest >= target) continue;
-      if (rank === 'sale' && sum > target + 1000) continue;
-      const next = [...selected, item];
-      if (sum >= target) {
-        matches.push({ items: next, subtotal: sum, categories: new Set(next.map(v => v.cat)).size,
-          markdown: next.reduce((n, v) => n + Math.max(0, Math.round((v.compare || v.price) * 100) - price(v)), 0) });
-      } else if (next.length < maxItems) {
-        visit(i + 1, next, sum, lowest);
+  const discount = item => Math.max(0, Math.round((item.compare || item.price) * 100) - price(item));
+  // For equivalent prices and categories, lower markdowns can only rank after
+  // all combinations using the higher-markdown items in the same group.
+  const groups = new Map();
+  for (const item of candidates) {
+    const key = JSON.stringify([price(item), item.cat]);
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(item);
+  }
+  const sorted = [...groups.values()].flatMap(group =>
+    group.sort((a,b) => discount(b)-discount(a)).slice(0, limit + maxItems - 1)
+  ).sort((a,b) => price(a)-price(b));
+  const costs = sorted.map(price);
+  const markdowns = sorted.map(discount);
+  const best = [];
+  const compare = (a,b) => (rank === 'sale' ? b.markdown - a.markdown : 0) ||
+    a.subtotal-b.subtotal || a.items.length-b.items.length ||
+    a.categories-b.categories || b.markdown-a.markdown;
+  function visit(start, selected, total, markdown, cheapest) {
+    if (selected.length + 1 === maxItems) {
+      let hi = sorted.length;
+      while (start < hi) {
+        const mid = (start + hi) >>> 1;
+        if (total + costs[mid] < target) start = mid+1;
+        else hi = mid;
       }
     }
+    for (let i=start; i<sorted.length; i++) {
+      const sum = total + costs[i];
+      const lowest = selected.length ? cheapest : costs[i];
+      if (sum - lowest >= target || (rank === 'sale' && sum > target+1000)) break;
+      if (rank !== 'sale' && best.length === limit && sum > best[limit-1].subtotal) break;
+      const savings = markdown + markdowns[i];
+      if (sum < target) {
+        if (selected.length+1 < maxItems) visit(i+1, [...selected,sorted[i]],sum,savings,lowest);
+        continue;
+      }
+      if (rank === 'sale' && (!savings || (best.length === limit && savings < best[limit-1].markdown))) continue;
+      const items = [...selected,sorted[i]];
+      const match = {items, subtotal:sum, categories:new Set(items.map(x=>x.cat)).size, markdown:savings};
+      if (best.length === limit && compare(match,best[limit-1]) >= 0) continue;
+      best.push(match);
+      best.sort(compare);
+      if (best.length > limit) best.pop();
+    }
   }
-  visit(0, [], subtotal, Infinity);
-  matches.sort((a, b) => (rank === 'sale' ? b.markdown - a.markdown : 0) ||
-    a.subtotal - b.subtotal || a.items.length - b.items.length ||
-    a.categories - b.categories || b.markdown - a.markdown);
-  return (rank === 'sale' ? matches.filter(match => match.markdown > 0) : matches).slice(0, limit);
+  visit(0,[],subtotal,0,Infinity);
+  return best;
 }
 
 // Cheapest qualifying subset of a user's selections. Keep only sub-target sums

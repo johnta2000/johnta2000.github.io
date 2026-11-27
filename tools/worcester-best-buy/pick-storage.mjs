@@ -5,7 +5,7 @@ export function selectionKey({ picks, base, extra }) {
 }
 
 export function validSnapshot(value) {
-  return !!value && typeof value.picks === 'string' && value.picks.length <= 1220 &&
+  return !!value && typeof value.picks === 'string' && value.picks.length <= 1800 &&
     Number.isSafeInteger(value.base) && value.base >= 0 && value.base <= 999999999 &&
     typeof value.extra === 'boolean';
 }

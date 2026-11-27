@@ -1,4 +1,4 @@
-import { target, canModel, price, changeQuantity, decodeCart, encodeCart, quote, subtotalOf, saleSavings, parseAmount, rankedAdditions, cheapestSubset } from './optimizer.mjs';
+import { target, canModel, price, changeQuantity, decodeCart, encodeCart, quote, subtotalOf, saleSavings, parseAmount, rankedAdditions, cheapestSubset } from './optimizer.mjs?v=depth1';
 import { pickStore, selectionKey, callPicks } from './pick-storage.mjs?v=2';
 import { familyStore } from './family-store.mjs?v=2';
 import { changedItems } from './family-picks.mjs';
@@ -70,7 +70,7 @@ function loadDraft(value) {
 function href(section = 'catalog', changes = {}, clean = false) {
   const u = new URL(location.href);
   if (clean) u.search = '';
-  u.searchParams.delete('page');
+  if (section !== 'catalog') u.searchParams.delete('pg');
   if (section !== 'list') { u.searchParams.delete('matches'); u.searchParams.delete('checked'); }
   for (const [key, value] of Object.entries(changes)) {
     if (value === undefined || value === null || value === '') u.searchParams.delete(key);
@@ -185,7 +185,7 @@ function resultSet(state) {
   const tokens = state.q.trim().toLowerCase().split(/\s+/).filter(Boolean).map(term=>term==='lights'?'light':term);
   const matches = data.filter(item => {
     if (state.app === 'shop' ? !canModel(item) : state.app !== 'both' && item.platform !== state.app) return false;
-    if (state.category && item.cat !== state.category || state.under && (item.high || item.price) > 15) return false;
+    if (state.category && item.cat !== state.category && !item.departments?.includes(state.category) || state.under && (item.high || item.price) > 15) return false;
     const words = (item.name + ' ' + (item.short || '') + ' ' + item.cat + ' ' + (groupNames[item.cat] || '')).toLowerCase();
     return tokens.every(token => words.includes(token));
   });
@@ -228,9 +228,16 @@ function mobileTray(s) {
 }
 
 function shop(s) {
-  const filterUrl = changes => href('catalog', changes);
+  const filterUrl = changes => href('catalog', {pg:'', ...changes});
   const reset = filterUrl({app:'', q:'', category:'', sort:'', max:'', filters:''});
   const matches = resultSet(s);
+  const pageSize = config.pageSize || Math.max(1,matches.length);
+  const pages = Math.max(1,Math.ceil(matches.length/pageSize));
+  const page = Math.min(pages,Math.max(1,parseInt(new URLSearchParams(location.search).get('pg'),10)||1));
+  const rows = matches.slice((page-1)*pageSize,page*pageSize);
+  const pagination = pages > 1 ? `<nav class="chips" aria-label="Catalog pages">
+    ${page>1?a('← Previous',href('catalog',{pg:page-1}),'button outline'):''}<span>Page ${page} of ${pages}</span>
+    ${page<pages?a('Next →',href('catalog',{pg:page+1}),'button outline'):''}</nav>` : '';
   const primaryFilters = [
     pill('All',filterUrl({category:'',max:''}),!s.category && !s.under),
     ...categories.map(name => pill(groupNames[name] || name,filterUrl({category:name,max:''}),s.category === name && !s.under)),
@@ -247,8 +254,9 @@ function shop(s) {
     <nav class="chips quick" aria-label="Product categories">${primaryFilters}</nav>
     <div class="result-bar"><span>${matches.length} ${s.app==='shop' ? 'DoorDash items' : 'listings'}</span><div>${filtersActive ? a('Clear',reset,'text-button') : ''}</div></div>
     ${filters}
-    <div class="grid">${matches.map((item,i)=>productCard(item,s,i)).join('') || `<div class="empty"><h2>No matching products</h2><p>Try a different search or browse all the products again.</p>${s.app!=='both'?a('Search all '+data.length+' listings',filterUrl({app:'both',category:'',max:''}),'button outline'):a('Clear filters',reset,'button outline')}</div>`}</div>
-    </div>${rail(s)}</div>`;
+    ${config.departments?.[s.category] ? out('Open this department on DoorDash ↗',config.departments[s.category],'inline-link') : ''}
+    <div class="grid">${rows.map((item,i)=>productCard(item,s,i)).join('') || `<div class="empty"><h2>No matching products</h2><p>Try a different search or browse all the products again.</p>${s.app!=='both'?a('Search all '+data.length+' listings',filterUrl({app:'both',category:'',max:''}),'button outline'):a('Clear filters',reset,'button outline')}</div>`}</div>
+    ${pagination}</div>${rail(s)}</div>`;
 }
 
 function pickByName(s) {
@@ -682,7 +690,7 @@ document.addEventListener('input',event=>{
   }
   if (event.target.id!=='search') return;
   const input=event.target;
-  go(href('catalog',{q:input.value}),{replace:searchTyping,focus:'search',cursor:input.selectionStart});
+  go(href('catalog',{q:input.value,pg:''}),{replace:searchTyping,focus:'search',cursor:input.selectionStart});
   searchTyping=true;
 });
 
