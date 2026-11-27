@@ -15,7 +15,7 @@
       personCharges: Object.fromEntries(people.map(p => [p, 0])),
       personBalances: Object.fromEntries(people.map(p => [p, 0])), invalidSplits: 0 };
     result.personCollection = Object.fromEntries(people.map(p => [p, 0]));
-    result.collectionUnassigned = 0; result.collectionUnassignedCount = 0; result.collectionAdjustments = [];
+    result.collectionUnassigned = 0; result.collectionUnassignedCount = 0;
     for (const row of statement.rows) {
       const charge = chargeKinds.has(row.kind);
       const collection = collectionForRow(row).allocation;
@@ -28,7 +28,6 @@
       result.collectionUnassigned += residual;
       if (residual !== 0 || (!collection && row.amountCents !== 0)) {
         result.collectionUnassignedCount++;
-        result.collectionAdjustments.push({id:row._id, description:row.description, kind:row.kind, amountCents:residual});
       }
       result.imported += row.amountCents;
       if (charge) result.charges += row.amountCents;

@@ -267,7 +267,7 @@ test('ignored payments and cancelling unassigned items cannot claim fully alloca
   db.rows.push({_id:'payment',date:'2026-09-10',kind:'payment',description:'Payment',amountCents:-1000,ignored:true,note:'',version:0,page:2});
   const {page}=await setup(browser,390,900,db);
   await page.locator('#balances-view').click();
-  assert.match(await page.locator('#allocation-check').textContent(),/unassigned adjustments/);
+  assert.match(await page.locator('#allocation-check').textContent(),/4 items to assign · \$133\.21 net unassigned/);
   assert.ok(!(await page.locator('#allocation-check').textContent()).includes('Ready to collect'));
   assert.match(await page.locator('#statement-math-status').textContent(),/arithmetic matches/);
   await page.close();
@@ -292,7 +292,7 @@ test('To collect is the default, carries prior shares, deducts payments and keep
   assert.equal(await page.locator('#unassigned-total').textContent(),'-$0.50');
   await page.locator('[data-filter="unassigned"]').click();assert.equal(await page.locator('.row').count(),1);assert.equal(await page.locator('.row').getAttribute('data-id'),'prior');
   await page.locator('[data-filter="all"]').click();
-  assert.match(await page.locator('#allocation-check').textContent(),/not final payment requests/);
+  assert.match(await page.locator('#allocation-check').textContent(),/1 item to assign · -\$0\.50 net unassigned/);
   await page.locator('#charges-view').click();assert.equal(await page.locator('#john-total').textContent(),'$1,000.00');
   assert.match(page.url(),/totals=charges/);const copied=page.url();await page.reload();await page.locator('.row').first().waitFor();
   assert.equal(await page.locator('#john-total').textContent(),'$1,000.00');

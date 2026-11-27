@@ -116,14 +116,19 @@ function renderReconciliation(math){
  $('statement-math-help').textContent=csv?'The imported activity includes payments and refunds. No opening balance was provided; this is not the issuer’s current balance.':'New charges + carried balance + card payments = statement balance. Older charges stay with their original statement. Paying the card does not by itself mean someone has reimbursed you.';
  const context=data.rows.filter(r=>r.kind==='opening'&&(r.collectionNote||r.note)).map(r=>r.collectionNote||r.note).join('\n');
  $('prior-context').textContent=context;$('prior-context').hidden=!context;
- const adjustments=$('collection-adjustments');adjustments.replaceChildren();adjustments.hidden=chargeMode||!math.collectionAdjustments.length;
- if(!chargeMode)for(const a of math.collectionAdjustments){const li=el('li');li.append(el('span',a.kind==='opening'?'Prior balance adjustment':merchantName(a.description||'Unassigned item')),el('strong',money(a.amountCents)));adjustments.append(li);}
  if(chargeMode){
   $('allocation-check').classList.remove('needs-review');
   const assigned=Object.values(math.personCharges).reduce((a,b)=>a+b,0);
   $('allocation-check').textContent=math.invalidSplits?'A saved split needs review.':math.chargeUnassignedCount?`${math.chargeUnassignedCount} charge ${math.chargeUnassignedCount===1?'item still needs':'items still need'} a label · ${money(math.chargeUnassigned)} net unassigned. Assigned ${money(assigned)} + unassigned ${money(math.chargeUnassigned)} + ignored charges ${money(math.chargeIgnored)} = ${money(math.charges)}.`:`Charge review complete. Assigned ${money(assigned)} + ignored charges ${money(math.chargeIgnored)} = ${money(math.charges)}. This is spending after refunds, before card payments.`;
  }else{
-  $('allocation-check').textContent=ready?`Ready to collect: the person totals add up to ${money(data.balanceCents)}.`:`${pending.size||failures.size||saveWarning?'Finish saving or resolve save errors before collecting.':`${math.collectionUnassignedCount} ${math.collectionUnassignedCount===1?'adjustment needs':'adjustments need'} an owner.`} Person totals ${money(math.collectionTotal)} + unassigned adjustments ${money(math.collectionUnassigned)} = ${money(math.imported)}. ${csv?'Confirm the issuer balance before requesting money.':'These are provisional amounts, not final payment requests.'}`;
+  const count=math.collectionUnassignedCount;
+  let summary;
+  if(pending.size||failures.size||saveWarning) summary='Finish saving before collecting.';
+  else if(math.invalidSplits||!math.importMatches) summary='Review the statement totals before collecting.';
+  else if(count) summary=`${count} ${count===1?'item':'items'} to assign · ${money(math.collectionUnassigned)} net unassigned`;
+  else if(csv) summary='All items assigned. Confirm the issuer balance before collecting.';
+  else summary=`Ready to collect · ${money(data.balanceCents)}`;
+  $('allocation-check').textContent=summary;
   $('allocation-check').classList.toggle('needs-review',!ready);
  }
 }
