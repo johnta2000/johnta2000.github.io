@@ -2,8 +2,11 @@
 
 ## Page registration and publishing
 
-- Update `scripts/monitoring/site-pages.json` in the same change that adds, removes, renames, or changes the identity of a published HTML page. For pages without analytics, use `analytics: false` with the expected title.
-- Stage the HTML and manifest together, then run `node --test tests/analytics.test.cjs` from the repository root before pushing. The check reads the Git index to discover pages, including newly staged files.
+- Before pushing a website change, update `scripts/monitoring/site-pages.json` in the same commit as any added, removed, renamed, or moved HTML page. Keep the route and page identity in sync. For a page without analytics, use `analytics: false` and its actual title.
+- Stage the intended HTML and manifest changes together, then run `node --test tests/analytics.test.cjs` from the repository root. The check discovers HTML through the Git index. Fix any mismatch and rerun the check before pushing.
+- After a production push, follow the publish run for that commit through completion. If a newer commit supersedes it, follow the newer run that includes the change. Once Pages reports success, verify the affected live URL serves the expected page.
+- For a failure email, open the linked run and read the first blocking step. A page registration failure calls for a source fix. For a live health failure, check the specific URL or asset named in the log. Verify the live impact before reporting an outage.
+- If Pages reports `deployment_failed` after upload, let the publisher's configured retry finish. Before starting a manual retry, check whether a deployment is still pending or a newer revision has already shipped. If the retry also fails, inspect the deployment and report the run link, affected revision, and live impact. Keep genuine failures visible.
 
 ## Dropdowns and selectors
 
