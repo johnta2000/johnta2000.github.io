@@ -1,3 +1,4 @@
+import { mobileReview, phoneLayouts } from './mobile.mjs';
 import { dates, designById, directions, memberById, metricKeys } from './sample.mjs';
 import { board, matchup, thumbnail } from './boards.mjs';
 
@@ -9,18 +10,24 @@ const fallback = document.getElementById('share-fallback');
 const manual = document.getElementById('share-text');
 const appearance = window.matchMedia('(prefers-color-scheme: dark)');
 const base = new URL('./', location.href);
-const defaults = {design:'', with:'', choose:'', metric:'sleep', second:'workout', who:'jordan', peer:'you', day:3, theme:'auto', duel:false, side:0, edit:false, rules:false};
+const defaults = {mobile:'',beside:'bands',inspect:'',settings:false,design:'', with:'', choose:'', metric:'sleep', second:'workout', who:'jordan', peer:'you', day:3, theme:'auto', duel:false, side:0, edit:false, rules:false};
 const validDesign = id => Object.hasOwn(designById,id);
 const validPerson = id => Object.hasOwn(memberById,id);
 
 function read(url) {
   const p = url.searchParams, s = {...defaults};
-  if (validDesign(p.get('compare'))) s.choose=p.get('compare');
+  if (Object.hasOwn(phoneLayouts,p.get('mobile'))) {
+    s.mobile=p.get('mobile');
+    if(Object.hasOwn(phoneLayouts,p.get('beside'))) s.beside=p.get('beside');
+    if(s.beside===s.mobile)s.beside=s.mobile==='bands'?'ledger':'bands';
+  } else if (validDesign(p.get('compare'))) s.choose=p.get('compare');
   else if (validDesign(p.get('design'))) {
     s.design=p.get('design');
     if (validDesign(p.get('with')) && p.get('with')!==s.design) s.with=p.get('with');
   }
   for (const k of ['metric','second']) if(metricKeys.includes(p.get(k))) s[k]=p.get(k);
+  s.settings=p.get('controls')==='open';
+  if(validPerson(p.get('inspect')))s.inspect=p.get('inspect');
   if (s.metric===s.second) s.second=metricKeys.find(k=>k!==s.metric);
   for (const k of ['who','peer']) if(validPerson(p.get(k))) s[k]=p.get(k);
   if(s.who===s.peer) s.peer=s.who==='you'?'jordan':'you';
@@ -35,6 +42,8 @@ let state=read(new URL(location.href));
 
 function nextState(patch) {
   const s={...state,...patch};
+  if(patch.mobile) {s.design='';s.choose='';s.with='';if(s.mobile===s.beside)s.beside=state.mobile||'ledger'}
+  if(patch.beside && patch.beside===state.mobile)s.mobile=state.beside;
   if(patch.metric && patch.metric===state.second) s.second=state.metric;
   if(patch.second && patch.second===state.metric) s.metric=state.second;
   if(patch.who && patch.who===state.peer) s.peer=state.who;
@@ -47,7 +56,10 @@ function nextState(patch) {
 
 function href(patch={}) {
   const s=nextState(patch), u=new URL(base.href), p=u.searchParams;
-  if(s.choose) p.set('compare',s.choose);
+  if(s.settings)p.set('controls','open');
+  if(s.inspect)p.set('inspect',s.inspect);
+  if(s.mobile) {p.set('mobile',s.mobile);if(s.beside!==defaults.beside)p.set('beside',s.beside)}
+  else if(s.choose) p.set('compare',s.choose);
   else if(s.design) {p.set('design',s.design);if(s.with)p.set('with',s.with)}
   for(const k of ['metric','second','who','peer','theme']) if(s[k]!==defaults[k])p.set(k,s[k]);
   if(s.day!==defaults.day)p.set('day',dates[s.day]);
@@ -57,8 +69,8 @@ function href(patch={}) {
   if(s.side)p.set('side','2');
   return u.pathname+u.search;
 }
-const galleryPatch = {design:'',with:'',choose:'',duel:false,edit:false,side:0,rules:false};
-const designPatch = id => ({design:id, with:'', choose:'', duel:false, edit:false, side:0,rules:false});
+const galleryPatch = {mobile:'',beside:'bands',inspect:'',settings:false,design:'',with:'',choose:'',duel:false,edit:false,side:0,rules:false};
+const designPatch = id => ({...galleryPatch,design:id, with:'', choose:'', duel:false, edit:false, side:0,rules:false});
 const choosePatch = id => ({...galleryPatch, choose:id});
 const link = (url, label, classes='') => '<a data-nav href="'+url+'" class="'+classes+'">'+label+'</a>';
 
@@ -76,7 +88,7 @@ function gallery() {
   const title=choosing?'Compare with '+designById[state.choose].name:'Group standings';
   const crumb=choosing?link(href(galleryPatch),'All designs','backlink'):'';
   return '<section class="intro">'+crumb+'<h1 tabindex="-1">'+title+'</h1><p>'+(choosing?'Choose a second layout to see both with the same group.':'Try six layouts with ten fictional friends. Compare two, then send John your pick.')+'</p></section>'+
-    '<div class="gallery">'+directions.map(d=>previewCard(d,choosing)).join('')+'</div>';
+    (choosing?'':link(href({mobile:'ledger'}),'Mobile moodboards <span>Split scoreboard and Highs &amp; lows ↗</span>','phone-entry'))+'<div class="gallery">'+directions.map(d=>previewCard(d,choosing)).join('')+'</div>';
 }
 function pairSummary(c) {
   return '<nav class="pair-summary" aria-label="Design to inspect on your phone">'+[state.design,state.with].map((id,i)=>{
@@ -102,12 +114,12 @@ function render() {
   themeButton.setAttribute('aria-label','Appearance is '+(state.theme==='auto'?'system':state.theme)+'. Change appearance');
   themeButton.title='Change appearance';
   document.querySelector('[data-studio-home]').href=href(galleryPatch);
-  page.innerHTML=state.design?detail():gallery();
-  const title=state.with?designById[state.design].name+' + '+designById[state.with].name:state.design?designById[state.design].name:state.choose?'Compare designs':'Group standings design review';
+  page.innerHTML=state.mobile?mobileReview({s:state,url:href}):state.design?detail():gallery();
+  const title=state.mobile?phoneLayouts[state.mobile].name+' · Mobile moodboards':state.with?designById[state.design].name+' + '+designById[state.with].name:state.design?designById[state.design].name:state.choose?'Compare designs':'Group standings design review';
   document.title=title+' · Sleepington';
 }
 
-function routeID(s) {return [s.design,s.with,s.choose].join('/')}
+function routeID(s) {return [s.design,s.with,s.choose,Boolean(s.mobile)].join('/')}
 function navigate(dest,push) {
   const before=state, old=routeID(before), oldY=window.scrollY;
   const next=new URL(dest,location.href);
@@ -170,9 +182,9 @@ async function copy(text,message,trigger) {
 copyButton.addEventListener('click',()=>copy(new URL(href(),location.origin).href,'Link copied',copyButton));
 document.getElementById('close-share').addEventListener('click',()=>{fallback.hidden=true;fallback._trigger?.focus()});
 page.addEventListener('click',async e=>{
-  const button=e.target.closest('[data-pick]');if(!button)return;
-  const id=button.dataset.pick, d=designById[id];
-  const url=new URL(href(designPatch(id)),location.origin).href;
+  const button=e.target.closest('[data-pick],[data-phone-pick]');if(!button)return;
+  const phone=button.dataset.phonePick, id=button.dataset.pick, d=phone?phoneLayouts[phone]:designById[id];
+  const url=new URL(href(phone?{mobile:phone}:designPatch(id)),location.origin).href;
   const message='My Sleepington pick is '+d.name+'.';
   if(navigator.share) {
     try{await navigator.share({title:'Sleepington · '+d.name,text:message,url});return}

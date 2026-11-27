@@ -1,3 +1,4 @@
+import { phoneContents } from './mobile.mjs';
 import { byPerson, dateLabel, dates, designById, difference, format, gapReason, memberById, members, metricKeys, metrics, nightly, spreadRows, weekdays, weekly } from './sample.mjs';
 
 const ord = n => n === null ? '—' : '#' + n;
@@ -110,7 +111,10 @@ export function matchup(c) {
 const views={split,sheet,daily,profile,range,chase};
 export function board(c,id,pair=false) {
   const d=designById[id],heading=pair?'h2':'h1';
-  return '<article class="board tone-'+id+'" data-board="'+id+'"><header class="board-header"><div class="board-meta"><span>friendos</span><span>Nov 19–25 · Sample group</span></div><'+heading+'>'+d.name+'</'+heading+'><p>'+d.detail+'</p></header><div class="board-body">'+views[id](c)+'</div><div class="board-foot"><button type="button" class="pick" data-pick="'+id+'">Share this pick</button></div></article>';
+  const phoneId={split:'ledger',range:'bands'}[id];
+  const review=phoneId?'<a data-nav class="mobile-review-link" href="'+c.url({mobile:phoneId})+'">Compare phone layouts ↗</a>':'';
+  const data=phoneId?'<div class="original-board">'+views[id](c)+'</div><div class="small-board">'+phoneContents(c,phoneId)+'</div>':views[id](c);
+  return '<article class="board tone-'+id+'" data-board="'+id+'"><header class="board-header"><div class="board-meta"><span>friendos</span><span>Nov 19–25 · Sample group</span></div><'+heading+'>'+d.name+'</'+heading+'><p>'+d.detail+'</p></header><div class="board-body">'+data+'</div><div class="board-foot">'+review+'<button type="button" class="pick" data-pick="'+id+'">Share this pick</button></div></article>';
 }
 
 export function thumbnail(id) {
