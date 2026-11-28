@@ -7,8 +7,6 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 # A newer commit may queue, but must not cancel an active Pages rollout.
 concurrency:
@@ -16,7 +14,16 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  validate:
+    uses: ./.github/workflows/site-checks.yml
+
   publish:
+    needs: validate
+    if: github.ref == 'refs/heads/master'
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
     runs-on: ubuntu-latest
     timeout-minutes: 40
     environment:
