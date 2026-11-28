@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-11-27T22:00:53.666Z",
+  "generatedAt": "2026-11-28T03:56:26.259Z",
   "overallStatus": "attention",
   "latestEventId": "20261028170701-chase-sapphire-reserve-tables-failure",
   "monitors": [
@@ -14,10 +14,10 @@
       "cadence": "Hourly",
       "expectedCount": 33,
       "currentCount": 35,
-      "latestRunAt": "2026-11-27T22:00:53.666Z",
-      "latestSuccessAt": "2026-11-27T22:00:53.666Z",
+      "latestRunAt": "2026-11-28T03:56:26.259Z",
+      "latestSuccessAt": "2026-11-28T03:56:26.259Z",
       "latestChangeAt": "2026-10-27T18:45:37.189Z",
-      "durationMs": 1752,
+      "durationMs": 2433,
       "summary": "No merchant changes across 3 pages.",
       "error": null,
       "pagination": {
@@ -36,15 +36,15 @@
         "renamed": []
       },
       "cache": {
-        "runId": "1795816853666",
+        "runId": "1795838186259",
         "requestCount": 3,
         "crawlIds": [
           "primary"
         ],
         "requestIds": [
-          "1795816853671001",
-          "1795816854442002",
-          "1795816854934003"
+          "1795838186262001",
+          "1795838187126002",
+          "1795838187911003"
         ]
       }
     },
